@@ -1,0 +1,251 @@
+@model IEnumerable<ProjectTracking.Models.ProjectPhase>
+@using System.Globalization
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Project Phases";
+    var th = new CultureInfo("th-TH");
+
+    // ✅ เรียงตาม phase_id
+    var orderedPhases = Model?.OrderBy(p => p.PhaseId) ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>();
+}
+
+<style>
+    table tbody tr.phase-main > td {
+        background-color: #feb871 !important;
+    }
+
+    table tbody tr.phase-support > td {
+        background-color: #e9f7ef !important;
+    }
+
+    table tbody tr.phase-main {
+        border-left: 5px solid #ff6200;
+    }
+
+    table tbody tr.phase-support {
+        border-left: 5px solid #198754;
+    }
+</style>
+
+<h2 class="fw-bold mb-3">🧩 Project Phases</h2>
+
+<p class="text-muted">
+    เลือกโครงการเพื่อจัดการ Phase ของแต่ละ Project
+</p>
+
+<form method="get" class="mb-4">
+    <div class="col-md-6">
+
+        <label class="form-label fw-bold">📁 Select Project</label>
+
+        <input type="text"
+               id="projectSearch"
+               class="form-control"
+               placeholder="🔍 พิมพ์ค้นหา Project..."
+               autocomplete="off" />
+
+        <div id="projectDropdown"
+             class="list-group mt-1"
+             style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+        </div>
+
+        <select name="projectId"
+                id="hiddenProjectSelect"
+                style="display:none;">
+            <option value="">-- Select Project --</option>
+
+            @foreach (var p in ViewBag.Projects)
+            {
+                <option value="@p.ProjectId"
+                        selected="@(ViewBag.SelectedProject != null &&
+                                    ViewBag.SelectedProject.ProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
+            }
+        </select>
+
+    </div>
+</form>
+
+@if (ViewBag.SelectedProject != null)
+{
+    var selectedProject = ViewBag.SelectedProject;
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold">
+            📌 Project : @selectedProject.ProjectName
+        </h4>
+
+        <a asp-action="Create"
+           asp-route-projectId="@selectedProject.ProjectId"
+           class="btn btn-primary">
+            ➕ Add Phase
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width:70px;">No.</th>
+                    <th style="width:90px;">Order</th>
+                    <th style="min-width:260px;">Phase Name</th>
+                    <th style="width:280px;">Plan Period</th>
+                    <th style="width:280px;">Period Date</th>
+                    <th style="width:320px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!orderedPhases.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        — No Phase —
+                    </td>
+                </tr>
+            }
+            else
+            {
+                var row = 1;
+
+                foreach (var phase in orderedPhases)
+                {
+                    <tr class="@(phase.PhaseType == "MAIN"
+                                    ? "phase-main"
+                                    : phase.PhaseType == "SUPPORT"
+                                        ? "phase-support"
+                                        : "")">
+
+                        <!-- ⭐ NEW ROW NUMBER -->
+                        <td class="text-center fw-semibold">
+                            @row
+                        </td>
+
+                        <td class="text-center fw-bold">
+                            @phase.PhaseOrder
+                        </td>
+
+                        <td>
+                            <b>@phase.PhaseName</b>
+                        </td>
+
+                        <td class="text-center">
+                            @(phase.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            &nbsp;–&nbsp;
+                            @(phase.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </td>
+
+                        <td class="text-center">
+                            @(phase.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            &nbsp;–&nbsp;
+                            @(phase.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </td>
+
+                        <td class="text-center">
+                            <a asp-action="Edit"
+                               asp-route-id="@phase.PhaseId"
+                               class="btn btn-sm btn-outline-primary me-1">
+                                ✏️ Edit
+                            </a>
+
+                          <a asp-controller="PhaseAssigns"
+                            asp-action="Index"
+                            asp-route-projectId="@selectedProject.ProjectId"
+                            asp-route-phaseId="@phase.PhaseId"
+                            class="btn btn-sm btn-outline-info me-1">
+                                👥 Assign
+                            </a>
+
+                            <form asp-action="Delete"
+                                  method="post"
+                                  class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@phase.PhaseId" />
+                                <input type="hidden" name="projectId"
+                                       value="@selectedProject.ProjectId" />
+
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                    🗑 Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    row++;
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-secondary">
+        ⬆ กรุณาเลือก Project ก่อน
+    </div>
+}
+
+@section Scripts{
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById("projectSearch");
+    const dropdown = document.getElementById("projectDropdown");
+    const hiddenSelect = document.getElementById("hiddenProjectSelect");
+
+    const options = Array.from(hiddenSelect.options);
+
+    function renderList(filter = "") {
+
+        dropdown.innerHTML = "";
+
+        const filtered = options.filter(o =>
+            o.text.toLowerCase().includes(filter.toLowerCase()) &&
+            o.value !== ""
+        );
+
+        if (filtered.length === 0) {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        filtered.forEach(o => {
+
+            const item = document.createElement("a");
+            item.className = "list-group-item list-group-item-action";
+            item.textContent = o.text;
+
+            item.onclick = function () {
+                searchInput.value = o.text;
+                hiddenSelect.value = o.value;
+                dropdown.style.display = "none";
+                searchInput.closest("form").submit();
+            };
+
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = "block";
+    }
+
+    searchInput.addEventListener("input", function () {
+        renderList(this.value);
+    });
+
+    searchInput.addEventListener("focus", function () {
+        renderList(this.value);
+    });
+
+    document.addEventListener("click", function (e) {
+        if (!searchInput.contains(e.target) &&
+            !dropdown.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+
+});
+</script>
+}

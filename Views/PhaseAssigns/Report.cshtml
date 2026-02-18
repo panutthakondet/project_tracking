@@ -1,0 +1,99 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Assigned Employees Report";
+    var th = new CultureInfo("th-TH");
+}
+
+<h2 class="fw-bold mb-3">📄 Assigned Employees Report</h2>
+
+<!-- FILTER -->
+<form method="get" class="row g-3 mb-4 no-print" id="filterForm">
+    <!-- PROJECT -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">📁 Project</label>
+
+        <!-- ✅ เพิ่ม class select2-search -->
+        <select id="projectSelect" name="projectId" class="form-select select2-search">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in ViewBag.Projects)
+            {
+                <option value="@p.ProjectId"
+                        selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- EMPLOYEE -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">👤 Employee</label>
+
+        <!-- ✅ เพิ่ม class select2-search -->
+        <select id="empSelect" name="empId" class="form-select select2-search">
+            <option value="">-- All Employees --</option>
+            @foreach (var e in ViewBag.EmployeeList)
+            {
+                <option value="@e.EmpId"
+                        selected="@(ViewBag.SelectedEmpId == e.EmpId)">
+                    @e.EmpName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- PRINT -->
+    <div class="col-md-4 align-self-end text-end">
+        <a class="btn btn-outline-secondary"
+           target="_blank"
+           asp-action="Print"
+           asp-route-projectId="@ViewBag.SelectedProjectId"
+           asp-route-empId="@ViewBag.SelectedEmpId">
+            🖨 Print
+        </a>
+    </div>
+</form>
+
+<!-- TABLE -->
+<table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark text-center">
+        <tr>
+            <th>Employee</th>
+            <th>Role</th>
+            <th>Plan</th>
+            <th>Actual</th>
+            <th>Remark</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var a in Model)
+    {
+        <tr>
+            <td>@a.Employee?.EmpName</td>
+            <td>@a.Role</td>
+            <td class="text-center">
+                @(a.PlanStart?.ToString("dd MMM yyyy", th)) –
+                @(a.PlanEnd?.ToString("dd MMM yyyy", th))
+            </td>
+            <td class="text-center">
+                @(a.ActualStart?.ToString("dd MMM yyyy", th)) –
+                @(a.ActualEnd?.ToString("dd MMM yyyy", th))
+            </td>
+            <td>@a.Remark</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@section Scripts {
+<script>
+    $(function () {
+        // ✅ ไม่ต้อง init select2 ที่นี่แล้ว (_Layout ทำให้)
+        // ✅ แค่ submit เมื่อเปลี่ยนค่า
+        $('#projectSelect, #empSelect').on('change', function () {
+            $('#filterForm').submit();
+        });
+    });
+</script>
+}

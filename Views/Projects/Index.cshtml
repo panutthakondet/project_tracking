@@ -1,0 +1,187 @@
+@using System.Globalization
+@model IEnumerable<ProjectTracking.Models.Project>
+
+@{
+    ViewData["Title"] = "Project List";
+    var th = new CultureInfo("th-TH");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold">📁 Project List</h2>
+
+    <a asp-action="Create" class="btn btn-primary">
+        ➕ Add Project
+    </a>
+</div>
+
+<p class="text-muted">รายการโครงการทั้งหมดในระบบ</p>
+
+<div class="row mb-3">
+    <div class="col-md-5">
+        <label class="form-label fw-bold">🔍 ค้นหา Project</label>
+        <input type="text" id="projectSearchBox"
+               class="form-control"
+               placeholder="พิมพ์ชื่อโครงการ / system / database / url ..."
+               autocomplete="off" />
+    </div>
+</div>
+
+<div class="table-responsive project-table-wrapper">
+    <table id="projectTable" class="table table-bordered table-hover align-middle project-table">
+        <thead class="table-dark text-center">
+            <tr>
+                <th class="sticky-col-1 col-id">ID</th>
+                <th class="sticky-col-2 col-name">Project Name</th>
+                <th class="col-system">System</th>
+                <th class="col-db">Database</th>
+                <th class="col-test">Test Account</th>
+                <th class="col-url">Remote / URL</th>
+                <th class="col-date">Start</th>
+                <th class="col-date">End</th>
+                <th class="col-status">Status</th>
+                <th class="col-mini">Figma</th>
+                <th class="col-mini">TOR</th>
+                <th class="col-action">Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="12" class="text-center text-muted">— No project data —</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var p in Model)
+            {
+                <tr>
+                    <td class="sticky-col-1 col-id text-center">@p.ProjectId</td>
+
+                    <td class="sticky-col-2 col-name fw-semibold">
+                        @p.ProjectName
+                    </td>
+
+                    <td class="col-system">@p.LinkName</td>
+                    <td class="col-db">@p.DatabaseName</td>
+                    <td class="col-test">@p.TestAccount</td>
+                    <td class="col-url small">@p.RemoteUrl</td>
+
+                    <td class="text-center col-date">
+                        @(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td class="text-center col-date">
+                        @(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td class="text-center col-status">
+                        <span class="badge
+                            @(p.Status == "DONE"
+                                ? "bg-success"
+                                : p.Status == "IN_PROGRESS"
+                                    ? "bg-info"
+                                    : "bg-warning text-dark")">
+                            @p.Status
+                        </span>
+                    </td>
+
+                    <td class="text-center col-mini">
+                        @if (!string.IsNullOrEmpty(p.FigmaLink))
+                        { <a href="@p.FigmaLink" target="_blank" class="btn btn-sm btn-outline-primary">🎨</a> }
+                        else { <span class="text-muted">-</span> }
+                    </td>
+
+                    <td class="text-center col-mini">
+                        @if (!string.IsNullOrEmpty(p.TorFilePath))
+                        { <a href="@p.TorFilePath" target="_blank" class="btn btn-sm btn-outline-success">📄</a> }
+                        else { <span class="text-muted">-</span> }
+                    </td>
+
+                    <td class="text-center col-action">
+                        <div class="d-flex justify-content-center gap-1 flex-wrap">
+                            <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary">✏️</a>
+                            <a asp-controller="ProjectPhases" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-sm btn-outline-info">🧩</a>
+                            <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Delete project นี้?');">🗑</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+<style>
+.project-table-wrapper{
+    overflow-x:auto;
+    border:1px solid #ddd;
+    border-radius:10px;
+}
+
+/* ===== ปรับสัดส่วนใหม่ ===== */
+.col-id{ width:70px; min-width:70px; }
+
+/* ⭐ ขยาย Project Name */
+.col-name{ width:280px; min-width:280px; }
+
+.col-system{ width:130px; min-width:130px; }
+.col-db{ width:130px; min-width:130px; }
+.col-test{ width:130px; min-width:130px; }
+
+/* ⭐ ลด URL เพราะยาวเกินจำเป็น */
+.col-url{ width:180px; min-width:180px; }
+
+.col-date{ width:115px; min-width:115px; }
+.col-status{ width:110px; min-width:110px; }
+.col-mini{ width:65px; min-width:65px; }
+.col-action{ width:210px; min-width:210px; }
+
+/* sticky */
+.sticky-col-1{
+    position:sticky;
+    left:0;
+    background:#fff;
+    z-index:3;
+}
+
+.sticky-col-2{
+    position:sticky;
+    left:70px;
+    background:#fff;
+    z-index:3;
+}
+
+thead .sticky-col-1,
+thead .sticky-col-2{
+    background:#212529 !important;
+    color:#fff;
+    z-index:4;
+}
+
+.project-table th,
+.project-table td{
+    vertical-align:middle;
+    word-break:break-word;
+}
+</style>
+
+@section Scripts{
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchBox = document.getElementById("projectSearchBox");
+    const rows = document.querySelectorAll("#projectTable tbody tr");
+
+    searchBox.addEventListener("keyup", function () {
+        const keyword = this.value.toLowerCase().trim();
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+        });
+    });
+
+});
+</script>
+}

@@ -1,0 +1,456 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ProjectTracking</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <!-- ✅ SELECT2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+        .navbar {
+            background: linear-gradient(135deg, #1f2933, #111827);
+            box-shadow: 0 6px 18px rgba(0,0,0,.35);
+            padding: 10px 18px;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: .4px;
+            color: #ffb347 !important;
+        }
+
+        .navbar-brand:hover { color: #ffd27f !important; }
+
+        /* ===== MENU STYLE ===== */
+        .navbar-dark .navbar-nav .nav-link{
+            font-weight:500;
+            color:#e5e7eb !important;
+            padding:8px 14px !important;
+            border-radius:10px;
+            transition:all .18s ease-in-out;
+        }
+
+        /* ===== HOVER (แก้ Bootstrap override) ===== */
+        .navbar.navbar-dark .navbar-nav .nav-link:hover,
+        .navbar.navbar-dark .navbar-nav .nav-link:focus,
+        .navbar.navbar-dark .navbar-nav .show > .nav-link{
+            background:#ffb347 !important;
+            color:#1f2933 !important;
+            transform:translateY(-1px);
+        }
+
+        /* ===== ACTIVE PAGE ===== */
+        .navbar.navbar-dark .navbar-nav .nav-link.active-menu{
+            background:#ffb347 !important;
+            color:#1f2933 !important;
+            font-weight:700;
+        }
+
+        /* ===== DROPDOWN ===== */
+        .nav-item.dropdown .dropdown-menu {
+            background: #1f2933;
+            border-radius: 14px;
+            border: 1px solid #2d3748;
+            box-shadow: 0 12px 30px rgba(0,0,0,.4);
+            padding: 8px;
+        }
+
+        .dropdown-item {
+            color: #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 14px;
+            transition: all .18s;
+        }
+
+        .dropdown-item:hover {
+            background: #ffb347;
+            color: #1f2933;
+            font-weight: 600;
+        }
+
+        .navbar-text {
+            background: rgba(255,255,255,.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-weight: 600;
+            border: 1px solid #ffb347;
+            color: #ffb347;
+            transition: all .2s;
+        }
+
+        .btn-logout:hover {
+            background: #ffb347;
+            color: #1f2933;
+        }
+
+        footer { background: #f9fafb; font-size: 13px; }
+
+        /* ===== Select2: FIX WRAP + ALIGN (เหมาะกับข้อความยาว/หน้า Print) ===== */
+
+        /* ให้ container เต็ม */
+        .select2-container { width: 100% !important; }
+
+        /* กล่องเลือก: ให้สูงขั้นต่ำ 38 แต่ยืดได้ */
+        .select2-container--default .select2-selection--single{
+            min-height: 38px !important;
+            height: auto !important;
+            border: 1px solid #ced4da;
+            border-radius: .375rem;
+            display: flex !important;
+            align-items: center !important;
+            padding: 6px 40px 6px 12px !important;  /* กันพื้นที่ให้ arrow + clear */
+            box-sizing: border-box;
+            position: relative; /* ✅ สำคัญ: ให้ arrow/clear absolute อิงกล่องนี้ */
+        }
+
+        /* ข้อความที่เลือก: wrap ได้ */
+        .select2-container--default .select2-selection--single .select2-selection__rendered{
+            white-space: normal !important;
+            line-height: 1.35 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        /* ลูกศร: จัดให้อยู่กลาง */
+        .select2-container--default .select2-selection--single .select2-selection__arrow{
+            position: absolute !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            right: 10px !important;
+            height: 20px !important;
+        }
+
+        /* ปุ่ม clear (x): จัดให้อยู่กลาง และไม่ทับข้อความ */
+        .select2-container--default .select2-selection--single .select2-selection__clear{
+            position: absolute !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            right: 32px !important; /* อยู่ซ้ายลูกศร */
+            margin: 0 !important;
+            font-size: 22px !important;
+            line-height: 1 !important;
+        }
+
+        /* dropdown รายการ: ให้ wrap เหมือนเดิม */
+        .select2-results__option{
+            white-space: normal !important;
+            line-height: 1.35 !important;
+            padding-top: .45rem;
+            padding-bottom: .45rem;
+        }
+
+        /* custom search: ให้เข้าธีมและขนาดพอดี */
+        .s2-custom-search-wrap{
+            padding: 8px !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            background: #fff !important;
+        }
+        .s2-custom-search{
+            width: 100% !important;
+            height: 36px !important;
+            padding: 6px 10px !important;
+            border: 1px solid #ced4da !important;
+            border-radius: .375rem !important;
+            box-sizing: border-box !important;
+        }
+    </style>
+</head>
+<body>
+
+@{
+    var userId = Context.Session.GetInt32("UserId");
+    var username = Context.Session.GetString("Username");
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+
+    // ✅ ซ่อนเมนูในหน้า Print (ให้เหลือแถบบนอย่างเดียว)
+    var isPrint = (controller == "PhaseAssigns" && action == "Print");
+
+    // ✅ Permission for navbar (same logic as Home)
+    var role = (Context?.Session?.GetString("Role") ?? "").Trim().ToUpperInvariant();
+    var isAdmin = role == "ADMIN";
+
+    var menuRaw = (Context?.Session?.GetString("Menus") ?? "").Trim();
+    var allowedMenus = new HashSet<string>(
+        menuRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+               .Select(x => x.Trim()),
+        StringComparer.OrdinalIgnoreCase
+    );
+
+    bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
+
+    // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
+    var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload");
+
+    var canManagement = CanMenu("Employees.Index")
+                     || CanMenu("Projects.Index")
+                     || CanMenu("ProjectPhases.Index")
+                     || CanMenu("PhaseAssigns.Index");
+
+    var canIssues = CanMenu("ProjectIssues.Index")
+                 || CanMenu("ProjectIssues.ViewOnly")
+                 || CanMenu("ProjectIssues.DevIndex");
+
+    var canReports = CanMenu("PhaseAssigns.Print")
+                  || CanMenu("PhaseStatusReport.Index")
+                  || CanMenu("PhaseStatusReport.Timeline");
+}
+
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-3">
+        <div class="container-fluid">
+
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                ProjectTracking
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                @if (isPrint)
+                {
+                    // ✅ หน้า Print ซ่อนเมนู
+                }
+                else if (userId != null)
+                {
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                        <!-- Home (always) -->
+                        <li class="nav-item">
+                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 Home</a>
+                        </li>
+
+                        <!-- Admin only -->
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="UserManagement"?"active-menu":"")" asp-controller="UserManagement" asp-action="Index">👤 Users</a>
+                            </li>
+                        }
+
+                        <!-- Dashboards -->
+                        @if (canDashboards)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="IssueDashboard" || controller=="Dashboard" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">📊 Dashboards</a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("IssueDashboard.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 Issue Dashboard</a></li>
+                                    }
+                                    @if (CanMenu("Dashboard.Workload"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Workload">🔥 Employee Workload</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Management -->
+                        @if (canManagement)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="Projects" || controller=="ProjectPhases" || controller=="PhaseAssigns" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">📁 Management</a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("Employees.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">👤 Employees</a></li>
+                                    }
+                                    @if (CanMenu("Projects.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">📁 Projects</a></li>
+                                    }
+                                    @if (CanMenu("ProjectPhases.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">🧩 Project Phases</a></li>
+                                    }
+                                    @if (CanMenu("PhaseAssigns.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 Phase Assigns</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Issues -->
+                        @if (canIssues)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">🐞 Issues</a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("ProjectIssues.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">🐞 Project Issues</a></li>
+                                    }
+                                    @if (CanMenu("ProjectIssues.ViewOnly"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">👀 View Issues</a></li>
+                                    }
+                                    @if (CanMenu("ProjectIssues.DevIndex"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">👨‍💻 Dev Status</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        <!-- Reports -->
+                        @if (canReports)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="PhaseAssigns" && action=="Print" || controller=="PhaseStatusReport" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">📄 Reports</a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("PhaseAssigns.Print"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">📄 Assigned Employees Report</a></li>
+                                    }
+                                    @if (CanMenu("PhaseStatusReport.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">📋 Phase Owner Status</a></li>
+                                    }
+                                    @if (CanMenu("PhaseStatusReport.Timeline"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">📅 Timeline / Gantt</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                    </ul>
+
+                    <ul class="navbar-nav align-items-center">
+                        <li class="nav-item me-2">
+                            <span class="navbar-text text-white">👤 @username</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-logout btn-sm" asp-controller="Auth" asp-action="Logout">Logout</a>
+                        </li>
+                    </ul>
+                }
+                else
+                {
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 Home</a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav align-items-center">
+                        <li class="nav-item">
+                            <a class="btn btn-logout btn-sm" asp-controller="Auth" asp-action="Login">Login</a>
+                        </li>
+                    </ul>
+                }
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="container">
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+</div>
+
+<footer class="border-top footer text-muted mt-4">
+    <div class="container">
+        &copy; Copyright © 2026 ProjectTracking By #C PM
+    </div>
+</footer>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ✅ SELECT2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    // ✅ GLOBAL: ทำ select2 ให้ทุก select ที่เป็น form-select (กันพลาดหน้า Print)
+    $(function () {
+        $('select.form-select').each(function () {
+            var $el = $(this);
+
+            // ถ้าตั้งใจไม่ใช้ select2 ให้ใส่ class นี้ไว้
+            if ($el.hasClass('no-select2')) return;
+
+            if ($el.data('select2')) return;
+
+            var ph = $el.find('option:first').text() || '';
+            var $parent = $el.closest('form');
+            if ($parent.length === 0) $parent = $(document.body);
+
+            $el.select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: ph,
+                minimumResultsForSearch: 0,
+                dropdownParent: $parent
+            });
+        });
+    });
+
+    // ✅ FIX 100%: ถ้า Select2 ไม่สร้าง search box -> สร้างเองและ filter option ใน dropdown
+    $(document).on('select2:open', function () {
+        var $dropdown = $('.select2-container--open .select2-dropdown');
+        if ($dropdown.length === 0) return;
+
+        // ถ้ามี search จริงของ select2 แล้ว -> focus แล้วจบ
+        var $native = $dropdown.find('.select2-search__field');
+        if ($native.length > 0) {
+            $native.focus();
+            return;
+        }
+
+        // ถ้าสร้าง custom แล้ว -> focus
+        if ($dropdown.find('.s2-custom-search').length > 0) {
+            $dropdown.find('.s2-custom-search').focus();
+            return;
+        }
+
+        var $wrap = $('<div class="s2-custom-search-wrap"></div>');
+        var $input = $('<input type="text" class="s2-custom-search" placeholder="ค้นหา...">');
+        $wrap.append($input);
+        $dropdown.prepend($wrap);
+
+        $input.on('input', function () {
+            var term = ($(this).val() || '').toLowerCase();
+            $dropdown.find('.select2-results__option').each(function () {
+                var $opt = $(this);
+                var text = ($opt.text() || '').toLowerCase();
+                if (!term) $opt.show();
+                else $opt.toggle(text.indexOf(term) > -1);
+            });
+        });
+
+        setTimeout(function () { $input.focus(); }, 0);
+    });
+
+    $(document).on('select2:close', function () {
+        var $dropdown = $('.select2-dropdown');
+        $dropdown.find('.s2-custom-search').val('');
+        $dropdown.find('.select2-results__option').show();
+    });
+</script>
+
+@RenderSection("Scripts", required: false)
+
+</body>
+</html>

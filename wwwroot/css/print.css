@@ -1,0 +1,44 @@
+@media print {
+
+    /* ซ่อนของที่ไม่จำเป็น */
+    .no-print,
+    .navbar,
+    footer {
+        display: none !important;
+    }
+
+    body {
+        margin: 0;
+        font-size: 9px;
+        zoom: 0.8;              /* ⭐ ตัวนี้แก้ปัญหาขาดได้ดีที่สุด */
+    }
+
+    @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
+
+    /* บังคับตารางให้พอดีหน้า */
+    table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed;
+        margin: 0 auto;         /* ⭐ จัดกลางกระดาษ */
+    }
+
+    th, td {
+        border: 1px solid #000 !important;
+        padding: 3px !important;
+        word-break: break-word;
+        white-space: normal !important;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    /* ซ่อน scrollbar ตอน print */
+    .table-responsive {
+        overflow: visible !important;
+    }
+}

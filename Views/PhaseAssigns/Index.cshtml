@@ -1,0 +1,252 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Assigned Employees";
+    var th = new CultureInfo("th-TH");
+
+    var empColorMap = new Dictionary<int, string>();
+    var pastelColors = new[]
+    {
+        "#f8f9fa",
+        "#e9f5ff",
+        "#eafaf1",
+        "#fff4e6",
+        "#f3e8ff",
+        "#e7f1ff",
+        "#fef7e0"
+    };
+    var colorIndex = 0;
+}
+
+<style>
+.table-hover tbody tr:hover > * { background-color: inherit !important; }
+.table tbody tr > td { background-color: inherit !important; }
+
+/* FIX LEFT 3 COLUMNS */
+.sticky-col { position: sticky; z-index: 3; }
+.sticky-1 { left: 0; min-width:70px; max-width:70px; }
+.sticky-2 { left: 70px; min-width:240px; max-width:240px; }
+.sticky-3 { left: 310px; min-width:500px; }
+
+thead .sticky-col { z-index: 5; }
+</style>
+
+<div class="mb-3">
+    <h2 class="fw-bold">👥 Assigned Employees</h2>
+    <p class="text-muted mb-0">
+        จัดการการมอบหมายงาน (Assign) ของพนักงานในแต่ละโครงการ
+    </p>
+</div>
+
+<form method="get" class="row g-3 mb-4" id="filterForm">
+
+    <!-- PROJECT -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">📁 Project</label>
+        <select name="projectId"
+                id="projectSelect"
+                class="form-select">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in ViewBag.Projects)
+            {
+                if (ViewBag.SelectedProject?.ProjectId == p.ProjectId)
+                {
+                    <option value="@p.ProjectId" selected>
+                        @p.ProjectName
+                    </option>
+                }
+                else
+                {
+                    <option value="@p.ProjectId">
+                        @p.ProjectName
+                    </option>
+                }
+            }
+        </select>
+    </div>
+
+    <!-- EMPLOYEE -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">👤 Employee</label>
+        <select name="empId"
+                id="empSelect"
+                class="form-select"
+                @(ViewBag.SelectedProject == null ? "disabled" : "")>
+            <option value="">-- All Employees --</option>
+            @foreach (var e in ViewBag.EmployeeList)
+            {
+                if (ViewBag.SelectedEmpId == e.EmpId)
+                {
+                    <option value="@e.EmpId" selected>
+                        @e.EmpName
+                    </option>
+                }
+                else
+                {
+                    <option value="@e.EmpId">
+                        @e.EmpName
+                    </option>
+                }
+            }
+        </select>
+    </div>
+
+</form>
+
+@if (ViewBag.SelectedProject != null)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">
+            📌 Project : @ViewBag.SelectedProject.ProjectName
+        </h4>
+
+        <a asp-action="Create"
+           asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
+           class="btn btn-primary">
+            ➕ Add Assign
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle" style="min-width:1400px;">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th class="sticky-col sticky-1">No.</th>
+                    <th class="sticky-col sticky-2">Employee</th>
+                    <th class="sticky-col sticky-3">Role</th>
+                    <th style="min-width:260px;">Plan Period</th>
+                    <th style="min-width:260px;">Actual Period</th>
+                    <th style="min-width:320px;">Remark</th>
+                    <th style="min-width:180px;">Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">— No assignment —</td>
+                </tr>
+            }
+            else
+            {
+                var row = 1;
+
+                foreach (var a in Model)
+                {
+                    if (!empColorMap.ContainsKey(a.EmpId))
+                    {
+                        empColorMap[a.EmpId] = pastelColors[colorIndex % pastelColors.Length];
+                        colorIndex++;
+                    }
+
+                    var bg = empColorMap[a.EmpId];
+
+                    <tr style="background-color:@bg;">
+                        <td class="text-center fw-semibold sticky-col sticky-1">@row</td>
+
+                        <td class="fw-semibold sticky-col sticky-2">👤 @a.Employee?.EmpName</td>
+
+                        <td class="sticky-col sticky-3" style="white-space:normal;">@a.Role</td>
+
+                        <td class="text-center">
+                            @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            –
+                            @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </td>
+
+                        <td class="text-center">
+                            @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            –
+                            @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </td>
+
+                        <td>@a.Remark</td>
+
+                        <td class="text-center">
+                            <a asp-action="Edit"
+                               asp-route-id="@a.AssignId"
+                               class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
+
+                            <form asp-action="Delete" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.AssignId" />
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('ยืนยันการลบ Assign นี้?');">
+                                    🗑 Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    row++;
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-secondary mt-3">
+        ⬆ กรุณาเลือก Project ก่อน
+    </div>
+}
+
+@section Scripts{
+<script>
+$(function () {
+
+    const $form = $('#filterForm');
+
+    // ✅ ให้เป็น boolean จริง
+    const hasProject = @(ViewBag.SelectedProject != null ? "true" : "false");
+
+    // ✅ กันกรณี Select2 / jQuery ยังโหลดไม่ทัน
+    if (!window.jQuery || !$.fn || !$.fn.select2) {
+        console.error('Select2 ยังไม่ถูกโหลด (ตรวจสอบ _Layout.cshtml ว่ามี jquery + select2.js และลำดับการโหลดถูกต้อง)');
+        return;
+    }
+
+    // ✅ Project Select2
+    $('#projectSelect').select2({
+        placeholder: "-- Select Project --",
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        // ลดปัญหา z-index/overflow
+        dropdownParent: $(document.body)
+    });
+
+    // ✅ Employee: ถ้ายังไม่เลือก Project ให้ disable และไม่ init select2 (กัน error)
+    if (!hasProject) {
+        $('#empSelect').prop('disabled', true);
+    } else {
+        $('#empSelect').select2({
+            placeholder: "-- All Employees --",
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $(document.body)
+        });
+    }
+
+    // ✅ อย่า submit ทันทีใน event ของ select2 (กัน error ตอน select2 กำลังจัดการ DOM)
+    function submitSafely() {
+        setTimeout(function () {
+            $form.trigger('submit');
+        }, 0);
+    }
+
+    $('#projectSelect').on('select2:select select2:clear', function () {
+        submitSafely();
+    });
+
+    $('#empSelect').on('select2:select select2:clear', function () {
+        if (hasProject) submitSafely();
+    });
+});
+</script>
+}

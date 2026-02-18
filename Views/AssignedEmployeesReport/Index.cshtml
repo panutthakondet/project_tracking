@@ -1,0 +1,126 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Assigned Employees Report";
+    var th = new CultureInfo("th-TH");
+
+    // 🎨 สีตาม Employee
+    var empColorMap = new Dictionary<int, string>();
+    var colors = new[]
+    {
+        "#f8f9fa", "#e9f5ff", "#eafaf1",
+        "#fff4e6", "#f3e8ff", "#e7f1ff"
+    };
+    int colorIndex = 0;
+}
+
+<h2 class="fw-bold mb-3">📊 Assigned Employees (Report)</h2>
+
+<!-- ================= FILTER ================= -->
+<form method="get" class="row g-3 mb-4 no-print">
+
+    <!-- PROJECT -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">📁 Project</label>
+        <select name="projectId" class="form-select" onchange="this.form.submit()">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in ViewBag.Projects)
+            {
+                <option value="@p.ProjectId"
+                        selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- EMPLOYEE -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">👤 Employee</label>
+        <select name="empId" class="form-select" onchange="this.form.submit()">
+            <option value="">-- All Employees --</option>
+            @foreach (var e in ViewBag.EmployeeList)
+            {
+                <option value="@e.EmpId"
+                        selected="@(ViewBag.SelectedEmpId == e.EmpId)">
+                    @e.EmpName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- ACTION -->
+    <div class="col-md-4 align-self-end text-end">
+        <a asp-action="Print"
+           asp-route-projectId="@ViewBag.SelectedProjectId"
+           asp-route-empId="@ViewBag.SelectedEmpId"
+           target="_blank"
+           class="btn btn-outline-secondary">
+            🖨 Print
+        </a>
+    </div>
+</form>
+
+<!-- ================= TABLE ================= -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark text-center">
+            <tr>
+                <th>Employee</th>
+                <th>Role</th>
+                <th>Plan Period</th>
+                <th>Actual Period</th>
+                <th>Remark</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    — No assignment —
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach (var a in Model)
+            {
+                if (!empColorMap.ContainsKey(a.EmpId))
+                {
+                    empColorMap[a.EmpId] = colors[colorIndex % colors.Length];
+                    colorIndex++;
+                }
+
+                var bg = empColorMap[a.EmpId];
+
+                <tr style="background-color:@bg;">
+                    <td class="fw-semibold">👤 @a.Employee?.EmpName</td>
+                    <td style="white-space:normal;">@a.Role</td>
+                    <td class="text-center">
+                        @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+                    <td class="text-center">
+                        @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+                    <td style="white-space:normal;">@a.Remark</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+<style>
+@@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+</style>

@@ -1,0 +1,89 @@
+@model IEnumerable<ProjectTracking.Models.Employee>
+
+@{
+    ViewData["Title"] = "Employee List";
+}
+
+<!-- ================= HEADER ================= -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold">👤 Employee List</h2>
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+        ➕ Add Employee
+    </a>
+</div>
+
+<p class="text-muted">
+    รายชื่อพนักงานทั้งหมดในระบบ
+</p>
+
+<!-- ================= TABLE ================= -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-dark text-center">
+            <tr>
+                <th width="80">ID</th>
+                <th>Name</th>
+                <th>Position</th>
+                <th width="120">Status</th>
+                <th width="180">Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="5"
+                    class="text-center text-muted">
+                    — No employee data —
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach (var emp in Model)
+            {
+                <tr>
+                    <td class="text-center">
+                        @emp.EmpId
+                    </td>
+
+                    <td>
+                        <b>@emp.EmpName</b>
+                    </td>
+
+                    <td>
+                        @emp.Position
+                    </td>
+
+                    <td class="text-center">
+                        <span class="badge
+                            @(emp.Status == "ACTIVE"
+                                ? "bg-success"
+                                : "bg-secondary")">
+                            @emp.Status
+                        </span>
+                    </td>
+
+                    <td class="text-center">
+                        <a asp-action="Edit"
+                           asp-route-id="@emp.EmpId"
+                           class="btn btn-sm btn-outline-primary me-1">
+                            ✏️ Edit
+                        </a>
+
+                        <a asp-action="Delete"
+                           asp-route-id="@emp.EmpId"
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('ยืนยันลบพนักงานคนนี้?');">
+                            🗑 Delete
+                        </a>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>

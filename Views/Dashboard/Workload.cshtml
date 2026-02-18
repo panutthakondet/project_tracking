@@ -1,0 +1,268 @@
+@{
+    ViewData["Title"] = "Employee Workload";
+}
+
+<h2>🔥 Employee Workload Timeline</h2>
+
+<div style="margin-bottom:15px; display:flex; gap:20px; align-items:center;">
+
+    <div>
+        <label><b>Select Year:</b></label>
+        <select id="yearSelect" onchange="reloadTimeline()">
+            @{
+                var currentYear = DateTime.Now.Year;
+                for(int y = currentYear - 3; y <= currentYear + 3; y++)
+                {
+                    <option value="@y" selected="@(y == currentYear)">
+                        @y
+                    </option>
+                }
+            }
+        </select>
+    </div>
+
+    <div>
+        <label><b>Select Employee:</b></label>
+        <select id="employeeSelect" onchange="renderTimeline()">
+            <option value="ALL">All Employees</option>
+        </select>
+    </div>
+
+</div>
+
+<div class="timeline-wrapper">
+    <div id="timeline-container"></div>
+</div>
+
+<style>
+
+.timeline-wrapper{
+    overflow:auto;
+    border:1px solid #e5e7eb;
+    height:70vh;                 /* ⭐ สำคัญ — เปิด vertical scroll */
+    position:relative;
+    background:white;
+}
+
+/* GRID */
+.grid{
+    display:grid;
+    grid-template-columns:260px repeat(48,42px);
+    font-size:13px;
+    min-width:max-content;
+}
+
+/* ================= HEADER FREEZE ================= */
+
+/* เดือน */
+.header-month{
+    text-align:center;
+    font-weight:bold;
+    background:#111827;
+    color:white;
+    padding:6px 0;
+
+    position:sticky;
+    top:0;
+    z-index:20;
+}
+
+/* สัปดาห์ */
+.header-week{
+    text-align:center;
+    font-size:11px;
+    background:#f3f4f6;
+
+    position:sticky;
+    top:34px;      /* ความสูง header เดือน */
+    z-index:20;
+    border-bottom:2px solid #d1d5db;
+}
+
+/* มุมซ้ายบน */
+.grid > div:first-child{
+    position:sticky;
+    left:0;
+    top:0;
+    z-index:25;
+    background:#111827;
+}
+
+/* ================= FREEZE COLUMN ================= */
+
+.employee-title{
+    font-weight:600;
+    font-size:16px;  
+    background:#f9fafb;
+    padding:8px;
+    border-top:2px solid #d1d5db;
+
+    position:sticky;
+    left:0;
+    z-index:15;
+}
+
+.project-name{
+    padding-left:25px;
+    font-size:11px;
+    color:#374151;
+    background:white;
+
+    position:sticky;
+    left:0;
+    z-index:14;
+}
+
+/* เส้นแบ่ง */
+.employee-title::after,
+.project-name::after{
+    content:"";
+    position:absolute;
+    right:0;
+    top:0;
+    width:2px;
+    height:100%;
+    background:#d1d5db;
+}
+
+/* CELLS */
+.cell{
+    height:26px;
+    border:1px solid #e5e7eb;
+}
+
+.empty{ background:#f3f4f6; }
+.p1{ background:#3b82f6; }
+.p2{ background:#10b981; }
+.p3{ background:#f59e0b; }
+.p4{ background:#ef4444; }
+.p5{ background:#8b5cf6; }
+
+</style>
+
+<script>
+
+let globalData = [];
+
+async function loadTimeline(year){
+
+    const res = await fetch(`/Dashboard/GetWorkloadData?year=${year}`);
+    globalData = await res.json();
+
+    populateEmployeeDropdown(globalData);
+    renderTimeline();
+}
+
+function populateEmployeeDropdown(data){
+
+    const dropdown = document.getElementById("employeeSelect");
+
+    const employees = [...new Set(data.map(d=>d.emp_Name))].sort();
+
+    dropdown.innerHTML = `<option value="ALL">All Employees</option>`;
+
+    employees.forEach(emp=>{
+        dropdown.innerHTML += `<option value="${emp}">${emp}</option>`;
+    });
+}
+
+function renderTimeline(){
+
+    const container = document.getElementById('timeline-container');
+    const selectedEmp = document.getElementById("employeeSelect").value;
+
+    const months = [
+        "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+        "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+    ];
+
+    const totalWeeks = 48; // 12 x 4
+
+    let html = `<div class="grid">`;
+
+    /* ========= HEADER ========= */
+
+    html += `<div></div>`;
+
+    // เดือน (เดือนละ 4 ช่อง)
+    months.forEach(m=>{
+        html += `<div class="header-month" style="grid-column: span 4;">${m}</div>`;
+    });
+
+    html += `<div></div>`;
+
+    // W1 W2 W3 W4 ต่อเดือน
+    months.forEach(()=>{
+        for(let w=1; w<=4; w++){
+            html += `<div class="header-week">W${w}</div>`;
+        }
+    });
+
+    /* ========= FILTER EMPLOYEE ========= */
+
+    let employees = [...new Set(globalData.map(d=>d.emp_Name))].sort();
+
+    if(selectedEmp !== "ALL"){
+        employees = employees.filter(e=>e===selectedEmp);
+    }
+
+    employees.forEach(emp=>{
+
+        const empData = globalData.filter(d=>d.emp_Name===emp);
+
+        let projectSet = new Set();
+        empData.forEach(d=>{
+            if(d.project_Names){
+                d.project_Names.split(" | ").forEach(p=>projectSet.add(p));
+            }
+        });
+
+        const projects = [...projectSet];
+
+        /* ==== EMPLOYEE TITLE ==== */
+        html += `<div class="employee-title">${emp}</div>`;
+        for(let i=0;i<totalWeeks;i++) html+=`<div></div>`;
+
+        /* ==== PROJECT ROWS ==== */
+        projects.forEach((project,index)=>{
+
+            const color = `p${(index%5)+1}`;
+
+            html += `<div class="project-name">↳ ${project}</div>`;
+
+            for(let w=1; w<=totalWeeks; w++){
+
+                const weekData = empData.find(x => x.week_No === w);
+
+                let active = false;
+
+                if(weekData && weekData.project_Names){
+                    active = weekData.project_Names.includes(project);
+                }
+
+                html += `
+                    <div class="cell ${active?color:'empty'}"
+                         title="${project}">
+                    </div>
+                `;
+            }
+
+        });
+
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function reloadTimeline(){
+    const year = document.getElementById("yearSelect").value;
+    loadTimeline(year);
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+    const year = document.getElementById("yearSelect").value;
+    loadTimeline(year);
+});
+
+</script>

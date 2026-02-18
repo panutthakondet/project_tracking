@@ -1,0 +1,338 @@
+﻿@using System
+@using System.Linq
+@using System.Collections.Generic
+@using System.Globalization
+@using Microsoft.AspNetCore.Http
+
+@{
+    ViewData["Title"] = "Home";
+    var th = new CultureInfo("th-TH");
+
+    // ✅ ดึงชื่อผู้ใช้จาก Session เป็นหลัก + fallback เป็น ViewBag
+    var username = Context?.Session?.GetString("Username")
+                   ?? (ViewBag.Username as string)
+                   ?? "-";
+
+    // ✅ role จาก Session (เช่น "ADMIN")
+    var role = (Context?.Session?.GetString("Role") ?? "").Trim().ToUpperInvariant();
+    var isAdmin = role == "ADMIN";
+
+    // ✅ เมนูที่อนุญาตให้เห็น (กำหนดต่อผู้ใช้)
+    // รูปแบบใน Session: "Employees.Index,Projects.Index,ProjectIssues.DevIndex" (คั่นด้วย ,)
+    var menuRaw = (Context?.Session?.GetString("Menus") ?? "").Trim();
+    var allowedMenus = new HashSet<string>(
+        menuRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+               .Select(x => x.Trim()),
+        StringComparer.OrdinalIgnoreCase
+    );
+
+    bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
+}
+
+<div class="home-bg">
+<div class="container-fluid">
+
+    <!-- ================= HEADER ================= -->
+    <div class="header-card mb-5">
+        <div class="d-flex align-items-center gap-4">
+
+            <img src="~/images/auth/logosoatnew.png"
+                 alt="Logo"
+                 class="welcome-logo" />
+
+            <div class="flex-grow-1">
+                <h2 class="fw-bold mb-1 text-white">ยินดีต้อนรับ</h2>
+                <div class="system-name text-light">
+                    Project Tracking System
+                </div>
+
+                <div class="welcome-info mt-3">
+                    <div>
+                        <span class="label">ผู้ใช้งาน</span>
+                        <span class="value">@username</span>
+                    </div>
+                    <div>
+                        <span class="label">วันที่</span>
+                        <span class="value">
+                            @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+                        </span>
+                    </div>
+                    <div>
+                        <span class="label">สิทธิ์</span>
+                        <span class="value">@(!string.IsNullOrWhiteSpace(role) ? role : "-")</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ✅ ADMIN ONLY -->
+    @if (isAdmin)
+    {
+        <div class="menu-group">
+            <div class="group-title">🛡️ Admin</div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <a asp-controller="UserManagement" asp-action="Index" class="menu-card admin-card">
+                        <div class="icon">👤➕</div>
+                        <div class="title">User Management</div>
+                        <div class="desc">ลงทะเบียน/สร้างผู้ใช้ (Admin เท่านั้น)</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- PROJECT -->
+    <div class="menu-group">
+        <div class="group-title">📁 Project & Resource Management</div>
+
+        <div class="row g-3">
+
+            @if (CanMenu("Employees.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Employees" asp-action="Index" class="menu-card">
+                    <div class="icon">👤</div>
+                    <div class="title">Employees</div>
+                    <div class="desc">ข้อมูลพนักงาน</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("Projects.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Projects" asp-action="Index" class="menu-card">
+                    <div class="icon">📁</div>
+                    <div class="title">Projects</div>
+                    <div class="desc">จัดการโครงการทั้งหมด</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("ProjectPhases.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="ProjectPhases" asp-action="Index" class="menu-card">
+                    <div class="icon">🧩</div>
+                    <div class="title">Project Phases</div>
+                    <div class="desc">จัดการ Phase / งวดงาน</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("PhaseAssigns.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="PhaseAssigns" asp-action="Index" class="menu-card">
+                    <div class="icon">👥</div>
+                    <div class="title">Assigned Employees</div>
+                    <div class="desc">มอบหมายงานตามโครงการ</div>
+                </a>
+            </div>
+            }
+
+        </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="menu-group">
+        <div class="group-title">🐞 Issues, Tracking & Reports</div>
+
+        <div class="row g-3">
+
+            @if (CanMenu("ProjectIssues.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="ProjectIssues" asp-action="Index" class="menu-card">
+                    <div class="icon">🐞</div>
+                    <div class="title">Project Issues</div>
+                    <div class="desc">ดูรายการ / บันทึก Issue</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("ProjectIssues.DevIndex"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="ProjectIssues" asp-action="DevIndex" class="menu-card">
+                    <div class="icon">👨‍💻</div>
+                    <div class="title">Dev Status Update</div>
+                    <div class="desc">อัปเดตสถานะหลังแก้ Issue</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("ProjectIssues.ViewOnly"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="menu-card">
+                    <div class="icon">📝</div>
+                    <div class="title">Issue Report</div>
+                    <div class="desc">รายงาน Issue</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("PhaseAssigns.Print"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="PhaseAssigns" asp-action="Print" class="menu-card">
+                    <div class="icon">📄</div>
+                    <div class="title">Assigned Employees Report</div>
+                    <div class="desc">รายงานการมอบหมายงาน</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("PhaseStatusReport.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="PhaseStatusReport" asp-action="Index" class="menu-card">
+                    <div class="icon">📊</div>
+                    <div class="title">Phase Status Report</div>
+                    <div class="desc">รายงานสถานะ Phase</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("Dashboard.Workload"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Dashboard" asp-action="Workload" class="menu-card">
+                    <div class="icon">🔥</div>
+                    <div class="title">Employee Workload</div>
+                    <div class="desc">Dashboard ภาระงานพนักงาน</div>
+                </a>
+            </div>
+            }
+
+            <!-- ISSUE DASHBOARD -->
+            @if (CanMenu("IssueDashboard.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="IssueDashboard" asp-action="Index" class="menu-card">
+                    <div class="icon">📊</div>
+                    <div class="title">Issue Dashboard</div>
+                    <div class="desc">ภาพรวมสถานะ Issue ทั้งระบบ</div>
+                </a>
+            </div>
+            }
+
+        </div>
+    </div>
+
+</div>
+</div>
+
+<style>
+/* ===== ORANGE HOVER FOR ALL CARDS ===== */
+.menu-card{
+    display:block;
+    padding:24px;
+    border-radius:20px;
+    background:linear-gradient(180deg, rgba(40,55,80,.85), rgba(25,35,60,.95));
+    backdrop-filter:blur(10px);
+    color:#eaf2ff;
+    transition:.25s;
+    border:1px solid rgba(255,255,255,.25);
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    position:relative;
+    overflow:hidden;
+}
+.menu-card:hover{
+    transform:translateY(-8px) scale(1.01);
+    box-shadow:0 22px 55px rgba(0,0,0,.55);
+    background:linear-gradient(180deg, rgba(55,75,110,.95), rgba(30,45,75,.98));
+    border-color:#ff9f43;
+}
+.menu-card:hover .icon{ color:#ffb347; }
+.menu-card:hover .title{ color:#ffb347; }
+.menu-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:2px;
+    border-radius:20px 20px 0 0;
+    background:linear-gradient(90deg, transparent, rgba(255,179,71,.8), transparent);
+    opacity:.6;
+}
+
+/* ✅ Admin card: same theme as menu-card + subtle orange accent */
+.admin-card{
+    background:linear-gradient(180deg, rgba(40,55,80,.85), rgba(25,35,60,.95));
+    border:1px solid rgba(255,159,67,.45);
+    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    color:#eaf2ff !important;
+}
+.admin-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:2px;
+    border-radius:20px 20px 0 0;
+    background:linear-gradient(90deg, transparent, rgba(255,179,71,.9), transparent);
+    opacity:.9;
+}
+.admin-card .icon{ color:#ffb347; }
+.admin-card .title{ color:#ffffff; }
+.admin-card .desc{ color:#cbd5e1; }
+.admin-card:hover{
+    transform:translateY(-8px) scale(1.01);
+    box-shadow:0 22px 55px rgba(0,0,0,.55);
+    background:linear-gradient(180deg, rgba(55,75,110,.95), rgba(30,45,75,.98));
+    border-color:#ff9f43;
+}
+
+/* ===== Background ===== */
+.home-bg{ min-height:calc(100vh - 70px); }
+.home-bg::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:url('/images/auth/soathome.png') center center / cover no-repeat;
+    z-index:-2;
+}
+.home-bg::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:linear-gradient(rgba(10,20,40,.78),rgba(10,20,40,.85));
+    z-index:-1;
+}
+
+/* HEADER */
+.header-card{
+    background:rgba(255,255,255,.15);
+    backdrop-filter:blur(12px);
+    border-radius:22px;
+    padding:28px 32px;
+    border:1px solid rgba(255,255,255,.25);
+}
+.welcome-logo{ height:150px; }
+.welcome-info{
+    display:flex;
+    gap:36px;
+    background:rgba(255,255,255,.9);
+    padding:10px 16px;
+    border-radius:14px;
+    width:fit-content;
+}
+.value{ font-weight:700; color:#ff8c2a; }
+
+/* MENU */
+.group-title{
+    font-size:18px;
+    font-weight:800;
+    margin-bottom:16px;
+    padding-left:14px;
+    border-left:6px solid #ff9f43;
+    color:white;
+}
+.icon{ font-size:36px; color:#ffb347; }
+.title{ font-weight:800; font-size:17px; color:#ffffff; }
+.desc{ font-size:13px; color:#cbd5e1; }
+</style>

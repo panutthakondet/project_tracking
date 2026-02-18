@@ -1,0 +1,121 @@
+@model ProjectTracking.Models.ProjectIssue
+
+@{
+    ViewData["Title"] = "Add Issue";
+}
+
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">➕ Add Project Issue</h2>
+    <p class="text-muted mb-0">
+        บันทึก Issue / Bug / ปัญหาที่พบในโครงการ
+    </p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Create"
+              method="post"
+              enctype="multipart/form-data">
+
+            @Html.AntiForgeryToken()
+
+            <!-- ProjectId -->
+            <input type="hidden" asp-for="ProjectId" />
+
+            <!-- ✅ IMPORTANT: กันค่าถูก bind แปลก ๆ ถ้าไม่กรอก -->
+            <!-- (Controller จะเป็นตัวกำหนดค่าจริงอีกที) -->
+            <input type="hidden" asp-for="IsReopen" value="false" />
+            <input type="hidden" asp-for="ReopenCount" value="0" />
+
+            <div class="row g-3">
+
+                <!-- Issue Name -->
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">🐞 Issue Name</label>
+                    <input asp-for="IssueName"
+                           class="form-control"
+                           placeholder="Describe the issue" />
+                    <span asp-validation-for="IssueName" class="text-danger"></span>
+                </div>
+
+                <!-- Owner -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">👤 Owner (Employee)</label>
+
+                    <select asp-for="EmpId"
+                            asp-items="ViewBag.Employees"
+                            class="form-select">
+                        <option value="">-- Select Employee --</option>
+                    </select>
+
+                    <span asp-validation-for="EmpId" class="text-danger"></span>
+                </div>
+
+                <!-- Status -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📌 Status</label>
+                    <select asp-for="IssueStatus"
+                            asp-items="ViewBag.StatusList"
+                            class="form-select">
+                    </select>
+                </div>
+
+                <!-- Priority -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🚨 Priority</label>
+                    <select asp-for="IssuePriority" class="form-select">
+                        <option value="NORMAL">Normal</option>
+                        <option value="URGENT">Urgent</option>
+                    </select>
+                </div>
+
+                <!-- ✅ NOTE:
+                     ส่วน CreatedAt / IsReopen / ReopenCount / LastFixedAt
+                     แนะนำ "ไม่ต้องให้ผู้ใช้กรอก" เพราะจะทำให้ Yesterday/Trend เพี้ยน
+                     ให้ Controller เป็นคน set:
+                     - CreatedAt = DateTime.Now
+                     - IsReopen = false
+                     - ReopenCount = 0
+                     - LastFixedAt = null
+                -->
+
+                <!-- BEFORE IMAGES -->
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold text-primary">
+                        🧾 Issue Images (Before Fix)
+                    </label>
+
+                    <input type="file"
+                           name="images"
+                           class="form-control"
+                           multiple
+                           accept="image/*" />
+
+                    <small class="text-muted">
+                        แนบรูปตอนพบปัญหา • รองรับหลายรูป (jpg / png)
+                    </small>
+                </div>
+
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    💾 Save Issue
+                </button>
+
+                <a asp-action="Index"
+                   asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-secondary">
+                    ↩ Back
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

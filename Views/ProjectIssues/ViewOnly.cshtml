@@ -1,0 +1,204 @@
+@model IEnumerable<ProjectTracking.Models.ProjectIssue>
+
+@{
+    ViewData["Title"] = "Project Issues (View)";
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var selectedEmp = ViewBag.SelectedEmp as string;
+    var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+
+    var issueList = Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>();
+    var totalReopen = issueList.Sum(x => x.ReopenCount);
+}
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="fw-bold mb-0">👀 Project Issues</h2>
+        <p class="text-muted mb-0">รายงานสถานะงาน และงานซ้ำ (Reopen Tracking)</p>
+    </div>
+
+    @if (selectedProject != null)
+    {
+        <div>
+            <span class="badge bg-danger fs-6 me-3">
+                🔁 Reopen ทั้งหมด : @totalReopen ครั้ง
+            </span>
+
+            <a class="btn btn-outline-secondary"
+               target="_blank"
+               href="@Url.Action("Print","ProjectIssues", new { projectId = selectedProject.ProjectId, empName = selectedEmp ?? "" })">
+                🖨 พิมพ์รายงาน
+            </a>
+        </div>
+    }
+</div>
+
+<form method="get" id="filterForm" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">📁 Project</label>
+        <select id="projectSelect" name="projectId" class="form-select">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in projects)
+            {
+                <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">👤 Employee</label>
+        <select id="empSelect" name="empName" class="form-select" @(selectedProject == null ? "disabled" : "")>
+            <option value="">-- All Employees --</option>
+            @foreach (var emp in empList)
+            {
+                <option value="@emp" selected="@(emp == selectedEmp)">
+                    @emp
+                </option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (selectedProject == null)
+{
+    <div class="alert alert-info">⬆ กรุณาเลือก Project เพื่อดู Issue</div>
+}
+else
+{
+    <div class="alert alert-light border mb-3">
+        📌 <b>Project:</b> @selectedProject.ProjectName
+        @if (!string.IsNullOrEmpty(selectedEmp))
+        {
+            <span class="ms-3">👤 <b>Employee:</b> @selectedEmp</span>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width:60px;">No.</th>
+                    <th>Issue</th>
+                    <th style="width:160px;">Owner</th>
+                    <th style="width:120px;">Status</th>
+                    <th style="width:100px;">Priority</th>
+                    <th style="width:160px;">Last Fixed</th>
+                    <th style="width:260px;">Before</th>
+                    <th style="width:260px;">After</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            @if (!issueList.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">— No Issue —</td>
+                </tr>
+            }
+            else
+            {
+                var row = 1;
+
+                foreach (var i in issueList)
+                {
+                    var urgent = i.IssuePriority == "URGENT";
+                    var rc = i.ReopenCount;
+
+                    string reopenClass =
+                        rc == 0 ? "" :
+                        rc == 1 ? "bg-info" :
+                        rc <= 3 ? "bg-warning text-dark" :
+                        "bg-danger";
+
+                    string reopenText =
+                        rc == 0 ? "" :
+                        rc == 1 ? "Reopen (1)" :
+                        rc <= 3 ? $"Reopen ({rc})" :
+                        $"Critical ({rc})";
+
+                    string rowColor =
+                        rc >= 4 ? "table-danger" :
+                        rc >= 2 ? "table-warning" :
+                        i.IssueStatus == "FIXED" ? "table-success" :
+                        "";
+
+                    <tr class="@rowColor">
+                        <td class="text-center fw-semibold">@row</td>
+
+                        <td>
+                            <div class="fw-semibold">
+                                @i.IssueName
+                                @if (rc > 0)
+                                {
+                                    <span class="badge @reopenClass ms-2">🔁 @reopenText</span>
+                                }
+                            </div>
+                            <small class="text-muted">📅 @i.CreatedAt.ToString("dd/MM/yyyy")</small>
+                        </td>
+
+                        <td class="text-center">👤 @(i.Employee?.EmpName ?? "-")</td>
+
+                        <td class="text-center">
+                            <span class="badge
+                                @(i.IssueStatus == "OPEN" ? "bg-warning text-dark" :
+                                  i.IssueStatus == "WIP" ? "bg-info" :
+                                  i.IssueStatus == "FIXED" ? "bg-success" :
+                                  i.IssueStatus == "FAIL" ? "bg-danger" :
+                                  "bg-secondary")">
+                                @i.IssueStatus
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge @(urgent ? "bg-danger" : "bg-secondary")">
+                                @(urgent ? "URGENT" : "NORMAL")
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                        </td>
+
+                        <td>
+                            @foreach (var img in i.Images ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueImage>())
+                            {
+                                <a href="@img.FilePath" target="_blank">
+                                    <img src="@img.FilePath" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;" />
+                                </a>
+                            }
+                        </td>
+
+                        <td>
+                            @foreach (var img in i.FixImages ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueFixImage>())
+                            {
+                                <a href="@img.FilePath" target="_blank">
+                                    <img src="@img.FilePath" class="img-thumbnail border-success" style="width:60px;height:60px;object-fit:cover;" />
+                                </a>
+                            }
+                        </td>
+                    </tr>
+
+                    row++;
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(function () {
+    $('#projectSelect').select2({ width: '100%' });
+    $('#empSelect').select2({ width: '100%' });
+
+    $('#projectSelect').on('change', function () { $('#filterForm').submit(); });
+    $('#empSelect').on('change', function () { $('#filterForm').submit(); });
+});
+</script>

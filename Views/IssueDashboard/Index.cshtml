@@ -1,0 +1,531 @@
+@model ProjectTracking.ViewModels.IssueDashboardVM
+@using System.Collections.Generic
+@{
+    ViewData["Title"] = "Issue Dashboard";
+
+    double pct(int part, int total) => total <= 0 ? 0 : (double)part * 100.0 / total;
+
+    string trendClass(double today, double yesterday) => today > yesterday ? "trend-up" : today < yesterday ? "trend-down" : "trend-flat";
+
+    string fmtDiffInt(int today, int yesterday)
+    {
+        var diff = today - yesterday;
+        if (diff == 0) return "• 0";
+        return $"{(diff > 0 ? "▲" : "▼")} {(diff > 0 ? "+" : "")}{diff}";
+    }
+
+    string fmtDiffPp(double today, double yesterday)
+    {
+        var diff = today - yesterday;
+        if (Math.Abs(diff) < 0.0001) return "• 0.0pp";
+        return $"{(diff > 0 ? "▲" : "▼")} {(diff > 0 ? "+" : "")}{diff:0.#}pp";
+    }
+
+    // ✅ ปีปัจจุบัน (null-safe)
+    var currentYear = (Model?.CurrentYear > 0) ? Model.CurrentYear : DateTime.Today.Year;
+
+    // ✅ ช่วงวันที่ของปีที่กรองอยู่
+    var yearStart = new DateTime(currentYear, 1, 1);
+    var yearEnd = new DateTime(currentYear, 12, 31);
+}
+
+<style>
+.section{margin-bottom:22px;}
+.section-title{font-size:15px;font-weight:700;margin-bottom:8px;}
+
+.kpi-grid{
+    display:grid;
+    gap:8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+@@media (max-width: 1199.98px){
+    .kpi-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@@media (max-width: 767.98px){
+    .kpi-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@@media (max-width: 575.98px){
+    .kpi-grid{ grid-template-columns: 1fr; }
+}
+
+.kpi{
+    border-radius:12px;
+    padding:10px 12px;
+    color:#fff;
+    height:74px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+    min-width:0;
+}
+.kpi small{opacity:.85;font-size:12px;}
+.kpi h3{margin:0;font-weight:800;font-size:24px; line-height:1.05;}
+.kpi .kpi-sub{margin-top:2px;font-size:12px;opacity:.9;}
+.kpi .trend{
+    position:absolute;
+    right:10px;
+    top:10px;
+    font-size:12px;
+    font-weight:800;
+    padding:2px 8px;
+    border-radius:999px;
+    background: rgba(255,255,255,.18);
+    backdrop-filter: blur(2px);
+    max-width:70%;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.trend-up{ color:#d1fae5; }
+.trend-down{ color:#fee2e2; }
+.trend-flat{ color:#e5e7eb; }
+
+.c-total{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+.c-open{background:linear-gradient(135deg,#ff6a6a,#ff0000);}
+.c-wip{background:linear-gradient(135deg,#ffd86f,#fc6262);}
+.c-fixed{background:linear-gradient(135deg,#43e97b,#38f9d7);}
+.c-reopen{background:linear-gradient(135deg,#868f96,#596164);}
+
+.c-plan{background:linear-gradient(135deg,#667eea,#764ba2);}
+.c-doing{background:linear-gradient(135deg,#36d1dc,#5b86e5);}
+.c-done{background:linear-gradient(135deg,#11998e,#38ef7d);}
+.c-overdue{background:linear-gradient(135deg,#f83600,#f9d423);}
+
+.chart-box{
+    background:#fff;
+    padding:10px;
+    border-radius:12px;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.chart-wrap{position:relative;height:260px;width:100%;}
+.chart-wrap.tall{height:280px;}
+canvas{display:block;}
+
+#chartDebug{
+    display:none;
+    margin:10px 0;
+    padding:10px 12px;
+    border-radius:10px;
+    background:#fff3cd;
+    border:1px solid #ffeeba;
+    color:#664d03;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size:12px;
+    white-space:pre-wrap;
+}
+
+.chart-hint{
+    display:block;
+    margin-top:6px;
+    color:#6b7280;
+    font-size:12px;
+}
+
+/* ✅ legend ยาว */
+.legend-compact .chart-wrap{height:320px;}
+
+/* ✅ badge ปี */
+.year-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-left:8px;
+    padding:2px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    color:#111827;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+}
+.year-subtitle{
+    margin-top:-10px;
+    margin-bottom:12px;
+    font-size:12px;
+    color:#6b7280;
+}
+</style>
+
+<h3 class="mb-2">
+    📊 Issue Dashboard
+    <span class="year-badge">Year @currentYear</span>
+</h3>
+<div class="year-subtitle">
+    กรองข้อมูลปี @currentYear (@yearStart.ToString("dd/MM/yyyy") - @yearEnd.ToString("dd/MM/yyyy"))
+</div>
+
+<div id="chartDebug"></div>
+
+<!-- ================= ISSUES ================= -->
+<div class="section">
+    <div class="section-title">Issues</div>
+
+    <div class="kpi-grid">
+        <div class="kpi c-total">
+            <div class="trend @trendClass(Model?.Total ?? 0, Model?.TotalYesterday ?? 0)">@fmtDiffInt(Model?.Total ?? 0, Model?.TotalYesterday ?? 0)</div>
+            <small>Total</small>
+            <h3>@(Model?.Total ?? 0)</h3>
+            <div class="kpi-sub">100%</div>
+        </div>
+
+        <div class="kpi c-open">
+            <div class="trend @trendClass(Model?.Open ?? 0, Model?.OpenYesterday ?? 0)">@fmtDiffInt(Model?.Open ?? 0, Model?.OpenYesterday ?? 0)</div>
+            <small>Open</small>
+            <h3>@(Model?.Open ?? 0)</h3>
+            <div class="kpi-sub">@pct(Model?.Open ?? 0, Model?.Total ?? 0).ToString("0.#")%</div>
+        </div>
+
+        <div class="kpi c-wip">
+            <div class="trend @trendClass(Model?.Wip ?? 0, Model?.WipYesterday ?? 0)">@fmtDiffInt(Model?.Wip ?? 0, Model?.WipYesterday ?? 0)</div>
+            <small>WIP</small>
+            <h3>@(Model?.Wip ?? 0)</h3>
+            <div class="kpi-sub">@pct(Model?.Wip ?? 0, Model?.Total ?? 0).ToString("0.#")%</div>
+        </div>
+
+        <div class="kpi c-fixed">
+            <div class="trend @trendClass(Model?.Fixed ?? 0, Model?.FixedYesterday ?? 0)">@fmtDiffInt(Model?.Fixed ?? 0, Model?.FixedYesterday ?? 0)</div>
+            <small>Fixed</small>
+            <h3>@(Model?.Fixed ?? 0)</h3>
+            <div class="kpi-sub">@pct(Model?.Fixed ?? 0, Model?.Total ?? 0).ToString("0.#")%</div>
+        </div>
+
+        <div class="kpi c-reopen">
+            <div class="trend @trendClass(Model?.ReopenRate ?? 0, Model?.ReopenRateYesterday ?? 0)">@fmtDiffPp(Model?.ReopenRate ?? 0, Model?.ReopenRateYesterday ?? 0)</div>
+            <small>Reopen %</small>
+            <h3>@((Model?.ReopenRate ?? 0).ToString("0.#"))%</h3>
+            <div class="kpi-sub">จาก Total</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= CHARTS (ISSUE) ================= -->
+<div class="section">
+    <div class="row g-2">
+        <div class="col-md-6">
+            <div class="chart-box">
+                <b>Status</b>
+                <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+                <span class="chart-hint">* คลิกที่กราฟเพื่อดูรายการตามสถานะ</span>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-box">
+                <b>Priority</b>
+                <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+                <span class="chart-hint">* คลิกที่กราฟเพื่อดูรายการตาม Priority</span>
+            </div>
+        </div>
+
+        <div class="col-md-12">
+            <div class="chart-box legend-compact">
+                <b>Open by Owner</b>
+                <div class="chart-wrap"><canvas id="openOwnerChart"></canvas></div>
+                <span class="chart-hint">* คลิกเพื่อดูรายการ OPEN ของพนักงานคนนั้น</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= PHASE ================= -->
+<div class="section">
+    <div class="section-title">Phases</div>
+
+    @{
+        var phaseTotal = ((Model?.PhasePlanned ?? 0) + (Model?.PhaseDoing ?? 0) + (Model?.PhaseDone ?? 0) + (Model?.PhaseOverdue ?? 0));
+    }
+
+    <div class="row g-2 mb-2">
+        <div class="col-md-3">
+            <div class="kpi c-plan">
+                <small>Planned</small>
+                <h3>@(Model?.PhasePlanned ?? 0)</h3>
+                <div class="kpi-sub">(@pct(Model?.PhasePlanned ?? 0, phaseTotal).ToString("0.#")%)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi c-doing">
+                <small>Doing</small>
+                <h3>@(Model?.PhaseDoing ?? 0)</h3>
+                <div class="kpi-sub">(@pct(Model?.PhaseDoing ?? 0, phaseTotal).ToString("0.#")%)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi c-done">
+                <small>Done</small>
+                <h3>@(Model?.PhaseDone ?? 0)</h3>
+                <div class="kpi-sub">(@pct(Model?.PhaseDone ?? 0, phaseTotal).ToString("0.#")%)</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi c-overdue">
+                <small>Overdue</small>
+                <h3>@(Model?.PhaseOverdue ?? 0)</h3>
+                <div class="kpi-sub">(@pct(Model?.PhaseOverdue ?? 0, phaseTotal).ToString("0.#")%)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-md-6">
+            <div class="chart-box">
+                <b>Phase Progress (%)</b>
+                <div class="chart-wrap tall"><canvas id="phaseChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- ✅ ย้าย Workload Overlap by Owner มาไว้ในส่วน Phases -->
+        <div class="col-md-6">
+            <div class="chart-box legend-compact">
+                <b>Workload Overlap by Owner</b>
+                <div class="chart-wrap"><canvas id="overlapOwnerChart"></canvas></div>
+                <span class="chart-hint">* แสดง “งานที่ทับกัน” ต่อคน (Doing=3 → Overlap=2)</span> 
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(function () {
+    const debugEl = document.getElementById('chartDebug');
+    function showDebug(msg){ debugEl.style.display='block'; debugEl.textContent=msg; }
+
+    function sum(arr){ return (arr||[]).reduce((a,b)=>a+(Number(b)||0),0); }
+    function hasData(arr){ return Array.isArray(arr) && arr.length>0 && arr.some(x=>Number(x)>0); }
+
+    function normalizeStatusLabel(label){
+        return String(label||'').trim().toUpperCase().replace(/\s+/g,'_');
+    }
+    function getStatusColor(label){
+        const key = normalizeStatusLabel(label);
+        const map = {
+            'OPEN':'#ff0000','WIP':'#ffd166','FIXED':'#06d6a0','REJECT':'#adb5bd','PASS':'#06d6a0','FAIL':'#ff4d6d'
+        };
+        return map[key] || '#adb5bd';
+    }
+    function buildStatusColors(labels){ return (labels||[]).map(l=>getStatusColor(l)); }
+
+    function buildOwnerColors(labels){
+        const base = ['#2563eb','#0ea5e9','#14b8a6','#22c55e','#84cc16','#eab308','#f97316','#ef4444','#a855f7','#64748b','#111827'];
+        return (labels||[]).map((_,i)=>base[i%base.length]);
+    }
+
+    const centerTextPlugin = {
+        id:'centerText',
+        afterDraw(chart,args,pluginOptions){
+            const opts = pluginOptions||{};
+            const text1 = opts.text1||'';
+            const text2 = opts.text2||'';
+            const ctx = chart.ctx;
+            const meta = chart.getDatasetMeta(0);
+            if(!meta||!meta.data||!meta.data.length) return;
+            const x = meta.data[0].x;
+            const y = meta.data[0].y;
+
+            ctx.save();
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillStyle='#111827';
+            ctx.font='700 22px Arial';
+            ctx.fillText(text1, x, y-6);
+            ctx.fillStyle='#6b7280';
+            ctx.font='600 12px Arial';
+            ctx.fillText(text2, x, y+14);
+            ctx.restore();
+        }
+    };
+
+    function doughnutOptions(centerMain, centerSub){
+        return {
+            responsive:true,
+            maintainAspectRatio:false,
+            cutout:'68%',
+            layout:{ padding:8 },
+            plugins:{
+                legend:{
+                    position:'bottom',
+                    labels:{
+                        filter:(legendItem)=>{
+                            const ds = legendItem?.chart?.data?.datasets?.[0]?.data;
+                            if(!ds) return true;
+                            const val = Number(ds[legendItem.index]||0);
+                            return val>0;
+                        }
+                    }
+                },
+                tooltip:{
+                    callbacks:{
+                        label:(ctx)=>{
+                            const data = ctx.dataset.data||[];
+                            const total = sum(data);
+                            const val = Number(ctx.raw)||0;
+                            const pct = total ? (val*100/total).toFixed(1) : "0.0";
+                            return `${ctx.label}: ${val} (${pct}%)`;
+                        }
+                    }
+                },
+                centerText:{ text1:String(centerMain), text2:centerSub }
+            }
+        };
+    }
+
+    // ✅ null-safe: Model?.Xxx ?? new List<...>()
+    const statusLabels   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.StatusLabels ?? new List<string>()));
+    const statusCounts   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.StatusCounts ?? new List<int>()));
+
+    const priorityLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.PriorityLabels ?? new List<string>()));
+    const priorityCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.PriorityCounts ?? new List<int>()));
+
+    const phaseLabels    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.PhaseLabels ?? new List<string>()));
+    const phaseCounts    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.PhaseCounts ?? new List<int>()));
+
+    const openOwnerLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OpenByOwnerLabels ?? new List<string>()));
+    const openOwnerCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OpenByOwnerCounts ?? new List<int>()));
+    const openOwnerEmpIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OpenByOwnerEmpIds ?? new List<int>()));
+
+    const overlapOwnerLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OverlapByOwnerLabels ?? new List<string>()));
+    const overlapOwnerCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OverlapByOwnerCounts ?? new List<int>()));
+    const overlapOwnerEmpIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OverlapByOwnerEmpIds ?? new List<int>()));
+    const overlapOwnerDoingCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.OverlapByOwnerDoingCounts ?? new List<int>()));
+
+    function toPercentArray(arr){
+        const total = sum(arr);
+        return (arr||[]).map(v => total ? +(Number(v)*100/total).toFixed(1) : 0);
+    }
+    const phasePercents = toPercentArray(phaseCounts);
+
+    setInterval(()=>location.reload(), 60000);
+
+    document.addEventListener('DOMContentLoaded', function(){
+        try{
+            if(typeof Chart === 'undefined'){ showDebug('❌ Chart.js ไม่ถูกโหลด (Chart is undefined)'); return; }
+
+            const c1 = document.getElementById('statusChart');
+            const c2 = document.getElementById('priorityChart');
+            const c3 = document.getElementById('phaseChart');
+            const c4 = document.getElementById('openOwnerChart');
+            const c5 = document.getElementById('overlapOwnerChart');
+
+            if(c1 && hasData(statusCounts)){
+                new Chart(c1,{
+                    type:'doughnut',
+                    plugins:[centerTextPlugin],
+                    data:{ labels:statusLabels, datasets:[{ data:statusCounts, backgroundColor:buildStatusColors(statusLabels) }]},
+                    options:{ ...doughnutOptions(@(Model?.Total ?? 0),'Total'),
+                        onClick:(evt,els,chart)=>{
+                            if(!els.length) return;
+                            const idx=els[0].index;
+                            const label=chart.data.labels[idx];
+                            window.location.href = `/ProjectIssues?status=${encodeURIComponent(label)}`;
+                        }
+                    }
+                });
+            }
+
+            if(c2 && hasData(priorityCounts)){
+                new Chart(c2,{
+                    type:'doughnut',
+                    plugins:[centerTextPlugin],
+                    data:{ labels:priorityLabels, datasets:[{ data:priorityCounts, backgroundColor:['#ff4d6d','#adb5bd'] }]},
+                    options:{ ...doughnutOptions(sum(priorityCounts),'Issues'),
+                        onClick:(evt,els,chart)=>{
+                            if(!els.length) return;
+                            const idx=els[0].index;
+                            const label=chart.data.labels[idx];
+                            window.location.href = `/ProjectIssues?priority=${encodeURIComponent(label)}`;
+                        }
+                    }
+                });
+            }
+
+            if(c4 && hasData(openOwnerCounts)){
+                new Chart(c4,{
+                    type:'doughnut',
+                    plugins:[centerTextPlugin],
+                    data:{ labels:openOwnerLabels, datasets:[{ data:openOwnerCounts, backgroundColor:buildOwnerColors(openOwnerLabels) }]},
+                    options:{ ...doughnutOptions(sum(openOwnerCounts),'Open'),
+                        onClick:(evt,els,chart)=>{
+                            if(!els.length) return;
+                            const idx=els[0].index;
+                            const label=chart.data.labels[idx];
+                            const empId = Number(openOwnerEmpIds[idx] || 0);
+
+                            if(String(label).toUpperCase()==='OTHERS' || empId===0){
+                                window.location.href = `/ProjectIssues?status=OPEN`;
+                                return;
+                            }
+                            window.location.href = `/ProjectIssues?status=OPEN&empId=${empId}`;
+                        }
+                    }
+                });
+            }
+
+            // ✅ (ย้ายแล้ว) Overlap chart ยังใช้ id เดิม overlapOwnerChart ไม่ต้องเปลี่ยน JS
+            if(c5 && hasData(overlapOwnerCounts)){
+                new Chart(c5,{
+                    type:'doughnut',
+                    plugins:[centerTextPlugin],
+                    data:{ labels:overlapOwnerLabels, datasets:[{ data:overlapOwnerCounts, backgroundColor:buildOwnerColors(overlapOwnerLabels) }]},
+                    options:{
+                        ...doughnutOptions(sum(overlapOwnerCounts),'Overlaps'),
+                        plugins:{
+                            ...doughnutOptions(sum(overlapOwnerCounts),'Overlaps').plugins,
+                            tooltip:{
+                                callbacks:{
+                                    label:(ctx)=>{
+                                        const name = ctx.label;
+                                        const overlap = Number(ctx.raw)||0;
+                                        const idx = ctx.dataIndex;
+
+                                        const doing = (Array.isArray(overlapOwnerDoingCounts) && overlapOwnerDoingCounts.length>idx)
+                                            ? Number(overlapOwnerDoingCounts[idx]||0)
+                                            : (overlap>0 ? overlap+1 : 0);
+
+                                        return doing>0
+                                            ? `${name}: Overlap ${overlap} (Doing ${doing})`
+                                            : `${name}: Overlap ${overlap}`;
+                                    }
+                                }
+                            }
+                        },
+                        onClick:(evt,els,chart)=>{
+                            if(!els.length) return;
+                            const idx=els[0].index;
+                            const label=chart.data.labels[idx];
+                            const empId = Number(overlapOwnerEmpIds[idx] || 0);
+
+                            if(String(label).toUpperCase()==='NO OVERLAP' || empId===0) return;
+
+                            window.location.href = `/EmployeeWorkload?empId=${empId}`;
+                        }
+                    }
+                });
+            }
+
+            if(c3 && hasData(phaseCounts)){
+                new Chart(c3,{
+                    type:'bar',
+                    data:{ labels:phaseLabels, datasets:[{ label:'%', data:phasePercents, backgroundColor:['#7b2cbf','#00bbf9','#06d6a0','#ff8800'] }]},
+                    options:{
+                        responsive:true, maintainAspectRatio:false,
+                        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.raw}%` } } },
+                        scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:(v)=>v+'%' } } }
+                    }
+                });
+            }
+
+        }catch(e){
+            showDebug('❌ Chart render error:\n'+(e && e.stack ? e.stack : e));
+        }
+    });
+})();
+</script>
+}

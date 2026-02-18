@@ -1,0 +1,183 @@
+@model ProjectTracking.Models.ProjectIssue
+
+@{
+    ViewData["Title"] = "Edit Issue";
+}
+
+<h2 class="mb-3">✏️ Edit Project Issue</h2>
+
+<form asp-action="Edit"
+      method="post"
+      enctype="multipart/form-data">
+
+    @Html.AntiForgeryToken()
+
+    <!-- Hidden Keys -->
+    <input type="hidden" asp-for="IssueId" />
+    <input type="hidden" asp-for="ProjectId" />
+
+    <!-- ⭐ สำคัญมาก : กันค่า Reopen หายตอน Post -->
+    <input type="hidden" asp-for="IsReopen" />
+    <input type="hidden" asp-for="ReopenCount" />
+    <input type="hidden" asp-for="LastFixedAt" />
+
+    <!-- ================= Issue Name ================= -->
+    <div class="mb-3">
+        <label asp-for="IssueName" class="form-label"></label>
+        <input asp-for="IssueName" class="form-control" />
+        <span asp-validation-for="IssueName" class="text-danger"></span>
+    </div>
+
+    <!-- ================= Owner ================= -->
+    <div class="mb-3">
+        <label asp-for="EmpId" class="form-label">Owner (Employee)</label>
+
+        <select asp-for="EmpId"
+                asp-items="ViewBag.Employees"
+                class="form-select">
+            <option value="">-- Select Employee --</option>
+        </select>
+
+        <span asp-validation-for="EmpId" class="text-danger"></span>
+    </div>
+
+    <!-- ================= Status ================= -->
+    <div class="mb-3">
+        <label asp-for="IssueStatus" class="form-label">Status</label>
+        <select asp-for="IssueStatus"
+                asp-items="ViewBag.StatusList"
+                class="form-select">
+        </select>
+        <span asp-validation-for="IssueStatus" class="text-danger"></span>
+    </div>
+
+    <!-- ================= Priority ================= -->
+    <div class="mb-3">
+        <label asp-for="IssuePriority" class="form-label">Priority</label>
+        <select asp-for="IssuePriority" class="form-select">
+            <option value="NORMAL">Normal</option>
+            <option value="URGENT">Urgent</option>
+        </select>
+    </div>
+
+    <!-- ✅ NEW (READ ONLY): CreatedAt -->
+    <div class="mb-3">
+        <label asp-for="CreatedAt" class="form-label">Created At</label>
+        <input asp-for="CreatedAt" type="datetime-local" class="form-control" readonly />
+        <small class="text-muted">* แสดงเพื่ออ้างอิง (แก้ไม่ได้)</small>
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- 🔁 ISSUE HISTORY (READ ONLY) -->
+    <!-- ===================================================== -->
+    <div class="mb-4 p-3 border rounded bg-light">
+
+        <div class="fw-semibold mb-2">📊 Issue History</div>
+
+        <div class="row small">
+
+            <div class="col-md-4">
+                <div class="text-muted">Reopen Status</div>
+                @if (Model.IsReopen)
+                {
+                    <span class="badge bg-danger">REOPEN</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">NORMAL</span>
+                }
+            </div>
+
+            <div class="col-md-4">
+                <div class="text-muted">Reopen Count</div>
+                <span class="fw-bold">@Model.ReopenCount ครั้ง</span>
+            </div>
+
+            <div class="col-md-4">
+                <div class="text-muted">Last Fixed</div>
+                @if (Model.LastFixedAt != null)
+                {
+                    <span class="text-success fw-semibold">
+                        @Model.LastFixedAt?.ToString("dd/MM/yyyy HH:mm")
+                    </span>
+                }
+                else
+                {
+                    <span class="text-muted">ยังไม่เคย Fix</span>
+                }
+            </div>
+
+        </div>
+
+        <hr class="my-2"/>
+
+        <small class="text-muted">
+            💡 เปลี่ยนสถานะจาก FIXED/PASS → OPEN/WIP ระบบจะนับ Reopen อัตโนมัติ
+        </small>
+
+    </div>
+
+    <!-- ===================================================== -->
+    <!-- 🧾 BEFORE IMAGES -->
+    <!-- ===================================================== -->
+    @if (Model.Images != null && Model.Images.Any())
+    {
+        <div class="mb-4">
+            <label class="form-label fw-bold text-primary">
+                🧾 Issue Images (Before Fix)
+            </label>
+
+            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-light">
+                @foreach (var img in Model.Images)
+                {
+                    <a href="@img.FilePath" target="_blank">
+                        <img src="@img.FilePath"
+                             class="img-thumbnail"
+                             style="width:140px;height:140px;object-fit:cover;" />
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ===================================================== -->
+    <!-- 🔧 AFTER IMAGES -->
+    <!-- ===================================================== -->
+    @if (Model.FixImages != null && Model.FixImages.Any())
+    {
+        <div class="mb-4">
+            <label class="form-label fw-bold text-success">
+                🔧 Fix Result Images (After Fix)
+            </label>
+
+            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-white">
+                @foreach (var img in Model.FixImages)
+                {
+                    <a href="@img.FilePath" target="_blank">
+                        <img src="@img.FilePath"
+                             class="img-thumbnail border-success"
+                             style="width:140px;height:140px;object-fit:cover;" />
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ================= Actions ================= -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+            💾 Save
+        </button>
+
+        <a asp-action="Index"
+           asp-route-projectId="@Model.ProjectId"
+           class="btn btn-secondary ms-2">
+            ↩ Back
+        </a>
+    </div>
+
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

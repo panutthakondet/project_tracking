@@ -1,0 +1,148 @@
+@model IEnumerable<ProjectTracking.Models.ProjectIssue>
+
+@{
+    ViewData["Title"] = "Dev Issues";
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var selectedEmp = ViewBag.SelectedEmp as string;
+    var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+}
+
+<style>
+.issue-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
+.issue-table{ min-width:1650px; }
+
+.sticky-col{ position:sticky; left:0; background:#fff; z-index:2; }
+.sticky-col-2{ position:sticky; left:90px; background:#fff; z-index:2; }
+
+.col-id{ width:90px; min-width:90px; text-align:center; }
+.col-issue{ width:360px; min-width:360px; }
+.col-owner{ width:180px; min-width:180px; text-align:center; }
+.col-status{ width:170px; min-width:170px; text-align:center; }
+.col-priority{ width:140px; min-width:140px; text-align:center; }
+.col-lastfix{ width:180px; min-width:180px; text-align:center; }
+.col-images{ min-width:260px; }
+.col-fiximages{ min-width:260px; }
+.col-action{ width:120px; min-width:120px; text-align:center; }
+</style>
+
+<div class="mb-3">
+    <h2 class="fw-bold mb-0">👨‍💻 Dev Issues</h2>
+    <small class="text-muted">โปรแกรมเมอร์แก้ Dev Status เท่านั้น</small>
+</div>
+
+<form method="get" id="filterForm" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">📁 Project</label>
+        <select id="projectSelect" name="projectId" class="form-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in projects)
+            {
+                <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">@p.ProjectName</option>
+            }
+        </select>
+    </div>
+
+    @if (selectedProject != null)
+    {
+        <div class="col-md-4">
+            <label class="form-label fw-semibold">👤 Owner</label>
+            <select name="empName" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                <option value="">-- All --</option>
+                @foreach (var emp in empList)
+                {
+                    <option value="@emp" selected="@(emp == selectedEmp)">@emp</option>
+                }
+            </select>
+        </div>
+    }
+</form>
+
+@if (selectedProject == null)
+{
+    <div class="alert alert-info">⬆ กรุณาเลือก Project เพื่อดูรายการ Issue</div>
+}
+else
+{
+    <div class="issue-table-wrapper">
+        <table class="table table-bordered table-hover align-middle issue-table">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th class="col-id sticky-col">No.</th>
+                    <th class="col-issue sticky-col-2">Issue</th>
+                    <th class="col-owner">Owner</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-status">Dev Status</th>
+                    <th class="col-priority">Priority</th>
+                    <th class="col-images">Before</th>
+                    <th class="col-fiximages">After</th>
+                    <th class="col-action">Dev</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            @{ var row = 1; }
+            @foreach (var i in Model)
+            {
+                var urgent = i.IssuePriority == "URGENT";
+
+                string statusClass =
+                    i.IssueStatus == "OPEN" ? "bg-warning text-dark" :
+                    i.IssueStatus == "WIP" ? "bg-info text-dark" :
+                    i.IssueStatus == "FIXED" ? "bg-success" :
+                    i.IssueStatus == "PASS" ? "bg-primary" :
+                    i.IssueStatus == "FAIL" ? "bg-danger" :
+                    i.IssueStatus == "REJECT" ? "bg-dark" :
+                    "bg-secondary";
+
+                <tr class="@(urgent ? "table-danger" : "")">
+                    <td class="sticky-col col-id fw-semibold">@row</td>
+
+                    <td class="sticky-col-2 col-issue">
+                        <div class="fw-semibold">@i.IssueName</div>
+                        <small class="text-muted">📅 @i.CreatedAt.ToString("dd/MM/yyyy")</small>
+                    </td>
+
+                    <td class="col-owner"><span class="badge bg-light text-dark border">@(i.Employee?.EmpName ?? "-")</span></td>
+                    <td class="col-status"><span class="badge @statusClass">@i.IssueStatus</span></td>
+                    <td class="col-status">
+                        <span class="badge 
+                            @(i.DevStatus == "TODO" ? "bg-secondary" :
+                              i.DevStatus == "DOING" ? "bg-info text-dark" :
+                              i.DevStatus == "FIXED" ? "bg-success" :
+                              i.DevStatus == "BLOCK" ? "bg-danger" : "bg-dark")">
+                            @i.DevStatus
+                        </span>
+                    </td>
+                    <td class="col-priority"><span class="badge @(urgent ? "bg-danger" : "bg-secondary")">@(urgent ? "🔥 URGENT" : "NORMAL")</span></td>
+
+                    <td class="col-images">
+                        @if (i.Images != null)
+                        {
+                            @foreach (var img in i.Images)
+                            {
+                                <a href="@img.FilePath" target="_blank"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" /></a>
+                            }
+                        }
+                    </td>
+
+                    <td class="col-fiximages">
+                        @if (i.FixImages != null)
+                        {
+                            @foreach (var img in i.FixImages)
+                            {
+                                <a href="@img.FilePath" target="_blank"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" /></a>
+                            }
+                        }
+                    </td>
+
+                    <td class="col-action">
+                        <a asp-action="DevEdit" asp-route-id="@i.IssueId" class="btn btn-sm btn-warning">✏️ Edit</a>
+                    </td>
+                </tr>
+                row++;
+            }
+            </tbody>
+        </table>
+    </div>
+}

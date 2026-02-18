@@ -1,0 +1,197 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Assigned Employees Report";
+    var th = new CultureInfo("th-TH");
+
+    // =========================================
+    // 🎨 สีประจำ Employee (คงที่จาก EmpId)
+    // =========================================
+    string GetColorByEmpId(int empId)
+    {
+        var r = (empId * 70) % 256;
+        var g = (empId * 130) % 256;
+        var b = (empId * 200) % 256;
+
+        r = (r + 200) / 2;
+        g = (g + 200) / 2;
+        b = (b + 200) / 2;
+
+        return $"rgb({r},{g},{b})";
+    }
+}
+
+<!-- ================= FILTER (NO PRINT) ================= -->
+<form method="get" class="row g-3 mb-4 no-print">
+
+    <!-- PROJECT -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">📁 Project</label>
+        <select name="projectId"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in ViewBag.Projects)
+            {
+                <option value="@p.ProjectId"
+                        selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- EMPLOYEE -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">👤 Employee</label>
+        <select name="empId"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="">-- All Employees --</option>
+            @foreach (var e in ViewBag.EmployeeList)
+            {
+                <option value="@e.EmpId"
+                        selected="@(ViewBag.SelectedEmpId == e.EmpId)">
+                    @e.EmpName
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- ROLE -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">🧩 Role</label>
+        <select name="role"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="">-- All Roles --</option>
+            @foreach (var r in ViewBag.RoleList ?? new List<string>())
+            {
+                <option value="@r"
+                        selected="@(ViewBag.SelectedRole == r)">
+                    @r
+                </option>
+            }
+        </select>
+    </div>
+
+    <!-- PRINT BUTTONS -->
+    <div class="col-md-3 align-self-end text-end">
+        <div class="d-flex justify-content-end gap-2">
+
+            <!-- 🖨 พิมพ์รายงาน (ของเดิม) -->
+            <button type="button"
+                    class="btn btn-dark"
+                    onclick="window.print()">
+                🖨 พิมพ์รายงาน
+            </button>
+
+            <!-- 📄 พิมพ์ฟอร์ม (เพิ่มใหม่ / ไม่กระทบของเดิม) -->
+            @if (Model.Any())
+            {
+                <a asp-action="Form"
+                   asp-route-id="@Model.First().AssignId"
+                   target="_blank"
+                   class="btn btn-outline-primary">
+                    📄 พิมพ์ฟอร์ม
+                </a>
+            }
+
+        </div>
+    </div>
+</form>
+
+<!-- ================= REPORT HEADER ================= -->
+<div class="text-center mb-4">
+    <h2 class="fw-bold">👥 Assigned Employees Report</h2>
+    <div class="text-muted">
+        <b>Project:</b> @(ViewBag.SelectedProject?.ProjectName ?? "All") <br />
+        <b>Print Date:</b> @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+    </div>
+</div>
+
+<!-- ================= TABLE ================= -->
+<div class="table-responsive">
+    <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light text-center">
+            <tr>
+                <th style="width:220px;">Employee</th>
+                <th>Role</th>
+                <th style="width:220px;">Plan Period</th>
+                <th style="width:220px;">Actual Period</th>
+                <th style="width:260px;">Remark</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="5"
+                    class="text-center text-muted py-4">
+                    — No assignment —
+                </td>
+            </tr>
+        }
+        else
+        {
+            foreach (var a in Model)
+            {
+                var bg = GetColorByEmpId(a.EmpId);
+
+                <tr>
+                    <td style="background-color:@bg !important;">
+                        @a.Employee?.EmpName
+                    </td>
+
+                    <td style="background-color:@bg !important; white-space:normal;">
+                        @a.Role
+                    </td>
+
+                    <td style="background-color:@bg !important;" class="text-center">
+                        @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td style="background-color:@bg !important;" class="text-center">
+                        @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td style="background-color:@bg !important;">
+                        @a.Remark
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= PRINT STYLE ================= -->
+<style>
+@@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        font-size: 12px;
+    }
+
+    table {
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+}
+</style>

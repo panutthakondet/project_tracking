@@ -1,0 +1,343 @@
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+
+    var qs = Context?.Request?.Query;
+
+    var returnUrl =
+        (string?)ViewBag.ReturnUrl
+        ?? (qs?["returnUrl"].ToString())
+        ?? (qs?["ReturnUrl"].ToString())
+        ?? "";
+
+    // ==============================
+    // SECURITY: ป้องกัน redirect loop / open redirect
+    // ==============================
+    if (!string.IsNullOrWhiteSpace(returnUrl))
+    {
+        returnUrl = returnUrl.Trim();
+
+        // 1) ห้ามกลับมาหน้า Login
+        if (returnUrl.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase))
+            returnUrl = "/";
+
+        // 2) กัน //evil.com (ต้องมาก่อน)
+        if (returnUrl.StartsWith("//"))
+            returnUrl = "/";
+
+        // 3) ห้ามออกนอกเว็บ
+        if (!returnUrl.StartsWith("/"))
+            returnUrl = "/";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Login - ProjectTracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        :root{
+            --p1:#2563eb; /* blue */
+            --p2:#4f46e5; /* indigo */
+            --card: rgba(255,255,255,.72);
+        }
+
+        /* ✅ Background image + dark overlay (soathome.png) */
+        body{
+            min-height:100vh;
+            background:
+                linear-gradient(rgba(10,20,40,.72), rgba(10,20,40,.78)),
+                url('/images/auth/soathome.png') center center / cover no-repeat fixed;
+        }
+
+        /* ✅ Soft blur layer */
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            backdrop-filter: blur(8px) saturate(1.05);
+            -webkit-backdrop-filter: blur(8px) saturate(1.05);
+            z-index:-1;
+        }
+
+        /* Soft light blobs */
+        .bg-blob{
+            position:fixed;
+            width:560px;height:560px;
+            filter: blur(56px);
+            opacity:.28;
+            z-index:-1;
+            pointer-events:none;
+        }
+        .blob-1{
+            left:-220px; top:-220px;
+            background: radial-gradient(circle, rgba(37,99,235,.95), transparent 60%);
+        }
+        .blob-2{
+            right:-240px; bottom:-240px;
+            background: radial-gradient(circle, rgba(79,70,229,.95), transparent 60%);
+        }
+
+        .login-shell{
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:24px;
+        }
+
+        .login-card{
+            width: 460px;
+            border-radius: 22px;
+            background: var(--card);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,.55);
+            box-shadow:
+                0 30px 90px rgba(0,0,0,.45),
+                inset 0 1px 0 rgba(255,255,255,.55);
+            overflow:hidden;
+        }
+
+        .card-head{
+            padding:26px 28px 14px;
+            border-bottom: 1px solid rgba(255,255,255,.35);
+            background:
+                linear-gradient(135deg, rgba(37,99,235,.12), rgba(79,70,229,.12));
+        }
+
+        .brand{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:10px;
+        }
+
+        .brand-mark{
+            width:40px;height:40px;border-radius:14px;
+            background: linear-gradient(135deg, var(--p1), var(--p2));
+            display:flex;align-items:center;justify-content:center;
+            color:#fff;
+            box-shadow: 0 14px 26px rgba(37,99,235,.30);
+            font-weight:900;
+            letter-spacing:.5px;
+        }
+
+        .brand-title{
+            margin:0;
+            font-weight:900;
+            font-size:22px;
+            color:#0f172a;
+            line-height:1.1;
+        }
+
+        .brand-sub{
+            margin:6px 0 0;
+            text-align:center;
+            color:#475569;
+            font-size:13px;
+        }
+
+        .muted-hint{ font-size: 12px; color:#64748b; }
+
+        .card-body{
+            padding:22px 28px 26px !important;
+        }
+
+        /* Alerts */
+        .alert{
+            border-radius:14px;
+            border:1px solid rgba(0,0,0,.08);
+            box-shadow: 0 12px 26px rgba(0,0,0,.10);
+        }
+
+        /* Inputs */
+        .form-label{
+            font-weight:800;
+            color:#334155;
+            font-size:13px;
+        }
+
+        .form-control{
+            border-radius:14px;
+            border:1px solid rgba(15,23,42,.12);
+            padding:12px 14px;
+            background: rgba(255,255,255,.92);
+        }
+
+        .form-control:focus{
+            border-color: rgba(37,99,235,.55);
+            box-shadow: 0 0 0 5px rgba(37,99,235,.16);
+            background:#fff;
+        }
+
+        .input-group .form-control{
+            border-top-right-radius:0;
+            border-bottom-right-radius:0;
+        }
+
+        .password-toggle{
+            border:1px solid rgba(15,23,42,.12);
+            border-left:0;
+            border-top-right-radius:14px;
+            border-bottom-right-radius:14px;
+            background: rgba(255,255,255,.82);
+            cursor:pointer;
+            user-select:none;
+            transition:.2s;
+        }
+        .password-toggle:hover{
+            background: rgba(255,255,255,1);
+        }
+
+        /* Button */
+        .btn-login{
+            height:48px;
+            border-radius:14px;
+            font-weight:900;
+            letter-spacing:.2px;
+            border:0;
+            background: linear-gradient(135deg, var(--p1), var(--p2));
+            box-shadow: 0 18px 36px rgba(37,99,235,.35);
+            transition:.18s;
+        }
+        .btn-login:hover{
+            transform: translateY(-1px);
+            box-shadow: 0 22px 44px rgba(37,99,235,.40);
+        }
+        .btn-login:active{
+            transform: translateY(0);
+            box-shadow: 0 14px 28px rgba(37,99,235,.30);
+        }
+
+        .foot{
+            text-align:center;
+            color:#64748b;
+            font-size:12px;
+            padding:14px 0 0;
+        }
+
+        @@media (max-width: 420px){
+            .login-card{ width:100%; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <div class="login-shell">
+        <div class="login-card">
+
+            <div class="card-head">
+                <div class="brand">
+                    <div class="brand-mark">PT</div>
+                    <div>
+                        <h3 class="brand-title">ProjectTracking</h3>
+                    </div>
+                </div>
+
+                <div class="brand-sub">
+                    Please login to continue
+                    @if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl != "/")
+                    {
+                        <div class="muted-hint mt-1">You’ll be redirected after login.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+
+                @* ✅ Success message (เช่น หลัง VerifyEmail) *@
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success text-center mb-3">
+                        <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+                    </div>
+                }
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger text-center mb-3">
+                        <i class="bi bi-exclamation-triangle me-1"></i>@ViewBag.Error
+                    </div>
+                }
+
+                <form asp-controller="Auth" asp-action="Login" method="post" autocomplete="on">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+                    <!-- USERNAME -->
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input name="username"
+                               class="form-control"
+                               placeholder="Enter username"
+                               autocomplete="username"
+                               autofocus
+                               required />
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div class="mb-2">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <input id="passwordInput"
+                                   name="password"
+                                   type="password"
+                                   class="form-control"
+                                   placeholder="Enter password"
+                                   autocomplete="current-password"
+                                   required />
+
+                            <span class="input-group-text password-toggle"
+                                  onclick="togglePassword()"
+                                  aria-label="Toggle password visibility"
+                                  title="Show / Hide">
+                                <i id="eyeIcon" class="bi bi-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-login text-white">
+                            <i class="bi bi-shield-lock me-2"></i>Login
+                        </button>
+                    </div>
+                </form>
+
+                <div class="foot">Copyright © 2026 ProjectTracking By #C PM</div>
+            </div>
+
+        </div>
+    </div>
+
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function togglePassword() {
+    const input = document.getElementById("passwordInput");
+    const icon = document.getElementById("eyeIcon");
+    if (!input || !icon) return;
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
+    }
+}
+</script>
+
+</body>
+</html>

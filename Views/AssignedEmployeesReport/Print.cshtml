@@ -1,0 +1,90 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+
+    var empColorMap = new Dictionary<int, string>();
+    var colors = new[]
+    {
+        "#f8f9fa", "#e9f5ff", "#eafaf1",
+        "#fff4e6", "#f3e8ff"
+    };
+    int colorIndex = 0;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Assigned Employees - Print</title>
+    <style>
+        body {
+            font-family: "Tahoma", sans-serif;
+            font-size: 13px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 6px;
+        }
+        th {
+            background: #222;
+            color: #fff;
+        }
+        @@media print {
+            @@page { margin: 1cm; }
+        }
+    </style>
+</head>
+<body>
+
+<h2>📊 Assigned Employees Report</h2>
+<p>Printed at : @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Employee</th>
+            <th>Role</th>
+            <th>Plan</th>
+            <th>Actual</th>
+            <th>Remark</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var a in Model)
+    {
+        if (!empColorMap.ContainsKey(a.EmpId))
+        {
+            empColorMap[a.EmpId] = colors[colorIndex % colors.Length];
+            colorIndex++;
+        }
+
+        var bg = empColorMap[a.EmpId];
+
+        <tr style="background-color:@bg;">
+            <td>@a.Employee?.EmpName</td>
+            <td>@a.Role</td>
+            <td>
+                @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                –
+                @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+            </td>
+            <td>
+                @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                –
+                @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+            </td>
+            <td>@a.Remark</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+</body>
+</html>

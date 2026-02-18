@@ -1,0 +1,189 @@
+@using System.Linq
+@using System.Globalization
+@model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
+
+@{
+    ViewData["Title"] = "Phase Owner Status Report";
+    var th = new CultureInfo("th-TH");
+
+    var sortedModel = Model
+        .OrderByDescending(x => x.ProjectId)
+        .ThenBy(x => x.PhaseId)
+        .ToList();
+
+    var total = sortedModel.Count();
+    var done = sortedModel.Count(x => x.PhaseStatus == "DONE");
+    var inProgress = sortedModel.Count(x => x.PhaseStatus == "IN_PROGRESS");
+    var delay = sortedModel.Count(x => x.PhaseStatus == "DELAY");
+    var overdueDays = sortedModel.Sum(x => x.OverdueDays);
+}
+
+<h2 class="mb-3 fw-bold">📊 Phase Owner Status Report</h2>
+
+<!-- ================= SUMMARY ================= -->
+<div class="row g-3 mb-4 no-print">
+    <div class="col-md-2">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Total Phase</div>
+                <h4 class="fw-bold">@total</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center shadow-sm border-success">
+            <div class="card-body">
+                <div class="text-muted">Done</div>
+                <h4 class="fw-bold text-success">@done</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center shadow-sm border-info">
+            <div class="card-body">
+                <div class="text-muted">In Progress</div>
+                <h4 class="fw-bold text-info">@inProgress</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card text-center shadow-sm border-danger">
+            <div class="card-body">
+                <div class="text-muted">Delay</div>
+                <h4 class="fw-bold text-danger">@delay</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-center shadow-sm border-warning">
+            <div class="card-body">
+                <div class="text-muted">Total Overdue (Days)</div>
+                <h4 class="fw-bold text-warning">@overdueDays</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= FILTER ================= -->
+<form method="get" class="row g-3 mb-3 no-print">
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">👤 Employee</label>
+        <select name="empName" class="form-select" onchange="this.form.submit()">
+            <option value="">-- All Employees --</option>
+            @foreach (var e in ViewBag.EmpList)
+            {
+                <option value="@e" selected="@(ViewBag.SelectedEmp == e)">
+                    @e
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">📁 Project</label>
+        <select name="projectName" class="form-select" onchange="this.form.submit()">
+            <option value="">-- All Projects --</option>
+            @foreach (var p in ViewBag.ProjectList)
+            {
+                <option value="@p" selected="@(ViewBag.SelectedProject == p)">
+                    @p
+                </option>
+            }
+        </select>
+    </div>
+</form>
+
+<!-- ================= ACTION BUTTONS ================= -->
+<div class="row mb-4 no-print">
+    <div class="col-md-12 text-end">
+
+        <!-- ✅ SEND MAIL (POST FORM แยกเดี่ยว) -->
+        <form asp-action="SendOverdueMail"
+              method="post"
+              class="d-inline">
+
+            @Html.AntiForgeryToken()
+
+            <button type="submit"
+                    class="btn btn-warning me-2"
+                    onclick="return confirm('ต้องการส่ง Email แจ้ง Phase Overdue หรือไม่?');">
+                📧 ส่งเมลแจ้ง Overdue
+            </button>
+        </form>
+
+        <a class="btn btn-outline-secondary"
+           target="_blank"
+           asp-action="Print"
+           asp-route-empName="@ViewBag.SelectedEmp"
+           asp-route-projectName="@ViewBag.SelectedProject">
+            🖨 พิมพ์รายงาน
+        </a>
+    </div>
+</div>
+
+<!-- ================= TABLE ================= -->
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-sm align-middle"
+           style="min-width:2200px;">
+        <thead class="table-dark text-center">
+            <tr>
+                <th style="min-width:260px;">Project</th>
+                <th style="min-width:80px;">Order</th>
+                <th style="min-width:200px;">Employee</th>
+                <th style="min-width:500px;">Role</th>
+                <th style="min-width:320px;">Project Period</th>
+                <th style="min-width:260px;">Plan</th>
+                <th style="min-width:260px;">Actual</th>
+                <th style="min-width:100px;">Plan Days</th>
+                <th style="min-width:110px;">Actual Days</th>
+                <th style="min-width:100px;">Overdue</th>
+                <th style="min-width:120px;">Status</th>
+                <th style="min-width:360px;">Remark</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @foreach (var r in sortedModel)
+        {
+            <tr class="@(r.PhaseStatus == "DELAY" ? "table-danger" : "")">
+                <td>@r.ProjectName</td>
+                <td class="text-center">@r.PhaseOrder</td>
+                <td>@r.EmpName</td>
+                <td>@r.Role</td>
+                <td class="text-center">
+                    @r.StartDate?.ToString("dd MMM yyyy", th)
+                    –
+                    @r.EndDate?.ToString("dd MMM yyyy", th)
+                </td>
+                <td class="text-center">
+                    @r.PlanStart?.ToString("dd MMM yyyy", th)
+                    –
+                    @r.PlanEnd?.ToString("dd MMM yyyy", th)
+                </td>
+                <td class="text-center">
+                    @r.ActualStart?.ToString("dd MMM yyyy", th)
+                    –
+                    @r.ActualEnd?.ToString("dd MMM yyyy", th)
+                </td>
+                <td class="text-center">@r.PlanDays</td>
+                <td class="text-center">@r.ActualDays</td>
+                <td class="text-center">@r.OverdueDays</td>
+                <td class="text-center">@r.PhaseStatus</td>
+                <td>@r.Remark</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<style>
+@@media print {
+    .no-print {
+        display: none !important;
+    }
+}
+</style>

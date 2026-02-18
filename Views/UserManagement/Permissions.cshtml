@@ -1,0 +1,89 @@
+@using System
+@using System.Linq
+@using System.Collections.Generic
+
+@{
+    ViewData["Title"] = "Menu Permissions";
+
+    var username = (ViewBag.Username as string ?? "").Trim();
+    var allMenus = ViewBag.AllMenus as List<(string Key, string Label)> ?? new List<(string, string)>();
+    var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+}
+
+<style>
+.card-soft{
+    border:0;
+    border-radius:16px;
+    box-shadow:0 10px 28px rgba(0,0,0,.08);
+    overflow:hidden;
+}
+.card-soft .card-body{ padding:18px; }
+
+.menu-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:10px;
+}
+.menu-item{
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:12px 12px;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:#fff;
+}
+.menu-item:hover{ background:#f8fafc; }
+.menu-key{ font-size:12px; color:#64748b; margin-top:2px; }
+</style>
+
+<div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+    <div>
+        <h3 class="fw-bold mb-0">🔐 Menu Permissions</h3>
+        <div class="text-muted">กำหนดเมนูที่ผู้ใช้ <b>@username</b> สามารถมองเห็นได้</div>
+    </div>
+
+    <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:12px;">
+        ← Back
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success" style="border-radius:12px;">@TempData["Success"]</div>
+}
+
+<div class="card card-soft">
+    <div class="card-body">
+        <form asp-action="Permissions" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="username" value="@username" />
+
+            <div class="menu-grid">
+                @foreach (var m in allMenus)
+                {
+                    var isChecked = selected.Contains(m.Key);
+
+                    <label class="menu-item">
+                        <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
+                               style="margin-top:3px;" />
+                        <div>
+                            <div class="fw-bold">@m.Label</div>
+                            <div class="menu-key">@m.Key</div>
+                        </div>
+                    </label>
+                }
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" style="border-radius:12px; font-weight:800;">
+                    💾 Save
+                </button>
+                <a asp-action="Permissions" asp-route-username="@username"
+                   class="btn btn-outline-secondary" style="border-radius:12px;">
+                    ↻ Reload
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

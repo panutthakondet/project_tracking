@@ -1,0 +1,134 @@
+@model ProjectTracking.Models.PhaseAssign
+
+@{
+    ViewData["Title"] = "Assign Employee";
+}
+
+<div class="mb-4">
+    <h2 class="fw-bold">➕ Assign Employee</h2>
+    <p class="text-muted mb-0">
+        มอบหมายพนักงานให้กับ Phase ของโครงการ
+    </p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Create"
+              method="post"
+              onsubmit="return confirm('Assign Employee คนนี้หรือไม่?');">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />
+
+            <!-- ส่ง Role กลับ Controller -->
+            <input asp-for="Role" type="hidden" id="roleHidden" />
+
+            <div class="row g-3">
+
+                <!-- EMPLOYEE -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">👤 Employee</label>
+                    <select asp-for="EmpId" asp-items="ViewBag.Employees" class="form-select" required>
+                        <option value="">-- Select Employee --</option>
+                    </select>
+                    <span asp-validation-for="EmpId" class="text-danger"></span>
+                </div>
+
+                <!-- PHASE -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">🧩 Phase</label>
+                    <select asp-for="PhaseId"
+                            asp-items="ViewBag.Phases"
+                            class="form-select"
+                            required
+                            id="phaseSelect">
+                        <option value="">-- Select Phase --</option>
+                    </select>
+                </div>
+
+                <!-- ROLE SHOW -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">🎯 Role (Auto)</label>
+                    <input type="text" class="form-control" id="roleDisplay" readonly />
+                </div>
+
+                <!-- PLAN START -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📅 Plan Start</label>
+                    <input asp-for="PlanStart" type="date" class="form-control" id="planStart" />
+                </div>
+
+                <!-- PLAN END -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📅 Plan End</label>
+                    <input asp-for="PlanEnd" type="date" class="form-control" id="planEnd" />
+                </div>
+
+                <!-- REMARK -->
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">📝 Remark</label>
+                    <textarea asp-for="Remark" class="form-control" rows="3"></textarea>
+                </div>
+
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">💾 Save Assign</button>
+                <a asp-action="Index" asp-route-projectId="@ViewBag.ProjectId" class="btn btn-outline-secondary">↩ Back</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const phaseSelect = document.getElementById("phaseSelect");
+    const planStart = document.getElementById("planStart");
+    const planEnd = document.getElementById("planEnd");
+    const roleHidden = document.getElementById("roleHidden");
+    const roleDisplay = document.getElementById("roleDisplay");
+
+    if (!phaseSelect) return;
+
+    phaseSelect.addEventListener("change", function () {
+
+        const selectedOption = phaseSelect.options[phaseSelect.selectedIndex];
+        const phaseId = selectedOption.value;
+        const phaseName = selectedOption.text; // ⭐ ดึงชื่อ Phase ตรงนี้
+
+        if (!phaseId) {
+            planStart.value = "";
+            planEnd.value = "";
+            roleHidden.value = "";
+            roleDisplay.value = "";
+            return;
+        }
+
+        // ⭐ ใส่ Role จากชื่อ Phase ทันที (ไม่ต้องยิง API)
+        roleHidden.value = phaseName;
+        roleDisplay.value = phaseName;
+
+        // ดึง Plan Date (ยังใช้เหมือนเดิม)
+        fetch(`/PhaseAssigns/GetPhasePlan?phaseId=${phaseId}`)
+            .then(res => res.json())
+            .then(data => {
+                planStart.value = data.planStart?.substring(0,10) ?? "";
+                planEnd.value = data.planEnd?.substring(0,10) ?? "";
+            })
+            .catch(() => {
+                planStart.value = "";
+                planEnd.value = "";
+            });
+
+    });
+
+});
+</script>
+}

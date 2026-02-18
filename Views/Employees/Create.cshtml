@@ -1,0 +1,83 @@
+@model ProjectTracking.Models.Employee
+
+@{
+    ViewData["Title"] = "Add Employee";
+}
+
+<!-- ================= HEADER ================= -->
+<div class="mb-4">
+    <h2 class="fw-bold">➕ Add Employee</h2>
+    <p class="text-muted mb-0">
+        เพิ่มข้อมูลพนักงานใหม่เข้าสู่ระบบ
+    </p>
+</div>
+
+<!-- ================= FORM CARD ================= -->
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3">
+
+                <!-- Employee Name -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        👤 Employee Name
+                    </label>
+                    <input asp-for="EmpName"
+                           class="form-control"
+                           placeholder="Enter employee name" />
+                    <span asp-validation-for="EmpName"
+                          class="text-danger"></span>
+                </div>
+
+                <!-- Position -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        💼 Position
+                    </label>
+                    <input asp-for="Position"
+                           class="form-control"
+                           placeholder="e.g. Developer, QA, PM" />
+                    <span asp-validation-for="Position"
+                          class="text-danger"></span>
+                </div>
+
+                <!-- Status -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        📌 Status
+                    </label>
+                    <select asp-for="Status"
+                            class="form-select">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                    <span asp-validation-for="Status"
+                          class="text-danger"></span>
+                </div>
+
+            </div>
+
+            <!-- ================= BUTTONS ================= -->
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit"
+                        class="btn btn-primary">
+                    💾 Save Employee
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    ↩ Back
+                </a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

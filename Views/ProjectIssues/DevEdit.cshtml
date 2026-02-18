@@ -1,0 +1,70 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using System.Collections.Generic
+@model ProjectTracking.Models.ProjectIssue
+
+@{
+    ViewData["Title"] = "Dev Edit Issue";
+    var devStatusItems = ViewBag.DevStatusList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+<div class="mb-4">
+    <h2 class="fw-bold">👨‍💻 Dev Update Issue</h2>
+    <p class="text-muted mb-0">หน้าสำหรับโปรแกรมเมอร์อัปเดตสถานะการแก้ไข</p>
+</div>
+<style>
+.readonly-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">📌 Issue</label>
+            <div class="form-control bg-light readonly-text" title="@Model.IssueName">@Model.IssueName</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">📁 Project</label>
+                <div class="form-control bg-light readonly-text" title="@(Model.Project != null ? Model.Project.ProjectName : "-")">@(Model.Project != null ? Model.Project.ProjectName : "-")</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">👤 แจ้งโดย</label>
+                <div class="form-control bg-light readonly-text" title="@(Model.Employee != null ? Model.Employee.EmpName : "-")">@(Model.Employee != null ? Model.Employee.EmpName : "-")</div>
+            </div>
+        </div>
+
+        <form asp-action="DevEdit" asp-route-id="@Model.IssueId" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IssueId" />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">🛠 Dev Status</label>
+                <select asp-for="DevStatus" class="form-select" asp-items="devStatusItems" required></select>
+                <small class="text-muted">* TODO/DOING/BLOCK ใช้สำหรับสถานะฝั่ง Dev เท่านั้น และจะตั้ง Last Fixed At อัตโนมัติเมื่อเป็น FIXED</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">🕒 Last Fixed At</label>
+                <input class="form-control bg-light" value="@(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")" readonly />
+                <small class="text-muted">* ระบบจะอัปเดตอัตโนมัติเมื่อเลือก DevStatus = FIXED</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">🖼 After Images</label>
+                <input type="file" name="afterImages" class="form-control" multiple accept="image/*" />
+                <small class="text-muted">* สามารถอัปโหลดหลายรูป (ภาพหลังแก้ไข)</small>
+            </div>
+
+            <div class="text-center mt-4 d-flex justify-content-center gap-2">
+                <button type="submit" class="btn btn-primary px-4">💾 Save</button>
+                <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary px-4">↩ Back</a>
+            </div>
+        </form>
+
+    </div>
+</div>

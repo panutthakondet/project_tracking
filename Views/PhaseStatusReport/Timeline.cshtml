@@ -1,0 +1,156 @@
+@using System.Text.Json
+@model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
+
+@functions {
+    // 🔥 ตัดข้อความเป็นหลายบรรทัด (เช่น Role)
+    string WrapText(string? text, int lineLength)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+
+        var result = new System.Text.StringBuilder();
+        for (int i = 0; i < text.Length; i += lineLength)
+        {
+            result.AppendLine(
+                text.Substring(i, Math.Min(lineLength, text.Length - i))
+            );
+        }
+        return result.ToString().TrimEnd();
+    }
+}
+
+@{
+    ViewData["Title"] = "Project Timeline (Gantt)";
+
+    // 🔹 แปลง Model เป็น JSON (5 บรรทัด + Role wrap)
+    var json = JsonSerializer.Serialize(
+        Model
+            .Where(r => r.PlanStart != null && r.PlanEnd != null)
+            .Select(r => new
+            {
+                TaskId = $"{r.ProjectName}-{r.PhaseOrder}",
+
+                // 🔥 5 บรรทัด (Role ตัดอัตโนมัติ)
+                TaskName =
+                    $"{r.ProjectName}\n" +
+                    $"Phase {r.PhaseOrder}\n" +
+                    $"{WrapText(r.Role, 50)}\n" +   // ⭐ จุดสำคัญ
+                    $"{r.EmpName}\n",
+
+                Resource = r.EmpName,
+                StartYear = r.PlanStart!.Value.Year,
+                StartMonth = r.PlanStart!.Value.Month - 1,
+                StartDay = r.PlanStart!.Value.Day,
+                EndYear = r.PlanEnd!.Value.Year,
+                EndMonth = r.PlanEnd!.Value.Month - 1,
+                EndDay = r.PlanEnd!.Value.Day
+            })
+    );
+}
+
+<h2 class="fw-bold mb-3">📅 Project Timeline (Gantt)</h2>
+
+<p class="text-muted">
+    แสดง Timeline ของแผนงาน (Plan) ในรูปแบบ Gantt Chart
+</p>
+
+<!-- ================= FILTER ================= -->
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">📁 Project</label>
+        <select name="projectName"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="">-- Select Project --</option>
+            @foreach (var p in ViewBag.ProjectList)
+            {
+                <option value="@p"
+                        selected="@(ViewBag.SelectedProject == p)">
+                    @p
+                </option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">
+        ไม่มีข้อมูล Timeline
+    </div>
+}
+else
+{
+    <div class="gantt-scroll">
+        <div id="gantt_chart"></div>
+    </div>
+}
+
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script>
+google.charts.load('current', { packages: ['gantt'] });
+google.charts.setOnLoadCallback(drawChart);
+
+function drawChart() {
+
+    const rows = @Html.Raw(json);
+
+    var data = new google.visualization.DataTable();
+
+    data.addColumn('string', 'Task ID');
+    data.addColumn('string', 'Task Name');
+    data.addColumn('string', 'Resource');
+    data.addColumn('date', 'Start Date');
+    data.addColumn('date', 'End Date');
+    data.addColumn('number', 'Duration');
+    data.addColumn('number', 'Percent Complete');
+    data.addColumn('string', 'Dependencies');
+
+    rows.forEach(r => {
+        data.addRow([
+            r.TaskId,
+            r.TaskName,
+            r.Resource,
+            new Date(r.StartYear, r.StartMonth, r.StartDay),
+            new Date(r.EndYear, r.EndMonth, r.EndDay),
+            null,
+            0,
+            null
+        ]);
+    });
+
+    var options = {
+        height: data.getNumberOfRows() * 120 + 200,
+        gantt: {
+            trackHeight: 100,
+            labelMaxWidth: 780, // 🔥 ช่องซ้ายกว้างพอสำหรับ Role หลายบรรทัด
+            labelStyle: {
+                fontName: 'Tahoma',
+                fontSize: 12
+            }
+        }
+    };
+
+    var chart = new google.visualization.Gantt(
+        document.getElementById('gantt_chart')
+    );
+
+    chart.draw(data, options);
+}
+</script>
+
+<style>
+.gantt-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid #dee2e6;
+    padding: 14px;
+    background: #fafafa;
+}
+
+#gantt_chart {
+    min-width: 5400px;
+}
+</style>

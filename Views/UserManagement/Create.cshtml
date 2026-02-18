@@ -1,0 +1,241 @@
+@{
+    ViewData["Title"] = "Create User";
+
+    string? error = ViewBag.Error as string;
+}
+
+<style>
+/* ===== Page Header ===== */
+.page-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+}
+.page-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.page-title h3{
+    margin:0;
+    font-weight:800;
+}
+.page-sub{
+    margin-top:2px;
+    color:#6b7280;
+    font-size:12px;
+}
+
+/* ===== Card ===== */
+.card-soft{
+    border:0;
+    border-radius:16px;
+    box-shadow:0 10px 28px rgba(0,0,0,.08);
+    overflow:hidden;
+}
+.card-soft .card-body{ padding:18px; }
+
+/* ===== Form ===== */
+.form-label{
+    font-weight:700;
+}
+.form-text{
+    color:#6b7280;
+}
+.req{
+    color:#ef4444;
+    font-weight:800;
+    margin-left:4px;
+}
+
+/* ===== Input group ===== */
+.eye-btn{
+    border-top-right-radius:12px !important;
+    border-bottom-right-radius:12px !important;
+}
+.rounded-12{
+    border-radius:12px !important;
+}
+.input-group .form-control{
+    border-top-left-radius:12px !important;
+    border-bottom-left-radius:12px !important;
+}
+
+/* ===== Buttons ===== */
+.btn-cta{
+    border-radius:12px;
+    font-weight:800;
+    padding:.6rem 1rem;
+}
+.btn-soft{
+    border-radius:12px;
+    font-weight:700;
+}
+
+/* ===== Alert ===== */
+.alert-soft{
+    border-radius:14px;
+    border:1px solid rgba(0,0,0,.06);
+}
+
+/* ===== Divider ===== */
+.divider{
+    height:1px;
+    background:#eef2f7;
+    margin:14px 0;
+}
+
+/* ===== Responsive ===== */
+@@media (max-width: 575.98px){
+    .page-head{ flex-direction:column; }
+}
+</style>
+
+<div class="page-head">
+    <div class="page-title">
+        <div style="font-size:22px;">➕</div>
+        <div>
+            <h3>Create User</h3>
+            <div class="page-sub">สร้างผู้ใช้ใหม่ (แนะนำให้ Admin เป็นผู้สร้าง)</div>
+        </div>
+    </div>
+
+    <a asp-controller="UserManagement" asp-action="Index" class="btn btn-outline-secondary btn-soft">
+        ← Back
+    </a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger alert-soft">@error</div>
+}
+
+<div class="card card-soft">
+    <div class="card-body">
+        <form asp-controller="UserManagement" asp-action="Create" method="post" autocomplete="off">
+            @Html.AntiForgeryToken()
+
+            <!-- USERNAME -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Username <span class="req">*</span>
+                </label>
+                <input name="username"
+                       class="form-control rounded-12"
+                       autocomplete="off"
+                       placeholder="เช่น zewan"
+                       required />
+            </div>
+
+            <!-- EMAIL -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Email <span class="req">*</span>
+                </label>
+                <input name="email"
+                       type="email"
+                       class="form-control rounded-12"
+                       placeholder="example@company.com"
+                       autocomplete="email"
+                       required />
+                <div class="form-text">
+                    ระบบจะส่งลิงก์ยืนยันตัวตนไปยังอีเมลนี้ (ใช้ตอน Login ครั้งแรก)
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- PASSWORD -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Password <span class="req">*</span>
+                </label>
+
+                <div class="input-group">
+                    <input id="passwordInput"
+                           name="password"
+                           type="password"
+                           class="form-control"
+                           autocomplete="new-password"
+                           placeholder="อย่างน้อย 8 ตัวอักษร (แนะนำ)"
+                           required />
+                    <button class="btn btn-outline-secondary eye-btn"
+                            type="button"
+                            onclick="togglePassword('passwordInput','eyeIcon1')"
+                            aria-label="Toggle password visibility">
+                        <span id="eyeIcon1">👁</span>
+                    </button>
+                </div>
+
+                <div class="form-text">
+                    ระบบจะเก็บรหัสผ่านแบบ SHA-256 (ไม่เก็บเป็นตัวอักษรปกติ)
+                </div>
+            </div>
+
+            <!-- CONFIRM PASSWORD -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Confirm Password <span class="req">*</span>
+                </label>
+
+                <div class="input-group">
+                    <input id="confirmPasswordInput"
+                           name="confirmPassword"
+                           type="password"
+                           class="form-control"
+                           autocomplete="new-password"
+                           placeholder="พิมพ์รหัสผ่านซ้ำอีกครั้ง"
+                           required />
+                    <button class="btn btn-outline-secondary eye-btn"
+                            type="button"
+                            onclick="togglePassword('confirmPasswordInput','eyeIcon2')"
+                            aria-label="Toggle confirm password visibility">
+                        <span id="eyeIcon2">👁</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- ROLE / STATUS -->
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select rounded-12">
+                        <option value="USER" selected>USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select rounded-12">
+                        <option value="ACTIVE" selected>ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- BUTTON -->
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button class="btn btn-primary btn-cta" type="submit">💾 Save</button>
+                <a asp-controller="UserManagement" asp-action="Index" class="btn btn-outline-secondary btn-cta">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (!input || !icon) return;
+
+        const isPassword = input.type === "password";
+        input.type = isPassword ? "text" : "password";
+        icon.textContent = isPassword ? "🙈" : "👁";
+    }
+</script>
+}

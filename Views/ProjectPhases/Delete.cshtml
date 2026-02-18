@@ -1,0 +1,24 @@
+@model ProjectTracking.Models.ProjectPhase
+
+<h2>Delete Project Phase</h2>
+
+<p style="color:red">
+    คุณแน่ใจหรือไม่ว่าต้องการลบ Phase นี้?
+</p>
+
+<ul>
+    <li><b>Phase :</b> @Model.PhaseName</li>
+    <li><b>Order :</b> @Model.PhaseOrder</li>
+</ul>
+
+<form asp-action="Delete" method="post">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" asp-for="PhaseId" />
+    <input type="hidden" asp-for="ProjectId" />
+
+    <button type="submit">Confirm Delete</button>
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId">
+        Cancel
+    </a>
+</form>

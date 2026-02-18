@@ -1,0 +1,175 @@
+@model ProjectTracking.Models.ProjectPhase
+
+@{
+    ViewData["Title"] = "Edit Project Phase";
+}
+
+<div class="mb-4">
+    <h2 class="fw-bold">✏️ Edit Project Phase</h2>
+    <p class="text-muted mb-0">
+        แก้ไขรายละเอียด Phase ของโครงการ
+    </p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <form asp-action="Edit"
+              method="post"
+              onsubmit="return confirm('บันทึกการแก้ไข Phase นี้หรือไม่?');">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="PhaseId" />
+            <input type="hidden" asp-for="ProjectId" />
+
+            <div class="row g-3">
+
+                <!-- Phase Name -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">🧩 Phase Name</label>
+                    <input asp-for="PhaseName"
+                           class="form-control"
+                           placeholder="Enter phase name" />
+                    <span asp-validation-for="PhaseName"
+                          class="text-danger"></span>
+                </div>
+
+                <!-- Phase Order -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🔢 Phase Order</label>
+                    <input asp-for="PhaseOrder"
+                           type="number"
+                           class="form-control" />
+                    <span asp-validation-for="PhaseOrder"
+                          class="text-danger"></span>
+                </div>
+
+                <!-- Phase Type -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🏷 Phase Type</label>
+                    <select asp-for="PhaseType"
+                            asp-items="ViewBag.PhaseTypeList"
+                            class="form-select"
+                            id="phaseTypeSelect">
+                    </select>
+                </div>
+
+                <!-- CHECKBOX -->
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               id="copyPreviousDatesEdit" />
+                        <label class="form-check-label fw-semibold">
+                            ใช้วันที่จาก Phase ก่อนหน้า
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Plan Start -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📅 Plan Start</label>
+                    <input asp-for="PlanStart"
+                           type="date"
+                           class="form-control"
+                           id="editPlanStart" />
+                </div>
+
+                <!-- Plan End -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📅 Plan End</label>
+                    <input asp-for="PlanEnd"
+                           type="date"
+                           class="form-control"
+                           id="editPlanEnd" />
+                </div>
+
+                <!-- Period Start -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🚀 Period Start</label>
+                    <input asp-for="ActualStart"
+                           type="date"
+                           class="form-control"
+                           id="editPeriodStart" />
+                </div>
+
+                <!-- Period End -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🏁 Period End</label>
+                    <input asp-for="ActualEnd"
+                           type="date"
+                           class="form-control"
+                           id="editPeriodEnd" />
+                </div>
+
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit"
+                        class="btn btn-primary">
+                    💾 Save Changes
+                </button>
+
+                <a asp-action="Index"
+                   asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-secondary">
+                    ↩ Back
+                </a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+          rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#phaseTypeSelect').select2({
+                width: '100%',
+                minimumResultsForSearch: 0
+            });
+        });
+    </script>
+
+    <!-- 🔥 Copy Previous Dates Script (Safe Version) -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const checkbox = document.getElementById("copyPreviousDatesEdit");
+
+            const planStart = document.getElementById("editPlanStart");
+            const planEnd = document.getElementById("editPlanEnd");
+            const periodStart = document.getElementById("editPeriodStart");
+            const periodEnd = document.getElementById("editPeriodEnd");
+
+            const lastPlanStart = '@(ViewBag.LastPlanStart ?? "")';
+            const lastPlanEnd = '@(ViewBag.LastPlanEnd ?? "")';
+            const lastPeriodStart = '@(ViewBag.LastPeriodStart ?? "")';
+            const lastPeriodEnd = '@(ViewBag.LastPeriodEnd ?? "")';
+
+            if (!checkbox) return;
+
+            checkbox.addEventListener("change", function () {
+
+                if (this.checked) {
+
+                    if (lastPlanStart !== "") planStart.value = lastPlanStart;
+                    if (lastPlanEnd !== "") planEnd.value = lastPlanEnd;
+                    if (lastPeriodStart !== "") periodStart.value = lastPeriodStart;
+                    if (lastPeriodEnd !== "") periodEnd.value = lastPeriodEnd;
+
+                }
+            });
+
+        });
+    </script>
+}
