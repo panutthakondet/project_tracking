@@ -6,6 +6,7 @@ using ProjectTracking.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace ProjectTracking.Controllers
 {
@@ -13,11 +14,13 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly Services.EmailService _emailService;
+        private readonly ILogger<UserManagementController> _logger;
 
-        public UserManagementController(AppDbContext context, Services.EmailService emailService)
+        public UserManagementController(AppDbContext context, Services.EmailService emailService, ILogger<UserManagementController> logger)
         {
             _context = context;
             _emailService = emailService;
+            _logger = logger;
         }
 
         private bool IsLoggedIn() => HttpContext.Session.GetInt32("UserId") != null;
@@ -172,9 +175,17 @@ namespace ProjectTracking.Controllers
 หากคุณไม่ได้เป็นผู้ขอสร้างบัญชีนี้ สามารถละเว้นอีเมลนี้ได้
 ";
 
-            await _emailService.SendAsync(email, subject, body);
+            try
+            {
+                await _emailService.SendAsync(email, subject, body);
+                TempData["Success"] = "✅ สร้างผู้ใช้แล้ว และส่งอีเมลยืนยันเรียบร้อย";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Verify email send failed. Username={Username}, Email={Email}", username, email);
+                TempData["Error"] = "⚠️ สร้างผู้ใช้แล้ว แต่ส่งอีเมลยืนยันไม่สำเร็จ (โปรดตรวจสอบการตั้งค่า SMTP/Email Service)";
+            }
 
-            TempData["Success"] = "✅ สร้างผู้ใช้แล้ว และส่งอีเมลยืนยันเรียบร้อย";
             return RedirectToAction("Index");
         }
 
