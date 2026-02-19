@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using System.Linq;
 
 namespace ProjectTracking.Controllers
 {
@@ -100,13 +101,28 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectId = projectId;
             ViewBag.ProjectName = project.ProjectName;
 
-            ViewBag.Phases = new SelectList(
-                await _context.ProjectPhases
-                    .Where(p => p.ProjectId == projectId)
-                    .OrderBy(p => p.PhaseId)
-                    .ToListAsync(),
-                "PhaseId",
-                "PhaseName");
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .Where(p => p.ProjectId == projectId)
+                .OrderBy(p => p.PhaseId)
+                .ToListAsync();
+
+            // ✅ ใช้ได้ 2 แบบ:
+            // 1) View เดิมที่ใช้ SelectList
+            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName");
+            // 2) View ใหม่ที่ต้องการ data-* หรือทำ map ใน JS
+            ViewBag.PhaseItems = phases;
+
+            // ✅ เติมค่าเริ่มต้นให้แสดงทันที (กรณีมี phase อย่างน้อย 1)
+            var firstPhase = phases.FirstOrDefault();
+            var defaultModel = new PhaseAssign();
+            if (firstPhase != null)
+            {
+                defaultModel.PhaseId = firstPhase.PhaseId;
+                defaultModel.Role = firstPhase.PhaseName;
+                defaultModel.PlanStart = firstPhase.PlanStart;
+                defaultModel.PlanEnd = firstPhase.PlanEnd;
+            }
 
             ViewBag.Employees = new SelectList(
                 await _context.Employees
@@ -116,7 +132,7 @@ namespace ProjectTracking.Controllers
                 "EmpId",
                 "EmpName");
 
-            return View(new PhaseAssign());
+            return View(defaultModel);
         }
 
         // =====================================================
@@ -136,7 +152,12 @@ namespace ProjectTracking.Controllers
             }
             else
             {
+                // ✅ 1) Role (Auto) ให้เอามาจากชื่อ Phase (ตามที่เลือกใน dropdown)
                 model.Role = phase.PhaseName;
+
+                // ✅ 2) Auto Plan Start/End จาก project_phase ของ Phase นั้น
+                model.PlanStart = phase.PlanStart;
+                model.PlanEnd = phase.PlanEnd;
             }
 
             if (!ModelState.IsValid)
@@ -240,6 +261,7 @@ namespace ProjectTracking.Controllers
                 .Where(p => p.PhaseId == phaseId)
                 .Select(p => new
                 {
+                    role = p.PhaseName,
                     planStart = p.PlanStart,
                     planEnd = p.PlanEnd
                 })
@@ -248,7 +270,13 @@ namespace ProjectTracking.Controllers
             if (phase == null)
                 return NotFound();
 
-            return Json(phase);
+            // ✅ return เป็น string yyyy-MM-dd เพื่อให้ใส่เข้า <input type="date"> ได้ทันที
+            return Json(new
+            {
+                role = phase.role,
+                planStart = phase.planStart.HasValue ? phase.planStart.Value.ToString("yyyy-MM-dd") : "",
+                planEnd = phase.planEnd.HasValue ? phase.planEnd.Value.ToString("yyyy-MM-dd") : ""
+            });
         }
 
         // =====================================================
@@ -406,14 +434,14 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.ProjectId = projectId;
 
-            ViewBag.Phases = new SelectList(
-                await _context.ProjectPhases
-                    .Where(p => p.ProjectId == projectId)
-                    .OrderBy(p => p.PhaseId)
-                    .ToListAsync(),
-                "PhaseId",
-                "PhaseName",
-                model.PhaseId);
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .Where(p => p.ProjectId == projectId)
+                .OrderBy(p => p.PhaseId)
+                .ToListAsync();
+
+            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName", model.PhaseId);
+            ViewBag.PhaseItems = phases;
 
             ViewBag.Employees = new SelectList(
                 await _context.Employees

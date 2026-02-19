@@ -376,7 +376,20 @@
     </div>
 </footer>
 
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<!-- ✅ jQuery (CDN first) -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script>
+    // fallback to local if CDN fails
+    if (typeof window.jQuery === 'undefined') {
+        document.write('<script src="/lib/jquery/dist/jquery.min.js"><\\/script>');
+    }
+</script>
+
+<!-- ✅ Validation (ต้องมาก่อน unobtrusive และต้องหลัง jQuery) -->
+<!-- ใช้ CDN เพื่อกันปัญหาไฟล์ใน wwwroot/lib หาย/พาธไม่ตรง -->
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
+
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- ✅ SELECT2 JS -->
