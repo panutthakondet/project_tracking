@@ -22,6 +22,15 @@ namespace ProjectTracking.Services
             _logger = logger;
         }
 
+        private static IEnumerable<string> SplitEmails(string emails)
+        {
+            // รองรับ ; , เว้นวรรค และขึ้นบรรทัดใหม่
+            return emails
+                .Split(new[] { ';', ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x));
+        }
+
         // =====================================================
         // GENERIC SEND (ใช้ซ้ำได้ทุกกรณี)
         // =====================================================
@@ -29,8 +38,8 @@ namespace ProjectTracking.Services
             string to,
             string subject,
             string body,
-            IEnumerable<string>? ccList = null,   // รองรับ List / Array
-            IEnumerable<string>? bccList = null   // รองรับ List / Array
+            IEnumerable<string>? ccList = null,
+            IEnumerable<string>? bccList = null
         )
         {
             // ✅ Resolve SMTP settings (Options first, then ENV fallback)
@@ -50,13 +59,18 @@ namespace ProjectTracking.Services
                 ? _settings.Password
                 : Environment.GetEnvironmentVariable("SMTP_PASSWORD");
 
+            // SenderEmail: รองรับทั้ง SMTP_SENDER_EMAIL และ SMTP_FROM
             var senderEmail = !string.IsNullOrWhiteSpace(_settings.SenderEmail)
                 ? _settings.SenderEmail
-                : Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL");
+                : (Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL")
+                   ?? Environment.GetEnvironmentVariable("SMTP_FROM"));
 
             var enableSsl = _settings.EnableSsl;
-            if (Environment.GetEnvironmentVariable("SMTP_ENABLE_SSL") is string sslStr && bool.TryParse(sslStr, out var sslEnv))
+            if (Environment.GetEnvironmentVariable("SMTP_ENABLE_SSL") is string sslStr &&
+                bool.TryParse(sslStr, out var sslEnv))
+            {
                 enableSsl = sslEnv;
+            }
 
             // ✅ Normalize
             smtpServer = smtpServer?.Trim();
@@ -77,7 +91,7 @@ namespace ProjectTracking.Services
                 throw new InvalidOperationException("SMTP_PASSWORD is missing/empty");
 
             if (string.IsNullOrWhiteSpace(senderEmail))
-                throw new InvalidOperationException("SMTP_SENDER_EMAIL is missing");
+                throw new InvalidOperationException("SMTP_SENDER_EMAIL (or SMTP_FROM) is missing");
 
             // ✅ Safe diagnostic log (never log password)
             _logger?.LogInformation(
@@ -91,53 +105,53 @@ namespace ProjectTracking.Services
                 UseDefaultCredentials = false,
                 Credentials = new NetworkCredential(username, password),
                 EnableSsl = enableSsl,
-                Timeout = 30_000 // 30s
+                Timeout = 30_000
             };
 
-            if (string.IsNullOrWhiteSpace(senderEmail))
-                throw new InvalidOperationException("SMTP_SENDER_EMAIL is missing");
-
+            // Sender
             using var mail = new MailMessage
             {
                 From = new MailAddress(senderEmail),
-                Subject = subject,
+                Subject = subject ?? "",
                 SubjectEncoding = Encoding.UTF8,
-                Body = body,
+                Body = body ?? "",
                 BodyEncoding = Encoding.UTF8,
                 IsBodyHtml = true
             };
 
             // =================================================
-            // TO (ต้องมีอย่างน้อย 1)
+            // TO (ต้องมีอย่างน้อย 1) + รองรับหลายเมล
             // =================================================
-            if (!string.IsNullOrWhiteSpace(to))
-            {
-                mail.To.Add(to.Trim().ToLowerInvariant());
-            }
-            else
-            {
+            if (string.IsNullOrWhiteSpace(to))
                 throw new InvalidOperationException("Email TO is required");
-            }
+
+            foreach (var addr in SplitEmails(to))
+                mail.To.Add(addr.Trim().ToLowerInvariant());
+
+            if (mail.To.Count == 0)
+                throw new InvalidOperationException("Email TO is required");
 
             // =================================================
-            // CC (ใช้จาก parameter ถ้ามี)
+            // CC
             // =================================================
             if (ccList != null)
             {
                 foreach (var cc in ccList.Where(x => !string.IsNullOrWhiteSpace(x)))
                 {
-                    mail.CC.Add(cc.Trim());
+                    foreach (var addr in SplitEmails(cc))
+                        mail.CC.Add(addr.Trim().ToLowerInvariant());
                 }
             }
 
             // =================================================
-            // BCC (ใช้จาก parameter ถ้ามี)
+            // BCC
             // =================================================
             if (bccList != null)
             {
                 foreach (var bcc in bccList.Where(x => !string.IsNullOrWhiteSpace(x)))
                 {
-                    mail.Bcc.Add(bcc.Trim());
+                    foreach (var addr in SplitEmails(bcc))
+                        mail.Bcc.Add(addr.Trim().ToLowerInvariant());
                 }
             }
 
@@ -155,11 +169,14 @@ namespace ProjectTracking.Services
                 <p>มี Phase ที่เกินกำหนด กรุณาตรวจสอบในระบบ Project Tracking</p>
             ";
 
-            await SendAsync(
-                to: _settings.SenderEmail, // admin / mail กลาง
-                subject: subject,
-                body: body
-            );
+            // ส่งไปที่เมลผู้ส่ง/เมลกลาง (ตาม settings/env)
+            var to = !string.IsNullOrWhiteSpace(_settings.SenderEmail)
+                ? _settings.SenderEmail
+                : (Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL")
+                   ?? Environment.GetEnvironmentVariable("SMTP_FROM")
+                   ?? "");
+
+            await SendAsync(to: to, subject: subject, body: body);
         }
     }
 }

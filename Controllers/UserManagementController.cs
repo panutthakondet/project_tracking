@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Helpers;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace ProjectTracking.Controllers
 {
@@ -16,7 +18,10 @@ namespace ProjectTracking.Controllers
         private readonly Services.EmailService _emailService;
         private readonly ILogger<UserManagementController> _logger;
 
-        public UserManagementController(AppDbContext context, Services.EmailService emailService, ILogger<UserManagementController> logger)
+        public UserManagementController(
+            AppDbContext context,
+            Services.EmailService emailService,
+            ILogger<UserManagementController> logger)
         {
             _context = context;
             _emailService = emailService;
@@ -122,22 +127,26 @@ namespace ProjectTracking.Controllers
             if (role != "USER" && role != "ADMIN") role = "USER";
             if (status != "ACTIVE" && status != "INACTIVE") status = "ACTIVE";
 
-            var usernameExists = await _context.LoginUsers.AsNoTracking().AnyAsync(u => u.Username == username);
+            var usernameExists = await _context.LoginUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Username == username);
+
             if (usernameExists)
             {
                 ViewBag.Error = "❌ Username นี้มีอยู่แล้ว";
                 return View();
             }
 
-            // (แนะนำ) กัน email ซ้ำด้วย
-            var emailExists = await _context.LoginUsers.AsNoTracking().AnyAsync(u => u.Email == email);
+            var emailExists = await _context.LoginUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Email == email);
+
             if (emailExists)
             {
                 ViewBag.Error = "❌ Email นี้มีอยู่แล้ว";
                 return View();
             }
 
-            // ✅ เก็บ password แบบปลอดภัย (PBKDF2) (ยังรองรับผู้ใช้เก่าที่เป็น SHA256 ตอน login)
             var passwordHash = SecurityHelper.HashPassword(password);
 
             // ✅ สร้าง token ส่งเมล แล้วเก็บ hash ลง DB
@@ -155,25 +164,38 @@ namespace ProjectTracking.Controllers
                 Status = status,
                 CreatedAt = DateTime.Now,
 
-                EmailVerified = false,          // ✅ email_verified = 0
-                VerifyTokenHash = tokenHash,    // ✅ not null
-                VerifyTokenExpire = expire      // ✅ มีเวลา
+                EmailVerified = false,
+                VerifyTokenHash = tokenHash,
+                VerifyTokenExpire = expire
             };
 
             _context.LoginUsers.Add(user);
             await _context.SaveChangesAsync();
 
-            // ✅ ส่งเมลยืนยัน (เรียกแบบไม่ใช้ named parameter กันพังเรื่องชื่อพารามิเตอร์)
-            var verifyUrl = $"{Request.Scheme}://{Request.Host}/Auth/VerifyEmail?token={Uri.EscapeDataString(token)}&username={Uri.EscapeDataString(username)}";
+            // ✅ ส่งเมลยืนยัน (ห้ามให้เมลพังแล้วล่มหน้า)
+            var verifyUrl =
+                $"{Request.Scheme}://{Request.Host}/Auth/VerifyEmail?token={Uri.EscapeDataString(token)}&username={Uri.EscapeDataString(username)}";
+
             var subject = "Verify your email - ProjectTracking";
+
+            // EmailService ของคุณตั้ง IsBodyHtml = true -> ทำเป็น HTML ให้เหมาะสม
             var body = $@"
-สวัสดี {username}
-
-กรุณายืนยันอีเมล โดยคลิกลิงก์ด้านล่าง (ภายใน 24 ชั่วโมง):
-{verifyUrl}
-
-หากคุณไม่ได้เป็นผู้ขอสร้างบัญชีนี้ สามารถละเว้นอีเมลนี้ได้
-";
+                <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                    <p>สวัสดี <b>{System.Net.WebUtility.HtmlEncode(username)}</b></p>
+                    <p>กรุณายืนยันอีเมล โดยคลิกลิงก์ด้านล่าง (ภายใน 24 ชั่วโมง):</p>
+                    <p>
+                        <a href='{verifyUrl}' target='_blank' rel='noopener noreferrer'>
+                            ยืนยันอีเมล
+                        </a>
+                    </p>
+                    <p style='color:#666;font-size:12px;'>หรือคัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:</p>
+                    <p style='color:#666;font-size:12px;word-break:break-all;'>{verifyUrl}</p>
+                    <hr/>
+                    <p style='color:#999;font-size:12px;'>
+                        หากคุณไม่ได้เป็นผู้ขอสร้างบัญชีนี้ สามารถละเว้นอีเมลนี้ได้
+                    </p>
+                </div>
+            ";
 
             try
             {
@@ -208,7 +230,6 @@ namespace ProjectTracking.Controllers
 
             if (user == null) return NotFound();
 
-            // เมนูทั้งหมดที่ระบบรองรับ (key ต้องตรงกับ Home/Index.cshtml ที่ใช้ CanMenu("...")
             var allMenus = new List<(string Key, string Label)>
             {
                 ("Employees.Index", "Employees"),
@@ -222,18 +243,25 @@ namespace ProjectTracking.Controllers
                 ("PhaseStatusReport.Index", "Phase Status Report"),
                 ("PhaseStatusReport.Timeline", "Timeline / Gantt"),
                 ("Dashboard.Workload", "Employee Workload"),
-                ("IssueDashboard.Index", "Issue Dashboard")
+                ("IssueDashboard.Index", "Issue Dashboard"),
+                ("UserManagement.Index", "User Management"),
+                ("UserManagement.Permissions", "Permissions"),
             };
 
             var selected = await _context.UserMenus
                 .AsNoTracking()
-                .Where(x => x.Username == username)
+                .Where(x => x.Username == username && x.MenuKey != null && x.MenuKey != "")
                 .Select(x => x.MenuKey)
                 .ToListAsync();
 
+            var selectedSet = new HashSet<string>(
+                selected.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()),
+                StringComparer.OrdinalIgnoreCase
+            );
+
             ViewBag.Username = username;
             ViewBag.AllMenus = allMenus;
-            ViewBag.SelectedMenus = new HashSet<string>(selected, StringComparer.OrdinalIgnoreCase);
+            ViewBag.SelectedMenus = selectedSet;
 
             return View();
         }
@@ -252,11 +280,9 @@ namespace ProjectTracking.Controllers
             if (string.IsNullOrWhiteSpace(username))
                 return RedirectToAction(nameof(Index));
 
-            // กัน username ไม่ถูกต้อง
             var userExists = await _context.LoginUsers.AsNoTracking().AnyAsync(x => x.Username == username);
             if (!userExists) return NotFound();
 
-            // ลบสิทธิเดิม
             var oldRows = await _context.UserMenus
                 .Where(x => x.Username == username)
                 .ToListAsync();
@@ -264,7 +290,6 @@ namespace ProjectTracking.Controllers
             if (oldRows.Any())
                 _context.UserMenus.RemoveRange(oldRows);
 
-            // เพิ่มสิทธิใหม่
             var cleaned = (menus ?? new List<string>())
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x.Trim())
