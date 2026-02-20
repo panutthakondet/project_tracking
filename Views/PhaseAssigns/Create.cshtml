@@ -77,7 +77,7 @@
                 <!-- ROLE SHOW -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">🎯 Role (Auto)</label>
-                    <input type="text" class="form-control" id="roleDisplay" readonly />
+                    <input type="text" class="form-control" id="roleDisplay" placeholder="ระบุ Role" />
                 </div>
 
                 <!-- PLAN START -->
@@ -133,6 +133,14 @@
         const planEnd = document.getElementById("planEnd");
         const roleHidden = document.getElementById("roleHidden");
         const roleDisplay = document.getElementById("roleDisplay");
+
+        // ให้แก้ไข Role ได้ และ sync ไปยัง hidden input (Role) เพื่อส่งเข้า Controller
+        if (roleDisplay && roleHidden && !roleDisplay.dataset.roleBound) {
+            roleDisplay.dataset.roleBound = "1";
+            roleDisplay.addEventListener("input", function () {
+                roleHidden.value = (roleDisplay.value || "").toString();
+            });
+        }
 
         if (!phaseSelect) return;
 
