@@ -67,8 +67,13 @@ builder.Services.AddHttpContextAccessor();
 // DataProtection (แก้ Session/Antiforgery พังหลังรีสตาร์ท IIS)
 // ==================================================
 // ✅ ทำให้ key ไม่หายทุกครั้งที่รีสตาร์ท (แก้ warning + Error unprotecting cookie)
-var keyPath = GetEnvOrNull("DATAPROTECTION_KEYS_PATH")
-              ?? @"C:\inetpub\keys\ProjectTracking";
+var keyPath =
+    GetEnvOrNull("DATAPROTECTION_KEYS_PATH")
+    ?? (OperatingSystem.IsWindows()
+        ? @"C:\inetpub\keys\ProjectTracking"
+        : Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".aspnet", "DataProtection-Keys", "ProjectTracking"));
 
 builder.Services
     .AddDataProtection()

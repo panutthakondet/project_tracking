@@ -15,3 +15,7 @@ appsettings.Development.json
 # logs
 *.log
 web.config
+
+keys/
+inetpub/
+C:\inetpub\
