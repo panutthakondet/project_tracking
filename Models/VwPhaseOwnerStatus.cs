@@ -45,17 +45,17 @@ namespace ProjectTracking.Models
         public DateTime? ActualEnd { get; set; }
 
         [Column("plan_days")]
-        public int PlanDays { get; set; }
+        public int? PlanDays { get; set; }
 
         [Column("actual_days")]
-        public int ActualDays { get; set; }
+        public int? ActualDays { get; set; }
 
         // ================= Status =================
         [Column("phase_status")]
         public string PhaseStatus { get; set; } = "";
 
         [Column("overdue_days")]
-        public int OverdueDays { get; set; }
+        public int? OverdueDays { get; set; }
 
         // ================= Project Period =================
         [Column("start_date")]

@@ -1,7 +1,17 @@
 @{
     ViewData["Title"] = "Create User";
 
-    string? error = ViewBag.Error as string;
+    // Prefer ViewBag.Error, otherwise show TempData["Error"] if present
+    string? error = (ViewBag.Error as string) ?? (TempData["Error"] as string);
+    string? success = TempData["Success"] as string;
+
+    // Repopulate inputs safely from ModelState (works for POST-back without using Request.Form)
+    string Ms(string key) => ViewData.ModelState.TryGetValue(key, out var e) ? e.AttemptedValue ?? "" : "";
+
+    var vUsername = Ms("username");
+    var vEmail = Ms("email");
+    var vRole = Ms("role");
+    var vStatus = Ms("status");
 }
 
 <style>
@@ -112,6 +122,11 @@
     <div class="alert alert-danger alert-soft">@error</div>
 }
 
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <div class="alert alert-success alert-soft">@success</div>
+}
+
 <div class="card card-soft">
     <div class="card-body">
         <form asp-controller="UserManagement" asp-action="Create" method="post" autocomplete="off">
@@ -126,6 +141,7 @@
                        class="form-control rounded-12"
                        autocomplete="off"
                        placeholder="เช่น zewan"
+                       value="@vUsername"
                        required />
             </div>
 
@@ -139,6 +155,7 @@
                        class="form-control rounded-12"
                        placeholder="example@company.com"
                        autocomplete="email"
+                       value="@vEmail"
                        required />
                 <div class="form-text">
                     ระบบจะส่งลิงก์ยืนยันตัวตนไปยังอีเมลนี้ (ใช้ตอน Login ครั้งแรก)
@@ -204,15 +221,15 @@
                 <div class="col-md-6">
                     <label class="form-label">Role</label>
                     <select name="role" class="form-select rounded-12">
-                        <option value="USER" selected>USER</option>
-                        <option value="ADMIN">ADMIN</option>
+                        <option value="USER" selected="@(string.IsNullOrWhiteSpace(vRole) ? true : vRole.Equals("USER", StringComparison.OrdinalIgnoreCase))">USER</option>
+                        <option value="ADMIN" selected="@(!string.IsNullOrWhiteSpace(vRole) && vRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))">ADMIN</option>
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select rounded-12">
-                        <option value="ACTIVE" selected>ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="ACTIVE" selected="@(string.IsNullOrWhiteSpace(vStatus) ? true : vStatus.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))">ACTIVE</option>
+                        <option value="INACTIVE" selected="@(!string.IsNullOrWhiteSpace(vStatus) && vStatus.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))">INACTIVE</option>
                     </select>
                 </div>
             </div>

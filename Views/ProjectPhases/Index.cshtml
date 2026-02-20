@@ -6,8 +6,10 @@
     ViewData["Title"] = "Project Phases";
     var th = new CultureInfo("th-TH");
 
-    // ✅ เรียงตาม phase_id
-    var orderedPhases = Model?.OrderBy(p => p.PhaseId) ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>();
+    // ✅ เรียงตาม phase_sort (ถ้าเป็น 0 ให้ไปท้าย) แล้วค่อยตาม phase_id
+    var orderedPhases = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>())
+        .OrderBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+        .ThenBy(p => p.PhaseId);
 }
 
 <style>
@@ -84,6 +86,10 @@
         </a>
     </div>
 
+    <form id="antiForm" method="post" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark text-center">
@@ -96,7 +102,7 @@
                     <th style="width:320px;">Action</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="phaseTbody" data-project-id="@selectedProject.ProjectId">
             @if (!orderedPhases.Any())
             {
                 <tr>
@@ -111,15 +117,17 @@
 
                 foreach (var phase in orderedPhases)
                 {
-                    <tr class="@(phase.PhaseType == "MAIN"
+                    var displayNo = (phase.PhaseSort == 0 ? row : phase.PhaseSort);
+                    row++;
+                    <tr data-phase-id="@phase.PhaseId" class="@(phase.PhaseType == "MAIN"
                                     ? "phase-main"
                                     : phase.PhaseType == "SUPPORT"
                                         ? "phase-support"
                                         : "")">
 
                         <!-- ⭐ NEW ROW NUMBER -->
-                        <td class="text-center fw-semibold">
-                            @row
+                        <td class="text-center fw-semibold phase-sort-cell" style="cursor:grab; user-select:none;">
+                            @displayNo
                         </td>
 
                         <td class="text-center fw-bold">
@@ -173,8 +181,6 @@
                             </form>
                         </td>
                     </tr>
-
-                    row++;
                 }
             }
             </tbody>
@@ -189,6 +195,7 @@ else
 }
 
 @section Scripts{
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -245,6 +252,63 @@ document.addEventListener("DOMContentLoaded", function () {
             dropdown.style.display = "none";
         }
     });
+
+    // =============================
+    // Drag & Drop Reorder (PhaseSort)
+    // =============================
+    const tbody = document.getElementById("phaseTbody");
+    if (tbody) {
+        const projectId = tbody.dataset.projectId;
+        const tokenEl = document.querySelector('#antiForm input[name="__RequestVerificationToken"]');
+        const token = tokenEl ? tokenEl.value : "";
+
+        function renumberPhaseSort() {
+            const rows = Array.from(tbody.querySelectorAll('tr[data-phase-id]'));
+            rows.forEach((tr, idx) => {
+                const cell = tr.querySelector('.phase-sort-cell');
+                if (cell) cell.textContent = String(idx + 1);
+            });
+        }
+
+        async function saveOrder() {
+            const ids = Array.from(tbody.querySelectorAll('tr[data-phase-id]'))
+                .map(tr => parseInt(tr.getAttribute('data-phase-id'), 10))
+                .filter(n => !Number.isNaN(n));
+
+            const payload = { projectId: parseInt(projectId, 10), phaseIds: ids };
+
+            const res = await fetch("@Url.Action("Reorder", "ProjectPhases")", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": token
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                let msg = "";
+                try { msg = await res.text(); } catch { }
+                alert("บันทึกลำดับไม่สำเร็จ: " + res.status + "\n" + msg);
+                return;
+            }
+        }
+
+        // Load SortableJS (assume included in layout OR via CDN below)
+        if (window.Sortable) {
+            Sortable.create(tbody, {
+                animation: 150,
+                handle: '.phase-sort-cell',
+                onEnd: async function () {
+                    renumberPhaseSort();
+                    await saveOrder();
+                }
+            });
+        } else {
+            console.warn("SortableJS not found. Please include SortableJS.");
+        }
+    }
 
 });
 </script>

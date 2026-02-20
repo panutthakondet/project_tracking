@@ -40,11 +40,37 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">🧩 Phase</label>
                     <select asp-for="PhaseId"
-                            asp-items="ViewBag.Phases"
                             class="form-select"
                             required
                             id="phaseSelect">
-                        <option value="">-- Select Phase --</option>
+                        <option value="" selected>-- Select Phase --</option>
+
+                        @* ใช้ PhaseItems (ส่งมาจาก Controller) เพื่อใส่ data-* ให้ JS ดึงค่าได้ทันที *@
+                        @if (ViewBag.PhaseItems != null)
+                        {
+                            foreach (var ph in ViewBag.PhaseItems)
+                            {
+                                var ps = ph.PlanStart == null ? "" : ((DateTime)ph.PlanStart).ToString("yyyy-MM-dd");
+                                var pe = ph.PlanEnd == null ? "" : ((DateTime)ph.PlanEnd).ToString("yyyy-MM-dd");
+                                <option value="@ph.PhaseId"
+                                        data-role="@ph.PhaseName"
+                                        data-plan-start="@ps"
+                                        data-plan-end="@pe">
+                                    @ph.PhaseName
+                                </option>
+                            }
+                        }
+                        else
+                        {
+                            @* fallback ถ้า Controller ยังไม่ได้ส่ง PhaseItems *@
+                            @if (ViewBag.Phases != null)
+                            {
+                                foreach (var item in (IEnumerable<SelectListItem>)ViewBag.Phases)
+                                {
+                                    <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                                }
+                            }
+                        }
                     </select>
                 </div>
 
@@ -83,52 +109,97 @@
     </div>
 </div>
 
-@section Scripts {
-<partial name="_ValidationScriptsPartial" />
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
+    function onReady(fn) {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", fn);
+        } else {
+            fn();
+        }
+    }
 
-    const phaseSelect = document.getElementById("phaseSelect");
-    const planStart = document.getElementById("planStart");
-    const planEnd = document.getElementById("planEnd");
-    const roleHidden = document.getElementById("roleHidden");
-    const roleDisplay = document.getElementById("roleDisplay");
+    function findOptionByValue(selectEl, value) {
+        if (!selectEl) return null;
+        if (value == null) return null;
+        // ใช้ CSS.escape เผื่อ value มีอักขระพิเศษ
+        const esc = (window.CSS && CSS.escape) ? CSS.escape(String(value)) : String(value).replace(/"/g, '\\"');
+        return selectEl.querySelector('option[value="' + esc + '"]');
+    }
 
-    if (!phaseSelect) return;
+    onReady(function () {
+        const phaseSelect = document.getElementById("phaseSelect");
+        const planStart = document.getElementById("planStart");
+        const planEnd = document.getElementById("planEnd");
+        const roleHidden = document.getElementById("roleHidden");
+        const roleDisplay = document.getElementById("roleDisplay");
 
-    phaseSelect.addEventListener("change", function () {
+        if (!phaseSelect) return;
 
-        const selectedOption = phaseSelect.options[phaseSelect.selectedIndex];
-        const phaseId = selectedOption.value;
-        const phaseName = selectedOption.text; // ⭐ ดึงชื่อ Phase ตรงนี้
+        // force default empty selection
+        phaseSelect.selectedIndex = 0;
+        clearTimeout(window.__phaseInit);
+        window.__phaseInit = setTimeout(() => {
+            phaseSelect.value = "";
+        }, 0);
 
-        if (!phaseId) {
-            planStart.value = "";
-            planEnd.value = "";
-            roleHidden.value = "";
-            roleDisplay.value = "";
-            return;
+        function clearAll() {
+            if (planStart) planStart.value = "";
+            if (planEnd) planEnd.value = "";
+            if (roleHidden) roleHidden.value = "";
+            if (roleDisplay) roleDisplay.value = "";
         }
 
-        // ⭐ ใส่ Role จากชื่อ Phase ทันที (ไม่ต้องยิง API)
-        roleHidden.value = phaseName;
-        roleDisplay.value = phaseName;
+        function applyFromValue(value) {
+            const opt = findOptionByValue(phaseSelect, value) || phaseSelect.options[phaseSelect.selectedIndex];
 
-        // ดึง Plan Date (ยังใช้เหมือนเดิม)
-        fetch(`/PhaseAssigns/GetPhasePlan?phaseId=${phaseId}`)
-            .then(res => res.json())
-            .then(data => {
-                planStart.value = data.planStart?.substring(0,10) ?? "";
-                planEnd.value = data.planEnd?.substring(0,10) ?? "";
-            })
-            .catch(() => {
-                planStart.value = "";
-                planEnd.value = "";
-            });
+            if (!opt || !opt.value) {
+                clearAll();
+                return;
+            }
 
+            // role = phase name (ตาม requirement)
+            const role = (opt.dataset.role || opt.text || "").toString().trim();
+
+            // ค่าที่ส่งมาควรเป็น yyyy-MM-dd เพื่อใส่ input[type=date]
+            const ps = (opt.dataset.planStart || "").toString().trim();
+            const pe = (opt.dataset.planEnd || "").toString().trim();
+
+            if (roleHidden) roleHidden.value = role;
+            if (roleDisplay) roleDisplay.value = role;
+
+            if (planStart) planStart.value = ps;
+            if (planEnd) planEnd.value = pe;
+        }
+
+        function applyFromSelectedOption() {
+            applyFromValue(phaseSelect.value);
+        }
+
+        // กันผูก event ซ้ำ
+        if (!phaseSelect.dataset.phasePlanBound) {
+            phaseSelect.dataset.phasePlanBound = "1";
+
+            // native change
+            phaseSelect.addEventListener("change", applyFromSelectedOption);
+
+            // รองรับ Select2 (ถ้าใช้)
+            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+                window.jQuery(phaseSelect)
+                    .on("select2:select", function (e) {
+                        applyFromValue(e.params && e.params.data ? e.params.data.id : phaseSelect.value);
+                    })
+                    .on("select2:clear", function () {
+                        clearAll();
+                    })
+                    .on("change.select2", function () {
+                        applyFromSelectedOption();
+                    });
+            }
+        }
+
+        // โหลดค่าเริ่มต้น (กรณีมี PhaseId ติดมา)
+        applyFromSelectedOption();
     });
-
-});
+})();
 </script>
-}

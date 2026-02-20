@@ -3,17 +3,17 @@ using Microsoft.Extensions.DependencyInjection;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Services;
-using ProjectTracking.Middleware; // ✅ เพิ่ม
+using ProjectTracking.Middleware;
 using DotNetEnv;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.CookiePolicy;
+using Microsoft.AspNetCore.DataProtection;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ==================================================
-// LOAD .env FILE
-// - แนะนำ: ใช้ .env เฉพาะตอนพัฒนาในเครื่อง
-// - Production ให้ตั้งค่าเป็น Environment Variables ของ Server แทน
+// LOAD .env FILE (ใช้เฉพาะตอนพัฒนาในเครื่อง)
 // ==================================================
 if (builder.Environment.IsDevelopment())
 {
@@ -21,7 +21,7 @@ if (builder.Environment.IsDevelopment())
 }
 
 // ==================================================
-// ENV HELPER
+// ENV HELPERS
 // ==================================================
 string GetEnv(string key)
 {
@@ -31,22 +31,60 @@ string GetEnv(string key)
     return v;
 }
 
+string? GetEnvOrNull(string key) => Environment.GetEnvironmentVariable(key);
+
+int GetEnvIntOrDefault(string key, int defaultValue = 0)
+{
+    var raw = GetEnvOrNull(key);
+    return int.TryParse(raw, out var n) ? n : defaultValue;
+}
+
+bool GetEnvBoolOrDefault(string key, bool defaultValue = false)
+{
+    var raw = GetEnvOrNull(key);
+    if (string.IsNullOrWhiteSpace(raw)) return defaultValue;
+
+    if (raw.Equals("true", StringComparison.OrdinalIgnoreCase)) return true;
+    if (raw.Equals("false", StringComparison.OrdinalIgnoreCase)) return false;
+    if (raw == "1") return true;
+    if (raw == "0") return false;
+    if (raw.Equals("yes", StringComparison.OrdinalIgnoreCase)) return true;
+    if (raw.Equals("no", StringComparison.OrdinalIgnoreCase)) return false;
+
+    return defaultValue;
+}
+
 // ==================================================
 // Services
 // ==================================================
 builder.Services
     .AddControllersWithViews()
-    .AddSessionStateTempDataProvider();  // ✅ ให้ TempData ไปอยู่ใน Session ไม่ใช่ Cookie
+    .AddSessionStateTempDataProvider();
 
-// ✅ สำคัญ: ให้ View/Service ที่ใช้ IHttpContextAccessor ทำงานได้
 builder.Services.AddHttpContextAccessor();
 
 // ==================================================
-// Database (MySQL from .env)
+// DataProtection (แก้ Session/Antiforgery พังหลังรีสตาร์ท IIS)
+// ==================================================
+// ✅ ทำให้ key ไม่หายทุกครั้งที่รีสตาร์ท (แก้ warning + Error unprotecting cookie)
+var keyPath =
+    GetEnvOrNull("DATAPROTECTION_KEYS_PATH")
+    ?? (OperatingSystem.IsWindows()
+        ? @"C:\inetpub\keys\ProjectTracking"
+        : Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".aspnet", "DataProtection-Keys", "ProjectTracking"));
+
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+    .SetApplicationName("ProjectTracking");
+
+// ==================================================
+// Database (MySQL)
 // ==================================================
 var mysqlConnection = GetEnv("MYSQL_CONNECTION");
 
-// ✅ แนะนำ: ใช้ Factory เป็นตัวหลัก (ปลอดภัยกับ BackgroundService)
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseMySql(
         mysqlConnection,
@@ -54,7 +92,6 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     )
 );
 
-// ✅ ทำให้ Controllers/Services ที่ยัง inject AppDbContext ใช้งานได้เหมือนเดิม
 builder.Services.AddScoped<AppDbContext>(sp =>
     sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext()
 );
@@ -62,7 +99,6 @@ builder.Services.AddScoped<AppDbContext>(sp =>
 // ==================================================
 // Session
 // ==================================================
-// ✅ สำคัญ: ต้องมี DistributedMemoryCache เพื่อให้ Session ทำงานได้ครบ
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -71,29 +107,27 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 
-    // ✅ ลดความเสี่ยง session hijacking / CSRF
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
 });
 
-// Cookie Policy (ให้ SameSite/Secure มีผลกับคุกกี้อื่น ๆ ด้วย)
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
     options.Secure = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
-    options.HttpOnly = HttpOnlyPolicy.Always;
+
+    options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
 });
 
 // ==================================================
-// HTTPS Redirection (แก้ warning หา https port ไม่เจอ)
+// HTTPS Redirection
 // ==================================================
-// ถ้าในเครื่องคุณใช้ https พอร์ตอื่น เปลี่ยน 5001 ให้ตรง launchSettings.json
 var httpsPort = 5001;
-var httpsPortEnv = Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORT");
+var httpsPortEnv = GetEnvOrNull("ASPNETCORE_HTTPS_PORT");
 if (int.TryParse(httpsPortEnv, out var p) && p > 0) httpsPort = p;
 
 builder.Services.AddHttpsRedirection(options =>
@@ -102,39 +136,38 @@ builder.Services.AddHttpsRedirection(options =>
 });
 
 // ==================================================
-// Email (SMTP from .env)
+// Email (SMTP from env / .env) - ไม่ล่มถ้าขาด
 // ==================================================
 builder.Services.Configure<EmailSettings>(options =>
 {
-    // ✅ Production ต้องมี SMTP ครบ
-    // ✅ Development: ถ้าไม่มี SMTP ให้ปล่อยว่าง (ระบบจะยังรันได้ แต่ส่งเมลไม่ได้)
+    options.SmtpServer = GetEnvOrNull("SMTP_SERVER") ?? "";
+    options.Port       = GetEnvIntOrDefault("SMTP_PORT", 0);
+    options.Username   = GetEnvOrNull("SMTP_USERNAME") ?? "";
+    options.Password   = GetEnvOrNull("SMTP_PASSWORD") ?? "";
+    options.EnableSsl  = GetEnvBoolOrDefault("SMTP_ENABLE_SSL", false);
+
+    // รองรับทั้งสองชื่อ (คุณถามว่า SMTP_SENDER_EMAIL เหมือน SMTP_FROM ไหม)
+    options.SenderEmail =
+        GetEnvOrNull("SMTP_SENDER_EMAIL")
+        ?? GetEnvOrNull("SMTP_FROM")
+        ?? "";
+
+    // ถ้าอยาก “บังคับ Production ต้องมีครบ” ให้เปิดบล็อคนี้
+    /*
     if (!builder.Environment.IsDevelopment())
     {
-        options.SmtpServer = GetEnv("SMTP_SERVER");
-        options.Port = int.Parse(GetEnv("SMTP_PORT"));
-        options.Username = GetEnv("SMTP_USERNAME");
-        options.Password = GetEnv("SMTP_PASSWORD");
-        options.EnableSsl = bool.Parse(GetEnv("SMTP_ENABLE_SSL"));
-        options.SenderEmail = GetEnv("SMTP_SENDER_EMAIL");
+        _ = GetEnv("SMTP_SERVER");
+        _ = GetEnv("SMTP_PORT");
+        _ = GetEnv("SMTP_USERNAME");
+        _ = GetEnv("SMTP_PASSWORD");
+        _ = GetEnv("SMTP_ENABLE_SSL");
+        _ = GetEnv("SMTP_SENDER_EMAIL"); // หรือ SMTP_FROM
     }
-    else
-    {
-        options.SmtpServer = Environment.GetEnvironmentVariable("SMTP_SERVER") ?? "";
-        options.Port = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var port) ? port : 0;
-        options.Username = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? "";
-        options.Password = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? "";
-        options.EnableSsl = bool.TryParse(Environment.GetEnvironmentVariable("SMTP_ENABLE_SSL"), out var ssl) && ssl;
-        options.SenderEmail = Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL") ?? "";
-    }
+    */
 });
 
-// Email Service
 builder.Services.AddScoped<EmailService>();
-
-// Overdue mail service
 builder.Services.AddScoped<OverdueMailService>();
-
-// Background Service
 builder.Services.AddHostedService<OverdueMailBackgroundService>();
 
 var app = builder.Build();
@@ -148,18 +181,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// ✅ Redirect HTTP -> HTTPS เฉพาะ Production
-// ใน Development ถ้าเครื่องไม่มี HTTPS binding/พอร์ต https ไม่ได้ listen จะทำให้เข้าเว็บไม่ได้
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
 
 app.UseStaticFiles();
-
 app.UseRouting();
 
-// ✅ Security headers (กัน clickjacking / sniffing / ลด referrer)
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -167,8 +196,6 @@ app.Use(async (context, next) =>
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
 
-    // CSP แบบเริ่มต้น (ถ้าหน้าใดมี inline script/css เยอะ ให้ค่อย ๆ ปรับเพิ่ม)
-    // หมายเหตุ: ตอนนี้มี CDN (Select2) -> allow https:
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; " +
         "img-src 'self' data: blob:; " +
@@ -181,16 +208,12 @@ app.Use(async (context, next) =>
 });
 
 app.UseCookiePolicy();
-
-// ✅ Session ต้องมาก่อน Middleware ที่อ่าน session
 app.UseSession();
 
-// ✅ (เผื่อในอนาคตใช้ ASP.NET auth) ให้ลำดับถูกต้อง
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ✅ บังคับ login หลัง Session พร้อม และหลัง auth middleware
-app.UseRequireLogin(); // หรือ app.UseMiddleware<RequireLoginMiddleware>();
+app.UseRequireLogin();
 
 // ==================================================
 // Route
