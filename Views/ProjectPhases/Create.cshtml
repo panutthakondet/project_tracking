@@ -68,36 +68,26 @@
                     <span asp-validation-for="PhaseName" class="text-danger"></span>
                 </div>
 
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">📅 Plan Start</label>
-                    <input asp-for="PlanStart"
-                           type="date"
-                           class="form-control"
-                           id="planStart" />
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">📅 Plan End</label>
-                    <input asp-for="PlanEnd"
-                           type="date"
-                           class="form-control"
-                           id="planEnd" />
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">▶ Period Start</label>
-                    <input asp-for="ActualStart"
-                           type="date"
-                           class="form-control"
-                           id="periodStart" />
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">⏹ Period End</label>
-                    <input asp-for="ActualEnd"
-                           type="date"
-                           class="form-control"
-                           id="periodEnd" />
+                <div class="col-12">
+                    <label class="form-label fw-semibold">📅 Dates</label>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <small class="text-muted">Plan Start</small>
+                            <input asp-for="PlanStart" type="date" class="form-control" id="planStart" />
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Plan End</small>
+                            <input asp-for="PlanEnd" type="date" class="form-control" id="planEnd" />
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Period Start</small>
+                            <input asp-for="ActualStart" type="date" class="form-control" id="periodStart" />
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Period End</small>
+                            <input asp-for="ActualEnd" type="date" class="form-control" id="periodEnd" />
+                        </div>
+                    </div>
                 </div>
 
             </div>

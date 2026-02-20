@@ -24,7 +24,8 @@ namespace ProjectTracking.Controllers
         {
             var employees = await _context.Employees
                 .Where(e => e.Status == "ACTIVE")
-                .OrderBy(e => e.EmpId)
+                .OrderBy(e => e.Position)
+                .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
             return View(employees);

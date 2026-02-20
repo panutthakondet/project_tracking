@@ -19,234 +19,320 @@
     var colorIndex = 0;
 }
 
+@functions {
+    private static string? ReadNestedString(object? obj, params string[] path)
+    {
+        if (obj == null) return null;
+        object? cur = obj;
+        foreach (var seg in path)
+        {
+            if (cur == null) return null;
+            var t = cur.GetType();
+            var p = t.GetProperty(seg);
+            if (p == null) return null;
+            cur = p.GetValue(cur);
+        }
+        return cur?.ToString();
+    }
+
+    private static int? ReadNestedInt(object? obj, params string[] path)
+    {
+        var s = ReadNestedString(obj, path);
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        return int.TryParse(s, out var v) ? v : (int?)null;
+    }
+
+    private static string GetPhaseNameSafe(object a)
+    {
+        var v = ReadNestedString(a, "ProjectPhase", "PhaseName")
+             ?? ReadNestedString(a, "Phase", "PhaseName")
+             ?? ReadNestedString(a, "ProjectPhase", "phase_name")
+             ?? ReadNestedString(a, "Phase", "phase_name")
+             ?? ReadNestedString(a, "PhaseName")
+             ?? ReadNestedString(a, "phase_name");
+
+        return string.IsNullOrWhiteSpace(v) ? "-" : v!;
+    }
+}
+
 <style>
 .table-hover tbody tr:hover > * { background-color: inherit !important; }
 .table tbody tr > td { background-color: inherit !important; }
 
-/* FIX LEFT 3 COLUMNS */
-.sticky-col { position: sticky; z-index: 3; }
-.sticky-1 { left: 0; min-width:70px; max-width:70px; }
-.sticky-2 { left: 70px; min-width:240px; max-width:240px; }
-.sticky-3 { left: 310px; min-width:500px; }
+.sticky-col { position: sticky; z-index: 3; background-clip: padding-box; }
+.sticky-1 { left: 0; width:70px; min-width:70px; max-width:70px; }
+.sticky-2 { left: 70px; width:280px; min-width:280px; max-width:280px; }
 
 thead .sticky-col { z-index: 5; }
+
+.table-assign { table-layout: fixed; }
+.table-assign th, .table-assign td { vertical-align: middle; }
+.table-assign .col-phase { width:240px; }
+.table-assign .col-role { width:220px; }
+.table-assign .col-period { width:280px; white-space: nowrap; }
+.table-assign .col-remark { width:360px; }
+.table-assign .col-action { width:190px; }
+
+.table-assign td { word-break: break-word; }
+.table-assign .nowrap { white-space: nowrap; }
+
+.dragging-row { opacity: .65; }
+.sortable-ghost { opacity: .35; }
+.drag-handle { font-weight: 700; }
 </style>
 
 <div class="mb-3">
     <h2 class="fw-bold">👥 Assigned Employees</h2>
-    <p class="text-muted mb-0">
-        จัดการการมอบหมายงาน (Assign) ของพนักงานในแต่ละโครงการ
-    </p>
+    <p class="text-muted mb-0">จัดการการมอบหมายงาน (Assign) ของพนักงานในแต่ละโครงการ</p>
 </div>
 
 <form method="get" class="row g-3 mb-4" id="filterForm">
-
-    <!-- PROJECT -->
     <div class="col-md-4">
         <label class="form-label fw-bold">📁 Project</label>
-        <select name="projectId"
-                id="projectSelect"
-                class="form-select">
+        <select name="projectId" id="projectSelect" class="form-select">
             <option value="">-- Select Project --</option>
             @foreach (var p in ViewBag.Projects)
             {
                 if (ViewBag.SelectedProject?.ProjectId == p.ProjectId)
                 {
-                    <option value="@p.ProjectId" selected>
-                        @p.ProjectName
-                    </option>
+                    <option value="@p.ProjectId" selected>@p.ProjectName</option>
                 }
                 else
                 {
-                    <option value="@p.ProjectId">
-                        @p.ProjectName
-                    </option>
+                    <option value="@p.ProjectId">@p.ProjectName</option>
                 }
             }
         </select>
     </div>
 
-    <!-- EMPLOYEE -->
     <div class="col-md-4">
         <label class="form-label fw-bold">👤 Employee</label>
-        <select name="empId"
-                id="empSelect"
-                class="form-select"
-                @(ViewBag.SelectedProject == null ? "disabled" : "")>
+        <select name="empId" id="empSelect" class="form-select" @(ViewBag.SelectedProject == null ? "disabled" : "")>
             <option value="">-- All Employees --</option>
             @foreach (var e in ViewBag.EmployeeList)
             {
                 if (ViewBag.SelectedEmpId == e.EmpId)
                 {
-                    <option value="@e.EmpId" selected>
-                        @e.EmpName
-                    </option>
+                    <option value="@e.EmpId" selected>@e.EmpName</option>
                 }
                 else
                 {
-                    <option value="@e.EmpId">
-                        @e.EmpName
-                    </option>
+                    <option value="@e.EmpId">@e.EmpName</option>
                 }
             }
         </select>
     </div>
-
 </form>
 
 @if (ViewBag.SelectedProject != null)
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0">
-            📌 Project : @ViewBag.SelectedProject.ProjectName
-        </h4>
-
-        <a asp-action="Create"
-           asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
-           class="btn btn-primary">
-            ➕ Add Assign
-        </a>
+        <h4 class="fw-bold mb-0">📌 Project : @ViewBag.SelectedProject.ProjectName</h4>
+        <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary">➕ Add Assign</a>
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle" style="min-width:1400px;">
+        <table class="table table-bordered table-hover align-middle table-assign" style="min-width:1500px;">
+            <colgroup>
+                <col style="width:70px;" />
+                <col style="width:280px;" />
+                <col class="col-phase" />
+                <col class="col-role" />
+                <col class="col-period" />
+                <col class="col-period" />
+                <col class="col-remark" />
+                <col class="col-action" />
+            </colgroup>
             <thead class="table-dark text-center">
                 <tr>
-                    <th class="sticky-col sticky-1">No.</th>
+                    <th class="sticky-col sticky-1">↕ No.</th>
                     <th class="sticky-col sticky-2">Employee</th>
-                    <th class="sticky-col sticky-3">Role</th>
-                    <th style="min-width:260px;">Plan Period</th>
-                    <th style="min-width:260px;">Actual Period</th>
-                    <th style="min-width:320px;">Remark</th>
-                    <th style="min-width:180px;">Action</th>
+                    <th class="col-phase">Phase</th>
+                    <th class="col-role">Role</th>
+                    <th class="col-period">Plan Period</th>
+                    <th class="col-period">Actual Period</th>
+                    <th class="col-remark">Remark</th>
+                    <th class="col-action">Action</th>
                 </tr>
             </thead>
-
-            <tbody>
             @if (!Model.Any())
             {
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">— No assignment —</td>
-                </tr>
+                <tbody>
+                    <tr><td colspan="8" class="text-center text-muted py-4">— No assignment —</td></tr>
+                </tbody>
             }
             else
             {
                 var row = 1;
 
-                foreach (var a in Model)
+                // รวมเป็น tbody เดียวเพื่อให้ลากสลับแถวได้ทุกแถว (รวมแถวสุดท้าย) และทำให้ลำดับถาวรจาก phase_sort
+                // เรียงหลักจาก phase_sort (ใน phase_assign) ถ้าไม่มีให้ไปตาม phase_order ของ project_phase แล้วตาม assign_id
+                var ordered = Model
+                    .OrderBy(a => a.PhaseSort ?? int.MaxValue)
+                    .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
+                              ?? ReadNestedInt(a, "Phase", "PhaseOrder")
+                              ?? ReadNestedInt(a, "PhaseOrder")
+                              ?? int.MaxValue)
+                    .ThenBy(a => a.AssignId);
+
+                <tbody id="assign-tbody">
+                @foreach (var a in ordered)
                 {
                     if (!empColorMap.ContainsKey(a.EmpId))
                     {
                         empColorMap[a.EmpId] = pastelColors[colorIndex % pastelColors.Length];
                         colorIndex++;
                     }
-
                     var bg = empColorMap[a.EmpId];
 
-                    <tr style="background-color:@bg;">
-                        <td class="text-center fw-semibold sticky-col sticky-1">@row</td>
-
+                    <tr style="background-color:@bg;" data-assign-id="@a.AssignId">
+                        <td class="text-center fw-semibold sticky-col sticky-1">
+                            <span class="drag-handle" title="ลากเพื่อสลับแถว" style="cursor:grab; user-select:none;">☰</span>
+                            <span class="ms-2">@row</span>
+                        </td>
                         <td class="fw-semibold sticky-col sticky-2">👤 @a.Employee?.EmpName</td>
-
-                        <td class="sticky-col sticky-3" style="white-space:normal;">@a.Role</td>
-
-                        <td class="text-center">
-                            @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
-                            –
-                            @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        <td class="fw-semibold">@GetPhaseNameSafe(a)</td>
+                        <td>@a.Role</td>
+                        <td class="text-center nowrap">
+                            @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
-
-                        <td class="text-center">
-                            @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
-                            –
-                            @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        <td class="text-center nowrap">
+                            @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
-
-                        <td>@a.Remark</td>
-
+                        <td class="col-remark">@a.Remark</td>
                         <td class="text-center">
-                            <a asp-action="Edit"
-                               asp-route-id="@a.AssignId"
-                               class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
-
+                            <a asp-action="Edit" asp-route-id="@a.AssignId" class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
                             <form asp-action="Delete" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@a.AssignId" />
-                                <button type="submit"
-                                        class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('ยืนยันการลบ Assign นี้?');">
-                                    🗑 Delete
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('ยืนยันการลบ Assign นี้?');">🗑 Delete</button>
                             </form>
                         </td>
                     </tr>
-
                     row++;
                 }
+                </tbody>
             }
-            </tbody>
         </table>
     </div>
 }
 else
 {
-    <div class="alert alert-secondary mt-3">
-        ⬆ กรุณาเลือก Project ก่อน
-    </div>
+    <div class="alert alert-secondary mt-3">⬆ กรุณาเลือก Project ก่อน</div>
 }
 
+<form id="antiForgeryForm" method="post" style="display:none;">@Html.AntiForgeryToken()</form>
+
 @section Scripts{
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 $(function () {
-
     const $form = $('#filterForm');
-
-    // ✅ ให้เป็น boolean จริง
     const hasProject = @(ViewBag.SelectedProject != null ? "true" : "false");
 
-    // ✅ กันกรณี Select2 / jQuery ยังโหลดไม่ทัน
     if (!window.jQuery || !$.fn || !$.fn.select2) {
         console.error('Select2 ยังไม่ถูกโหลด (ตรวจสอบ _Layout.cshtml ว่ามี jquery + select2.js และลำดับการโหลดถูกต้อง)');
         return;
     }
 
-    // ✅ Project Select2
-    $('#projectSelect').select2({
-        placeholder: "-- Select Project --",
-        allowClear: true,
-        width: '100%',
-        minimumResultsForSearch: 0,
-        // ลดปัญหา z-index/overflow
-        dropdownParent: $(document.body)
-    });
+    $('#projectSelect').select2({ placeholder: "-- Select Project --", allowClear: true, width: '100%', minimumResultsForSearch: 0, dropdownParent: $(document.body) });
 
-    // ✅ Employee: ถ้ายังไม่เลือก Project ให้ disable และไม่ init select2 (กัน error)
     if (!hasProject) {
         $('#empSelect').prop('disabled', true);
     } else {
-        $('#empSelect').select2({
-            placeholder: "-- All Employees --",
-            allowClear: true,
-            width: '100%',
-            minimumResultsForSearch: 0,
-            dropdownParent: $(document.body)
-        });
+        $('#empSelect').select2({ placeholder: "-- All Employees --", allowClear: true, width: '100%', minimumResultsForSearch: 0, dropdownParent: $(document.body) });
     }
 
-    // ✅ อย่า submit ทันทีใน event ของ select2 (กัน error ตอน select2 กำลังจัดการ DOM)
-    function submitSafely() {
-        setTimeout(function () {
-            $form.trigger('submit');
-        }, 0);
-    }
-
-    $('#projectSelect').on('select2:select select2:clear', function () {
-        submitSafely();
-    });
-
-    $('#empSelect').on('select2:select select2:clear', function () {
-        if (hasProject) submitSafely();
-    });
+    function submitSafely() { setTimeout(function () { $form.trigger('submit'); }, 0); }
+    $('#projectSelect').on('select2:select select2:clear', function () { submitSafely(); });
+    $('#empSelect').on('select2:select select2:clear', function () { if (hasProject) submitSafely(); });
 });
+</script>
+
+<script>
+(function () {
+    const tbody = document.getElementById('assign-tbody');
+    if (!tbody) return;
+
+    const tokenEl = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]');
+    const antiForgeryToken = tokenEl ? tokenEl.value : null;
+
+    function refreshRowNumbers() {
+        const rows = Array.from(document.querySelectorAll('tr[data-assign-id]'));
+        let i = 1;
+        for (const r of rows) {
+            const noCell = r.querySelector('td.sticky-1');
+            if (!noCell) continue;
+            const spanNo = noCell.querySelector('span.ms-2');
+            if (spanNo) spanNo.textContent = String(i);
+            i++;
+        }
+    }
+
+    function collectAssignIds() {
+        const rows = Array.from(tbody.querySelectorAll('tr[data-assign-id]'));
+        return rows
+            .map(r => parseInt(r.getAttribute('data-assign-id') || '0', 10))
+            .filter(x => Number.isFinite(x) && x > 0);
+    }
+
+    async function saveReorder() {
+        const assignIds = collectAssignIds();
+        if (!assignIds || assignIds.length === 0) {
+            console.error('Reorder failed: empty assignIds');
+            alert('บันทึกลำดับไม่สำเร็จ (Reorder)\nสาเหตุ: ไม่พบรายการ assignIds (เป็น 0 แถว)');
+            return false;
+        }
+
+        // ส่งเป็น JSON array ตรง ๆ เพื่อให้ ModelBinder จับได้ทั้งกรณีที่ Controller รับเป็น int[]/List<int>
+        const payload = assignIds;
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (antiForgeryToken) headers['RequestVerificationToken'] = antiForgeryToken;
+
+        const selectedProjectId = @((int?)ViewBag.SelectedProjectId ?? 0);
+        const reorderUrl = '@Url.Action("Reorder", "PhaseAssigns")' + '?projectId=' + selectedProjectId;
+
+        const res = await fetch(reorderUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+
+        const txt = await res.text();
+        if (!res.ok) {
+            console.error('Reorder failed:', txt, payload);
+            alert('บันทึกลำดับไม่สำเร็จ (Reorder)\n' + (txt || 'Bad Request') + '\nกรุณาเช็ค PhaseAssignsController.Reorder');
+            return false;
+        }
+
+        if (txt) console.log('Reorder OK:', txt);
+        return true;
+    }
+
+    Sortable.create(tbody, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'dragging-row',
+        // ช่วยให้ลากแถวสุดท้าย/ขอบจอได้ง่ายขึ้น
+        forceFallback: true,
+        fallbackTolerance: 5,
+        scroll: true,
+        scrollSensitivity: 60,
+        scrollSpeed: 15,
+        onEnd: async function () {
+            refreshRowNumbers();
+            const ok = await saveReorder();
+            if (!ok) {
+                refreshRowNumbers();
+                return;
+            }
+            refreshRowNumbers();
+        }
+    });
+
+    refreshRowNumbers();
+})();
 </script>
 }

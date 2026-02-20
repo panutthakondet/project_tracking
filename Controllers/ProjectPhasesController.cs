@@ -218,14 +218,50 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, int projectId)
         {
-            var phase = await _context.ProjectPhases.FindAsync(id);
+            // โหลด Phase แบบ tracked เพื่อให้ลบได้จริง
+            var phase = await _context.ProjectPhases
+                .FirstOrDefaultAsync(p => p.PhaseId == id);
+
             if (phase == null)
-                return NotFound();
+            {
+                TempData["Error"] = "ไม่พบ Phase ที่ต้องการลบ";
+                // ถ้า projectId ไม่ถูกส่งมา ก็ยังกลับไปหน้า Index ได้ (จะเป็น list ว่าง)
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
 
-            _context.ProjectPhases.Remove(phase);
-            await _context.SaveChangesAsync();
+            // ✅ ใช้ ProjectId จากข้อมูลจริงเสมอ (ไม่พึ่งค่าที่ส่งมาจากฟอร์ม)
+            var realProjectId = phase.ProjectId;
 
-            return RedirectToAction(nameof(Index), new { projectId });
+            try
+            {
+                // ✅ ลบข้อมูลลูกก่อน เพื่อไม่ให้ FK บล็อก (phase_assign.phase_id -> project_phase.phase_id)
+                var assigns = await _context.Set<PhaseAssign>()
+                    .Where(a => a.PhaseId == id)
+                    .ToListAsync();
+
+                if (assigns.Count > 0)
+                {
+                    _context.Set<PhaseAssign>().RemoveRange(assigns);
+                }
+
+                _context.ProjectPhases.Remove(phase);
+
+                var affected = await _context.SaveChangesAsync();
+
+                if (affected <= 0)
+                    TempData["Error"] = "ลบไม่สำเร็จ: ไม่พบแถวที่ถูกลบ (0 rows affected)";
+                else
+                    TempData["Success"] = assigns.Count > 0
+                        ? $"ลบ Phase และลบ Assign ที่เกี่ยวข้อง {assigns.Count} รายการเรียบร้อยแล้ว"
+                        : "ลบ Phase เรียบร้อยแล้ว";
+
+                return RedirectToAction(nameof(Index), new { projectId = realProjectId });
+            }
+            catch (DbUpdateException)
+            {
+                TempData["Error"] = "ลบไม่ได้: มีข้อมูลอื่นอ้างอิง Phase นี้อยู่ กรุณาตรวจสอบความสัมพันธ์ของข้อมูลก่อน";
+                return RedirectToAction(nameof(Index), new { projectId = realProjectId });
+            }
         }
 
         // ===========================
@@ -238,7 +274,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [Consumes("application/json")]
         public async Task<IActionResult> Reorder([FromBody] ReorderRequest? req)
         {
             if (req == null)
@@ -250,22 +286,53 @@ namespace ProjectTracking.Controllers
             if (req.PhaseIds == null || req.PhaseIds.Count == 0)
                 return BadRequest(new { ok = false, message = "invalid payload: PhaseIds" });
 
-            var ids = req.PhaseIds.Where(x => x > 0).Distinct().ToList();
-            if (ids.Count == 0)
+            // ✅ รักษาลำดับตามที่ส่งมา (ห้าม Distinct แบบสุ่มลำดับ)
+            var orderedIds = new List<int>(req.PhaseIds.Count);
+            var seen = new HashSet<int>();
+            foreach (var x in req.PhaseIds)
+            {
+                if (x <= 0) continue;
+                if (seen.Add(x)) orderedIds.Add(x);
+            }
+
+            if (orderedIds.Count == 0)
                 return BadRequest(new { ok = false, message = "invalid payload: PhaseIds empty" });
 
-            var phases = await _context.ProjectPhases
-                .Where(p => p.ProjectId == req.ProjectId && ids.Contains(p.PhaseId))
+            // ✅ โหลดทุก Phase ของ Project นี้ เพื่อทำให้ลำดับ (PhaseSort) ถาวรจริง
+            var allPhases = await _context.ProjectPhases
+                .Where(p => p.ProjectId == req.ProjectId)
                 .ToListAsync();
 
-            if (phases.Count == 0)
+            if (allPhases.Count == 0)
                 return NotFound(new { ok = false, message = "no phases" });
 
-            for (int i = 0; i < ids.Count; i++)
+            // ✅ ทำเป็น map เพื่อหาเร็ว
+            var map = allPhases.ToDictionary(p => p.PhaseId);
+
+            // ✅ ถ้ามี id บางตัวส่งมาแต่ไม่พบใน project นี้ ให้แจ้งกลับ (กัน reorder ผิดโปรเจกต์)
+            var missing = orderedIds.Where(id => !map.ContainsKey(id)).ToList();
+            if (missing.Count > 0)
+                return BadRequest(new { ok = false, message = "some phases not found in project", missing });
+
+            // ✅ 1) ใส่ลำดับตามที่ส่งมา
+            var sort = 1;
+            var used = new HashSet<int>();
+            foreach (var id in orderedIds)
             {
-                var ph = phases.FirstOrDefault(x => x.PhaseId == ids[i]);
-                if (ph != null)
-                    ph.PhaseSort = i + 1;
+                map[id].PhaseSort = sort++;
+                used.Add(id);
+            }
+
+            // ✅ 2) Phase ที่ไม่ได้ส่งมา ให้ต่อท้าย โดยคงลำดับเดิม (PhaseSort เดิม/PhaseId)
+            var remaining = allPhases
+                .Where(p => !used.Contains(p.PhaseId))
+                .OrderBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                .ThenBy(p => p.PhaseId)
+                .ToList();
+
+            foreach (var p in remaining)
+            {
+                p.PhaseSort = sort++;
             }
 
             await _context.SaveChangesAsync();

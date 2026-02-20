@@ -27,7 +27,8 @@ namespace ProjectTracking.Controllers
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderByDescending(p => p.ProjectId)
+                .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
+                .ThenByDescending(p => p.ProjectId)
                 .ToListAsync();
 
             return View(projects);

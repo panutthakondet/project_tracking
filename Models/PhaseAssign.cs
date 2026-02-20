@@ -15,15 +15,22 @@ namespace ProjectTracking.Models
         [Column("phase_id")]
         public int PhaseId { get; set; }
 
+        // ❗ ห้ามยุ่งกับ phase_order: ใช้สำหรับเรียงตามลำดับ phase จาก project_phase
+        [Column("phase_order")]
+        public int? PhaseOrder { get; set; }
+
+        // ✅ เตรียมไว้ทำสลับแถว (drag & drop) แบบถาวร
+        [Column("phase_sort")]
+        public int? PhaseSort { get; set; }
+
         [Required]
         [Column("emp_id")]
         public int EmpId { get; set; }
 
-        // 🔥 รองรับ PhaseName ยาว ๆ
-        [Required(ErrorMessage = "Role is required")]
-        [MaxLength(500)]                // <- เพิ่มความยาว
-        [Column("role", TypeName = "nvarchar(500)")]  // SQL Server
-        public string Role { get; set; } = string.Empty;
+        // role ใน MySQL เป็น varchar(500) และอนุญาตให้เป็น NULL
+        [MaxLength(500)]
+        [Column("role")]
+        public string? Role { get; set; }
 
         [Column("plan_start")]
         public DateTime? PlanStart { get; set; }
@@ -37,7 +44,9 @@ namespace ProjectTracking.Models
         [Column("actual_end")]
         public DateTime? ActualEnd { get; set; }
 
-        [Column("remark", TypeName = "nvarchar(1000)")] // กัน remark ยาว
+        // remark ใน MySQL เป็น varchar(255)
+        [MaxLength(255)]
+        [Column("remark")]
         public string? Remark { get; set; }
 
         // =========================

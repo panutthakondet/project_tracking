@@ -67,37 +67,30 @@
         </div>
     </div>
 
-    <!-- ✅ ADMIN ONLY -->
-    @if (isAdmin)
-    {
-        <div class="menu-group">
-            <div class="group-title">🛡️ Admin</div>
+    <!-- PROJECT -->
+    <div class="menu-group">
+        <div class="group-title">📁 การบันทึกข้อมูล และการจัดการโครงการ</div>
 
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <a asp-controller="UserManagement" asp-action="Index" class="menu-card admin-card">
+        <div class="row g-3">
+
+            @if (CanMenu("UserManagement.Index"))
+            {
+            <div class="col-md-3">
+              <a asp-controller="UserManagement" asp-action="Index" class="menu-card">
                         <div class="icon">👤➕</div>
                         <div class="title">User Management</div>
                         <div class="desc">ลงทะเบียน/สร้างผู้ใช้ (Admin เท่านั้น)</div>
                     </a>
-                </div>
             </div>
-        </div>
-    }
-
-    <!-- PROJECT -->
-    <div class="menu-group">
-        <div class="group-title">📁 Project & Resource Management</div>
-
-        <div class="row g-3">
+            }
 
             @if (CanMenu("Employees.Index"))
             {
             <div class="col-md-3">
                 <a asp-controller="Employees" asp-action="Index" class="menu-card">
                     <div class="icon">👤</div>
-                    <div class="title">Employees</div>
-                    <div class="desc">ข้อมูลพนักงาน</div>
+                    <div class="title">บันทึกข้อมูลพนักงาน</div>
+                     <div class="desc">แสดงรายละเอียดพนักงานทั้งหมด</div>
                 </a>
             </div>
             }
@@ -107,8 +100,8 @@
             <div class="col-md-3">
                 <a asp-controller="Projects" asp-action="Index" class="menu-card">
                     <div class="icon">📁</div>
-                    <div class="title">Projects</div>
-                    <div class="desc">จัดการโครงการทั้งหมด</div>
+                    <div class="title">บันทึกข้อมูลโครงการ</div>
+                    <div class="desc">แสดงรายละเอียดโครงการทั้งหมด</div>
                 </a>
             </div>
             }
@@ -118,8 +111,8 @@
             <div class="col-md-3">
                 <a asp-controller="ProjectPhases" asp-action="Index" class="menu-card">
                     <div class="icon">🧩</div>
-                    <div class="title">Project Phases</div>
-                    <div class="desc">จัดการ Phase / งวดงาน</div>
+                    <div class="title">บันทึกข้อมูลแผนงานและงวดงาน</div>
+                    <div class="desc">แสดงรายละเอียดแผนงานและงวดงานทั้งหมด</div>
                 </a>
             </div>
             }
@@ -129,28 +122,19 @@
             <div class="col-md-3">
                 <a asp-controller="PhaseAssigns" asp-action="Index" class="menu-card">
                     <div class="icon">👥</div>
-                    <div class="title">Assigned Employees</div>
-                    <div class="desc">มอบหมายงานตามโครงการ</div>
+                    <div class="title">บันทึกข้อมูลการมอบหมายงาน</div>
+                    <div class="desc">แสดงรายละเอียดการมอบหมายงานทั้งหมด</div>
                 </a>
             </div>
             }
 
-        </div>
-    </div>
-
-    <!-- REPORT -->
-    <div class="menu-group">
-        <div class="group-title">🐞 Issues, Tracking & Reports</div>
-
-        <div class="row g-3">
-
-            @if (CanMenu("ProjectIssues.Index"))
+              @if (CanMenu("ProjectIssues.Index"))
             {
             <div class="col-md-3">
                 <a asp-controller="ProjectIssues" asp-action="Index" class="menu-card">
                     <div class="icon">🐞</div>
-                    <div class="title">Project Issues</div>
-                    <div class="desc">ดูรายการ / บันทึก Issue</div>
+                    <div class="title">บันทึกข้อมูลปัญหาโครงการ</div>
+                    <div class="desc">แสดงรายละเอียดปัญหาโครงการทั้งหมด</div>
                 </a>
             </div>
             }
@@ -160,19 +144,27 @@
             <div class="col-md-3">
                 <a asp-controller="ProjectIssues" asp-action="DevIndex" class="menu-card">
                     <div class="icon">👨‍💻</div>
-                    <div class="title">Dev Status Update</div>
-                    <div class="desc">อัปเดตสถานะหลังแก้ Issue</div>
+                    <div class="title">แก้ไขสถานะปัญหาโครงการ</div>
+                    <div class="desc">(สำหรับนักพัฒนา)</div>
                 </a>
             </div>
             }
+
+        </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="menu-group">
+        <div class="group-title">🐞 รายงานและติดตามงาน</div>
+        <div class="row g-3">
 
             @if (CanMenu("ProjectIssues.ViewOnly"))
             {
             <div class="col-md-3">
                 <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="menu-card">
                     <div class="icon">📝</div>
-                    <div class="title">Issue Report</div>
-                    <div class="desc">รายงาน Issue</div>
+                    <div class="title">รายงานปัญหาและสถานะโครงการ</div>
+                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
                 </a>
             </div>
             }
@@ -182,8 +174,8 @@
             <div class="col-md-3">
                 <a asp-controller="PhaseAssigns" asp-action="Print" class="menu-card">
                     <div class="icon">📄</div>
-                    <div class="title">Assigned Employees Report</div>
-                    <div class="desc">รายงานการมอบหมายงาน</div>
+                    <div class="title">รายงานการมอบหมายงาน</div>
+                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
                 </a>
             </div>
             }
@@ -193,8 +185,8 @@
             <div class="col-md-3">
                 <a asp-controller="PhaseStatusReport" asp-action="Index" class="menu-card">
                     <div class="icon">📊</div>
-                    <div class="title">Phase Status Report</div>
-                    <div class="desc">รายงานสถานะ Phase</div>
+                    <div class="title">รายงานสถานะงานค้าง</div>
+                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
                 </a>
             </div>
             }
@@ -204,7 +196,7 @@
             <div class="col-md-3">
                 <a asp-controller="Dashboard" asp-action="Workload" class="menu-card">
                     <div class="icon">🔥</div>
-                    <div class="title">Employee Workload</div>
+                    <div class="title">สถานะภาระงานพนักงาน</div>
                     <div class="desc">Dashboard ภาระงานพนักงาน</div>
                 </a>
             </div>
@@ -216,8 +208,8 @@
             <div class="col-md-3">
                 <a asp-controller="IssueDashboard" asp-action="Index" class="menu-card">
                     <div class="icon">📊</div>
-                    <div class="title">Issue Dashboard</div>
-                    <div class="desc">ภาพรวมสถานะ Issue ทั้งระบบ</div>
+                    <div class="title">ภาพรวมทั้งโครงการ</div>
+                    <div class="desc">Dashboard ภาพรวมโครงการ</div>
                 </a>
             </div>
             }
@@ -331,6 +323,10 @@
     padding-left:14px;
     border-left:6px solid #ff9f43;
     color:white;
+}
+/* spacing between header card and section title */
+.menu-group{
+    margin-top:22px;
 }
 .icon{ font-size:36px; color:#ffb347; }
 .title{ font-weight:800; font-size:17px; color:#ffffff; }

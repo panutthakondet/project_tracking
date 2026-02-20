@@ -30,7 +30,7 @@
     <table id="projectTable" class="table table-bordered table-hover align-middle project-table">
         <thead class="table-dark text-center">
             <tr>
-                <th class="sticky-col-1 col-id">ID</th>
+                <th class="sticky-col-1 col-id">#</th>
                 <th class="sticky-col-2 col-name">Project Name</th>
                 <th class="col-system">System</th>
                 <th class="col-db">Database</th>
@@ -54,10 +54,11 @@
         }
         else
         {
-            foreach (var p in Model)
+            var rowNo = 1;
+            foreach (var p in Model.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
                 <tr>
-                    <td class="sticky-col-1 col-id text-center">@p.ProjectId</td>
+                    <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
                     <td class="sticky-col-2 col-name fw-semibold">
                         @p.ProjectName
@@ -108,6 +109,7 @@
                         </div>
                     </td>
                 </tr>
+                rowNo++;
             }
         }
         </tbody>

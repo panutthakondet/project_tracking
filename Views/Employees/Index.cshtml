@@ -23,7 +23,7 @@
     <table class="table table-bordered table-hover align-middle">
         <thead class="table-dark text-center">
             <tr>
-                <th width="80">ID</th>
+                <th width="80">#</th>
                 <th>Name</th>
                 <th>Position</th>
                 <th width="120">Status</th>
@@ -35,7 +35,7 @@
         @if (!Model.Any())
         {
             <tr>
-                <td colspan="5"
+                <td colspan="4"
                     class="text-center text-muted">
                     — No employee data —
                 </td>
@@ -43,12 +43,12 @@
         }
         else
         {
-            foreach (var emp in Model)
+            var row = 0;
+            foreach (var emp in Model.OrderBy(e => e.Position).ThenBy(e => e.EmpId))
             {
                 <tr>
-                    <td class="text-center">
-                        @emp.EmpId
-                    </td>
+                    @{ row++; }
+                    <td class="text-center">@row</td>
 
                     <td>
                         <b>@emp.EmpName</b>

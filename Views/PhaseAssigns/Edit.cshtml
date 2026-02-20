@@ -24,7 +24,6 @@
 
             <!-- ================= KEYS ================= -->
             <input type="hidden" asp-for="AssignId" />
-            <input type="hidden" asp-for="PhaseId" />
 
             <div class="row g-3">
 
@@ -43,21 +42,33 @@
                           class="text-danger"></span>
                 </div>
 
-                <!-- ================= PHASE / ROLE (READ ONLY) ================= -->
+                <!-- ================= PHASE ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        🧩 Phase (Role)
+                        🧩 Phase
                     </label>
-                    <input type="text"
-                           class="form-control"
-                           value="@Model.Role"
-                           readonly />
-                    <small class="text-muted">
-                        * Role ถูกกำหนดจาก Phase ของ Project
-                    </small>
+                    <select asp-for="PhaseId"
+                            asp-items="ViewBag.Phases"
+                            class="form-select"
+                            required>
+                        <option value="">-- Select Phase --</option>
+                    </select>
+                    <span asp-validation-for="PhaseId" class="text-danger"></span>
+                </div>
 
-                    <!-- ส่งค่า Role กลับไปให้ Controller -->
-                    <input type="hidden" asp-for="Role" />
+                <!-- ================= ROLE ================= -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        🎯 Role
+                    </label>
+                    <input asp-for="Role"
+                           type="text"
+                           class="form-control"
+                           placeholder="Role / หน้าที่" />
+                    <span asp-validation-for="Role" class="text-danger"></span>
+                    <small class="text-muted">
+                        * Role จะเปลี่ยนตาม Phase อัตโนมัติ (ถ้ายังไม่ได้แก้เอง) และสามารถแก้ไขเองได้
+                    </small>
                 </div>
 
                 <!-- ================= PLAN START ================= -->
@@ -134,4 +145,99 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const phaseSelect = document.querySelector('select[name="PhaseId"], select#PhaseId');
+            const roleInput = document.querySelector('input[name="Role"], input#Role');
+            if (!phaseSelect || !roleInput) return;
+
+            // Track whether the user manually customized Role.
+            // Role will auto-follow Phase only if the user hasn't customized it,
+            // or if Role still equals the last auto-filled value.
+            let roleTouched = false;
+            let lastAutoRole = '';
+
+            function getSelectedPhaseName() {
+                const opt = phaseSelect.options[phaseSelect.selectedIndex];
+                if (!opt) return '';
+                const text = (opt.textContent || opt.innerText || '').trim();
+                // Ignore placeholder option
+                if (!text || text.startsWith('--')) return '';
+                return text;
+            }
+
+            // Initialize lastAutoRole: if current Role equals current PhaseName, treat it as auto.
+            (function initAutoRole() {
+                const curPhaseName = getSelectedPhaseName();
+                const curRole = (roleInput.value || '').trim();
+                if (curPhaseName && curRole && curRole === curPhaseName) {
+                    lastAutoRole = curRole;
+                }
+            })();
+
+            roleInput.addEventListener('input', function () {
+                roleTouched = true;
+                // Once user types, stop auto-tracking
+                lastAutoRole = '';
+                // If user clears Role, allow auto again
+                if (!roleInput.value || roleInput.value.trim() === '') {
+                    roleTouched = false;
+                }
+            });
+
+            function applyRoleFromPhase(force) {
+                const name = getSelectedPhaseName();
+                if (!name) return;
+
+                const cur = (roleInput.value || '').trim();
+
+                // Update Role if:
+                // - forced
+                // - user never typed
+                // - Role is empty
+                // - Role equals the previous auto-filled value
+                if (force || !roleTouched || cur === '' || (lastAutoRole && cur === lastAutoRole)) {
+                    roleInput.value = name;
+                    lastAutoRole = name;
+                }
+            }
+
+            let lastPhaseValue = phaseSelect.value;
+            function onPhaseChanged() {
+                if (phaseSelect.value !== lastPhaseValue) {
+                    lastPhaseValue = phaseSelect.value;
+                    applyRoleFromPhase(false);
+                }
+            }
+
+            // Sync once on load IF Role empty OR equals selected Phase name
+            const initialPhaseName = getSelectedPhaseName();
+            const initialRole = (roleInput.value || '').trim();
+            if (initialRole === '' || (initialPhaseName && initialRole === initialPhaseName)) {
+                applyRoleFromPhase(true);
+            }
+
+            // Update on phase change (native)
+            phaseSelect.addEventListener('change', function () {
+                lastPhaseValue = phaseSelect.value;
+                applyRoleFromPhase(false);
+            });
+
+            // Update on phase change (Select2/jQuery)
+            if (window.jQuery) {
+                try {
+                    window.jQuery(phaseSelect).on('select2:select select2:clear', function () {
+                        lastPhaseValue = phaseSelect.value;
+                        applyRoleFromPhase(false);
+                    });
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            // Fallback: detect programmatic changes
+            setInterval(onPhaseChanged, 300);
+        })();
+    </script>
 }

@@ -22,8 +22,8 @@
 
             <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />
 
-            <!-- ส่ง Role กลับ Controller -->
-            <input asp-for="Role" type="hidden" id="roleHidden" />
+            <!-- ส่งค่า phase_order กลับ Controller: ดึงจาก 🧩 Phase ที่เลือก (มาจาก project_phase) -->
+            <input asp-for="PhaseOrder" type="hidden" id="phaseOrderHidden" />
 
             <div class="row g-3">
 
@@ -55,7 +55,8 @@
                                 <option value="@ph.PhaseId"
                                         data-role="@ph.PhaseName"
                                         data-plan-start="@ps"
-                                        data-plan-end="@pe">
+                                        data-plan-end="@pe"
+                                        data-phase-order="@(ph.PhaseOrder == null ? "" : ph.PhaseOrder.ToString())">
                                     @ph.PhaseName
                                 </option>
                             }
@@ -77,7 +78,8 @@
                 <!-- ROLE SHOW -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">🎯 Role (Auto)</label>
-                    <input type="text" class="form-control" id="roleDisplay" placeholder="ระบุ Role" />
+                    <input asp-for="Role" type="text" class="form-control" id="roleDisplay" placeholder="ระบุ Role" autocomplete="off" />
+                    <span asp-validation-for="Role" class="text-danger"></span>
                 </div>
 
                 <!-- PLAN START -->
@@ -131,14 +133,20 @@
         const phaseSelect = document.getElementById("phaseSelect");
         const planStart = document.getElementById("planStart");
         const planEnd = document.getElementById("planEnd");
-        const roleHidden = document.getElementById("roleHidden");
         const roleDisplay = document.getElementById("roleDisplay");
+        const phaseOrderHidden = document.getElementById("phaseOrderHidden");
 
-        // ให้แก้ไข Role ได้ และ sync ไปยัง hidden input (Role) เพื่อส่งเข้า Controller
-        if (roleDisplay && roleHidden && !roleDisplay.dataset.roleBound) {
-            roleDisplay.dataset.roleBound = "1";
-            roleDisplay.addEventListener("input", function () {
-                roleHidden.value = (roleDisplay.value || "").toString();
+        // Track whether user manually edited Role; keep auto-follow if Role still equals last auto value
+        let roleTouched = false;
+        let lastAutoRole = (roleDisplay && roleDisplay.value) ? roleDisplay.value.trim() : "";
+
+        if (roleDisplay) {
+            roleDisplay.addEventListener('input', function () {
+                roleTouched = true;
+                // If user clears role, allow auto again
+                if (!roleDisplay.value || roleDisplay.value.trim() === "") {
+                    roleTouched = false;
+                }
             });
         }
 
@@ -154,8 +162,8 @@
         function clearAll() {
             if (planStart) planStart.value = "";
             if (planEnd) planEnd.value = "";
-            if (roleHidden) roleHidden.value = "";
             if (roleDisplay) roleDisplay.value = "";
+            if (phaseOrderHidden) phaseOrderHidden.value = "";
         }
 
         function applyFromValue(value) {
@@ -166,15 +174,30 @@
                 return;
             }
 
-            // role = phase name (ตาม requirement)
-            const role = (opt.dataset.role || opt.text || "").toString().trim();
+            // role (default) = phase name
+            const roleDefault = (opt.dataset.role || opt.text || "").toString().trim();
+
+            // phase_order (from project_phase) stored in option data attribute
+            const phaseOrder = (opt.dataset.phaseOrder || "").toString().trim();
 
             // ค่าที่ส่งมาควรเป็น yyyy-MM-dd เพื่อใส่ input[type=date]
             const ps = (opt.dataset.planStart || "").toString().trim();
             const pe = (opt.dataset.planEnd || "").toString().trim();
 
-            if (roleHidden) roleHidden.value = role;
-            if (roleDisplay) roleDisplay.value = role;
+            // เติมค่าเริ่มต้นลงช่อง Role ให้ผู้ใช้แก้ได้
+            // เปลี่ยน Role ตาม Phase เฉพาะเมื่อผู้ใช้ยังไม่แก้เอง หรือ Role ยังเท่ากับค่าที่ auto ครั้งก่อน
+            if (roleDisplay) {
+                const curRole = (roleDisplay.value || "").toString().trim();
+                if (!roleTouched || curRole === "" || (lastAutoRole && curRole === lastAutoRole)) {
+                    roleDisplay.value = roleDefault;
+                    lastAutoRole = roleDefault;
+                }
+            }
+
+            // sync phase_order ส่งกลับ
+            if (phaseOrderHidden) {
+                phaseOrderHidden.value = phaseOrder;
+            }
 
             if (planStart) planStart.value = ps;
             if (planEnd) planEnd.value = pe;
@@ -195,7 +218,8 @@
             if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
                 window.jQuery(phaseSelect)
                     .on("select2:select", function (e) {
-                        applyFromValue(e.params && e.params.data ? e.params.data.id : phaseSelect.value);
+                        const id = (e && e.params && e.params.data && e.params.data.id) ? e.params.data.id : phaseSelect.value;
+                        applyFromValue(id);
                     })
                     .on("select2:clear", function () {
                         clearAll();
@@ -208,6 +232,7 @@
 
         // โหลดค่าเริ่มต้น (กรณีมี PhaseId ติดมา)
         applyFromSelectedOption();
+        if (roleDisplay && roleDisplay.value) lastAutoRole = roleDisplay.value.trim();
     });
 })();
 </script>

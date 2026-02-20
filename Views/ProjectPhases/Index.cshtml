@@ -6,27 +6,36 @@
     ViewData["Title"] = "Project Phases";
     var th = new CultureInfo("th-TH");
 
-    // ✅ เรียงตาม phase_sort (ถ้าเป็น 0 ให้ไปท้าย) แล้วค่อยตาม phase_id
+    // ✅ เรียงตาม phase_sort เป็นหลัก (0 หรือ null ให้ไปท้าย) เพื่อให้การลากสลับแถว "ถาวร" ตามค่า PhaseSort
+    //    แล้วค่อย tie-break ด้วย PlanEnd (null ไปท้าย) และ PhaseId
     var orderedPhases = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>())
-        .OrderBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+        .OrderBy(p => (p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort))
+        .ThenBy(p => p.PlanEnd ?? DateTime.MaxValue)
         .ThenBy(p => p.PhaseId);
 }
 
 <style>
     table tbody tr.phase-main > td {
-        background-color: #feb871 !important;
+        background-color: #ffffff !important;
     }
 
     table tbody tr.phase-support > td {
-        background-color: #e9f7ef !important;
+        background-color: #f79090ca !important;
     }
 
     table tbody tr.phase-main {
-        border-left: 5px solid #ff6200;
+        border-left: 5px solid #ffffff;
     }
 
     table tbody tr.phase-support {
-        border-left: 5px solid #198754;
+        border-left: 5px solid #ad2800;
+    }
+
+    .phase-drag-handle {
+        font-weight: 700;
+        cursor: grab;
+        user-select: none;
+        display: inline-block;
     }
 </style>
 
@@ -95,7 +104,7 @@
             <thead class="table-dark text-center">
                 <tr>
                     <th style="width:70px;">No.</th>
-                    <th style="width:90px;">Order</th>
+                    <th style="width:90px;">Period</th>
                     <th style="min-width:260px;">Phase Name</th>
                     <th style="width:280px;">Plan Period</th>
                     <th style="width:280px;">Period Date</th>
@@ -117,7 +126,7 @@
 
                 foreach (var phase in orderedPhases)
                 {
-                    var displayNo = (phase.PhaseSort == 0 ? row : phase.PhaseSort);
+                    var displayNo = row; // แสดงลำดับแถว 1..N
                     row++;
                     <tr data-phase-id="@phase.PhaseId" class="@(phase.PhaseType == "MAIN"
                                     ? "phase-main"
@@ -126,8 +135,9 @@
                                         : "")">
 
                         <!-- ⭐ NEW ROW NUMBER -->
-                        <td class="text-center fw-semibold phase-sort-cell" style="cursor:grab; user-select:none;">
-                            @displayNo
+                        <td class="text-center fw-semibold phase-sort-cell">
+                            <span class="phase-drag-handle" title="ลากเพื่อสลับแถว">☰</span>
+                            <span class="ms-2">@displayNo</span>
                         </td>
 
                         <td class="text-center fw-bold">
@@ -195,121 +205,125 @@ else
 }
 
 @section Scripts{
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+    <!-- ✅ SortableJS (Drag & Drop Reorder Rows) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
-    const searchInput = document.getElementById("projectSearch");
-    const dropdown = document.getElementById("projectDropdown");
-    const hiddenSelect = document.getElementById("hiddenProjectSelect");
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
 
-    const options = Array.from(hiddenSelect.options);
+        // =========================
+        // Project search dropdown
+        // =========================
+        const searchInput = document.getElementById("projectSearch");
+        const dropdown = document.getElementById("projectDropdown");
+        const hiddenSelect = document.getElementById("hiddenProjectSelect");
 
-    function renderList(filter = "") {
+        if (searchInput && dropdown && hiddenSelect) {
+            const options = Array.from(hiddenSelect.options);
 
-        dropdown.innerHTML = "";
+            function renderList(filter = "") {
+                dropdown.innerHTML = "";
 
-        const filtered = options.filter(o =>
-            o.text.toLowerCase().includes(filter.toLowerCase()) &&
-            o.value !== ""
-        );
+                const filtered = options.filter(o =>
+                    o.text.toLowerCase().includes(filter.toLowerCase()) &&
+                    o.value !== ""
+                );
 
-        if (filtered.length === 0) {
-            dropdown.style.display = "none";
-            return;
-        }
+                if (filtered.length === 0) {
+                    dropdown.style.display = "none";
+                    return;
+                }
 
-        filtered.forEach(o => {
+                filtered.forEach(o => {
+                    const item = document.createElement("a");
+                    item.className = "list-group-item list-group-item-action";
+                    item.textContent = o.text;
 
-            const item = document.createElement("a");
-            item.className = "list-group-item list-group-item-action";
-            item.textContent = o.text;
+                    item.onclick = function () {
+                        searchInput.value = o.text;
+                        hiddenSelect.value = o.value;
+                        dropdown.style.display = "none";
+                        searchInput.closest("form").submit();
+                    };
 
-            item.onclick = function () {
-                searchInput.value = o.text;
-                hiddenSelect.value = o.value;
-                dropdown.style.display = "none";
-                searchInput.closest("form").submit();
-            };
+                    dropdown.appendChild(item);
+                });
 
-            dropdown.appendChild(item);
-        });
-
-        dropdown.style.display = "block";
-    }
-
-    searchInput.addEventListener("input", function () {
-        renderList(this.value);
-    });
-
-    searchInput.addEventListener("focus", function () {
-        renderList(this.value);
-    });
-
-    document.addEventListener("click", function (e) {
-        if (!searchInput.contains(e.target) &&
-            !dropdown.contains(e.target)) {
-            dropdown.style.display = "none";
-        }
-    });
-
-    // =============================
-    // Drag & Drop Reorder (PhaseSort)
-    // =============================
-    const tbody = document.getElementById("phaseTbody");
-    if (tbody) {
-        const projectId = tbody.dataset.projectId;
-        const tokenEl = document.querySelector('#antiForm input[name="__RequestVerificationToken"]');
-        const token = tokenEl ? tokenEl.value : "";
-
-        function renumberPhaseSort() {
-            const rows = Array.from(tbody.querySelectorAll('tr[data-phase-id]'));
-            rows.forEach((tr, idx) => {
-                const cell = tr.querySelector('.phase-sort-cell');
-                if (cell) cell.textContent = String(idx + 1);
-            });
-        }
-
-        async function saveOrder() {
-            const ids = Array.from(tbody.querySelectorAll('tr[data-phase-id]'))
-                .map(tr => parseInt(tr.getAttribute('data-phase-id'), 10))
-                .filter(n => !Number.isNaN(n));
-
-            const payload = { projectId: parseInt(projectId, 10), phaseIds: ids };
-
-            const res = await fetch("@Url.Action("Reorder", "ProjectPhases")", {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Content-Type": "application/json",
-                    "RequestVerificationToken": token
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) {
-                let msg = "";
-                try { msg = await res.text(); } catch { }
-                alert("บันทึกลำดับไม่สำเร็จ: " + res.status + "\n" + msg);
-                return;
+                dropdown.style.display = "block";
             }
-        }
 
-        // Load SortableJS (assume included in layout OR via CDN below)
-        if (window.Sortable) {
-            Sortable.create(tbody, {
-                animation: 150,
-                handle: '.phase-sort-cell',
-                onEnd: async function () {
-                    renumberPhaseSort();
-                    await saveOrder();
+            searchInput.addEventListener("input", function () {
+                renderList(this.value);
+            });
+
+            searchInput.addEventListener("focus", function () {
+                renderList(this.value);
+            });
+
+            document.addEventListener("click", function (e) {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = "none";
                 }
             });
-        } else {
-            console.warn("SortableJS not found. Please include SortableJS.");
         }
-    }
 
-});
-</script>
+        // =========================
+        // Drag & Drop reorder rows
+        // =========================
+        const tbody = document.getElementById("phaseTbody");
+        if (!tbody) return;
+
+        // Anti-forgery token (from hidden form #antiForm)
+        const token = document.querySelector('#antiForm input[name="__RequestVerificationToken"]')?.value;
+
+        // helper: update No. column (1..N) after drag
+        function refreshRowNumbers() {
+            const rows = tbody.querySelectorAll('tr[data-phase-id]');
+            let i = 1;
+            rows.forEach(tr => {
+                const noSpan = tr.querySelector('td.phase-sort-cell span.ms-2');
+                if (noSpan) noSpan.textContent = String(i++);
+            });
+        }
+
+        new Sortable(tbody, {
+            animation: 150,
+            handle: ".phase-drag-handle", // drag by hamburger icon
+            ghostClass: "table-active",
+            onEnd: async function () {
+                refreshRowNumbers();
+
+                // Collect phase ids in new order
+                const phaseIds = Array.from(tbody.querySelectorAll('tr[data-phase-id]'))
+                    .map(tr => parseInt(tr.getAttribute('data-phase-id')))
+                    .filter(n => !Number.isNaN(n));
+
+                const projectId = parseInt(tbody.getAttribute('data-project-id'));
+
+                // If no projectId or no ids, stop.
+                if (Number.isNaN(projectId) || phaseIds.length === 0) return;
+
+                // Persist order (optional): calls ProjectPhasesController.Reorder
+                // If you don't have this action yet, nothing will break visually; it will just fail to save.
+                try {
+                    const res = await fetch("@Url.Action("Reorder", "ProjectPhases")", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(token ? { "RequestVerificationToken": token } : {})
+                        },
+                        body: JSON.stringify({ projectId, phaseIds })
+                    });
+
+                    if (!res.ok) {
+                        console.warn("Reorder save failed", await res.text());
+                    }
+                } catch (err) {
+                    console.warn("Reorder save error", err);
+                }
+            }
+        });
+
+    });
+    </script>
 }
