@@ -27,6 +27,10 @@ namespace ProjectTracking.Models
         [Column("phase_order")]
         public int PhaseOrder { get; set; }
 
+        // ✅ ใช้สำหรับจัดเรียงถาวร (Drag & Drop) — ไม่เกี่ยวกับ PhaseOrder ที่อนุญาตให้ซ้ำได้
+        [Column("phase_sort")]
+        public int PhaseSort { get; set; }
+
         [Column("plan_start")]
         public DateTime? PlanStart { get; set; }
 

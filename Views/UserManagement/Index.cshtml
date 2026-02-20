@@ -1,337 +1,93 @@
-@model IEnumerable<ProjectTracking.Models.LoginUser>
 @using System
 @using System.Linq
+@model IEnumerable<ProjectTracking.Models.LoginUser>
 
 @{
     ViewData["Title"] = "User Management";
-
-    string badgeRole(string? role)
-    {
-        role ??= "";
-        return role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) ? "badge-admin" : "badge-user";
-    }
-
-    string badgeStatus(string? status)
-    {
-        status ??= "";
-        return status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) ? "badge-active" : "badge-inactive";
-    }
-
-    string safe(string? s) => string.IsNullOrWhiteSpace(s) ? "-" : s.Trim();
 }
 
-<style>
-/* ===== Page Header ===== */
-.page-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:14px;
-}
-.page-title{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-.page-title h3{
-    margin:0;
-    font-weight:800;
-}
-.page-sub{
-    margin-top:2px;
-    color:#6b7280;
-    font-size:12px;
-}
-
-/* ===== Card ===== */
-.card-soft{
-    border:0;
-    border-radius:16px;
-    box-shadow:0 10px 28px rgba(0,0,0,.08);
-    overflow:hidden;
-}
-.card-soft .card-body{ padding:16px; }
-
-/* ===== Toolbar ===== */
-.toolbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    margin-bottom:12px;
-}
-.search-wrap{
-    position:relative;
-    width:min(520px, 100%);
-}
-.search-wrap input{
-    padding-left:40px;
-    border-radius:12px;
-}
-.search-ico{
-    position:absolute;
-    left:12px;
-    top:50%;
-    transform:translateY(-50%);
-    color:#9ca3af;
-    pointer-events:none;
-}
-
-/* ===== Table ===== */
-.table thead th{
-    font-size:12px;
-    letter-spacing:.02em;
-    text-transform:uppercase;
-    color:#6b7280;
-    border-bottom:1px solid #e5e7eb !important;
-}
-.table tbody td{
-    border-top:1px solid #f1f5f9 !important;
-    vertical-align:middle;
-}
-.row-hover:hover td{
-    background:#f8fafc;
-}
-
-.user-cell{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-width:240px;
-}
-.avatar{
-    width:34px;height:34px;
-    border-radius:12px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:800;
-    color:#111827;
-    background:linear-gradient(135deg,#e0f2fe,#fef9c3);
-    border:1px solid rgba(0,0,0,.06);
-}
-.username{
-    font-weight:800;
-    line-height:1.1;
-}
-.meta{
-    font-size:12px;
-    color:#6b7280;
-}
-.email{
-    font-size:12px;
-    color:#334155;
-    max-width:320px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-.email a{
-    color:inherit;
-    text-decoration:none;
-}
-.email a:hover{
-    text-decoration:underline;
-}
-
-/* ===== Badges ===== */
-.badge-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 10px;
-    border-radius:999px;
-    font-weight:800;
-    font-size:12px;
-    border:1px solid transparent;
-}
-.badge-admin{ background:#fff1f2; color:#9f1239; border-color:#fecdd3; }
-.badge-user{ background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
-
-.badge-active{ background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
-.badge-inactive{ background:#f3f4f6; color:#374151; border-color:#e5e7eb; }
-
-.mono{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-    font-size:12px;
-    color:#64748b;
-}
-
-/* ===== Alerts ===== */
-.alert-soft{
-    border-radius:14px;
-    border:1px solid rgba(0,0,0,.06);
-}
-
-/* ===== Footer hint ===== */
-.hint{
-    margin-top:10px;
-    color:#6b7280;
-    font-size:12px;
-}
-
-/* ===== Responsive ===== */
-@@media (max-width: 575.98px){
-    .page-head{ align-items:flex-start; flex-direction:column; }
-    .email{ max-width:200px; }
-}
-</style>
-
-<div class="page-head">
-    <div class="page-title">
-        <div style="font-size:22px;">👤</div>
-        <div>
-            <h3>User Management</h3>
-            <div class="page-sub">จัดการผู้ใช้ระบบ (เฉพาะ Admin)</div>
-        </div>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h2 class="fw-bold mb-0">👤 User Management</h2>
+        <div class="text-muted">จัดการผู้ใช้งาน (Create / Edit / Permissions)</div>
     </div>
-
-    <a asp-action="Create" class="btn btn-primary btn-lg" style="border-radius:14px;">
-        ➕ Create User
-    </a>
+    <a asp-action="Create" class="btn btn-primary" style="border-radius:12px; font-weight:800;">➕ Create User</a>
 </div>
 
 @if (TempData["Success"] != null)
 {
-    <div class="alert alert-success alert-soft">@TempData["Success"]</div>
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-warning">@TempData["Error"]</div>
 }
 
-<div class="card card-soft">
-    <div class="card-body">
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Email Verified</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (Model == null || !Model.Any())
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">ยังไม่มีผู้ใช้งาน</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var u in Model)
+            {
+                <tr>
+                    <td class="fw-semibold">@u.Username</td>
+                    <td>@u.Email</td>
+                    <td><span class="badge bg-secondary">@u.Role</span></td>
+                    <td>
+                        @if ((u.Status ?? "").Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="badge bg-success">ACTIVE</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">INACTIVE</span>
+                        }
+                    </td>
+                    <td>
+                        @if (u.EmailVerified)
+                        {
+                            <span class="badge bg-success">YES</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">NO</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Edit" asp-route-username="@u.Username" class="btn btn-sm btn-outline-secondary" style="border-radius:12px; font-weight:800; margin-right:6px;">✏️ Edit</a>
+                        <a asp-action="Permissions" asp-route-username="@u.Username" class="btn btn-sm btn-outline-primary" style="border-radius:12px; font-weight:800; margin-right:6px;">🔐 Menus</a>
 
-        <div class="toolbar">
-            <div class="search-wrap">
-                <span class="search-ico">🔎</span>
-                <input id="userSearch" class="form-control" placeholder="ค้นหา username / email / role / status..." />
-            </div>
-
-            <div class="text-muted small">
-                ทั้งหมด: <b id="userCount">0</b> users
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="userTable">
-                <thead>
-                    <tr>
-                        <th style="min-width:260px;">User</th>
-                        <th style="min-width:240px;">Email</th>
-                        <th style="width:160px;">Role</th>
-                        <th style="width:170px;">Status</th>
-                        <th style="width:140px;" class="text-end">UserId</th>
-                        <th style="width:170px;" class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (Model == null || !Model.Any())
-                {
-                    <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
-                            ยังไม่มีผู้ใช้
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var u in Model)
-                    {
-                        var uname = safe(u.Username);
-                        var initials = uname == "-" ? "U" : uname.Substring(0, 1).ToUpperInvariant();
-
-                        // ✅ ต้องมี property Email ใน LoginUser (public string? Email {get;set;})
-                        var email = safe(u.Email);
-
-                        <tr class="row-hover">
-                            <td>
-                                <div class="user-cell">
-                                    <span class="avatar">@initials</span>
-                                    <div>
-                                        <div class="username">@uname</div>
-                                        <div class="meta">
-                                            Created: @(u.CreatedAt == default ? "-" : u.CreatedAt.ToString("yyyy-MM-dd HH:mm"))
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td>
-                                <div class="email" title="@email">
-                                    @if (email != "-")
-                                    {
-                                        <a href="mailto:@email">@email</a>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
-                                </div>
-                            </td>
-
-                            <td>
-                                <span class="badge-pill @badgeRole(u.Role)">
-                                    @(string.Equals(u.Role, "ADMIN", StringComparison.OrdinalIgnoreCase) ? "🛡️ ADMIN" : "👤 USER")
-                                </span>
-                            </td>
-
-                            <td>
-                                <span class="badge-pill @badgeStatus(u.Status)">
-                                    @(string.Equals(u.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ? "✅ ACTIVE" : "⛔ INACTIVE")
-                                </span>
-                            </td>
-
-                            <td class="text-end mono">@u.UserId</td>
-                            <td class="text-end">
-                                <a asp-action="Permissions" asp-route-username="@u.Username" class="btn btn-sm btn-outline-primary" style="border-radius:12px; font-weight:800;">🔐 Menus</a>
-                            </td>
-                        </tr>
-                    }
-                }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="hint">
-            * เวอร์ชันนี้ยังไม่ทำแก้ไข/ลบ เพื่อไม่กระทบของเดิม
-        </div>
-    </div>
+                        <form asp-action="Delete" method="post" class="d-inline">
+                            <input type="hidden" name="username" value="@u.Username" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    style="border-radius:12px; font-weight:800;"
+                                    onclick="return confirm('ยืนยันการลบผู้ใช้งาน @u.Username ?');">
+                                🗑 Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
 </div>
-
-@section Scripts {
-<script>
-(function(){
-    const input = document.getElementById('userSearch');
-    const table = document.getElementById('userTable');
-    const countEl = document.getElementById('userCount');
-
-    function refreshCount(){
-        const rows = table.querySelectorAll('tbody tr');
-        let visible = 0;
-        rows.forEach(r=>{
-            if (r.style.display !== 'none') visible++;
-        });
-        const emptyRow = table.querySelector('tbody tr td[colspan="6"]');
-        if (emptyRow) visible = 0;
-        countEl.textContent = visible.toString();
-    }
-
-    function filter(){
-        const q = (input.value || '').trim().toLowerCase();
-        const rows = table.querySelectorAll('tbody tr');
-
-        rows.forEach(row=>{
-            const empty = row.querySelector('td[colspan="6"]');
-            if (empty) return;
-
-            const text = (row.innerText || '').toLowerCase();
-            row.style.display = text.includes(q) ? '' : 'none';
-        });
-
-        refreshCount();
-    }
-
-    input?.addEventListener('input', filter);
-    refreshCount();
-})();
-</script>
-}

@@ -1,0 +1,89 @@
+@model ProjectTracking.Models.LoginUser
+
+@{
+    ViewData["Title"] = "Edit User";
+
+    // Prefer ViewBag.Error, otherwise show TempData["Error"] if present
+    string? error = (ViewBag.Error as string) ?? (TempData["Error"] as string);
+    string? success = TempData["Success"] as string;
+
+    // Repopulate inputs safely from ModelState (works for POST-back without using Request.Form)
+    string Ms(string key) => ViewData.ModelState.TryGetValue(key, out var e) ? e.AttemptedValue ?? "" : "";
+
+    var vEmail = Ms("email");
+    var vRole = Ms("role");
+    var vStatus = Ms("status");
+
+    // Fallback to model values on first load
+    if (string.IsNullOrWhiteSpace(vEmail)) vEmail = Model?.Email ?? "";
+    if (string.IsNullOrWhiteSpace(vRole)) vRole = Model?.Role ?? "USER";
+    if (string.IsNullOrWhiteSpace(vStatus)) vStatus = Model?.Status ?? "ACTIVE";
+
+    var vUsername = Model?.Username ?? "";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h2 class="fw-bold mb-0">✏️ Edit User</h2>
+        <div class="text-muted">แก้ไขผู้ใช้งาน (บันทึกแล้วระบบจะให้ยืนยันอีเมลใหม่)</div>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:12px; font-weight:800;">↩ Back</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <div class="alert alert-success">@success</div>
+}
+
+<form asp-action="Edit" method="post" class="card p-4" style="border-radius:16px;">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="originalUsername" value="@vUsername" />
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Username</label>
+        <input class="form-control" value="@vUsername" readonly />
+        <div class="form-text">ไม่สามารถแก้ไข Username ได้</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Email</label>
+        <input name="email" type="email" class="form-control" value="@vEmail" required />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Password</label>
+        <input name="password" type="password" class="form-control" />
+        <div class="form-text text-muted">ถ้าไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นว่างไว้</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Confirm Password</label>
+        <input name="confirmPassword" type="password" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Role</label>
+        <select name="role" class="form-select">
+            <option value="USER" selected="@(string.IsNullOrWhiteSpace(vRole) ? true : vRole.Equals("USER", StringComparison.OrdinalIgnoreCase))">USER</option>
+            <option value="ADMIN" selected="@(!string.IsNullOrWhiteSpace(vRole) && vRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))">ADMIN</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Status</label>
+        <select name="status" class="form-select">
+            <option value="ACTIVE" selected="@(string.IsNullOrWhiteSpace(vStatus) ? true : vStatus.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))">ACTIVE</option>
+            <option value="INACTIVE" selected="@(!string.IsNullOrWhiteSpace(vStatus) && vStatus.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))">INACTIVE</option>
+        </select>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary fw-bold">💾 Save Changes</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>

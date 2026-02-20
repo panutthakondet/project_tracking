@@ -172,43 +172,167 @@ namespace ProjectTracking.Controllers
             _context.LoginUsers.Add(user);
             await _context.SaveChangesAsync();
 
-            // ✅ ส่งเมลยืนยัน (ห้ามให้เมลพังแล้วล่มหน้า)
-            var verifyUrl =
-                $"{Request.Scheme}://{Request.Host}/Auth/VerifyEmail?token={Uri.EscapeDataString(token)}&username={Uri.EscapeDataString(username)}";
+            await SendVerifyEmailSafeAsync(username, email, token, isReverify: false);
 
+            return RedirectToAction("Index");
+        }
+
+        private async Task SendVerifyEmailSafeAsync(string username, string email, string token, bool isReverify)
+        {
+            var verifyUrl = $"{Request.Scheme}://{Request.Host}/Auth/VerifyEmail?token={Uri.EscapeDataString(token)}&username={Uri.EscapeDataString(username)}";
             var subject = "Verify your email - ProjectTracking";
 
-            // EmailService ของคุณตั้ง IsBodyHtml = true -> ทำเป็น HTML ให้เหมาะสม
-            var body = $@"
-                <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                    <p>สวัสดี <b>{System.Net.WebUtility.HtmlEncode(username)}</b></p>
-                    <p>กรุณายืนยันอีเมล โดยคลิกลิงก์ด้านล่าง (ภายใน 24 ชั่วโมง):</p>
-                    <p>
-                        <a href='{verifyUrl}' target='_blank' rel='noopener noreferrer'>
-                            ยืนยันอีเมล
-                        </a>
-                    </p>
-                    <p style='color:#666;font-size:12px;'>หรือคัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:</p>
-                    <p style='color:#666;font-size:12px;word-break:break-all;'>{verifyUrl}</p>
-                    <hr/>
-                    <p style='color:#999;font-size:12px;'>
-                        หากคุณไม่ได้เป็นผู้ขอสร้างบัญชีนี้ สามารถละเว้นอีเมลนี้ได้
-                    </p>
-                </div>
-            ";
+            var body = isReverify
+                ? $@"
+สวัสดี {username}
+
+มีการแก้ไขข้อมูลผู้ใช้ กรุณายืนยันอีเมลอีกครั้ง (ภายใน 24 ชั่วโมง):
+{verifyUrl}
+
+หากคุณไม่ได้เป็นผู้ขอแก้ไข สามารถละเว้นอีเมลนี้ได้
+"
+                : $@"
+สวัสดี {username}
+
+กรุณายืนยันอีเมล โดยคลิกลิงก์ด้านล่าง (ภายใน 24 ชั่วโมง):
+{verifyUrl}
+
+หากคุณไม่ได้เป็นผู้ขอสร้างบัญชีนี้ สามารถละเว้นอีเมลนี้ได้
+";
 
             try
             {
                 await _emailService.SendAsync(email, subject, body);
-                TempData["Success"] = "✅ สร้างผู้ใช้แล้ว และส่งอีเมลยืนยันเรียบร้อย";
+                TempData["Success"] = isReverify
+                    ? "✅ แก้ไขผู้ใช้แล้ว และส่งอีเมลยืนยันใหม่เรียบร้อย"
+                    : "✅ สร้างผู้ใช้แล้ว และส่งอีเมลยืนยันเรียบร้อย";
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Verify email send failed. Username={Username}, Email={Email}", username, email);
-                TempData["Error"] = "⚠️ สร้างผู้ใช้แล้ว แต่ส่งอีเมลยืนยันไม่สำเร็จ (โปรดตรวจสอบการตั้งค่า SMTP/Email Service)";
+                TempData["Error"] = isReverify
+                    ? "⚠️ แก้ไขผู้ใช้แล้ว แต่ส่งอีเมลยืนยันใหม่ไม่สำเร็จ (โปรดตรวจสอบการตั้งค่า SMTP/Email Service)"
+                    : "⚠️ สร้างผู้ใช้แล้ว แต่ส่งอีเมลยืนยันไม่สำเร็จ (โปรดตรวจสอบการตั้งค่า SMTP/Email Service)";
+            }
+        }
+
+        // =====================================================
+        // EDIT (GET)
+        // =====================================================
+        [HttpGet]
+        public async Task<IActionResult> Edit(string username)
+        {
+            var guard = GuardAdmin();
+            if (guard != null) return guard;
+
+            username = (username ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(username))
+                return RedirectToAction(nameof(Index));
+
+            var user = await _context.LoginUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Username == username);
+
+            if (user == null) return NotFound();
+
+            // ✅ Use dedicated view: Views/UserManagement/Edit.cshtml
+            return View(user);
+        }
+
+        // =====================================================
+        // EDIT (POST) - Force re-verify after edit
+        // =====================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(
+            string originalUsername,
+            string email,
+            string password,
+            string confirmPassword,
+            string role,
+            string status)
+        {
+            var guard = GuardAdmin();
+            if (guard != null) return guard;
+
+            originalUsername = (originalUsername ?? "").Trim();
+            email = (email ?? "").Trim();
+            password = (password ?? "").Trim();
+            confirmPassword = (confirmPassword ?? "").Trim();
+            role = (role ?? "USER").Trim().ToUpperInvariant();
+            status = (status ?? "ACTIVE").Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(originalUsername))
+            {
+                TempData["Error"] = "❌ ไม่พบ Username สำหรับแก้ไข";
+                return RedirectToAction(nameof(Index));
             }
 
-            return RedirectToAction("Index");
+            var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.Username == originalUsername);
+            if (user == null) return NotFound();
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
+            {
+                ViewBag.Error = "❌ รูปแบบ Email ไม่ถูกต้อง";
+                user.Email = email;
+                user.Role = role;
+                user.Status = status;
+                return View("Edit", user);
+            }
+
+            if (role != "USER" && role != "ADMIN") role = "USER";
+            if (status != "ACTIVE" && status != "INACTIVE") status = "ACTIVE";
+
+            // Prevent duplicate email with other users
+            var emailExists = await _context.LoginUsers.AsNoTracking()
+                .AnyAsync(u => u.Email == email && u.Username != originalUsername);
+            if (emailExists)
+            {
+                ViewBag.Error = "❌ Email นี้มีอยู่แล้ว";
+                user.Email = email;
+                user.Role = role;
+                user.Status = status;
+                return View("Edit", user);
+            }
+
+            // Update fields
+            user.Email = email;
+            user.Role = role;
+            user.Status = status;
+
+            // Optional password change
+            if (!string.IsNullOrWhiteSpace(password) || !string.IsNullOrWhiteSpace(confirmPassword))
+            {
+                if (password != confirmPassword)
+                {
+                    ViewBag.Error = "❌ Password และ Confirm Password ไม่ตรงกัน";
+                    user.Email = email;
+                    user.Role = role;
+                    user.Status = status;
+                    return View("Edit", user);
+                }
+
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    ViewBag.Error = "❌ กรุณากรอก Password";
+                    user.Email = email;
+                    user.Role = role;
+                    user.Status = status;
+                    return View("Edit", user);
+                }
+
+                user.Password = SecurityHelper.HashPassword(password);
+            }
+
+            // ✅ Force re-verify
+            user.EmailVerified = false;
+            var token = SecurityHelper.GenerateToken(32);
+            user.VerifyTokenHash = SecurityHelper.Sha256(token);
+            user.VerifyTokenExpire = DateTime.Now.AddHours(24);
+
+            await _context.SaveChangesAsync();
+            await SendVerifyEmailSafeAsync(user.Username, email, token, isReverify: true);
+
+            return RedirectToAction(nameof(Index));
         }
 
         // =====================================================
@@ -309,6 +433,57 @@ namespace ProjectTracking.Controllers
 
             TempData["Success"] = "✅ บันทึกสิทธิเมนูเรียบร้อย";
             return RedirectToAction(nameof(Permissions), new { username });
+        }
+
+        // =====================================================
+        // DELETE (POST)
+        // =====================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(string username)
+        {
+            var guard = GuardAdmin();
+            if (guard != null) return guard;
+
+            username = (username ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(username))
+                return RedirectToAction(nameof(Index));
+
+            // Optional: prevent deleting yourself (comment out if you want to allow)
+            var currentUsername = (HttpContext.Session.GetString("Username") ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(currentUsername) &&
+                currentUsername.Equals(username, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "❌ ไม่สามารถลบผู้ใช้ที่กำลังล็อกอินอยู่ได้";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.Username == username);
+            if (user == null)
+            {
+                TempData["Error"] = "❌ ไม่พบผู้ใช้งาน";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Remove permissions first
+            var menus = await _context.UserMenus.Where(x => x.Username == username).ToListAsync();
+            if (menus.Any())
+                _context.UserMenus.RemoveRange(menus);
+
+            _context.LoginUsers.Remove(user);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"✅ ลบผู้ใช้งาน {username} เรียบร้อย";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Delete user failed. Username={Username}", username);
+                TempData["Error"] = "⚠️ ลบผู้ใช้งานไม่สำเร็จ (โปรดตรวจสอบฐานข้อมูล/ความสัมพันธ์ข้อมูล)";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }
