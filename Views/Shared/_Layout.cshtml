@@ -165,6 +165,10 @@
             border-radius: .375rem !important;
             box-sizing: border-box !important;
         }
+        /* ===== PRINT ONLY: ซ่อน navbar/footer ตอนสั่งพิมพ์จริง (ยังแสดงบนหน้าจอ) ===== */
+        @@media print {
+            header, .navbar, footer { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -175,7 +179,7 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
 
-    // ✅ ซ่อนเมนูในหน้า Print (ให้เหลือแถบบนอย่างเดียว)
+    // ✅ หน้า Print: ซ่อนเมนูเฉพาะตอนสั่งพิมพ์จริง (ใช้ @media print) ไม่ซ่อนตอนดูบนหน้าจอ
     var isPrint = (controller == "PhaseAssigns" && action == "Print");
 
     // ✅ Permission for navbar (same logic as Home)
@@ -197,7 +201,8 @@
     var canManagement = CanMenu("Employees.Index")
                      || CanMenu("Projects.Index")
                      || CanMenu("ProjectPhases.Index")
-                     || CanMenu("PhaseAssigns.Index");
+                     || CanMenu("PhaseAssigns.Index")
+                     || CanMenu("Meetings.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.ViewOnly")
@@ -221,11 +226,7 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMain">
-                @if (isPrint)
-                {
-                    // ✅ หน้า Print ซ่อนเมนู
-                }
-                else if (userId != null)
+                @if (userId != null)
                 {
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
@@ -234,11 +235,11 @@
                             <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 Home</a>
                         </li>
 
-                        <!-- Admin only -->
-                        @if (isAdmin)
+                        <!-- User Management (permission-based; Admin will still pass via isAdmin) -->
+                        @if (CanMenu("UserManagement.Index"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(controller=="UserManagement"?"active-menu":"")" asp-controller="UserManagement" asp-action="Index">👤 Users</a>
+                                <a class="nav-link @(controller=="UserManagement"?"active-menu":"")" asp-controller="UserManagement" asp-action="Index">👤 จัดการผู้ใช้งาน</a>
                             </li>
                         }
 
@@ -265,7 +266,7 @@
                         @if (canManagement)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="Projects" || controller=="ProjectPhases" || controller=="PhaseAssigns" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="Projects" || controller=="ProjectPhases" || controller=="PhaseAssigns" || controller=="Meetings" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">📁 Management</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("Employees.Index"))
@@ -283,6 +284,10 @@
                                     @if (CanMenu("PhaseAssigns.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 Phase Assigns</a></li>
+                                    }
+                                    @if (CanMenu("Meetings.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">📅 ปฏิทินนัดประชุม</a></li>
                                     }
                                 </ul>
                             </li>

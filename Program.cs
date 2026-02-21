@@ -169,6 +169,7 @@ builder.Services.Configure<EmailSettings>(options =>
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddHostedService<OverdueMailBackgroundService>();
+builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 
 var app = builder.Build();
 
@@ -179,10 +180,6 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
-}
-
-if (!app.Environment.IsDevelopment())
-{
     app.UseHttpsRedirection();
 }
 

@@ -76,9 +76,9 @@
             @if (CanMenu("UserManagement.Index"))
             {
             <div class="col-md-3">
-              <a asp-controller="UserManagement" asp-action="Index" class="menu-card">
+              <a asp-controller="UserManagement" asp-action="Index" class="menu-card admin-card">
                         <div class="icon">👤➕</div>
-                        <div class="title">User Management</div>
+                        <div class="title">จัดการผู้ใช้งาน</div>
                         <div class="desc">ลงทะเบียน/สร้างผู้ใช้ (Admin เท่านั้น)</div>
                     </a>
             </div>
@@ -146,6 +146,17 @@
                     <div class="icon">👨‍💻</div>
                     <div class="title">แก้ไขสถานะปัญหาโครงการ</div>
                     <div class="desc">(สำหรับนักพัฒนา)</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("Meetings.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Meetings" asp-action="Index" class="menu-card">
+                    <div class="icon">📅</div>
+                    <div class="title">ปฏิทินนัดประชุม</div>
+                    <div class="desc">สร้าง/แก้ไข และดูตารางนัดประชุม</div>
                 </a>
             </div>
             }

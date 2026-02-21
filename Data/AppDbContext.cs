@@ -20,6 +20,11 @@ namespace ProjectTracking.Data
         public DbSet<LoginUser> LoginUsers { get; set; }
         public DbSet<UserMenu> UserMenus { get; set; }
 
+        // ===== Meetings =====
+        public DbSet<Meeting> Meetings { get; set; }
+        public DbSet<MeetingAttendee> MeetingAttendees { get; set; }
+        public DbSet<MeetingEmailNotification> MeetingEmailNotifications { get; set; }
+
         // ===== Issues =====
         public DbSet<ProjectIssue> ProjectIssues { get; set; }
         public DbSet<ProjectIssueImage> ProjectIssueImages { get; set; }
@@ -42,6 +47,100 @@ namespace ProjectTracking.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // =========================
+            // MEETINGS
+            // =========================
+            modelBuilder.Entity<Meeting>(entity =>
+            {
+                entity.ToTable("meetings");
+                entity.HasKey(m => m.Id);
+
+                // MySQL DATE/TIME mappings
+                entity.Property(m => m.MeetingDate).HasColumnType("date");
+                entity.Property(m => m.StartTime).HasColumnType("time");
+                entity.Property(m => m.EndTime).HasColumnType("time");
+
+                entity.Property(m => m.Title)
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(m => m.Location)
+                    .HasColumnType("varchar(255)")
+                    .IsRequired(false);
+
+                entity.Property(m => m.ProjectId)
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                // created_at may be managed by DB default
+                entity.Property(m => m.CreatedAt)
+                    .HasColumnType("timestamp");
+
+                entity.HasMany(m => m.Attendees)
+                    .WithOne(a => a.Meeting!)
+                    .HasForeignKey(a => a.MeetingId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Link meeting -> project (project.project_id)
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(m => m.ProjectId)
+                    .HasPrincipalKey(p => p.ProjectId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(m => m.ProjectId);
+
+                entity.HasIndex(m => m.MeetingDate);
+            });
+
+            modelBuilder.Entity<MeetingAttendee>(entity =>
+            {
+                entity.ToTable("meeting_attendees");
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.Status)
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("pending")
+                    .IsRequired();
+
+                entity.HasIndex(a => a.MeetingId);
+                entity.HasIndex(a => a.UserId);
+                entity.HasIndex(a => new { a.MeetingId, a.UserId });
+            });
+
+            modelBuilder.Entity<MeetingEmailNotification>(entity =>
+            {
+                entity.ToTable("meeting_email_notifications");
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.MeetingId)
+                    .HasColumnName("meeting_id")
+                    .HasColumnType("int")
+                    .IsRequired();
+
+                entity.Property(x => x.AttendeeId)
+                    .HasColumnName("attendee_id")
+                    .HasColumnType("int")
+                    .IsRequired();
+
+                entity.Property(x => x.Kind)
+                    .HasColumnName("kind")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired();
+
+                entity.Property(x => x.SentAt)
+                    .HasColumnName("sent_at")
+                    .HasColumnType("datetime")
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.MeetingId, x.AttendeeId, x.Kind })
+                    .IsUnique()
+                    .HasDatabaseName("uq_meeting_attendee_kind");
+
+                entity.HasIndex(x => x.MeetingId)
+                    .HasDatabaseName("idx_meeting");
+            });
 
             // =========================
             // LOGIN USER
@@ -93,7 +192,18 @@ namespace ProjectTracking.Data
             // =========================
             modelBuilder.Entity<Project>(entity =>
             {
+                entity.ToTable("project");
                 entity.HasKey(p => p.ProjectId);
+
+                entity.Property(p => p.ProjectId)
+                    .HasColumnName("project_id")
+                    .HasColumnType("int");
+
+                entity.Property(p => p.ProjectName)
+                    .HasColumnName("project_name")
+                    .HasColumnType("varchar(150)");
+
+                entity.HasIndex(p => p.ProjectName);
             });
 
             // =========================
@@ -308,5 +418,17 @@ namespace ProjectTracking.Data
                 entity.ToView("vw_phase_owner_status");
             });
         }
+    }
+}
+
+namespace ProjectTracking.Models
+{
+    public class MeetingEmailNotification
+    {
+        public int Id { get; set; }
+        public int MeetingId { get; set; }
+        public int AttendeeId { get; set; }
+        public string Kind { get; set; } = "reminder_10m";
+        public DateTime SentAt { get; set; }
     }
 }

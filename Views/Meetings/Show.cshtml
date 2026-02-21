@@ -1,0 +1,109 @@
+@model ProjectTracking.Models.Meeting
+@using ProjectTracking.Models
+
+@{
+    ViewData["Title"] = "รายละเอียดการประชุม";
+    var attendees = ViewBag.Attendees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var attendeeList = attendees.ToList();
+    var projectName = ViewBag.ProjectName as string;
+}
+
+<div class="container" style="max-width: 980px;">
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+        <div>
+            <h2 class="mb-1">📝 @ViewData["Title"]</h2>
+            <div class="text-muted">ข้อมูลการประชุมที่บันทึกไว้</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary" href="/Meetings">← กลับไปปฏิทิน</a>
+            <a class="btn btn-warning" href="/Meetings/Edit/@Model.Id">✏️ แก้ไข</a>
+            <form asp-action="Cancel" asp-controller="Meetings" method="post"
+                  onsubmit="return confirm('ยืนยันการยกเลิกการประชุมนี้ ?');" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-danger">🗑️ ยกเลิก</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="text-muted">หัวข้อประชุม</div>
+                    <div style="font-size:1.15rem; font-weight:800;">@Model.Title</div>
+                </div>
+                <div class="col-12">
+                    <div class="text-muted">รายละเอียด</div>
+                    <div class="border rounded p-3" style="min-height:60px; background:#fafafa;">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="text-muted">โครงการ</div>
+                    <div>
+                        @if (Model.ProjectId == null)
+                        {
+                            <span class="badge bg-secondary">ไม่ระบุโครงการ</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">#@Model.ProjectId</span>
+                            <span class="ms-2">@projectName</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="text-muted">วันที่</div>
+                    <div>@Model.MeetingDate.ToString("dd/MM/yyyy")</div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="text-muted">เวลา</div>
+                    <div>@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="text-muted">สถานที่</div>
+                    <div>@(string.IsNullOrWhiteSpace(Model.Location) ? "-" : Model.Location)</div>
+                </div>
+
+                <div class="col-12">
+                    <hr />
+                    <div class="d-flex align-items-center justify-content-between">
+                        <strong>ผู้เข้าร่วม (@attendeeList.Count)</strong>
+                    </div>
+
+                    @if (attendeeList.Count == 0)
+                    {
+                        <div class="text-muted mt-2">ยังไม่มีผู้เข้าร่วม</div>
+                    }
+                    else
+                    {
+                        <ul class="mt-2 mb-0">
+                            @foreach (var a in attendeeList)
+                            {
+                                <li>
+                                    <strong>@(a.EmpName ?? $"EmpId: {a.EmpId}")</strong>
+                                    @if (a.Position != null)
+                                    {
+                                        <span class="text-muted">(@a.Position)</span>
+                                    }
+                                    — สถานะ: <span class="badge bg-light text-dark">@a.Status</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="col-12">
+                    <hr />
+                    <div class="text-muted small">
+                        สร้างเมื่อ: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

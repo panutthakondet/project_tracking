@@ -1,0 +1,86 @@
+@model ProjectTracking.Models.Meeting
+
+@{
+    ViewData["Title"] = "แก้ไขนัดประชุม";
+}
+
+<h2 class="mb-4">แก้ไขนัดประชุม</h2>
+
+<form method="post" action="/Meetings/Update" id="meetingForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="row g-3">
+
+        <div class="col-md-6">
+            <label class="form-label">หัวข้อการประชุม</label>
+            <input type="text" name="Title" class="form-control" required value="@Model.Title" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">โครงการ</label>
+            <select name="ProjectId" class="form-select">
+                <option value="">-- ไม่ผูกโครงการ --</option>
+                @foreach (var p in ViewBag.Projects)
+                {
+                    <option value="@p.ProjectId" selected="@(Model.ProjectId == p.ProjectId)">
+                        @p.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">รายละเอียด</label>
+            <textarea name="Description" class="form-control" rows="3">@Model.Description</textarea>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">วันที่</label>
+            <input type="date" name="MeetingDate" class="form-control"
+                   value="@Model.MeetingDate.ToString("yyyy-MM-dd")" required />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">เวลาเริ่ม</label>
+            <input type="time" name="StartTime" class="form-control"
+                   value="@Model.StartTime.ToString(@"hh\:mm")" required />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">เวลาสิ้นสุด</label>
+            <input type="time" name="EndTime" class="form-control"
+                   value="@Model.EndTime.ToString(@"hh\:mm")" required />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">สถานที่ / ลิงก์ประชุม</label>
+            <input type="text" name="Location" class="form-control" value="@Model.Location" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label fw-semibold">ผู้เข้าร่วมประชุม</label>
+            @{
+                var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+                var selectedUsers = ViewBag.SelectedUsers as IEnumerable<int> ?? Enumerable.Empty<int>();
+                var selectedSet = new HashSet<int>(selectedUsers);
+            }
+            <select class="form-select" name="users" multiple size="8">
+                @foreach (var e in employees)
+                {
+                    var isSelected = selectedSet.Contains((int)e.EmpId);
+                    <option value="@e.EmpId" selected="@(isSelected ? "selected" : null)">
+                        @e.EmpName @(e.Position != null ? $"({e.Position})" : "")
+                    </option>
+                }
+            </select>
+            <div class="form-text">กด Ctrl (Windows) / Cmd (Mac) เพื่อเลือกหลายคน</div>
+        </div>
+
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success">💾 บันทึกการแก้ไข</button>
+        <a href="/Meetings/Show/@Model.Id" class="btn btn-secondary">ยกเลิก</a>
+    </div>
+</form>

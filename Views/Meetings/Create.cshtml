@@ -1,0 +1,228 @@
+@model ProjectTracking.Models.Meeting
+
+@{
+    ViewData["Title"] = "สร้างนัดประชุม";
+    // Controller ส่ง ViewBag.Projects = list of { ProjectId, ProjectName }
+    var projects = ViewBag.Projects as IEnumerable<dynamic>;
+}
+
+<style>
+    .meeting-create-wrap { max-width: 980px; }
+    .meeting-hero {
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,.08);
+        background: linear-gradient(180deg, rgba(13,110,253,.08), rgba(13,110,253,0));
+        padding: 18px 18px 14px 18px;
+        margin-bottom: 14px;
+    }
+
+    .meeting-hero__title { margin: 0; line-height: 1.2; }
+    .meeting-hero__subtitle { margin: 6px 0 0 0; color: #6c757d; }
+
+    .meeting-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,.08);
+        box-shadow: 0 10px 28px rgba(0,0,0,.06);
+        background: #fff;
+    }
+
+    .meeting-card__header {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(0,0,0,.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .meeting-card__header .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(25,135,84,.10);
+        color: #146c43;
+        border: 1px solid rgba(25,135,84,.18);
+        font-size: .92rem;
+        white-space: nowrap;
+    }
+
+    .meeting-card__body { padding: 18px; }
+
+    .section-title {
+        margin: 0 0 8px 0;
+        font-weight: 800;
+        font-size: 1.02rem;
+        color: rgba(0,0,0,.78);
+    }
+
+    .section-subtitle {
+        margin: 0 0 12px 0;
+        color: #6c757d;
+        font-size: .93rem;
+    }
+
+    .req { color: #dc3545; font-weight: 700; }
+
+    .form-hint {
+        display: block;
+        margin-top: 6px;
+        color: #6c757d;
+        font-size: .88rem;
+    }
+
+    .divider {
+        height: 1px;
+        background: rgba(0,0,0,.06);
+        margin: 14px 0;
+    }
+
+    .btn-pill { border-radius: 999px; }
+
+    @@media (max-width: 768px) {
+        .meeting-card__body { padding: 14px; }
+    }
+</style>
+
+<div class="container meeting-create-wrap">
+    <div class="meeting-hero d-flex align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="meeting-hero__title">📌 @ViewData["Title"]</h2>
+            <p class="meeting-hero__subtitle">เลือกโครงการ (ถ้ามี) แล้วกรอกรายละเอียดการประชุม</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary btn-pill" href="/Meetings">← กลับไปปฏิทิน</a>
+        </div>
+    </div>
+
+    <div class="meeting-card">
+        <div class="meeting-card__header">
+            <strong style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:1.05rem;">🗓️</span>
+                <span>ข้อมูลการประชุม</span>
+            </strong>
+            <span class="chip">✅ บันทึกแล้วจะขึ้นในปฏิทินทันที</span>
+        </div>
+
+        <div class="meeting-card__body">
+            <form method="post" action="/Meetings/Store" id="meetingForm">
+                @Html.AntiForgeryToken()
+
+                <h3 class="section-title">รายละเอียด</h3>
+                <p class="section-subtitle">กรอกหัวข้อและเลือกโครงการเพื่อเชื่อมโยง (ไม่เลือกก็ได้)</p>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">หัวข้อประชุม <span class="req">*</span></label>
+                        <input type="text" name="Title" class="form-control" required placeholder="เช่น Kickoff, Sprint Planning" />
+                        <small class="form-hint">หัวข้อสั้น กระชับ จะช่วยให้ดูในปฏิทินง่าย</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">รายละเอียดการประชุม</label>
+                        <textarea name="Description" class="form-control" rows="3" placeholder="วาระการประชุม / สิ่งที่ต้องเตรียม / หมายเหตุเพิ่มเติม"></textarea>
+                        <small class="form-hint">เช่น Agenda, สิ่งที่ต้องเตรียม, ลิงก์เอกสาร</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">โครงการ</label>
+                        <select name="ProjectId" class="form-select">
+                            <option value="">— ไม่ระบุโครงการ —</option>
+                            @if (projects != null)
+                            {
+                                foreach (var p in projects)
+                                {
+                                    <option value="@p.ProjectId">@p.ProjectName</option>
+                                }
+                            }
+                        </select>
+                        <small class="form-hint">@((ViewBag.ProjectHint as string) ?? "")</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">วันที่ <span class="req">*</span></label>
+                        <input type="date" name="MeetingDate" value="@ViewBag.Date" class="form-control" required />
+                        <small class="form-hint">คลิกจากปฏิทิน ระบบจะใส่วันที่ให้เอง</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">เวลาเริ่ม <span class="req">*</span></label>
+                        <input type="time" name="StartTime" class="form-control" required />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">เวลาสิ้นสุด <span class="req">*</span></label>
+                        <input type="time" name="EndTime" class="form-control" required />
+                        <small class="form-hint" id="timeHint" style="display:none; color:#dc3545;">เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">สถานที่</label>
+                        <input type="text" name="Location" class="form-control" placeholder="เช่น ห้องประชุม A / Google Meet" />
+                        <small class="form-hint">ถ้าเป็นออนไลน์ ใส่ชื่อแพลตฟอร์มหรือ link ไว้ก็ได้</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">ผู้เข้าร่วมประชุม</label>
+                        @{
+                            var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+                        }
+                        <select name="users" class="form-select" multiple size="8">
+                            @foreach (var e in employees)
+                            {
+                                <option value="@e.EmpId">@e.EmpName @(e.Position != null ? $"({e.Position})" : "")</option>
+                            }
+                        </select>
+                        <small class="form-hint">กด Ctrl (Windows) / Cmd (Mac) เพื่อเลือกหลายคน</small>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="text-muted" style="font-size:.92rem;">
+                        <span class="req">*</span> จำเป็นต้องกรอก
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-pill">บันทึก</button>
+                        <a href="/Meetings" class="btn btn-outline-secondary btn-pill">ยกเลิก</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const form = document.getElementById('meetingForm');
+    if (!form) return;
+
+    const startInput = form.querySelector('input[name="StartTime"]');
+    const endInput = form.querySelector('input[name="EndTime"]');
+    const hint = document.getElementById('timeHint');
+
+    function validateTime() {
+        if (!startInput || !endInput) return true;
+        if (!startInput.value || !endInput.value) {
+            if (hint) hint.style.display = 'none';
+            return true;
+        }
+        const ok = endInput.value > startInput.value;
+        if (hint) hint.style.display = ok ? 'none' : 'block';
+        return ok;
+    }
+
+    if (startInput) startInput.addEventListener('change', validateTime);
+    if (endInput) endInput.addEventListener('change', validateTime);
+
+    form.addEventListener('submit', function (e) {
+        if (!validateTime()) {
+            e.preventDefault();
+            endInput?.focus();
+        }
+    });
+})();
+</script>

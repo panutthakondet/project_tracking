@@ -1,0 +1,269 @@
+@{
+    ViewData["Title"] = "ปฏิทินนัดประชุม";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
+
+<style>
+    /* Page layout */
+    .meeting-page { padding: 8px 0; }
+    .meeting-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+
+    .meeting-title { margin: 0; line-height: 1.2; }
+    .meeting-subtitle { margin: 6px 0 0 0; color: #6c757d; font-size: 0.95rem; }
+
+    /* Card-like container */
+    .calendar-card {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.06);
+        overflow: hidden;
+    }
+
+    .calendar-card__toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: linear-gradient(180deg, rgba(13,110,253,.06), rgba(13,110,253,.0));
+        border-bottom: 1px solid rgba(0,0,0,.06);
+    }
+
+    .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .hint-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(25,135,84,.10);
+        color: #146c43;
+        font-size: .9rem;
+        border: 1px solid rgba(25,135,84,.18);
+        white-space: nowrap;
+    }
+
+    .calendar-card__body { padding: 12px 12px 14px 12px; }
+
+    /* FullCalendar polish */
+    .fc .fc-toolbar-title { font-size: 1.15rem; font-weight: 700; }
+    .fc .fc-button {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,.10) !important;
+        box-shadow: none !important;
+        padding: .35rem .65rem;
+    }
+    .fc .fc-button-primary {
+        background: #0d6efd;
+        border-color: rgba(13,110,253,.55) !important;
+    }
+    .fc .fc-button-primary:disabled { opacity: .55; }
+
+    .fc .fc-daygrid-day-frame { padding: 6px; }
+    .fc .fc-daygrid-day-number { font-weight: 600; color: rgba(0,0,0,.70); }
+    .fc .fc-col-header-cell-cushion { font-weight: 700; color: rgba(0,0,0,.65); }
+
+    .fc .fc-day-today {
+        background: rgba(13,110,253,.08) !important;
+    }
+
+    .fc .fc-event {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,.12);
+        padding: 2px 6px;
+    }
+
+    .fc .fc-event-title { font-weight: 700; }
+
+    /* Event urgency colors */
+    .fc-event.green-event { background:#d1e7dd !important; border-color:#badbcc !important; color:#0f5132 !important; }
+    .fc-event.yellow-event { background:#fff3cd !important; border-color:#ffecb5 !important; color:#664d03 !important; }
+    .fc-event.red-event { background:#f8d7da !important; border-color:#f5c2c7 !important; color:#842029 !important; }
+
+    .fc-tooltip {
+        background: #212529;
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        box-shadow: 0 6px 18px rgba(0,0,0,.2);
+        pointer-events: none;
+        z-index: 9999;
+        max-width: 260px;
+        line-height: 1.35;
+    }
+
+    @@media (max-width: 768px) {
+        .calendar-card__body { padding: 8px; }
+        .fc .fc-toolbar { flex-direction: column; gap: 10px; }
+        .fc .fc-toolbar-title { text-align: center; }
+    }
+</style>
+
+<div class="container meeting-page">
+    <div class="meeting-header">
+        <div>
+            <h2 class="meeting-title">@ViewData["Title"]</h2>
+            <p class="meeting-subtitle">คลิกวันที่เพื่อสร้างนัดประชุม และคลิกนัดเพื่อดูรายละเอียด (จะเพิ่มในขั้นถัดไป)</p>
+        </div>
+
+        <div class="toolbar-right">
+            <span class="hint-chip">✅ เคล็ดลับ: คลิกวันที่เพื่อสร้างนัด</span>
+            <a class="btn btn-primary" href="/Meetings/Create">
+                <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
+            </a>
+        </div>
+    </div>
+
+    <div class="calendar-card">
+        <div class="calendar-card__toolbar">
+            <div class="toolbar-left">
+                <strong style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:1.1rem;">📅</span>
+                    <span>Calendar</span>
+                </strong>
+                <span class="text-muted" style="font-size:.92rem;">ข้อมูลจากระบบ</span>
+            </div>
+        </div>
+
+        <div class="calendar-card__body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'th',
+        height: 'auto',
+        firstDay: 1, // Monday
+        editable: true,
+        eventStartEditable: true,
+        eventDurationEditable: true,
+        progressiveEventRendering: true,
+
+        headerToolbar: {
+            left: 'prev,next',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+
+        titleFormat: { year: 'numeric', month: 'long' },
+
+        buttonText: {
+            today: 'วันนี้',
+            month: 'เดือน',
+            week: 'สัปดาห์',
+            day: 'วัน'
+        },
+
+        // ดึงข้อมูลจาก controller: /Meetings/List
+        events: '/Meetings/List',
+
+        dateClick: function (info) {
+            // ไปหน้าสร้างนัด โดยส่ง date ไปด้วย
+            window.location.href = '/Meetings/Create?date=' + info.dateStr;
+        },
+
+        eventClick: function (info) {
+            window.location.href = '/Meetings/Show/' + info.event.id;
+        },
+
+        eventDrop: function(info) {
+            updateEventTime(info.event);
+        },
+
+        eventResize: function(info) {
+            updateEventTime(info.event);
+        },
+
+        eventClassNames: function(arg) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const eventDate = new Date(arg.event.start);
+            eventDate.setHours(0,0,0,0);
+
+            const diffDays = Math.floor((eventDate - today) / (1000*60*60*24));
+
+            if (diffDays <= 0) return ['red-event'];          // วันนี้หรือผ่านมาแล้ว
+            if (diffDays <= 2) return ['yellow-event'];       // อีก 1-2 วัน
+            return ['green-event'];                           // อีกมากกว่า 2 วัน
+        },
+
+        eventDidMount: function(info) {
+            const props = info.event.extendedProps || {};
+            const location = props.location ? `📍 ${props.location}<br>` : '';
+            const project = props.projectName ? `📁 ${props.projectName}<br>` : '';
+            const start = info.event.start ? info.event.start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            const end = info.event.end ? info.event.end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            const time = start && end ? `⏰ ${start} - ${end}` : '';
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'fc-tooltip';
+            tooltip.innerHTML = `<strong>${info.event.title}</strong><br>${project}${location}${time}`;
+            document.body.appendChild(tooltip);
+            tooltip.style.display = 'none';
+
+            info.el.addEventListener('mouseenter', (e) => {
+                tooltip.style.display = 'block';
+                tooltip.style.position = 'fixed';
+                tooltip.style.left = (e.clientX + 12) + 'px';
+                tooltip.style.top = (e.clientY + 12) + 'px';
+            });
+
+            info.el.addEventListener('mousemove', (e) => {
+                tooltip.style.left = (e.clientX + 12) + 'px';
+                tooltip.style.top = (e.clientY + 12) + 'px';
+            });
+
+            info.el.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+        }
+    });
+
+    calendar.render();
+
+    function updateEventTime(event) {
+        fetch('/Meetings/Move', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: event.id,
+                start: event.startStr,
+                end: event.endStr
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                alert('ไม่สามารถเปลี่ยนเวลาได้');
+                calendar.refetchEvents();
+            }
+        })
+        .catch(() => {
+            alert('เกิดข้อผิดพลาด');
+            calendar.refetchEvents();
+        });
+    }
+
+});
+</script>

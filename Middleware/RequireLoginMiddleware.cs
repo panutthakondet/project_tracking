@@ -19,7 +19,8 @@ namespace ProjectTracking.Middleware
                 "PhaseStatusReport",
                 "Dashboard",
                 "IssueDashboard",
-                "UserManagement"
+                "UserManagement",
+                "Meetings"
             };
 
         public RequireLoginMiddleware(RequestDelegate next)

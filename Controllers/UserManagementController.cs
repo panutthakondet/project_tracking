@@ -366,6 +366,7 @@ namespace ProjectTracking.Controllers
                 ("PhaseAssigns.Print", "Assigned Employees Report"),
                 ("PhaseStatusReport.Index", "Phase Status Report"),
                 ("PhaseStatusReport.Timeline", "Timeline / Gantt"),
+                ("Meetings.Index", "ปฏิทินนัดประชุม"),
                 ("Dashboard.Workload", "Employee Workload"),
                 ("IssueDashboard.Index", "Issue Dashboard"),
                 ("UserManagement.Index", "User Management"),
