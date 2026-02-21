@@ -10,6 +10,7 @@
 
     <!-- ✅ SELECT2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    @RenderSection("Styles", required: false)
 
     <style>
         .navbar {
@@ -210,7 +211,8 @@
 
     var canReports = CanMenu("PhaseAssigns.Print")
                   || CanMenu("PhaseStatusReport.Index")
-                  || CanMenu("PhaseStatusReport.Timeline");
+                  || CanMenu("PhaseStatusReport.Timeline")
+                  || CanMenu("Projects.ViewOnly");
 }
 
 <header>
@@ -334,6 +336,10 @@
                                     @if (CanMenu("PhaseStatusReport.Timeline"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">📅 Timeline / Gantt</a></li>
+                                    }
+                                    @if (CanMenu("Projects.ViewOnly"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">📁 รายงานข้อมูลโครงการ</a></li>
                                     }
                                 </ul>
                             </li>

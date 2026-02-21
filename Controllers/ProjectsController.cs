@@ -35,6 +35,21 @@ namespace ProjectTracking.Controllers
         }
 
         // ===========================
+        // VIEW ONLY (Standalone page)
+        // ===========================
+        [HttpGet]
+        public async Task<IActionResult> ViewOnly()
+        {
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
+                .ThenByDescending(p => p.ProjectId)
+                .ToListAsync();
+
+            return View("ViewOnly", projects);
+        }
+
+        // ===========================
         // CREATE (GET)
         // ===========================
         public IActionResult Create()

@@ -356,20 +356,21 @@ namespace ProjectTracking.Controllers
 
             var allMenus = new List<(string Key, string Label)>
             {
-                ("Employees.Index", "Employees"),
-                ("Projects.Index", "Projects"),
-                ("ProjectPhases.Index", "Project Phases"),
-                ("PhaseAssigns.Index", "Assigned Employees"),
-                ("ProjectIssues.Index", "Project Issues (Tester)"),
-                ("ProjectIssues.DevIndex", "Dev Status Update"),
-                ("ProjectIssues.ViewOnly", "Issue Report"),
-                ("PhaseAssigns.Print", "Assigned Employees Report"),
-                ("PhaseStatusReport.Index", "Phase Status Report"),
+                ("Employees.Index", "บันทึกข้อมูลพนักงาน"),
+                ("Projects.Index", "บันทึกข้อมูลโครงการ"),
+                ("Projects.ViewOnly", "รายงานข้อมูลโครงการ"),
+                ("ProjectPhases.Index", "บันทึกข้อมูลแผนงานและงวดงาน"),
+                ("PhaseAssigns.Index", "บันทึกข้อมูลการมอบหมายงาน"),
+                ("ProjectIssues.Index", "บันทึกข้อมูลปัญหาโครงการ"),
+                ("ProjectIssues.DevIndex", "แก้ไขสถานะปัญหาโครงการ"),
+                ("ProjectIssues.ViewOnly", "รายงานปัญหาและสถานะโครงการ"),
+                ("PhaseAssigns.Print", "รายงานการมอบหมายงาน"),
+                ("PhaseStatusReport.Index", "รายงานสถานะงานค้าง"),
                 ("PhaseStatusReport.Timeline", "Timeline / Gantt"),
                 ("Meetings.Index", "ปฏิทินนัดประชุม"),
-                ("Dashboard.Workload", "Employee Workload"),
-                ("IssueDashboard.Index", "Issue Dashboard"),
-                ("UserManagement.Index", "User Management"),
+                ("Dashboard.Workload", "สถานะภาระงานพนักงาน"),
+                ("IssueDashboard.Index", "ภาพรวมทั้งโครงการ"),
+                ("UserManagement.Index", "จัดการผู้ใช้งาน"),
                 ("UserManagement.Permissions", "Permissions"),
             };
 

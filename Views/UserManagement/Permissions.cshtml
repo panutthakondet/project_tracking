@@ -10,31 +10,100 @@
     var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 }
 
-<style>
-.card-soft{
-    border:0;
-    border-radius:16px;
-    box-shadow:0 10px 28px rgba(0,0,0,.08);
-    overflow:hidden;
-}
-.card-soft .card-body{ padding:18px; }
+@{
+    // ✅ Lookup menu by key
+    var menuMap = allMenus.ToDictionary(x => x.Key, x => x.Label, StringComparer.OrdinalIgnoreCase);
 
-.menu-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap:10px;
+    // ✅ Group definitions (เหมือนหน้า Home)
+    var groupProject = new List<string>
+    {
+        "UserManagement.Index",
+        "Employees.Index",
+        "Projects.Index",
+        "ProjectPhases.Index",
+        "PhaseAssigns.Index",
+        "ProjectIssues.Index",
+        "ProjectIssues.DevIndex",
+        "Meetings.Index",
+    };
+
+    var groupReport = new List<string>
+    {
+        "Projects.ViewOnly",
+        "ProjectIssues.ViewOnly",
+        "PhaseAssigns.Print",
+        "PhaseStatusReport.Index",
+        "PhaseStatusReport.Timeline",
+        "Dashboard.Workload",
+        "IssueDashboard.Index",
+    };
+
+    var groupSetting = new List<string>
+    {
+        "UserManagement.Permissions",
+    };
+
+    // ✅ Helper to render only keys that exist in allMenus (กันหลุด)
+    List<(string Key, string Label)> BuildGroup(List<string> keys)
+    {
+        var list = new List<(string, string)>();
+        foreach (var k in keys)
+        {
+            if (menuMap.TryGetValue(k, out var label))
+                list.Add((k, label));
+        }
+        return list;
+    }
+
+    var g1 = BuildGroup(groupProject);
+    var g2 = BuildGroup(groupReport);
+    var g3 = BuildGroup(groupSetting);
+
+    // ✅ Uncategorized (เมนูอื่น ๆ ที่ยังไม่ได้จัดกลุ่ม)
+    var used = new HashSet<string>(g1.Select(x => x.Key), StringComparer.OrdinalIgnoreCase);
+    foreach (var x in g2) used.Add(x.Key);
+    foreach (var x in g3) used.Add(x.Key);
+
+    var gOther = allMenus.Where(x => !used.Contains(x.Key)).ToList();
 }
-.menu-item{
-    border:1px solid #e5e7eb;
-    border-radius:14px;
-    padding:12px 12px;
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    background:#fff;
-}
-.menu-item:hover{ background:#f8fafc; }
-.menu-key{ font-size:12px; color:#64748b; margin-top:2px; }
+
+<style>
+    .card-soft{
+        border:0;
+        border-radius:16px;
+        box-shadow:0 10px 28px rgba(0,0,0,.08);
+        overflow:hidden;
+    }
+    .card-soft .card-body{ padding:18px; }
+
+    .menu-grid{
+        display:grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap:10px;
+    }
+
+    .menu-item{
+        border:1px solid #e5e7eb;
+        border-radius:14px;
+        padding:12px 12px;
+        display:flex;
+        gap:10px;
+        align-items:flex-start;
+        background:#fff;
+    }
+    .menu-item:hover{ background:#f8fafc; }
+
+    .group-title{
+        font-size:16px;
+        font-weight:900;
+        margin:10px 0 12px;
+        padding-left:12px;
+        border-left:6px solid #ff9f43;
+    }
+
+    .group-wrap{ margin-bottom:18px; }
+
+    .menu-key{ font-size:12px; color:#64748b; margin-top:2px; }
 </style>
 
 <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
@@ -59,21 +128,93 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="username" value="@username" />
 
-            <div class="menu-grid">
-                @foreach (var m in allMenus)
-                {
-                    var isChecked = selected.Contains(m.Key);
+            <!-- 📁 การบันทึกข้อมูล และการจัดการโครงการ -->
+            @if (g1.Any())
+            {
+                <div class="group-wrap">
+                    <div class="group-title">📁 การบันทึกข้อมูล และการจัดการโครงการ</div>
+                    <div class="menu-grid">
+                        @foreach (var m in g1)
+                        {
+                            var isChecked = selected.Contains(m.Key);
+                            <label class="menu-item">
+                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
+                                       style="margin-top:3px;" />
+                                <div>
+                                    <div class="fw-bold">@m.Label</div>
+                                    <div class="menu-key">@m.Key</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
 
-                    <label class="menu-item">
-                        <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
-                               style="margin-top:3px;" />
-                        <div>
-                            <div class="fw-bold">@m.Label</div>
-                            <div class="menu-key">@m.Key</div>
-                        </div>
-                    </label>
-                }
-            </div>
+            <!-- 🐞 รายงานและติดตามงาน -->
+            @if (g2.Any())
+            {
+                <div class="group-wrap">
+                    <div class="group-title">🐞 รายงานและติดตามงาน</div>
+                    <div class="menu-grid">
+                        @foreach (var m in g2)
+                        {
+                            var isChecked = selected.Contains(m.Key);
+                            <label class="menu-item">
+                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
+                                       style="margin-top:3px;" />
+                                <div>
+                                    <div class="fw-bold">@m.Label</div>
+                                    <div class="menu-key">@m.Key</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- ⚙️ ตั้งค่าระบบ -->
+            @if (g3.Any())
+            {
+                <div class="group-wrap">
+                    <div class="group-title">⚙️ ตั้งค่าระบบ</div>
+                    <div class="menu-grid">
+                        @foreach (var m in g3)
+                        {
+                            var isChecked = selected.Contains(m.Key);
+                            <label class="menu-item">
+                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
+                                       style="margin-top:3px;" />
+                                <div>
+                                    <div class="fw-bold">@m.Label</div>
+                                    <div class="menu-key">@m.Key</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- 🧩 อื่น ๆ (ถ้ามี) -->
+            @if (gOther.Any())
+            {
+                <div class="group-wrap">
+                    <div class="group-title">🧩 อื่น ๆ</div>
+                    <div class="menu-grid">
+                        @foreach (var m in gOther)
+                        {
+                            var isChecked = selected.Contains(m.Key);
+                            <label class="menu-item">
+                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
+                                       style="margin-top:3px;" />
+                                <div>
+                                    <div class="fw-bold">@m.Label</div>
+                                    <div class="menu-key">@m.Key</div>
+                                </div>
+                            </label>
+                        }
+                    </div>
+                </div>
+            }
 
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary" style="border-radius:12px; font-weight:800;">

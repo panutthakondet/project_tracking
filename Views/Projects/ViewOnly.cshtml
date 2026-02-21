@@ -1,0 +1,146 @@
+@using System.Globalization
+@model IEnumerable<ProjectTracking.Models.Project>
+
+@{
+    ViewData["Title"] = "รายงานข้อมูลโครงการ";
+    Layout = "_Layout"; // ✅ ใช้เมนูบาร์ด้านบนแบบเดียวกับระบบหลัก
+    var th = new CultureInfo("th-TH");
+}
+
+@section Styles {
+<style>
+    /* ซ่อนบางส่วนเฉพาะตอนสั่งพิมพ์ */
+    @@media print {
+        header, .navbar, footer, .no-print { display: none !important; }
+        body { background: #fff !important; }
+        .container, .container-fluid { padding: 0 !important; margin: 0 !important; }
+    }
+
+    .report-toolbar{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-bottom:12px;
+    }
+
+    .project-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
+
+    .col-id{ width:70px; min-width:70px; }
+    .col-name{ width:280px; min-width:280px; }
+    .col-system{ width:130px; min-width:130px; }
+    .col-db{ width:130px; min-width:130px; }
+    .col-date{ width:115px; min-width:115px; }
+    .col-status{ width:110px; min-width:110px; }
+    .col-mini{ width:70px; min-width:70px; }
+
+    .sticky-col-1{
+        position:sticky;
+        left:0;
+        background:#fff;
+        z-index:3;
+    }
+
+    .sticky-col-2{
+        position:sticky;
+        left:70px;
+        background:#fff;
+        z-index:3;
+    }
+
+    thead .sticky-col-1,
+    thead .sticky-col-2{
+        background:#212529 !important;
+        color:#fff;
+        z-index:4;
+    }
+
+    #tbl th, #tbl td{ vertical-align:middle; word-break:break-word; }
+</style>
+}
+
+<div class="container-fluid py-4">
+
+    <div class="report-toolbar no-print">
+        <div>
+            <h2 class="fw-bold mb-0">📁 รายงานข้อมูลโครงการ</h2>
+            <div class="text-muted">แสดงรายการโครงการ (สำหรับดู/พิมพ์)</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-warning" onclick="window.print()">🖨 พิมพ์</button>
+        </div>
+    </div>
+
+    <div class="row mb-3 no-print">
+        <div class="col-md-5">
+            <label class="form-label fw-bold">🔍 ค้นหา Project</label>
+            <input type="text" id="search" class="form-control" placeholder="ค้นหาโครงการ..." autocomplete="off" />
+        </div>
+    </div>
+
+    <div class="table-responsive project-table-wrapper">
+        <table class="table table-bordered table-hover align-middle" id="tbl">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th class="sticky-col-1 col-id">#</th>
+                    <th class="sticky-col-2 col-name">Project</th>
+                    <th class="col-system">System</th>
+                    <th class="col-db">Database</th>
+                    <th class="col-date">Start</th>
+                    <th class="col-date">End</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-mini">Figma</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center text-muted">— No project data —</td>
+                </tr>
+            }
+            else
+            {
+                var i = 1;
+                foreach (var p in Model.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
+                {
+                    <tr>
+                        <td class="sticky-col-1 col-id text-center">@i</td>
+                        <td class="sticky-col-2 col-name fw-semibold">@p.ProjectName</td>
+                        <td class="col-system">@p.LinkName</td>
+                        <td class="col-db">@p.DatabaseName</td>
+                        <td class="text-center col-date">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
+                        <td class="text-center col-date">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
+                        <td class="text-center col-status">@p.Status</td>
+                        <td class="text-center col-mini">
+                            @if (!string.IsNullOrEmpty(p.FigmaLink))
+                            { <a href="@p.FigmaLink" target="_blank" class="btn btn-sm btn-outline-primary">🎨</a> }
+                            else { <span class="text-muted">-</span> }
+                        </td>
+                    </tr>
+                    i++;
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('search');
+    if (!input) return;
+
+    input.addEventListener('keyup', () => {
+        const k = input.value.toLowerCase().trim();
+        document.querySelectorAll('#tbl tbody tr').forEach(r => {
+            r.style.display = r.innerText.toLowerCase().includes(k) ? '' : 'none';
+        });
+    });
+});
+</script>
+}

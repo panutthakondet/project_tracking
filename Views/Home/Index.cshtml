@@ -169,6 +169,17 @@
         <div class="group-title">🐞 รายงานและติดตามงาน</div>
         <div class="row g-3">
 
+            @if (CanMenu("Projects.ViewOnly"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Projects" asp-action="ViewOnly" class="menu-card">
+                    <div class="icon">📁</div>
+                    <div class="title">รายงานข้อมูลโครงการ</div>
+                    <div class="desc">แสดงรายการโครงการ (สำหรับดู/พิมพ์)</div>
+                </a>
+            </div>
+            }
+
             @if (CanMenu("ProjectIssues.ViewOnly"))
             {
             <div class="col-md-3">
