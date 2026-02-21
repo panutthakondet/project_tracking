@@ -1,7 +1,7 @@
 @model ProjectTracking.ViewModels.IssueDashboardVM
 @using System.Collections.Generic
 @{
-    ViewData["Title"] = "Issue Dashboard";
+    ViewData["Title"] = "ภาพรวมทั้งโครงการ";
 
     double pct(int part, int total) => total <= 0 ? 0 : (double)part * 100.0 / total;
 
@@ -149,7 +149,7 @@ canvas{display:block;}
 </style>
 
 <h3 class="mb-2">
-    📊 Issue Dashboard
+    📊 ภาพรวมทั้งโครงการ
     <span class="year-badge">Year @currentYear</span>
 </h3>
 <div class="year-subtitle">

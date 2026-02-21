@@ -3,7 +3,7 @@
 @model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
 
 @{
-    ViewData["Title"] = "Phase Owner Status Report";
+    ViewData["Title"] = "รายงานสถานะงานตามพนักงาน";
     var th = new CultureInfo("th-TH");
 
     var sortedModel = Model
@@ -18,7 +18,7 @@
     var overdueDays = sortedModel.Sum(x => x.OverdueDays);
 }
 
-<h2 class="mb-3 fw-bold">📊 Phase Owner Status Report</h2>
+<h2 class="mb-3 fw-bold">📊 รายงานสถานะงานตามพนักงาน</h2>
 
 <!-- ================= SUMMARY ================= -->
 <div class="row g-3 mb-4 no-print">

@@ -1,7 +1,7 @@
 @model IEnumerable<ProjectTracking.Models.ProjectIssue>
 
 @{
-    ViewData["Title"] = "Project Issues";
+    ViewData["Title"] = "บันทึกข้อมูลปัญหาโครงการ";
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var selectedEmp = ViewBag.SelectedEmp as string;
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
@@ -30,7 +30,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h2 class="fw-bold mb-0">🐞 Project Issues</h2>
+        <h2 class="fw-bold mb-0">🐞 บันทึกข้อมูลปัญหาโครงการ</h2>
         <small class="text-muted">ติดตามปัญหา / งานค้าง / Bug ของโครงการ</small>
     </div>
 
