@@ -49,38 +49,71 @@
 }
 
 .kpi{
-    border-radius:12px;
-    padding:10px 12px;
+    border-radius:14px;
+    padding:14px 16px;
     color:#fff;
-    height:74px;
+    height:92px;
     display:flex;
     flex-direction:column;
     justify-content:center;
     position:relative;
     overflow:hidden;
     min-width:0;
+    box-shadow: 0 10px 24px rgba(0,0,0,.12);
 }
-.kpi small{opacity:.85;font-size:12px;}
-.kpi h3{margin:0;font-weight:800;font-size:24px; line-height:1.05;}
-.kpi .kpi-sub{margin-top:2px;font-size:12px;opacity:.9;}
+.kpi small{
+    opacity:.92;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.2px;
+    text-shadow:0 1px 2px rgba(0,0,0,.25);
+}
+.kpi h3{
+    margin:2px 0 0 0;
+    font-weight:900;
+    font-size:32px;
+    line-height:1.05;
+    text-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+.kpi .kpi-sub{
+    margin-top:4px;
+    font-size:13px;
+    font-weight:700;
+    opacity:.95;
+    text-shadow:0 1px 2px rgba(0,0,0,.2);
+}
 .kpi .trend{
     position:absolute;
     right:10px;
     top:10px;
     font-size:12px;
-    font-weight:800;
-    padding:2px 8px;
+    font-weight:900;
+    padding:4px 10px;
     border-radius:999px;
-    background: rgba(255,255,255,.18);
-    backdrop-filter: blur(2px);
-    max-width:70%;
+    background: rgba(0,0,0,.22);
+    border: 1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(6px);
+    max-width:72%;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
 }
+.kpi::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: radial-gradient(1200px 120px at 20% 0%, rgba(255,255,255,.22), transparent 55%);
+    pointer-events:none;
+}
+.kpi > *{ position:relative; z-index:1; }
 .trend-up{ color:#d1fae5; }
 .trend-down{ color:#fee2e2; }
 .trend-flat{ color:#e5e7eb; }
+
+@@media (max-width: 575.98px){
+    .kpi{ height:auto; padding:12px 14px; }
+    .kpi h3{ font-size:28px; }
+}
 
 .c-total{background:linear-gradient(135deg,#4facfe,#00f2fe);}
 .c-open{background:linear-gradient(135deg,#ff6a6a,#ff0000);}
@@ -123,8 +156,8 @@ canvas{display:block;}
     font-size:12px;
 }
 
-/* ✅ legend ยาว */
-.legend-compact .chart-wrap{height:320px;}
+/* ✅ legend ยาว: ไม่เพิ่มความสูง (กันวงเล็กลงไม่เท่ากัน) */
+.legend-compact .chart-wrap{height:260px;}
 
 /* ✅ badge ปี */
 .year-badge{
@@ -146,11 +179,78 @@ canvas{display:block;}
     font-size:12px;
     color:#6b7280;
 }
+
+/* ✅ External legend (ชิดวง) สำหรับกราฟพนักงาน */
+.chart-flex{
+    display:flex;
+    align-items:center;
+    justify-content:center; /* ✅ จัดกลางทั้งชุด (วง + legend) */
+    gap:14px;               /* ✅ ชิดขึ้น */
+}
+
+/* กล่องวง: ทำให้ยืดหยุ่น ไม่ล้นจอ */
+.chart-flex .chart-canvas{
+    flex: 0 1 520px;
+    width: clamp(280px, 52vw, 520px);
+    max-width: 520px;
+}
+.chart-flex .chart-canvas .chart-wrap{ height:260px; }
+
+/* กล่อง legend: ไม่กินพื้นที่เกินจำเป็น และอยู่กลางแนวตั้ง */
+.chart-flex .chart-legend{
+    flex: 0 1 auto;
+    min-width: 220px;
+    align-self:center;
+}
+
+.chart-legend ul{ list-style:none; padding:0; margin:0; }
+/* ✅ legend ใต้กราฟวง (สำหรับรายชื่อพนักงาน) */
+.chart-legend.legend-under{
+    display:flex;
+    justify-content:center;
+    margin-top:8px;
+}
+.chart-legend.legend-under ul{
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:14px;
+}
+.chart-legend.legend-under li{
+    margin:0;
+}
+/* ✅ legend แนวนอน (ใช้แทน legend ของ Chart.js) */
+.chart-legend.legend-row ul{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px; }
+.chart-legend.legend-row li{ margin:6px 0; }
+.chart-legend li{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:10px 0;
+    color:#374151;
+    font-weight:600;
+    line-height:1.25;
+}
+.chart-legend .swatch{
+    width:18px;
+    height:18px;
+    border-radius:4px;
+    flex:0 0 18px;
+}
+
+/* จอเล็ก: แสดงเป็นแนวตั้ง วงอยู่บน legend อยู่ล่าง */
+@@media (max-width: 991.98px){
+    .chart-flex{ flex-direction:column; align-items:center; gap:10px; }
+    .chart-flex .chart-canvas{ flex:1 1 auto; width:100%; max-width:520px; }
+    .chart-flex .chart-legend{ min-width:0; width:100%; max-width:520px; }
+    .chart-legend li{ margin:6px 0; }
+}
 </style>
 
 <h3 class="mb-2">
     📊 ภาพรวมทั้งโครงการ
-    <span class="year-badge">Year @currentYear</span>
+    <span class="year-badge">ปี @currentYear</span>
 </h3>
 <div class="year-subtitle">
     กรองข้อมูลปี @currentYear (@yearStart.ToString("dd/MM/yyyy") - @yearEnd.ToString("dd/MM/yyyy"))
@@ -160,7 +260,7 @@ canvas{display:block;}
 
 <!-- ================= ISSUES ================= -->
 <div class="section">
-    <div class="section-title">Issues</div>
+    <div class="section-title">ปัญหาโครงการ</div>
 
     <div class="kpi-grid">
         <div class="kpi c-total">
@@ -205,25 +305,25 @@ canvas{display:block;}
     <div class="row g-2">
         <div class="col-md-6">
             <div class="chart-box">
-                <b>Status</b>
+                <b>สถานะการแก้ไข</b>
                 <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
-                <span class="chart-hint">* คลิกที่กราฟเพื่อดูรายการตามสถานะ</span>
+                <div class="chart-legend legend-row" id="statusLegend"></div>
             </div>
         </div>
 
         <div class="col-md-6">
             <div class="chart-box">
-                <b>Priority</b>
+                <b>สถานะงานด่วน</b>
                 <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
-                <span class="chart-hint">* คลิกที่กราฟเพื่อดูรายการตาม Priority</span>
+                <div class="chart-legend legend-row" id="priorityLegend"></div>
             </div>
         </div>
 
         <div class="col-md-12">
             <div class="chart-box legend-compact">
-                <b>Open by Owner</b>
+                <b>จำนวนงานที่มีปัญหาของแต่ละพนักงาน</b>
                 <div class="chart-wrap"><canvas id="openOwnerChart"></canvas></div>
-                <span class="chart-hint">* คลิกเพื่อดูรายการ OPEN ของพนักงานคนนั้น</span>
+                <div class="chart-legend legend-under" id="openOwnerLegend"></div>
             </div>
         </div>
     </div>
@@ -231,7 +331,7 @@ canvas{display:block;}
 
 <!-- ================= PHASE ================= -->
 <div class="section">
-    <div class="section-title">Phases</div>
+    <div class="section-title">งานทั้งโครงการ</div>
 
     @{
         var phaseTotal = ((Model?.PhasePlanned ?? 0) + (Model?.PhaseDoing ?? 0) + (Model?.PhaseDone ?? 0) + (Model?.PhaseOverdue ?? 0));
@@ -272,19 +372,19 @@ canvas{display:block;}
     </div>
 
     <div class="row g-2">
-        <div class="col-md-6">
+        <div class="col-12">
             <div class="chart-box">
-                <b>Phase Progress (%)</b>
+                <b>ความคืบหน้า (%)</b>
                 <div class="chart-wrap tall"><canvas id="phaseChart"></canvas></div>
             </div>
         </div>
 
-        <!-- ✅ ย้าย Workload Overlap by Owner มาไว้ในส่วน Phases -->
-        <div class="col-md-6">
+        <!-- ✅ แยก Workload Overlap by Owner ออกมาเต็มแถว เพื่อให้ legend มีพื้นที่ -->
+        <div class="col-12">
             <div class="chart-box legend-compact">
-                <b>Workload Overlap by Owner</b>
+                <b>ภาระงานที่ทับซ้อนของพนักงาน</b>
                 <div class="chart-wrap"><canvas id="overlapOwnerChart"></canvas></div>
-                <span class="chart-hint">* แสดง “งานที่ทับกัน” ต่อคน (Doing=3 → Overlap=2)</span> 
+                <div class="chart-legend legend-under" id="overlapOwnerLegend"></div>
             </div>
         </div>
     </div>
@@ -318,6 +418,25 @@ canvas{display:block;}
         return (labels||[]).map((_,i)=>base[i%base.length]);
     }
 
+    // ✅ External HTML legend (วางข้างวง เพื่อให้ข้อความชิดวง)
+    function renderHtmlLegend(elId, labels, data, colors){
+        const el = document.getElementById(elId);
+        if(!el) return;
+
+        const items = [];
+        for(let i=0;i<(labels||[]).length;i++){
+            const val = Number((data||[])[i] || 0);
+            if(val<=0) continue;
+            items.push({ label: String(labels[i]||''), color: (colors||[])[i] || '#9ca3af' });
+        }
+
+        el.innerHTML = items.length
+            ? '<ul>' + items.map(it =>
+                `<li><span class="swatch" style="background:${it.color}"></span><span>${it.label}</span></li>`
+              ).join('') + '</ul>'
+            : '';
+    }
+
     const centerTextPlugin = {
         id:'centerText',
         afterDraw(chart,args,pluginOptions){
@@ -343,7 +462,7 @@ canvas{display:block;}
         }
     };
 
-    function doughnutOptions(centerMain, centerSub){
+    function doughnutOptions(centerMain, centerSub, legendPos = 'bottom'){
         return {
             responsive:true,
             maintainAspectRatio:false,
@@ -351,7 +470,7 @@ canvas{display:block;}
             layout:{ padding:8 },
             plugins:{
                 legend:{
-                    position:'bottom',
+                    position: legendPos,
                     labels:{
                         filter:(legendItem)=>{
                             const ds = legendItem?.chart?.data?.datasets?.[0]?.data;
@@ -415,69 +534,68 @@ canvas{display:block;}
             const c5 = document.getElementById('overlapOwnerChart');
 
             if(c1 && hasData(statusCounts)){
+                const statusColors = buildStatusColors(statusLabels);
                 new Chart(c1,{
                     type:'doughnut',
                     plugins:[centerTextPlugin],
-                    data:{ labels:statusLabels, datasets:[{ data:statusCounts, backgroundColor:buildStatusColors(statusLabels) }]},
-                    options:{ ...doughnutOptions(@(Model?.Total ?? 0),'Total'),
-                        onClick:(evt,els,chart)=>{
-                            if(!els.length) return;
-                            const idx=els[0].index;
-                            const label=chart.data.labels[idx];
-                            window.location.href = `/ProjectIssues?status=${encodeURIComponent(label)}`;
+                    data:{ labels:statusLabels, datasets:[{ data:statusCounts, backgroundColor:statusColors }]},
+                    options:{
+                        ...doughnutOptions(@(Model?.Total ?? 0),'Total'),
+                        plugins:{
+                            ...doughnutOptions(@(Model?.Total ?? 0),'Total').plugins,
+                            legend:{ display:false }
                         }
                     }
                 });
+                renderHtmlLegend('statusLegend', statusLabels, statusCounts, statusColors);
             }
 
             if(c2 && hasData(priorityCounts)){
+                const priColors = ['#ff4d6d','#adb5bd'];
                 new Chart(c2,{
                     type:'doughnut',
                     plugins:[centerTextPlugin],
-                    data:{ labels:priorityLabels, datasets:[{ data:priorityCounts, backgroundColor:['#ff4d6d','#adb5bd'] }]},
-                    options:{ ...doughnutOptions(sum(priorityCounts),'Issues'),
-                        onClick:(evt,els,chart)=>{
-                            if(!els.length) return;
-                            const idx=els[0].index;
-                            const label=chart.data.labels[idx];
-                            window.location.href = `/ProjectIssues?priority=${encodeURIComponent(label)}`;
+                    data:{ labels:priorityLabels, datasets:[{ data:priorityCounts, backgroundColor:priColors }]},
+                    options:{
+                        ...doughnutOptions(sum(priorityCounts),'Issues'),
+                        plugins:{
+                            ...doughnutOptions(sum(priorityCounts),'Issues').plugins,
+                            legend:{ display:false }
                         }
                     }
                 });
+                renderHtmlLegend('priorityLegend', priorityLabels, priorityCounts, priColors);
             }
 
             if(c4 && hasData(openOwnerCounts)){
+                const openColors = buildOwnerColors(openOwnerLabels);
                 new Chart(c4,{
                     type:'doughnut',
                     plugins:[centerTextPlugin],
-                    data:{ labels:openOwnerLabels, datasets:[{ data:openOwnerCounts, backgroundColor:buildOwnerColors(openOwnerLabels) }]},
-                    options:{ ...doughnutOptions(sum(openOwnerCounts),'Open'),
-                        onClick:(evt,els,chart)=>{
-                            if(!els.length) return;
-                            const idx=els[0].index;
-                            const label=chart.data.labels[idx];
-                            const empId = Number(openOwnerEmpIds[idx] || 0);
-
-                            if(String(label).toUpperCase()==='OTHERS' || empId===0){
-                                window.location.href = `/ProjectIssues?status=OPEN`;
-                                return;
-                            }
-                            window.location.href = `/ProjectIssues?status=OPEN&empId=${empId}`;
+                    data:{ labels:openOwnerLabels, datasets:[{ data:openOwnerCounts, backgroundColor:openColors }]},
+                    options:{
+                        ...doughnutOptions(sum(openOwnerCounts),'Open'),
+                        plugins:{
+                            ...doughnutOptions(sum(openOwnerCounts),'Open').plugins,
+                            legend:{ display:false }
                         }
                     }
                 });
+                renderHtmlLegend('openOwnerLegend', openOwnerLabels, openOwnerCounts, openColors);
             }
 
             // ✅ (ย้ายแล้ว) Overlap chart ยังใช้ id เดิม overlapOwnerChart ไม่ต้องเปลี่ยน JS
             if(c5 && hasData(overlapOwnerCounts)){
+                const overlapColors = buildOwnerColors(overlapOwnerLabels);
                 new Chart(c5,{
                     type:'doughnut',
                     plugins:[centerTextPlugin],
-                    data:{ labels:overlapOwnerLabels, datasets:[{ data:overlapOwnerCounts, backgroundColor:buildOwnerColors(overlapOwnerLabels) }]},
+                    data:{ labels:overlapOwnerLabels, datasets:[{ data:overlapOwnerCounts, backgroundColor:overlapColors }]},
                     options:{
                         ...doughnutOptions(sum(overlapOwnerCounts),'Overlaps'),
                         plugins:{
                             ...doughnutOptions(sum(overlapOwnerCounts),'Overlaps').plugins,
+                            legend:{ display:false },
                             tooltip:{
                                 callbacks:{
                                     label:(ctx)=>{
@@ -495,19 +613,10 @@ canvas{display:block;}
                                     }
                                 }
                             }
-                        },
-                        onClick:(evt,els,chart)=>{
-                            if(!els.length) return;
-                            const idx=els[0].index;
-                            const label=chart.data.labels[idx];
-                            const empId = Number(overlapOwnerEmpIds[idx] || 0);
-
-                            if(String(label).toUpperCase()==='NO OVERLAP' || empId===0) return;
-
-                            window.location.href = `/EmployeeWorkload?empId=${empId}`;
                         }
                     }
                 });
+                renderHtmlLegend('overlapOwnerLegend', overlapOwnerLabels, overlapOwnerCounts, overlapColors);
             }
 
             if(c3 && hasData(phaseCounts)){
