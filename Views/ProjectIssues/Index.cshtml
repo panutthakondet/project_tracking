@@ -47,7 +47,8 @@
         <label class="form-label fw-semibold">📁 Project</label>
         <select id="projectSelect" name="projectId" class="form-select">
             <option value="">-- Select Project --</option>
-            @foreach (var p in (IEnumerable<ProjectTracking.Models.Project>)ViewBag.Projects ?? Enumerable.Empty<ProjectTracking.Models.Project>())
+            @foreach (var p in ((IEnumerable<ProjectTracking.Models.Project>)ViewBag.Projects ?? Enumerable.Empty<ProjectTracking.Models.Project>())
+                                .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
                 <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
                     @p.ProjectName

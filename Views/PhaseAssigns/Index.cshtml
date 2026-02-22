@@ -91,7 +91,8 @@ thead .sticky-col { z-index: 5; }
         <label class="form-label fw-bold">📁 Project</label>
         <select name="projectId" id="projectSelect" class="form-select">
             <option value="">-- Select Project --</option>
-            @foreach (var p in ViewBag.Projects)
+            @foreach (var p in ((IEnumerable<dynamic>)ViewBag.Projects)
+                                .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
                 if (ViewBag.SelectedProject?.ProjectId == p.ProjectId)
                 {

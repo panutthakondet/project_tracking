@@ -36,7 +36,8 @@
         <label class="form-label fw-semibold">📁 Project</label>
         <select id="projectSelect" name="projectId" class="form-select" onchange="document.getElementById('filterForm').submit()">
             <option value="">-- Select Project --</option>
-            @foreach (var p in projects)
+            @foreach (var p in projects
+                                .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
                 <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">@p.ProjectName</option>
             }

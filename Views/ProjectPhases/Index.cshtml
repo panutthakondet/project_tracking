@@ -69,6 +69,7 @@
             @foreach (var p in ViewBag.Projects)
             {
                 <option value="@p.ProjectId"
+                        data-end-date="@(p.EndDate?.ToString("yyyy-MM-dd") ?? "")"
                         selected="@(ViewBag.SelectedProject != null &&
                                     ViewBag.SelectedProject.ProjectId == p.ProjectId)">
                     @p.ProjectName
@@ -227,7 +228,21 @@ else
                 const filtered = options.filter(o =>
                     o.text.toLowerCase().includes(filter.toLowerCase()) &&
                     o.value !== ""
-                );
+                )
+                .sort((a, b) => {
+                    const aRaw = a.dataset.endDate;
+                    const bRaw = b.dataset.endDate;
+
+                    // null/empty dates go last
+                    if (!aRaw && !bRaw) return 0;
+                    if (!aRaw) return 1;
+                    if (!bRaw) return -1;
+
+                    const aDate = new Date(aRaw);
+                    const bDate = new Date(bRaw);
+
+                    return aDate - bDate; // น้อย → มาก
+                });
 
                 if (filtered.length === 0) {
                     dropdown.style.display = "none";
