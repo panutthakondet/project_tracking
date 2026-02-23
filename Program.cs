@@ -186,6 +186,7 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseRouting();
 
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
