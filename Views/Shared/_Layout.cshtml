@@ -39,11 +39,44 @@
 
         /* ===== MENU STYLE ===== */
         .navbar-dark .navbar-nav .nav-link{
-            font-weight:500;
+            font-weight:600;
+            font-size: 14px;
             color:#e5e7eb !important;
-            padding:8px 14px !important;
+            padding:6px 10px !important;
             border-radius:10px;
             transition:all .18s ease-in-out;
+            line-height: 1.2;
+        }
+
+        /* ✅ Keep top-level nav compact (avoid ugly wrapping) */
+        .navbar-dark .navbar-nav .nav-link,
+        .navbar-dark .navbar-nav .dropdown-toggle{
+            white-space: nowrap;
+        }
+
+        /* ✅ If label is long, truncate with ellipsis (still readable on hover) */
+        .navbar-dark .navbar-nav .dropdown-toggle{
+            max-width: 230px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ✅ Dropdown items can wrap normally */
+        .dropdown-item{
+            white-space: normal;
+            line-height: 1.25;
+        }
+
+        /* ✅ Make dropdown a bit wider for Thai labels */
+        .nav-item.dropdown .dropdown-menu{
+            min-width: 280px;
+        }
+
+        /* ✅ Slightly tighter navbar on small screens */
+        @@media (max-width: 992px){
+            .navbar { padding: 8px 12px; }
+            .navbar-dark .navbar-nav .nav-link{ padding:8px 10px !important; }
+            .navbar-dark .navbar-nav .dropdown-toggle{ max-width: none; }
         }
 
         /* ===== HOVER (แก้ Bootstrap override) ===== */
@@ -243,7 +276,7 @@
 
                         <!-- Home (always) -->
                         <li class="nav-item">
-                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 Home</a>
+                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 หน้าแรก</a>
                         </li>
 
                         <!-- User Management (permission-based; Admin will still pass via isAdmin) -->
@@ -259,15 +292,15 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(controller=="IssueDashboard" || controller=="Dashboard" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📊 Dashboards</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">📊 แดชบอร์ด</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("IssueDashboard.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 Issue Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 ภาพรวมทั้งโครงการ</a></li>
                                     }
                                     @if (CanMenu("Dashboard.Workload"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Workload">🔥 Employee Workload</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Workload">🔥 สถานะภาระงานพนักงาน</a></li>
                                     }
                                 </ul>
                             </li>
@@ -278,23 +311,23 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="Projects" || controller=="ProjectPhases" || controller=="PhaseAssigns" || controller=="Meetings" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📁 Management</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">📁 จัดการโครงการ</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("Employees.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">👤 Employees</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">👤 บันทึกข้อมูลพนักงาน</a></li>
                                     }
                                     @if (CanMenu("Projects.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">📁 Projects</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">📁 บันทึกข้อมูลโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectPhases.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">🧩 Project Phases</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">🧩 บันทึกข้อมูลแผนงานและงวดงาน</a></li>
                                     }
                                     @if (CanMenu("PhaseAssigns.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 Phase Assigns</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 บันทึกข้อมูลการมอบหมายงาน</a></li>
                                     }
                                     @if (CanMenu("Meetings.Index"))
                                     {
@@ -309,19 +342,19 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">🐞 Issues</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">🐞 ปัญหาโครงการ</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("ProjectIssues.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">🐞 Project Issues</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">🐞 บันทึกข้อมูลปัญหาโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectIssues.ViewOnly"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">👀 View Issues</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">📝 รายงานปัญหาและสถานะโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectIssues.DevIndex"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">👨‍💻 Dev Status</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">👨‍💻 แก้ไขสถานะปัญหาโครงการ</a></li>
                                     }
                                 </ul>
                             </li>
@@ -332,15 +365,15 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(controller=="PhaseAssigns" && action=="Print" || controller=="PhaseStatusReport" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📄 Reports</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">📄 รายงาน</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("PhaseAssigns.Print"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">📄 Assigned Employees Report</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">📄 รายงานการมอบหมายงาน</a></li>
                                     }
                                     @if (CanMenu("PhaseStatusReport.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">📋 Phase Owner Status</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">📊 รายงานสถานะงานค้าง</a></li>
                                     }
                                     @if (CanMenu("PhaseStatusReport.Timeline"))
                                     {
@@ -369,7 +402,7 @@
                 {
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 Home</a>
+                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 หน้าแรก</a>
                         </li>
                     </ul>
 
