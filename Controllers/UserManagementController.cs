@@ -372,6 +372,9 @@ namespace ProjectTracking.Controllers
                 ("IssueDashboard.Index", "ภาพรวมทั้งโครงการ"),
                 ("UserManagement.Index", "จัดการผู้ใช้งาน"),
                 ("UserManagement.Permissions", "Permissions"),
+                ("TestScenarios.Index", "บันทึก Test Scenario"),
+                ("TestScenarioTemplates.Index", "จัดการ Test Scenario Template"),
+                ("TestTemplateGroups.Index", "จัดการ Template Group"),
             };
 
             var selected = await _context.UserMenus
