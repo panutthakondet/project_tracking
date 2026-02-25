@@ -13,6 +13,22 @@
     }
 }
 
+<style>
+    /* Colored table header */
+    .template-table thead th {
+        background-color: #198754 !important; /* green */
+        color: #ffffff;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* Center specific columns */
+    .text-center-col {
+        text-align: center;
+        vertical-align: middle;
+    }
+</style>
+
 <h2>Scenario Templates</h2>
 
 <div class="row mb-3">
@@ -37,16 +53,16 @@
 
 <a id="addTemplateBtn" href="#" class="btn btn-success mb-3">+ Add Template</a>
 
-<table class="table table-bordered table-striped table-sm align-middle">
-    <thead class="table-light">
+<table class="table table-bordered table-striped table-sm align-middle template-table">
+    <thead>
         <tr>
             <th style="width:60px;">#</th>
             <th style="width:220px;">Template Group</th>
             <th style="width:250px;">Title</th>
-            <th style="width:120px;">Priority</th>
-            <th style="width:120px;">Status</th>
-            <th style="width:120px;">Active</th>
-            <th style="width:200px;"></th>
+            <th style="width:120px;" class="text-center-col">Priority</th>
+            <th style="width:120px;" class="text-center-col">Status</th>
+            <th style="width:120px;" class="text-center-col">Active</th>
+            <th style="width:200px;" class="text-center-col">Edit / Toggle / Delete</th>
         </tr>
     </thead>
     <tbody>
@@ -57,9 +73,9 @@
             <td>@rowNo</td>
             <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
             <td>@item.title</td>
-            <td>@item.priority_default</td>
-            <td>@item.status_default</td>
-            <td>
+            <td class="text-center-col">@item.priority_default</td>
+            <td class="text-center-col">@item.status_default</td>
+            <td class="text-center-col">
                 @if (item.is_active)
                 {
                     <span class="badge bg-success">Active</span>
@@ -70,7 +86,7 @@
                 }
             </td>
             @{ rowNo++; }
-            <td>
+            <td class="text-center-col">
                 <a asp-action="Edit"
                    asp-route-id="@item.template_id"
                    class="btn btn-sm btn-warning">Edit</a>

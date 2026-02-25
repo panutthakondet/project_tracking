@@ -83,6 +83,20 @@
     .page-header-card { border: 1px solid #e9ecef; border-radius: 10px; background: #fff; }
     .page-header-card .card-body { padding: 16px; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+    /* Colored table header */
+    .scenario-table thead th {
+        background-color: #0d6efd !important;
+        color: #ffffff;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* Center specific columns */
+    .text-center-col {
+        text-align: center;
+        vertical-align: middle;
+    }
 </style>
 
 <h2 class="mb-3">Test Scenarios</h2>
@@ -166,14 +180,14 @@
                 <th class="sticky-col-0" style="width:60px;">#</th>
                 <th class="sticky-col" style="width:110px;">Code</th>
                 <th class="sticky-col-2" style="width:260px;">Title</th>
-                <th style="width:110px;">Status</th>
-                <th style="width:110px;">Priority</th>
+                <th style="width:110px;" class="text-center-col">Status</th>
+                <th style="width:110px;" class="text-center-col">Priority</th>
                 <th style="width:220px;">Precondition</th>
                 <th style="width:320px;">Steps</th>
                 <th style="width:320px;">Expected Result</th>
                 <th style="width:150px;">Created</th>
                 <th style="width:150px;">Updated</th>
-                <th style="width:160px;"></th>
+                <th style="width:160px;" class="text-center-col">Edit / Delete</th>
             </tr>
         </thead>
         <tbody>
@@ -184,14 +198,14 @@
                 <td class="sticky-col-0">@rowNo</td>
                 <td class="sticky-col">@item.scenario_code</td>
                 <td class="sticky-col-2">@item.title</td>
-                <td><span class="badge @StatusBadge(item.status)">@item.status</span></td>
-                <td>@item.priority</td>
+                <td class="text-center-col"><span class="badge @StatusBadge(item.status)">@item.status</span></td>
+                <td class="text-center-col">@item.priority</td>
                 <td class="multiline-cell">@item.precondition</td>
                 <td class="multiline-cell">@item.steps</td>
                 <td class="multiline-cell">@item.expected_result</td>
                 <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
                 <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
-                <td>
+                <td class="text-center-col">
                     <a asp-action="Edit" asp-route-id="@item.scenario_id"
                        class="btn btn-sm btn-warning">Edit</a>
 

@@ -1,15 +1,29 @@
 @model IEnumerable<ProjectTracking.Models.TestTemplateGroup>
 
+<style>
+    .group-table thead th {
+        background-color: #6f42c1 !important; /* purple */
+        color: #ffffff;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .text-center-col {
+        text-align: center;
+        vertical-align: middle;
+    }
+</style>
+
 <h2>Template Groups</h2>
 
 <a asp-action="Create" class="btn btn-success mb-3">+ Add Group</a>
 
-<table class="table table-bordered">
+<table class="table table-bordered group-table">
     <thead>
         <tr>
             <th>Group Name</th>
-            <th>Created</th>
-            <th width="150"></th>
+            <th class="text-center-col">Created</th>
+            <th width="150" class="text-center-col">Delete</th>
         </tr>
     </thead>
     <tbody>
@@ -17,8 +31,8 @@
     {
         <tr>
             <td>@g.group_name</td>
-            <td>@g.created_at.ToString("dd/MM/yyyy")</td>
-            <td>
+            <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
+            <td class="text-center-col">
                 <a asp-action="Delete"
                    asp-route-id="@g.group_id"
                    class="btn btn-sm btn-danger"

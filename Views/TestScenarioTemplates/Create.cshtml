@@ -33,30 +33,28 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Title</label>
-        <input asp-for="title" class="form-control" placeholder="เช่น: ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" required />
+        <label class="form-label">หัวข้อการทดสอบ</label>
+        <input asp-for="title" class="form-control" placeholder="เช่น ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" required />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Precondition</label>
-        <textarea asp-for="precondition" class="form-control" rows="3" placeholder="เช่น: ผู้ใช้งานต้องมีบัญชีที่ ACTIVE และเข้าถึงหน้า Login ได้"></textarea>
+        <label class="form-label">เงื่อนไขก่อนเริ่มทดสอบ</label>
+        <textarea asp-for="precondition" class="form-control" rows="3" placeholder="เช่น ผู้ใช้ต้อง Login เข้าระบบแล้ว"></textarea>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Steps</label>
-        <textarea asp-for="steps" class="form-control" rows="5" placeholder="1. เปิดหน้า Login
-2. กรอก Username และ Password
-3. กดปุ่ม Login" required></textarea>
+        <label class="form-label">ขั้นตอนการทดสอบ</label>
+        <textarea asp-for="steps" class="form-control" rows="5" placeholder="1. เปิดหน้า Login&#10;2. กรอก Username และ Password&#10;3. กดปุ่ม Login" required></textarea>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Expected Result</label>
-        <textarea asp-for="expected_result" class="form-control" rows="5" placeholder="ระบบเข้าสู่หน้า...และแสดงชื่อผู้ใช้งานถูกต้อง" required></textarea>
+        <label class="form-label">ผลลัพธ์ที่ควรเกิดขึ้น</label>
+        <textarea asp-for="expected_result" class="form-control" rows="5" placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. ไม่มี error" required></textarea>
     </div>
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label class="form-label">Priority Default</label>
+            <label class="form-label">ระดับความสำคัญ</label>
             <select asp-for="priority_default" class="form-select">
                 <option value="LOW">LOW</option>
                 <option value="MEDIUM">MEDIUM</option>
@@ -65,7 +63,7 @@
         </div>
 
         <div class="col-md-6 mb-3">
-            <label class="form-label">Status Default</label>
+            <label class="form-label">สถานะ</label>
             <select asp-for="status_default" class="form-select">
                 <option value="DRAFT">DRAFT</option>
                 <option value="READY">READY</option>
