@@ -1,0 +1,67 @@
+
+
+@model ProjectTracking.Models.TestScenarioTemplate
+
+<h2>Edit Template</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="template_id" />
+
+    <div class="mb-3">
+        <label class="form-label">Template Group</label>
+        <select asp-for="group_id" class="form-select" disabled>
+            <option value="">-- Select Group --</option>
+            @foreach (var g in ViewBag.Groups)
+            {
+                <option value="@g.group_id">
+                    @g.group_name
+                </option>
+            }
+        </select>
+        <input type="hidden" asp-for="group_id" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input asp-for="title" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Precondition</label>
+        <textarea asp-for="precondition" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Steps</label>
+        <textarea asp-for="steps" class="form-control" rows="5" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Expected Result</label>
+        <textarea asp-for="expected_result" class="form-control" rows="5" required></textarea>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Priority Default</label>
+            <select asp-for="priority_default" class="form-select">
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+            </select>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Status Default</label>
+            <select asp-for="status_default" class="form-select">
+                <option value="DRAFT">DRAFT</option>
+                <option value="READY">READY</option>
+            </select>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Update</button>
+    <a asp-action="Index"
+       asp-route-groupId="@Model.group_id"
+       class="btn btn-secondary">Cancel</a>
+</form>

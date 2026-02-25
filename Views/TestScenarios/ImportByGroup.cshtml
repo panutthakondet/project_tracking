@@ -1,0 +1,49 @@
+
+
+@model IEnumerable<ProjectTracking.Models.TestTemplateGroup>
+
+<h2>Import Templates by Group</h2>
+
+<form asp-action="ImportSelectedGroups" method="post">
+    <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <strong>Select Template Groups</strong>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="text-muted">No active template groups found.</div>
+            }
+            else
+            {
+                foreach (var g in Model)
+                {
+                    <div class="form-check mb-2">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="selectedGroups"
+                               value="@g.group_id"
+                               id="group_@g.group_id" />
+                        <label class="form-check-label" for="group_@g.group_id">
+                            @g.group_name
+                        </label>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary"
+                onclick="return confirm('Import selected template groups into this project?');">
+            Import Selected
+        </button>
+
+        <a asp-action="Index" asp-route-projectId="@ViewBag.ProjectId"
+           class="btn btn-secondary">
+            Cancel
+        </a>
+    </div>
+</form>

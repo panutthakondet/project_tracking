@@ -245,7 +245,10 @@
                      || CanMenu("Projects.Index")
                      || CanMenu("ProjectPhases.Index")
                      || CanMenu("PhaseAssigns.Index")
-                     || CanMenu("Meetings.Index");
+                     || CanMenu("Meetings.Index")
+                     || CanMenu("TestScenarios.Index")
+                     || CanMenu("TestScenarioTemplates.Index")
+                     || CanMenu("TestTemplateGroups.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.ViewOnly")
@@ -310,7 +313,16 @@
                         @if (canManagement)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="Projects" || controller=="ProjectPhases" || controller=="PhaseAssigns" || controller=="Meetings" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(
+                                    controller=="Employees" 
+                                    || controller=="Projects" 
+                                    || controller=="ProjectPhases" 
+                                    || controller=="PhaseAssigns" 
+                                    || controller=="Meetings" 
+                                    || controller=="TestScenarios"
+                                    || controller=="TestScenarioTemplates"
+                                    || controller=="TestTemplateGroups" 
+                                    ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">📁 จัดการโครงการ</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("Employees.Index"))
@@ -332,6 +344,18 @@
                                     @if (CanMenu("Meetings.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">📅 ปฏิทินนัดประชุม</a></li>
+                                    }
+                                    @if (CanMenu("TestScenarios.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">🧪 บันทึก Test Scenario</a></li>
+                                    }
+                                    @if (CanMenu("TestScenarioTemplates.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestScenarioTemplates" asp-action="Index">📋 จัดการ Test Scenario Template</a></li>
+                                    }
+                                    @if (CanMenu("TestTemplateGroups.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">🗂 จัดการ Template Group</a></li>
                                     }
                                 </ul>
                             </li>

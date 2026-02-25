@@ -161,6 +161,39 @@
             </div>
             }
 
+            @if (CanMenu("TestScenarios.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="TestScenarios" asp-action="Index" class="menu-card">
+                    <div class="icon">🧪</div>
+                    <div class="title">บันทึก Test Scenario</div>
+                    <div class="desc">จัดการกรณีทดสอบแยกตามโครงการ</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("TestScenarioTemplates.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="TestScenarioTemplates" asp-action="Index" class="menu-card">
+                    <div class="icon">📋</div>
+                    <div class="title">จัดการ Scenario Template</div>
+                    <div class="desc">สร้างและจัดการต้นแบบ Test Scenario</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("TestTemplateGroups.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="TestTemplateGroups" asp-action="Index" class="menu-card">
+                    <div class="icon">📦</div>
+                    <div class="title">จัดการ Template Group</div>
+                    <div class="desc">สร้างและจัดการกลุ่มของ Template</div>
+                </a>
+            </div>
+            }
+
         </div>
     </div>
 

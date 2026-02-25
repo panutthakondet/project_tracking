@@ -1,0 +1,216 @@
+@model IEnumerable<ProjectTracking.Models.TestScenario>
+
+@{
+    string StatusBadge(string status)
+    {
+        return status switch
+        {
+            "PASSED" => "bg-success",
+            "FAILED" => "bg-danger",
+            "READY"  => "bg-primary",
+            "DRAFT"  => "bg-secondary",
+            _        => "bg-dark"
+        };
+    }
+
+    var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
+}
+
+<style>
+    /* Make table wide enough to scroll when needed */
+    .scenario-table {
+        min-width: 1600px;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        --row-col: 60px;
+        --code-col: 110px;
+        --title-col: 260px;
+    }
+
+    /* Sticky first columns */
+    .sticky-col-0 {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+    }
+    .sticky-col {
+        position: sticky;
+        left: calc(var(--row-col) + 1px);
+        z-index: 5;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+    }
+    .sticky-col-2 {
+        position: sticky;
+        left: calc(var(--row-col) + var(--code-col) + 2px);
+        z-index: 5;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        box-shadow: 2px 0 5px -2px rgba(0,0,0,0.12);
+    }
+
+    th.sticky-col-0, td.sticky-col-0 {
+        width: var(--row-col);
+        min-width: var(--row-col);
+        max-width: var(--row-col);
+    }
+    th.sticky-col, td.sticky-col {
+        width: var(--code-col);
+        min-width: var(--code-col);
+        max-width: var(--code-col);
+    }
+    th.sticky-col-2, td.sticky-col-2 {
+        width: var(--title-col);
+        min-width: var(--title-col);
+        max-width: var(--title-col);
+    }
+
+    /* Keep header above body */
+    thead th { position: sticky; top: 0; z-index: 4; background: #f8f9fa; }
+
+    /* Ensure sticky body cells stay above striped rows */
+    tbody td.sticky-col-0, tbody td.sticky-col, tbody td.sticky-col-2 { z-index: 3; }
+
+    /* Improve readability for long text */
+    .multiline-cell { white-space: pre-line; vertical-align: top; }
+
+    .nowrap-cell { white-space: nowrap; }
+
+    /* Header area */
+    .page-header-card { border: 1px solid #e9ecef; border-radius: 10px; background: #fff; }
+    .page-header-card .card-body { padding: 16px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+</style>
+
+<h2 class="mb-3">Test Scenarios</h2>
+
+<div class="page-header-card mb-4">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-4">
+                    <label class="form-label">Select Group</label>
+                    <select name="groupId"
+                            class="form-select"
+                            onchange="this.form.submit()"
+                            asp-items='@(new SelectList(ViewBag.Groups, "group_id", "group_name", ViewBag.SelectedGroup))'>
+                        <option value="">-- Select Group --</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <label class="form-label">Select Project</label>
+                    <select name="projectId"
+                            class="form-select"
+                            onchange="this.form.submit()"
+                            asp-items='@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectName", ViewBag.SelectedProject))'>
+                        <option value="">-- Select Project --</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (ViewBag.SelectedProject != null)
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="toolbar">
+            <a asp-action="Create"
+               asp-route-projectId="@ViewBag.SelectedProject"
+               asp-route-groupId="@ViewBag.SelectedGroup"
+               class="btn btn-success">
+                + Add Scenario
+            </a>
+
+            <a asp-action="ImportTemplates"
+               asp-route-projectId="@ViewBag.SelectedProject"
+               asp-route-groupId="@ViewBag.SelectedGroup"
+               class="btn btn-primary"
+               onclick="return confirm('Import template ตาม Group ที่เลือกเข้าโครงการนี้?');">
+                Import Templates
+            </a>
+
+            <a asp-action="DeleteAll"
+               asp-route-projectId="@ViewBag.SelectedProject"
+               asp-route-groupId="@ViewBag.SelectedGroup"
+               class="btn btn-danger"
+               onclick="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
+                Delete All
+            </a>
+            <a asp-action="PrintReport"
+               asp-route-projectId="@ViewBag.SelectedProject"
+               asp-route-groupId="@ViewBag.SelectedGroup"
+               class="btn btn-outline-secondary"
+               target="_blank">
+                View Report
+            </a>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-dark">Total: @list.Count</span>
+            <span class="badge bg-success">Passed: @list.Count(x => x.status == "PASSED")</span>
+            <span class="badge bg-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
+            <span class="badge bg-primary">Ready: @list.Count(x => x.status == "READY")</span>
+            <span class="badge bg-secondary">Draft: @list.Count(x => x.status == "DRAFT")</span>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-sm align-middle scenario-table">
+        <thead>
+            <tr>
+                <th class="sticky-col-0" style="width:60px;">#</th>
+                <th class="sticky-col" style="width:110px;">Code</th>
+                <th class="sticky-col-2" style="width:260px;">Title</th>
+                <th style="width:110px;">Status</th>
+                <th style="width:110px;">Priority</th>
+                <th style="width:220px;">Precondition</th>
+                <th style="width:320px;">Steps</th>
+                <th style="width:320px;">Expected Result</th>
+                <th style="width:150px;">Created</th>
+                <th style="width:150px;">Updated</th>
+                <th style="width:160px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+        @{ var rowNo = 1; }
+        @foreach (var item in list)
+        {
+            <tr>
+                <td class="sticky-col-0">@rowNo</td>
+                <td class="sticky-col">@item.scenario_code</td>
+                <td class="sticky-col-2">@item.title</td>
+                <td><span class="badge @StatusBadge(item.status)">@item.status</span></td>
+                <td>@item.priority</td>
+                <td class="multiline-cell">@item.precondition</td>
+                <td class="multiline-cell">@item.steps</td>
+                <td class="multiline-cell">@item.expected_result</td>
+                <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
+                <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.scenario_id"
+                       class="btn btn-sm btn-warning">Edit</a>
+
+                    <a asp-action="Delete" asp-route-id="@item.scenario_id"
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('Delete this scenario?');">
+                       Delete
+                    </a>
+                </td>
+                @{ rowNo++; }
+            </tr>
+        }
+        </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        กรุณาเลือก Group และโครงการก่อน เพื่อดู/เพิ่ม Test Scenario
+    </div>
+}

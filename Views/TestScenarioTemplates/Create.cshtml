@@ -1,0 +1,80 @@
+@model ProjectTracking.Models.TestScenarioTemplate
+
+@{
+    bool lockGroup = ViewBag.LockGroup != null && (bool)ViewBag.LockGroup;
+}
+
+<h2>Create Template</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label class="form-label">Template Group</label>
+        @if (lockGroup)
+        {
+            <select asp-for="group_id" class="form-select" disabled>
+                <option value="">-- Select Group --</option>
+                @foreach (var g in ViewBag.Groups)
+                {
+                    <option value="@g.group_id">@g.group_name</option>
+                }
+            </select>
+            <input type="hidden" asp-for="group_id" />
+        }
+        else
+        {
+            <select asp-for="group_id" class="form-select">
+                <option value="">-- Select Group --</option>
+                @foreach (var g in ViewBag.Groups)
+                {
+                    <option value="@g.group_id">@g.group_name</option>
+                }
+            </select>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input asp-for="title" class="form-control" placeholder="เช่น: ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" required />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Precondition</label>
+        <textarea asp-for="precondition" class="form-control" rows="3" placeholder="เช่น: ผู้ใช้งานต้องมีบัญชีที่ ACTIVE และเข้าถึงหน้า Login ได้"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Steps</label>
+        <textarea asp-for="steps" class="form-control" rows="5" placeholder="1. เปิดหน้า Login
+2. กรอก Username และ Password
+3. กดปุ่ม Login" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Expected Result</label>
+        <textarea asp-for="expected_result" class="form-control" rows="5" placeholder="ระบบเข้าสู่หน้า...และแสดงชื่อผู้ใช้งานถูกต้อง" required></textarea>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Priority Default</label>
+            <select asp-for="priority_default" class="form-select">
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+            </select>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Status Default</label>
+            <select asp-for="status_default" class="form-select">
+                <option value="DRAFT">DRAFT</option>
+                <option value="READY">READY</option>
+            </select>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index"
+       asp-route-groupId="@Model.group_id"
+       class="btn btn-secondary">Cancel</a>
+</form>

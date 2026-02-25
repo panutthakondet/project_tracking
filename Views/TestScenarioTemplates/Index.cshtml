@@ -1,0 +1,147 @@
+@model IEnumerable<ProjectTracking.Models.TestScenarioTemplate>
+
+
+@{
+    var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup>
+                 ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
+}
+@{
+    int? selectedGroupId = null;
+    if (ViewBag.SelectedGroupId != null)
+    {
+        selectedGroupId = (int)ViewBag.SelectedGroupId;
+    }
+}
+
+<h2>Scenario Templates</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Filter by Group</label>
+        <select id="templateFilter" class="form-select" onchange="filterTemplates()">
+            <option value="">-- Show All --</option>
+            @foreach (var g in groups)
+            {
+                if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
+                {
+                    <option value="@g.group_id" selected>@g.group_name</option>
+                }
+                else
+                {
+                    <option value="@g.group_id">@g.group_name</option>
+                }
+            }
+        </select>
+    </div>
+</div>
+
+<a id="addTemplateBtn" href="#" class="btn btn-success mb-3">+ Add Template</a>
+
+<table class="table table-bordered table-striped table-sm align-middle">
+    <thead class="table-light">
+        <tr>
+            <th style="width:60px;">#</th>
+            <th style="width:220px;">Template Group</th>
+            <th style="width:250px;">Title</th>
+            <th style="width:120px;">Priority</th>
+            <th style="width:120px;">Status</th>
+            <th style="width:120px;">Active</th>
+            <th style="width:200px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+    @{ var rowNo = 1; }
+    @foreach (var item in Model)
+    {
+        <tr data-gid="@(item.group_id ?? 0)">
+            <td>@rowNo</td>
+            <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
+            <td>@item.title</td>
+            <td>@item.priority_default</td>
+            <td>@item.status_default</td>
+            <td>
+                @if (item.is_active)
+                {
+                    <span class="badge bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Inactive</span>
+                }
+            </td>
+            @{ rowNo++; }
+            <td>
+                <a asp-action="Edit"
+                   asp-route-id="@item.template_id"
+                   class="btn btn-sm btn-warning">Edit</a>
+
+                <a asp-action="ToggleActive"
+                   asp-route-id="@item.template_id"
+                   class="btn btn-sm btn-info">Toggle</a>
+
+                <a asp-action="Delete"
+                   asp-route-id="@item.template_id"
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('Delete this template?');">
+                   Delete
+                </a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<script>
+    function filterTemplates() {
+        var selected = document.getElementById("templateFilter").value;
+        var rows = document.querySelectorAll("tbody tr");
+
+        rows.forEach(function(row) {
+            var gid = row.getAttribute("data-gid");
+            if (!selected || gid === selected) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var serverPreset = "@(selectedGroupId?.ToString() ?? "")";
+        var storedPreset = localStorage.getItem('ScenarioTemplates.SelectedGroupId') || "";
+        var preset = serverPreset || storedPreset;
+
+        var ddl = document.getElementById("templateFilter");
+        if (ddl && preset) {
+            ddl.value = preset;
+        }
+
+        // Apply filtering based on current selection (server preset or stored)
+        if (ddl && ddl.value) {
+            filterTemplates();
+        }
+
+        // Remember selection whenever user changes the dropdown
+        if (ddl) {
+            ddl.addEventListener('change', function () {
+                localStorage.setItem('ScenarioTemplates.SelectedGroupId', ddl.value || "");
+            });
+        }
+
+        var btn = document.getElementById("addTemplateBtn");
+        if (!btn) return;
+
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            var selected = document.getElementById("templateFilter").value;
+            if (!selected) {
+                alert("กรุณาเลือก Template Group ก่อน");
+                return;
+            }
+
+            localStorage.setItem('ScenarioTemplates.SelectedGroupId', selected);
+            window.location.href = "/TestScenarioTemplates/Create?groupId=" + encodeURIComponent(selected);
+        });
+    });
+</script>

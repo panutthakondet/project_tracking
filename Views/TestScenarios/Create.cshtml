@@ -1,0 +1,94 @@
+@model ProjectTracking.Models.TestScenario
+
+<h2>Create Test Scenario</h2>
+
+<style>
+    .form-control::placeholder {
+        color: #6c757d; /* Bootstrap gray */
+        opacity: 1;
+    }
+</style>
+
+<form asp-action="Create" method="post" onsubmit="return confirm('ยืนยันการบันทึก Test Scenario นี้หรือไม่?');">
+@Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label>โครงการ</label>
+
+        @if (ViewBag.SelectedProject != null)
+        {
+            <!-- ส่งค่า project_id ไปกับ form แม้ dropdown จะถูกล็อก -->
+            <input type="hidden" asp-for="project_id" />
+
+            <select class="form-control" disabled>
+                @foreach (var p in ViewBag.Projects)
+                {
+                    if ((int)ViewBag.SelectedProject == p.ProjectId)
+                    {
+                        <option value="@p.ProjectId" selected>@p.ProjectName</option>
+                    }
+                }
+            </select>
+        }
+        else
+        {
+            <select asp-for="project_id" class="form-control">
+                @foreach (var p in ViewBag.Projects)
+                {
+                    <option value="@p.ProjectId">@p.ProjectName</option>
+                }
+            </select>
+        }
+    </div>
+
+    <div class="form-group">
+        <label>หัวข้อการทดสอบ</label>
+        <input asp-for="title" class="form-control"
+               placeholder="เช่น ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" />
+    </div>
+
+    <div class="form-group">
+        <label>เงื่อนไขก่อนเริ่มทดสอบ</label>
+        <textarea asp-for="precondition" class="form-control" rows="3"
+                  placeholder="เช่น ผู้ใช้ต้อง Login เข้าระบบแล้ว"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>ขั้นตอนการทดสอบ</label>
+        <textarea asp-for="steps" class="form-control" rows="5"
+                  placeholder="1. เปิดหน้า Login&#10;2. กรอก Username และ Password&#10;3. กดปุ่ม Login"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>ผลลัพธ์ที่ควรเกิดขึ้น</label>
+        <textarea asp-for="expected_result" class="form-control" rows="5"
+                  placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. ไม่มี error"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>ระดับความสำคัญ</label>
+        <select asp-for="priority" class="form-control">
+            <option>LOW</option>
+            <option selected>MEDIUM</option>
+            <option>HIGH</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>สถานะ</label>
+        <select asp-for="status" class="form-control">
+            <option>DRAFT</option>
+            <option>READY</option>
+            <option>PASSED</option>
+            <option>FAILED</option>
+        </select>
+    </div>
+
+    <br />
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a asp-action="Index"
+       asp-route-projectId="@ViewBag.SelectedProject"
+       asp-route-groupId="@ViewBag.SelectedGroup"
+       class="btn btn-secondary">Back</a>
+</form>

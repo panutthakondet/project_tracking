@@ -1,0 +1,113 @@
+@model IEnumerable<ProjectTracking.Models.TestScenario>
+@{
+    var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
+    string projectName = ViewBag.ProjectName as string ?? "";
+    string? groupName = ViewBag.GroupName as string;
+    var projectId = ViewBag.ProjectId;
+    var groupId = ViewBag.GroupId;
+}
+
+<div class="no-print d-flex justify-content-between align-items-center mb-3">
+    <a asp-action="Index"
+       asp-route-projectId="@projectId"
+       asp-route-groupId="@groupId"
+       class="btn btn-secondary">← Back</a>
+
+    <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
+</div>
+
+<h2 class="mb-1">QA Test Scenario Report</h2>
+<div class="text-muted mb-3">
+    <span><strong>Project:</strong> @projectName</span>
+    @if (!string.IsNullOrWhiteSpace(groupName))
+    {
+        <span> | <strong>Group:</strong> @groupName</span>
+    }
+    <span> | <strong>Printed:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+</div>
+
+<div class="mb-3">
+    <span class="badge bg-dark">Total: @list.Count</span>
+    <span class="badge bg-success">Passed: @list.Count(x => x.status == "PASSED")</span>
+    <span class="badge bg-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
+    <span class="badge bg-primary">Ready: @list.Count(x => x.status == "READY")</span>
+    <span class="badge bg-secondary">Draft: @list.Count(x => x.status == "DRAFT")</span>
+</div>
+
+<table class="table table-bordered table-sm">
+    <thead class="table-light">
+        <tr>
+            <th>#</th>
+            <th>Code</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Steps</th>
+            <th>Expected Result</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{ int i = 1; }
+        @foreach (var item in list)
+        {
+            <tr>
+                <td>@i</td>
+                <td class="text-nowrap">@item.scenario_code</td>
+                <td>@item.title</td>
+                <td class="text-nowrap">@item.status</td>
+                <td class="text-nowrap">@item.priority</td>
+                <td style="white-space:pre-line;">@item.steps</td>
+                <td style="white-space:pre-line;">@item.expected_result</td>
+            </tr>
+            i++;
+        }
+    </tbody>
+</table>
+
+<style>
+    html, body {
+        width: 100%;
+    }
+
+    table {
+        width: 100%;
+        table-layout: auto;
+        font-size: 14px;
+    }
+
+    th, td {
+        vertical-align: top;
+        word-break: break-word;
+    }
+
+    @@media print {
+        @@page {
+            size: A4 landscape;
+            margin: 3mm;
+        }
+
+        body {
+            margin: 0;
+            font-size: 14px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 3px;
+        }
+
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
+    }
+</style>

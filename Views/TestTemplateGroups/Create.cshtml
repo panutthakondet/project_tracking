@@ -1,0 +1,30 @@
+@model ProjectTracking.Models.TestTemplateGroup
+
+<h2 class="mb-4">Create Template Group</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <input type="hidden" name="groupId" value="@ViewBag.SelectedGroup" />
+            <div class="mb-3">
+                <label class="form-label">Group Name</label>
+                <input asp-for="group_name" class="form-control" required />
+                <div class="form-text text-muted">
+                    เช่น: Login Pack, CRUD Standard, Payment Flow
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a asp-action="Index"
+                   asp-route-groupId="@ViewBag.SelectedGroup"
+                   class="btn btn-secondary">
+                    ← Back
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    Save Group
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

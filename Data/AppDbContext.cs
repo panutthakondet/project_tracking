@@ -30,6 +30,13 @@ namespace ProjectTracking.Data
         public DbSet<ProjectIssueImage> ProjectIssueImages { get; set; }
         public DbSet<ProjectIssueFixImage> ProjectIssueFixImages { get; set; }
 
+        // ===== Test Scenarios =====
+        public DbSet<TestScenario> TestScenarios { get; set; }
+
+        // ===== Test Scenario Templates =====
+        public DbSet<TestScenarioTemplate> TestScenarioTemplates { get; set; }
+        public DbSet<TestTemplateGroup> TestTemplateGroups { get; set; }
+
         // ✅ Issue Status History (สำหรับ Yesterday snapshot)
         public DbSet<ProjectIssueStatusHistory> ProjectIssueStatusHistories { get; set; }
 
@@ -204,6 +211,145 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(150)");
 
                 entity.HasIndex(p => p.ProjectName);
+            });
+
+            // =========================
+            // TEST SCENARIOS
+            // =========================
+            modelBuilder.Entity<TestScenario>(entity =>
+            {
+                entity.ToTable("project_test_scenarios");
+                entity.HasKey(x => x.scenario_id);
+
+                entity.Property(x => x.scenario_id)
+                    .HasColumnName("scenario_id");
+
+                entity.Property(x => x.project_id)
+                    .HasColumnName("project_id")
+                    .IsRequired();
+
+                entity.Property(x => x.title)
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.precondition)
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
+                entity.Property(x => x.steps)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(x => x.expected_result)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(x => x.priority)
+                    .HasColumnType("varchar(10)")
+                    .HasDefaultValue("MEDIUM");
+
+                entity.Property(x => x.status)
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("DRAFT");
+
+                entity.Property(x => x.created_by)
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.created_at)
+                    .HasColumnType("datetime");
+
+                entity.Property(x => x.updated_at)
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.HasIndex(x => x.project_id);
+
+                entity.HasOne<Project>()
+                    .WithMany()
+                    .HasForeignKey(x => x.project_id)
+                    .HasPrincipalKey(p => p.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // TEST SCENARIO TEMPLATES
+            // =========================
+            modelBuilder.Entity<TestScenarioTemplate>(entity =>
+            {
+                entity.ToTable("test_scenario_templates");
+                entity.HasKey(x => x.template_id);
+
+                entity.Property(x => x.template_id)
+                    .HasColumnName("template_id");
+
+                entity.Property(x => x.group_id)
+                    .HasColumnName("group_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.title)
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.precondition)
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
+                entity.Property(x => x.steps)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(x => x.expected_result)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(x => x.priority_default)
+                    .HasColumnType("varchar(10)")
+                    .HasDefaultValue("MEDIUM");
+
+                entity.Property(x => x.status_default)
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("DRAFT");
+
+                entity.Property(x => x.is_active)
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.created_at)
+                    .HasColumnType("datetime");
+
+                entity.Property(x => x.updated_at)
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.HasOne(x => x.Group)
+                    .WithMany(g => g.Templates)
+                    .HasForeignKey(x => x.group_id)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // =========================
+            // TEST TEMPLATE GROUPS
+            // =========================
+            modelBuilder.Entity<TestTemplateGroup>(entity =>
+            {
+                entity.ToTable("test_template_groups");
+                entity.HasKey(x => x.group_id);
+
+                entity.Property(x => x.group_id)
+                    .HasColumnName("group_id");
+
+                entity.Property(x => x.group_name)
+                    .HasColumnType("varchar(200)")
+                    .IsRequired();
+
+                entity.Property(x => x.is_active)
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.created_at)
+                    .HasColumnType("datetime");
             });
 
             // =========================

@@ -21,7 +21,10 @@ namespace ProjectTracking.Middleware
                 "Dashboard",
                 "IssueDashboard",
                 "UserManagement",
-                "Meetings"
+                "Meetings",
+                "TestScenarios",
+                "TestScenarioTemplates",
+                "TestTemplateGroups"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)

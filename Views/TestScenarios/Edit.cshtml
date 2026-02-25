@@ -1,0 +1,82 @@
+@model ProjectTracking.Models.TestScenario
+
+<h2>Edit Test Scenario (@Model.scenario_code)</h2>
+
+<style>
+    .form-control::placeholder {
+        color: #6c757d;
+        opacity: 1;
+    }
+</style>
+
+<form asp-action="Edit" method="post" onsubmit="return confirm('ยืนยันการแก้ไข Test Scenario นี้หรือไม่?');">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" asp-for="scenario_id" />
+    <input type="hidden" asp-for="scenario_code" />
+    <input type="hidden" asp-for="project_id" />
+
+    <div class="form-group">
+        <label>Project</label>
+        <select class="form-control" disabled>
+            @foreach (var p in ViewBag.Projects)
+            {
+                if (p.ProjectId == Model.project_id)
+                {
+                    <option value="@p.ProjectId" selected>@p.ProjectName</option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Title</label>
+        <input asp-for="title" class="form-control"
+               placeholder="เช่น ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" />
+    </div>
+
+    <div class="form-group">
+        <label>Precondition</label>
+        <textarea asp-for="precondition" class="form-control" rows="3"
+                  placeholder="เช่น ผู้ใช้ต้อง Login เข้าระบบแล้ว"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Steps</label>
+        <textarea asp-for="steps" class="form-control" rows="5"
+                  placeholder="1. เปิดหน้า....&#10;2. กรอกข้อมูล....&#10;3. กดปุ่มบันทึก"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Expected Result</label>
+        <textarea asp-for="expected_result" class="form-control" rows="5"
+                  placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. แสดง error เมื่อข้อมูลผิด"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Priority</label>
+        <select asp-for="priority" class="form-control">
+            <option>LOW</option>
+            <option>MEDIUM</option>
+            <option>HIGH</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Status</label>
+        <select asp-for="status" class="form-control">
+            <option>DRAFT</option>
+            <option>READY</option>
+            <option>PASSED</option>
+            <option>FAILED</option>
+        </select>
+    </div>
+
+    <br />
+
+    <button type="submit" class="btn btn-primary">Update</button>
+    <a asp-action="Index"
+       asp-route-projectId="@Model.project_id"
+       asp-route-groupId="@ViewBag.SelectedGroup"
+       class="btn btn-secondary">Back</a>
+</form>

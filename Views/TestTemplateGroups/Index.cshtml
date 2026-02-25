@@ -1,0 +1,32 @@
+@model IEnumerable<ProjectTracking.Models.TestTemplateGroup>
+
+<h2>Template Groups</h2>
+
+<a asp-action="Create" class="btn btn-success mb-3">+ Add Group</a>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Group Name</th>
+            <th>Created</th>
+            <th width="150"></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var g in Model)
+    {
+        <tr>
+            <td>@g.group_name</td>
+            <td>@g.created_at.ToString("dd/MM/yyyy")</td>
+            <td>
+                <a asp-action="Delete"
+                   asp-route-id="@g.group_id"
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('Delete this group?');">
+                   Delete
+                </a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
