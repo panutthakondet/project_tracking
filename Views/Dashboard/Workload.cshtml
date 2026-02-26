@@ -4,25 +4,35 @@
 
 <h2>🔥 สถานะภาระงานพนักงาน</h2>
 
-<div style="margin-bottom:15px; display:flex; gap:20px; align-items:center;">
+<div class="filter-bar">
 
-    <div>
-        <label><b>Select Year:</b></label>
-        <select id="yearSelect" onchange="reloadTimeline()">
+    <div class="filter-group">
+        <label>From Year</label>
+        <select id="yearFrom" onchange="reloadTimeline()">
             @{
                 var currentYear = DateTime.Now.Year;
-                for(int y = currentYear - 3; y <= currentYear + 3; y++)
+                for(int y = currentYear - 5; y <= currentYear + 1; y++)
                 {
-                    <option value="@y" selected="@(y == currentYear)">
-                        @y
-                    </option>
+                    <option value="@y" selected="@(y == currentYear)">@y</option>
                 }
             }
         </select>
     </div>
 
-    <div>
-        <label><b>Select Employee:</b></label>
+    <div class="filter-group">
+        <label>To Year</label>
+        <select id="yearTo" onchange="reloadTimeline()">
+            @{
+                for(int y = currentYear - 5; y <= currentYear + 1; y++)
+                {
+                    <option value="@y" selected="@(y == currentYear)">@y</option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="filter-group employee-group">
+        <label>Select Employee</label>
         <select id="employeeSelect" onchange="renderTimeline()">
             <option value="ALL">All Employees</option>
         </select>
@@ -36,10 +46,51 @@
 
 <style>
 
+/* ===== FILTER BAR ===== */
+.filter-bar{
+    display:flex;
+    gap:24px;
+    align-items:flex-end;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+}
+
+.filter-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:120px;
+}
+
+.filter-group label{
+    font-size:12px;
+    font-weight:600;
+    color:#6b7280;
+}
+
+.filter-group select{
+    padding:6px 10px;
+    border-radius:6px;
+    border:1px solid #d1d5db;
+    font-size:14px;
+    background:#f9fafb;
+    transition:all 0.2s ease;
+}
+
+.filter-group select:focus{
+    outline:none;
+    border-color:#3b82f6;
+    box-shadow:0 0 0 2px rgba(59,130,246,0.2);
+    background:white;
+}
+
+.employee-group{
+    min-width:220px;
+}
+
 .timeline-wrapper{
     overflow:auto;
-    border:1px solid #e5e7eb;
-    height:70vh;                 /* ⭐ สำคัญ — เปิด vertical scroll */
+    height:75vh;
     position:relative;
     background:white;
 }
@@ -47,7 +98,6 @@
 /* GRID */
 .grid{
     display:grid;
-    grid-template-columns:260px repeat(48,42px);
     font-size:13px;
     min-width:max-content;
 }
@@ -144,9 +194,9 @@
 
 let globalData = [];
 
-async function loadTimeline(year){
+async function loadTimeline(yearFrom, yearTo){
 
-    const res = await fetch(`/Dashboard/GetWorkloadData?year=${year}`);
+    const res = await fetch(`/Dashboard/GetWorkloadData?yearFrom=${yearFrom}&yearTo=${yearTo}`);
     globalData = await res.json();
 
     populateEmployeeDropdown(globalData);
@@ -171,14 +221,25 @@ function renderTimeline(){
     const container = document.getElementById('timeline-container');
     const selectedEmp = document.getElementById("employeeSelect").value;
 
-    const months = [
+    const yearFrom = parseInt(document.getElementById("yearFrom").value);
+    const yearTo   = parseInt(document.getElementById("yearTo").value);
+
+    const monthNames = [
         "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
         "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
     ];
 
-    const totalWeeks = 48; // 12 x 4
+    let months = [];
 
-    let html = `<div class="grid">`;
+    for(let y = yearFrom; y <= yearTo; y++){
+        for(let m = 1; m <= 12; m++){
+            months.push({ year: y, month: m, name: `${monthNames[m-1]} ${y}` });
+        }
+    }
+
+    const totalWeeks = months.length * 4;
+
+    let html = `<div class="grid" style="grid-template-columns:260px repeat(${totalWeeks},42px);">`;
 
     /* ========= HEADER ========= */
 
@@ -186,7 +247,7 @@ function renderTimeline(){
 
     // เดือน (เดือนละ 4 ช่อง)
     months.forEach(m=>{
-        html += `<div class="header-month" style="grid-column: span 4;">${m}</div>`;
+        html += `<div class="header-month" style="grid-column: span 4;">${m.name}</div>`;
     });
 
     html += `<div></div>`;
@@ -232,7 +293,16 @@ function renderTimeline(){
 
             for(let w=1; w<=totalWeeks; w++){
 
-                const weekData = empData.find(x => x.week_No === w);
+                const monthIndex = Math.floor((w-1)/4);
+                const weekInMonth = ((w-1)%4)+1;
+
+                const currentMonth = months[monthIndex];
+
+                const weekData = empData.find(x => 
+                    x.year_No === currentMonth.year &&
+                    x.month_No === currentMonth.month &&
+                    x.week_No === weekInMonth
+                );
 
                 let active = false;
 
@@ -256,13 +326,21 @@ function renderTimeline(){
 }
 
 function reloadTimeline(){
-    const year = document.getElementById("yearSelect").value;
-    loadTimeline(year);
+    const yearFrom = document.getElementById("yearFrom").value;
+    const yearTo = document.getElementById("yearTo").value;
+
+    if(parseInt(yearFrom) > parseInt(yearTo)){
+        alert("From Year must be less than or equal to To Year");
+        return;
+    }
+
+    loadTimeline(yearFrom, yearTo);
 }
 
 document.addEventListener("DOMContentLoaded", function(){
-    const year = document.getElementById("yearSelect").value;
-    loadTimeline(year);
+    const yearFrom = document.getElementById("yearFrom").value;
+    const yearTo = document.getElementById("yearTo").value;
+    loadTimeline(yearFrom, yearTo);
 });
 
 </script>
