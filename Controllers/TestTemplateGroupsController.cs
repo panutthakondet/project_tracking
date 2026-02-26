@@ -6,8 +6,7 @@ using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("TEST_TEMPLATE_GROUP")]
-    public class TestTemplateGroupsController : Controller
+    public class TestTemplateGroupsController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -16,6 +15,7 @@ namespace ProjectTracking.Controllers
             _context = context;
         }
 
+        [RequireMenu("TestTemplateGroups.Index")]
         public async Task<IActionResult> Index()
         {
             var groups = await _context.TestTemplateGroups
@@ -25,6 +25,7 @@ namespace ProjectTracking.Controllers
             return View(groups);
         }
 
+        [RequireMenu("TestTemplateGroups.Index")]
         public IActionResult Create(int? groupId)
         {
             ViewBag.SelectedGroup = groupId;
@@ -32,6 +33,8 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestTemplateGroups.Index")]
         public async Task<IActionResult> Create(TestTemplateGroup model, int? groupId)
         {
             if (!ModelState.IsValid)
@@ -46,6 +49,9 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index), new { groupId });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestTemplateGroups.Index")]
         public async Task<IActionResult> Delete(int id)
         {
             var group = await _context.TestTemplateGroups.FindAsync(id);

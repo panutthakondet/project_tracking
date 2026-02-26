@@ -77,6 +77,12 @@ else
         }
     </div>
 
+    @if (!issueList.Any())
+    {
+        <div class="alert alert-warning">ไม่พบรายการ Issue สำหรับ Project นี้</div>
+    }
+    else
+    {
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark text-center">
@@ -166,7 +172,7 @@ else
                         <td>
                             @foreach (var img in i.Images ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueImage>())
                             {
-                                <a href="@img.FilePath" target="_blank">
+                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
                                     <img src="@img.FilePath" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;" />
                                 </a>
                             }
@@ -175,7 +181,7 @@ else
                         <td>
                             @foreach (var img in i.FixImages ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueFixImage>())
                             {
-                                <a href="@img.FilePath" target="_blank">
+                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
                                     <img src="@img.FilePath" class="img-thumbnail border-success" style="width:60px;height:60px;object-fit:cover;" />
                                 </a>
                             }
@@ -188,6 +194,7 @@ else
             </tbody>
         </table>
     </div>
+    }
 }
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -202,3 +209,8 @@ $(function () {
     $('#empSelect').on('change', function () { $('#filterForm').submit(); });
 });
 </script>
+<style>
+    table td {
+        word-break: break-word;
+    }
+</style>

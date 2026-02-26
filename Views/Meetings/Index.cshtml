@@ -127,6 +127,10 @@
         </div>
     </div>
 
+    <form id="antiForgeryForm" method="post">
+        @Html.AntiForgeryToken()
+    </form>
+
     <div class="calendar-card">
         <div class="calendar-card__toolbar">
             <div class="toolbar-left">
@@ -208,15 +212,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
         eventDidMount: function(info) {
             const props = info.event.extendedProps || {};
-            const location = props.location ? `📍 ${props.location}<br>` : '';
-            const project = props.projectName ? `📁 ${props.projectName}<br>` : '';
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text || '';
+                return div.innerHTML;
+            }
+
+            const safeTitle = escapeHtml(info.event.title);
+            const safeProject = props.projectName ? `📁 ${escapeHtml(props.projectName)}<br>` : '';
+            const safeLocation = props.location ? `📍 ${escapeHtml(props.location)}<br>` : '';
             const start = info.event.start ? info.event.start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
             const end = info.event.end ? info.event.end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
             const time = start && end ? `⏰ ${start} - ${end}` : '';
 
             const tooltip = document.createElement('div');
             tooltip.className = 'fc-tooltip';
-            tooltip.innerHTML = `<strong>${info.event.title}</strong><br>${project}${location}${time}`;
+            tooltip.innerHTML = `<strong>${safeTitle}</strong><br>${safeProject}${safeLocation}${time}`;
             document.body.appendChild(tooltip);
             tooltip.style.display = 'none';
 
@@ -244,7 +255,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/Meetings/Move', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
             },
             body: JSON.stringify({
                 id: event.id,

@@ -18,6 +18,12 @@
 
 <a asp-action="Create" class="btn btn-success mb-3">+ Add Group</a>
 
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-warning">ไม่พบ Template Group</div>
+    return;
+}
+
 <table class="table table-bordered group-table">
     <thead>
         <tr>
@@ -33,12 +39,14 @@
             <td>@g.group_name</td>
             <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
             <td class="text-center-col">
-                <a asp-action="Delete"
-                   asp-route-id="@g.group_id"
-                   class="btn btn-sm btn-danger"
-                   onclick="return confirm('Delete this group?');">
-                   Delete
-                </a>
+                <form asp-action="Delete"
+                      asp-route-id="@g.group_id"
+                      method="post"
+                      style="display:inline;"
+                      onsubmit="return confirm('Delete this group?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
             </td>
         </tr>
     }

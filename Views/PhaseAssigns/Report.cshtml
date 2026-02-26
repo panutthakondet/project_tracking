@@ -55,7 +55,12 @@
     </div>
 </form>
 
-<!-- TABLE -->
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</div>
+}
+else
+{
 <table class="table table-bordered table-hover align-middle">
     <thead class="table-dark text-center">
         <tr>
@@ -85,6 +90,13 @@
     }
     </tbody>
 </table>
+}
+
+<style>
+    td {
+        word-break: break-word;
+    }
+</style>
 
 @section Scripts {
 <script>

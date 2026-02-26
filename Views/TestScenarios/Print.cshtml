@@ -11,7 +11,8 @@
     <a asp-action="Index"
        asp-route-projectId="@projectId"
        asp-route-groupId="@groupId"
-       class="btn btn-secondary">← Back</a>
+       class="btn btn-secondary"
+       rel="noopener noreferrer">← Back</a>
 
     <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
 </div>
@@ -33,6 +34,12 @@
     <span class="badge bg-primary">Ready: @list.Count(x => x.status == "READY")</span>
     <span class="badge bg-secondary">Draft: @list.Count(x => x.status == "DRAFT")</span>
 </div>
+
+@if (!list.Any())
+{
+    <div class="alert alert-warning">ไม่พบ Test Scenario สำหรับการพิมพ์</div>
+    return;
+}
 
 <table class="table table-bordered table-sm">
     <thead class="table-light">

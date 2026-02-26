@@ -33,6 +33,7 @@
             border: 1px solid #000;
             padding: 4px;
             vertical-align: top;
+            word-break: break-word;
         }
 
         th {
@@ -54,8 +55,14 @@
 <div class="meta">
     <b>Project:</b> @(ViewBag.ProjectName ?? "All") <br />
     <b>Employee:</b> @(ViewBag.EmpName ?? "All") <br />
-    <b>Printed:</b> @ViewBag.PrintDate.ToString("dd/MM/yyyy HH:mm")
+    <b>Printed:</b> @((ViewBag.PrintDate as DateTime?)?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy HH:mm"))
 </div>
+
+@if (Model == null || !Model.Any())
+{
+    <div style="text-align:center; margin-top:20px;">ไม่พบข้อมูลสำหรับการพิมพ์</div>
+    return;
+}
 
 <table>
     <thead>

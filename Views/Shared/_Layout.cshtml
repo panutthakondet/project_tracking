@@ -388,7 +388,9 @@
                         @if (canReports)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="PhaseAssigns" && action=="Print" || controller=="PhaseStatusReport" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(
+                                    ((controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport")
+                                        ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">📄 รายงาน</a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("PhaseAssigns.Print"))

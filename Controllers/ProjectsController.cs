@@ -6,7 +6,6 @@ using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("Projects.Index")]
     public class ProjectsController : BaseController
     {
         private readonly AppDbContext _context;
@@ -23,6 +22,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // LIST
         // ===========================
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Index()
         {
             var projects = await _context.Projects
@@ -38,6 +38,7 @@ namespace ProjectTracking.Controllers
         // VIEW ONLY (Standalone page)
         // ===========================
         [HttpGet]
+        [RequireMenu("Projects.ViewOnly")]
         public async Task<IActionResult> ViewOnly()
         {
             var projects = await _context.Projects
@@ -52,6 +53,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // CREATE (GET)
         // ===========================
+        [RequireMenu("Projects.Index")]
         public IActionResult Create()
         {
             return View(new Project());
@@ -62,6 +64,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Create(
             Project project,
             IFormFile? torFile
@@ -110,6 +113,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // EDIT (GET)
         // ===========================
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Edit(int id)
         {
             var project = await _context.Projects.FindAsync(id);
@@ -126,6 +130,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Edit(
             int id,
             Project model,
@@ -201,6 +206,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // DELETE (GET)
         // ===========================
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Delete(int id)
         {
             var project = await _context.Projects.FindAsync(id);
@@ -217,6 +223,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [RequireMenu("Projects.Index")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var project = await _context.Projects.FindAsync(id);

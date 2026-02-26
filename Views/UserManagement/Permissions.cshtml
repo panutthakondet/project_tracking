@@ -7,7 +7,11 @@
 
     var username = (ViewBag.Username as string ?? "").Trim();
     var allMenus = ViewBag.AllMenus as List<(string Key, string Label)> ?? new List<(string, string)>();
-    var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var selectedRaw = ViewBag.SelectedMenus as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selected = new HashSet<string>(
+        selectedRaw.Select(x => (x ?? "").Trim()).Where(x => !string.IsNullOrWhiteSpace(x)),
+        StringComparer.OrdinalIgnoreCase
+    );
 }
 
 @{

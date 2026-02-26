@@ -15,8 +15,8 @@
             <div class="text-muted">ข้อมูลการประชุมที่บันทึกไว้</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-outline-secondary" href="/Meetings">← กลับไปปฏิทิน</a>
-            <a class="btn btn-warning" href="/Meetings/Edit/@Model.Id">✏️ แก้ไข</a>
+            <a class="btn btn-outline-secondary" asp-controller="Meetings" asp-action="Index">← กลับไปปฏิทิน</a>
+            <a class="btn btn-warning" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id">✏️ แก้ไข</a>
             <form asp-action="Cancel" asp-controller="Meetings" method="post"
                   onsubmit="return confirm('ยืนยันการยกเลิกการประชุมนี้ ?');" style="display:inline;">
                 @Html.AntiForgeryToken()

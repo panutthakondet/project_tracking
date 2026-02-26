@@ -494,7 +494,7 @@ namespace ProjectTracking.Controllers
         // PRINT FORM
         // =====================================================
         [HttpGet]
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Print")]
         public async Task<IActionResult> Form(int id)
         {
             // ✅ FIX: ไม่ใช้ Include(a => a.Phase) / ThenInclude(Project) เพื่อเลี่ยง PhaseId2

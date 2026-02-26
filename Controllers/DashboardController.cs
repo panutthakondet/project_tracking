@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using MySqlConnector;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
@@ -15,12 +16,14 @@ namespace ProjectTracking.Controllers
         }
 
         // หน้า Dashboard
+        [RequireMenu("Dashboard.Workload")]
         public IActionResult Workload()
         {
             return View();
         }
 
         // API สำหรับ Heatmap
+        [RequireMenu("Dashboard.Workload")]
         [HttpGet]
         public async Task<IActionResult> GetWorkloadData(int year = 2026)
         {

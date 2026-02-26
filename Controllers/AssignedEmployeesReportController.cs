@@ -5,7 +5,6 @@ using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("PhaseAssigns.Print")]
     public class AssignedEmployeesReportController : BaseController
     {
         private readonly AppDbContext _context;
@@ -18,6 +17,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // VIEW ONLY
         // =========================
+        [RequireMenu("PhaseAssigns.Print")]
         public async Task<IActionResult> Index(int? projectId, int? empId)
         {
             ViewBag.Projects = await _context.Projects
@@ -59,6 +59,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // PRINT
         // =========================
+        [RequireMenu("PhaseAssigns.Print")]
         public async Task<IActionResult> Print(int? projectId, int? empId)
         {
             var query = _context.PhaseAssigns

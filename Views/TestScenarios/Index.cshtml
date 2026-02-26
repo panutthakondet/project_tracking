@@ -148,18 +148,21 @@
                 Import Templates
             </a>
 
-            <a asp-action="DeleteAll"
-               asp-route-projectId="@ViewBag.SelectedProject"
-               asp-route-groupId="@ViewBag.SelectedGroup"
-               class="btn btn-danger"
-               onclick="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
-                Delete All
-            </a>
+            <form asp-action="DeleteAll"
+                  asp-route-projectId="@ViewBag.SelectedProject"
+                  asp-route-groupId="@ViewBag.SelectedGroup"
+                  method="post"
+                  style="display:inline;"
+                  onsubmit="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">Delete All</button>
+            </form>
             <a asp-action="PrintReport"
                asp-route-projectId="@ViewBag.SelectedProject"
                asp-route-groupId="@ViewBag.SelectedGroup"
                class="btn btn-outline-secondary"
-               target="_blank">
+               target="_blank"
+               rel="noopener noreferrer">
                 View Report
             </a>
         </div>
@@ -209,11 +212,14 @@
                     <a asp-action="Edit" asp-route-id="@item.scenario_id"
                        class="btn btn-sm btn-warning">Edit</a>
 
-                    <a asp-action="Delete" asp-route-id="@item.scenario_id"
-                       class="btn btn-sm btn-danger"
-                       onclick="return confirm('Delete this scenario?');">
-                       Delete
-                    </a>
+                    <form asp-action="Delete"
+                          asp-route-id="@item.scenario_id"
+                          method="post"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this scenario?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
                 </td>
                 @{ rowNo++; }
             </tr>

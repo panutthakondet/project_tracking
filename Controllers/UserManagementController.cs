@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
@@ -51,6 +52,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
+        [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Index()
         {
             var guard = GuardAdmin();
@@ -65,6 +67,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
+        [RequireMenu("UserManagement.Index")]
         public IActionResult Create()
         {
             var guard = GuardAdmin();
@@ -76,6 +79,7 @@ namespace ProjectTracking.Controllers
         // ✅ CREATE POST (hash password + create verify token)
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Create(
             string username,
             string email,
@@ -220,6 +224,7 @@ namespace ProjectTracking.Controllers
         // EDIT (GET)
         // =====================================================
         [HttpGet]
+        [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Edit(string username)
         {
             var guard = GuardAdmin();
@@ -244,6 +249,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Edit(
             string originalUsername,
             string email,
@@ -339,6 +345,7 @@ namespace ProjectTracking.Controllers
         // PERMISSIONS (GET)
         // =====================================================
         [HttpGet]
+        [RequireMenu("UserManagement.Permissions")]
         public async Task<IActionResult> Permissions(string username)
         {
             var guard = GuardAdmin();
@@ -379,7 +386,10 @@ namespace ProjectTracking.Controllers
 
             var selected = await _context.UserMenus
                 .AsNoTracking()
-                .Where(x => x.Username == username && x.MenuKey != null && x.MenuKey != "")
+                .Where(x => x.Username != null
+                         && x.Username.Trim().ToLower() == username.ToLower()
+                         && x.MenuKey != null
+                         && x.MenuKey.Trim() != "")
                 .Select(x => x.MenuKey)
                 .ToListAsync();
 
@@ -400,6 +410,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("UserManagement.Permissions")]
         public async Task<IActionResult> Permissions(string username, List<string>? menus)
         {
             var guard = GuardAdmin();
@@ -413,7 +424,7 @@ namespace ProjectTracking.Controllers
             if (!userExists) return NotFound();
 
             var oldRows = await _context.UserMenus
-                .Where(x => x.Username == username)
+                .Where(x => x.Username != null && x.Username.Trim().ToLower() == username.ToLower())
                 .ToListAsync();
 
             if (oldRows.Any())
@@ -445,6 +456,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Delete(string username)
         {
             var guard = GuardAdmin();
@@ -471,7 +483,9 @@ namespace ProjectTracking.Controllers
             }
 
             // Remove permissions first
-            var menus = await _context.UserMenus.Where(x => x.Username == username).ToListAsync();
+            var menus = await _context.UserMenus
+                .Where(x => x.Username != null && x.Username.Trim().ToLower() == username.ToLower())
+                .ToListAsync();
             if (menus.Any())
                 _context.UserMenus.RemoveRange(menus);
 

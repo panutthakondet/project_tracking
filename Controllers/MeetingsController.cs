@@ -7,10 +7,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    public class MeetingsController : Controller
+    [RequireMenu("Meetings.Index")]
+    public class MeetingsController : BaseController
     {
         private readonly AppDbContext _context;
 

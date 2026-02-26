@@ -24,6 +24,10 @@
 .col-images{ min-width:260px; }
 .col-fiximages{ min-width:260px; }
 .col-action{ width:120px; min-width:120px; text-align:center; }
+
+.issue-table td {
+    word-break: break-word;
+}
 </style>
 
 <div class="mb-3">
@@ -65,6 +69,11 @@
 }
 else
 {
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-warning">ไม่พบรายการ Issue</div>
+        return;
+    }
     <div class="issue-table-wrapper">
         <table class="table table-bordered table-hover align-middle issue-table">
             <thead class="table-dark text-center">
@@ -122,7 +131,7 @@ else
                         {
                             @foreach (var img in i.Images)
                             {
-                                <a href="@img.FilePath" target="_blank"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" /></a>
+                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" /></a>
                             }
                         }
                     </td>
@@ -132,7 +141,7 @@ else
                         {
                             @foreach (var img in i.FixImages)
                             {
-                                <a href="@img.FilePath" target="_blank"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" /></a>
+                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" /></a>
                             }
                         }
                     </td>

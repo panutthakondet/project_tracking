@@ -6,7 +6,6 @@ using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("Employees.Index")]
     public class EmployeesController : BaseController
     {
         private readonly AppDbContext _context;
@@ -20,6 +19,7 @@ namespace ProjectTracking.Controllers
         // GET: /Employees
         // แสดงเฉพาะพนักงาน ACTIVE
         // ===========================
+        [RequireMenu("Employees.Index")]
         public async Task<IActionResult> Index()
         {
             var employees = await _context.Employees
@@ -34,6 +34,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Create
         // ===========================
+        [RequireMenu("Employees.Index")]
         public IActionResult Create()
         {
             return View();
@@ -59,6 +60,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Edit/5
         // ===========================
+        [RequireMenu("Employees.Index")]
         public async Task<IActionResult> Edit(int id)
         {
             var employee = await _context.Employees.FindAsync(id);
@@ -95,6 +97,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Delete/5
         // ===========================
+        [RequireMenu("Employees.Index")]
         public async Task<IActionResult> Delete(int id)
         {
             var employee = await _context.Employees

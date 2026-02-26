@@ -37,6 +37,9 @@
         user-select: none;
         display: inline-block;
     }
+    table td {
+        word-break: break-word;
+    }
 </style>
 
 <h2 class="fw-bold mb-3">🧩 บันทึกข้อมูลแผนงานและงวดงาน</h2>
@@ -66,7 +69,7 @@
                 style="display:none;">
             <option value="">-- Select Project --</option>
 
-            @foreach (var p in ViewBag.Projects)
+            @foreach (var p in (ViewBag.Projects ?? new List<dynamic>()))
             {
                 <option value="@p.ProjectId"
                         data-end-date="@(p.EndDate?.ToString("yyyy-MM-dd") ?? "")"

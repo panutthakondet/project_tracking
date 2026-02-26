@@ -6,8 +6,7 @@ using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("TEST_SCENARIO_TEMPLATE")]
-    public class TestScenarioTemplatesController : Controller
+    public class TestScenarioTemplatesController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -19,6 +18,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // INDEX
         // =========================
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Index(int? groupId)
         {
             var templates = await _context.TestScenarioTemplates
@@ -37,6 +37,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // CREATE (GET)
         // =========================
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Create(int? groupId)
         {
             ViewBag.Groups = await _context.TestTemplateGroups
@@ -60,6 +61,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Create(TestScenarioTemplate model)
         {
             if (!ModelState.IsValid)
@@ -101,6 +103,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // EDIT (GET)
         // =========================
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Edit(int id)
         {
             var template = await _context.TestScenarioTemplates
@@ -121,6 +124,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Edit(TestScenarioTemplate model)
         {
             if (!ModelState.IsValid)
@@ -158,6 +162,9 @@ namespace ProjectTracking.Controllers
         // =========================
         // DELETE
         // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Delete(int id)
         {
             var template = await _context.TestScenarioTemplates
@@ -177,6 +184,9 @@ namespace ProjectTracking.Controllers
         // =========================
         // TOGGLE ACTIVE
         // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> ToggleActive(int id)
         {
             var template = await _context.TestScenarioTemplates

@@ -31,6 +31,7 @@
             border: 1px solid #000;
             padding: 4px;
             vertical-align: top;
+            word-break: break-word;
         }
 
         th { background: #eee; }
@@ -53,9 +54,15 @@
 
 <div class="meta">
     <b>Project:</b> @projectName <br />
-    <b>Printed:</b> @printDate.ToString("dd/MM/yyyy HH:mm") <br />
+    <b>Printed:</b> @((printDate).ToString("dd/MM/yyyy HH:mm")) <br />
     <b>🔁 Reopen Total:</b> <span class="reopen">@totalReopen ครั้ง</span>
 </div>
+
+@if (issues == null)
+{
+    <div style="text-align:center; margin-top:20px;">ไม่พบข้อมูลสำหรับการพิมพ์</div>
+    return;
+}
 
 <table>
     <thead>

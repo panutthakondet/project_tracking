@@ -26,6 +26,10 @@
 .col-action{ width:190px; min-width:190px; text-align:center; }
 
 .reopen-badge{ font-size:11px; padding:3px 7px; border-radius:6px; margin-left:6px; }
+
+.issue-table td {
+    word-break: break-word;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -80,6 +84,12 @@
 }
 else
 {
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-warning">ไม่พบรายการ Issue</div>
+        return;
+    }
+
     <div class="issue-table-wrapper">
         <table class="table table-bordered table-hover align-middle issue-table">
             <thead class="table-dark text-center">
@@ -179,7 +189,7 @@ else
                     <td class="col-images">
                         @foreach (var img in i.Images)
                         {
-                            <a href="@img.FilePath" target="_blank">
+                            <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
                                 <img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" />
                             </a>
                         }
@@ -188,7 +198,7 @@ else
                     <td class="col-fiximages">
                         @foreach (var img in i.FixImages)
                         {
-                            <a href="@img.FilePath" target="_blank">
+                            <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
                                 <img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" />
                             </a>
                         }

@@ -73,7 +73,7 @@
     </div>
 </form>
 
-@if (!Model.Any())
+@if (Model == null || !Model.Any())
 {
     <div class="alert alert-warning">
         ไม่มีข้อมูล Timeline
@@ -94,7 +94,7 @@ google.charts.setOnLoadCallback(drawChart);
 
 function drawChart() {
 
-    const rows = @Html.Raw(json);
+    const rows = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(json))');
 
     var data = new google.visualization.DataTable();
 
@@ -152,5 +152,9 @@ function drawChart() {
 
 #gantt_chart {
     min-width: 5400px;
+}
+
+#gantt_chart text {
+    word-break: break-word;
 }
 </style>

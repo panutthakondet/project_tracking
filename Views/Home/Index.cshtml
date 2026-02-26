@@ -246,6 +246,17 @@
             </div>
             }
 
+            @if (CanMenu("PhaseStatusReport.Timeline"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="PhaseStatusReport" asp-action="Timeline" class="menu-card">
+                    <div class="icon">🗓️</div>
+                    <div class="title">Timeline / Gantt</div>
+                    <div class="desc">มุมมองไทม์ไลน์และแผนภูมิ Gantt</div>
+                </a>
+            </div>
+            }
+
             @if (CanMenu("Dashboard.Workload"))
             {
             <div class="col-md-3">

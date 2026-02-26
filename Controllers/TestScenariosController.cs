@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 
 namespace ProjectTracking.Controllers
 {
-    [RequireMenu("TEST_SCENARIO")]
-    public class TestScenariosController : Controller
+    public class TestScenariosController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -23,6 +22,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // INDEX (บังคับเลือก Project ก่อน)
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Index(int? groupId, int? projectId)
         {
             ViewBag.Groups = await _context.TestTemplateGroups
@@ -73,6 +73,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // CREATE (GET)
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public IActionResult Create(int? projectId, int? groupId)
         {
             ViewBag.Projects = _context.Projects
@@ -100,6 +101,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Create(TestScenario model, int? groupId)
         {
             // สร้าง TC001 แยกตาม Project (generate ก่อน validation)
@@ -134,6 +136,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // EDIT
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Edit(int id, int? groupId)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
@@ -152,6 +155,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Edit(TestScenario model, int? groupId)
         {
             if (!ModelState.IsValid)
@@ -174,6 +178,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // DELETE
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Delete(int id, int? groupId)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
@@ -188,6 +193,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // IMPORT TEMPLATES INTO PROJECT
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> ImportTemplates(int projectId, int? groupId)
         {
             // ดึง template ที่ active เท่านั้น (และกรองตาม Group ถ้ามีการเลือก)
@@ -244,6 +250,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // DELETE ALL SCENARIOS IN PROJECT
         // =========================
+        [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> DeleteAll(int projectId, int? groupId)
         {
             var scenarios = await _context.TestScenarios
@@ -262,6 +269,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // PRINTABLE QA REPORT
         // =========================
+        [RequireMenu("TestScenarios.ViewOnly")]
         public async Task<IActionResult> PrintReport(int projectId, int? groupId)
         {
             var scenarios = await _context.TestScenarios

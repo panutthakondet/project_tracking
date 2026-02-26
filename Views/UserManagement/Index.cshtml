@@ -74,8 +74,10 @@
                         <a asp-action="Edit" asp-route-username="@u.Username" class="btn btn-sm btn-outline-secondary" style="border-radius:12px; font-weight:800; margin-right:6px;">✏️ Edit</a>
                         <a asp-action="Permissions" asp-route-username="@u.Username" class="btn btn-sm btn-outline-primary" style="border-radius:12px; font-weight:800; margin-right:6px;">🔐 Menus</a>
 
-                        <form asp-action="Delete" method="post" class="d-inline">
-                            <input type="hidden" name="username" value="@u.Username" />
+                        <form asp-action="Delete"
+                              asp-route-username="@u.Username"
+                              method="post"
+                              class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit"
                                     class="btn btn-sm btn-outline-danger"
@@ -91,3 +93,8 @@
         </tbody>
     </table>
 </div>
+<style>
+    table td {
+        word-break: break-word;
+    }
+</style>

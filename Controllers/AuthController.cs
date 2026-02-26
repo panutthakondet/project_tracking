@@ -99,11 +99,20 @@ namespace ProjectTracking.Controllers
             HttpContext.Session.SetString("Role", user.Role ?? "");
 
             // ✅ Load menu permissions for this user
-            var menus = await _context.UserMenus
+            // NOTE: Normalize username/menu keys (trim + case-insensitive) to avoid missing permissions
+            var uname = (user.Username ?? "").Trim();
+
+            var menusRaw = await _context.UserMenus
                 .AsNoTracking()
-                .Where(x => x.Username == (user.Username ?? ""))
+                .Where(x => x.Username != null && x.Username.Trim().ToLower() == uname.ToLower())
                 .Select(x => x.MenuKey)
                 .ToListAsync();
+
+            var menus = menusRaw
+                .Select(m => (m ?? "").Trim())
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             HttpContext.Session.SetString("Menus", string.Join(",", menus));
 

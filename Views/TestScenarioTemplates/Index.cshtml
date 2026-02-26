@@ -53,6 +53,12 @@
 
 <a id="addTemplateBtn" href="#" class="btn btn-success mb-3">+ Add Template</a>
 
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-warning">ไม่พบ Scenario Template</div>
+    return;
+}
+
 <table class="table table-bordered table-striped table-sm align-middle template-table">
     <thead>
         <tr>
@@ -91,16 +97,22 @@
                    asp-route-id="@item.template_id"
                    class="btn btn-sm btn-warning">Edit</a>
 
-                <a asp-action="ToggleActive"
-                   asp-route-id="@item.template_id"
-                   class="btn btn-sm btn-info">Toggle</a>
+                <form asp-action="ToggleActive"
+                      asp-route-id="@item.template_id"
+                      method="post"
+                      style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-info">Toggle</button>
+                </form>
 
-                <a asp-action="Delete"
-                   asp-route-id="@item.template_id"
-                   class="btn btn-sm btn-danger"
-                   onclick="return confirm('Delete this template?');">
-                   Delete
-                </a>
+                <form asp-action="Delete"
+                      asp-route-id="@item.template_id"
+                      method="post"
+                      style="display:inline;"
+                      onsubmit="return confirm('Delete this template?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
             </td>
         </tr>
     }
