@@ -94,7 +94,12 @@ google.charts.setOnLoadCallback(drawChart);
 
 function drawChart() {
 
-    const rows = JSON.parse('@Html.Raw(System.Text.Json.JsonSerializer.Serialize(json))');
+    const rows = @Html.Raw(json);
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+        document.getElementById('gantt_chart').innerHTML = '<div class="alert alert-warning">ไม่มีข้อมูล Timeline</div>';
+        return;
+    }
 
     var data = new google.visualization.DataTable();
 

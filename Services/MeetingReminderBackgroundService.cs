@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
 
             await db.Database.ExecuteSqlRawAsync(createLogSql, ct);
 
-            // 2) Find meetings starting ~1 day from now
+            // 2) Find meetings scheduled for tomorrow (full-day match, no minute window)
             const string meetingsSql = @"
 SELECT
   id,
@@ -81,8 +81,7 @@ SELECT
   location,
   TIMESTAMP(meeting_date, start_time) AS start_at
 FROM meetings
-WHERE TIMESTAMP(meeting_date, start_time) >= DATE_ADD(NOW(), INTERVAL 1 DAY)
-  AND TIMESTAMP(meeting_date, start_time) <= DATE_ADD(DATE_ADD(NOW(), INTERVAL 1 DAY), INTERVAL @win MINUTE);";
+WHERE DATE(meeting_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY);";
 
             var meetings = new List<(int Id, string Title, string? Description, string? Location, DateTime StartAt)>();
 
@@ -93,11 +92,6 @@ WHERE TIMESTAMP(meeting_date, start_time) >= DATE_ADD(NOW(), INTERVAL 1 DAY)
 
                 await using var cmd = conn.CreateCommand();
                 cmd.CommandText = meetingsSql;
-
-                var pWin = cmd.CreateParameter();
-                pWin.ParameterName = "@win";
-                pWin.Value = WINDOW_MINUTES;
-                cmd.Parameters.Add(pWin);
 
                 await using var reader = await cmd.ExecuteReaderAsync(ct);
                 while (await reader.ReadAsync(ct))
@@ -113,7 +107,7 @@ WHERE TIMESTAMP(meeting_date, start_time) >= DATE_ADD(NOW(), INTERVAL 1 DAY)
 
             if (meetings.Count == 0)
             {
-                _logger.LogInformation("🔔 No meetings needing 1-day reminder (window {WindowMinutes} min)", WINDOW_MINUTES);
+                _logger.LogInformation("🔔 No meetings scheduled for tomorrow (1-day reminder)");
                 return;
             }
 
