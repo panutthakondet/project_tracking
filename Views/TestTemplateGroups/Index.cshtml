@@ -29,6 +29,7 @@
         <tr>
             <th>Group Name</th>
             <th class="text-center-col">Created</th>
+            <th width="100" class="text-center-col">Edit</th>
             <th width="150" class="text-center-col">Delete</th>
         </tr>
     </thead>
@@ -38,6 +39,11 @@
         <tr>
             <td>@g.group_name</td>
             <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
+            <td class="text-center-col">
+                <a asp-action="Edit"
+                   asp-route-id="@g.group_id"
+                   class="btn btn-sm btn-warning">Edit</a>
+            </td>
             <td class="text-center-col">
                 <form asp-action="Delete"
                       asp-route-id="@g.group_id"

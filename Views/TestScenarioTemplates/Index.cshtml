@@ -31,6 +31,16 @@
         text-align: center;
         vertical-align: middle;
     }
+
+    /* Make wide tables scroll horizontally without breaking the page */
+    .template-table {
+        min-width: 1400px; /* forces horizontal scroll inside the wrapper */
+    }
+
+    /* Improve readability for long text */
+    .template-table td {
+        vertical-align: top;
+    }
 </style>
 
 <h2>Scenario Templates</h2>
@@ -63,16 +73,20 @@
 }
 else
 {
+    <div class="table-responsive">
     <table class="table table-bordered table-striped table-sm align-middle template-table">
     <thead>
         <tr>
-            <th style="width:60px;">#</th>
-            <th style="width:220px;">Template Group</th>
-            <th style="width:250px;">Title</th>
-            <th style="width:120px;" class="text-center-col">Priority</th>
-            <th style="width:120px;" class="text-center-col">Status</th>
-            <th style="width:120px;" class="text-center-col">Active</th>
-            <th style="width:200px;" class="text-center-col">Edit / Toggle / Delete</th>
+            <th style="min-width:60px;">#</th>
+            <th style="min-width:180px;">Template Group</th>
+            <th style="min-width:180px;">Title</th>
+            <th style="min-width:220px;">Precondition</th>
+            <th style="min-width:320px;">Steps</th>
+            <th style="min-width:220px;">Expected Result</th>
+            <th style="min-width:90px;" class="text-center-col">Priority</th>
+            <th style="min-width:90px;" class="text-center-col">Status</th>
+            <th style="min-width:90px;" class="text-center-col">Active</th>
+            <th style="min-width:190px;" class="text-center-col">Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -94,6 +108,9 @@ else
             <td>@groupRowNo</td>
             <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
             <td>@item.title</td>
+            <td>@item.precondition</td>
+            <td style="white-space: pre-line;">@item.steps</td>
+            <td>@item.expected_result</td>
             <td class="text-center-col">@item.priority_default</td>
             <td class="text-center-col">@item.status_default</td>
             <td class="text-center-col">
@@ -132,6 +149,7 @@ else
     }
     </tbody>
     </table>
+    </div>
 }
 
 <script>

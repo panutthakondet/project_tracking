@@ -49,6 +49,41 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index), new { groupId });
         }
 
+        [RequireMenu("TestTemplateGroups.Index")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var group = await _context.TestTemplateGroups.FindAsync(id);
+            if (group == null)
+                return NotFound();
+
+            return View(group);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestTemplateGroups.Index")]
+        public async Task<IActionResult> Edit(int id, TestTemplateGroup model)
+        {
+            if (id != model.group_id)
+                return NotFound();
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var existing = await _context.TestTemplateGroups.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.group_id == id);
+            if (existing == null)
+                return NotFound();
+
+            // Preserve created_at
+            model.created_at = existing.created_at;
+
+            _context.TestTemplateGroups.Update(model);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestTemplateGroups.Index")]
