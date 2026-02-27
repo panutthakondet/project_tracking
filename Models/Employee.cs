@@ -20,6 +20,12 @@ namespace ProjectTracking.Models
         [Column("status")]
         public string Status { get; set; } = "ACTIVE";
 
+        [Column("login_user_id")]
+        public int? LoginUserId { get; set; }
+
+        [ForeignKey("LoginUserId")]
+        public virtual LoginUser? LoginUser { get; set; }
+
         // ===== RELATION (เพิ่ม) =====
         [InverseProperty(nameof(ProjectIssue.Employee))]
         public virtual ICollection<ProjectIssue> ProjectIssues { get; set; }

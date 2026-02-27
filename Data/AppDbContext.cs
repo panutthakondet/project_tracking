@@ -90,10 +90,9 @@ namespace ProjectTracking.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Link meeting -> project (project.project_id)
-                entity.HasOne<Project>()
+                entity.HasOne(m => m.Project)
                     .WithMany()
                     .HasForeignKey(m => m.ProjectId)
-                    .HasPrincipalKey(p => p.ProjectId)
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(m => m.ProjectId);
@@ -574,7 +573,11 @@ namespace ProjectTracking.Models
         public int Id { get; set; }
         public int MeetingId { get; set; }
         public int AttendeeId { get; set; }
-        public string Kind { get; set; } = "reminder_10m";
+
+        // Kind is explicitly set by background services (e.g., "reminder_10m", "reminder_1d").
+        // Keep the default empty to avoid accidentally forcing an outdated enum value.
+        public string Kind { get; set; } = string.Empty;
+
         public DateTime SentAt { get; set; }
     }
 }

@@ -51,6 +51,55 @@ namespace ProjectTracking.Controllers
             return null;
         }
 
+        private static void SetUserEmpId(LoginUser user, int? empId)
+        {
+            if (user == null) return;
+
+            var t = user.GetType();
+            var p = t.GetProperty("EmpId")
+                ?? t.GetProperty("Emp_id")
+                ?? t.GetProperty("EmpID")
+                ?? t.GetProperty("emp_id");
+
+            if (p == null || !p.CanWrite) return;
+
+            // Support both int and nullable int properties
+            var targetType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
+            object? value = empId;
+            if (empId == null)
+            {
+                value = null;
+            }
+            else if (targetType == typeof(int))
+            {
+                value = empId.Value;
+            }
+
+            p.SetValue(user, value);
+        }
+
+        private static int? GetUserEmpId(LoginUser user)
+        {
+            if (user == null) return null;
+
+            var t = user.GetType();
+            var p = t.GetProperty("EmpId")
+                ?? t.GetProperty("Emp_id")
+                ?? t.GetProperty("EmpID")
+                ?? t.GetProperty("emp_id");
+
+            if (p == null || !p.CanRead) return null;
+
+            var val = p.GetValue(user);
+            if (val == null) return null;
+
+            if (val is int i) return i;
+
+            // Handle numeric values and nullable ints safely
+            if (int.TryParse(val.ToString(), out var parsed)) return parsed;
+            return null;
+        }
+
         [HttpGet]
         [RequireMenu("UserManagement.Index")]
         public async Task<IActionResult> Index()
@@ -68,10 +117,17 @@ namespace ProjectTracking.Controllers
 
         [HttpGet]
         [RequireMenu("UserManagement.Index")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             var guard = GuardAdmin();
             if (guard != null) return guard;
+
+            ViewBag.Employees = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                .OrderBy(e => e.EmpName)
+                .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                .ToListAsync();
 
             return View();
         }
@@ -86,7 +142,8 @@ namespace ProjectTracking.Controllers
             string password,
             string confirmPassword,
             string role,
-            string status)
+            string status,
+            int? emp_id)
         {
             var guard = GuardAdmin();
             if (guard != null) return guard;
@@ -101,30 +158,60 @@ namespace ProjectTracking.Controllers
             if (string.IsNullOrWhiteSpace(username))
             {
                 ViewBag.Error = "❌ กรุณากรอก Username";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
             if (string.IsNullOrWhiteSpace(email))
             {
                 ViewBag.Error = "❌ กรุณากรอก Email";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
             if (!email.Contains("@"))
             {
                 ViewBag.Error = "❌ รูปแบบ Email ไม่ถูกต้อง";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
             if (string.IsNullOrWhiteSpace(password))
             {
                 ViewBag.Error = "❌ กรุณากรอก Password";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
             if (password != confirmPassword)
             {
                 ViewBag.Error = "❌ Password และ Confirm Password ไม่ตรงกัน";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
@@ -138,6 +225,12 @@ namespace ProjectTracking.Controllers
             if (usernameExists)
             {
                 ViewBag.Error = "❌ Username นี้มีอยู่แล้ว";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
@@ -148,6 +241,24 @@ namespace ProjectTracking.Controllers
             if (emailExists)
             {
                 ViewBag.Error = "❌ Email นี้มีอยู่แล้ว";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
+                return View();
+            }
+
+            if (emp_id == null)
+            {
+                ViewBag.Error = "❌ กรุณาเลือก Employee";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View();
             }
 
@@ -167,14 +278,31 @@ namespace ProjectTracking.Controllers
                 Role = role,
                 Status = status,
                 CreatedAt = DateTime.Now,
+                // EmpId assignment removed
 
                 EmailVerified = false,
                 VerifyTokenHash = tokenHash,
                 VerifyTokenExpire = expire
             };
+            SetUserEmpId(user, emp_id);
 
             _context.LoginUsers.Add(user);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();   // must save first to get user.UserId
+
+            // --- Sync employee.login_user_id ---
+            if (emp_id != null)
+            {
+                // Clear any employee previously linked to this user (safety)
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE employee SET login_user_id = NULL WHERE login_user_id = {0}",
+                    user.UserId);
+
+                // Link selected employee to this user
+                await _context.Database.ExecuteSqlRawAsync(
+                    "UPDATE employee SET login_user_id = {0} WHERE emp_id = {1}",
+                    user.UserId, emp_id);
+            }
+            // ------------------------------------
 
             await SendVerifyEmailSafeAsync(username, email, token, isReverify: false);
 
@@ -240,6 +368,33 @@ namespace ProjectTracking.Controllers
 
             if (user == null) return NotFound();
 
+            // Resolve current employee id for this user.
+            // 1) Prefer login_user.emp_id (if the model has it)
+            var currentEmpId = GetUserEmpId(user);
+
+            // 2) Fallback: resolve via Employees table using login_user_id
+            if (currentEmpId == null)
+            {
+                currentEmpId = await _context.Employees
+                    .FromSqlRaw("SELECT * FROM employee WHERE login_user_id = {0}", user.UserId)
+                    .AsNoTracking()
+                    .Select(e => (int?)e.EmpId)
+                    .FirstOrDefaultAsync();
+            }
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                .OrderBy(e => e.EmpName)
+                .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                .ToListAsync();
+
+            ViewBag.Employees = employees;
+            ViewBag.EmployeesCount = employees.Count;
+            ViewBag.CurrentEmpId = currentEmpId;
+
+            _logger.LogInformation("[UserManagement/Edit GET] username={Username} currentEmpId={CurrentEmpId} employeesCount={EmployeesCount}", username, currentEmpId, employees.Count);
+
             // ✅ Use dedicated view: Views/UserManagement/Edit.cshtml
             return View(user);
         }
@@ -256,7 +411,8 @@ namespace ProjectTracking.Controllers
             string password,
             string confirmPassword,
             string role,
-            string status)
+            string status,
+            int? emp_id)
         {
             var guard = GuardAdmin();
             if (guard != null) return guard;
@@ -282,6 +438,13 @@ namespace ProjectTracking.Controllers
                 user.Email = email;
                 user.Role = role;
                 user.Status = status;
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => (e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                                || (emp_id != null && e.EmpId == emp_id.Value))
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View("Edit", user);
             }
 
@@ -297,6 +460,13 @@ namespace ProjectTracking.Controllers
                 user.Email = email;
                 user.Role = role;
                 user.Status = status;
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => (e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                                || (emp_id != null && e.EmpId == emp_id.Value))
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
                 return View("Edit", user);
             }
 
@@ -304,6 +474,23 @@ namespace ProjectTracking.Controllers
             user.Email = email;
             user.Role = role;
             user.Status = status;
+
+            if (emp_id == null)
+            {
+                ViewBag.Error = "❌ กรุณาเลือก Employee";
+                ViewBag.Employees = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => (e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                                || (emp_id != null && e.EmpId == emp_id.Value))
+                    .OrderBy(e => e.EmpName)
+                    .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                    .ToListAsync();
+                user.Email = email;
+                user.Role = role;
+                user.Status = status;
+                return View("Edit", user);
+            }
+            SetUserEmpId(user, emp_id);
 
             // Optional password change
             if (!string.IsNullOrWhiteSpace(password) || !string.IsNullOrWhiteSpace(confirmPassword))
@@ -314,6 +501,13 @@ namespace ProjectTracking.Controllers
                     user.Email = email;
                     user.Role = role;
                     user.Status = status;
+                    ViewBag.Employees = await _context.Employees
+                        .AsNoTracking()
+                        .Where(e => (e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                                    || (emp_id != null && e.EmpId == emp_id.Value))
+                        .OrderBy(e => e.EmpName)
+                        .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                        .ToListAsync();
                     return View("Edit", user);
                 }
 
@@ -323,6 +517,13 @@ namespace ProjectTracking.Controllers
                     user.Email = email;
                     user.Role = role;
                     user.Status = status;
+                    ViewBag.Employees = await _context.Employees
+                        .AsNoTracking()
+                        .Where(e => (e.Status != null && e.Status.Trim().ToUpper() == "ACTIVE")
+                                    || (emp_id != null && e.EmpId == emp_id.Value))
+                        .OrderBy(e => e.EmpName)
+                        .Select(e => new { emp_id = e.EmpId, emp_name = e.EmpName })
+                        .ToListAsync();
                     return View("Edit", user);
                 }
 

@@ -26,6 +26,7 @@
                 <th width="80">#</th>
                 <th>Name</th>
                 <th>Position</th>
+                <th>Email</th>
                 <th width="120">Status</th>
                 <th width="180">Action</th>
             </tr>
@@ -35,7 +36,7 @@
         @if (!Model.Any())
         {
             <tr>
-                <td colspan="5"
+                <td colspan="6"
                     class="text-center text-muted">
                     — No employee data —
                 </td>
@@ -56,6 +57,17 @@
 
                     <td>
                         @emp.Position
+                    </td>
+
+                    <td>
+                        @if (emp.LoginUser != null)
+                        {
+                            @emp.LoginUser.Email
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
                     </td>
 
                     <td class="text-center">

@@ -33,6 +33,24 @@ namespace ProjectTracking.Services
             _logger = logger;
         }
 
+        private class MeetingRow
+        {
+            public int id { get; set; }
+            public string title { get; set; } = "";
+            public string? description { get; set; }
+            public string? location { get; set; }
+            public string? project_name { get; set; }
+            public DateTime start_at { get; set; }
+        }
+
+        private class RecipientRow
+        {
+            public int attendee_id { get; set; }
+            public string? emp_name { get; set; }
+            public string? position { get; set; }
+            public string email { get; set; } = "";
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("🔔 MeetingReminderBackgroundService started");
@@ -75,34 +93,25 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
             // 2) Find meetings scheduled for tomorrow (full-day match, no minute window)
             const string meetingsSql = @"
 SELECT
-  id,
-  title,
-  description,
-  location,
-  TIMESTAMP(meeting_date, start_time) AS start_at
-FROM meetings
-WHERE DATE(meeting_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY);";
+  m.id,
+  m.title,
+  m.description,
+  m.location,
+  p.project_name,
+  TIMESTAMP(m.meeting_date, m.start_time) AS start_at
+FROM meetings m
+LEFT JOIN project p ON p.project_id = m.project_id
+WHERE DATE(m.meeting_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY);";
 
-            var meetings = new List<(int Id, string Title, string? Description, string? Location, DateTime StartAt)>();
+            var meetings = new List<(int Id, string Title, string? Description, string? Location, string? ProjectName, DateTime StartAt)>();
 
-            await using (var conn = db.Database.GetDbConnection())
+            var meetingRows = await db.Database
+                .SqlQueryRaw<MeetingRow>(meetingsSql)
+                .ToListAsync(ct);
+
+            foreach (var row in meetingRows)
             {
-                if (conn.State != ConnectionState.Open)
-                    await conn.OpenAsync(ct);
-
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = meetingsSql;
-
-                await using var reader = await cmd.ExecuteReaderAsync(ct);
-                while (await reader.ReadAsync(ct))
-                {
-                    var id = reader.GetInt32(0);
-                    var title = reader.GetString(1);
-                    var desc = reader.IsDBNull(2) ? null : reader.GetString(2);
-                    var loc = reader.IsDBNull(3) ? null : reader.GetString(3);
-                    var startAt = reader.GetDateTime(4);
-                    meetings.Add((id, title, desc, loc, startAt));
-                }
+                meetings.Add((row.id, row.title, row.description, row.location, row.project_name, row.start_at));
             }
 
             if (meetings.Count == 0)
@@ -117,38 +126,30 @@ WHERE DATE(meeting_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY);";
                 const string recipientsSql = @"
 SELECT
   ma.id AS attendee_id,
-  u.username,
+  e.emp_name,
+  e.position,
   u.email
 FROM meeting_attendees ma
 JOIN employee e ON e.emp_id = ma.user_id
 JOIN login_user u ON u.user_id = e.login_user_id
 WHERE ma.meeting_id = @mid
   AND u.email IS NOT NULL
-  AND u.email <> '';";
+  AND u.email <> ''";
 
-                var recipients = new List<(int AttendeeId, string Username, string Email)>();
+                var recipients = new List<(int AttendeeId, string DisplayName, string Email)>();
 
-                await using (var conn = db.Database.GetDbConnection())
+                var recipientRows = await db.Database
+                    .SqlQueryRaw<RecipientRow>(recipientsSql, new MySqlConnector.MySqlParameter("@mid", m.Id))
+                    .ToListAsync(ct);
+
+                foreach (var rr in recipientRows)
                 {
-                    if (conn.State != ConnectionState.Open)
-                        await conn.OpenAsync(ct);
-
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = recipientsSql;
-
-                    var pMid = cmd.CreateParameter();
-                    pMid.ParameterName = "@mid";
-                    pMid.Value = m.Id;
-                    cmd.Parameters.Add(pMid);
-
-                    await using var reader = await cmd.ExecuteReaderAsync(ct);
-                    while (await reader.ReadAsync(ct))
+                    var displayName = rr.emp_name ?? "";
+                    if (!string.IsNullOrWhiteSpace(rr.position))
                     {
-                        var attendeeId = reader.GetInt32(0);
-                        var username = reader.IsDBNull(1) ? "" : reader.GetString(1);
-                        var emailAddr = reader.GetString(2);
-                        recipients.Add((attendeeId, username, emailAddr));
+                        displayName += " (" + rr.position + ")";
                     }
+                    recipients.Add((rr.attendee_id, displayName, rr.email));
                 }
 
                 if (recipients.Count == 0)
@@ -160,31 +161,25 @@ WHERE ma.meeting_id = @mid
                 foreach (var r in recipients)
                 {
                     // 4) Skip if already sent
-                    const string existsSql = @"SELECT 1 FROM meeting_email_notifications WHERE meeting_id=@mid AND attendee_id=@aid AND kind=@kind LIMIT 1;";
-                    var alreadySent = false;
+                    const string existsSql = @"SELECT 1 FROM meeting_email_notifications WHERE meeting_id=@mid AND attendee_id=@aid AND kind=@kind LIMIT 1";
 
-                    await using (var conn = db.Database.GetDbConnection())
-                    {
-                        if (conn.State != ConnectionState.Open)
-                            await conn.OpenAsync(ct);
+                    var exists = await db.Database
+                        .SqlQueryRaw<int>(existsSql,
+                            new MySqlConnector.MySqlParameter("@mid", m.Id),
+                            new MySqlConnector.MySqlParameter("@aid", r.AttendeeId),
+                            new MySqlConnector.MySqlParameter("@kind", REMIND_KIND))
+                        .AnyAsync(ct);
 
-                        await using var cmd = conn.CreateCommand();
-                        cmd.CommandText = existsSql;
-
-                        var pMid = cmd.CreateParameter(); pMid.ParameterName = "@mid"; pMid.Value = m.Id; cmd.Parameters.Add(pMid);
-                        var pAid = cmd.CreateParameter(); pAid.ParameterName = "@aid"; pAid.Value = r.AttendeeId; cmd.Parameters.Add(pAid);
-                        var pKind = cmd.CreateParameter(); pKind.ParameterName = "@kind"; pKind.Value = REMIND_KIND; cmd.Parameters.Add(pKind);
-
-                        var scalar = await cmd.ExecuteScalarAsync(ct);
-                        alreadySent = scalar != null && scalar != DBNull.Value;
-                    }
-
-                    if (alreadySent) continue;
+                    if (exists) continue;
 
                     // 5) Send email
                     var subject = $"แจ้งเตือนการประชุม: {m.Title}";
                     var sb = new StringBuilder();
-                    sb.Append($"สวัสดี {System.Net.WebUtility.HtmlEncode(r.Username)}<br/>");
+                    sb.Append($"สวัสดี {System.Net.WebUtility.HtmlEncode(r.DisplayName)}<br/>");
+                    if (!string.IsNullOrWhiteSpace(m.ProjectName))
+                    {
+                        sb.Append($"โครงการ: <b>{System.Net.WebUtility.HtmlEncode(m.ProjectName)}</b><br/>");
+                    }
                     sb.Append($"การประชุม <b>{System.Net.WebUtility.HtmlEncode(m.Title)}</b> จะเริ่มวันที่ <b>{m.StartAt:dd/MM/yyyy}</b> เวลา <b>{m.StartAt:HH:mm}</b> (แจ้งล่วงหน้า 1 วัน)<br/>");
                     if (!string.IsNullOrWhiteSpace(m.Location)) sb.Append($"สถานที่: {System.Net.WebUtility.HtmlEncode(m.Location)}<br/>");
                     if (!string.IsNullOrWhiteSpace(m.Description)) sb.Append($"รายละเอียด: {System.Net.WebUtility.HtmlEncode(m.Description)}<br/>");
@@ -193,21 +188,17 @@ WHERE ma.meeting_id = @mid
                     await email.SendAsync(r.Email, subject, sb.ToString());
 
                     // 6) Insert log after successful send
-                    const string insertSql = @"INSERT INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at) VALUES(@mid, @aid, @kind, NOW());";
-                    await using (var conn = db.Database.GetDbConnection())
-                    {
-                        if (conn.State != ConnectionState.Open)
-                            await conn.OpenAsync(ct);
+                    const string insertSql = @"INSERT INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at) VALUES(@mid, @aid, @kind, NOW())";
 
-                        await using var cmd = conn.CreateCommand();
-                        cmd.CommandText = insertSql;
-
-                        var pMid = cmd.CreateParameter(); pMid.ParameterName = "@mid"; pMid.Value = m.Id; cmd.Parameters.Add(pMid);
-                        var pAid = cmd.CreateParameter(); pAid.ParameterName = "@aid"; pAid.Value = r.AttendeeId; cmd.Parameters.Add(pAid);
-                        var pKind = cmd.CreateParameter(); pKind.ParameterName = "@kind"; pKind.Value = REMIND_KIND; cmd.Parameters.Add(pKind);
-
-                        await cmd.ExecuteNonQueryAsync(ct);
-                    }
+                    await db.Database.ExecuteSqlRawAsync(
+                        insertSql,
+                        new object[]
+                        {
+                            new MySqlConnector.MySqlParameter("@mid", m.Id),
+                            new MySqlConnector.MySqlParameter("@aid", r.AttendeeId),
+                            new MySqlConnector.MySqlParameter("@kind", REMIND_KIND)
+                        },
+                        ct);
 
                     _logger.LogInformation("📧 Sent {Kind} meeting={MeetingId} attendee={AttendeeId} to={Email}", REMIND_KIND, m.Id, r.AttendeeId, r.Email);
                 }

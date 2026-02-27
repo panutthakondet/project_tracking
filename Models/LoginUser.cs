@@ -40,5 +40,9 @@ namespace ProjectTracking.Models
 
         [Column("verify_token_expire")]
         public DateTime? VerifyTokenExpire { get; set; }
+
+        // 👇 ผูกกับ employee
+        [Column("emp_id")]
+        public int? EmpId { get; set; }
     }
 }

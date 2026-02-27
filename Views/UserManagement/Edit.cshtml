@@ -14,6 +14,23 @@
     var vRole = Ms("role");
     var vStatus = Ms("status");
 
+    var vEmpId = Ms("emp_id");
+
+    // Fallback to model values on first load (support different property names)
+    if (string.IsNullOrWhiteSpace(vEmpId) && Model != null)
+    {
+        var t = Model.GetType();
+        var p = t.GetProperty("EmpId") ?? t.GetProperty("Emp_id") ?? t.GetProperty("EmpID") ?? t.GetProperty("emp_id");
+        var val = p?.GetValue(Model);
+        if (val != null) vEmpId = val.ToString() ?? "";
+    }
+
+    // Fallback: Controller may resolve employee via employee.login_user_id mapping
+    if (string.IsNullOrWhiteSpace(vEmpId) && ViewBag.CurrentEmpId != null)
+    {
+        vEmpId = ViewBag.CurrentEmpId.ToString();
+    }
+
     // Fallback to model values on first load
     if (string.IsNullOrWhiteSpace(vEmail)) vEmail = Model?.Email ?? "";
     if (string.IsNullOrWhiteSpace(vRole)) vRole = Model?.Role ?? "USER";
@@ -56,6 +73,35 @@
     </div>
 
     <div class="mb-3">
+        <label class="form-label fw-bold">Employee</label>
+        <select name="emp_id" class="form-select" required>
+            <option value="">-- Select Employee --</option>
+            @if (ViewBag.Employees != null)
+            {
+                var vEmpIdTrim = (vEmpId ?? "").Trim();
+
+                foreach (var emp in ViewBag.Employees)
+                {
+                    var empIdStr = (emp.emp_id?.ToString() ?? "").Trim();
+                    var isSelected = !string.IsNullOrWhiteSpace(vEmpIdTrim) && vEmpIdTrim == empIdStr;
+
+                    if (isSelected)
+                    {
+                        <option value="@emp.emp_id" selected="selected">@emp.emp_name</option>
+                    }
+                    else
+                    {
+                        <option value="@emp.emp_id">@emp.emp_name</option>
+                    }
+                }
+            }
+        </select>
+        <div class="form-text text-muted">
+            ต้องผูก User กับ Employee เพื่อให้ระบบแจ้งเตือนทำงานถูกต้อง
+        </div>
+    </div>
+
+    <div class="mb-3">
         <label class="form-label fw-bold">Password</label>
         <input name="password" type="password" class="form-control" />
         <div class="form-text text-muted">ถ้าไม่ต้องการเปลี่ยนรหัสผ่าน ให้เว้นว่างไว้</div>
@@ -69,16 +115,24 @@
     <div class="mb-3">
         <label class="form-label fw-bold">Role</label>
         <select name="role" class="form-select">
-            <option value="USER" selected="@(string.IsNullOrWhiteSpace(vRole) ? true : vRole.Equals("USER", StringComparison.OrdinalIgnoreCase))">USER</option>
-            <option value="ADMIN" selected="@(!string.IsNullOrWhiteSpace(vRole) && vRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))">ADMIN</option>
+            @{
+                var isUser = string.IsNullOrWhiteSpace(vRole) || vRole.Equals("USER", StringComparison.OrdinalIgnoreCase);
+                var isAdmin = !string.IsNullOrWhiteSpace(vRole) && vRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase);
+            }
+            <option value="USER" selected="@(isUser ? "selected" : null)">USER</option>
+            <option value="ADMIN" selected="@(isAdmin ? "selected" : null)">ADMIN</option>
         </select>
     </div>
 
     <div class="mb-3">
         <label class="form-label fw-bold">Status</label>
         <select name="status" class="form-select">
-            <option value="ACTIVE" selected="@(string.IsNullOrWhiteSpace(vStatus) ? true : vStatus.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))">ACTIVE</option>
-            <option value="INACTIVE" selected="@(!string.IsNullOrWhiteSpace(vStatus) && vStatus.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))">INACTIVE</option>
+            @{
+                var isActive = string.IsNullOrWhiteSpace(vStatus) || vStatus.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                var isInactive = !string.IsNullOrWhiteSpace(vStatus) && vStatus.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase);
+            }
+            <option value="ACTIVE" selected="@(isActive ? "selected" : null)">ACTIVE</option>
+            <option value="INACTIVE" selected="@(isInactive ? "selected" : null)">INACTIVE</option>
         </select>
     </div>
 

@@ -23,6 +23,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index()
         {
             var employees = await _context.Employees
+                .Include(e => e.LoginUser)
                 .Where(e => e.Status == "ACTIVE")
                 .OrderBy(e => e.Position)
                 .ThenBy(e => e.EmpId)

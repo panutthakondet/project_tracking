@@ -162,6 +162,28 @@
                 </div>
             </div>
 
+            <!-- EMPLOYEE -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Employee <span class="req">*</span>
+                </label>
+                <select name="emp_id" class="form-select rounded-12" required>
+                    <option value="">-- Select Employee --</option>
+                    @if (ViewBag.Employees != null)
+                    {
+                        foreach (var emp in ViewBag.Employees)
+                        {
+                            <option value="@emp.emp_id">
+                                @emp.emp_name
+                            </option>
+                        }
+                    }
+                </select>
+                <div class="form-text">
+                    ต้องผูก User กับ Employee เพื่อให้ระบบแจ้งเตือนทำงานถูกต้อง
+                </div>
+            </div>
+
             <div class="divider"></div>
 
             <!-- PASSWORD -->
