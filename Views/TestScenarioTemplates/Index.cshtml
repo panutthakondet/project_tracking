@@ -1,5 +1,9 @@
 @model IEnumerable<ProjectTracking.Models.TestScenarioTemplate>
 
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
 
 @{
     var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup>
@@ -56,10 +60,10 @@
 @if (Model == null || !Model.Any())
 {
     <div class="alert alert-warning">ไม่พบ Scenario Template</div>
-    return;
 }
-
-<table class="table table-bordered table-striped table-sm align-middle template-table">
+else
+{
+    <table class="table table-bordered table-striped table-sm align-middle template-table">
     <thead>
         <tr>
             <th style="width:60px;">#</th>
@@ -72,11 +76,22 @@
         </tr>
     </thead>
     <tbody>
-    @{ var rowNo = 1; }
-    @foreach (var item in Model)
+    @{ 
+        int currentGroupId = int.MinValue;
+        int groupRowNo = 0;
+    }
+    @foreach (var item in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.title))
     {
-        <tr data-gid="@(item.group_id ?? 0)">
-            <td>@rowNo</td>
+        var gid = item.group_id ?? 0;
+        if (gid != currentGroupId)
+        {
+            currentGroupId = gid;
+            groupRowNo = 0;
+        }
+        groupRowNo++;
+
+        <tr data-gid="@gid">
+            <td>@groupRowNo</td>
             <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
             <td>@item.title</td>
             <td class="text-center-col">@item.priority_default</td>
@@ -91,7 +106,6 @@
                     <span class="badge bg-secondary">Inactive</span>
                 }
             </td>
-            @{ rowNo++; }
             <td class="text-center-col">
                 <a asp-action="Edit"
                    asp-route-id="@item.template_id"
@@ -117,7 +131,8 @@
         </tr>
     }
     </tbody>
-</table>
+    </table>
+}
 
 <script>
     function filterTemplates() {
