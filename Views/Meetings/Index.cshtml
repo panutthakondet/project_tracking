@@ -73,7 +73,37 @@
 
     .fc .fc-daygrid-day-frame { padding: 6px; }
     .fc .fc-daygrid-day-number { font-weight: 600; color: rgba(0,0,0,.70); }
+
     .fc .fc-col-header-cell-cushion { font-weight: 700; color: rgba(0,0,0,.65); }
+
+    /* Header background color */
+    .fc .fc-col-header-cell {
+        background: linear-gradient(180deg, #0d6efd, #0b5ed7);
+        color: #fff;
+        border-color: rgba(255,255,255,.2) !important;
+    }
+
+    /* Thai traditional day colors (Mon–Sun) */
+    .fc .fc-col-header-cell:nth-child(1) { background:#ffc107; color:#000; }  /* Monday - Yellow */
+    .fc .fc-col-header-cell:nth-child(2) { background:#ff69b4; color:#fff; }  /* Tuesday - Pink */
+    .fc .fc-col-header-cell:nth-child(3) { background:#28a745; color:#fff; }  /* Wednesday - Green */
+    .fc .fc-col-header-cell:nth-child(4) { background:#fd7e14; color:#fff; }  /* Thursday - Orange */
+    .fc .fc-col-header-cell:nth-child(5) { background:#0d6efd; color:#fff; }  /* Friday - Blue */
+    .fc .fc-col-header-cell:nth-child(6) { background:#6f42c1; color:#fff; }  /* Saturday - Purple */
+    .fc .fc-col-header-cell:nth-child(7) { background:#dc3545; color:#fff; }  /* Sunday - Red */
+
+    /* Light background using FullCalendar weekday classes (force correct color even with fc-day-other) */
+    .fc .fc-daygrid-day.fc-day-mon { background: rgba(255,193,7,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-tue { background: rgba(255,105,180,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-wed { background: rgba(40,167,69,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-thu { background: rgba(253,126,20,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-fri { background: rgba(13,110,253,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-sat { background: rgba(111,66,193,0.12) !important; }
+    .fc .fc-daygrid-day.fc-day-sun { background: rgba(220,53,69,0.12) !important; }
+
+    .fc .fc-col-header-cell-cushion {
+        color: #fff !important;
+    }
 
     .fc .fc-day-today {
         background: rgba(13,110,253,.08) !important;
