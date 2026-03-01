@@ -528,10 +528,23 @@ namespace ProjectTracking.Controllers
                 }
             }
 
-            ViewBag.BusinessAnalyst = await _context.Employees
-                .AsNoTracking()
-                .Where(e => e.Position == "Business Analyst")
-                .FirstOrDefaultAsync();
+            // ดึง BA ของโครงการนี้ (อิงจาก PhaseAssign ของ project เดียวกัน)
+            if (phase != null)
+            {
+                ViewBag.BusinessAnalyst = await (
+                    from a in _context.PhaseAssigns.AsNoTracking()
+                    join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
+                    join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
+                    where ph.ProjectId == phase.ProjectId
+                          && e.Position == "Business Analyst"
+                          && e.Status == "ACTIVE"
+                    select e
+                ).FirstOrDefaultAsync();
+            }
+            else
+            {
+                ViewBag.BusinessAnalyst = null;
+            }
 
             return View(assign);
         }
