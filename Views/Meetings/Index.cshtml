@@ -360,6 +360,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const today = new Date();
                 const firstDayCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
+                // sort meetings by start date (ascending)
+                data.sort((a, b) => new Date(a.start) - new Date(b.start));
+
                 data.forEach(e => {
                     const d = new Date(e.start);
                     if (d >= firstDayCurrentMonth) {
