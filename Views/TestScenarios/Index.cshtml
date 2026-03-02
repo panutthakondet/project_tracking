@@ -69,7 +69,14 @@
     }
 
     /* Keep header above body */
-    thead th { position: sticky; top: 0; z-index: 4; background: #f8f9fa; }
+    thead th { position: sticky; top: 0; z-index: 7; background: #f8f9fa; }
+
+    /* Group header row (normal, not sticky) */
+    .group-header-row td {
+        background: #eef3ff;
+        font-weight: 600;
+        border-bottom: 2px solid #cfe0ff;
+    }
 
     /* Ensure sticky body cells stay above striped rows */
     tbody td.sticky-col-0, tbody td.sticky-col, tbody td.sticky-col-2 { z-index: 3; }
@@ -96,6 +103,10 @@
     .text-center-col {
         text-align: center;
         vertical-align: middle;
+    }
+
+    .drag-handle {
+        font-size: 16px;
     }
 </style>
 
@@ -193,36 +204,48 @@
                 <th style="width:160px;" class="text-center-col">Edit / Delete</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="scenarioTableBody">
         @{ var rowNo = 1; }
-        @foreach (var item in list)
+        @foreach (var grp in list.GroupBy(x => x.Group?.group_name ?? "No Group"))
         {
-            <tr>
-                <td class="sticky-col-0">@rowNo</td>
-                <td class="sticky-col">@item.scenario_code</td>
-                <td class="sticky-col-2">@item.title</td>
-                <td class="text-center-col"><span class="badge @StatusBadge(item.status)">@item.status</span></td>
-                <td class="text-center-col">@item.priority</td>
-                <td class="multiline-cell">@item.precondition</td>
-                <td class="multiline-cell">@item.steps</td>
-                <td class="multiline-cell">@item.expected_result</td>
-                <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
-                <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
-                <td class="text-center-col">
-                    <a asp-action="Edit" asp-route-id="@item.scenario_id"
-                       class="btn btn-sm btn-warning">Edit</a>
-
-                    <form asp-action="Delete"
-                          asp-route-id="@item.scenario_id"
-                          method="post"
-                          style="display:inline;"
-                          onsubmit="return confirm('Delete this scenario?');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
+            <tr class="group-header-row" data-group="@grp.Key">
+                <td colspan="11">
+                    Group : @grp.Key (Total: @grp.Count())
                 </td>
-                @{ rowNo++; }
             </tr>
+
+            foreach (var item in grp)
+            {
+                <tr data-id="@item.scenario_id" data-group="@grp.Key">
+                    <td class="sticky-col-0">
+                        <span class="drag-handle" style="cursor:grab;margin-right:6px;color:#6c757d;">☰</span>
+                        @rowNo
+                    </td>
+                    <td class="sticky-col">@item.scenario_code</td>
+                    <td class="sticky-col-2">@item.title</td>
+                    <td class="text-center-col"><span class="badge @StatusBadge(item.status)">@item.status</span></td>
+                    <td class="text-center-col">@item.priority</td>
+                    <td class="multiline-cell">@item.precondition</td>
+                    <td class="multiline-cell">@item.steps</td>
+                    <td class="multiline-cell">@item.expected_result</td>
+                    <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td class="text-center-col">
+                        <a asp-action="Edit" asp-route-id="@item.scenario_id"
+                           class="btn btn-sm btn-warning">Edit</a>
+
+                        <form asp-action="Delete"
+                              asp-route-id="@item.scenario_id"
+                              method="post"
+                              style="display:inline;"
+                              onsubmit="return confirm('Delete this scenario?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                    @{ rowNo++; }
+                </tr>
+            }
         }
         </tbody>
         </table>
@@ -234,3 +257,59 @@ else
         กรุณาเลือก Group และโครงการก่อน เพื่อดู/เพิ่ม Test Scenario
     </div>
 }
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const tbody = document.getElementById("scenarioTableBody");
+
+        if (!tbody) return;
+
+        new Sortable(tbody, {
+            animation: 150,
+            handle: ".drag-handle",
+            ghostClass: "table-warning",
+
+            onStart: function (evt) {
+                evt.item.dataset.startGroup = evt.item.dataset.group;
+            },
+
+            onEnd: function (evt) {
+                const movedRow = evt.item;
+                const startGroup = movedRow.dataset.startGroup;
+
+                // Find nearest GROUP HEADER row above the dropped row
+                let prev = movedRow.previousElementSibling;
+                while (prev && !(prev.classList && prev.classList.contains('group-header-row'))) {
+                    prev = prev.previousElementSibling;
+                }
+
+                const targetGroup = prev && prev.dataset ? prev.dataset.group : startGroup;
+
+                // If the row was dropped above its own group header, treat it as same group
+                if (!prev && startGroup) {
+                    // no header found above; keep original group
+                }
+
+                if (targetGroup !== startGroup) {
+                    alert("ไม่สามารถลาก Scenario ข้าม Group ได้");
+                    location.reload();
+                    return;
+                }
+
+                const rows = tbody.querySelectorAll("tr[data-id]");
+                const ids = [];
+
+                rows.forEach(r => ids.push(r.dataset.id));
+
+                fetch("/TestScenarios/Reorder", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(ids)
+                });
+            }
+        });
+    });
+</script>

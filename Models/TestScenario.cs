@@ -13,6 +13,11 @@ namespace ProjectTracking.Models
         [Required]
         public int project_id { get; set; }
 
+        public int? group_id { get; set; }
+
+        [ForeignKey("group_id")]
+        public TestTemplateGroup? Group { get; set; }
+
         [Required]
         public string scenario_code { get; set; } = string.Empty;
 
@@ -36,5 +41,6 @@ namespace ProjectTracking.Models
         public DateTime created_at { get; set; } = DateTime.Now;
 
         public DateTime? updated_at { get; set; }
+        public int sort_order { get; set; } = 0;
     }
 }

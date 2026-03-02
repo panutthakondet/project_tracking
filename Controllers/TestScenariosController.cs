@@ -62,9 +62,18 @@ namespace ProjectTracking.Controllers
                 return View(new List<TestScenario>());
             }
 
-            var scenarios = await _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .OrderBy(x => x.scenario_code)
+            var query = _context.TestScenarios
+                .Include(x => x.Group)
+                .Where(x => x.project_id == projectId);
+
+            if (groupId.HasValue)
+            {
+                query = query.Where(x => x.group_id == groupId);
+            }
+
+            var scenarios = await query
+                .OrderBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_code)
                 .ToListAsync();
 
             return View(scenarios);
@@ -83,6 +92,11 @@ namespace ProjectTracking.Controllers
                     ProjectName = p.ProjectName
                 })
                 .ToList();
+
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .ToList();
+
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedGroup = groupId;
 
@@ -119,11 +133,17 @@ namespace ProjectTracking.Controllers
                 ViewBag.Projects = _context.Projects
                     .Select(p => new { ProjectId = p.ProjectId, ProjectName = p.ProjectName })
                     .ToList();
+
+                ViewBag.Groups = _context.TestTemplateGroups
+                    .Where(g => g.is_active)
+                    .ToList();
+
                 ViewBag.SelectedProject = model.project_id;
                 ViewBag.SelectedGroup = groupId;
                 return View(model);
             }
 
+            // model.group_id = groupId;
             model.created_at = DateTime.Now;
             model.updated_at = DateTime.Now;
 
@@ -149,6 +169,11 @@ namespace ProjectTracking.Controllers
                     ProjectName = p.ProjectName
                 })
                 .ToList();
+
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .ToList();
+
             ViewBag.SelectedGroup = groupId;
             return View(scenario);
         }
@@ -163,10 +188,16 @@ namespace ProjectTracking.Controllers
                 ViewBag.Projects = _context.Projects
                     .Select(p => new { ProjectId = p.ProjectId, ProjectName = p.ProjectName })
                     .ToList();
+
+                ViewBag.Groups = _context.TestTemplateGroups
+                    .Where(g => g.is_active)
+                    .ToList();
+
                 ViewBag.SelectedGroup = groupId;
                 return View(model);
             }
 
+            // model.group_id = groupId;
             model.updated_at = DateTime.Now;
 
             _context.TestScenarios.Update(model);
@@ -228,6 +259,7 @@ namespace ProjectTracking.Controllers
                 var scenario = new TestScenario
                 {
                     project_id = projectId,
+                    group_id = t.group_id,
                     scenario_code = "TC" + running.ToString("D3"),
                     title = t.title,
                     precondition = t.precondition,
@@ -235,6 +267,7 @@ namespace ProjectTracking.Controllers
                     expected_result = t.expected_result,
                     priority = t.priority_default,
                     status = t.status_default,
+                    sort_order = running,
                     created_at = DateTime.Now,
                     updated_at = DateTime.Now
                 };
@@ -272,9 +305,19 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarios.ViewOnly")]
         public async Task<IActionResult> PrintReport(int projectId, int? groupId)
         {
-            var scenarios = await _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .OrderBy(x => x.scenario_code)
+            var query = _context.TestScenarios
+                .Include(x => x.Group)
+                .Where(x => x.project_id == projectId);
+
+            if (groupId.HasValue)
+            {
+                query = query.Where(x => x.group_id == groupId.Value);
+            }
+
+            var scenarios = await query
+                .OrderBy(x => x.group_id)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_code)
                 .ToListAsync();
 
             var projectName = await _context.Projects
@@ -297,6 +340,32 @@ namespace ProjectTracking.Controllers
             ViewBag.GroupId = groupId;
 
             return View("Print", scenarios);
+        }
+
+        // =========================
+        // REORDER (Drag & Drop)
+        // =========================
+        [HttpPost]
+        public async Task<IActionResult> Reorder([FromBody] List<int> ids)
+        {
+            var scenarios = await _context.TestScenarios
+                .Where(x => ids.Contains(x.scenario_id))
+                .ToListAsync();
+
+            int order = 1;
+
+            foreach (var id in ids)
+            {
+                var row = scenarios.FirstOrDefault(x => x.scenario_id == id);
+                if (row != null)
+                {
+                    row.sort_order = order++;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
     }
 }

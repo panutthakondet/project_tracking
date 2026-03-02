@@ -19,14 +19,54 @@
     <div class="form-group">
         <label>Project</label>
         <select class="form-control" disabled>
-            @foreach (var p in ViewBag.Projects)
+            @if (ViewBag.Projects != null)
             {
-                if (p.ProjectId == Model.project_id)
+                foreach (var p in ViewBag.Projects)
                 {
-                    <option value="@p.ProjectId" selected>@p.ProjectName</option>
+                    if (p.ProjectId == Model.project_id)
+                    {
+                        <option value="@p.ProjectId" selected>@p.ProjectName</option>
+                    }
                 }
             }
         </select>
+    </div>
+
+    <div class="form-group">
+        <label>Scenario Group</label>
+
+        @if (ViewBag.SelectedGroup != null)
+        {
+            <input type="hidden" asp-for="group_id" />
+
+            <select class="form-control" disabled>
+                @if (ViewBag.Groups != null)
+                {
+                    foreach (var g in ViewBag.Groups)
+                    {
+                        if (g.group_id == Model.group_id)
+                        {
+                            <option value="@g.group_id" selected>@g.group_name</option>
+                        }
+                    }
+                }
+            </select>
+        }
+        else
+        {
+            <select asp-for="group_id" class="form-control" required>
+                <option value="" selected disabled>-- Select Scenario Group --</option>
+                @if (ViewBag.Groups != null)
+                {
+                    foreach (var g in ViewBag.Groups)
+                    {
+                        <option value="@g.group_id" selected="@(g.group_id == Model.group_id ? "selected" : null)">@g.group_name</option>
+                    }
+                }
+            </select>
+
+            <span asp-validation-for="group_id" class="text-danger"></span>
+        }
     </div>
 
     <div class="form-group">
