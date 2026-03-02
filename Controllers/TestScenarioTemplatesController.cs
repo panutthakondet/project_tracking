@@ -21,9 +21,17 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Index(int? groupId)
         {
-            var templates = await _context.TestScenarioTemplates
+            var query = _context.TestScenarioTemplates
                 .Include(x => x.Group)
-                .OrderByDescending(x => x.created_at)
+                .AsQueryable();
+
+            if (groupId.HasValue)
+            {
+                query = query.Where(x => x.group_id == groupId);
+            }
+
+            var templates = await query
+                .OrderBy(x => x.template_id)
                 .ToListAsync();
 
             ViewBag.Groups = await _context.TestTemplateGroups

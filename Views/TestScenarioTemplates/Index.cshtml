@@ -94,7 +94,7 @@ else
         int currentGroupId = int.MinValue;
         int groupRowNo = 0;
     }
-    @foreach (var item in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.title))
+    @foreach (var item in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.template_id))
     {
         var gid = item.group_id ?? 0;
         if (gid != currentGroupId)
