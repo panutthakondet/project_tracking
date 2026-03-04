@@ -33,16 +33,16 @@ namespace ProjectTracking.Controllers
         // ============================
         // Upload document
         // ============================
-        [RequestSizeLimit(104857600)] // allow up to 100MB upload
+        [RequestSizeLimit(209715200)] // allow up to 200MB upload
         [HttpPost]
         public async Task<IActionResult> Upload(int projectId, string documentType, IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return RedirectToAction("Index", new { projectId });
 
-            if (file.Length > 104857600) // 100MB
+            if (file.Length > 209715200) // 200MB
             {
-                TempData["Error"] = "ไฟล์มีขนาดใหญ่เกิน 100MB";
+                TempData["Error"] = "ไฟล์มีขนาดใหญ่เกิน 200MB";
                 return RedirectToAction("Index", new { projectId });
             }
 
