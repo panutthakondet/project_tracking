@@ -132,33 +132,6 @@
                            placeholder="https://www.figma.com/..." />
                 </div>
 
-                <!-- TOR PDF -->
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">
-                        📄 TOR (PDF)
-                    </label>
-
-                    @if (!string.IsNullOrEmpty(Model.TorFilePath))
-                    {
-                        <div class="mb-2">
-                            <a href="@Model.TorFilePath"
-                               target="_blank"
-                               class="btn btn-sm btn-outline-success">
-                                📄 View TOR
-                            </a>
-                        </div>
-                    }
-
-                    <input type="file"
-                           name="torFile"
-                           class="form-control"
-                           accept="application/pdf" />
-
-                    <div class="form-text">
-                        เลือกไฟล์ใหม่เพื่อแทนที่ไฟล์เดิม
-                    </div>
-                </div>
-
             </div>
 
             <!-- ================= BUTTONS ================= -->

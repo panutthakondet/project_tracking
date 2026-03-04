@@ -38,13 +38,6 @@ namespace ProjectTracking.Models
         public string? FigmaLink { get; set; }
 
         // ======================
-        // 📄 TOR FILE (PDF)
-        // ======================
-        [Column("tor_file_path")]
-        [StringLength(500)]
-        public string? TorFilePath { get; set; }
-
-        // ======================
         // 🆕 SYSTEM / DATABASE INFO
         // ======================
 

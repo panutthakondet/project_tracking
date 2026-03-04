@@ -1,0 +1,138 @@
+
+
+@model IEnumerable<ProjectTracking.Models.ProjectDocument>
+
+@{
+    ViewData["Title"] = "Project Documents";
+    var projectId = ViewBag.ProjectId;
+}
+
+<div class="container mt-4">
+
+    <h3 class="mb-3">📂 Project Documents</h3>
+
+    <!-- Upload Section -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Upload Document
+        </div>
+        <div class="card-body">
+            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="projectId" value="@projectId" />
+
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <label class="form-label">Document Type</label>
+                        <select name="documentType" class="form-select" required>
+                            <option value="BRD">BRD</option>
+                            <option value="TOR">TOR</option>
+                            <option value="DESIGN">Design</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">File</label>
+                        <input type="file" name="file" class="form-control" required />
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            ⬆ Upload
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Documents Table -->
+    <div class="card">
+
+        <div class="card-header fw-bold">
+            Document List
+        </div>
+
+        <div class="card-body p-0">
+
+            <table class="table table-striped table-hover mb-0">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width:80px">ID</th>
+                        <th style="width:120px">Type</th>
+                        <th>File Name</th>
+                        <th style="width:160px">Uploaded</th>
+                        <th style="width:300px" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No documents uploaded
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var doc in Model)
+                        {
+                            <tr>
+                                <td>@doc.DocumentId</td>
+
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        @doc.DocumentType
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @doc.FileName
+                                </td>
+
+                                <td>
+                                    @doc.UploadedAt.ToString("yyyy-MM-dd HH:mm")
+                                </td>
+
+                                <td>
+                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                        <a href="@doc.FilePath"
+                                           target="_blank"
+                                           class="btn btn-sm btn-info">
+                                            👁 Preview
+                                        </a>
+
+                                        <a asp-action="Download"
+                                           asp-route-id="@doc.DocumentId"
+                                           class="btn btn-sm btn-success">
+                                            ⬇ Download
+                                        </a>
+
+                                        <a asp-action="Delete"
+                                           asp-route-id="@doc.DocumentId"
+                                           class="btn btn-sm btn-danger"
+                                           onclick="return confirm('Delete this document?');">
+                                            🗑 Delete
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

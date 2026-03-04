@@ -66,8 +66,7 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Create(
-            Project project,
-            IFormFile? torFile
+            Project project
         )
         {
             if (!ModelState.IsValid)
@@ -78,34 +77,6 @@ namespace ProjectTracking.Controllers
             // 1️⃣ Save Project ก่อน
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
-
-            // 2️⃣ Upload TOR (PDF)
-            if (torFile != null && torFile.Length > 0)
-            {
-                if (!torFile.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ModelState.AddModelError("", "TOR ต้องเป็นไฟล์ PDF เท่านั้น");
-                    return View(project);
-                }
-
-                string folder = Path.Combine(
-                    _env.WebRootPath,
-                    "uploads",
-                    "tor",
-                    project.ProjectId.ToString()
-                );
-
-                Directory.CreateDirectory(folder);
-
-                string fileName = "TOR.pdf";
-                string filePath = Path.Combine(folder, fileName);
-
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await torFile.CopyToAsync(stream);
-
-                project.TorFilePath = $"/uploads/tor/{project.ProjectId}/{fileName}";
-                await _context.SaveChangesAsync();
-            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -133,8 +104,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Index")]
         public async Task<IActionResult> Edit(
             int id,
-            Project model,
-            IFormFile? torFile
+            Project model
         )
         {
             if (id != model.ProjectId)
@@ -169,35 +139,6 @@ namespace ProjectTracking.Controllers
 
             // 🔹 DESIGN
             db.FigmaLink = model.FigmaLink;
-
-            // ===============================
-            // TOR PDF (ถ้ามีใหม่)
-            // ===============================
-            if (torFile != null && torFile.Length > 0)
-            {
-                if (!torFile.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                {
-                    ModelState.AddModelError("", "TOR ต้องเป็นไฟล์ PDF เท่านั้น");
-                    return View(model);
-                }
-
-                string folder = Path.Combine(
-                    _env.WebRootPath,
-                    "uploads",
-                    "tor",
-                    db.ProjectId.ToString()
-                );
-
-                Directory.CreateDirectory(folder);
-
-                string fileName = "TOR.pdf";
-                string filePath = Path.Combine(folder, fileName);
-
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await torFile.CopyToAsync(stream);
-
-                db.TorFilePath = $"/uploads/tor/{db.ProjectId}/{fileName}";
-            }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));

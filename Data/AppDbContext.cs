@@ -15,6 +15,7 @@ namespace ProjectTracking.Data
         // ======================
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
         public DbSet<LoginUser> LoginUsers { get; set; }
@@ -210,6 +211,50 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(150)");
 
                 entity.HasIndex(p => p.ProjectName);
+            });
+
+            // =========================
+            // PROJECT DOCUMENTS
+            // =========================
+            modelBuilder.Entity<ProjectDocument>(entity =>
+            {
+                entity.ToTable("project_documents");
+
+                entity.HasKey(d => d.DocumentId);
+
+                entity.Property(d => d.DocumentId)
+                    .HasColumnName("document_id");
+
+                entity.Property(d => d.ProjectId)
+                    .HasColumnName("project_id");
+
+                entity.Property(d => d.DocumentType)
+                    .HasColumnName("document_type")
+                    .HasColumnType("varchar(20)");
+
+                entity.Property(d => d.FileName)
+                    .HasColumnName("file_name")
+                    .HasColumnType("varchar(255)");
+
+                entity.Property(d => d.FilePath)
+                    .HasColumnName("file_path")
+                    .HasColumnType("varchar(500)");
+
+                entity.Property(d => d.UploadedBy)
+                    .HasColumnName("uploaded_by")
+                    .HasColumnType("varchar(100)")
+                    .IsRequired(false);
+
+                entity.Property(d => d.UploadedAt)
+                    .HasColumnName("uploaded_at")
+                    .HasColumnType("datetime");
+
+                entity.HasIndex(d => d.ProjectId);
+
+                entity.HasOne(d => d.Project)
+                    .WithMany()
+                    .HasForeignKey(d => d.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // =========================

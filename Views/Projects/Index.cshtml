@@ -40,7 +40,6 @@
                 <th class="col-date">End</th>
                 <th class="col-status">Status</th>
                 <th class="col-mini">Figma</th>
-                <th class="col-mini">TOR</th>
                 <th class="col-action">Action</th>
             </tr>
         </thead>
@@ -49,7 +48,7 @@
         @if (Model == null || !Model.Any())
         {
             <tr>
-                <td colspan="12" class="text-center text-muted">— No project data —</td>
+                <td colspan="11" class="text-center text-muted">— No project data —</td>
             </tr>
         }
         else
@@ -94,16 +93,15 @@
                         else { <span class="text-muted">-</span> }
                     </td>
 
-                    <td class="text-center col-mini">
-                        @if (!string.IsNullOrEmpty(p.TorFilePath))
-                        { <a href="@p.TorFilePath" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">📄</a> }
-                        else { <span class="text-muted">-</span> }
-                    </td>
 
                     <td class="text-center col-action">
                         <div class="d-flex justify-content-center gap-1 flex-wrap">
                             <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary">✏️</a>
                             <a asp-controller="ProjectPhases" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-sm btn-outline-info">🧩</a>
+                            <a asp-controller="ProjectDocuments" 
+                               asp-action="Index" 
+                               asp-route-projectId="@p.ProjectId" 
+                               class="btn btn-sm btn-outline-secondary">📂</a>
                             <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
                                onclick="return confirm('Delete project นี้?');">🗑</a>
                         </div>
@@ -124,22 +122,30 @@
 }
 
 /* ===== ปรับสัดส่วนใหม่ ===== */
-.col-id{ width:70px; min-width:70px; }
+.col-id{ width:60px; min-width:60px; }
 
-/* ⭐ ขยาย Project Name */
-.col-name{ width:280px; min-width:280px; }
+/* Project name slightly smaller so other fields fit */
+/* Project name column wider */
+.col-name{ width:320px; min-width:320px; }
 
-.col-system{ width:130px; min-width:130px; }
-.col-db{ width:130px; min-width:130px; }
-.col-test{ width:130px; min-width:130px; }
+.col-system{ width:120px; min-width:120px; }
+.col-db{ width:120px; min-width:120px; }
+.col-test{ width:120px; min-width:120px; }
 
-/* ⭐ ลด URL เพราะยาวเกินจำเป็น */
-.col-url{ width:180px; min-width:180px; }
+/* URL a bit wider for readability */
+/* URL column wider */
+.col-url{ width:300px; min-width:300px; }
 
-.col-date{ width:115px; min-width:115px; }
-.col-status{ width:110px; min-width:110px; }
-.col-mini{ width:65px; min-width:65px; }
-.col-action{ width:210px; min-width:210px; }
+.col-date{ width:105px; min-width:105px; }
+.col-status{ width:100px; min-width:100px; }
+.col-mini{ width:60px; min-width:60px; }
+
+/* Action buttons compact but not cramped */
+.col-action{ width:180px; min-width:180px; }
+
+.project-table{
+    table-layout: auto;
+}
 
 /* sticky */
 .sticky-col-1{
@@ -151,7 +157,7 @@
 
 .sticky-col-2{
     position:sticky;
-    left:70px;
+    left:60px;
     background:#fff;
     z-index:3;
 }
@@ -166,7 +172,13 @@ thead .sticky-col-2{
 .project-table th,
 .project-table td{
     vertical-align:middle;
-    word-break:break-word;
+}
+
+/* allow text to expand horizontally instead of forcing 2 lines */
+.col-name,
+.col-url{
+    white-space: pre-line;
+    word-break: break-word;
 }
 </style>
 
