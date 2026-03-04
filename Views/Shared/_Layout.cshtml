@@ -248,7 +248,8 @@
                      || CanMenu("Meetings.Index")
                      || CanMenu("TestScenarios.Index")
                      || CanMenu("TestScenarioTemplates.Index")
-                     || CanMenu("TestTemplateGroups.Index");
+                     || CanMenu("TestTemplateGroups.Index")
+                     || CanMenu("ProjectDocuments.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.ViewOnly")
@@ -321,7 +322,8 @@
                                     || controller=="Meetings" 
                                     || controller=="TestScenarios"
                                     || controller=="TestScenarioTemplates"
-                                    || controller=="TestTemplateGroups" 
+                                    || controller=="TestTemplateGroups"
+                                    || controller=="ProjectDocuments"
                                     ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">📁 จัดการโครงการ</a>
                                 <ul class="dropdown-menu">
@@ -356,6 +358,10 @@
                                     @if (CanMenu("TestTemplateGroups.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">🗂 จัดการ Template Group</a></li>
+                                    }
+                                    @if (CanMenu("ProjectDocuments.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectDocuments" asp-action="Index">📄 เอกสารโครงการ (BRD / TOR)</a></li>
                                     }
                                 </ul>
                             </li>

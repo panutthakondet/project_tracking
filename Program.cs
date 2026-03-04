@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using System.IO;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +63,14 @@ builder.Services
     .AddSessionStateTempDataProvider();
 
 builder.Services.AddHttpContextAccessor();
+
+// ==================================================
+// File Upload Limit (รองรับ TOR / BRD ขนาดใหญ่)
+// ==================================================
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 209715200; // 200 MB
+});
 
 // ==================================================
 // DataProtection (แก้ Session/Antiforgery พังหลังรีสตาร์ท IIS)
@@ -172,6 +181,17 @@ builder.Services.AddHostedService<OverdueMailBackgroundService>();
 builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 
 var app = builder.Build();
+
+// allow large upload requests
+app.Use(async (context, next) =>
+{
+    var maxBodySizeFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+    if (maxBodySizeFeature != null && !maxBodySizeFeature.IsReadOnly)
+    {
+        maxBodySizeFeature.MaxRequestBodySize = 209715200; // 200 MB
+    }
+    await next();
+});
 
 // ==================================================
 // Middleware

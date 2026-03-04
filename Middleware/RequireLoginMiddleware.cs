@@ -24,7 +24,8 @@ namespace ProjectTracking.Middleware
                 "Meetings",
                 "TestScenarios",
                 "TestScenarioTemplates",
-                "TestTemplateGroups"
+                "TestTemplateGroups",
+                "ProjectDocuments"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)
