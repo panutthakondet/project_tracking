@@ -33,8 +33,10 @@ namespace ProjectTracking.Controllers
         // ============================
         // Upload document
         // ============================
-        [RequestSizeLimit(209715200)] // allow up to 200MB upload
         [HttpPost]
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(MultipartBodyLengthLimit = 209715200)] // allow up to 200MB upload
+        [RequestSizeLimit(209715200)]
         public async Task<IActionResult> Upload(int projectId, string documentType, IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -85,8 +87,14 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/'));
-            var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
 
+            if (!System.IO.File.Exists(fullPath))
+            {
+                TempData["Error"] = "File not found on server.";
+                return RedirectToAction("Index", new { projectId = doc.ProjectId });
+            }
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
             return File(bytes, "application/octet-stream", doc.FileName);
         }
 
