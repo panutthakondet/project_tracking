@@ -132,17 +132,30 @@ else
         white-space: pre-line;
     }
 
+    th {
+        text-align: center;
+        vertical-align: middle;
+    }
+
     @@media print {
         @@page {
-            size: A4 landscape;
-            margin: 3mm;
+            size: A4 portrait;
+            margin: 10mm; /* small margin so content uses more page area */
         }
 
         body {
             margin: 0;
+            padding: 0;
             font-size: 14px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+        }
+
+        .container, .container-fluid, .content-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .no-print {
@@ -152,14 +165,26 @@ else
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px; /* slightly smaller so more content fits A4 */
         }
 
         th, td {
             padding: 3px;
         }
 
-        thead { display: table-header-group; }
+        th {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        thead {
+            display: table-header-group !important;
+        }
+
+        tfoot {
+            display: table-footer-group;
+        }
         tr { page-break-inside: avoid; }
+        table { page-break-inside: auto; }
     }
 </style>
