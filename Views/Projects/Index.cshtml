@@ -213,6 +213,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 row.style.display = "none";
             }
         });
+
+        // re-number visible rows after filtering
+        let index = 1;
+        document.querySelectorAll("#projectTable tbody tr").forEach(r => {
+            if (r.style.display !== "none" && r.cells.length > 0) {
+                const cell = r.querySelector('.col-id');
+                if (cell) {
+                    cell.innerText = index;
+                    index++;
+                }
+            }
+        });
     }
 
     searchBox.addEventListener("keyup", applyFilters);
