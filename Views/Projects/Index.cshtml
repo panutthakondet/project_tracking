@@ -57,7 +57,7 @@
             var rowNo = 1;
             foreach (var p in Model.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
-                <tr>
+                <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
                     <td class="sticky-col-2 col-name fw-semibold">
@@ -194,14 +194,28 @@ thead .sticky-col-2{
 document.addEventListener("DOMContentLoaded", function () {
 
     const searchBox = document.getElementById("projectSearchBox");
-    const rows = document.querySelectorAll("#projectTable tbody tr");
 
-    searchBox.addEventListener("keyup", function () {
-        const keyword = this.value.toLowerCase().trim();
+    function applyFilters(){
+
+        const keyword = (searchBox.value || "").toLowerCase().trim();
+
+        const rows = document.querySelectorAll("#projectTable tbody tr");
+
         rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(keyword) ? "" : "none";
+
+            const text = row.innerText.toLowerCase();
+
+            const matchSearch = !keyword || text.includes(keyword);
+
+            if(matchSearch){
+                row.style.display = "";
+            }else{
+                row.style.display = "none";
+            }
         });
-    });
+    }
+
+    searchBox.addEventListener("keyup", applyFilters);
 
 });
 </script>

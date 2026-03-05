@@ -23,11 +23,25 @@ namespace ProjectTracking.Controllers
         // LIST
         // ===========================
         [RequireMenu("Projects.Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? baEmpId)
         {
-            var projects = await _context.Projects
+            // Load Business Analyst list for dropdown filter
+            ViewBag.Employees = _context.Employees
+                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToList();
+
+            var query = _context.Projects
                 .Include(p => p.BA)
                 .AsNoTracking()
+                .AsQueryable();
+
+            if (baEmpId.HasValue)
+            {
+                query = query.Where(p => p.BaEmpId == baEmpId.Value);
+            }
+
+            var projects = await query
                 .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
                 .ThenByDescending(p => p.ProjectId)
                 .ToListAsync();
@@ -40,11 +54,25 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpGet]
         [RequireMenu("Projects.ViewOnly")]
-        public async Task<IActionResult> ViewOnly()
+        public async Task<IActionResult> ViewOnly(int? baEmpId)
         {
-            var projects = await _context.Projects
+            // Load Business Analyst list for dropdown filter
+            ViewBag.Employees = _context.Employees
+                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToList();
+
+            var query = _context.Projects
                 .Include(p => p.BA)
                 .AsNoTracking()
+                .AsQueryable();
+
+            if (baEmpId.HasValue)
+            {
+                query = query.Where(p => p.BaEmpId == baEmpId.Value);
+            }
+
+            var projects = await query
                 .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
                 .ThenByDescending(p => p.ProjectId)
                 .ToListAsync();
