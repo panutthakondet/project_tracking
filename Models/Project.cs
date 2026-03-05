@@ -21,6 +21,15 @@ namespace ProjectTracking.Models
         [Column("project_name")]
         public string ProjectName { get; set; } = string.Empty;
 
+        // ======================
+        // 👤 BUSINESS ANALYST
+        // ======================
+        [Column("ba_emp_id")]
+        public int? BaEmpId { get; set; }
+
+        [ForeignKey("BaEmpId")]
+        public Employee? BA { get; set; }
+
         [Column("start_date")]
         public DateTime? StartDate { get; set; }
 

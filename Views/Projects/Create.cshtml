@@ -52,6 +52,20 @@
                     </select>
                 </div>
 
+                <!-- Business Analyst -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        👤 Business Analyst
+                    </label>
+                    <select asp-for="BaEmpId" class="form-select">
+                        <option value="">-- Select Business Analyst --</option>
+                        @foreach (var emp in ViewBag.Employees)
+                        {
+                            <option value="@emp.EmpId">@emp.EmpName</option>
+                        }
+                    </select>
+                </div>
+
                 <!-- Start Date -->
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">

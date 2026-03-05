@@ -210,6 +210,18 @@ namespace ProjectTracking.Data
                     .HasColumnName("project_name")
                     .HasColumnType("varchar(150)");
 
+                // 👤 Business Analyst
+                entity.Property(p => p.BaEmpId)
+                    .HasColumnName("ba_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                // 👤 Business Analyst relationship
+                entity.HasOne(p => p.BA)
+                    .WithMany()
+                    .HasForeignKey(p => p.BaEmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(p => p.ProjectName);
             });
 

@@ -26,6 +26,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index()
         {
             var projects = await _context.Projects
+                .Include(p => p.BA)
                 .AsNoTracking()
                 .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
                 .ThenByDescending(p => p.ProjectId)
@@ -42,6 +43,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> ViewOnly()
         {
             var projects = await _context.Projects
+                .Include(p => p.BA)
                 .AsNoTracking()
                 .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
                 .ThenByDescending(p => p.ProjectId)
@@ -56,6 +58,11 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Index")]
         public IActionResult Create()
         {
+            ViewBag.Employees = _context.Employees
+                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToList();
+
             return View(new Project());
         }
 
@@ -71,6 +78,11 @@ namespace ProjectTracking.Controllers
         {
             if (!ModelState.IsValid)
             {
+                ViewBag.Employees = _context.Employees
+                    .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                    .OrderBy(e => e.EmpName)
+                    .ToList();
+
                 return View(project);
             }
 
@@ -92,6 +104,11 @@ namespace ProjectTracking.Controllers
             {
                 return NotFound();
             }
+
+            ViewBag.Employees = _context.Employees
+                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToList();
 
             return View(project);
         }
@@ -120,6 +137,11 @@ namespace ProjectTracking.Controllers
 
             if (!ModelState.IsValid)
             {
+                ViewBag.Employees = _context.Employees
+                    .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                    .OrderBy(e => e.EmpName)
+                    .ToList();
+
                 return View(model);
             }
 
@@ -139,6 +161,9 @@ namespace ProjectTracking.Controllers
 
             // 🔹 DESIGN
             db.FigmaLink = model.FigmaLink;
+
+            // 🔹 BUSINESS ANALYST
+            db.BaEmpId = model.BaEmpId;
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));

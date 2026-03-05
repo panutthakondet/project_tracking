@@ -32,6 +32,7 @@
             <tr>
                 <th class="sticky-col-1 col-id">#</th>
                 <th class="sticky-col-2 col-name">Project Name</th>
+                <th class="col-ba">Business Analyst</th>
                 <th class="col-system">System</th>
                 <th class="col-db">Database</th>
                 <th class="col-test">Test Account</th>
@@ -48,7 +49,7 @@
         @if (Model == null || !Model.Any())
         {
             <tr>
-                <td colspan="11" class="text-center text-muted">— No project data —</td>
+                <td colspan="12" class="text-center text-muted">— No project data —</td>
             </tr>
         }
         else
@@ -61,6 +62,10 @@
 
                     <td class="sticky-col-2 col-name fw-semibold">
                         @p.ProjectName
+                    </td>
+
+                    <td class="col-ba text-center">
+                        @(p.BA != null ? p.BA.EmpName : "-")
                     </td>
 
                     <td class="col-system">@p.LinkName</td>
@@ -127,6 +132,8 @@
 /* Project name slightly smaller so other fields fit */
 /* Project name column wider */
 .col-name{ width:320px; min-width:320px; }
+
+.col-ba{ width:140px; min-width:140px; }
 
 .col-system{ width:120px; min-width:120px; }
 .col-db{ width:120px; min-width:120px; }
