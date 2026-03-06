@@ -209,6 +209,7 @@ namespace ProjectTracking.Controllers
             existing.PlanEnd = phase.PlanEnd;
             existing.ActualStart = phase.ActualStart;
             existing.ActualEnd = phase.ActualEnd;
+            existing.PhaseStatus = phase.PhaseStatus;
 
             await _context.SaveChangesAsync();
 

@@ -55,6 +55,18 @@
                     </select>
                 </div>
 
+                <!-- Phase Status -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📌 สถานะงวดงาน</label>
+                    <select asp-for="PhaseStatus" class="form-select">
+                        <option value="วางแผน">วางแผน</option>
+                        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                        <option value="ส่งงวดงานแล้ว">ส่งงวดงานแล้ว</option>
+                        <option value="อนุมัติแล้ว">อนุมัติแล้ว</option>
+                        <option value="ตีกลับ">ตีกลับ</option>
+                    </select>
+                </div>
+
                 <!-- CHECKBOX -->
                 <div class="col-12">
                     <div class="form-check">

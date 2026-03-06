@@ -112,6 +112,7 @@
                     <th style="min-width:260px;">Phase Name</th>
                     <th style="width:280px;">Plan Period</th>
                     <th style="width:280px;">Period Date</th>
+                    <th style="width:160px;">Status</th>
                     <th style="width:320px;">Action</th>
                 </tr>
             </thead>
@@ -119,7 +120,7 @@
             @if (!orderedPhases.Any())
             {
                 <tr>
-                    <td colspan="6" class="text-center text-muted">
+                    <td colspan="7" class="text-center text-muted">
                         — No Phase —
                     </td>
                 </tr>
@@ -162,6 +163,22 @@
                             @(phase.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
                             &nbsp;–&nbsp;
                             @(phase.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </td>
+
+                        <td class="text-center">
+                        @{
+                            var status = phase.PhaseStatus ?? "";
+                            string badgeClass = status switch
+                            {
+                                "วางแผน" => "bg-secondary",
+                                "กำลังดำเนินการ" => "bg-primary",
+                                "ส่งงวดงานแล้ว" => "bg-warning text-dark",
+                                "อนุมัติแล้ว" => "bg-success",
+                                "ตีกลับ" => "bg-danger",
+                                _ => "bg-light text-dark"
+                            };
+                        }
+                        <span class="badge @badgeClass px-3 py-2">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
                         </td>
 
                         <td class="text-center">

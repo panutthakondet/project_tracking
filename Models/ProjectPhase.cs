@@ -44,6 +44,11 @@ namespace ProjectTracking.Models
         [Column("period_end_date")]
         public DateTime? ActualEnd { get; set; }
 
+        // ✅ สถานะงวดงาน
+        [Column("phase_status")]
+        [StringLength(50)]
+        public string? PhaseStatus { get; set; } = "วางแผน";
+
         // Navigation
         public Project? Project { get; set; }
     }
