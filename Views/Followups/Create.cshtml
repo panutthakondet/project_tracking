@@ -1,0 +1,46 @@
+@model ProjectTracking.Models.ProjectFollowup
+
+<h2>สร้างงานติดตาม</h2>
+
+
+<form method="post">
+
+@{
+    var projectId = Context.Request.Query["projectId"].ToString();
+}
+
+<div class="mb-3">
+<label>Project</label>
+<input type="text" class="form-control" value="@ViewBag.ProjectName" readonly />
+<input type="hidden" asp-for="ProjectId" value="@projectId" />
+</div>
+
+<div class="mb-3">
+<label>Task</label>
+<input asp-for="TaskTitle" class="form-control"/>
+</div>
+
+<div class="mb-3">
+<label>Partner</label>
+<input asp-for="PartnerName" class="form-control"/>
+</div>
+
+<div class="mb-3">
+<label>Owner</label>
+<select asp-for="OwnerEmpId" class="form-select"
+        asp-items="@(new SelectList(ViewBag.Employees ?? new List<ProjectTracking.Models.Employee>(), "EmpId", "EmpName"))">
+    <option value="">-- เลือก Owner --</option>
+</select>
+</div>
+
+<div class="mb-3">
+<label>Next Follow-up</label>
+<input asp-for="NextFollowupDate" type="date" class="form-control"/>
+</div>
+
+<div class="mt-3">
+    <button class="btn btn-success">Save</button>
+    <a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary ms-2">Back</a>
+</div>
+
+</form>

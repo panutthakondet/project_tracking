@@ -1,0 +1,53 @@
+@model ProjectTracking.Models.ProjectFollowup
+
+@{
+    ViewData["Title"] = "Edit Follow-up";
+}
+
+
+<h3>Edit Follow-up</h3>
+<div class="mb-3">
+    <label class="form-label">Project</label>
+    <input type="text" class="form-control" value="@ViewBag.ProjectName" readonly />
+</div>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="FollowupId" />
+    <input type="hidden" asp-for="ProjectId" />
+
+    <div class="form-group mb-3">
+        <label asp-for="TaskTitle" class="form-label">Task</label>
+        <input asp-for="TaskTitle" class="form-control" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="PartnerName" class="form-label">Partner</label>
+        <input asp-for="PartnerName" class="form-control" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="OwnerEmpId" class="form-label">Owner</label>
+        <select asp-for="OwnerEmpId" class="form-control"
+                asp-items="@(new SelectList(ViewBag.Employees ?? new List<ProjectTracking.Models.Employee>(), "EmpId", "EmpName"))">
+            <option value="">-- เลือก Owner --</option>
+        </select>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="NextFollowupDate" class="form-label">Next Follow-up Date</label>
+        <input asp-for="NextFollowupDate" type="date" class="form-control" />
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Status" class="form-label">Status</label>
+        <select asp-for="Status" class="form-control">
+            <option value="OPEN">OPEN</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="DONE">DONE</option>
+            <option value="ACK">ACK</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">Back</a>
+</form>

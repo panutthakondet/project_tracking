@@ -208,6 +208,46 @@
             border-radius: .375rem !important;
             box-sizing: border-box !important;
         }
+
+        /* ===== Floating Follow-up Button ===== */
+        .followup-float-btn{
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#ffb347,#ff8c00);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:26px;
+            color:#1f2933;
+            box-shadow:0 12px 28px rgba(0,0,0,.35);
+            z-index:9999;
+            text-decoration:none;
+        }
+
+        .followup-float-btn:hover{
+            transform:translateY(-3px);
+            color:#1f2933;
+        }
+
+        .followup-badge{
+            position:absolute;
+            top:-6px;
+            right:-6px;
+            background:#dc3545;
+            color:#fff;
+            font-size:12px;
+            font-weight:700;
+            min-width:20px;
+            height:20px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
         /* ===== PRINT ONLY: ซ่อน navbar/footer ตอนสั่งพิมพ์จริง (ยังแสดงบนหน้าจอ) ===== */
         @@media print {
             header, .navbar, footer { display: none !important; }
@@ -239,7 +279,7 @@
     bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
 
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
-    var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload");
+    var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload") || CanMenu("Dashboard.Index");
 
     var canManagement = CanMenu("Employees.Index")
                      || CanMenu("Projects.Index")
@@ -305,6 +345,10 @@
                                     @if (CanMenu("IssueDashboard.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 ภาพรวมทั้งโครงการ</a></li>
+                                    }
+                                    @if (CanMenu("Dashboard.Index"))
+                                    {
+                                        <li><a class="dropdown-item" href="/Followups/Dashboard">📌 Dashboard งานติดตาม</a></li>
                                     }
                                     @if (CanMenu("Dashboard.Workload"))
                                     {
@@ -561,6 +605,28 @@
 </script>
 
 @RenderSection("Scripts", required: false)
+
+@if (CanMenu("Dashboard.Index"))
+{
+    <a href="/Followups/Dashboard" class="followup-float-btn">
+        📌
+        @if (ViewBag.FollowupAlertCount != null && (int)ViewBag.FollowupAlertCount > 0)
+        {
+            <span class="followup-badge">@ViewBag.FollowupAlertCount</span>
+        }
+    </a>
+}
+
+@if (CanMenu("Dashboard.Index"))
+{
+    <a href="/Followups/DashboardDone" class="followup-float-btn" style="bottom:100px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;">
+        ✔
+        @if (ViewBag.FollowupDoneCount != null && (int)ViewBag.FollowupDoneCount > 0)
+        {
+            <span class="followup-badge">@ViewBag.FollowupDoneCount</span>
+        }
+    </a>
+}
 
 </body>
 </html>

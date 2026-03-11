@@ -1,0 +1,49 @@
+@model ProjectTracking.Models.ProjectFollowup
+
+<h3 class="fw-bold">📌 Follow-up Detail</h3>
+
+<div class="card mb-3">
+<div class="card-body">
+
+<b>Task</b>
+<div>@Model.TaskTitle</div>
+
+<b>Partner</b>
+<div>@Model.PartnerName</div>
+
+<b>Next Follow-up</b>
+<div>@Model.NextFollowupDate?.ToString("dd/MM/yyyy")</div>
+
+<b>Status</b>
+<div>@Model.Status</div>
+
+</div>
+</div>
+
+<h5 class="fw-bold">📜 History</h5>
+
+<table class="table table-bordered">
+<thead>
+<tr>
+<th>Date</th>
+<th>Type</th>
+<th>Note</th>
+</tr>
+</thead>
+
+<tbody>
+
+@foreach(var log in (List<ProjectTracking.Models.ProjectFollowupLog>)ViewBag.Logs)
+{
+<tr>
+<td>@log.ContactDate.ToString("dd/MM/yyyy HH:mm")</td>
+<td>@log.ContactType</td>
+<td>@log.Note</td>
+</tr>
+}
+
+</tbody>
+</table>
+<div class="mt-3">
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">Back</a>
+</div>

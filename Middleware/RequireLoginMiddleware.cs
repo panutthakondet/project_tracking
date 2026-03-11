@@ -27,7 +27,8 @@ namespace ProjectTracking.Middleware
                 "TestTemplateGroups",
                 "ProjectDocuments",
                 "SupportOrders",
-                "SupportOrdersDev"
+                "SupportOrdersDev",
+                "Followups"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)
@@ -38,6 +39,18 @@ namespace ProjectTracking.Middleware
                 { ("Projects", "ViewOnly"), "Projects.ViewOnly" },
                 { ("ProjectIssues", "Details"), "ProjectIssues.Index" },
                 { ("ProjectIssues", "DevDetails"), "ProjectIssues.DevIndex" },
+                { ("Followups", "Index"), "Followups.Index" },
+                { ("Followups", "Details"), "Followups.Index" },
+                { ("Followups", "Edit"), "Followups.Index" },
+                { ("Followups", "Create"), "Followups.Index" },
+                { ("Followups", "AddLog"), "Followups.Index" },
+                { ("Followups", "History"), "Followups.Index" },
+                { ("Followups", "DashboardDone"), "Followups.DashboardDone" },
+
+                // Dashboard permissions
+                { ("Dashboard", "Index"), "Dashboard.Index" },
+                { ("Dashboard", "Details"), "Dashboard.Index" },
+
                 // เพิ่มรายการอื่น ๆ ได้ภายหลัง เช่น:
                 // { ("ProjectIssues", "ViewOnly"), "ProjectIssues.ViewOnly" },
             };

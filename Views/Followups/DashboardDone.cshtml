@@ -1,0 +1,80 @@
+@model IEnumerable<dynamic>
+
+@{
+    ViewData["Title"] = "Follow-up DONE (Waiting ACK)";
+    var th = new System.Globalization.CultureInfo("th-TH");
+    int i = 1;
+}
+
+<div class="container-fluid mt-4">
+
+    <h3 class="mb-3">
+        ✅ งานที่ Owner ทำเสร็จแล้ว
+    </h3>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width:60px">No.</th>
+                    <th>Project</th>
+                    <th style="width:200px">Task</th>
+                    <th style="width:100px">Partner</th>
+                    <th style="width:180px">Owner</th>
+                    <th style="width:150px">Follow-up Date</th>
+                    <th style="width:120px">State</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in Model)
+                {
+
+                    var projectId = item.ProjectId;
+                    var targetUrl = projectId != null ? Url.Action("Index", "Followups", new { projectId = projectId }) : null;
+
+                    string rowClass = "table-success";
+
+                    <tr class="@rowClass"
+                        style="cursor:@(targetUrl != null ? "pointer" : "default")"
+                        onclick="@(targetUrl != null ? $"window.location.href='{targetUrl}'" : "")">
+
+                        <td class="text-center">@i</td>
+
+                        <td>
+                            @item.Project
+                        </td>
+
+                        <td>
+                            @item.TaskTitle
+                        </td>
+
+                        <td class="text-center">
+                            @item.PartnerName
+                        </td>
+
+                        <td>
+                            @item.Owner
+                        </td>
+
+                        <td class="text-center">
+                            @(((DateTime)item.NextFollowupDate).ToString("dd MMM yyyy", th))
+                        </td>
+
+                        <td class="text-center fw-bold">
+                            <span class="badge bg-success">DONE</span>
+                        </td>
+
+                    </tr>
+
+                    i++;
+                }
+
+            </tbody>
+
+        </table>
+    </div>
+
+</div>

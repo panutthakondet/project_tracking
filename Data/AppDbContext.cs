@@ -49,6 +49,10 @@ namespace ProjectTracking.Data
         // ===== Email =====
         public DbSet<EmailSendLog> EmailSendLogs { get; set; }
 
+        // ===== Follow-up Tracking =====
+        public DbSet<ProjectFollowup> ProjectFollowups { get; set; }
+        public DbSet<ProjectFollowupLog> ProjectFollowupLogs { get; set; }
+
         // ======================
         // ===== VIEWS =====
         // ======================

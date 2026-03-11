@@ -565,24 +565,50 @@ namespace ProjectTracking.Controllers
             var allMenus = new List<(string Key, string Label)>
             {
                 ("Employees.Index", "บันทึกข้อมูลพนักงาน"),
+
+                // ===== Project Management =====
                 ("Projects.Index", "บันทึกข้อมูลโครงการ"),
                 ("Projects.ViewOnly", "รายงานข้อมูลโครงการ"),
+
                 ("ProjectPhases.Index", "บันทึกข้อมูลแผนงานและงวดงาน"),
                 ("PhaseAssigns.Index", "บันทึกข้อมูลการมอบหมายงาน"),
+
+                // ===== Issues =====
                 ("ProjectIssues.Index", "บันทึกข้อมูลปัญหาโครงการ"),
                 ("ProjectIssues.DevIndex", "แก้ไขสถานะปัญหาโครงการ"),
                 ("ProjectIssues.ViewOnly", "รายงานปัญหาและสถานะโครงการ"),
+
+                // ===== Reports =====
                 ("PhaseAssigns.Print", "รายงานการมอบหมายงาน"),
                 ("PhaseStatusReport.Index", "รายงานสถานะงานค้าง"),
                 ("PhaseStatusReport.Timeline", "Timeline / Gantt"),
+
+                // ===== Meetings =====
                 ("Meetings.Index", "ปฏิทินนัดประชุม"),
+
+                // ===== Dashboards =====
+                ("Dashboard.Index", "Dashboard งานติดตาม"),
                 ("Dashboard.Workload", "สถานะภาระงานพนักงาน"),
                 ("IssueDashboard.Index", "ภาพรวมทั้งโครงการ"),
-                ("UserManagement.Index", "จัดการผู้ใช้งาน"),
-                ("UserManagement.Permissions", "Permissions"),
+
+                // ===== Followups =====
+                ("Followups.Index", "งานติดตาม"),
+                ("Followups.Create", "สร้างงานติดตาม"),
+                ("Followups.Edit", "แก้ไขงานติดตาม"),
+                ("Followups.Delete", "ลบงานติดตาม"),
+                ("Followups.Details", "ดูรายละเอียด Follow‑up"),
+                ("Followups.Log", "บันทึกการติดตาม"),
+                ("Followups.History", "ประวัติการติดตาม"),
+                ("Followups.DashboardDone", "Dashboard งานที่ DONE (รอรับทราบ)"),
+
+                // ===== Testing =====
                 ("TestScenarios.Index", "บันทึก Test Scenario"),
                 ("TestScenarioTemplates.Index", "จัดการ Test Scenario Template"),
                 ("TestTemplateGroups.Index", "จัดการ Template Group"),
+
+                // ===== User Management =====
+                ("UserManagement.Index", "จัดการผู้ใช้งาน"),
+                ("UserManagement.Permissions", "Permissions")
             };
 
             var selected = await _context.UserMenus

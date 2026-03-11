@@ -34,6 +34,18 @@
         "TestScenarioTemplates.Index",
         "TestTemplateGroups.Index",
         "SupportOrdersDev.Index",
+
+        // Follow‑up system
+        "Followups.Index",
+        "Followups.Create",
+        "Followups.Edit",
+        "Followups.Details",
+        "Followups.Log",
+        "Followups.History",
+        "Followups.DashboardDone",
+        "Followups.MarkDone",
+        "Followups.AddLog",
+        "Followups.Delete",
     };
 
     var groupReport = new List<string>
@@ -44,6 +56,7 @@
         "PhaseStatusReport.Index",
         "PhaseStatusReport.Timeline",
         "Dashboard.Workload",
+        "Dashboard.Index",
         "IssueDashboard.Index",
     };
 
@@ -229,6 +242,13 @@
                 <button type="submit" class="btn btn-primary" style="border-radius:12px; font-weight:800;">
                     💾 Save
                 </button>
+
+                <a asp-action="Index"
+                   class="btn btn-outline-dark"
+                   style="border-radius:12px;">
+                    ← Back
+                </a>
+
                 <a asp-action="Permissions" asp-route-username="@username"
                    class="btn btn-outline-secondary" style="border-radius:12px;">
                     ↻ Reload

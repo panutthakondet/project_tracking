@@ -68,6 +68,7 @@
     </div>
 
     <!-- PROJECT -->
+    <!-- PROJECT -->
     <div class="menu-group">
         <div class="group-title">📁 การบันทึกข้อมูล และการจัดการโครงการ</div>
 
@@ -178,6 +179,17 @@
                     <div class="icon">📅</div>
                     <div class="title">ปฏิทินนัดประชุม</div>
                     <div class="desc">สร้าง/แก้ไข และดูตารางนัดประชุม</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("Followups.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Followups" asp-action="Index" class="menu-card">
+                    <div class="icon">📌</div>
+                    <div class="title">งานติดตาม (Follow-up)</div>
+                    <div class="desc">บันทึกติดตามการประสานงาน</div>
                 </a>
             </div>
             }
