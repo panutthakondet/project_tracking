@@ -55,9 +55,54 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold">🖼 After Images</label>
+                <label class="form-label fw-bold">📝 Dev Detail</label>
+                <textarea asp-for="DevDetail"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Describe how the issue was fixed"></textarea>
+                <small class="text-muted">รายละเอียดการแก้ไขของโปรแกรมเมอร์</small>
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label fw-bold">🖼 Issue Images (After Fix)</label>
+
+                <!-- Existing Images -->
+                @if (Model.FixImages != null && Model.FixImages.Count > 0)
+                {
+                    <div class="border rounded p-3 mb-3 bg-light d-flex flex-wrap gap-3">
+                        @foreach (var img in Model.FixImages)
+                        {
+                            <div class="text-center">
+                                <a href="@img.FilePath" target="_blank">
+                                    <img src="@img.FilePath"
+                                         class="img-thumbnail"
+                                         style="width:140px;height:140px;object-fit:cover;" />
+                                </a>
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="deleteFixImageIds"
+                                           value="@img.ImageId"
+                                           id="fixdel_@img.ImageId" />
+                                    <label class="form-check-label small text-danger"
+                                           for="fixdel_@img.ImageId">
+                                        Delete
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted mb-2">No After Fix images</div>
+                }
+
+                <!-- Upload new images -->
                 <input type="file" name="afterImages" class="form-control" multiple accept="image/*" />
-                <small class="text-muted">* สามารถอัปโหลดหลายรูป (ภาพหลังแก้ไข)</small>
+                <small class="text-muted">* อัปโหลดภาพผลลัพธ์หลังจากแก้ไข Issue (รองรับหลายรูป)</small>
+
             </div>
 
             <div class="text-center mt-4 d-flex justify-content-center gap-2">

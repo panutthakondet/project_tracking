@@ -1,0 +1,139 @@
+@model ProjectTracking.Models.ProjectSupportOrder
+
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<h3 class="mb-3">📄 Order Details</h3>
+
+<div class="card mb-3">
+    <div class="card-body">
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="fw-bold">Project</label>
+                <div>@(Model.Project?.ProjectName ?? "-")</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="fw-bold">Priority</label>
+                <div>
+                    @if (Model.Priority == "HIGH")
+                    {
+                        <span class="badge bg-danger">HIGH</span>
+                    }
+                    else if (Model.Priority == "MEDIUM")
+                    {
+                        <span class="badge bg-warning text-dark">MEDIUM</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">@Model.Priority</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Title</label>
+            <div>@Model.OrderTitle</div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Detail</label>
+            <div>@Model.OrderDetail</div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Dev Status</label>
+            <div>
+                @if (string.IsNullOrEmpty(Model.DevStatus))
+                {
+                    <span class="badge bg-secondary">-</span>
+                }
+                else if (Model.DevStatus == "IN_PROGRESS")
+                {
+                    <span class="badge bg-warning text-dark">IN_PROGRESS</span>
+                }
+                else if (Model.DevStatus == "FIXED")
+                {
+                    <span class="badge bg-success">FIXED</span>
+                }
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Due Date</label>
+            <div>
+                @(Model.DueDate.HasValue
+                    ? Model.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH"))
+                    : "-")
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- BA Images -->
+<div class="card mb-3">
+    <div class="card-header">
+        📷 BA Images
+    </div>
+
+    <div class="card-body">
+        @if (Model.Images != null && Model.Images.Any())
+        {
+            foreach (var img in Model.Images)
+            {
+                <img src="@img.FilePath"
+                     style="width:200px"
+                     class="me-2 mb-2 border rounded" />
+            }
+        }
+        else
+        {
+            <p class="text-muted">No BA images.</p>
+        }
+    </div>
+</div>
+
+
+<!-- After Fix Images -->
+<div class="card mb-3">
+    <div class="card-header">
+        ✅ After Fix Images
+    </div>
+
+    <div class="card-body">
+
+        @if (Model.FixImages != null && Model.FixImages.Any())
+        {
+            foreach (var img in Model.FixImages)
+            {
+                if ((img.ImageType ?? "").ToUpper() == "AFTER")
+                {
+                    <img src="@img.FilePath"
+                         style="width:200px"
+                         class="me-2 mb-2 border rounded" />
+                }
+            }
+        }
+        else
+        {
+            <p class="text-muted">No fix images.</p>
+        }
+
+    </div>
+</div>
+
+
+<div class="mt-3">
+    <a asp-action="Edit" asp-route-id="@Model.OrderId" class="btn btn-warning">
+        Fix Order
+    </a>
+
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
+        Back
+    </a>
+</div>

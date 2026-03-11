@@ -1,0 +1,124 @@
+@{
+    ViewData["Title"] = "Issue Details";
+}
+
+<h3 class="mb-4">@Model?.IssueName</h3>
+
+<div class="mb-3">
+    <label class="fw-bold">Project</label>
+    <div>@(Model?.Project?.ProjectName ?? "-")</div>
+</div>
+
+<div class="mb-4">
+    <label class="fw-bold">Issue Detail</label>
+    <div>@(Model?.IssueDetail ?? "-")</div>
+</div>
+
+<div class="mb-4">
+    <label class="fw-bold">Dev Detail</label>
+    <div>@(Model?.DevDetail ?? "-")</div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label class="fw-bold">Priority</label>
+        <div>@(Model?.IssuePriority ?? "-")</div>
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-bold">Status</label>
+        <div>@(Model?.IssueStatus ?? "-")</div>
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-bold">Dev Status</label>
+        <div>@(Model?.DevStatus ?? "-")</div>
+    </div>
+
+    <div class="col-md-3">
+        <label class="fw-bold">Due Date</label>
+        <div>@(Model?.CreatedAt?.ToString("dd MMM yyyy") ?? "-")</div>
+    </div>
+</div>
+
+<div class="mb-4">
+    <label class="fw-bold">Assign To</label>
+    <div>@(Model?.Employee?.EmpName ?? "-")</div>
+</div>
+
+<h5 class="mb-3">BA Images</h5>
+
+<div class="row mb-4">
+@{
+    var beforeImages = Model?.Images ?? new List<ProjectTracking.Models.ProjectIssueImage>();
+}
+
+@if (beforeImages.Count > 0)
+{
+    foreach (var img in beforeImages)
+    {
+        <div class="col-md-2 mb-3">
+            <img src="@img.FilePath"
+                 class="img-fluid border rounded preview-img"
+                 style="cursor:pointer"
+                 onclick="previewImage('@img.FilePath')" />
+        </div>
+    }
+}
+else
+{
+    <div class="text-muted">No images</div>
+}
+</div>
+
+<h5 class="mb-3">After Fix Images</h5>
+
+<div class="row mb-4">
+@{
+    var afterImages = Model?.FixImages ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
+}
+
+@if (afterImages.Count > 0)
+{
+    foreach (var img in afterImages)
+    {
+        <div class="col-md-2 mb-3">
+            <img src="@img.FilePath"
+                 class="img-fluid border rounded preview-img"
+                 style="cursor:pointer"
+                 onclick="previewImage('@img.FilePath')" />
+        </div>
+    }
+}
+else
+{
+    <div class="text-muted">No images</div>
+}
+</div>
+
+<a asp-action="Index"
+   asp-route-projectId="@Model?.ProjectId"
+   class="btn btn-secondary">
+    Back
+</a>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" class="img-fluid rounded" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewImage(src){
+    const img = document.getElementById("previewImage");
+    img.src = src;
+
+    const modal = new bootstrap.Modal(document.getElementById("imagePreviewModal"));
+    modal.show();
+}
+</script>

@@ -227,19 +227,19 @@
         </div>
 
         <div class="calendar-card__body">
-    <div class="row">
+    <div class="row align-items-stretch">
         <!-- Calendar -->
         <div class="col-lg-8">
             <div id="calendar"></div>
         </div>
 
         <!-- Monthly Meeting List -->
-        <div class="col-lg-4">
-            <div class="card" style="border-radius:12px;border:1px solid rgba(0,0,0,.08);">
+        <div class="col-lg-4 d-flex">
+            <div class="card w-100" style="border-radius:12px;border:1px solid rgba(0,0,0,.08);">
                 <div class="card-header" style="background:#f8f9fa;font-weight:600;">
                     รายการประชุม
                 </div>
-                <div class="card-body" style="padding:10px;max-height:520px;overflow:auto;">
+                <div class="card-body" style="padding:10px;overflow:auto;">
                     <table class="table table-sm table-hover" id="meetingListTable">
                         <thead>
                             <tr>
@@ -371,14 +371,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 tbody.innerHTML = '';
 
                 const today = new Date();
-                const firstDayCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                today.setHours(0,0,0,0);
 
                 // sort meetings by start date (ascending)
                 data.sort((a, b) => new Date(a.start) - new Date(b.start));
 
                 data.forEach(e => {
                     const d = new Date(e.start);
-                    if (d >= firstDayCurrentMonth) {
+                    if (d >= today) {
 
                         const tr = document.createElement('tr');
 

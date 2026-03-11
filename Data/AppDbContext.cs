@@ -31,6 +31,11 @@ namespace ProjectTracking.Data
         public DbSet<ProjectIssueImage> ProjectIssueImages { get; set; }
         public DbSet<ProjectIssueFixImage> ProjectIssueFixImages { get; set; }
 
+        // ===== Support Orders (Warranty / Maintenance) =====
+        public DbSet<ProjectSupportOrder> ProjectSupportOrders { get; set; }
+        public DbSet<ProjectSupportImage> ProjectSupportImages { get; set; }
+        public DbSet<ProjectSupportFixImage> ProjectSupportFixImages { get; set; }
+
         // ===== Test Scenarios =====
         public DbSet<TestScenario> TestScenarios { get; set; }
 

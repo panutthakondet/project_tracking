@@ -21,6 +21,14 @@ namespace ProjectTracking.Models
         [StringLength(500)]
         public string IssueName { get; set; } = "";
 
+        // ===== BA Detail =====
+        [Column(TypeName = "text")]
+        public string? IssueDetail { get; set; }
+
+        // ===== Developer Fix Detail =====
+        [Column(TypeName = "text")]
+        public string? DevDetail { get; set; }
+
         // ===== Employee FK =====
         [Required]
         public int EmpId { get; set; }

@@ -1,0 +1,182 @@
+@model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
+
+<style>
+.sticky-col-1 { position: sticky; left: 0; background: #fff; z-index: 3; width:60px; }
+.sticky-col-2 { position: sticky; left: 60px; background: #fff; z-index: 3; width:260px; }
+.sticky-col-3 { position: sticky; left: 320px; background: #fff; z-index: 3; width:320px; }
+
+thead .sticky-col-1,
+thead .sticky-col-2,
+thead .sticky-col-3 {
+    background:#212529;
+    color:#fff;
+    z-index:4;
+}
+
+/* Prevent long text breaking layout */
+td {
+    word-break: break-word;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>📌 Support Orders</h3>
+    <button class="btn btn-primary" type="button" onclick="createOrder()">+ Add Order</button>
+</div>
+
+@if (ViewBag.SelectedProjectName != null)
+{
+    <div class="alert alert-info mb-3">
+        <strong>Project:</strong> @ViewBag.SelectedProjectName
+    </div>
+}
+
+<form method="get" class="mb-3" style="max-width:400px;">
+    <label class="form-label">Select Project</label>
+    <select name="projectId" class="form-select" asp-items="ViewBag.ProjectList" onchange="this.form.submit()">
+        <option value="">-- All Projects --</option>
+    </select>
+</form>
+
+@if (Context.Request.Query["projectId"].Count > 0 && !string.IsNullOrEmpty(Context.Request.Query["projectId"]))
+{
+<div style="overflow-x:auto;">
+<table class="table table-bordered table-hover align-middle table-sm" style="min-width:1200px; table-layout:fixed;">
+
+<thead class="table-dark">
+<tr>
+<th style="width:60px" class="text-center sticky-col-1">No.</th>
+<th style="width:260px" class="text-center sticky-col-2">Project</th>
+<th style="width:320px" class="text-center sticky-col-3">Title</th>
+<th style="width:420px" class="text-center">Detail</th>
+<th style="width:110px" class="text-center">Priority</th>
+<th style="width:120px" class="text-center">Status</th>
+<th style="width:120px" class="text-center">Dev Status</th>
+<th style="width:120px" class="text-center">Due Date</th>
+<th style="width:180px" class="text-center">Assigned To</th>
+<th style="width:200px" class="text-center">Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+@{
+    int no = 1;
+}
+
+@foreach(var item in Model)
+{
+<tr>
+<td class="text-center sticky-col-1">@no</td>
+
+<td class="sticky-col-2" style="width:260px;">
+@(item.Project != null ? item.Project.ProjectName : "-")
+</td>
+
+<td class="sticky-col-3" style="width:320px;">
+<strong>@item.OrderTitle</strong>
+</td>
+
+<td>
+@item.OrderDetail
+</td>
+
+<td class="text-center">
+@if(item.Priority == "HIGH" || item.Priority == "URGENT")
+{
+<span class="badge bg-danger">@item.Priority</span>
+}
+else if(item.Priority == "MEDIUM")
+{
+<span class="badge bg-warning text-dark">@item.Priority</span>
+}
+else
+{
+<span class="badge bg-success">@item.Priority</span>
+}
+</td>
+
+<td class="text-center">
+@if(item.Status == "DONE")
+{
+<span class="badge bg-success">@item.Status</span>
+}
+else if(item.Status == "IN_PROGRESS")
+{
+<span class="badge bg-primary">@item.Status</span>
+}
+else
+{
+<span class="badge bg-secondary">@item.Status</span>
+}
+</td>
+<td class="text-center">
+@if(string.IsNullOrEmpty(item.DevStatus))
+{
+    <span class="text-muted">-</span>
+}
+else if(item.DevStatus == "IN_PROGRESS")
+{
+    <span class="badge bg-warning text-dark">@item.DevStatus</span>
+}
+else if(item.DevStatus == "FIXED")
+{
+    <span class="badge bg-success">@item.DevStatus</span>
+}
+else
+{
+    <span class="badge bg-secondary">@item.DevStatus</span>
+}
+</td>
+
+<td class="text-center">
+@(item.DueDate.HasValue ? item.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) : "-")
+</td>
+
+<td>
+@(item.Employee != null ? item.Employee.EmpName : "-")
+</td>
+
+<td class="text-center">
+<div class="btn-group btn-group-sm" role="group">
+    <a class="btn btn-sm btn-primary" asp-action="Details" asp-route-id="@item.OrderId">View</a>
+
+    <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@item.OrderId">Edit</a>
+
+    <form asp-action="Delete" asp-route-id="@item.OrderId" method="post" style="display:inline">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this order?');">
+            Delete
+        </button>
+    </form>
+</div>
+</td>
+</tr>
+
+no++;
+}
+
+</tbody>
+</table>
+</div>
+}
+else
+{
+    <div class="alert alert-warning">
+        Please select a Project first to display Support Orders.
+    </div>
+}
+
+<script>
+function createOrder() {
+    var projectSelect = document.querySelector('select[name="projectId"]');
+    var projectId = projectSelect ? projectSelect.value : "";
+
+    if (!projectId) {
+        alert("Please select a Project before creating a Support Order.");
+        return;
+    }
+
+    window.location.href = '/SupportOrders/Create?projectId=' + projectId;
+}
+</script>

@@ -1,0 +1,64 @@
+@model ProjectTracking.Models.ProjectSupportOrder
+
+<h3>สร้าง Support Order</h3>
+
+<form asp-action="Create" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+
+<div class="mb-3">
+<label>Project</label>
+<input asp-for="ProjectId" type="hidden" />
+<input type="text" class="form-control" value="@ViewBag.SelectedProjectName" readonly />
+<span asp-validation-for="ProjectId" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+<label>Title</label>
+<input asp-for="OrderTitle" class="form-control"/>
+</div>
+
+<div class="mb-3">
+<label>Detail</label>
+<textarea asp-for="OrderDetail" class="form-control"></textarea>
+</div>
+
+<div class="mb-3">
+<label>Priority</label>
+<select asp-for="Priority" class="form-select">
+<option>LOW</option>
+<option>MEDIUM</option>
+<option>HIGH</option>
+<option>URGENT</option>
+</select>
+</div>
+
+<div class="mb-3">
+<label>Status</label>
+<select name="Status" class="form-select">
+<option value="OPEN">OPEN</option>
+<option value="IN_PROGRESS">IN PROGRESS</option>
+<option value="DONE">DONE</option>
+<option value="CANCELLED">CANCELLED</option>
+</select>
+</div>
+
+<div class="mb-3">
+<label>Due Date</label>
+<input type="date" name="DueDate" class="form-control" />
+</div>
+
+<div class="mb-3">
+<label>Assign To</label>
+<select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
+<option value="">-- Select Employee --</option>
+</select>
+</div>
+
+<div class="mb-3">
+<label>Upload Images</label>
+<input type="file" name="files" multiple class="form-control"/>
+</div>
+
+<button class="btn btn-primary">Save</button>
+<a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary ms-2">Back</a>
+
+</form>

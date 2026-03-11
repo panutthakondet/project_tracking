@@ -1,0 +1,94 @@
+
+
+@model ProjectTracking.Models.ProjectSupportOrder
+
+<h3>Edit Support Order</h3>
+
+<form asp-action="Edit" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+
+    <input asp-for="OrderId" type="hidden" />
+    <input asp-for="ProjectId" type="hidden" />
+
+    <div class="mb-3">
+        <label>Project</label>
+        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? Model.Project?.ProjectName : ViewBag.SelectedProjectName)" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label>Title</label>
+        <input asp-for="OrderTitle" class="form-control" />
+        <span asp-validation-for="OrderTitle" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label>Detail</label>
+        <textarea asp-for="OrderDetail" class="form-control"></textarea>
+        <span asp-validation-for="OrderDetail" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label>Priority</label>
+        <select asp-for="Priority" class="form-select">
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+            <option value="URGENT">URGENT</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Status</label>
+        <select asp-for="Status" class="form-select">
+            <option value="OPEN">OPEN</option>
+            <option value="IN_PROGRESS">IN PROGRESS</option>
+            <option value="WAIT_TEST">WAIT TEST</option>
+            <option value="DONE">DONE</option>
+            <option value="CLOSE">CLOSE</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Due Date</label>
+        <input asp-for="DueDate" type="date" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Assign To</label>
+        <select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
+            <option value="">-- Select Employee --</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Current Images</label>
+        <div>
+            @if (Model.Images != null && Model.Images.Any())
+            {
+                foreach (var img in Model.Images)
+                {
+                    <div class="d-inline-block text-center me-2 mb-2">
+                        <img src="@Url.Content("~" + img.FilePath)" style="width:150px" class="border mb-1" />
+                        <div>
+                            <input type="checkbox" name="deleteImageIds" value="@img.ImageId" />
+                            <small class="text-danger">Delete</small>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted">No images uploaded.</p>
+            }
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Upload New Images (BA can add or replace)</label>
+        <input type="file" name="files" multiple class="form-control" />
+        <small class="text-muted">You can upload multiple images. Mark existing images as Delete to remove them.</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">Cancel</a>
+
+</form>

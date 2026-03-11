@@ -1,0 +1,122 @@
+@model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
+
+@{
+    ViewData["Title"] = "Developer Orders";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>🛠 Developer Orders</h3>
+</div>
+
+<form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="fw-bold mb-1">Project</label>
+            <select name="projectId" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Select Project --</option>
+                @foreach (var p in (SelectList)ViewBag.ProjectList)
+                {
+                    <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
+                        @p.Text
+                    </option>
+                }
+            </select>
+        </div>
+    </div>
+</form>
+
+@{
+    var selectedProjectId = Context.Request.Query["projectId"].ToString();
+}
+
+@if (!string.IsNullOrEmpty(selectedProjectId))
+{
+    int no = 1;
+<div class="table-responsive">
+<table class="table table-bordered table-hover align-middle table-sm w-100" style="table-layout:fixed;">
+<thead class="table-dark">
+<tr>
+<th style="width:50px" class="text-center">No.</th>
+<th style="width:160px" class="text-center">Project</th>
+<th style="width:200px" class="text-center">Title</th>
+<th class="text-center">Detail</th>
+<th style="width:110px" class="text-center">Priority</th>
+<th style="width:120px" class="text-center">Dev Status</th>
+<th style="width:110px" class="text-center">Due Date</th>
+<th style="width:140px" class="text-center">Action</th>
+</tr>
+</thead>
+
+<tbody>
+@foreach (var item in Model)
+{
+<tr>
+<td class="text-center">@no</td>
+
+<td>
+@(item.Project != null ? item.Project.ProjectName : "-")
+</td>
+
+<td>
+<strong>@item.OrderTitle</strong>
+</td>
+
+<td style="word-break:break-word;">
+@item.OrderDetail
+</td>
+
+<td class="text-center">
+@if(item.Priority == "HIGH")
+{
+<span class="badge bg-danger">HIGH</span>
+}
+else if(item.Priority == "MEDIUM")
+{
+<span class="badge bg-warning text-dark">MEDIUM</span>
+}
+else
+{
+<span class="badge bg-secondary">@item.Priority</span>
+}
+</td>
+
+<td class="text-center">
+@if(string.IsNullOrEmpty(item.DevStatus))
+{
+<span class="badge bg-secondary">-</span>
+}
+else if(item.DevStatus == "IN_PROGRESS")
+{
+<span class="badge bg-warning text-dark">IN_PROGRESS</span>
+}
+else if(item.DevStatus == "FIXED")
+{
+<span class="badge bg-success">FIXED</span>
+}
+</td>
+
+<td class="text-center">
+@(item.DueDate.HasValue ? item.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) : "-")
+</td>
+
+<td class="text-center">
+<div class="btn-group btn-group-sm">
+<a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-info">View</a>
+<a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-warning">Fix</a>
+</div>
+</td>
+
+</tr>
+
+no++;
+}
+</tbody>
+</table>
+</div>
+}
+else
+{
+    <div class="alert alert-info">
+        กรุณาเลือก Project ก่อนเพื่อแสดงรายการงาน
+    </div>
+}

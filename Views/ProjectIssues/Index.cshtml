@@ -9,7 +9,7 @@
 
 <style>
 .issue-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
-.issue-table{ min-width:1820px; }
+.issue-table{ min-width:1400px; }
 
 .sticky-col{ position:sticky; left:0; background:#fff; z-index:2; }
 .sticky-col-2{ position:sticky; left:90px; background:#fff; z-index:2; }
@@ -21,9 +21,7 @@
 .col-devstatus{ width:170px; min-width:170px; text-align:center; }
 .col-priority{ width:140px; min-width:140px; text-align:center; }
 .col-lastfix{ width:180px; min-width:180px; text-align:center; }
-.col-images{ min-width:260px; }
-.col-fiximages{ min-width:260px; }
-.col-action{ width:190px; min-width:190px; text-align:center; }
+.col-action{ width:220px; min-width:220px; text-align:center; white-space:nowrap; }
 
 .reopen-badge{ font-size:11px; padding:3px 7px; border-radius:6px; margin-left:6px; }
 
@@ -101,8 +99,6 @@ else
                     <th class="col-devstatus">Dev Status</th>
                     <th class="col-priority">Priority</th>
                     <th class="col-lastfix">Last Fix</th>
-                    <th class="col-images">Before</th>
-                    <th class="col-fiximages">After</th>
                     <th class="col-action">Action</th>
                 </tr>
             </thead>
@@ -186,32 +182,21 @@ else
                         @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")
                     </td>
 
-                    <td class="col-images">
-                        @foreach (var img in i.Images)
-                        {
-                            <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
-                                <img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" />
-                            </a>
-                        }
-                    </td>
-
-                    <td class="col-fiximages">
-                        @foreach (var img in i.FixImages)
-                        {
-                            <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
-                                <img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" />
-                            </a>
-                        }
-                    </td>
-
                     <td class="col-action">
-                        <a asp-action="Edit" asp-route-id="@i.IssueId" class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
+                        <div class="d-inline-flex gap-1">
+                        <a asp-controller="ProjectIssues"
+                           asp-action="Details"
+                           asp-route-id="@i.IssueId"
+                           asp-route-projectId="@selectedProject?.ProjectId"
+                           class="btn btn-sm btn-outline-secondary me-1">👁 View</a>
+                        <a asp-action="Edit" asp-route-id="@i.IssueId" asp-route-projectId="@selectedProject?.ProjectId" class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
 
                         <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Delete issue นี้ใช่หรือไม่?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@i.IssueId" />
                             <button type="submit" class="btn btn-sm btn-outline-danger">🗑 Delete</button>
                         </form>
+    </div>
                     </td>
                 </tr>
 

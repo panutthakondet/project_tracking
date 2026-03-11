@@ -253,7 +253,11 @@
 
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.ViewOnly")
-                 || CanMenu("ProjectIssues.DevIndex");
+                 || CanMenu("ProjectIssues.DevIndex")
+                 || CanMenu("ProjectIssues.Details")
+                 || CanMenu("ProjectIssues.DevDetails")
+                 || CanMenu("SupportOrders.Index")
+                 || CanMenu("SupportOrdersDev.Index");
 
     var canReports = CanMenu("PhaseAssigns.Print")
                   || CanMenu("PhaseStatusReport.Index")
@@ -385,6 +389,14 @@
                                     @if (CanMenu("ProjectIssues.DevIndex"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">👨‍💻 แก้ไขสถานะปัญหาโครงการ</a></li>
+                                    }
+                                    @if (CanMenu("SupportOrders.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">🛠️ งานแก้ไขช่วงรับประกัน</a></li>
+                                    }
+                                    @if (CanMenu("SupportOrdersDev.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SupportOrdersDev" asp-action="Index">👨‍💻 งานแก้ไขช่วงรับประกัน (Dev)</a></li>
                                     }
                                 </ul>
                             </li>

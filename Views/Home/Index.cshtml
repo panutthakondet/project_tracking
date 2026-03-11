@@ -149,6 +149,27 @@
                 </a>
             </div>
             }
+            @if (CanMenu("SupportOrders.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="SupportOrders" asp-action="Index" class="menu-card">
+                    <div class="icon">🛠️</div>
+                    <div class="title">งานแก้ไขช่วงรับประกัน</div>
+                    <div class="desc">บันทึกและติดตามงานแก้ไขจากลูกค้า</div>
+                </a>
+            </div>
+            }
+
+            @if (CanMenu("SupportOrdersDev.Index"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="SupportOrdersDev" asp-action="Index" class="menu-card">
+                    <div class="icon">👨‍💻</div>
+                    <div class="title">งานแก้ไขช่วงรับประกัน (Dev)</div>
+                    <div class="desc">สำหรับโปรแกรมเมอร์อัปเดตสถานะและอัปโหลด After Fix</div>
+                </a>
+            </div>
+            }
 
             @if (CanMenu("Meetings.Index"))
             {

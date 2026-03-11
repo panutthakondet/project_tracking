@@ -39,6 +39,16 @@
                     <span asp-validation-for="IssueName" class="text-danger"></span>
                 </div>
 
+                <!-- Issue Detail -->
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">📝 Issue Detail</label>
+                    <textarea asp-for="IssueDetail"
+                              class="form-control"
+                              rows="4"
+                              placeholder="Describe the problem in detail"></textarea>
+                    <span asp-validation-for="IssueDetail" class="text-danger"></span>
+                </div>
+
                 <!-- Owner -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">👤 Owner (Employee)</label>

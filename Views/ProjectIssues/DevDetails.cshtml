@@ -1,0 +1,101 @@
+
+
+@model ProjectTracking.Models.ProjectIssue
+
+@{
+    ViewData["Title"] = "Issue Details (Dev)";
+}
+
+<div class="container mt-3">
+
+    <h2 class="fw-bold mb-3">@Model.IssueName</h2>
+
+    <div class="mb-3">
+        <label class="fw-semibold">Project</label>
+        <div>@Model.Project?.ProjectName</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="fw-semibold">Issue Detail</label>
+        <div class="border rounded p-2 bg-light">
+            @(Model.IssueDetail ?? "-")
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="fw-semibold">Dev Detail</label>
+        <div class="border rounded p-2 bg-light">
+            @(Model.DevDetail ?? "-")
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <label class="fw-semibold">Priority</label>
+            <div>@Model.IssuePriority</div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="fw-semibold">Status</label>
+            <div>@Model.IssueStatus</div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="fw-semibold">Dev Status</label>
+            <div>@Model.DevStatus</div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="fw-semibold">Last Fix</label>
+            <div>@(Model.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <label class="fw-semibold">Assign To</label>
+        <div>@Model.Employee?.EmpName</div>
+    </div>
+
+    <hr />
+
+    <h5>Issue Images (Before Fix)</h5>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @if (Model.Images != null)
+        {
+            foreach (var img in Model.Images)
+            {
+                <a href="@img.FilePath" target="_blank">
+                    <img src="@img.FilePath"
+                         style="width:150px;height:150px;object-fit:cover"
+                         class="img-thumbnail" />
+                </a>
+            }
+        }
+    </div>
+
+    <h5>Issue Images (After Fix)</h5>
+
+    <div class="d-flex flex-wrap gap-2">
+        @if (Model.FixImages != null)
+        {
+            foreach (var img in Model.FixImages)
+            {
+                <a href="@img.FilePath" target="_blank">
+                    <img src="@img.FilePath"
+                         style="width:150px;height:150px;object-fit:cover"
+                         class="img-thumbnail border-success" />
+                </a>
+            }
+        }
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="DevIndex"
+           asp-route-projectId="@Model.ProjectId"
+           class="btn btn-secondary">
+            Back
+        </a>
+    </div>
+
+</div>

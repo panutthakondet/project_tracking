@@ -49,6 +49,46 @@ namespace ProjectTracking.Controllers
         }
 
         // =====================================================
+        // DETAILS (VIEW)
+        // =====================================================
+        [RequireMenu("ProjectIssues.Index")]
+        public async Task<IActionResult> Details(int id)
+        {
+            var issue = await _context.ProjectIssues
+                .AsNoTracking()
+                .Include(i => i.Project)
+                .Include(i => i.Employee)
+                .Include(i => i.Images)
+                .Include(i => i.FixImages)
+                .FirstOrDefaultAsync(i => i.IssueId == id);
+
+            if (issue == null)
+                return NotFound();
+
+            return View(issue);
+        }
+
+        // =====================================================
+        // DEV DETAILS (VIEW FOR PROGRAMMER PAGE)
+        // =====================================================
+        [RequireMenu("ProjectIssues.DevIndex")]
+        public async Task<IActionResult> DevDetails(int id)
+        {
+            var issue = await _context.ProjectIssues
+                .AsNoTracking()
+                .Include(i => i.Project)
+                .Include(i => i.Employee)
+                .Include(i => i.Images)
+                .Include(i => i.FixImages)
+                .FirstOrDefaultAsync(i => i.IssueId == id);
+
+            if (issue == null)
+                return NotFound();
+
+            return View(issue);
+        }
+
+        // =====================================================
         // VIEW ONLY REPORT
         // =====================================================
         [RequireMenu("ProjectIssues.ViewOnly")]
@@ -219,7 +259,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("ProjectIssues.Index")]
-        public async Task<IActionResult> Edit(int id, ProjectIssue model, List<IFormFile>? fixImages)
+        public async Task<IActionResult> Edit(int id, ProjectIssue model, List<IFormFile>? newImages, List<int>? deleteImageIds)
         {
             if (id != model.IssueId) return NotFound();
 
@@ -242,6 +282,7 @@ namespace ProjectTracking.Controllers
                 newStatus = oldStatus;
 
             issue.IssueName = model.IssueName;
+            issue.IssueDetail = model.IssueDetail;   // BA detail
             issue.EmpId = model.EmpId;
             issue.IssueStatus = newStatus;
             issue.IssuePriority = (model.IssuePriority ?? issue.IssuePriority ?? "NORMAL").Trim().ToUpperInvariant();
@@ -280,8 +321,52 @@ namespace ProjectTracking.Controllers
             }
 
             await _context.SaveChangesAsync();
+            // ================= DELETE BEFORE IMAGES =================
+            if (deleteImageIds != null && deleteImageIds.Count > 0)
+            {
+                var imagesToDelete = await _context.ProjectIssueImages
+                    .Where(x => deleteImageIds.Contains(x.ImageId))
+                    .ToListAsync();
 
-            await SaveFixImages(issue.IssueId, fixImages);
+                foreach (var img in imagesToDelete)
+                {
+                    var filePath = Path.Combine(_env.WebRootPath, img.FilePath.TrimStart('/'));
+
+                    if (System.IO.File.Exists(filePath))
+                        System.IO.File.Delete(filePath);
+                }
+
+                _context.ProjectIssueImages.RemoveRange(imagesToDelete);
+                await _context.SaveChangesAsync();
+            }
+
+            // ================= UPLOAD NEW BEFORE IMAGES =================
+            if (newImages != null && newImages.Count > 0)
+            {
+                string path = Path.Combine(_env.WebRootPath, "uploads", "issues", issue.IssueId.ToString());
+                Directory.CreateDirectory(path);
+
+                foreach (var file in newImages)
+                {
+                    if (file.Length == 0) continue;
+
+                    string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                    string fullPath = Path.Combine(path, fileName);
+
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await file.CopyToAsync(stream);
+
+                    _context.ProjectIssueImages.Add(new ProjectIssueImage
+                    {
+                        IssueId = issue.IssueId,
+                        FileName = fileName,
+                        FilePath = $"/uploads/issues/{issue.IssueId}/{fileName}",
+                        UploadedAt = DateTime.Now
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return RedirectToAction(nameof(Index), new { projectId = issue.ProjectId });
         }
@@ -310,7 +395,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("ProjectIssues.DevIndex")]
-        public async Task<IActionResult> DevEdit(int id, ProjectIssue model, List<IFormFile>? afterImages)
+        public async Task<IActionResult> DevEdit(int id, ProjectIssue model, List<IFormFile>? afterImages, List<int>? deleteFixImageIds)
         {
             if (id != model.IssueId) return NotFound();
 
@@ -322,6 +407,7 @@ namespace ProjectTracking.Controllers
             if (string.IsNullOrWhiteSpace(newDev)) newDev = "TODO";
 
             issue.DevStatus = newDev;
+            issue.DevDetail = model.DevDetail;   // developer fix detail
 
             // ✅ set LastFixedAt when dev marks FIXED
             if (!string.Equals(oldDev, "FIXED", StringComparison.OrdinalIgnoreCase)
@@ -332,8 +418,28 @@ namespace ProjectTracking.Controllers
             }
 
             _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
+            _context.Entry(issue).Property(x => x.DevDetail).IsModified = true;
 
             await _context.SaveChangesAsync();
+
+            // ================= DELETE AFTER FIX IMAGES =================
+            if (deleteFixImageIds != null && deleteFixImageIds.Count > 0)
+            {
+                var imagesToDelete = await _context.ProjectIssueFixImages
+                    .Where(x => deleteFixImageIds.Contains(x.ImageId))
+                    .ToListAsync();
+
+                foreach (var img in imagesToDelete)
+                {
+                    var filePath = Path.Combine(_env.WebRootPath, img.FilePath.TrimStart('/'));
+
+                    if (System.IO.File.Exists(filePath))
+                        System.IO.File.Delete(filePath);
+                }
+
+                _context.ProjectIssueFixImages.RemoveRange(imagesToDelete);
+                await _context.SaveChangesAsync();
+            }
 
             // ✅ save After images to FixImages
             await SaveFixImages(issue.IssueId, afterImages);

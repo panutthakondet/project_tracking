@@ -21,11 +21,22 @@
     <input type="hidden" asp-for="ReopenCount" />
     <input type="hidden" asp-for="LastFixedAt" />
 
+
     <!-- ================= Issue Name ================= -->
     <div class="mb-3">
         <label asp-for="IssueName" class="form-label"></label>
         <input asp-for="IssueName" class="form-control" />
         <span asp-validation-for="IssueName" class="text-danger"></span>
+    </div>
+
+    <!-- ================= Issue Detail ================= -->
+    <div class="mb-3">
+        <label asp-for="IssueDetail" class="form-label">Issue Detail</label>
+        <textarea asp-for="IssueDetail"
+                  class="form-control"
+                  rows="4"
+                  placeholder="Describe the issue in detail"></textarea>
+        <span asp-validation-for="IssueDetail" class="text-danger"></span>
     </div>
 
     <!-- ================= Owner ================= -->
@@ -118,50 +129,63 @@
     </div>
 
     <!-- ===================================================== -->
-    <!-- 🧾 BEFORE IMAGES -->
+    <!-- 🧾 ISSUE IMAGES (BEFORE FIX) -->
     <!-- ===================================================== -->
-    @if (Model.Images != null && Model.Images.Any())
-    {
-        <div class="mb-4">
-            <label class="form-label fw-bold text-primary">
-                🧾 Issue Images (Before Fix)
-            </label>
+    <div class="mb-4">
 
-            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-light">
+        <label class="form-label fw-bold text-primary">
+            🧾 Issue Images (Before Fix)
+        </label>
+
+        <!-- Existing Images -->
+        @if (Model.Images != null && Model.Images.Count > 0)
+        {
+            <div class="d-flex flex-wrap gap-3 border rounded p-2 bg-light mb-3">
+
                 @foreach (var img in Model.Images)
                 {
-                    <a href="@img.FilePath" target="_blank">
-                        <img src="@img.FilePath"
-                             class="img-thumbnail"
-                             style="width:140px;height:140px;object-fit:cover;" />
-                    </a>
-                }
-            </div>
-        </div>
-    }
+                    <div class="text-center">
 
-    <!-- ===================================================== -->
-    <!-- 🔧 AFTER IMAGES -->
-    <!-- ===================================================== -->
-    @if (Model.FixImages != null && Model.FixImages.Any())
-    {
-        <div class="mb-4">
-            <label class="form-label fw-bold text-success">
-                🔧 Fix Result Images (After Fix)
-            </label>
+                        <a href="@img.FilePath" target="_blank">
+                            <img src="@img.FilePath"
+                                 class="img-thumbnail"
+                                 style="width:140px;height:140px;object-fit:cover;" />
+                        </a>
 
-            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-white">
-                @foreach (var img in Model.FixImages)
-                {
-                    <a href="@img.FilePath" target="_blank">
-                        <img src="@img.FilePath"
-                             class="img-thumbnail border-success"
-                             style="width:140px;height:140px;object-fit:cover;" />
-                    </a>
+                        <div class="form-check mt-1">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="deleteImageIds"
+                                   value="@img.ImageId"
+                                   id="del_@img.ImageId" />
+
+                            <label class="form-check-label small text-danger"
+                                   for="del_@img.ImageId">
+                                Delete
+                            </label>
+                        </div>
+
+                    </div>
                 }
+
             </div>
+        }
+        else
+        {
+            <div class="text-muted mb-2">No images</div>
+        }
+
+        <!-- Upload New Images -->
+        <div class="mt-2">
+            <label class="form-label">Add Images</label>
+            <input type="file"
+                   name="newImages"
+                   class="form-control"
+                   multiple
+                   accept="image/*" />
         </div>
-    }
+
+    </div>
 
     <!-- ================= Actions ================= -->
     <div class="mt-4">

@@ -1,0 +1,156 @@
+@model ProjectTracking.Models.ProjectSupportOrder
+
+@{
+    ViewData["Title"] = "Fix Order";
+}
+
+<h3 class="mb-3">🛠 Fix Order</h3>
+
+<div class="card mb-3">
+    <div class="card-body">
+
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <label class="fw-bold">Project</label>
+                <div>@(Model.Project?.ProjectName ?? "-")</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="fw-bold">Priority</label>
+                <div>
+                    @if (Model.Priority == "HIGH")
+                    {
+                        <span class="badge bg-danger">HIGH</span>
+                    }
+                    else if (Model.Priority == "MEDIUM")
+                    {
+                        <span class="badge bg-warning text-dark">MEDIUM</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">@Model.Priority</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Title</label>
+            <div>@Model.OrderTitle</div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Detail</label>
+            <div>@Model.OrderDetail</div>
+        </div>
+
+        <div class="mb-2">
+            <label class="fw-bold">Due Date</label>
+            <div>
+                @(Model.DueDate.HasValue 
+                    ? Model.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) 
+                    : "-")
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+
+<!-- BA Images -->
+<div class="card mb-3">
+    <div class="card-header">
+        📷 BA Images
+    </div>
+
+    <div class="card-body">
+        @if (Model.Images != null && Model.Images.Any())
+        {
+            foreach (var img in Model.Images)
+            {
+                <img src="@img.FilePath"
+                     style="width:200px"
+                     class="me-2 mb-2 border rounded" />
+            }
+        }
+        else
+        {
+            <p class="text-muted">No BA images.</p>
+        }
+    </div>
+</div>
+
+
+<form asp-action="Edit" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+
+<input type="hidden" asp-for="OrderId" />
+<input type="hidden" asp-for="ProjectId" />
+
+<div class="mb-3">
+    <label class="fw-bold">Dev Status</label>
+    <select asp-for="DevStatus" class="form-select">
+        <option value="">-- Select Status --</option>
+        <option value="IN_PROGRESS">IN_PROGRESS</option>
+        <option value="FIXED">FIXED</option>
+    </select>
+</div>
+
+<!-- After Fix Images -->
+<div class="card mb-3">
+    <div class="card-header">
+        ✅ Upload After Fix Images
+    </div>
+
+    <div class="card-body">
+
+        <div class="mb-3">
+            <input type="file"
+                   name="afterFiles"
+                   class="form-control"
+                   multiple />
+        </div>
+
+        @if (Model.FixImages != null && Model.FixImages.Any())
+        {
+            <div class="mb-2 fw-bold">Existing After Fix Images</div>
+
+            foreach (var img in Model.FixImages)
+            {
+                if ((img.ImageType ?? "").ToUpper() == "AFTER")
+                {
+                    <div class="d-inline-block text-center me-2 mb-2">
+                        <img src="@img.FilePath"
+                             style="width:200px"
+                             class="border rounded d-block mb-1" />
+
+                        <div class="form-check text-start">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="deleteImageIds"
+                                   value="@img.ImageId"
+                                   id="del_@img.ImageId" />
+                            <label class="form-check-label text-danger" for="del_@img.ImageId">
+                                Delete
+                            </label>
+                        </div>
+                    </div>
+                }
+            }
+        }
+
+    </div>
+</div>
+
+
+<div class="mt-3">
+    <button type="submit" class="btn btn-success">
+        Save Fix
+    </button>
+
+    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
+        Back
+    </a>
+</div>
+
+</form>

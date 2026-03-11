@@ -25,7 +25,9 @@ namespace ProjectTracking.Middleware
                 "TestScenarios",
                 "TestScenarioTemplates",
                 "TestTemplateGroups",
-                "ProjectDocuments"
+                "ProjectDocuments",
+                "SupportOrders",
+                "SupportOrdersDev"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)
@@ -34,6 +36,8 @@ namespace ProjectTracking.Middleware
             new Dictionary<(string, string), string>(new ControllerActionComparer())
             {
                 { ("Projects", "ViewOnly"), "Projects.ViewOnly" },
+                { ("ProjectIssues", "Details"), "ProjectIssues.Index" },
+                { ("ProjectIssues", "DevDetails"), "ProjectIssues.DevIndex" },
                 // เพิ่มรายการอื่น ๆ ได้ภายหลัง เช่น:
                 // { ("ProjectIssues", "ViewOnly"), "ProjectIssues.ViewOnly" },
             };

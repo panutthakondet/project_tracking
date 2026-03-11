@@ -9,25 +9,18 @@
 }
 
 <style>
-.issue-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
-.issue-table{ min-width:1650px; }
-
-.sticky-col{ position:sticky; left:0; background:#fff; z-index:2; }
-.sticky-col-2{ position:sticky; left:90px; background:#fff; z-index:2; }
-
-.col-id{ width:90px; min-width:90px; text-align:center; }
-.col-issue{ width:360px; min-width:360px; }
-.col-owner{ width:180px; min-width:180px; text-align:center; }
-.col-status{ width:170px; min-width:170px; text-align:center; }
-.col-priority{ width:140px; min-width:140px; text-align:center; }
-.col-lastfix{ width:180px; min-width:180px; text-align:center; }
-.col-images{ min-width:260px; }
-.col-fiximages{ min-width:260px; }
-.col-action{ width:120px; min-width:120px; text-align:center; }
-
-.issue-table td {
-    word-break: break-word;
+.table-wrapper{
+    overflow-x:auto;
 }
+.issue-table{
+    min-width:1200px;
+}
+.col-id{ width:70px; text-align:center; }
+.col-issue{ min-width:300px; }
+.col-owner{ width:160px; text-align:center; }
+.col-status{ width:150px; text-align:center; }
+.col-priority{ width:120px; text-align:center; }
+.col-action{ width:120px; text-align:center; white-space:nowrap; }
 </style>
 
 <div class="mb-3">
@@ -74,18 +67,16 @@ else
         <div class="alert alert-warning">ไม่พบรายการ Issue</div>
         return;
     }
-    <div class="issue-table-wrapper">
+    <div class="table-wrapper">
         <table class="table table-bordered table-hover align-middle issue-table">
             <thead class="table-dark text-center">
                 <tr>
-                    <th class="col-id sticky-col">No.</th>
-                    <th class="col-issue sticky-col-2">Issue</th>
+                    <th class="col-id">No.</th>
+                    <th class="col-issue">Issue</th>
                     <th class="col-owner">Owner</th>
                     <th class="col-status">Status</th>
                     <th class="col-status">Dev Status</th>
                     <th class="col-priority">Priority</th>
-                    <th class="col-images">Before</th>
-                    <th class="col-fiximages">After</th>
                     <th class="col-action">Dev</th>
                 </tr>
             </thead>
@@ -106,9 +97,9 @@ else
                     "bg-secondary";
 
                 <tr class="@(urgent ? "table-danger" : "")">
-                    <td class="sticky-col col-id fw-semibold">@row</td>
+                    <td class="col-id fw-semibold">@row</td>
 
-                    <td class="sticky-col-2 col-issue">
+                    <td class="col-issue">
                         <div class="fw-semibold">@i.IssueName</div>
                         <small class="text-muted">📅 @i.CreatedAt.ToString("dd/MM/yyyy")</small>
                     </td>
@@ -126,28 +117,15 @@ else
                     </td>
                     <td class="col-priority"><span class="badge @(urgent ? "bg-danger" : "bg-secondary")">@(urgent ? "🔥 URGENT" : "NORMAL")</span></td>
 
-                    <td class="col-images">
-                        @if (i.Images != null)
-                        {
-                            @foreach (var img in i.Images)
-                            {
-                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #ddd;" /></a>
-                            }
-                        }
-                    </td>
-
-                    <td class="col-fiximages">
-                        @if (i.FixImages != null)
-                        {
-                            @foreach (var img in i.FixImages)
-                            {
-                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer"><img src="@img.FilePath" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #28a745;" /></a>
-                            }
-                        }
-                    </td>
-
                     <td class="col-action">
-                        <a asp-action="DevEdit" asp-route-id="@i.IssueId" class="btn btn-sm btn-warning">✏️ Edit</a>
+                        <div class="d-inline-flex gap-1">
+                            <a asp-controller="ProjectIssues"
+                               asp-action="DevDetails"
+                               asp-route-id="@i.IssueId"
+                               asp-route-projectId="@selectedProject!.ProjectId"
+                               class="btn btn-sm btn-outline-secondary">👁 View</a>
+                            <a asp-action="DevEdit" asp-route-id="@i.IssueId" asp-route-projectId="@selectedProject?.ProjectId" class="btn btn-sm btn-warning">✏️ Edit</a>
+                        </div>
                     </td>
                 </tr>
                 row++;
