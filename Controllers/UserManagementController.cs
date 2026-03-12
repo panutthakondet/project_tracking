@@ -604,6 +604,7 @@ namespace ProjectTracking.Controllers
                 ("Followups.Log", "บันทึกการติดตาม"),
                 ("Followups.History", "ประวัติการติดตาม"),
                 ("Followups.DashboardDone", "Dashboard งานที่ DONE (รอรับทราบ)"),
+                ("Followups.DashboardACK", "Dashboard งานที่ ACK (ปิดงานแล้ว)"),
 
                 // ===== Testing =====
                 ("TestScenarios.Index", "บันทึก Test Scenario"),

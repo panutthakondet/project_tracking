@@ -26,6 +26,7 @@ namespace ProjectTracking.Controllers
 
             var today = DateTime.Today;
             var next7days = today.AddDays(7);
+            var fromDate = today.AddMonths(-1);
 
             // 🔴 งานเลยกำหนด
             var overdue = await (
@@ -97,11 +98,15 @@ namespace ProjectTracking.Controllers
             ViewBag.TodayFollowupCount = todayList.Count;
             ViewBag.UpcomingCount = upcoming.Count;
             ViewBag.FollowupAlertCount = await _context.ProjectFollowups
-                .Where(x => x.Status != "DONE")
+                .Where(x => x.Status == "OPEN")
                 .CountAsync();
 
             ViewBag.FollowupDoneCount = await _context.ProjectFollowups
                 .Where(x => x.Status == "DONE")
+                .CountAsync();
+
+            ViewBag.FollowupAckCount = await _context.ProjectFollowups
+                .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
                 .CountAsync();
 
             return View();

@@ -656,5 +656,19 @@ document.addEventListener("DOMContentLoaded", function () {
     </a>
 }
 
+@if (CanMenu("Dashboard.Index"))
+{
+    <a href="/Followups/DashboardACK" class="followup-float-btn" style="bottom:172px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;">
+        📥
+        @{
+            var ackCount = Convert.ToInt32(ViewBag?.FollowupAckCount ?? 0);
+        }
+        @if (ackCount > 0)
+        {
+            <span class="followup-badge">@ackCount</span>
+        }
+    </a>
+}
+
 </body>
 </html>

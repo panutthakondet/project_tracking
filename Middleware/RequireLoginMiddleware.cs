@@ -46,6 +46,7 @@ namespace ProjectTracking.Middleware
                 { ("Followups", "AddLog"), "Followups.Index" },
                 { ("Followups", "History"), "Followups.Index" },
                 { ("Followups", "DashboardDone"), "Followups.DashboardDone" },
+                { ("Followups", "DashboardACK"), "Followups.DashboardACK" },
 
                 // Dashboard permissions
                 { ("Dashboard", "Index"), "Dashboard.Index" },

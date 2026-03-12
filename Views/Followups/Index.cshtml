@@ -1,6 +1,12 @@
 @model IEnumerable<ProjectTracking.Models.ProjectFollowup>
 
 <h2>งานที่ต้องติดตาม</h2>
+@if (TempData["FollowupMessage"] != null)
+{
+    <script>
+        alert("@TempData["FollowupMessage"]");
+    </script>
+}
 @{
     var isAdmin = Context.Session.GetString("Role") == "ADMIN";
 }
@@ -69,11 +75,11 @@ else
         {
             var d = item.NextFollowupDate.Value.Date;
             if (d < DateTime.Today)
-                rowClass = "table-danger";   // 🔴 Overdue
+                rowClass = "table-danger";
             else if (d == DateTime.Today)
-                rowClass = "table-warning";  // 🟡 Today
+                rowClass = "table-warning";
             else
-                rowClass = "table-success";  // 🟢 Upcoming
+                rowClass = "table-success";
         }
 
         <tr class="@rowClass">
@@ -103,16 +109,25 @@ else
                     </form>
                 }
 
-                <form method="post" action="/Followups/MarkDone" style="display:inline;">
-                    <input type="hidden" name="followupId" value="@item.FollowupId" />
-                    <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
-                    <button class="btn btn-sm btn-success">Done</button>
-                </form>
-
-
-                @if(item.Status == "DONE")
+                @if(item.Status == "DONE" || item.Status == "ACK")
                 {
-                    <button class="btn btn-sm btn-outline-primary" disabled title="DONE แล้ว ไม่สามารถ Log ได้">
+                    <button class="btn btn-sm btn-success"
+                            onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                        Done
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-success"
+                            onclick="openDonePopup(@item.FollowupId)">
+                        Done
+                    </button>
+                }
+
+                @if(item.Status == "DONE" || item.Status == "ACK")
+                {
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
                         Log
                     </button>
                 }
@@ -168,6 +183,30 @@ else
     </form>
 </div>
 
+<!-- Done Popup -->
+<div id="doneModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+     background:#fff; padding:24px; width:420px; border-radius:10px;
+     border:1px solid #e0e0e0; box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:1000;">
+
+    <h5 style="margin-bottom:18px; font-weight:600;">Mark Follow‑up Done</h5>
+
+    <form method="post" action="/Followups/MarkDone">
+        <input type="hidden" name="followupId" id="doneFollowupId" />
+        <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
+
+        <div class="mb-2">
+            <label>Note</label>
+            <textarea name="Note" class="form-control" rows="3"
+                      placeholder="บันทึกผลการดำเนินการ..."></textarea>
+        </div>
+
+        <div style="margin-top:16px; text-align:right;">
+            <button type="button" class="btn btn-secondary" onclick="closeDonePopup()">Cancel</button>
+            <button class="btn btn-success">Done</button>
+        </div>
+    </form>
+</div>
+
 <script>
 function openQuickLog(id){
     document.getElementById("quickFollowupId").value = id;
@@ -176,5 +215,14 @@ function openQuickLog(id){
 
 function closeQuickLog(){
     document.getElementById("quickLogModal").style.display = "none";
+}
+
+function openDonePopup(id){
+    document.getElementById("doneFollowupId").value = id;
+    document.getElementById("doneModal").style.display = "block";
+}
+
+function closeDonePopup(){
+    document.getElementById("doneModal").style.display = "none";
 }
 </script>

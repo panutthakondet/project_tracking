@@ -22,7 +22,7 @@ namespace ProjectTracking.Controllers
             var data = await _context.ProjectFollowups
                 .Include(x => x.Project)
                 .Include(x => x.Owner)
-                .Where(x => x.Status != "ACK")
+                .Where(x => x.Status == "OPEN")
                 .OrderBy(x => x.NextFollowupDate)
                 .Select(x => new
                 {
@@ -32,8 +32,9 @@ namespace ProjectTracking.Controllers
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
-                    x.NextFollowupDate,
+                    NextFollowupDate = x.NextFollowupDate ?? today,
                     Status =
+                        x.NextFollowupDate == null ? "Done" :
                         x.NextFollowupDate < today ? "Overdue" :
                         x.NextFollowupDate == today ? "Today" :
                         "Upcoming"
@@ -61,11 +62,39 @@ namespace ProjectTracking.Controllers
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
-                    x.NextFollowupDate,
+                    NextFollowupDate = x.NextFollowupDate ?? today,
                     Status =
+                        x.NextFollowupDate == null ? "Done" :
                         x.NextFollowupDate < today ? "Overdue" :
                         x.NextFollowupDate == today ? "Today" :
                         "Upcoming"
+                })
+                .ToListAsync();
+
+            return View(data);
+        }
+
+        // ===== Follow-up Dashboard ACK (Closed / Acknowledged) =====
+        public async Task<IActionResult> DashboardACK()
+        {
+            var today = DateTime.Today;
+            var fromDate = today.AddMonths(-1);
+
+            var data = await _context.ProjectFollowups
+                .Include(x => x.Project)
+                .Include(x => x.Owner)
+                .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
+                .OrderByDescending(x => x.LastContactDate)
+                .Select(x => new
+                {
+                    x.FollowupId,
+                    ProjectId = x.ProjectId,
+                    Project = x.Project != null ? x.Project.ProjectName : "",
+                    x.TaskTitle,
+                    x.PartnerName,
+                    Owner = x.Owner != null ? x.Owner.EmpName : "",
+                    NextFollowupDate = x.NextFollowupDate ?? today,
+                    Status = "ACK"
                 })
                 .ToListAsync();
 
@@ -293,7 +322,7 @@ namespace ProjectTracking.Controllers
 
         // ===== Mark Follow-up Done =====
         [HttpPost]
-        public async Task<IActionResult> MarkDone(int followupId)
+        public async Task<IActionResult> MarkDone(int followupId, string? Note)
         {
             var followup = await _context.ProjectFollowups
                 .FirstOrDefaultAsync(x => x.FollowupId == followupId);
@@ -301,14 +330,21 @@ namespace ProjectTracking.Controllers
             if (followup == null)
                 return NotFound();
 
+            if (followup.Status == "DONE" || followup.Status == "ACK")
+            {
+                TempData["FollowupMessage"] = "ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว";
+                return RedirectToAction("Index", new { projectId = followup.ProjectId });
+            }
+
             followup.Status = "DONE";
+            followup.NextFollowupDate = null;
 
             var log = new ProjectFollowupLog
             {
                 FollowupId = followupId,
                 ContactType = "Done",
                 ContactDate = DateTime.Now,
-                Note = "Follow-up completed"
+                Note = string.IsNullOrEmpty(Note) ? "Follow-up completed" : Note
             };
 
             _context.ProjectFollowupLogs.Add(log);
