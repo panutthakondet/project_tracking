@@ -51,6 +51,13 @@ namespace ProjectTracking.Middleware
                 { ("Dashboard", "Index"), "Dashboard.Index" },
                 { ("Dashboard", "Details"), "Dashboard.Index" },
 
+                // Meetings permissions
+                { ("Meetings", "Index"), "Meetings.Index" },
+                { ("Meetings", "Show"), "Meetings.Show" },
+                { ("Meetings", "Create"), "Meetings.Create" },
+                { ("Meetings", "Edit"), "Meetings.Edit" },
+                { ("Meetings", "Cancel"), "Meetings.Delete" },
+
                 // เพิ่มรายการอื่น ๆ ได้ภายหลัง เช่น:
                 // { ("ProjectIssues", "ViewOnly"), "ProjectIssues.ViewOnly" },
             };
@@ -122,7 +129,16 @@ namespace ProjectTracking.Middleware
                 // แต่ถ้ามีเมนูแล้ว และไม่มีสิทธิ์ -> บล็อก
                 if (HasMenuList(context) && !HasMenuKey(context, menuKey))
                 {
-                    context.Response.Redirect("/Home?forbidden=1");
+                    var referer = context.Request.Headers["Referer"].ToString();
+                    if (!string.IsNullOrWhiteSpace(referer))
+                    {
+                        var separator = referer.Contains("?") ? "&" : "?";
+                        context.Response.Redirect(referer + separator + "forbidden=1");
+                    }
+                    else
+                    {
+                        context.Response.Redirect("/Home?forbidden=1");
+                    }
                     return;
                 }
             }

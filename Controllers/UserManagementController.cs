@@ -585,6 +585,10 @@ namespace ProjectTracking.Controllers
 
                 // ===== Meetings =====
                 ("Meetings.Index", "ปฏิทินนัดประชุม"),
+                ("Meetings.Show", "ดูรายละเอียดนัดประชุม"),
+                ("Meetings.Create", "สร้างนัดประชุม"),
+                ("Meetings.Edit", "แก้ไขนัดประชุม"),
+                ("Meetings.Delete", "ลบนัดประชุม"),
 
                 // ===== Dashboards =====
                 ("Dashboard.Index", "Dashboard งานติดตาม"),
@@ -608,6 +612,9 @@ namespace ProjectTracking.Controllers
 
                 // ===== User Management =====
                 ("UserManagement.Index", "จัดการผู้ใช้งาน"),
+                ("UserManagement.Create", "สร้างผู้ใช้งาน"),
+                ("UserManagement.Edit", "แก้ไขผู้ใช้งาน"),
+                ("UserManagement.Delete", "ลบผู้ใช้งาน"),
                 ("UserManagement.Permissions", "Permissions")
             };
 

@@ -604,15 +604,40 @@
     });
 </script>
 
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if ((Context?.Request?.Query["forbidden"].ToString() ?? "") == "1")
+{
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    Swal.fire({
+        icon: 'error',
+        title: 'ไม่มีสิทธิ์เข้าถึง',
+        text: 'คุณไม่มีสิทธิ์เข้าเมนูนี้ กรุณาติดต่อผู้ดูแลระบบ',
+        confirmButtonText: 'ตกลง'
+    }).then(() => {
+        window.history.back();
+    });
+
+});
+</script>
+}
+
 @RenderSection("Scripts", required: false)
 
 @if (CanMenu("Dashboard.Index"))
 {
     <a href="/Followups/Dashboard" class="followup-float-btn">
         📌
-        @if (ViewBag.FollowupAlertCount != null && (int)ViewBag.FollowupAlertCount > 0)
+        @{
+            var alertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
+        }
+        @if (alertCount > 0)
         {
-            <span class="followup-badge">@ViewBag.FollowupAlertCount</span>
+            <span class="followup-badge">@alertCount</span>
         }
     </a>
 }
@@ -621,9 +646,12 @@
 {
     <a href="/Followups/DashboardDone" class="followup-float-btn" style="bottom:100px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;">
         ✔
-        @if (ViewBag.FollowupDoneCount != null && (int)ViewBag.FollowupDoneCount > 0)
+        @{
+            var doneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
+        }
+        @if (doneCount > 0)
         {
-            <span class="followup-badge">@ViewBag.FollowupDoneCount</span>
+            <span class="followup-badge">@doneCount</span>
         }
     </a>
 }
