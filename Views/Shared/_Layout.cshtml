@@ -327,13 +327,6 @@
                             <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 หน้าแรก</a>
                         </li>
 
-                        <!-- User Management (permission-based; Admin will still pass via isAdmin) -->
-                        @if (CanMenu("UserManagement.Index"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="UserManagement"?"active-menu":"")" asp-controller="UserManagement" asp-action="Index">👤 จัดการผู้ใช้งาน</a>
-                            </li>
-                        }
 
                         <!-- Dashboards -->
                         @if (canDashboards)
@@ -390,10 +383,6 @@
                                     @if (CanMenu("PhaseAssigns.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 บันทึกข้อมูลการมอบหมายงาน</a></li>
-                                    }
-                                    @if (CanMenu("Meetings.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">📅 ปฏิทินนัดประชุม</a></li>
                                     }
                                     @if (CanMenu("TestScenarios.Index"))
                                     {
@@ -478,12 +467,43 @@
                     </ul>
 
                     <ul class="navbar-nav align-items-center">
-                        <li class="nav-item me-2">
-                            <span class="navbar-text text-white">👤 @username</span>
+
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle navbar-text text-white"
+                               href="#"
+                               role="button"
+                               data-bs-toggle="dropdown">
+                                👤 @username
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+
+                                @if (CanMenu("UserManagement.Index"))
+                                {
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-controller="UserManagement"
+                                           asp-action="Index">
+                                           ⚙️ จัดการผู้ใช้งาน
+                                        </a>
+                                    </li>
+                                }
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item text-danger"
+                                       asp-controller="Auth"
+                                       asp-action="Logout">
+                                       🚪 Logout
+                                    </a>
+                                </li>
+
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="btn btn-logout btn-sm" asp-controller="Auth" asp-action="Logout">Logout</a>
-                        </li>
+
                     </ul>
                 }
                 else
@@ -666,6 +686,22 @@ document.addEventListener("DOMContentLoaded", function () {
         @if (ackCount > 0)
         {
             <span class="followup-badge">@ackCount</span>
+        }
+    </a>
+}
+
+@if (CanMenu("Meetings.Index"))
+{
+    <a href="/Meetings"
+       class="followup-float-btn"
+       style="bottom:244px;background:linear-gradient(135deg,#6366f1,#4338ca);color:white;">
+        📅
+        @{
+            var meetingCount = Convert.ToInt32(ViewBag?.MeetingCount ?? 0);
+        }
+        @if (meetingCount > 0)
+        {
+            <span class="followup-badge">@meetingCount</span>
         }
     </a>
 }

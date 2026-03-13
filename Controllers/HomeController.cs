@@ -109,6 +109,11 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
                 .CountAsync();
 
+            // 📅 จำนวนการประชุมตั้งแต่วันนี้เป็นต้นไป
+            ViewBag.MeetingCount = await _context.Meetings
+                .Where(x => x.MeetingDate >= today)
+                .CountAsync();
+
             return View();
         }
 

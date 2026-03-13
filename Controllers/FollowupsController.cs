@@ -216,6 +216,8 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var followup = await _context.ProjectFollowups
+                .Include(x => x.Project)
+                .Include(x => x.Owner)
                 .FirstOrDefaultAsync(x => x.FollowupId == id);
 
             if (followup == null)
