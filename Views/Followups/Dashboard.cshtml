@@ -4,6 +4,7 @@
     ViewData["Title"] = "Follow-up Dashboard";
     var th = new System.Globalization.CultureInfo("th-TH");
     int i = 1;
+    var owners = Model.Select(x => (string)x.Owner).Distinct().OrderBy(x => x).ToList();
 }
 
 <div class="container-fluid mt-4">
@@ -11,6 +12,17 @@
     <h3 class="mb-3">
         📌 งานติดตาม (Follow-up Dashboard)
     </h3>
+
+    <div class="mb-3" style="max-width:300px;">
+        <label class="form-label fw-bold">Filter Owner</label>
+        <select id="ownerFilter" class="form-select" onchange="filterOwner()">
+            <option value="">-- All Owner --</option>
+            @foreach (var o in owners)
+            {
+                <option value="@o">@o</option>
+            }
+        </select>
+    </div>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
@@ -50,7 +62,7 @@
                         rowClass = "table-success";
                     }
 
-                    <tr class="@rowClass"
+                    <tr class="@rowClass" data-owner="@item.Owner"
                         style="cursor:@(targetUrl != null ? "pointer" : "default")"
                         onclick="@(targetUrl != null ? $"window.location.href='{targetUrl}'" : "")">
 
@@ -91,3 +103,19 @@
     </div>
 
 </div>
+<script>
+function filterOwner() {
+    const selected = document.getElementById("ownerFilter").value.toLowerCase();
+    const rows = document.querySelectorAll("tbody tr");
+
+    rows.forEach(r => {
+        const owner = (r.getAttribute("data-owner") || "").toLowerCase();
+
+        if (selected === "" || owner === selected) {
+            r.style.display = "";
+        } else {
+            r.style.display = "none";
+        }
+    });
+}
+</script>
