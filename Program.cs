@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using System.IO;
 using Microsoft.AspNetCore.Http.Features;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -180,6 +181,7 @@ builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddHostedService<OverdueMailBackgroundService>();
 builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 
+QuestPDF.Settings.License = LicenseType.Community;
 var app = builder.Build();
 
 // allow large upload requests

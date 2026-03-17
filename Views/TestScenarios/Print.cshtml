@@ -1,190 +1,68 @@
 @model IEnumerable<ProjectTracking.Models.TestScenario>
 @{
     var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
-    string projectName = ViewBag.ProjectName as string ?? "";
-    string? groupName = ViewBag.GroupName as string;
-    var projectId = ViewBag.ProjectId;
-    var groupId = ViewBag.GroupId;
+    string projectName = ViewBag.ProjectName as string ?? "Project Name";
 }
-
-<div class="no-print d-flex justify-content-between align-items-center mb-3">
-    <a asp-action="Index"
-       asp-route-projectId="@projectId"
-       asp-route-groupId="@groupId"
-       class="btn btn-secondary"
-       rel="noopener noreferrer">← Back</a>
-
-    <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
-</div>
-
-<h2 class="mb-1">QA Test Scenario Report</h2>
-<div class="text-muted mb-3">
-    <span><strong>Project:</strong> @projectName</span>
-    <span> | <strong>Group:</strong> @(string.IsNullOrWhiteSpace(groupName) ? "All Groups" : groupName)</span>
-    <span> | <strong>Printed:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
-</div>
-
-<div class="mb-3">
-    <span class="badge bg-dark">Total: @list.Count</span>
-    <span class="badge bg-success">Passed: @list.Count(x => x.status == "PASSED")</span>
-    <span class="badge bg-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
-    <span class="badge bg-primary">Ready: @list.Count(x => x.status == "READY")</span>
-    <span class="badge bg-secondary">Draft: @list.Count(x => x.status == "DRAFT")</span>
-</div>
-
-@if (!list.Any())
-{
-    <div class="alert alert-warning">ไม่พบ Test Scenario สำหรับการพิมพ์</div>
-    return;
-}
-
-<table class="table table-bordered table-sm">
-    <colgroup>
-        <col style="width:4%" />   <!-- # -->
-        <col style="width:8%" />   <!-- Code -->
-        <col style="width:18%" />  <!-- Title -->
-        <col style="width:8%" />   <!-- Status -->
-        <col style="width:8%" />   <!-- Priority -->
-        <col style="width:14%" />  <!-- Precondition -->
-        <col style="width:20%" />  <!-- Steps -->
-        <col style="width:20%" />  <!-- Expected Result -->
-    </colgroup>
-    <thead class="table-light">
-        <tr>
-            <th>#</th>
-            <th>Code</th>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Precondition</th>
-            <th>Steps</th>
-            <th>Expected Result</th>
-        </tr>
-    </thead>
-    <tbody>
-@{ int i = 1; }
-
-@if (!string.IsNullOrWhiteSpace(groupName))
-{
-    <tr class="table-secondary" style="font-weight:600;">
-        <td colspan="8">Group : @groupName (Total: @list.Count)</td>
-    </tr>
-
-    foreach (var item in list)
-    {
-        <tr>
-            <td>@i</td>
-            <td class="text-nowrap">@item.scenario_code</td>
-            <td>@item.title</td>
-            <td class="text-nowrap">@item.status</td>
-            <td class="text-nowrap">@item.priority</td>
-            <td style="white-space:pre-line;">@item.precondition</td>
-            <td style="white-space:pre-line;">@item.steps</td>
-            <td style="white-space:pre-line;">@item.expected_result</td>
-        </tr>
-        i++;
-    }
-}
-else
-{
-    foreach (var grp in list.GroupBy(x => x.group_id))
-    {
-        var first = grp.First();
-        var name = first.Group?.group_name ?? $"Group {grp.Key}";
-
-        <tr class="table-secondary" style="font-weight:600;">
-            <td colspan="8">Group : @name (Total: @grp.Count())</td>
-        </tr>
-
-        foreach (var item in grp)
-        {
-            <tr>
-                <td>@i</td>
-                <td class="text-nowrap">@item.scenario_code</td>
-                <td>@item.title</td>
-                <td class="text-nowrap">@item.status</td>
-                <td class="text-nowrap">@item.priority</td>
-                <td style="white-space:pre-line;">@item.precondition</td>
-                <td style="white-space:pre-line;">@item.steps</td>
-                <td style="white-space:pre-line;">@item.expected_result</td>
-            </tr>
-            i++;
-        }
-    }
-}
-    </tbody>
-</table>
 
 <style>
-    html, body {
-        width: 100%;
-    }
+    body { font-family: Arial; }
 
-    table {
-        width: 100%;
-        table-layout: fixed;
-        font-size: 14px;
-    }
+    .page { page-break-after: always; }
 
-    th, td {
-        vertical-align: top;
-        word-break: break-word;
-        white-space: pre-line;
-    }
-
-    th {
+    .cover {
         text-align: center;
-        vertical-align: middle;
+        margin-top: 150px;
+    }
+
+    .section {
+        margin-bottom: 40px;
+    }
+
+    .label { font-weight: bold; }
+
+    .box {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-top: 10px;
+    }
+
+    img {
+        max-width: 400px;
+        margin-top: 10px;
+        border: 1px solid #ccc;
     }
 
     @@media print {
-        @@page {
-            size: A4 portrait;
-            margin: 10mm; /* small margin so content uses more page area */
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-size: 14px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .container, .container-fluid, .content-wrapper {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .no-print {
-            display: none !important;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px; /* slightly smaller so more content fits A4 */
-        }
-
-        th, td {
-            padding: 3px;
-        }
-
-        th {
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        thead {
-            display: table-header-group !important;
-        }
-
-        tfoot {
-            display: table-footer-group;
-        }
-        tr { page-break-inside: avoid; }
-        table { page-break-inside: auto; }
+        .no-print { display: none; }
+        @@page { size: A4; margin: 15mm; }
     }
 </style>
+
+<!-- COVER -->
+<div class="page cover">
+    <h1>TEST SCENARIO REPORT</h1>
+    <h3>@projectName</h3>
+    <p>Date: @DateTime.Now.ToString("dd/MM/yyyy")</p>
+</div>
+
+<!-- DETAIL -->
+@foreach (var item in list)
+{
+    <div class="page section">
+        <h3>@item.scenario_code : @item.title</h3>
+
+        <div class="box">
+            <p><span class="label">Status:</span> @item.status</p>
+            <p><span class="label">Priority:</span> @item.priority</p>
+            <p><span class="label">Precondition:</span> @item.precondition</p>
+            <p><span class="label">Steps:</span><br />@item.steps</p>
+            <p><span class="label">Expected Result:</span> @item.expected_result</p>
+        </div>
+
+        <div>
+            <p class="label">รูปภาพ</p>
+            <!-- future: show attachments -->
+            <p>(แนบรูปภาพจากระบบ)</p>
+        </div>
+    </div>
+}

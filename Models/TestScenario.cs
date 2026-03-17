@@ -42,5 +42,9 @@ namespace ProjectTracking.Models
 
         public DateTime? updated_at { get; set; }
         public int sort_order { get; set; } = 0;
+
+        // 🔥 ใช้สำหรับ Report (ไม่ map ลง DB)
+        [NotMapped]
+        public string? GroupName { get; set; }
     }
 }

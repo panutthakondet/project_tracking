@@ -116,33 +116,7 @@
     <div class="card-body">
         <form method="get">
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-lg-4">
-                    <label class="form-label">Select Group</label>
-                    @{
-                        int? selGroup = null;
-                        if (ViewBag.SelectedGroup != null)
-                        {
-                            selGroup = Convert.ToInt32(ViewBag.SelectedGroup);
-                        }
-                    }
-                    <select name="groupId"
-                            class="form-select"
-                            onchange="this.form.submit()">
-                        <option value="">-- Select Group --</option>
-                        @if (ViewBag.Groups != null)
-                        {
-                            foreach (var g in ViewBag.Groups)
-                            {
-                                <option value="@g.group_id"
-                                        selected="@(selGroup == g.group_id ? "selected" : null)">
-                                    @g.group_name
-                                </option>
-                            }
-                        }
-                    </select>
-                </div>
-
-                <div class="col-12 col-lg-5">
+                <div class="col-12 col-lg-7">
                     <label class="form-label">Select Project</label>
                     @{
                         int? selProject = null;
@@ -162,6 +136,32 @@
                                 <option value="@p.ProjectId"
                                         selected="@(selProject == p.ProjectId ? "selected" : null)">
                                     @p.ProjectName
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <label class="form-label">Select Group</label>
+                    @{
+                        int? selGroup = null;
+                        if (ViewBag.SelectedGroup != null)
+                        {
+                            selGroup = Convert.ToInt32(ViewBag.SelectedGroup);
+                        }
+                    }
+                    <select name="groupId"
+                            class="form-select"
+                            onchange="this.form.submit()">
+                        <option value="">-- Select Group --</option>
+                        @if (ViewBag.Groups != null)
+                        {
+                            foreach (var g in ViewBag.Groups)
+                            {
+                                <option value="@g.group_id"
+                                        selected="@(selGroup == g.group_id ? "selected" : null)">
+                                    @g.group_name
                                 </option>
                             }
                         }
@@ -200,13 +200,10 @@
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-danger">Delete All</button>
             </form>
-            <a asp-action="PrintReport"
+            <a asp-action="ExportPdf"
                asp-route-projectId="@ViewBag.SelectedProject"
-               asp-route-groupId="@ViewBag.SelectedGroup"
-               class="btn btn-outline-secondary"
-               target="_blank"
-               rel="noopener noreferrer">
-                View Report
+               class="btn btn-warning">
+                📄 Export PDF
             </a>
         </div>
 
