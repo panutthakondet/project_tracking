@@ -9,7 +9,7 @@
     }
 </style>
 
-<form asp-action="Edit" method="post" onsubmit="return confirm('ยืนยันการแก้ไข Test Scenario นี้หรือไม่?');">
+<form asp-action="Edit" method="post" enctype="multipart/form-data" onsubmit="return confirm('ยืนยันการแก้ไข Test Scenario นี้หรือไม่?');">
     @Html.AntiForgeryToken()
 
     <input type="hidden" asp-for="scenario_id" />
@@ -111,6 +111,45 @@
             <option>FAILED</option>
         </select>
     </div>
+
+    <div class="form-group">
+        <label>แนบรูปภาพ (เพิ่ม/อัปเดต Evidence)</label>
+        <input type="file" name="files" multiple class="form-control" />
+        <small class="text-muted">สามารถเพิ่มรูปเพิ่มเติมได้</small>
+    </div>
+
+    <hr />
+
+    <h5>📸 รูปภาพที่แนบไว้</h5>
+
+    @{
+        var attachments = ViewBag.Attachments as IEnumerable<dynamic>;
+    }
+
+    @if (attachments != null && attachments.Any())
+    {
+        <div class="row">
+            @foreach (var img in attachments)
+            {
+                <div class="col-md-3 mb-3 text-center">
+                    <img src="@img.FilePath" class="img-fluid border rounded mb-2"
+                         style="max-height:150px; cursor:pointer;"
+                         onclick="window.open('@img.FilePath','_blank')" />
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="deleteAttachmentIds" value="@img.AttachmentId" id="del_@img.AttachmentId">
+                        <label class="form-check-label text-danger" for="del_@img.AttachmentId">
+                            เลือกลบ
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">ยังไม่มีรูปภาพ</p>
+    }
 
     <br />
 

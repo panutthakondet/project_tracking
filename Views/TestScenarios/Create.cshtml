@@ -9,7 +9,7 @@
     }
 </style>
 
-<form asp-action="Create" method="post" onsubmit="return confirm('ยืนยันการบันทึก Test Scenario นี้หรือไม่?');">
+<form asp-action="Create" method="post" enctype="multipart/form-data" onsubmit="return confirm('ยืนยันการบันทึก Test Scenario นี้หรือไม่?');">
 @Html.AntiForgeryToken()
 
     <div class="form-group">
@@ -125,6 +125,7 @@
             <option>FAILED</option>
         </select>
     </div>
+
 
     <br />
 

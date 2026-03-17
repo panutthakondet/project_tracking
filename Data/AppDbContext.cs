@@ -38,6 +38,7 @@ namespace ProjectTracking.Data
 
         // ===== Test Scenarios =====
         public DbSet<TestScenario> TestScenarios { get; set; }
+        public DbSet<TestScenarioAttachment> TestScenarioAttachments { get; set; }
 
         // ===== Test Scenario Templates =====
         public DbSet<TestScenarioTemplate> TestScenarioTemplates { get; set; }
@@ -618,6 +619,25 @@ namespace ProjectTracking.Data
                 // ถ้าไม่มี PK EF จะ error ตอนทำ migration/ใช้งาน
                 // ตัวอย่างนี้เสริมไว้เฉย ๆ แบบปลอดภัย (คุณปรับตาม model จริงได้)
                 // entity.HasKey(x => x.Id);
+            });
+
+            // =========================
+            // TEST SCENARIO ATTACHMENTS
+            // =========================
+            modelBuilder.Entity<TestScenarioAttachment>(entity =>
+            {
+                entity.ToTable("test_scenario_attachments");
+
+                entity.HasKey(e => e.AttachmentId);
+
+                entity.Property(e => e.AttachmentId).HasColumnName("attachment_id");
+                entity.Property(e => e.ScenarioId).HasColumnName("scenario_id");
+                entity.Property(e => e.FileName).HasColumnName("file_name");
+                entity.Property(e => e.FilePath).HasColumnName("file_path");
+                entity.Property(e => e.FileType).HasColumnName("file_type");
+                entity.Property(e => e.FileSize).HasColumnName("file_size");
+                entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
+                entity.Property(e => e.UploadedAt).HasColumnName("uploaded_at");
             });
 
             // ============================

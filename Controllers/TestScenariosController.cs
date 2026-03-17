@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace ProjectTracking.Controllers
 {
@@ -20,79 +22,12 @@ namespace ProjectTracking.Controllers
         }
 
         // =========================
-        // INDEX (บังคับเลือก Project ก่อน)
-        // =========================
-        [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? groupId, int? projectId)
-        {
-            ViewBag.Groups = await _context.TestTemplateGroups
-                .Where(g => g.is_active)
-                .ToListAsync();
-
-            ViewBag.SelectedGroup = groupId;
-            ViewBag.Projects = await _context.Projects
-                .Select(p => new
-                {
-                    ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectName
-                })
-                .ToListAsync();
-            ViewBag.SelectedProject = projectId;
-
-            if (projectId.HasValue)
-            {
-                var pname = await _context.Projects
-                    .Where(p => p.ProjectId == projectId.Value)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync();
-                ViewBag.SelectedProjectName = pname;
-            }
-
-            if (groupId.HasValue)
-            {
-                var gname = await _context.TestTemplateGroups
-                    .Where(g => g.group_id == groupId.Value)
-                    .Select(g => g.group_name)
-                    .FirstOrDefaultAsync();
-                ViewBag.SelectedGroupName = gname;
-            }
-
-            if (!projectId.HasValue)
-            {
-                return View(new List<TestScenario>());
-            }
-
-            var query = _context.TestScenarios
-                .Include(x => x.Group)
-                .Where(x => x.project_id == projectId);
-
-            if (groupId.HasValue)
-            {
-                query = query.Where(x => x.group_id == groupId);
-            }
-
-            var scenarios = await query
-                .OrderBy(x => x.sort_order)
-                .ThenBy(x => x.scenario_code)
-                .ToListAsync();
-
-            return View(scenarios);
-        }
-
-        // =========================
         // CREATE (GET)
         // =========================
         [RequireMenu("TestScenarios.Index")]
         public IActionResult Create(int? projectId, int? groupId)
         {
-            ViewBag.Projects = _context.Projects
-                .Select(p => new
-                {
-                    ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectName
-                })
-                .ToList();
-
+            ViewBag.Projects = _context.Projects.ToList();
             ViewBag.Groups = _context.TestTemplateGroups
                 .Where(g => g.is_active)
                 .ToList();
@@ -100,272 +35,139 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedGroup = groupId;
 
-            var model = new TestScenario();
-
-            if (projectId.HasValue)
-            {
-                model.project_id = projectId.Value;
-            }
-
-            return View(model);
+            return View();
         }
 
         // =========================
-        // CREATE (POST)
+        // INDEX (FIX 404)
         // =========================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Create(TestScenario model, int? groupId)
+        public async Task<IActionResult> Index(int? projectId, int? groupId)
         {
-            // สร้าง TC001 แยกตาม Project (generate ก่อน validation)
-            var count = await _context.TestScenarios
-                .Where(x => x.project_id == model.project_id)
-                .CountAsync();
+            var scenarios = await _context.TestScenarios
+                .Where(x =>
+                    (!projectId.HasValue || x.project_id == projectId) &&
+                    (!groupId.HasValue || x.group_id == groupId)
+                )
+                .OrderBy(x => x.scenario_id)
+                .ToListAsync();
 
-            model.scenario_code = "TC" + (count + 1).ToString("D3");
+            // กัน null
+            if (scenarios == null)
+                scenarios = new List<TestScenario>();
 
-            // scenario_code สร้างจากฝั่ง server ไม่ได้กรอกจาก form
-            ModelState.Remove("scenario_code");
+            // กัน ViewBag null ที่ View ใช้
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .ToList();
 
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Projects = _context.Projects
-                    .Select(p => new { ProjectId = p.ProjectId, ProjectName = p.ProjectName })
-                    .ToList();
+            // 🔥 restore Project dropdown
+            ViewBag.Projects = _context.Projects
+                .ToList();
 
-                ViewBag.Groups = _context.TestTemplateGroups
-                    .Where(g => g.is_active)
-                    .ToList();
+            // 🔥 keep selected values
+            ViewBag.SelectedProject = projectId;
+            ViewBag.SelectedGroup = groupId;
 
-                ViewBag.SelectedProject = model.project_id;
-                ViewBag.SelectedGroup = groupId;
-                return View(model);
-            }
-
-            // model.group_id = groupId;
-            model.created_at = DateTime.Now;
-            model.updated_at = DateTime.Now;
-
-            _context.TestScenarios.Add(model);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index", new { projectId = model.project_id, groupId });
+            return View(scenarios);
         }
 
-        // =========================
-        // EDIT
-        // =========================
         [RequireMenu("TestScenarios.Index")]
         public async Task<IActionResult> Edit(int id, int? groupId)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
             if (scenario == null) return NotFound();
 
-            ViewBag.Projects = _context.Projects
-                .Select(p => new
-                {
-                    ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectName
-                })
-                .ToList();
+            ViewBag.Groups = _context.TestTemplateGroups.Where(g => g.is_active).ToList();
 
-            ViewBag.Groups = _context.TestTemplateGroups
-                .Where(g => g.is_active)
-                .ToList();
+            // โหลดรูป
+            var attachments = await _context.TestScenarioAttachments
+                .Where(x => x.ScenarioId == id)
+                .ToListAsync();
 
-            ViewBag.SelectedGroup = groupId;
+            ViewBag.Attachments = attachments;
+
             return View(scenario);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Edit(TestScenario model, int? groupId)
+        public async Task<IActionResult> Edit(TestScenario model, int? groupId, List<IFormFile> files, List<int> deleteAttachmentIds)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Projects = _context.Projects
-                    .Select(p => new { ProjectId = p.ProjectId, ProjectName = p.ProjectName })
-                    .ToList();
-
-                ViewBag.Groups = _context.TestTemplateGroups
-                    .Where(g => g.is_active)
-                    .ToList();
-
-                ViewBag.SelectedGroup = groupId;
                 return View(model);
             }
 
-            // model.group_id = groupId;
             model.updated_at = DateTime.Now;
 
             _context.TestScenarios.Update(model);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index", new { projectId = model.project_id, groupId });
-        }
-
-        // =========================
-        // DELETE
-        // =========================
-        [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Delete(int id, int? groupId)
-        {
-            var scenario = await _context.TestScenarios.FindAsync(id);
-            if (scenario == null) return NotFound();
-
-            _context.TestScenarios.Remove(scenario);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index", new { projectId = scenario.project_id, groupId });
-        }
-
-        // =========================
-        // IMPORT TEMPLATES INTO PROJECT
-        // =========================
-        [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> ImportTemplates(int projectId, int? groupId)
-        {
-            // ดึง template ที่ active เท่านั้น (และกรองตาม Group ถ้ามีการเลือก)
-            var templatesQuery = _context.TestScenarioTemplates
-                .Where(t => t.is_active);
-
-            if (groupId.HasValue && groupId.Value > 0)
+            // 🔥 ลบรูปที่ติ๊ก
+            if (deleteAttachmentIds != null && deleteAttachmentIds.Any())
             {
-                templatesQuery = templatesQuery.Where(t => t.group_id == groupId.Value);
-            }
+                var items = _context.TestScenarioAttachments
+                    .Where(x => deleteAttachmentIds.Contains(x.AttachmentId))
+                    .ToList();
 
-            var templates = await templatesQuery
-                .OrderBy(t => t.template_id)
-                .ToListAsync();
-
-            if (!templates.Any())
-            {
-                return RedirectToAction("Index", new { projectId, groupId });
-            }
-
-            // หา TC ล่าสุดของ project
-            var count = await _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .CountAsync();
-
-            int running = count;
-
-            foreach (var t in templates)
-            {
-                running++;
-
-                var scenario = new TestScenario
+                foreach (var item in items)
                 {
-                    project_id = projectId,
-                    group_id = t.group_id,
-                    scenario_code = "TC" + running.ToString("D3"),
-                    title = t.title,
-                    precondition = t.precondition,
-                    steps = t.steps,
-                    expected_result = t.expected_result,
-                    priority = t.priority_default,
-                    status = t.status_default,
-                    sort_order = running,
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now
-                };
+                    // ลบไฟล์จริง
+                    var relativePath = item.FilePath ?? "";
+                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath.TrimStart('/'));
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        System.IO.File.Delete(fullPath);
+                    }
 
-                _context.TestScenarios.Add(scenario);
-            }
+                    _context.TestScenarioAttachments.Remove(item);
+                }
 
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index", new { projectId, groupId });
-        }
-
-        // =========================
-        // DELETE ALL SCENARIOS IN PROJECT
-        // =========================
-        [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> DeleteAll(int projectId, int? groupId)
-        {
-            var scenarios = await _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .ToListAsync();
-
-            if (scenarios.Any())
-            {
-                _context.TestScenarios.RemoveRange(scenarios);
                 await _context.SaveChangesAsync();
             }
 
-            return RedirectToAction("Index", new { projectId, groupId });
-        }
-
-        // =========================
-        // PRINTABLE QA REPORT
-        // =========================
-        [RequireMenu("TestScenarios.ViewOnly")]
-        public async Task<IActionResult> PrintReport(int projectId, int? groupId)
-        {
-            var query = _context.TestScenarios
-                .Include(x => x.Group)
-                .Where(x => x.project_id == projectId);
-
-            if (groupId.HasValue)
+            // 🔥 upload รูป
+            if (files != null && files.Count > 0)
             {
-                query = query.Where(x => x.group_id == groupId.Value);
-            }
-
-            var scenarios = await query
-                .OrderBy(x => x.group_id)
-                .ThenBy(x => x.sort_order)
-                .ThenBy(x => x.scenario_code)
-                .ToListAsync();
-
-            var projectName = await _context.Projects
-                .Where(p => p.ProjectId == projectId)
-                .Select(p => p.ProjectName)
-                .FirstOrDefaultAsync();
-
-            string? groupName = null;
-            if (groupId.HasValue)
-            {
-                groupName = await _context.TestTemplateGroups
-                    .Where(g => g.group_id == groupId.Value)
-                    .Select(g => g.group_name)
-                    .FirstOrDefaultAsync();
-            }
-
-            ViewBag.ProjectName = projectName;
-            ViewBag.GroupName = groupName;
-            ViewBag.ProjectId = projectId;
-            ViewBag.GroupId = groupId;
-
-            return View("Print", scenarios);
-        }
-
-        // =========================
-        // REORDER (Drag & Drop)
-        // =========================
-        [HttpPost]
-        public async Task<IActionResult> Reorder([FromBody] List<int> ids)
-        {
-            var scenarios = await _context.TestScenarios
-                .Where(x => ids.Contains(x.scenario_id))
-                .ToListAsync();
-
-            int order = 1;
-
-            foreach (var id in ids)
-            {
-                var row = scenarios.FirstOrDefault(x => x.scenario_id == id);
-                if (row != null)
+                foreach (var file in files)
                 {
-                    row.sort_order = order++;
+                    if (file.Length > 0)
+                    {
+                        var folder = Path.Combine(Directory.GetCurrentDirectory(),
+                            "wwwroot/uploads/testcase",
+                            model.scenario_id.ToString());
+
+                        if (!Directory.Exists(folder))
+                            Directory.CreateDirectory(folder);
+
+                        var fileName = Path.GetFileName(file.FileName);
+                        var filePath = Path.Combine(folder, fileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        var attachment = new TestScenarioAttachment
+                        {
+                            ScenarioId = model.scenario_id,
+                            FileName = fileName,
+                            FilePath = "/uploads/testcase/" + model.scenario_id + "/" + fileName,
+                            FileType = file.ContentType,
+                            FileSize = (int)file.Length,
+                            UploadedAt = DateTime.Now
+                        };
+
+                        _context.TestScenarioAttachments.Add(attachment);
+                    }
                 }
+
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
-
-            return Ok();
+            return RedirectToAction("Index", new { projectId = model.project_id });
         }
     }
 }
