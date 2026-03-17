@@ -169,5 +169,137 @@ namespace ProjectTracking.Controllers
 
             return RedirectToAction("Index", new { projectId = model.project_id });
         }
+        // =========================
+        // IMPORT TEMPLATES
+        // =========================
+        [RequireMenu("TestScenarios.Index")]
+        public async Task<IActionResult> ImportTemplates(int? projectId, int? groupId)
+        {
+            if (!projectId.HasValue || !groupId.HasValue)
+            {
+                return RedirectToAction("Index");
+            }
+
+            var templates = _context.TestScenarioTemplates
+                .Where(t => t.group_id == groupId && t.is_active)
+                .ToList();
+
+            // 🔥 get last running number once
+            var lastCode = _context.TestScenarios
+                .Where(x => x.project_id == projectId.Value)
+                .OrderByDescending(x => x.scenario_id)
+                .Select(x => x.scenario_code)
+                .FirstOrDefault();
+
+            int nextNumber = 1;
+            if (!string.IsNullOrEmpty(lastCode) && lastCode.Contains("-"))
+            {
+                var parts = lastCode.Split('-');
+                if (int.TryParse(parts.Last(), out int num))
+                {
+                    nextNumber = num + 1;
+                }
+            }
+
+            foreach (var t in templates)
+            {
+                var newCode = $"TC-{nextNumber:D4}";
+                nextNumber++;
+
+                var scenario = new TestScenario
+                {
+                    project_id = projectId.Value,
+                    group_id = t.group_id,
+                    scenario_code = newCode,
+                    title = t.title,
+                    precondition = t.precondition,
+                    steps = t.steps,
+                    expected_result = t.expected_result,
+                    priority = t.priority_default,
+                    status = t.status_default,
+                    created_at = DateTime.Now,
+                    updated_at = DateTime.Now
+                };
+
+                _context.TestScenarios.Add(scenario);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", new { projectId = projectId, groupId = groupId });
+        }
+        // =========================
+        // DELETE (GET FIX 405)
+        // =========================
+        [HttpGet("TestScenarios/Delete/{id}")]
+        [RequireMenu("TestScenarios.Index")]
+        public async Task<IActionResult> DeleteGet(int id)
+        {
+            var scenario = await _context.TestScenarios.FindAsync(id);
+            if (scenario == null)
+            {
+                return NotFound();
+            }
+
+            // ลบ attachments ก่อน (ถ้ามี)
+            var attachments = _context.TestScenarioAttachments
+                .Where(x => x.ScenarioId == id)
+                .ToList();
+
+            foreach (var item in attachments)
+            {
+                var relativePath = item.FilePath ?? "";
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath.TrimStart('/'));
+
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+
+                _context.TestScenarioAttachments.Remove(item);
+            }
+
+            _context.TestScenarios.Remove(scenario);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", new { projectId = scenario.project_id });
+        }
+        // =========================
+        // DELETE
+        // =========================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Index")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var scenario = await _context.TestScenarios.FindAsync(id);
+            if (scenario == null)
+            {
+                return NotFound();
+            }
+
+            // ลบ attachments ก่อน (ถ้ามี)
+            var attachments = _context.TestScenarioAttachments
+                .Where(x => x.ScenarioId == id)
+                .ToList();
+
+            foreach (var item in attachments)
+            {
+                var relativePath = item.FilePath ?? "";
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath.TrimStart('/'));
+
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+
+                _context.TestScenarioAttachments.Remove(item);
+            }
+
+            _context.TestScenarios.Remove(scenario);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", new { projectId = scenario.project_id });
+        }
     }
 }
