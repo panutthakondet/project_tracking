@@ -7,6 +7,10 @@
         color: #6c757d;
         opacity: 1;
     }
+    .image-card:hover {
+        transform: scale(1.03);
+        transition: 0.2s;
+    }
 </style>
 
 <form asp-action="Edit" method="post" enctype="multipart/form-data" onsubmit="return confirm('ยืนยันการแก้ไข Test Scenario นี้หรือไม่?');">
@@ -131,16 +135,16 @@
         <div class="row">
             @foreach (var img in attachments)
             {
-                <div class="col-md-3 mb-3 text-center">
+                <div class="col-md-3 mb-3 text-center image-card">
                     <img src="@img.FilePath" class="img-fluid border rounded mb-2"
                          style="max-height:150px; cursor:pointer;"
                          onclick="window.open('@img.FilePath','_blank')" />
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="deleteAttachmentIds" value="@img.AttachmentId" id="del_@img.AttachmentId">
-                        <label class="form-check-label text-danger" for="del_@img.AttachmentId">
-                            เลือกลบ
-                        </label>
+                    <div class="border rounded p-2 d-flex align-items-center justify-content-between" style="background-color:#f8f9fa;">
+                        <span class="text-muted small">ลบรูปนี้</span>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" name="deleteAttachmentIds" value="@img.AttachmentId" id="del_@img.AttachmentId">
+                        </div>
                     </div>
                 </div>
             }
