@@ -68,7 +68,30 @@
                         @(p.BA != null ? p.BA.EmpName : "-")
                     </td>
 
-                    <td class="col-system">@p.LinkName</td>
+                    <td class="col-system">
+                        @if (!string.IsNullOrEmpty(p.LinkName))
+                        {
+                            var parts = p.LinkName.Split(' ');
+
+                            foreach (var part in parts)
+                            {
+                                if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <a href="@part" target="_blank" rel="noopener noreferrer">@part</a>
+                                    <text> </text>
+                                }
+                                else
+                                {
+                                    <span>@part</span>
+                                    <text> </text>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
                     <td class="col-db">@p.DatabaseName</td>
                     <td class="col-test">@p.TestAccount</td>
                     <td class="col-url small">@p.RemoteUrl</td>
