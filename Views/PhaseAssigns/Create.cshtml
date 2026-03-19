@@ -133,6 +133,8 @@
         const phaseSelect = document.getElementById("phaseSelect");
         const planStart = document.getElementById("planStart");
         const planEnd = document.getElementById("planEnd");
+        let planStartTouched = false;
+        let planEndTouched = false;
         const roleDisplay = document.getElementById("roleDisplay");
         const phaseOrderHidden = document.getElementById("phaseOrderHidden");
 
@@ -147,6 +149,18 @@
                 if (!roleDisplay.value || roleDisplay.value.trim() === "") {
                     roleTouched = false;
                 }
+            });
+        }
+
+        if (planStart) {
+            planStart.addEventListener('input', function () {
+                planStartTouched = true;
+            });
+        }
+
+        if (planEnd) {
+            planEnd.addEventListener('input', function () {
+                planEndTouched = true;
             });
         }
 
@@ -199,8 +213,8 @@
                 phaseOrderHidden.value = phaseOrder;
             }
 
-            if (planStart) planStart.value = ps;
-            if (planEnd) planEnd.value = pe;
+            if (planStart && !planStartTouched) planStart.value = ps;
+            if (planEnd && !planEndTouched) planEnd.value = pe;
         }
 
         function applyFromSelectedOption() {

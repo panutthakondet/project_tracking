@@ -176,9 +176,12 @@ namespace ProjectTracking.Controllers
                 // ถ้ายังว่างอยู่ ค่อย fallback เป็นชื่อ Phase
                 model.Role = !string.IsNullOrWhiteSpace(roleAuto) ? roleAuto : phase.PhaseName;
 
-                // 2) ดึงวันจาก project_phase
-                model.PlanStart = phase.PlanStart;
-                model.PlanEnd = phase.PlanEnd;
+                // 2) ดึงวันจาก project_phase (ใช้เฉพาะตอน user ไม่ได้แก้)
+                if (model.PlanStart == null)
+                    model.PlanStart = phase.PlanStart;
+
+                if (model.PlanEnd == null)
+                    model.PlanEnd = phase.PlanEnd;
 
                 // 3) สำคัญ: บันทึก phase_order จาก project_phase ลง phase_assign
                 model.PhaseOrder = phase.PhaseOrder;
