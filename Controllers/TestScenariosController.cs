@@ -237,6 +237,7 @@ namespace ProjectTracking.Controllers
                     precondition = x.precondition,
                     steps = x.steps,
                     expected_result = x.expected_result,
+                    remark = x.remark,
                     priority = x.priority,
                     status = x.status,
                     created_at = x.created_at,

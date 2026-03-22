@@ -234,6 +234,15 @@ public class TestScenarioReport
                                     text.Span(item.expected_result ?? "-");
                                 });
 
+                                if (!string.IsNullOrWhiteSpace(item.remark))
+                                {
+                                    inner.Item().PaddingTop(4).Border(1).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten4).Padding(8).Column(note =>
+                                    {
+                                        note.Item().Text("Remark").Bold().FontColor(Colors.Grey.Darken2);
+                                        note.Item().PaddingTop(2).Text(item.remark).FontSize(12);
+                                    });
+                                }
+
                                 // ================= IMAGES =================
                                 var imgs = attachments.Where(a => a.ScenarioId == item.scenario_id).ToList();
 

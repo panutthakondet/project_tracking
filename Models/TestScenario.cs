@@ -32,6 +32,8 @@ namespace ProjectTracking.Models
         [Required]
         public string expected_result { get; set; } = string.Empty;
 
+        public string? remark { get; set; }
+
         public string priority { get; set; } = "MEDIUM";
 
         public string status { get; set; } = "DRAFT";

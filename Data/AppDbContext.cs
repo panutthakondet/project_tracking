@@ -310,6 +310,10 @@ namespace ProjectTracking.Data
                     .HasColumnType("text")
                     .IsRequired();
 
+                entity.Property(x => x.remark)
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
                 entity.Property(x => x.priority)
                     .HasColumnType("varchar(10)")
                     .HasDefaultValue("MEDIUM");
