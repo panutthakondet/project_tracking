@@ -262,5 +262,41 @@ namespace ProjectTracking.Controllers
 
             return File(pdf, "application/pdf", "TestScenarioReport.pdf");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Index")]
+        public async Task<IActionResult> DeleteAll(int projectId)
+        {
+            // ดึงรายการ scenario ทั้งหมดของ project
+            var scenarios = _context.TestScenarios
+                .Where(x => x.project_id == projectId)
+                .ToList();
+
+            // ดึง attachment ที่เกี่ยวข้อง
+            var attachments = _context.TestScenarioAttachments
+                .Where(a => scenarios.Select(s => s.scenario_id).Contains(a.ScenarioId))
+                .ToList();
+
+            // ลบไฟล์ในเครื่อง
+            foreach (var item in attachments)
+            {
+                var relativePath = item.FilePath ?? "";
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath.TrimStart('/'));
+
+                if (System.IO.File.Exists(fullPath))
+                    System.IO.File.Delete(fullPath);
+            }
+
+            // ลบ attachment ใน DB
+            _context.TestScenarioAttachments.RemoveRange(attachments);
+
+            // ลบ scenario
+            _context.TestScenarios.RemoveRange(scenarios);
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", new { projectId });
+        }
     }
 }
