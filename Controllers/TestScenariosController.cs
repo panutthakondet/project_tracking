@@ -261,7 +261,10 @@ namespace ProjectTracking.Controllers
             var report = new TestScenarioReport();
             var pdf = report.Generate(data, attachments, project?.ProjectName ?? "Project");
 
-            return File(pdf, "application/pdf", "TestScenarioReport.pdf");
+            Response.Headers["Content-Disposition"] = "inline; filename=TestScenarioReport.pdf";
+            Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+            return File(pdf, "application/pdf");
         }
 
         [HttpPost]
