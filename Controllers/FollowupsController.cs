@@ -193,7 +193,22 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Edit(ProjectFollowup model)
         {
             if (!ModelState.IsValid)
+            {
+                var employees = await _context.Employees
+                    .OrderBy(e => e.EmpName)
+                    .ToListAsync();
+
+                ViewBag.Employees = employees ?? new List<Employee>();
+
+                ViewBag.ProjectName = (await _context.Projects
+                    .Where(p => p.ProjectId == model.ProjectId)
+                    .Select(p => p.ProjectName)
+                    .FirstOrDefaultAsync());
+
+                ViewBag.ProjectId = model.ProjectId;
+
                 return View(model);
+            }
 
             var followup = await _context.ProjectFollowups
                 .FirstOrDefaultAsync(x => x.FollowupId == model.FollowupId);
