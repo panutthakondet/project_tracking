@@ -22,7 +22,7 @@ namespace ProjectTracking.Controllers
             var data = await _context.ProjectFollowups
                 .Include(x => x.Project)
                 .Include(x => x.Owner)
-                .Where(x => x.Status == "OPEN")
+                .Where(x => x.Status == "OPEN"|| x.Status == "IN_PROGRESS")
                 .OrderBy(x => x.NextFollowupDate)
                 .Select(x => new
                 {
