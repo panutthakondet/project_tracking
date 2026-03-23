@@ -109,8 +109,8 @@ else
             <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
             <td>@item.title</td>
             <td>@item.precondition</td>
-            <td style="white-space: pre-line;">@item.steps</td>
-            <td>@item.expected_result</td>
+            <td>@Html.Raw((item.steps ?? "").Replace("\n", "<br/>"))</td>
+            <td>@Html.Raw((item.expected_result ?? "").Replace("\n", "<br/>"))</td>
             <td class="text-center-col">@item.priority_default</td>
             <td class="text-center-col">@item.status_default</td>
             <td class="text-center-col">
