@@ -646,6 +646,57 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 }
 
+
+<script>
+    // ===== SESSION TIMEOUT HANDLER =====
+    let timeoutMinutes = 120; // ต้องตรงกับ server
+    let warningMinutes = 5;
+
+    let timeout = timeoutMinutes * 60 * 1000;
+    let warningTime = (timeoutMinutes - warningMinutes) * 60 * 1000;
+
+    // แจ้งเตือนก่อนหมดเวลา
+    setTimeout(function () {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Session ใกล้หมดเวลา',
+            text: 'ระบบจะหมดเวลาในอีก 5 นาที',
+            confirmButtonText: 'ต่อเวลา'
+        }).then(() => {
+            fetch('/Auth/KeepAlive'); // ต่อ session
+        });
+    }, warningTime);
+
+    // หมดเวลาแล้ว
+    setTimeout(function () {
+        Swal.fire({
+            icon: 'error',
+            title: 'Session หมดเวลาแล้ว',
+            text: 'กรุณาเข้าสู่ระบบใหม่',
+            confirmButtonText: 'ไปหน้า Login'
+        }).then(() => {
+            window.location.href = '/Auth/Login';
+        });
+    }, timeout);
+
+    // ตรวจ session จริงทุก 1 นาที (กันพลาด)
+    setInterval(async function () {
+        try {
+            let res = await fetch('/Auth/CheckSession');
+            if (res.status === 401) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Session หมดเวลาแล้ว',
+                    text: 'กรุณาเข้าสู่ระบบใหม่'
+                }).then(() => {
+                    window.location.href = '/Auth/Login';
+                });
+            }
+        } catch (e) {
+            console.log('Session check error');
+        }
+    }, 60000);
+</script>
 @RenderSection("Scripts", required: false)
 
 @if (CanMenu("Dashboard.Index"))
