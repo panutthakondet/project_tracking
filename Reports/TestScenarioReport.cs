@@ -182,7 +182,7 @@ public class TestScenarioReport
 
                     page.Footer().AlignCenter().Text(x =>
                     {
-                        x.Span("Page ");
+                        x.Span("หน้าที่ ");
                         x.CurrentPageNumber();
                     });
 
