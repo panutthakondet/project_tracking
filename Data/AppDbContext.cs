@@ -414,6 +414,11 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(200)")
                     .IsRequired();
 
+                entity.Property(x => x.sort_order)
+                    .HasColumnName("sort_order")
+                    .HasColumnType("int")
+                    .HasDefaultValue(0);
+
                 entity.Property(x => x.is_active)
                     .HasColumnType("tinyint(1)")
                     .HasDefaultValue(true);

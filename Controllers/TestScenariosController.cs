@@ -29,7 +29,11 @@ namespace ProjectTracking.Controllers
         public IActionResult Create(int? projectId, int? groupId)
         {
             ViewBag.Projects = _context.Projects.ToList();
-            ViewBag.Groups = _context.TestTemplateGroups.Where(g => g.is_active).ToList();
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .ToList();
 
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedGroup = groupId;
@@ -48,7 +52,11 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.scenario_id)
                 .ToListAsync();
 
-            ViewBag.Groups = _context.TestTemplateGroups.Where(g => g.is_active).ToList();
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .ToList();
             ViewBag.Projects = _context.Projects.ToList();
 
             ViewBag.SelectedProject = projectId;
@@ -63,7 +71,11 @@ namespace ProjectTracking.Controllers
             var scenario = await _context.TestScenarios.FindAsync(id);
             if (scenario == null) return NotFound();
 
-            ViewBag.Groups = _context.TestTemplateGroups.Where(g => g.is_active).ToList();
+            ViewBag.Groups = _context.TestTemplateGroups
+                .Where(g => g.is_active)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .ToList();
 
             ViewBag.Attachments = await _context.TestScenarioAttachments
                 .Where(x => x.ScenarioId == id)

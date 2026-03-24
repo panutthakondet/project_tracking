@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
@@ -19,7 +20,8 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index()
         {
             var groups = await _context.TestTemplateGroups
-                .OrderByDescending(x => x.created_at)
+                .OrderBy(x => x.sort_order)
+                .ThenByDescending(x => x.created_at)
                 .ToListAsync();
 
             return View(groups);
@@ -97,6 +99,30 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
+        }
+        [HttpPost]
+        public async Task<IActionResult> UpdateSort([FromBody] List<SortDto> data)
+        {
+            if (data == null || data.Count == 0)
+                return BadRequest();
+
+            foreach (var item in data)
+            {
+                var group = await _context.TestTemplateGroups.FindAsync(item.id);
+                if (group != null)
+                {
+                    group.sort_order = item.sort;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        public class SortDto
+        {
+            public int id { get; set; }
+            public int sort { get; set; }
         }
     }
 }

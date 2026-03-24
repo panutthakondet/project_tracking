@@ -41,7 +41,8 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Groups = await _context.TestTemplateGroups
                 .Where(g => g.is_active)
-                .OrderBy(g => g.group_name)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
                 .ToListAsync();
             ViewBag.SelectedGroupId = groupId;
             ViewBag.GroupId = groupId;
@@ -56,7 +57,8 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Groups = await _context.TestTemplateGroups
                 .Where(g => g.is_active)
-                .OrderBy(g => g.group_name)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
                 .ToListAsync();
 
             // If coming from Index with selected group, preselect and lock it.
@@ -82,7 +84,8 @@ namespace ProjectTracking.Controllers
             {
                 ViewBag.Groups = await _context.TestTemplateGroups
                     .Where(g => g.is_active)
-                    .OrderBy(g => g.group_name)
+                    .OrderBy(g => g.sort_order)
+                    .ThenBy(g => g.group_name)
                     .ToListAsync();
 
                 // If group_id was provided (e.g., from Index), lock it in the UI
@@ -128,6 +131,8 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Groups = await _context.TestTemplateGroups
                 .Where(g => g.is_active)
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
                 .ToListAsync();
 
             TempData["LastGroupId"] = template.group_id;
@@ -147,7 +152,8 @@ namespace ProjectTracking.Controllers
             {
                 ViewBag.Groups = await _context.TestTemplateGroups
                     .Where(g => g.is_active)
-                    .OrderBy(g => g.group_name)
+                    .OrderBy(g => g.sort_order)
+                    .ThenBy(g => g.group_name)
                     .ToListAsync();
 
                 // Keep group locked in UI (Edit page always locked)

@@ -27,6 +27,8 @@
 <table class="table table-bordered group-table">
     <thead>
         <tr>
+            <th width="50"></th>
+            <th width="100" class="text-center-col">Order</th>
             <th>Group Name</th>
             <th class="text-center-col">Created</th>
             <th width="100" class="text-center-col">Edit</th>
@@ -36,7 +38,9 @@
     <tbody>
     @foreach (var g in Model)
     {
-        <tr>
+        <tr data-id="@g.group_id">
+            <td class="text-center-col" style="cursor:move;">☰</td>
+            <td class="text-center-col">@g.sort_order</td>
             <td>@g.group_name</td>
             <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
             <td class="text-center-col">
@@ -58,3 +62,31 @@
     }
     </tbody>
 </table>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+    var tbody = document.querySelector(".group-table tbody");
+
+    new Sortable(tbody, {
+        handle: "td",
+        animation: 150,
+        onEnd: function () {
+            var order = [];
+            document.querySelectorAll(".group-table tbody tr").forEach((row, index) => {
+                order.push({
+                    id: row.getAttribute("data-id"),
+                    sort: index + 1
+                });
+            });
+
+            fetch('/TestTemplateGroups/UpdateSort', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(order)
+            });
+        }
+    });
+</script>

@@ -5,6 +5,7 @@ namespace ProjectTracking.Models
         public int group_id { get; set; }
 
         public string group_name { get; set; } = string.Empty;
+        public int sort_order { get; set; } = 0;
 
         public bool is_active { get; set; } = true;
 
