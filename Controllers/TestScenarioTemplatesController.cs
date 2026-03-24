@@ -21,6 +21,11 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarioTemplates.Index")]
         public async Task<IActionResult> Index(int? groupId)
         {
+            if (!groupId.HasValue && TempData["LastGroupId"] != null)
+            {
+                groupId = Convert.ToInt32(TempData["LastGroupId"]);
+            }
+
             var query = _context.TestScenarioTemplates
                 .Include(x => x.Group)
                 .AsQueryable();
@@ -39,6 +44,7 @@ namespace ProjectTracking.Controllers
                 .OrderBy(g => g.group_name)
                 .ToListAsync();
             ViewBag.SelectedGroupId = groupId;
+            ViewBag.GroupId = groupId;
             return View(templates);
         }
 
@@ -123,6 +129,8 @@ namespace ProjectTracking.Controllers
             ViewBag.Groups = await _context.TestTemplateGroups
                 .Where(g => g.is_active)
                 .ToListAsync();
+
+            TempData["LastGroupId"] = template.group_id;
 
             return View(template);
         }

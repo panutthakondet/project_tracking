@@ -54,7 +54,7 @@
 <div class="row mb-3">
 <div class="col-md-8">
         <label class="form-label">Filter by Group</label>
-        <select id="templateFilter" class="form-select" onchange="filterTemplates()">
+        <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()">
             <option value="">-- Show All --</option>
             @foreach (var g in groups)
             {
@@ -159,6 +159,15 @@ else
 }
 
 <script>
+    function onGroupChange() {
+        var selected = document.getElementById("templateFilter").value || "";
+        var url = "/TestScenarioTemplates";
+        if (selected) {
+            url += "?groupId=" + encodeURIComponent(selected);
+        }
+        window.location.href = url;
+    }
+
     function filterTemplates() {
         var selected = document.getElementById("templateFilter").value;
         var rows = document.querySelectorAll("tbody tr");
@@ -175,25 +184,14 @@ else
 
     document.addEventListener("DOMContentLoaded", function () {
         var serverPreset = "@(selectedGroupId?.ToString() ?? "")";
-        var storedPreset = localStorage.getItem('ScenarioTemplates.SelectedGroupId') || "";
-        var preset = serverPreset || storedPreset;
+        var preset = serverPreset;
 
         var ddl = document.getElementById("templateFilter");
         if (ddl && preset) {
             ddl.value = preset;
         }
 
-        // Apply filtering based on current selection (server preset or stored)
-        if (ddl && ddl.value) {
-            filterTemplates();
-        }
-
-        // Remember selection whenever user changes the dropdown
-        if (ddl) {
-            ddl.addEventListener('change', function () {
-                localStorage.setItem('ScenarioTemplates.SelectedGroupId', ddl.value || "");
-            });
-        }
+        // Do not auto-filter on client; server already filtered by groupId
 
         var btn = document.getElementById("addTemplateBtn");
         if (!btn) return;
@@ -207,7 +205,6 @@ else
                 return;
             }
 
-            localStorage.setItem('ScenarioTemplates.SelectedGroupId', selected);
             window.location.href = "/TestScenarioTemplates/Create?groupId=" + encodeURIComponent(selected);
         });
     });
