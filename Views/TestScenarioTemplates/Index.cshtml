@@ -41,12 +41,18 @@
     .template-table td {
         vertical-align: top;
     }
+
+    /* Make dropdown wider */
+    #templateFilter {
+        width: 100%;
+        min-width: 400px;
+    }
 </style>
 
 <h2>Scenario Templates</h2>
 
 <div class="row mb-3">
-    <div class="col-md-4">
+<div class="col-md-8">
         <label class="form-label">Filter by Group</label>
         <select id="templateFilter" class="form-select" onchange="filterTemplates()">
             <option value="">-- Show All --</option>
