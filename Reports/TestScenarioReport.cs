@@ -274,7 +274,7 @@ public class TestScenarioReport
                                                 {
                                                     if (File.Exists(fullPath))
                                                     {
-                                                        c.Item().Height(140).Image(fullPath).FitArea();
+                                                        c.Item().AlignCenter().Height(140).Image(fullPath).FitArea();
                                                     }
 
                                                     // caption (file name)
