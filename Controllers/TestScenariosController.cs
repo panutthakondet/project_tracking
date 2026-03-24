@@ -49,7 +49,16 @@ namespace ProjectTracking.Controllers
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (!groupId.HasValue || x.group_id == groupId)
                 )
-                .OrderBy(x => x.scenario_id)
+                .Join(
+                    _context.TestTemplateGroups,
+                    s => s.group_id,
+                    g => g.group_id,
+                    (s, g) => new { s, g }
+                )
+                .OrderBy(x => x.g.sort_order) // 🔥 เรียงตาม group ก่อน
+                .ThenBy(x => x.s.sort_order) // 🔥 แล้วค่อยเรียงใน group
+                .ThenBy(x => x.s.scenario_id)
+                .Select(x => x.s)
                 .ToListAsync();
 
             ViewBag.Groups = _context.TestTemplateGroups
@@ -315,6 +324,30 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index", new { projectId });
+        }
+        [HttpPost]
+        public async Task<IActionResult> UpdateSort([FromBody] List<SortDto> data)
+        {
+            if (data == null || data.Count == 0)
+                return BadRequest();
+
+            foreach (var item in data)
+            {
+                var scenario = await _context.TestScenarios.FindAsync(item.id);
+                if (scenario != null)
+                {
+                    scenario.sort_order = item.sort;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        public class SortDto
+        {
+            public int id { get; set; }
+            public int sort { get; set; }
         }
     }
 }

@@ -366,17 +366,25 @@ else
                     return;
                 }
 
-                const rows = tbody.querySelectorAll("tr[data-id]");
-                const ids = [];
+                // Only reorder within same group
+                const rows = Array.from(tbody.querySelectorAll("tr[data-id]"))
+                    .filter(r => r.dataset.group === startGroup);
 
-                rows.forEach(r => ids.push(r.dataset.id));
+                const order = [];
 
-                fetch("/TestScenarios/Reorder", {
+                rows.forEach((r, index) => {
+                    order.push({
+                        id: r.dataset.id,
+                        sort: index + 1
+                    });
+                });
+
+                fetch("/TestScenarios/UpdateSort", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(ids)
+                    body: JSON.stringify(order)
                 });
             }
         });
