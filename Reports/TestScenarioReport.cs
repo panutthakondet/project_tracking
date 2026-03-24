@@ -30,13 +30,18 @@ public class TestScenarioReport
         var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/soat/Logo.png");
 
         var groupedData = data
+            .OrderBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue) // 🔥 เรียงตาม sort_order ของ group
+            .ThenBy(x => x.sort_order)
             .GroupBy(x => x.group_id ?? 0)
             .Select((group, index) => new
             {
                 GroupIndex = index + 1,
                 GroupKey = group.Key,
                 GroupName = group.FirstOrDefault()?.GroupName ?? $"Group {group.Key}",
-                Items = group.ToList(),
+                Items = group
+                    .OrderBy(x => x.sort_order)
+                    .ThenBy(x => x.scenario_id)
+                    .ToList(),
                 Total = group.Count(),
                 GroupSectionId = $"group-{index + 1}"
             })

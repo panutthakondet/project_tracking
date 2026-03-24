@@ -217,34 +217,12 @@
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-danger">Delete All</button>
             </form>
-            <!-- Preview PDF (modal) -->
-            <button type="button"
-                    class="btn btn-outline-primary"
-                    onclick="openPdfPreview()">
+            <a href="/TestScenarios/ExportPdf?projectId=@ViewBag.SelectedProject"
+               target="_blank"
+               class="btn btn-outline-primary">
                 👁 Preview PDF
-            </button>
-
-            <!-- Download PDF -->
-<!-- PDF Preview Modal -->
-<div class="modal fade" id="pdfPreviewModal" tabindex="-1">
-  <div class="modal-dialog modal-xl" style="max-width: 95%;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">PDF Preview</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" style="height: 80vh;">
-        <iframe id="pdfFrame" style="width:100%; height:100%; border:none;"></iframe>
-      </div>
-    </div>
-  </div>
-</div>
-            <a asp-action="ExportPdf"
-               asp-route-projectId="@ViewBag.SelectedProject"
-               class="btn btn-warning"
-               download>
-                📄 Download PDF
             </a>
+
         </div>
 
         <div class="d-flex flex-wrap gap-2">
@@ -389,11 +367,4 @@ else
             }
         });
     });
-
-    function openPdfPreview() {
-        const url = '/TestScenarios/ExportPdf?projectId=@ViewBag.SelectedProject';
-        document.getElementById('pdfFrame').src = url;
-        var modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
-        modal.show();
-    }
 </script>
