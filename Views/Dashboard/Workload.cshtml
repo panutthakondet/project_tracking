@@ -2,7 +2,13 @@
     ViewData["Title"] = "Employee Workload";
 }
 
+
 <h2>🔥 สถานะภาระงานพนักงาน</h2>
+<div class="legend">
+    <span><i class="legend-box project"></i> Period Date</span>
+    <span><i class="legend-box plan"></i> Plan Date</span>
+    <span><i class="legend-box actual"></i> Actual Date</span>
+</div>
 
 <div class="filter-bar">
 
@@ -163,6 +169,14 @@
     z-index:14;
 }
 
+.project-row-hover {
+    background: #dbeafe; /* ฟ้าอ่อนแบบทึบ */
+}
+
+.project-name.project-row-hover {
+    background: #bfdbfe; /* เข้มขึ้นเล็กน้อยให้เด่น */
+}
+
 /* เส้นแบ่ง */
 .employee-title::after,
 .project-name::after{
@@ -176,18 +190,52 @@
 }
 
 /* CELLS */
-.cell{
-    height:26px;
-    border:1px solid #e5e7eb;
+    .cell{
+        height:44px;
+        border:1px solid #e5e7eb;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        padding:0; /* เอาช่องว่างออก */
+        gap:2px;   /* เว้นเล็กน้อยระหว่าง 3 เส้น */
+    }
+
+
+
+/* ====== BAR STYLES FOR CELLS ====== */
+.bar{
+    height:12px;
+    border-radius:0; /* ทำให้เส้นต่อกันไม่เว้า */
+    width:100%;
+}
+.cell:hover .bar{
+    filter:brightness(1.1);
+}
+.bar.project{ background:#60a5fa; }  /* ฟ้าอ่อน */
+.bar.plan{ background:#fde68a; }     /* เหลืองอ่อน */
+.bar.actual{ background:#86efac; }   /* เขียวอ่อน */
+
+
+/* ===== LEGEND ===== */
+.legend{
+    display:flex;
+    gap:20px;
+    margin-bottom:10px;
+    font-size:13px;
+    align-items:center;
 }
 
-.empty{ background:#f3f4f6; }
-.p1{ background:#3b82f6; }
-.p2{ background:#10b981; }
-.p3{ background:#f59e0b; }
-.p4{ background:#ef4444; }
-.p5{ background:#8b5cf6; }
+.legend-box{
+    display:inline-block;
+    width:14px;
+    height:14px;
+    margin-right:6px;
+    border-radius:3px;
+}
 
+.legend-box.project{ background:#60a5fa; }
+.legend-box.plan{ background:#fde68a; }
+.legend-box.actual{ background:#86efac; }
 </style>
 
 <script>
@@ -207,7 +255,7 @@ function populateEmployeeDropdown(data){
 
     const dropdown = document.getElementById("employeeSelect");
 
-    const employees = [...new Set(data.map(d=>d.emp_Name))].sort();
+    const employees = [...new Set(data.map(d=>d.Emp_Name || d.emp_Name))].sort();
 
     dropdown.innerHTML = `<option value="ALL">All Employees</option>`;
 
@@ -239,7 +287,7 @@ function renderTimeline(){
 
     const totalWeeks = months.length * 4;
 
-    let html = `<div class="grid" style="grid-template-columns:260px repeat(${totalWeeks},42px);">`;
+    let html = `<div class="grid" style="grid-template-columns:260px repeat(${totalWeeks},28px);">`;
 
     /* ========= HEADER ========= */
 
@@ -261,7 +309,7 @@ function renderTimeline(){
 
     /* ========= FILTER EMPLOYEE ========= */
 
-    let employees = [...new Set(globalData.map(d=>d.emp_Name))].sort();
+    let employees = [...new Set(globalData.map(d=>d.Emp_Name || d.emp_Name))].sort();
 
     if(selectedEmp !== "ALL"){
         employees = employees.filter(e=>e===selectedEmp);
@@ -269,12 +317,13 @@ function renderTimeline(){
 
     employees.forEach(emp=>{
 
-        const empData = globalData.filter(d=>d.emp_Name===emp);
+        const empData = globalData.filter(d=>(d.Emp_Name || d.emp_Name)===emp);
 
         let projectSet = new Set();
         empData.forEach(d=>{
-            if(d.project_Names){
-                d.project_Names.split(" | ").forEach(p=>projectSet.add(p));
+            const pname = d.Project_Name || d.project_Name;
+            if(pname){
+                projectSet.add(pname);
             }
         });
 
@@ -289,7 +338,7 @@ function renderTimeline(){
 
             const color = `p${(index%5)+1}`;
 
-            html += `<div class="project-name">↳ ${project}</div>`;
+            html += `<div class="project-name" data-row-key="${emp}__${index}">↳ ${project}</div>`;
 
             for(let w=1; w<=totalWeeks; w++){
 
@@ -297,22 +346,40 @@ function renderTimeline(){
                 const weekInMonth = ((w-1)%4)+1;
 
                 const currentMonth = months[monthIndex];
+                const weekStart = new Date(currentMonth.year, currentMonth.month - 1, (weekInMonth - 1) * 7 + 1);
+                const weekEnd   = new Date(currentMonth.year, currentMonth.month - 1, (weekInMonth * 7));
 
-                const weekData = empData.find(x => 
-                    x.year_No === currentMonth.year &&
-                    x.month_No === currentMonth.month &&
-                    x.week_No === weekInMonth
+                const projectList = empData.filter(x =>
+                    (x.Project_Name || x.project_Name) === project
                 );
 
-                let active = false;
+                const hasProject = projectList.some(x => {
+                    const start = new Date(x.Project_Start || x.project_Start);
+                    const end   = new Date(x.Project_End || x.project_End);
+                    return start <= weekEnd && end >= weekStart;
+                });
 
-                if(weekData && weekData.project_Names){
-                    active = weekData.project_Names.includes(project);
-                }
+                const hasPlan = projectList.some(x => {
+                    const start = new Date(x.Plan_Start || x.plan_Start);
+                    const end   = new Date(x.Plan_End || x.plan_End);
+                    return start <= weekEnd && end >= weekStart;
+                });
+
+                const hasActual = projectList.some(x => {
+                    const start = new Date(x.Actual_Start || x.actual_Start);
+                    const end   = new Date(x.Actual_End || x.actual_End || x.actual_Start);
+                    return start <= weekEnd && end >= weekStart;
+                });
+
+                const isDelay = projectList.some(x =>
+                    (x.Actual_End || x.actual_End) && (x.Plan_End || x.plan_End) && new Date((x.Actual_End || x.actual_End)) > new Date((x.Plan_End || x.plan_End))
+                );
 
                 html += `
-                    <div class="cell ${active?color:'empty'}"
-                         title="${project}">
+                    <div class="cell" data-row-key="${emp}__${index}" title="${project}">
+                        <div class="bar project" style="opacity:${hasProject ? 1 : 0}"></div>
+                        <div class="bar plan" style="opacity:${hasPlan ? 1 : 0}"></div>
+                        <div class="bar ${isDelay ? 'delay' : 'actual'}" style="opacity:${hasActual ? 1 : 0}"></div>
                     </div>
                 `;
             }
@@ -323,6 +390,18 @@ function renderTimeline(){
 
     html += `</div>`;
     container.innerHTML = html;
+
+    const rowElements = container.querySelectorAll('[data-row-key]');
+    rowElements.forEach(el => {
+        el.addEventListener('mouseenter', function () {
+            const key = this.getAttribute('data-row-key');
+            container.querySelectorAll(`[data-row-key="${key}"]`).forEach(x => x.classList.add('project-row-hover'));
+        });
+        el.addEventListener('mouseleave', function () {
+            const key = this.getAttribute('data-row-key');
+            container.querySelectorAll(`[data-row-key="${key}"]`).forEach(x => x.classList.remove('project-row-hover'));
+        });
+    });
 }
 
 function reloadTimeline(){

@@ -46,11 +46,20 @@ namespace ProjectTracking.Controllers
 
     SELECT 
         e.emp_name AS Emp_Name,
+        p.project_name AS Project_Name,
         YEAR(w.week_start) AS Year_No,
         MONTH(w.week_start) AS Month_No,
         FLOOR((DAY(w.week_start)-1)/7) + 1 AS Week_No,
-        COUNT(DISTINCT p.project_name) AS Project_Count,
-        COALESCE(GROUP_CONCAT(DISTINCT p.project_name SEPARATOR ' | '), '') AS Project_Names
+
+        p.start_date AS Project_Start,
+        p.end_date AS Project_End,
+
+        pa.plan_start AS Plan_Start,
+        pa.plan_end AS Plan_End,
+
+        pa.actual_start AS Actual_Start,
+        pa.actual_end AS Actual_End
+
     FROM weeks w
     LEFT JOIN phase_assign pa 
         ON pa.plan_start <= w.week_end
@@ -59,8 +68,8 @@ namespace ProjectTracking.Controllers
     LEFT JOIN project_phase ph ON pa.phase_id = ph.phase_id
     LEFT JOIN project p ON ph.project_id = p.project_id
     WHERE e.emp_name IS NOT NULL
-    GROUP BY e.emp_name, YEAR(w.week_start), MONTH(w.week_start), FLOOR((DAY(w.week_start)-1)/7) + 1
-    ORDER BY e.emp_name, YEAR(w.week_start), MONTH(w.week_start), FLOOR((DAY(w.week_start)-1)/7) + 1
+    GROUP BY e.emp_name, p.project_name, w.week_start, pa.plan_start, pa.plan_end, pa.actual_start, pa.actual_end, p.start_date, p.end_date
+    ORDER BY e.emp_name, p.project_name, YEAR(w.week_start), MONTH(w.week_start), Week_No
 ";
 
             var parameters = new[]
@@ -82,8 +91,16 @@ namespace ProjectTracking.Controllers
             public int Year_No { get; set; }
             public int Month_No { get; set; }
             public int Week_No { get; set; }
-            public int Project_Count { get; set; }
-            public string Project_Names { get; set; } = string.Empty;
+            public string Project_Name { get; set; } = string.Empty;
+
+            public DateTime? Project_Start { get; set; }
+            public DateTime? Project_End { get; set; }
+
+            public DateTime? Plan_Start { get; set; }
+            public DateTime? Plan_End { get; set; }
+
+            public DateTime? Actual_Start { get; set; }
+            public DateTime? Actual_End { get; set; }
         }
     }
 }
