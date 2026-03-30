@@ -30,18 +30,13 @@ public class TestScenarioReport
         var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/soat/Logo.png");
 
         var groupedData = data
-            .OrderBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue) // 🔥 เรียงตาม sort_order ของ group
-            .ThenBy(x => x.sort_order)
             .GroupBy(x => x.group_id ?? 0)
             .Select((group, index) => new
             {
                 GroupIndex = index + 1,
                 GroupKey = group.Key,
                 GroupName = group.FirstOrDefault()?.GroupName ?? $"Group {group.Key}",
-                Items = group
-                    .OrderBy(x => x.sort_order)
-                    .ThenBy(x => x.scenario_id)
-                    .ToList(),
+                Items = group.ToList(),
                 Total = group.Count(),
                 GroupSectionId = $"group-{index + 1}"
             })
@@ -182,7 +177,7 @@ public class TestScenarioReport
 
                     page.Footer().AlignCenter().Text(x =>
                     {
-                        x.Span("หน้าที่ ");
+                        x.Span("Page ");
                         x.CurrentPageNumber();
                     });
 
@@ -274,7 +269,7 @@ public class TestScenarioReport
                                                 {
                                                     if (File.Exists(fullPath))
                                                     {
-                                                        c.Item().AlignCenter().Height(140).Image(fullPath).FitArea();
+                                                        c.Item().Height(140).Image(fullPath).FitArea();
                                                     }
 
                                                     // caption (file name)
