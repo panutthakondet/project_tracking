@@ -269,7 +269,14 @@ public class TestScenarioReport
                                                 {
                                                     if (File.Exists(fullPath))
                                                     {
-                                                        c.Item().Height(140).Image(fullPath).FitArea();
+                                                        c.Item()
+                                                          .AlignCenter()
+                                                          .AlignMiddle()
+                                                          .Height(140)
+                                                          .Element(imgContainer =>
+                                                          {
+                                                              imgContainer.AlignCenter().AlignMiddle().Image(fullPath).FitArea();
+                                                          });
                                                     }
 
                                                     // caption (file name)
