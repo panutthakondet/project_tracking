@@ -242,7 +242,9 @@ namespace ProjectTracking.Controllers
 
             var scenarios = await _context.TestScenarios
                 .Where(x => x.project_id == projectId)
-                .OrderBy(x => x.scenario_id)
+                .OrderBy(x => x.group_id)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
                 .ToListAsync();
 
             return View("Print", scenarios);
@@ -254,30 +256,39 @@ namespace ProjectTracking.Controllers
             var data = _context.TestScenarios
                 .Where(x =>
                     x.project_id == projectId &&
-                    (groupIds == null || groupIds.Count == 0 || groupIds.Contains(x.group_id ?? 0))
+                    (
+                        groupIds == null ||
+                        groupIds.Count == 0 ||
+                        (x.group_id.HasValue && groupIds.Contains(x.group_id.Value))
+                    )
                 )
-                .OrderBy(x => x.scenario_id)
+                .Join(
+                    _context.TestTemplateGroups,
+                    s => s.group_id,
+                    g => g.group_id,
+                    (s, g) => new { s, g }
+                )
+                .OrderBy(x => x.g.sort_order)   // 🔥 เรียง group จริง
+                .ThenBy(x => x.s.sort_order)    // 🔥 เรียงใน group
+                .ThenBy(x => x.s.scenario_id)
                 .Select(x => new TestScenario
                 {
-                    scenario_id = x.scenario_id,
-                    project_id = x.project_id,
-                    group_id = x.group_id,
-                    scenario_code = x.scenario_code,
-                    title = x.title,
-                    precondition = x.precondition,
-                    steps = x.steps,
-                    expected_result = x.expected_result,
-                    remark = x.remark,
-                    priority = x.priority,
-                    status = x.status,
-                    created_at = x.created_at,
-                    updated_at = x.updated_at,
+                    scenario_id = x.s.scenario_id,
+                    project_id = x.s.project_id,
+                    group_id = x.s.group_id,
+                    scenario_code = x.s.scenario_code,
+                    title = x.s.title,
+                    precondition = x.s.precondition,
+                    steps = x.s.steps,
+                    expected_result = x.s.expected_result,
+                    remark = x.s.remark,
+                    priority = x.s.priority,
+                    status = x.s.status,
+                    created_at = x.s.created_at,
+                    updated_at = x.s.updated_at,
 
                     // 🔥 ดึงชื่อ Group
-                    GroupName = _context.TestTemplateGroups
-                        .Where(g => g.group_id == x.group_id)
-                        .Select(g => g.group_name)
-                        .FirstOrDefault()
+                    GroupName = x.g.group_name
                 })
                 .ToList();
 
