@@ -195,7 +195,7 @@ public class TestScenarioReport
                         int sectionIndex = 1;
                         foreach (var item in group.Items)
                         {
-                            col.Item().ShowEntire().PaddingTop(10).Column(inner =>
+                            col.Item().PaddingTop(10).Column(inner =>
                             {
                                 inner.Item().Section($"scenario-{item.scenario_id}").Text($"{group.GroupIndex}.{sectionIndex} {item.scenario_code} : {item.title}")
                                     .Bold().FontSize(16);
