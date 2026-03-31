@@ -258,8 +258,6 @@ public class TestScenarioReport
                                             columns.RelativeColumn();
                                         });
 
-                                        table.Spacing(5);
-
                                         foreach (var img in imgs.Take(4))
                                         {
                                             table.Cell().Padding(8).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Element(e =>
@@ -287,8 +285,8 @@ public class TestScenarioReport
                                                                       imgContainer
                                                                           .AlignCenter()
                                                                           .AlignMiddle()
-                                                                          .FitArea()
-                                                                          .Image(stream);
+                                                                          .Image(stream)
+                                                                          .FitArea();
                                                                   }
                                                               });
                                                         }
