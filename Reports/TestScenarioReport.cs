@@ -14,9 +14,9 @@ using System.Globalization;
 
 public class TestScenarioReport
 {
-    public byte[] Generate(List<TestScenario> data, List<TestScenarioAttachment> attachments, string projectName)
+    public byte[] Generate(List<TestScenario> data, List<TestScenarioAttachment> attachments, string projectName, string webRootPath)
     {
-        var fontPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/fonts");
+        var fontPath = Path.Combine(webRootPath, "fonts");
 
         var regularFont = Path.Combine(fontPath, "THSarabunNew.ttf");
         var boldFont = Path.Combine(fontPath, "THSarabunNew-Bold.ttf");
@@ -27,7 +27,7 @@ public class TestScenarioReport
         if (File.Exists(boldFont))
             FontManager.RegisterFont(File.OpenRead(boldFont));
 
-        var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/soat/Logo.png");
+        var logoPath = Path.Combine(webRootPath, "soat/Logo.png");
 
         var groupedData = data
             .GroupBy(x => x.group_id ?? 0)
@@ -50,7 +50,7 @@ public class TestScenarioReport
                 page.Size(PageSizes.A4);
                 page.Margin(0);
 
-                var bgPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/soat/Picture1.png");
+                var bgPath = Path.Combine(webRootPath, "soat/Picture1.png");
 
                 page.Content().Extend().Layers(layers =>
                 {
@@ -263,23 +263,50 @@ public class TestScenarioReport
                                             table.Cell().Padding(8).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Element(e =>
                                             {
                                                 var relative = (img.FilePath ?? string.Empty).TrimStart('/');
-                                                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relative);
+                                                var fullPath = Path.Combine(webRootPath, relative);
 
                                                 e.Column(c =>
                                                 {
+                                                    // log path
+                                                    File.AppendAllText(
+                                                        Path.Combine(webRootPath, "error_log.txt"),
+                                                        $"CHECK: {fullPath} {DateTime.Now}\n"
+                                                    );
+
                                                     if (File.Exists(fullPath))
                                                     {
-                                                        c.Item()
-                                                          .AlignCenter()
-                                                          .AlignMiddle()
-                                                          .Height(140)
-                                                          .Element(imgContainer =>
-                                                          {
-                                                              imgContainer.AlignCenter().AlignMiddle().Image(fullPath).FitArea();
-                                                          });
+                                                        try
+                                                        {
+                                                            c.Item()
+                                                              .AlignCenter()
+                                                              .AlignMiddle()
+                                                              .Height(140)
+                                                              .Element(imgContainer =>
+                                                              {
+                                                                  imgContainer.AlignCenter().AlignMiddle().Image(fullPath).FitArea();
+                                                              });
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            File.AppendAllText(
+                                                                Path.Combine(webRootPath, "error_log.txt"),
+                                                                $"ERROR IMAGE: {fullPath}\n{ex}\n"
+                                                            );
+
+                                                            c.Item().AlignCenter().Text("Image error").FontSize(8).FontColor(Colors.Red.Medium);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        File.AppendAllText(
+                                                            Path.Combine(webRootPath, "error_log.txt"),
+                                                            $"NOT FOUND: {fullPath}\n"
+                                                        );
+
+                                                        c.Item().AlignCenter().Text("Image not found").FontSize(8).FontColor(Colors.Red.Medium);
                                                     }
 
-                                                    // caption (file name)
+                                                    // caption
                                                     c.Item().PaddingTop(3).AlignCenter().Text(img.FileName ?? "-")
                                                         .FontSize(8)
                                                         .FontColor(Colors.Grey.Darken1);

@@ -13,16 +13,19 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using ProjectTracking.Reports;
+using Microsoft.AspNetCore.Hosting;
 
 namespace ProjectTracking.Controllers
 {
     public class TestScenariosController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public TestScenariosController(AppDbContext context)
+        public TestScenariosController(AppDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         [RequireMenu("TestScenarios.Index")]
@@ -300,7 +303,12 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var report = new TestScenarioReport();
-            var pdf = report.Generate(data, attachments, project?.ProjectName ?? "Project");
+            var pdf = report.Generate(
+                data,
+                attachments,
+                project?.ProjectName ?? "Project",
+                _env.WebRootPath
+            );
 
             Response.Headers["Content-Disposition"] = "inline; filename=TestScenarioReport.pdf";
             Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
