@@ -258,6 +258,8 @@ public class TestScenarioReport
                                             columns.RelativeColumn();
                                         });
 
+                                        table.Spacing(5);
+
                                         foreach (var img in imgs.Take(4))
                                         {
                                             table.Cell().Padding(8).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Element(e =>
@@ -267,20 +269,17 @@ public class TestScenarioReport
 
                                                 e.Column(c =>
                                                 {
-                                                    // log path
-                                                    File.AppendAllText(
-                                                        Path.Combine(webRootPath, "error_log.txt"),
-                                                        $"CHECK: {fullPath} {DateTime.Now}\n"
-                                                    );
-
                                                     if (File.Exists(fullPath))
                                                     {
                                                         try
                                                         {
                                                             c.Item()
+                                                              .Border(1)
+                                                              .BorderColor(Colors.Grey.Lighten2)
+                                                              .Padding(5)
                                                               .AlignCenter()
                                                               .AlignMiddle()
-                                                              .Height(140)
+                                                              .Height(150)
                                                               .Element(imgContainer =>
                                                               {
                                                                   using (var stream = File.OpenRead(fullPath))
@@ -288,36 +287,24 @@ public class TestScenarioReport
                                                                       imgContainer
                                                                           .AlignCenter()
                                                                           .AlignMiddle()
-                                                                          .MaxHeight(120)
-                                                                          .MaxWidth(180)
+                                                                          .FitArea()
                                                                           .Image(stream);
                                                                   }
                                                               });
                                                         }
-                                                        catch (Exception ex)
+                                                        catch (Exception)
                                                         {
-                                                            File.AppendAllText(
-                                                                Path.Combine(webRootPath, "error_log.txt"),
-                                                                $"ERROR IMAGE: {fullPath}\n{ex}\n"
-                                                            );
-
                                                             c.Item().AlignCenter().Text("Image error").FontSize(8).FontColor(Colors.Red.Medium);
                                                         }
                                                     }
                                                     else
                                                     {
-                                                        File.AppendAllText(
-                                                            Path.Combine(webRootPath, "error_log.txt"),
-                                                            $"NOT FOUND: {fullPath}\n"
-                                                        );
-
                                                         c.Item().AlignCenter().Text("Image not found").FontSize(8).FontColor(Colors.Red.Medium);
                                                     }
 
-                                                    // caption
-                                                    c.Item().PaddingTop(3).AlignCenter().Text(img.FileName ?? "-")
-                                                        .FontSize(8)
-                                                        .FontColor(Colors.Grey.Darken1);
+                                                    c.Item().PaddingTop(5).AlignCenter().Text(img.FileName ?? "-")
+                                                        .FontSize(9)
+                                                        .FontColor(Colors.Grey.Darken2);
                                                 });
                                             });
                                         }
@@ -325,7 +312,9 @@ public class TestScenarioReport
                                 }
                             });
 
-                            col.Item().PaddingBottom(10).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten3);
+                            col.Item().PaddingTop(5);
+                            col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten3);
+                            col.Item().PaddingBottom(10);
                             sectionIndex++;
                         }
                     });
