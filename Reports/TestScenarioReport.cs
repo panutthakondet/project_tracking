@@ -283,7 +283,15 @@ public class TestScenarioReport
                                                               .Height(140)
                                                               .Element(imgContainer =>
                                                               {
-                                                                  imgContainer.AlignCenter().AlignMiddle().Image(fullPath).FitArea();
+                                                                  using (var stream = File.OpenRead(fullPath))
+                                                                  {
+                                                                      imgContainer
+                                                                          .AlignCenter()
+                                                                          .AlignMiddle()
+                                                                          .MaxHeight(120)
+                                                                          .MaxWidth(180)
+                                                                          .Image(stream);
+                                                                  }
                                                               });
                                                         }
                                                         catch (Exception ex)
