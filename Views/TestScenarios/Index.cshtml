@@ -184,6 +184,44 @@
                             }
                         }
                     </select>
+
+                    <div class="mt-2 border rounded p-2" style="max-height:180px; overflow:auto;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>เลือกหลาย Group สำหรับ Preview PDF</strong>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAllGroups(true)">เลือกทั้งหมด</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAllGroups(false)">ล้าง</button>
+                            </div>
+                        </div>
+
+                        @if (ViewBag.Groups != null)
+                        {
+                            var projectGroupIds = list
+                                .Select(x => x.group_id.GetValueOrDefault())
+                                .Where(x => x != 0)
+                                .Distinct()
+                                .ToList();
+
+                            foreach (var g in ViewBag.Groups)
+                            {
+                                if (!projectGroupIds.Contains(g.group_id))
+                                {
+                                    continue;
+                                }
+
+                                <div class="form-check">
+                                    <input class="form-check-input group-checkbox"
+                                           type="checkbox"
+                                           value="@g.group_id"
+                                           id="g_@g.group_id">
+                                    <label class="form-check-label" for="g_@g.group_id">
+                                        @g.group_name
+                                    </label>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <small class="form-hint">เลือกได้หลาย Group เพื่อ Preview PDF</small>
                 </div>
             </div>
         </form>
@@ -218,11 +256,11 @@
                 <button type="submit" class="btn btn-danger">Delete All</button>
             </form>
             <!-- Preview PDF (open new tab) -->
-            <a href="/TestScenarios/ExportPdf?projectId=@ViewBag.SelectedProject"
-               target="_blank"
-               class="btn btn-outline-primary">
+            <button type="button"
+                    class="btn btn-outline-primary"
+                    onclick="previewPdf()">
                 👁 Preview PDF
-            </a>
+            </button>
 
         </div>
 
@@ -369,4 +407,25 @@ else
         });
     });
 
+    function checkAllGroups(flag) {
+        document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = flag);
+    }
+
+    function previewPdf() {
+        const projectId = '@ViewBag.SelectedProject';
+
+        if (!projectId) {
+            alert('กรุณาเลือก Project ก่อน');
+            return;
+        }
+
+        let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
+
+        document.querySelectorAll('.group-checkbox:checked')
+            .forEach(cb => {
+                url += `&groupIds=${cb.value}`;
+            });
+
+        window.open(url, '_blank');
+    }
 </script>

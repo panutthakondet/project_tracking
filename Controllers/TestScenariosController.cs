@@ -61,8 +61,14 @@ namespace ProjectTracking.Controllers
                 .Select(x => x.s)
                 .ToListAsync();
 
+            var projectGroupIds = scenarios
+                .Select(x => x.group_id.GetValueOrDefault())
+                .Where(x => x != 0)
+                .Distinct()
+                .ToList();
+
             ViewBag.Groups = _context.TestTemplateGroups
-                .Where(g => g.is_active)
+                .Where(g => g.is_active && projectGroupIds.Contains(g.group_id))
                 .OrderBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();
@@ -243,10 +249,13 @@ namespace ProjectTracking.Controllers
         }
         [HttpGet]
         [RequireMenu("TestScenarios.Index")]
-        public IActionResult ExportPdf(int projectId)
+        public IActionResult ExportPdf(int projectId, List<int> groupIds)
         {
             var data = _context.TestScenarios
-                .Where(x => x.project_id == projectId)
+                .Where(x =>
+                    x.project_id == projectId &&
+                    (groupIds == null || groupIds.Count == 0 || groupIds.Contains(x.group_id ?? 0))
+                )
                 .OrderBy(x => x.scenario_id)
                 .Select(x => new TestScenario
                 {
