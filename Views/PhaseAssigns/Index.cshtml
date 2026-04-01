@@ -1,5 +1,14 @@
 @model IEnumerable<ProjectTracking.Models.PhaseAssign>
+
 @using System.Globalization
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 
 @{
     ViewData["Title"] = "บันทึกข้อมูลการมอบหมายงาน";
@@ -129,7 +138,14 @@ thead .sticky-col { z-index: 5; }
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="fw-bold mb-0">📌 Project : @ViewBag.SelectedProject.ProjectName</h4>
-        <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary">➕ Add Assign</a>
+        @if (CanMenu("PhaseAssigns.Create"))
+        {
+            <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary" title="เพิ่มการมอบหมายงาน">➕ Add Assign</a>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน">➕ Add Assign</button>
+        }
     </div>
 
     <div class="table-responsive">
@@ -202,12 +218,27 @@ thead .sticky-col { z-index: 5; }
                         </td>
                         <td class="col-remark">@a.Remark</td>
                         <td class="text-center">
-                            <a asp-action="Edit" asp-route-id="@a.AssignId" class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
-                            <form asp-action="Delete" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@a.AssignId" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('ยืนยันการลบ Assign นี้?');">🗑 Delete</button>
-                            </form>
+                            @if (CanMenu("PhaseAssigns.Edit"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@a.AssignId" class="btn btn-sm btn-outline-primary me-1" title="แก้ไขการมอบหมาย">✏️ Edit</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">✏️ Edit</button>
+                            }
+
+                            @if (CanMenu("PhaseAssigns.Delete"))
+                            {
+                                <form asp-action="Delete" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@a.AssignId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบการมอบหมาย" onclick="return confirm('ยืนยันการลบ Assign นี้?');">🗑 Delete</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">🗑 Delete</button>
+                            }
                         </td>
                     </tr>
                     row++;

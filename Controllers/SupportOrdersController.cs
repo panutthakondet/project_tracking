@@ -1,8 +1,23 @@
+using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using ProjectTracking.Attributes;
+
+namespace ProjectTracking.Attributes
+{
+    public class RequireMenuAttribute : Attribute
+    {
+        public string MenuKey { get; }
+
+        public RequireMenuAttribute(string menuKey)
+        {
+            MenuKey = menuKey;
+        }
+    }
+}
 
 namespace ProjectTracking.Controllers
 {
@@ -20,6 +35,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // LIST
         // =========================
+        [RequireMenu("SupportOrders.Index")]
         public async Task<IActionResult> Index(int? projectId)
         {
             // send project list to dropdown
@@ -57,6 +73,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // DETAIL
         // =========================
+        [RequireMenu("SupportOrders.Index")]
         public async Task<IActionResult> Details(int id)
         {
             var order = await _context.ProjectSupportOrders
@@ -79,6 +96,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // CREATE (GET)
         // =========================
+        [RequireMenu("SupportOrders.Create")]
         public IActionResult Create(int projectId)
         {
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName");
@@ -105,6 +123,7 @@ namespace ProjectTracking.Controllers
         // CREATE (POST)
         // =========================
         [HttpPost]
+        [RequireMenu("SupportOrders.Create")]
         public async Task<IActionResult> Create(ProjectSupportOrder order, List<IFormFile> files)
         {
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
@@ -166,6 +185,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // EDIT (GET)
         // =========================
+        [RequireMenu("SupportOrders.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var order = await _context.ProjectSupportOrders
@@ -193,6 +213,7 @@ namespace ProjectTracking.Controllers
         // EDIT (POST)
         // =========================
         [HttpPost]
+        [RequireMenu("SupportOrders.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> files, List<IFormFile> afterFiles, List<int> deleteImageIds)
         {
             if (id != order.OrderId)
@@ -294,6 +315,7 @@ namespace ProjectTracking.Controllers
         // DELETE
         // =========================
         [HttpPost]
+        [RequireMenu("SupportOrders.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var order = await _context.ProjectSupportOrders

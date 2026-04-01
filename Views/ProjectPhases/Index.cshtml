@@ -1,6 +1,14 @@
 @model IEnumerable<ProjectTracking.Models.ProjectPhase>
 @using System.Globalization
 @using System.Linq
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 
 @{
     ViewData["Title"] = "บันทึกข้อมูลแผนงานและงวดงาน";
@@ -92,11 +100,21 @@
             📌 Project : @selectedProject.ProjectName
         </h4>
 
-        <a asp-action="Create"
-           asp-route-projectId="@selectedProject.ProjectId"
-           class="btn btn-primary">
-            ➕ Add Phase
-        </a>
+        @if (CanMenu("ProjectPhases.Create"))
+        {
+            <a asp-action="Create"
+               asp-route-projectId="@selectedProject.ProjectId"
+               class="btn btn-primary"
+               title="เพิ่ม Phase">
+                ➕ Add Phase
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
+                ➕ Add Phase
+            </button>
+        }
     </div>
 
     <form id="antiForm" method="post" style="display:none;">
@@ -182,34 +200,64 @@
                         </td>
 
                         <td class="text-center">
-                            <a asp-action="Edit"
-                               asp-route-id="@phase.PhaseId"
-                               class="btn btn-sm btn-outline-primary me-1">
-                                ✏️ Edit
-                            </a>
+                            @if (CanMenu("ProjectPhases.Edit"))
+                            {
+                                <a asp-action="Edit"
+                                   asp-route-id="@phase.PhaseId"
+                                   class="btn btn-sm btn-outline-primary me-1"
+                                   title="แก้ไข Phase">
+                                    ✏️ Edit
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                    ✏️ Edit
+                                </button>
+                            }
 
-                          <a asp-controller="PhaseAssigns"
-                            asp-action="Index"
-                            asp-route-projectId="@selectedProject.ProjectId"
-                            asp-route-phaseId="@phase.PhaseId"
-                            class="btn btn-sm btn-outline-info me-1">
-                                👥 Assign
-                            </a>
+                            @if (CanMenu("PhaseAssigns.Index"))
+                            {
+                                <a asp-controller="PhaseAssigns"
+                                   asp-action="Index"
+                                   asp-route-projectId="@selectedProject.ProjectId"
+                                   asp-route-phaseId="@phase.PhaseId"
+                                   class="btn btn-sm btn-outline-info me-1"
+                                   title="จัดการ Assign">
+                                    👥 Assign
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์เข้าหน้า Assign">
+                                    👥 Assign
+                                </button>
+                            }
 
-                            <form asp-action="Delete"
-                                  method="post"
-                                  class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@phase.PhaseId" />
-                                <input type="hidden" name="projectId"
-                                       value="@selectedProject.ProjectId" />
+                            @if (CanMenu("ProjectPhases.Delete"))
+                            {
+                                <form asp-action="Delete"
+                                      method="post"
+                                      class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@phase.PhaseId" />
+                                    <input type="hidden" name="projectId"
+                                           value="@selectedProject.ProjectId" />
 
-                                <button type="submit"
-                                        class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="ลบ Phase"
+                                            onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                        🗑 Delete
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
                                     🗑 Delete
                                 </button>
-                            </form>
+                            }
                         </td>
                     </tr>
                 }

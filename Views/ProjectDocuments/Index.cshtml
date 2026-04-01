@@ -1,10 +1,17 @@
-
-
 @model IEnumerable<ProjectTracking.Models.ProjectDocument>
 
 @{
     ViewData["Title"] = "Project Documents";
     var projectId = ViewBag.ProjectId;
+}
+
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
 }
 
 <div class="container mt-4">
@@ -17,34 +24,43 @@
             Upload Document
         </div>
         <div class="card-body">
-            <form asp-action="Upload" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="projectId" value="@projectId" />
+            @if (CanMenu("ProjectDocuments.Upload"))
+            {
+                <form asp-action="Upload" method="post" enctype="multipart/form-data" onsubmit="return confirm('อัปโหลดไฟล์นี้หรือไม่?');">
+                    <input type="hidden" name="projectId" value="@projectId" />
 
-                <div class="row g-3">
+                    <div class="row g-3">
 
-                    <div class="col-md-3">
-                        <label class="form-label">Document Type</label>
-                        <select name="documentType" class="form-select" required>
-                            <option value="BRD">BRD</option>
-                            <option value="TOR">TOR</option>
-                            <option value="DESIGN">Design</option>
-                            <option value="OTHER">Other</option>
-                        </select>
+                        <div class="col-md-3">
+                            <label class="form-label">Document Type</label>
+                            <select name="documentType" class="form-select" required>
+                                <option value="BRD">BRD</option>
+                                <option value="TOR">TOR</option>
+                                <option value="DESIGN">Design</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">File</label>
+                            <input type="file" name="file" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100" title="อัปโหลดเอกสาร">
+                                ⬆ Upload
+                            </button>
+                        </div>
+
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">File</label>
-                        <input type="file" name="file" class="form-control" required />
-                    </div>
-
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            ⬆ Upload
-                        </button>
-                    </div>
-
-                </div>
-            </form>
+                </form>
+            }
+            else
+            {
+                <button class="btn btn-primary w-100" disabled title="ไม่มีสิทธิ์อัปโหลดเอกสาร">
+                    ⬆ Upload
+                </button>
+            }
         </div>
     </div>
 
@@ -103,24 +119,56 @@
 
                                 <td>
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                        <a href="@doc.FilePath"
-                                           target="_blank"
-                                           class="btn btn-sm btn-info">
-                                            👁 Preview
-                                        </a>
+                                        @if (CanMenu("ProjectDocuments.Preview"))
+                                        {
+                                            <a asp-action="Preview"
+                                               asp-route-id="@doc.DocumentId"
+                                               target="_blank"
+                                               class="btn btn-sm btn-info"
+                                               title="ดูไฟล์"
+                                               onclick="return confirm('ต้องการเปิดดูไฟล์นี้หรือไม่?');">
+                                                👁 Preview
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูไฟล์">
+                                                👁 Preview
+                                            </button>
+                                        }
 
-                                        <a asp-action="Download"
-                                           asp-route-id="@doc.DocumentId"
-                                           class="btn btn-sm btn-success">
-                                            ⬇ Download
-                                        </a>
+                                        @if (CanMenu("ProjectDocuments.Download"))
+                                        {
+                                            <a asp-action="Download"
+                                               asp-route-id="@doc.DocumentId"
+                                               class="btn btn-sm btn-success"
+                                               title="ดาวน์โหลดไฟล์">
+                                                ⬇ Download
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดาวน์โหลด">
+                                                ⬇ Download
+                                            </button>
+                                        }
 
-                                        <a asp-action="Delete"
-                                           asp-route-id="@doc.DocumentId"
-                                           class="btn btn-sm btn-danger"
-                                           onclick="return confirm('Delete this document?');">
-                                            🗑 Delete
-                                        </a>
+                                        @if (CanMenu("ProjectDocuments.Delete"))
+                                        {
+                                            <a asp-action="Delete"
+                                               asp-route-id="@doc.DocumentId"
+                                               class="btn btn-sm btn-danger"
+                                               title="ลบเอกสาร"
+                                               onclick="return confirm('Delete this document?');">
+                                                🗑 Delete
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                                🗑 Delete
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>

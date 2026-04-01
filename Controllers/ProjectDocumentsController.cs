@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
+    [RequireMenu("ProjectDocuments.Index")]
     public class ProjectDocumentsController : Controller
     {
         private readonly AppDbContext _context;
@@ -33,6 +35,7 @@ namespace ProjectTracking.Controllers
         // ============================
         // Upload document
         // ============================
+        [RequireMenu("ProjectDocuments.Upload")]
         [HttpPost]
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = 209715200)] // allow up to 200MB upload
@@ -78,8 +81,43 @@ namespace ProjectTracking.Controllers
         }
 
         // ============================
+        // Preview (ผ่าน Controller 🔥)
+        // ============================
+        [RequireMenu("ProjectDocuments.Preview")]
+        public async Task<IActionResult> Preview(int id)
+        {
+            var doc = await _context.ProjectDocuments.FindAsync(id);
+            if (doc == null)
+                return NotFound();
+
+            var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/'));
+
+            if (!System.IO.File.Exists(fullPath))
+            {
+                TempData["Error"] = "File not found.";
+                return RedirectToAction("Index", new { projectId = doc.ProjectId });
+            }
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+
+            // 🔥 detect content type
+            var ext = Path.GetExtension(fullPath).ToLower();
+            var contentType = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".pdf" => "application/pdf",
+                _ => "application/octet-stream"
+            };
+
+            return File(bytes, contentType);
+        }
+
+        // ============================
         // Download
         // ============================
+        [RequireMenu("ProjectDocuments.Download")]
         public async Task<IActionResult> Download(int id)
         {
             var doc = await _context.ProjectDocuments.FindAsync(id);
@@ -101,6 +139,7 @@ namespace ProjectTracking.Controllers
         // ============================
         // Delete
         // ============================
+        [RequireMenu("ProjectDocuments.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var doc = await _context.ProjectDocuments.FindAsync(id);

@@ -23,7 +23,6 @@ namespace ProjectTracking.Controllers
         }
 
         // API สำหรับ Heatmap
-        [RequireMenu("Dashboard.Workload")]
         [HttpGet]
         public async Task<IActionResult> GetWorkloadData(int yearFrom, int yearTo)
         {

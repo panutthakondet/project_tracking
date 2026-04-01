@@ -1,7 +1,16 @@
+@using Microsoft.AspNetCore.Http
 @model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
 
 @{
     ViewData["Title"] = "Developer Orders";
+}
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -101,8 +110,31 @@ else if(item.DevStatus == "FIXED")
 
 <td class="text-center">
 <div class="btn-group btn-group-sm">
-<a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-info">View</a>
-<a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-warning">Fix</a>
+@if (CanMenu("SupportOrdersDev.View"))
+{
+    <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-info" title="ดูรายละเอียด">
+        View
+    </a>
+}
+else
+{
+    <button class="btn btn-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
+        View
+    </button>
+}
+
+@if (CanMenu("SupportOrdersDev.Edit"))
+{
+    <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-warning" title="แก้ไข/แก้บั๊ก">
+        Fix
+    </a>
+}
+else
+{
+    <button class="btn btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+        Fix
+    </button>
+}
 </div>
 </td>
 

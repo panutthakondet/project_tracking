@@ -100,7 +100,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // CREATE (GET)
         // =====================================================
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Create")]
         public async Task<IActionResult> Create(int projectId)
         {
             var project = await _context.Projects.FindAsync(projectId);
@@ -148,7 +148,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Create")]
         public async Task<IActionResult> Create(PhaseAssign model, int projectId)
         {
             var phase = await _context.ProjectPhases
@@ -216,7 +216,7 @@ namespace ProjectTracking.Controllers
         // EDIT (GET)
         // =====================================================
         [HttpGet]
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             // ✅ FIX: ไม่ใช้ Include(a => a.Phase) เพื่อเลี่ยง EF สร้าง/อ้าง PhaseId2
@@ -268,7 +268,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Edit")]
         public async Task<IActionResult> Edit(int id, PhaseAssign model)
         {
             if (id != model.AssignId)
@@ -557,7 +557,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseAssigns.Index")]
+        [RequireMenu("PhaseAssigns.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             // ✅ FIX: ไม่ใช้ Include(a => a.Phase) เพื่อเลี่ยง PhaseId2

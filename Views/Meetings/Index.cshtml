@@ -2,6 +2,15 @@
     ViewData["Title"] = "ปฏิทินนัดประชุม";
 }
 
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
@@ -205,9 +214,18 @@
 
         <div class="toolbar-right">
             <span class="hint-chip">✅ เคล็ดลับ: คลิกวันที่เพื่อสร้างนัด</span>
-            <a class="btn btn-primary" href="/Meetings/Create">
-                <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
-            </a>
+            @if (CanMenu("Meetings.Create"))
+            {
+                <a class="btn btn-primary" href="/Meetings/Create" title="สร้างนัดประชุม">
+                    <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์สร้างนัดประชุม">
+                    <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
+                </button>
+            }
         </div>
     </div>
 

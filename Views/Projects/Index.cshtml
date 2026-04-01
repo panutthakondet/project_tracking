@@ -1,5 +1,14 @@
 @using System.Globalization
 @model IEnumerable<ProjectTracking.Models.Project>
+@using Microsoft.AspNetCore.Http
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 
 @{
     ViewData["Title"] = "Project List";
@@ -9,9 +18,18 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="fw-bold">📁 บันทึกข้อมูลโครงการ</h2>
 
-    <a asp-action="Create" class="btn btn-primary">
-        ➕ Add Project
-    </a>
+    @if (CanMenu("Projects.Create"))
+    {
+        <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
+            ➕ Add Project
+        </a>
+    }
+    else
+    {
+        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มโครงการ">
+            ➕ Add Project
+        </button>
+    }
 </div>
 
 <p class="text-muted">รายการโครงการทั้งหมดในระบบ</p>
@@ -124,14 +142,33 @@
 
                     <td class="text-center col-action">
                         <div class="d-flex justify-content-center gap-1 flex-wrap">
-                            <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary">✏️</a>
+                            @if (CanMenu("Projects.Edit"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary" title="แก้ไขโครงการ">✏️</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                    ✏️
+                                </button>
+                            }
                             <a asp-controller="ProjectPhases" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-sm btn-outline-info">🧩</a>
                             <a asp-controller="ProjectDocuments" 
                                asp-action="Index" 
                                asp-route-projectId="@p.ProjectId" 
                                class="btn btn-sm btn-outline-secondary">📂</a>
-                            <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
-                               onclick="return confirm('Delete project นี้?');">🗑</a>
+                            @if (CanMenu("Projects.Delete"))
+                            {
+                                <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
+                                   title="ลบโครงการ"
+                                   onclick="return confirm('Delete project นี้?');">🗑</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                    🗑
+                                </button>
+                            }
                         </div>
                     </td>
                 </tr>

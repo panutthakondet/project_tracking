@@ -52,7 +52,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // CREATE (GET)
         // =========================
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Create")]
         public async Task<IActionResult> Create(int? groupId)
         {
             ViewBag.Groups = await _context.TestTemplateGroups
@@ -77,7 +77,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Create")]
         public async Task<IActionResult> Create(TestScenarioTemplate model)
         {
             if (!ModelState.IsValid)
@@ -120,7 +120,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // EDIT (GET)
         // =========================
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var template = await _context.TestScenarioTemplates
@@ -145,7 +145,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Edit")]
         public async Task<IActionResult> Edit(TestScenarioTemplate model)
         {
             if (!ModelState.IsValid)
@@ -186,7 +186,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var template = await _context.TestScenarioTemplates
@@ -208,7 +208,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarioTemplates.Index")]
+        [RequireMenu("TestScenarioTemplates.Edit")]
         public async Task<IActionResult> ToggleActive(int id)
         {
             var template = await _context.TestScenarioTemplates

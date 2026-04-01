@@ -1,5 +1,13 @@
 @using System.Linq
 @using System.Globalization
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 @model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
 
 @{
@@ -102,26 +110,46 @@
     <div class="col-md-12 text-end">
 
         <!-- ✅ SEND MAIL (POST FORM แยกเดี่ยว) -->
-        <form asp-action="SendOverdueMail"
-              method="post"
-              class="d-inline">
+        @if (CanMenu("PhaseStatusReport.SendMail"))
+        {
+            <form asp-action="SendOverdueMail"
+                  method="post"
+                  class="d-inline">
 
-            @Html.AntiForgeryToken()
+                @Html.AntiForgeryToken()
 
-            <button type="submit"
-                    class="btn btn-warning me-2"
-                    onclick="return confirm('ต้องการส่ง Email แจ้ง Phase Overdue หรือไม่?');">
+                <button type="submit"
+                        class="btn btn-warning me-2"
+                        title="ส่งอีเมลแจ้ง Phase ที่ Overdue"
+                        onclick="return confirm('ต้องการส่ง Email แจ้ง Phase Overdue หรือไม่?');">
+                    📧 ส่งเมลแจ้ง Overdue
+                </button>
+            </form>
+        }
+        else
+        {
+            <button class="btn btn-warning me-2" disabled title="ไม่มีสิทธิ์ส่งเมลแจ้ง Overdue">
                 📧 ส่งเมลแจ้ง Overdue
             </button>
-        </form>
+        }
 
-        <a class="btn btn-outline-secondary"
-           target="_blank"
-           asp-action="Print"
-           asp-route-empName="@ViewBag.SelectedEmp"
-           asp-route-projectName="@ViewBag.SelectedProject">
-            🖨 พิมพ์รายงาน
-        </a>
+        @if (CanMenu("PhaseStatusReport.Print"))
+        {
+            <a class="btn btn-outline-secondary"
+               target="_blank"
+               title="พิมพ์รายงาน"
+               asp-action="Print"
+               asp-route-empName="@ViewBag.SelectedEmp"
+               asp-route-projectName="@ViewBag.SelectedProject">
+                🖨 พิมพ์รายงาน
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์พิมพ์รายงาน">
+                🖨 พิมพ์รายงาน
+            </button>
+        }
     </div>
 </div>
 

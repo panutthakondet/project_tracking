@@ -62,7 +62,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // CREATE (GET)
         // ===========================
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Create")]
         public async Task<IActionResult> Create(int? projectId)
         {
             if (projectId == null)
@@ -103,7 +103,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Create")]
         public async Task<IActionResult> Create(ProjectPhase phase)
         {
             if (phase.ProjectId <= 0)
@@ -152,7 +152,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // EDIT (GET)
         // ===========================
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var phase = await _context.ProjectPhases
@@ -185,7 +185,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectPhase phase)
         {
             if (id != phase.PhaseId)
@@ -221,7 +221,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Delete")]
         public async Task<IActionResult> Delete(int id, int projectId)
         {
             // โหลด Phase แบบ tracked เพื่อให้ลบได้จริง
@@ -281,7 +281,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectPhases.Index")]
+        [RequireMenu("ProjectPhases.Edit")]
         [Consumes("application/json")]
         public async Task<IActionResult> Reorder([FromBody] ReorderRequest? req)
         {

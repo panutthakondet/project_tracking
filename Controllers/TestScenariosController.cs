@@ -28,7 +28,7 @@ namespace ProjectTracking.Controllers
             _env = env;
         }
 
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Create")]
         public IActionResult Create(int? projectId, int? groupId)
         {
             ViewBag.Projects = _context.Projects.ToList();
@@ -83,7 +83,7 @@ namespace ProjectTracking.Controllers
             return View(scenarios);
         }
 
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
@@ -104,7 +104,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Edit")]
         public async Task<IActionResult> Edit(TestScenario model, List<IFormFile> files, List<int> deleteAttachmentIds)
         {
             model.updated_at = DateTime.Now;
@@ -175,7 +175,7 @@ namespace ProjectTracking.Controllers
             return RedirectToAction("Index", new { projectId = model.project_id });
         }
 
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Import")]
         public async Task<IActionResult> ImportTemplates(int? projectId, int? groupId)
         {
             if (!projectId.HasValue || !groupId.HasValue)
@@ -226,7 +226,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
@@ -239,7 +239,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet("TestScenarios/PrintReport")]
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Export")]
         public async Task<IActionResult> PrintReport(int? projectId)
         {
             if (!projectId.HasValue)
@@ -255,7 +255,7 @@ namespace ProjectTracking.Controllers
             return View("Print", scenarios);
         }
         [HttpGet]
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.Export")]
         public IActionResult ExportPdf(int projectId, List<int> groupIds)
         {
             var data = _context.TestScenarios
@@ -320,7 +320,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarios.Index")]
+        [RequireMenu("TestScenarios.DeleteAll")]
         public async Task<IActionResult> DeleteAll(int projectId)
         {
             var scenarios = _context.TestScenarios
@@ -356,6 +356,7 @@ namespace ProjectTracking.Controllers
             return RedirectToAction("Index", new { projectId });
         }
         [HttpPost]
+        [RequireMenu("TestScenarios.Sort")]
         public async Task<IActionResult> UpdateSort([FromBody] List<SortDto> data)
         {
             if (data == null || data.Count == 0)

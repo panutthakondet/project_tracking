@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using ProjectTracking.Attributes;
 
 namespace ProjectTracking.Controllers
 {
@@ -18,6 +19,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // Programmer Order List
         // =========================
+        [RequireMenu("SupportOrdersDev.Index")]
         public async Task<IActionResult> Index(int? projectId)
         {
             var query = _context.ProjectSupportOrders
@@ -47,6 +49,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // View Details
         // =========================
+        [RequireMenu("SupportOrdersDev.Index")]
         public async Task<IActionResult> Details(int id)
         {
             var order = await _context.ProjectSupportOrders
@@ -68,6 +71,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // Edit (Programmer Fix)
         // =========================
+        [RequireMenu("SupportOrdersDev.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var order = await _context.ProjectSupportOrders
@@ -89,6 +93,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
+        [RequireMenu("SupportOrdersDev.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> afterFiles, List<int> deleteImageIds)
         {
             var dbOrder = await _context.ProjectSupportOrders

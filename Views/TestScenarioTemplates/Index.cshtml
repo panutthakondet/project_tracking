@@ -1,5 +1,7 @@
 @model IEnumerable<ProjectTracking.Models.TestScenarioTemplate>
 
+@using Microsoft.AspNetCore.Http
+
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -14,6 +16,14 @@
     if (ViewBag.SelectedGroupId != null)
     {
         selectedGroupId = (int)ViewBag.SelectedGroupId;
+    }
+}
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
     }
 }
 
@@ -71,7 +81,18 @@
     </div>
 </div>
 
-<a id="addTemplateBtn" href="#" class="btn btn-success mb-3">+ Add Template</a>
+@if (CanMenu("TestScenarioTemplates.Create"))
+{
+    <a id="addTemplateBtn" href="#" class="btn btn-success mb-3" title="เพิ่ม Template">
+        + Add Template
+    </a>
+}
+else
+{
+    <button class="btn btn-success mb-3" disabled title="ไม่มีสิทธิ์เพิ่ม Template">
+        + Add Template
+    </button>
+}
 
 @if (Model == null || !Model.Any())
 {
@@ -130,26 +151,60 @@ else
                 }
             </td>
             <td class="text-center-col">
-                <a asp-action="Edit"
-                   asp-route-id="@item.template_id"
-                   class="btn btn-sm btn-warning">Edit</a>
+                @if (CanMenu("TestScenarioTemplates.Edit"))
+                {
+                    <a asp-action="Edit"
+                       asp-route-id="@item.template_id"
+                       class="btn btn-sm btn-warning"
+                       title="แก้ไข">
+                        Edit
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                        Edit
+                    </button>
+                }
 
-                <form asp-action="ToggleActive"
-                      asp-route-id="@item.template_id"
-                      method="post"
-                      style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm btn-info">Toggle</button>
-                </form>
+                @if (CanMenu("TestScenarioTemplates.Toggle"))
+                {
+                    <form asp-action="ToggleActive"
+                          asp-route-id="@item.template_id"
+                          method="post"
+                          style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-info" title="เปิด/ปิดการใช้งาน">
+                            Toggle
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์เปลี่ยนสถานะ">
+                        Toggle
+                    </button>
+                }
 
-                <form asp-action="Delete"
-                      asp-route-id="@item.template_id"
-                      method="post"
-                      style="display:inline;"
-                      onsubmit="return confirm('Delete this template?');">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                </form>
+                @if (CanMenu("TestScenarioTemplates.Delete"))
+                {
+                    <form asp-action="Delete"
+                          asp-route-id="@item.template_id"
+                          method="post"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this template?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-danger" title="ลบ">
+                            Delete
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                        Delete
+                    </button>
+                }
             </td>
         </tr>
     }

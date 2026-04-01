@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Http;
+using ProjectTracking.Attributes;
+using System.Linq;
 
 namespace ProjectTracking.Controllers
 {
@@ -8,18 +10,32 @@ namespace ProjectTracking.Controllers
     {
         public override void OnActionExecuting(ActionExecutingContext context)
         {
-            // 🔐 ตรวจสอบการ Login
-            var userId = context.HttpContext.Session.GetInt32("UserId");
+            var httpContext = context.HttpContext;
 
+            // 🔐 ตรวจสอบ Login
+            var userId = httpContext.Session.GetInt32("UserId");
             if (userId == null)
             {
-                // ❌ ยังไม่ Login → เด้งไปหน้า Login
-                context.Result = new RedirectToActionResult(
-                    "Login",
-                    "Auth",
-                    null
-                );
+                context.Result = new RedirectToActionResult("Login", "Auth", null);
                 return;
+            }
+
+            // 🔐 ตรวจสอบ Permission
+            var actionDescriptor = context.ActionDescriptor;
+
+            var requireMenuAttr = actionDescriptor.EndpointMetadata
+                .OfType<RequireMenuAttribute>()
+                .FirstOrDefault();
+
+            if (requireMenuAttr != null)
+            {
+                var menus = httpContext.Session.GetString("Menus");
+
+                if (string.IsNullOrEmpty(menus) || !menus.Split(',').Contains(requireMenuAttr.MenuKey))
+                {
+                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                    return;
+                }
             }
 
             base.OnActionExecuting(context);

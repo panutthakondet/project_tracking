@@ -35,7 +35,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Create
         // ===========================
-        [RequireMenu("Employees.Index")]
+        [RequireMenu("Employees.Create")]
         public IActionResult Create()
         {
             return View();
@@ -61,7 +61,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Edit/5
         // ===========================
-        [RequireMenu("Employees.Index")]
+        [RequireMenu("Employees.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var employee = await _context.Employees.FindAsync(id);
@@ -98,7 +98,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // GET: /Employees/Delete/5
         // ===========================
-        [RequireMenu("Employees.Index")]
+        [RequireMenu("Employees.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var employee = await _context.Employees

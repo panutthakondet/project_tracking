@@ -562,62 +562,31 @@ namespace ProjectTracking.Controllers
 
             if (user == null) return NotFound();
 
-            var allMenus = new List<(string Key, string Label)>
+            var allMenusRaw = MenuScanner.ScanMenus() ?? new List<(string Key, string Label)>();
+            Console.WriteLine("RAW MENU COUNT = " + allMenusRaw.Count);
+
+            if (!allMenusRaw.Any())
             {
-                ("Employees.Index", "บันทึกข้อมูลพนักงาน"),
+                Console.WriteLine("❌ MenuScanner returned EMPTY");
+            }
 
-                // ===== Project Management =====
-                ("Projects.Index", "บันทึกข้อมูลโครงการ"),
-                ("Projects.ViewOnly", "รายงานข้อมูลโครงการ"),
-
-                ("ProjectPhases.Index", "บันทึกข้อมูลแผนงานและงวดงาน"),
-                ("PhaseAssigns.Index", "บันทึกข้อมูลการมอบหมายงาน"),
-
-                // ===== Issues =====
-                ("ProjectIssues.Index", "บันทึกข้อมูลปัญหาโครงการ"),
-                ("ProjectIssues.DevIndex", "แก้ไขสถานะปัญหาโครงการ"),
-                ("ProjectIssues.ViewOnly", "รายงานปัญหาและสถานะโครงการ"),
-
-                // ===== Reports =====
-                ("PhaseAssigns.Print", "รายงานการมอบหมายงาน"),
-                ("PhaseStatusReport.Index", "รายงานสถานะงานค้าง"),
-                ("PhaseStatusReport.Timeline", "Timeline / Gantt"),
-
-                // ===== Meetings =====
-                ("Meetings.Index", "ปฏิทินนัดประชุม"),
-                ("Meetings.Show", "ดูรายละเอียดนัดประชุม"),
-                ("Meetings.Create", "สร้างนัดประชุม"),
-                ("Meetings.Edit", "แก้ไขนัดประชุม"),
-                ("Meetings.Delete", "ลบนัดประชุม"),
-
-                // ===== Dashboards =====
-                ("Dashboard.Index", "Dashboard งานติดตาม"),
-                ("Dashboard.Workload", "สถานะภาระงานพนักงาน"),
-                ("IssueDashboard.Index", "ภาพรวมทั้งโครงการ"),
-
-                // ===== Followups =====
-                ("Followups.Index", "งานติดตาม"),
-                ("Followups.Create", "สร้างงานติดตาม"),
-                ("Followups.Edit", "แก้ไขงานติดตาม"),
-                ("Followups.Delete", "ลบงานติดตาม"),
-                ("Followups.Details", "ดูรายละเอียด Follow‑up"),
-                ("Followups.Log", "บันทึกการติดตาม"),
-                ("Followups.History", "ประวัติการติดตาม"),
-                ("Followups.DashboardDone", "Dashboard งานที่ DONE (รอรับทราบ)"),
-                ("Followups.DashboardACK", "Dashboard งานที่ ACK (ปิดงานแล้ว)"),
-
-                // ===== Testing =====
-                ("TestScenarios.Index", "บันทึก Test Scenario"),
-                ("TestScenarioTemplates.Index", "จัดการ Test Scenario Template"),
-                ("TestTemplateGroups.Index", "จัดการ Template Group"),
-
-                // ===== User Management =====
-                ("UserManagement.Index", "จัดการผู้ใช้งาน"),
-                ("UserManagement.Create", "สร้างผู้ใช้งาน"),
-                ("UserManagement.Edit", "แก้ไขผู้ใช้งาน"),
-                ("UserManagement.Delete", "ลบผู้ใช้งาน"),
-                ("UserManagement.Permissions", "Permissions")
-            };
+            var groupedMenus = allMenusRaw
+                .GroupBy(x => x.Key.Split('.')[0])
+                .Select(g => new
+                {
+                    Controller = g.Key,
+                    ControllerLabel = TranslateMenuKey(g.Key + ".Index").Split(" - ")[0],
+                    Items = g.Select(x => new
+                    {
+                        Key = x.Key,
+                        Label = TranslateMenuKey(x.Key),
+                        Action = x.Key.Contains(".") ? x.Key.Split('.')[1] : x.Key
+                    })
+                    .OrderBy(x => x.Action)
+                    .ToList()
+                })
+                .OrderBy(x => x.Controller)
+                .ToList();
 
             var selected = await _context.UserMenus
                 .AsNoTracking()
@@ -634,7 +603,7 @@ namespace ProjectTracking.Controllers
             );
 
             ViewBag.Username = username;
-            ViewBag.AllMenus = allMenus;
+            ViewBag.GroupedMenus = groupedMenus;
             ViewBag.SelectedMenus = selectedSet;
 
             return View();
@@ -738,6 +707,39 @@ namespace ProjectTracking.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+        private string TranslateMenuKey(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return key;
+
+            var parts = key.Split('.');
+            if (parts.Length < 2) return key;
+
+            var controller = parts[0];
+            var action = parts[1];
+
+            var controllerTh = controller switch
+            {
+                "Projects" => "โครงการ",
+                "UserManagement" => "ผู้ใช้งาน",
+                "Meetings" => "ประชุม",
+                "TestScenarios" => "Test Scenario",
+                "Dashboard" => "แดชบอร์ด",
+                "Followups" => "งานติดตาม",
+                _ => controller
+            };
+
+            var actionTh = action switch
+            {
+                "Index" => "เข้าใช้งาน",
+                "Create" => "เพิ่ม",
+                "Edit" => "แก้ไข",
+                "Delete" => "ลบ",
+                "Details" => "รายละเอียด",
+                _ => action
+            };
+
+            return $"{controllerTh} - {actionTh}";
         }
     }
 }

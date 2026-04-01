@@ -1,17 +1,35 @@
+@using System.Linq
 @model IEnumerable<ProjectTracking.Models.Employee>
 
 @{
     ViewData["Title"] = "Employee List";
+
+    var menus = Context.Session.GetString("Menus") ?? "";
+    var allowedMenus = menus.Split(',').Select(x => x.Trim()).ToList();
+
+    bool HasMenu(string key)
+    {
+        return allowedMenus.Contains(key);
+    }
 }
 
 <!-- ================= HEADER ================= -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="fw-bold">👤 บันทึกข้อมูลพนักงาน</h2>
-
-    <a asp-action="Create"
-       class="btn btn-primary">
-        ➕ Add Employee
-    </a>
+    @if (HasMenu("Employees.Create"))
+    {
+        <a asp-action="Create"
+           class="btn btn-primary"
+           title="เพิ่มพนักงาน">
+            ➕ Add Employee
+        </a>
+    }
+    else
+    {
+        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มพนักงาน">
+            ➕ Add Employee
+        </button>
+    }
 </div>
 
 <p class="text-muted">
@@ -80,18 +98,38 @@
                     </td>
 
                     <td class="text-center">
-                        <a asp-action="Edit"
-                           asp-route-id="@emp.EmpId"
-                           class="btn btn-sm btn-outline-primary me-1">
-                            ✏️ Edit
-                        </a>
+                        @if (HasMenu("Employees.Edit"))
+                        {
+                            <a asp-action="Edit"
+                               asp-route-id="@emp.EmpId"
+                               class="btn btn-sm btn-outline-primary me-1"
+                               title="แก้ไขพนักงาน">
+                                ✏️ Edit
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                ✏️ Edit
+                            </button>
+                        }
 
-                        <a asp-action="Delete"
-                           asp-route-id="@emp.EmpId"
-                           class="btn btn-sm btn-outline-danger"
-                           onclick="return confirm('ยืนยันลบพนักงานคนนี้?');">
-                            🗑 Delete
-                        </a>
+                        @if (HasMenu("Employees.Delete"))
+                        {
+                            <a asp-action="Delete"
+                               asp-route-id="@emp.EmpId"
+                               class="btn btn-sm btn-outline-danger"
+                               title="ลบพนักงาน"
+                               onclick="return confirm('ยืนยันลบพนักงานคนนี้?');">
+                                🗑 Delete
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                🗑 Delete
+                            </button>
+                        }
                     </td>
                 </tr>
             }

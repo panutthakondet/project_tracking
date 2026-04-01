@@ -1,5 +1,13 @@
 @model ProjectTracking.ViewModels.IssueDashboardVM
 @using System.Collections.Generic
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 @{
     ViewData["Title"] = "ภาพรวมทั้งโครงการ";
 
@@ -252,6 +260,24 @@ canvas{display:block;}
     📊 ภาพรวมทั้งโครงการ
     <span class="year-badge">ปี @currentYear</span>
 </h3>
+@if (CanMenu("IssueDashboard.Export"))
+{
+    <div class="mb-2">
+        <a href="/IssueDashboard/Export" 
+           class="btn btn-success btn-sm"
+           title="Export รายงาน">
+            ⬇ Export
+        </a>
+    </div>
+}
+else
+{
+    <div class="mb-2">
+        <button class="btn btn-success btn-sm" disabled title="ไม่มีสิทธิ์ Export">
+            ⬇ Export
+        </button>
+    </div>
+}
 <div class="year-subtitle">
     กรองข้อมูลปี @currentYear (@yearStart.ToString("dd/MM/yyyy") - @yearEnd.ToString("dd/MM/yyyy"))
 </div>

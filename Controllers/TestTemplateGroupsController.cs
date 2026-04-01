@@ -1,9 +1,9 @@
+using ProjectTracking.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
-using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
@@ -27,7 +27,7 @@ namespace ProjectTracking.Controllers
             return View(groups);
         }
 
-        [RequireMenu("TestTemplateGroups.Index")]
+        [RequireMenu("TestTemplateGroups.Create")]
         public IActionResult Create(int? groupId)
         {
             ViewBag.SelectedGroup = groupId;
@@ -36,7 +36,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestTemplateGroups.Index")]
+        [RequireMenu("TestTemplateGroups.Create")]
         public async Task<IActionResult> Create(TestTemplateGroup model, int? groupId)
         {
             if (!ModelState.IsValid)
@@ -51,7 +51,7 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index), new { groupId });
         }
 
-        [RequireMenu("TestTemplateGroups.Index")]
+        [RequireMenu("TestTemplateGroups.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var group = await _context.TestTemplateGroups.FindAsync(id);
@@ -63,7 +63,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestTemplateGroups.Index")]
+        [RequireMenu("TestTemplateGroups.Edit")]
         public async Task<IActionResult> Edit(int id, TestTemplateGroup model)
         {
             if (id != model.group_id)
@@ -88,7 +88,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestTemplateGroups.Index")]
+        [RequireMenu("TestTemplateGroups.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var group = await _context.TestTemplateGroups.FindAsync(id);
@@ -101,6 +101,7 @@ namespace ProjectTracking.Controllers
             return RedirectToAction(nameof(Index));
         }
         [HttpPost]
+        [RequireMenu("TestTemplateGroups.Sort")]
         public async Task<IActionResult> UpdateSort([FromBody] List<SortDto> data)
         {
             if (data == null || data.Count == 0)

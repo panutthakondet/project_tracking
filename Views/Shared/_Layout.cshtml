@@ -278,6 +278,11 @@
 
     bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
 
+    bool HasMenu(string key)
+    {
+        return isAdmin || allowedMenus.Contains(key);
+    }
+
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
     var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload") || CanMenu("Dashboard.Index");
 
@@ -335,7 +340,7 @@
                                 <a class="nav-link dropdown-toggle @(controller=="IssueDashboard" || controller=="Dashboard" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">📊 แดชบอร์ด</a>
                                 <ul class="dropdown-menu">
-                                    @if (CanMenu("IssueDashboard.Index"))
+                                    @if (HasMenu("IssueDashboard.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 ภาพรวมทั้งโครงการ</a></li>
                                     }
@@ -372,7 +377,7 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">👤 บันทึกข้อมูลพนักงาน</a></li>
                                     }
-                                    @if (CanMenu("Projects.Index"))
+                                    @if (HasMenu("Projects.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">📁 บันทึกข้อมูลโครงการ</a></li>
                                     }

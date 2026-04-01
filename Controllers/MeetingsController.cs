@@ -66,6 +66,7 @@ namespace ProjectTracking.Controllers
             return Json(meetings);
         }
 
+        [RequireMenu("Meetings.Create")]
         [HttpGet]
         public IActionResult Create(DateTime? date)
         {
@@ -89,6 +90,7 @@ namespace ProjectTracking.Controllers
             return View();
         }
 
+        [RequireMenu("Meetings.Show")]
         [HttpGet]
         public async Task<IActionResult> Show(int id)
         {
@@ -133,6 +135,7 @@ namespace ProjectTracking.Controllers
             return View(meeting);
         }
 
+        [RequireMenu("Meetings.Edit")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -164,6 +167,7 @@ namespace ProjectTracking.Controllers
             return View(meeting);
         }
 
+        [RequireMenu("Meetings.Create")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Store(Meeting model, List<int>? users)
@@ -202,6 +206,7 @@ namespace ProjectTracking.Controllers
             }
         }
 
+        [RequireMenu("Meetings.Edit")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update(Meeting model, List<int>? users)
@@ -289,6 +294,7 @@ namespace ProjectTracking.Controllers
             return Json(new { success = true });
         }
 
+        [RequireMenu("Meetings.Delete")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)

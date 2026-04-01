@@ -1,4 +1,13 @@
+@using Microsoft.AspNetCore.Http
 @model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 
 <style>
 .sticky-col-1 { position: sticky; left: 0; background: #fff; z-index: 3; width:60px; }
@@ -21,7 +30,18 @@ td {
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>📌 Support Orders</h3>
-    <button class="btn btn-primary" type="button" onclick="createOrder()">+ Add Order</button>
+    @if (CanMenu("SupportOrders.Create"))
+    {
+        <button class="btn btn-primary" onclick="createOrder()" title="เพิ่มงาน Support">
+            + Add Order
+        </button>
+    }
+    else
+    {
+        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มงาน">
+            + Add Order
+        </button>
+    }
 </div>
 
 @if (ViewBag.SelectedProjectName != null)
@@ -141,14 +161,35 @@ else
 <div class="btn-group btn-group-sm" role="group">
     <a class="btn btn-sm btn-primary" asp-action="Details" asp-route-id="@item.OrderId">View</a>
 
-    <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@item.OrderId">Edit</a>
+    @if (CanMenu("SupportOrders.Edit"))
+    {
+        <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@item.OrderId" title="แก้ไขงาน">
+            Edit
+        </a>
+    }
+    else
+    {
+        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+            Edit
+        </button>
+    }
 
-    <form asp-action="Delete" asp-route-id="@item.OrderId" method="post" style="display:inline">
-        @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this order?');">
+    @if (CanMenu("SupportOrders.Delete"))
+    {
+        <form asp-action="Delete" asp-route-id="@item.OrderId" method="post" style="display:inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm btn-danger" title="ลบงาน"
+                    onclick="return confirm('Are you sure you want to delete this order?');">
+                Delete
+            </button>
+        </form>
+    }
+    else
+    {
+        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
             Delete
         </button>
-    </form>
+    }
 </div>
 </td>
 </tr>

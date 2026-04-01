@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
+    [RequireMenu("Followups.Index")]
     public class FollowupsController : Controller
     {
         private readonly AppDbContext _context;
@@ -125,6 +127,7 @@ namespace ProjectTracking.Controllers
             return View(data);
         }
 
+        [RequireMenu("Followups.Create")]
         public async Task<IActionResult> Create(int? projectId)
         {
             var employees = await _context.Employees
@@ -149,6 +152,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
+        [RequireMenu("Followups.Create")]
         public async Task<IActionResult> Create(ProjectFollowup model)
         {
             if (ModelState.IsValid)
@@ -168,6 +172,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Edit Follow-up =====
+        [RequireMenu("Followups.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var followup = await _context.ProjectFollowups
@@ -190,6 +195,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
+        [RequireMenu("Followups.Edit")]
         public async Task<IActionResult> Edit(ProjectFollowup model)
         {
             if (!ModelState.IsValid)
@@ -394,6 +400,7 @@ namespace ProjectTracking.Controllers
         }
         // ===== Delete Follow-up =====
         [HttpPost]
+        [RequireMenu("Followups.Delete")]
         public async Task<IActionResult> Delete(int followupId)
         {
             var item = await _context.ProjectFollowups

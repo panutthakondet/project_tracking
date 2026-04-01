@@ -1,5 +1,15 @@
 @model IEnumerable<ProjectTracking.Models.TestTemplateGroup>
 
+@using Microsoft.AspNetCore.Http
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
+
 <style>
     .group-table thead th {
         background-color: #6f42c1 !important; /* purple */
@@ -16,7 +26,19 @@
 
 <h2>Template Groups</h2>
 
-<a asp-action="Create" class="btn btn-success mb-3">+ Add Group</a>
+
+@if (CanMenu("TestTemplateGroups.Create"))
+{
+    <a asp-action="Create" class="btn btn-success mb-3" title="เพิ่มกลุ่ม Template">
+        + Add Group
+    </a>
+}
+else
+{
+    <button class="btn btn-success mb-3" disabled title="ไม่มีสิทธิ์เพิ่มกลุ่ม">
+        + Add Group
+    </button>
+}
 
 @if (Model == null || !Model.Any())
 {
@@ -44,19 +66,42 @@
             <td>@g.group_name</td>
             <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
             <td class="text-center-col">
-                <a asp-action="Edit"
-                   asp-route-id="@g.group_id"
-                   class="btn btn-sm btn-warning">Edit</a>
+                @if (CanMenu("TestTemplateGroups.Edit"))
+                {
+                    <a asp-action="Edit"
+                       asp-route-id="@g.group_id"
+                       class="btn btn-sm btn-warning"
+                       title="แก้ไขกลุ่ม">
+                        Edit
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                        Edit
+                    </button>
+                }
             </td>
             <td class="text-center-col">
-                <form asp-action="Delete"
-                      asp-route-id="@g.group_id"
-                      method="post"
-                      style="display:inline;"
-                      onsubmit="return confirm('Delete this group?');">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                </form>
+                @if (CanMenu("TestTemplateGroups.Delete"))
+                {
+                    <form asp-action="Delete"
+                          asp-route-id="@g.group_id"
+                          method="post"
+                          style="display:inline;"
+                          onsubmit="return confirm('Delete this group?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-danger" title="ลบกลุ่ม">
+                            Delete
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                        Delete
+                    </button>
+                }
             </td>
         </tr>
     }
@@ -68,25 +113,27 @@
 <script>
     var tbody = document.querySelector(".group-table tbody");
 
-    new Sortable(tbody, {
-        handle: "td",
-        animation: 150,
-        onEnd: function () {
-            var order = [];
-            document.querySelectorAll(".group-table tbody tr").forEach((row, index) => {
-                order.push({
-                    id: row.getAttribute("data-id"),
-                    sort: index + 1
+    if (@CanMenu("TestTemplateGroups.Sort").ToString().ToLower()) {
+        new Sortable(tbody, {
+            handle: "td",
+            animation: 150,
+            onEnd: function () {
+                var order = [];
+                document.querySelectorAll(".group-table tbody tr").forEach((row, index) => {
+                    order.push({
+                        id: row.getAttribute("data-id"),
+                        sort: index + 1
+                    });
                 });
-            });
 
-            fetch('/TestTemplateGroups/UpdateSort', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(order)
-            });
-        }
-    });
+                fetch('/TestTemplateGroups/UpdateSort', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(order)
+                });
+            }
+        });
+    }
 </script>

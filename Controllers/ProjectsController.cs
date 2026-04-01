@@ -83,7 +83,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // CREATE (GET)
         // ===========================
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Create")]
         public IActionResult Create()
         {
             ViewBag.Employees = _context.Employees
@@ -99,7 +99,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Create")]
         public async Task<IActionResult> Create(
             Project project
         )
@@ -124,7 +124,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // EDIT (GET)
         // ===========================
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var project = await _context.Projects.FindAsync(id);
@@ -146,7 +146,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Edit")]
         public async Task<IActionResult> Edit(
             int id,
             Project model
@@ -200,7 +200,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         // DELETE (GET)
         // ===========================
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var project = await _context.Projects.FindAsync(id);
@@ -217,7 +217,7 @@ namespace ProjectTracking.Controllers
         // ===========================
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [RequireMenu("Projects.Index")]
+        [RequireMenu("Projects.Delete")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var project = await _context.Projects.FindAsync(id);

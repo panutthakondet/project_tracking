@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using ProjectTracking.Attributes;
 
 namespace ProjectTracking.Controllers
 {
@@ -17,6 +18,7 @@ namespace ProjectTracking.Controllers
             _context = context;
         }
 
+        [RequireMenu("Home.Index")]
         public async Task<IActionResult> Index()
         {
             // ===============================

@@ -59,7 +59,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // PRINT
         // =====================================================
-        [RequireMenu("PhaseStatusReport.Index")]
+        [RequireMenu("PhaseStatusReport.Print")]
         public async Task<IActionResult> Print(string? empName, string? projectName)
         {
             var query = _context.VwPhaseOwnerStatuses.AsQueryable();

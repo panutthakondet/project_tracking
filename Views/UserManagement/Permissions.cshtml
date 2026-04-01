@@ -1,264 +1,117 @@
-@using System
-@using System.Linq
-@using System.Collections.Generic
-
 @{
-    ViewData["Title"] = "Menu Permissions";
+    ViewData["Title"] = "Permissions";
 
-    var username = (ViewBag.Username as string ?? "").Trim();
-    var allMenus = ViewBag.AllMenus as List<(string Key, string Label)> ?? new List<(string, string)>();
-    var selectedRaw = ViewBag.SelectedMenus as IEnumerable<string> ?? Enumerable.Empty<string>();
-    var selected = new HashSet<string>(
-        selectedRaw.Select(x => (x ?? "").Trim()).Where(x => !string.IsNullOrWhiteSpace(x)),
-        StringComparer.OrdinalIgnoreCase
-    );
+    var username = ViewBag.Username as string ?? "";
+    var groupedMenus = (ViewBag.GroupedMenus as IEnumerable<dynamic>)?.ToList() ?? new List<dynamic>();
+    var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>();
 }
 
-@{
-    // ✅ Lookup menu by key
-    var menuMap = allMenus.ToDictionary(x => x.Key, x => x.Label, StringComparer.OrdinalIgnoreCase);
+<h3>🔐 กำหนดสิทธิ์ผู้ใช้ (@username)</h3>
 
-    // ✅ Group definitions (เหมือนหน้า Home)
-    var groupProject = new List<string>
+<form method="post" id="permissionForm">
+    <input type="hidden" name="username" value="@username" />
+
+    @if (groupedMenus != null && groupedMenus.Count > 0)
     {
-        "UserManagement.Index",
-        "Employees.Index",
-        "Projects.Index",
-        "ProjectPhases.Index",
-        "PhaseAssigns.Index",
-        "ProjectIssues.Index",
-        "ProjectIssues.DevIndex",
-        "ProjectIssues.DevDetails",
-        "Meetings.Index",
-        "Meetings.Show",
-        "Meetings.Create",
-        "Meetings.Edit",
-        "Meetings.Delete",
-        "TestScenarios.Index",
-        "TestScenarioTemplates.Index",
-        "TestTemplateGroups.Index",
-        "SupportOrdersDev.Index",
-
-        // Follow‑up system
-        "Followups.Index",
-        "Followups.Create",
-        "Followups.Edit",
-        "Followups.Details",
-        "Followups.Log",
-        "Followups.History",
-        "Followups.DashboardDone",
-        "Followups.DashboardACK",
-        "Followups.MarkDone",
-        "Followups.AddLog",
-        "Followups.Delete",
-    };
-
-    var groupReport = new List<string>
-    {
-        "Projects.ViewOnly",
-        "ProjectIssues.ViewOnly",
-        "PhaseAssigns.Print",
-        "PhaseStatusReport.Index",
-        "PhaseStatusReport.Timeline",
-        "Dashboard.Workload",
-        "Dashboard.Index",
-        "IssueDashboard.Index",
-    };
-
-    var groupSetting = new List<string>
-    {
-        "UserManagement.Permissions",
-    };
-
-    // ✅ Helper to render only keys that exist in allMenus (กันหลุด)
-    List<(string Key, string Label)> BuildGroup(List<string> keys)
-    {
-        var list = new List<(string, string)>();
-        foreach (var k in keys)
+        foreach (var group in groupedMenus)
         {
-            if (menuMap.TryGetValue(k, out var label))
-                list.Add((k, label));
-        }
-        return list;
-    }
-
-    var g1 = BuildGroup(groupProject);
-    var g2 = BuildGroup(groupReport);
-    var g3 = BuildGroup(groupSetting);
-
-    // ✅ Uncategorized (เมนูอื่น ๆ ที่ยังไม่ได้จัดกลุ่ม)
-    var used = new HashSet<string>(g1.Select(x => x.Key), StringComparer.OrdinalIgnoreCase);
-    foreach (var x in g2) used.Add(x.Key);
-    foreach (var x in g3) used.Add(x.Key);
-
-    var gOther = allMenus.Where(x => !used.Contains(x.Key)).ToList();
-}
-
-<style>
-    .card-soft{
-        border:0;
-        border-radius:16px;
-        box-shadow:0 10px 28px rgba(0,0,0,.08);
-        overflow:hidden;
-    }
-    .card-soft .card-body{ padding:18px; }
-
-    .menu-grid{
-        display:grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap:10px;
-    }
-
-    .menu-item{
-        border:1px solid #e5e7eb;
-        border-radius:14px;
-        padding:12px 12px;
-        display:flex;
-        gap:10px;
-        align-items:flex-start;
-        background:#fff;
-    }
-    .menu-item:hover{ background:#f8fafc; }
-
-    .group-title{
-        font-size:16px;
-        font-weight:900;
-        margin:10px 0 12px;
-        padding-left:12px;
-        border-left:6px solid #ff9f43;
-    }
-
-    .group-wrap{ margin-bottom:18px; }
-
-    .menu-key{ font-size:12px; color:#64748b; margin-top:2px; }
-</style>
-
-<div class="d-flex align-items-start justify-content-between gap-2 mb-3">
-    <div>
-        <h3 class="fw-bold mb-0">🔐 Menu Permissions</h3>
-        <div class="text-muted">กำหนดเมนูที่ผู้ใช้ <b>@username</b> สามารถมองเห็นได้</div>
-    </div>
-
-    <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:12px;">
-        ← Back
-    </a>
-</div>
-
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success" style="border-radius:12px;">@TempData["Success"]</div>
-}
-
-<div class="card card-soft">
-    <div class="card-body">
-        <form asp-action="Permissions" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="username" value="@username" />
-
-            <!-- 📁 การบันทึกข้อมูล และการจัดการโครงการ -->
-            @if (g1.Any())
-            {
-                <div class="group-wrap">
-                    <div class="group-title">📁 การบันทึกข้อมูล และการจัดการโครงการ</div>
-                    <div class="menu-grid">
-                        @foreach (var m in g1)
-                        {
-                            var isChecked = selected.Contains(m.Key);
-                            <label class="menu-item">
-                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
-                                       style="margin-top:3px;" />
-                                <div>
-                                    <div class="fw-bold">@m.Label</div>
-                                    <div class="menu-key">@m.Key</div>
-                                </div>
-                            </label>
-                        }
-                    </div>
-                </div>
-            }
-
-            <!-- 🐞 รายงานและติดตามงาน -->
-            @if (g2.Any())
-            {
-                <div class="group-wrap">
-                    <div class="group-title">🐞 รายงานและติดตามงาน</div>
-                    <div class="menu-grid">
-                        @foreach (var m in g2)
-                        {
-                            var isChecked = selected.Contains(m.Key);
-                            <label class="menu-item">
-                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
-                                       style="margin-top:3px;" />
-                                <div>
-                                    <div class="fw-bold">@m.Label</div>
-                                    <div class="menu-key">@m.Key</div>
-                                </div>
-                            </label>
-                        }
-                    </div>
-                </div>
-            }
-
-            <!-- ⚙️ ตั้งค่าระบบ -->
-            @if (g3.Any())
-            {
-                <div class="group-wrap">
-                    <div class="group-title">⚙️ ตั้งค่าระบบ</div>
-                    <div class="menu-grid">
-                        @foreach (var m in g3)
-                        {
-                            var isChecked = selected.Contains(m.Key);
-                            <label class="menu-item">
-                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
-                                       style="margin-top:3px;" />
-                                <div>
-                                    <div class="fw-bold">@m.Label</div>
-                                    <div class="menu-key">@m.Key</div>
-                                </div>
-                            </label>
-                        }
-                    </div>
-                </div>
-            }
-
-            <!-- 🧩 อื่น ๆ (ถ้ามี) -->
-            @if (gOther.Any())
-            {
-                <div class="group-wrap">
-                    <div class="group-title">🧩 อื่น ๆ</div>
-                    <div class="menu-grid">
-                        @foreach (var m in gOther)
-                        {
-                            var isChecked = selected.Contains(m.Key);
-                            <label class="menu-item">
-                                <input type="checkbox" name="menus" value="@m.Key" @(isChecked ? "checked" : null)
-                                       style="margin-top:3px;" />
-                                <div>
-                                    <div class="fw-bold">@m.Label</div>
-                                    <div class="menu-key">@m.Key</div>
-                                </div>
-                            </label>
-                        }
-                    </div>
-                </div>
-            }
-
-            <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-primary" style="border-radius:12px; font-weight:800;">
-                    💾 Save
-                </button>
-
-                <a asp-action="Index"
-                   class="btn btn-outline-dark"
-                   style="border-radius:12px;">
-                    ← Back
-                </a>
-
-                <a asp-action="Permissions" asp-route-username="@username"
-                   class="btn btn-outline-secondary" style="border-radius:12px;">
-                    ↻ Reload
-                </a>
+        <div style="margin-bottom:20px; border:1px solid #ddd; border-radius:10px; padding:10px;">
+            
+            <!-- 🔥 Controller -->
+            <div style="font-weight:bold; background:#f1f5f9; padding:8px; border-radius:8px;">
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox"
+                           class="chk-parent"
+                           data-group="@group.ControllerLabel"
+                           style="transform:scale(1.2);" />
+                    📁 @group.ControllerLabel
+                </label>
             </div>
-        </form>
+
+            <!-- 🔥 Actions -->
+            @foreach (var item in group.Items)
+            {
+                var isChecked = selected.Contains(item.Key?.Trim());
+
+                <div style="padding-left:25px; margin-top:6px;">
+                    <label>
+                        <input type="checkbox"
+                               class="chk-child"
+                               data-group="@group.ControllerLabel"
+                               style="transform:scale(1.2); margin-right:6px;"
+                               name="menus"
+                               value="@item.Key"
+                               @(isChecked ? "checked" : "") />
+                        └─ @item.Label
+                    </label>
+                    <div style="font-size:11px; color:#888;">@item.Key</div>
+                </div>
+            }
+        </div>
+        }
+    }
+    else
+    {
+        <div style="color:red; font-weight:bold;">
+            ❌ ไม่พบเมนู (GroupedMenus ว่าง)
+        </div>
+    }
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+        <button type="submit"
+                style="background:#2563eb; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">
+            💾 บันทึก
+        </button>
+
+        <a href="/UserManagement"
+           style="background:#e5e7eb; color:#111; padding:8px 16px; border-radius:8px; text-decoration:none; font-weight:bold;">
+            🔙 ย้อนกลับ
+        </a>
     </div>
-</div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    document.querySelectorAll(".chk-parent").forEach(parent => {
+
+        const group = parent.getAttribute("data-group");
+        const children = document.querySelectorAll(`.chk-child[data-group="${group}"]`);
+
+        // set initial state
+        const allChecked = Array.from(children).every(x => x.checked);
+        const anyChecked = Array.from(children).some(x => x.checked);
+        parent.checked = allChecked;
+        parent.indeterminate = !allChecked && anyChecked;
+
+        // parent click
+        parent.addEventListener("change", function () {
+            children.forEach(c => c.checked = parent.checked);
+        });
+
+        // child change
+        children.forEach(c => {
+            c.addEventListener("change", function () {
+                const all = Array.from(children).every(x => x.checked);
+                const any = Array.from(children).some(x => x.checked);
+
+                parent.checked = all;
+                parent.indeterminate = !all && any;
+            });
+        });
+
+    });
+
+    // 🔥 confirm before submit
+    const form = document.getElementById("permissionForm");
+    if (form) {
+        form.addEventListener("submit", function (e) {
+            const ok = confirm("💾 ยืนยันบันทึกสิทธิ์นี้หรือไม่?");
+            if (!ok) {
+                e.preventDefault();
+            }
+        });
+    }
+
+});
+</script>

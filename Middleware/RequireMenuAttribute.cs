@@ -15,6 +15,7 @@ namespace ProjectTracking.Middleware
     public class RequireMenuAttribute : Attribute, IAuthorizationFilter
     {
         private readonly string _menuKey;
+        public string Key => _menuKey;
 
         public RequireMenuAttribute(string menuKey)
         {

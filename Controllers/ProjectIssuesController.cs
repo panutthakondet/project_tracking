@@ -119,7 +119,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // CREATE (GET)
         // =====================================================
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.Create")]
         public IActionResult Create(int projectId)
         {
             var model = new ProjectIssue
@@ -143,7 +143,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.Create")]
         public async Task<IActionResult> Create(ProjectIssue model, List<IFormFile>? images)
         {
             if (!ModelState.IsValid)
@@ -236,7 +236,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // EDIT (GET)
         // =====================================================
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var issue = await _context.ProjectIssues
@@ -258,7 +258,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectIssue model, List<IFormFile>? newImages, List<int>? deleteImageIds)
         {
             if (id != model.IssueId) return NotFound();
@@ -452,7 +452,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var issue = await _context.ProjectIssues

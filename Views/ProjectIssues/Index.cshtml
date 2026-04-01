@@ -7,6 +7,15 @@
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
 }
 
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
+
 <style>
 .issue-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
 .issue-table{ min-width:1400px; }
@@ -36,11 +45,17 @@
         <small class="text-muted">ติดตามปัญหา / งานค้าง / Bug ของโครงการ</small>
     </div>
 
-    @if (selectedProject != null)
+    @if (selectedProject != null && CanMenu("ProjectIssues.Create"))
     {
-        <a asp-action="Create" asp-route-projectId="@selectedProject.ProjectId" class="btn btn-primary">
+        <a asp-action="Create" asp-route-projectId="@selectedProject.ProjectId" class="btn btn-primary" title="เพิ่ม Issue">
             ➕ Add Issue
         </a>
+    }
+    else if (selectedProject != null)
+    {
+        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Issue">
+            ➕ Add Issue
+        </button>
     }
 </div>
 
@@ -188,15 +203,33 @@ else
                            asp-action="Details"
                            asp-route-id="@i.IssueId"
                            asp-route-projectId="@selectedProject?.ProjectId"
-                           class="btn btn-sm btn-outline-secondary me-1">👁 View</a>
-                        <a asp-action="Edit" asp-route-id="@i.IssueId" asp-route-projectId="@selectedProject?.ProjectId" class="btn btn-sm btn-outline-primary me-1">✏️ Edit</a>
+                           class="btn btn-sm btn-outline-secondary me-1"
+                           title="ดูรายละเอียด">
+                           👁 View
+                        </a>
 
-                        <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Delete issue นี้ใช่หรือไม่?');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@i.IssueId" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑 Delete</button>
-                        </form>
-    </div>
+                        @if (CanMenu("ProjectIssues.Edit"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@i.IssueId" asp-route-projectId="@selectedProject?.ProjectId" class="btn btn-sm btn-outline-primary me-1" title="แก้ไข Issue">✏️ Edit</a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">✏️ Edit</button>
+                        }
+
+                        @if (CanMenu("ProjectIssues.Delete"))
+                        {
+                            <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('Delete issue นี้ใช่หรือไม่?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@i.IssueId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ Issue">🗑 Delete</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">🗑 Delete</button>
+                        }
+                        </div>
                     </td>
                 </tr>
 

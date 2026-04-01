@@ -1,11 +1,31 @@
 @model ProjectTracking.Models.Meeting
+
 @using ProjectTracking.Models
+@using Microsoft.AspNetCore.Http
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
+}
 
 @{
     ViewData["Title"] = "รายละเอียดการประชุม";
     var attendees = ViewBag.Attendees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var attendeeList = attendees.ToList();
     var projectName = ViewBag.ProjectName as string;
+}
+
+@if (!CanMenu("Meetings.Show"))
+{
+    <div class="container mt-4">
+        <div class="alert alert-danger" style="font-weight:600;">
+            ❌ ไม่มีสิทธิ์เข้าหน้านี้
+        </div>
+        <a class="btn btn-secondary" asp-controller="Meetings" asp-action="Index">← กลับ</a>
+    </div>
+    return;
 }
 
 <div class="container" style="max-width: 980px;">
@@ -15,14 +35,29 @@
             <div class="text-muted">ข้อมูลการประชุมที่บันทึกไว้</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-outline-secondary" asp-controller="Meetings" asp-action="Index">← กลับไปปฏิทิน</a>
-            <a class="btn btn-warning" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id">✏️ แก้ไข</a>
-            <form asp-action="Cancel" asp-controller="Meetings" method="post"
-                  onsubmit="return confirm('ยืนยันการยกเลิกการประชุมนี้ ?');" style="display:inline;">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="btn btn-danger">🗑️ ยกเลิก</button>
-            </form>
+            <a class="btn btn-outline-secondary" asp-controller="Meetings" asp-action="Index" title="กลับไปหน้าปฏิทิน">← กลับไปปฏิทิน</a>
+            @if (CanMenu("Meetings.Edit"))
+            {
+                <a class="btn btn-warning" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id" title="แก้ไขการประชุม">✏️ แก้ไข</a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไขการประชุม">✏️ แก้ไข</button>
+            }
+
+            @if (CanMenu("Meetings.Delete"))
+            {
+                <form asp-action="Cancel" asp-controller="Meetings" method="post"
+                      onsubmit="return confirm('ยืนยันการยกเลิกการประชุมนี้ ?');" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger" title="ยกเลิกการประชุม">🗑️ ยกเลิก</button>
+                </form>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ยกเลิกการประชุม">🗑️ ยกเลิก</button>
+            }
         </div>
     </div>
 

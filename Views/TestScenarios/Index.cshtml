@@ -1,5 +1,7 @@
 @model IEnumerable<ProjectTracking.Models.TestScenario>
 
+@using Microsoft.AspNetCore.Http
+
 @{
     string StatusBadge(string status)
     {
@@ -14,6 +16,14 @@
     }
 
     var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
+}
+
+@{
+    bool CanMenu(string key)
+    {
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Contains(key);
+    }
 }
 
 <style>
@@ -233,28 +243,57 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="toolbar">
 
-            <a asp-action="ImportTemplates"
-               asp-route-projectId="@ViewBag.SelectedProject"
-               asp-route-groupId="@ViewBag.SelectedGroup"
-               class="btn btn-primary"
-               onclick="return confirm('Import template ตาม Group ที่เลือกเข้าโครงการนี้?');">
-                Import Templates
-            </a>
+            @if (CanMenu("TestScenarios.Import"))
+            {
+                <a asp-action="ImportTemplates"
+                   asp-route-projectId="@ViewBag.SelectedProject"
+                   asp-route-groupId="@ViewBag.SelectedGroup"
+                   class="btn btn-primary"
+                   title="Import Template"
+                   onclick="return confirm('Import template ตาม Group ที่เลือกเข้าโครงการนี้?');">
+                    Import Templates
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์ Import">
+                    Import Templates
+                </button>
+            }
 
-            <form asp-action="DeleteAll"
-                  asp-route-projectId="@ViewBag.SelectedProject"
-                  method="post"
-                  style="display:inline;"
-                  onsubmit="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger">Delete All</button>
-            </form>
-            <!-- Preview PDF (open new tab) -->
-            <button type="button"
-                    class="btn btn-outline-primary"
-                    onclick="previewPdf()">
-                👁 Preview PDF
-            </button>
+            @if (CanMenu("TestScenarios.DeleteAll"))
+            {
+                <form asp-action="DeleteAll"
+                      asp-route-projectId="@ViewBag.SelectedProject"
+                      method="post"
+                      style="display:inline;"
+                      onsubmit="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger" title="ลบทั้งหมด">Delete All</button>
+                </form>
+            }
+            else
+            {
+                <button class="btn btn-danger" disabled title="ไม่มีสิทธิ์ลบทั้งหมด">
+                    Delete All
+                </button>
+            }
+
+            @if (CanMenu("TestScenarios.Export"))
+            {
+                <button type="button"
+                        class="btn btn-outline-primary"
+                        title="Preview PDF"
+                        onclick="previewPdf()">
+                    👁 Preview PDF
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ Preview">
+                    👁 Preview PDF
+                </button>
+            }
 
         </div>
 
@@ -311,17 +350,39 @@
                     <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
                     <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
                     <td class="text-center-col">
-                        <a asp-action="Edit" asp-route-id="@item.scenario_id"
-                           class="btn btn-sm btn-warning">Edit</a>
+                        @if (CanMenu("TestScenarios.Edit"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.scenario_id"
+                               class="btn btn-sm btn-warning" title="แก้ไข">
+                                Edit
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                Edit
+                            </button>
+                        }
 
-                        <form asp-action="Delete"
-                              asp-route-id="@item.scenario_id"
-                              method="post"
-                              style="display:inline;"
-                              onsubmit="return confirm('Delete this scenario?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                        </form>
+                        @if (CanMenu("TestScenarios.Delete"))
+                        {
+                            <form asp-action="Delete"
+                                  asp-route-id="@item.scenario_id"
+                                  method="post"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Delete this scenario?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger" title="ลบ">
+                                    Delete
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                Delete
+                            </button>
+                        }
                     </td>
                     @{ rowNo++; }
                 </tr>
