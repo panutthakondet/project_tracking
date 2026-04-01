@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Http
 @model IEnumerable<dynamic>
 
 @{
@@ -5,6 +6,24 @@
     var th = new System.Globalization.CultureInfo("th-TH");
     int i = 1;
     var owners = Model.Select(x => (string)x.Owner).Distinct().OrderBy(x => x).ToList();
+
+    Func<string, bool> HasMenu = key =>
+    {
+        var menus = Context.Session.GetString("Menus");
+        if (string.IsNullOrEmpty(menus)) return false;
+        return menus.Split(',').Any(m => m.Trim().Equals(key, StringComparison.OrdinalIgnoreCase));
+    };
+}
+
+@if (!HasMenu("Followups.Dashboard"))
+{
+    <div class="container mt-4">
+        <div class="alert alert-danger fw-bold">
+            ❌ ไม่มีสิทธิ์เข้าหน้านี้
+        </div>
+        <a class="btn btn-secondary" href="/Followups">← กลับ</a>
+    </div>
+    return;
 }
 
 <div class="container-fluid mt-4">
@@ -63,8 +82,8 @@
                     }
 
                     <tr class="@rowClass" data-owner="@item.Owner"
-                        style="cursor:@(targetUrl != null ? "pointer" : "default")"
-                        onclick="@(targetUrl != null ? $"window.location.href='{targetUrl}'" : "")">
+                        style="cursor:@(targetUrl != null && HasMenu("Followups.Index") ? "pointer" : "default")"
+                        onclick="@(targetUrl != null && HasMenu("Followups.Index") ? $"window.location.href='{targetUrl}'" : "")">
 
                         <td class="text-center">@i</td>
 

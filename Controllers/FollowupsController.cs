@@ -17,6 +17,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Follow-up Dashboard =====
+        [RequireMenu("Followups.Dashboard")]
         public async Task<IActionResult> Dashboard()
         {
             var today = DateTime.Today;
@@ -47,6 +48,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Follow-up Dashboard DONE (Waiting ACK) =====
+        [RequireMenu("Followups.DashboardDone")]
         public async Task<IActionResult> DashboardDone()
         {
             var today = DateTime.Today;
@@ -77,6 +79,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Follow-up Dashboard ACK (Closed / Acknowledged) =====
+        [RequireMenu("Followups.DashboardACK")]
         public async Task<IActionResult> DashboardACK()
         {
             var today = DateTime.Today;
@@ -234,6 +237,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Follow-up Detail + History =====
+        [RequireMenu("Followups.Details")]
         public async Task<IActionResult> Details(int id)
         {
             var followup = await _context.ProjectFollowups
@@ -256,6 +260,7 @@ namespace ProjectTracking.Controllers
 
         // ===== Add Follow-up Log (Call / Email / Meeting) =====
         [HttpPost]
+        [RequireMenu("Followups.Log")]
         public async Task<IActionResult> AddLog(ProjectFollowupLog log)
         {
             if (!ModelState.IsValid)
@@ -287,6 +292,7 @@ namespace ProjectTracking.Controllers
 
         // ===== Quick Log: Call =====
         [HttpPost]
+        [RequireMenu("Followups.Log")]
         public async Task<IActionResult> QuickCall(int followupId)
         {
             var followup = await _context.ProjectFollowups
@@ -316,6 +322,7 @@ namespace ProjectTracking.Controllers
 
         // ===== Quick Log: Email =====
         [HttpPost]
+        [RequireMenu("Followups.Log")]
         public async Task<IActionResult> QuickEmail(int followupId)
         {
             var followup = await _context.ProjectFollowups
@@ -345,6 +352,7 @@ namespace ProjectTracking.Controllers
 
         // ===== Mark Follow-up Done =====
         [HttpPost]
+        [RequireMenu("Followups.Done")]
         public async Task<IActionResult> MarkDone(int followupId, string? Note)
         {
             var followup = await _context.ProjectFollowups
@@ -382,6 +390,7 @@ namespace ProjectTracking.Controllers
         }
 
         // ===== Full History Page =====
+        [RequireMenu("Followups.History")]
         public async Task<IActionResult> History(int followupId)
         {
             var followup = await _context.ProjectFollowups

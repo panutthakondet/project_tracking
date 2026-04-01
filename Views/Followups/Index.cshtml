@@ -105,11 +105,20 @@ else
             </td>
             <td>@item.Status</td>
             <td style="white-space:nowrap; text-align:center;">
-                <a href="/Followups/Details/@item.FollowupId" 
-                   class="btn btn-sm btn-info"
-                   title="ดูรายละเอียด">
-                    View
-                </a>
+                @if (HasMenu("Followups.Details"))
+                {
+                    <a href="/Followups/Details/@item.FollowupId" 
+                       class="btn btn-sm btn-info"
+                       title="ดูรายละเอียด">
+                        View
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู">
+                        View
+                    </button>
+                }
 
                 @if (HasMenu("Followups.Edit"))
                 {
@@ -141,36 +150,54 @@ else
                     </button>
                 }
 
-                @if(item.Status == "DONE" || item.Status == "ACK")
+                @if (HasMenu("Followups.Done"))
                 {
-                    <button class="btn btn-sm btn-success"
-                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                            onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
-                        Done
-                    </button>
+                    if(item.Status == "DONE" || item.Status == "ACK")
+                    {
+                        <button class="btn btn-sm btn-success"
+                                title="รายการนี้ถูก DONE หรือ ACK แล้ว"
+                                onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                            Done
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-success"
+                                title="ปิดงาน"
+                                onclick="openDonePopup(@item.FollowupId)">
+                            Done
+                        </button>
+                    }
                 }
                 else
                 {
-                    <button class="btn btn-sm btn-success"
-                            title="ปิดงาน"
-                            onclick="openDonePopup(@item.FollowupId)">
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ปิดงาน">
                         Done
                     </button>
                 }
 
-                @if(item.Status == "DONE" || item.Status == "ACK")
+                @if (HasMenu("Followups.Log"))
                 {
-                    <button class="btn btn-sm btn-outline-primary"
-                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                            onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
-                        Log
-                    </button>
+                    if(item.Status == "DONE" || item.Status == "ACK")
+                    {
+                        <button class="btn btn-sm btn-outline-primary"
+                                title="รายการนี้ถูก DONE หรือ ACK แล้ว"
+                                onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                            Log
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-primary"
+                                title="บันทึกการติดตาม"
+                                onclick="openQuickLog(@item.FollowupId)">
+                            Log
+                        </button>
+                    }
                 }
                 else
                 {
-                    <button class="btn btn-sm btn-outline-primary"
-                            title="บันทึกการติดตาม"
-                            onclick="openQuickLog(@item.FollowupId)">
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์บันทึก">
                         Log
                     </button>
                 }
