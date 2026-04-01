@@ -113,42 +113,44 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             // ================= SAVE FILE =================
-            if (files != null && files.Any())
+            var projectFolder = Path.Combine(
+                _env.WebRootPath,
+                "uploads",
+                "testcase",
+                model.project_id.ToString()
+            );
+
+            if (!Directory.Exists(projectFolder))
+                Directory.CreateDirectory(projectFolder);
+
+            foreach (var file in files)
             {
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
-
-                if (!Directory.Exists(uploadPath))
-                    Directory.CreateDirectory(uploadPath);
-
-                foreach (var file in files)
+                if (file.Length > 0)
                 {
-                    if (file.Length > 0)
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                    var filePath = Path.Combine(projectFolder, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
                     {
-                        var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                        var filePath = Path.Combine(uploadPath, fileName);
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-
-                        var attachment = new TestScenarioAttachment
-                        {
-                            ScenarioId = model.scenario_id,
-                            FileName = file.FileName,
-                            FilePath = "/uploads/" + fileName,
-                            FileType = file.ContentType,
-                            FileSize = (int)file.Length,
-                            UploadedBy = "system",
-                            UploadedAt = DateTime.Now
-                        };
-
-                        _context.TestScenarioAttachments.Add(attachment);
+                        await file.CopyToAsync(stream);
                     }
-                }
 
-                await _context.SaveChangesAsync();
+                    var attachment = new TestScenarioAttachment
+                    {
+                        ScenarioId = model.scenario_id,
+                        FileName = file.FileName,
+                        FilePath = $"/uploads/testcase/{model.project_id}/{fileName}",
+                        FileType = file.ContentType,
+                        FileSize = (int)file.Length,
+                        UploadedBy = "system",
+                        UploadedAt = DateTime.Now
+                    };
+
+                    _context.TestScenarioAttachments.Add(attachment);
+                }
             }
+
+            await _context.SaveChangesAsync();
 
             if (deleteAttachmentIds != null && deleteAttachmentIds.Any())
             {

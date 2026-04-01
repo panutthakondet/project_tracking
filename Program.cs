@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using System.IO;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Http.Features;
 using QuestPDF.Infrastructure;
 
@@ -206,6 +207,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads")
+    ),
+    RequestPath = "/uploads"
+});
 app.UseRouting();
 
 

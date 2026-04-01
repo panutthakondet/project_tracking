@@ -263,6 +263,8 @@ public class TestScenarioReport
                                             table.Cell().Padding(8).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Element(e =>
                                             {
                                                 var relative = (img.FilePath ?? string.Empty).TrimStart('/');
+                                                relative = relative.Replace("/", Path.DirectorySeparatorChar.ToString());
+
                                                 var fullPath = Path.Combine(webRootPath, relative);
 
                                                 e.Column(c =>
