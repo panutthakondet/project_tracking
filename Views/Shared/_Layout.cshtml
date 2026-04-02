@@ -704,7 +704,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 @RenderSection("Scripts", required: false)
 
-@if (CanMenu("Dashboard.Index"))
+@if (CanMenu("Followups.Dashboard"))
 {
     <a href="/Followups/Dashboard" class="followup-float-btn">
         📌
@@ -718,7 +718,7 @@ document.addEventListener("DOMContentLoaded", function () {
     </a>
 }
 
-@if (CanMenu("Dashboard.Index"))
+@if (CanMenu("Followups.DashboardDone"))
 {
     <a href="/Followups/DashboardDone" class="followup-float-btn" style="bottom:100px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;">
         ✔
@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", function () {
     </a>
 }
 
-@if (CanMenu("Dashboard.Index"))
+@if (CanMenu("Followups.DashboardACK"))
 {
     <a href="/Followups/DashboardACK" class="followup-float-btn" style="bottom:172px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;">
         📥
