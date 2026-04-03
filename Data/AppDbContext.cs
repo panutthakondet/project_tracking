@@ -53,6 +53,7 @@ namespace ProjectTracking.Data
         // ===== Follow-up Tracking =====
         public DbSet<ProjectFollowup> ProjectFollowups { get; set; }
         public DbSet<ProjectFollowupLog> ProjectFollowupLogs { get; set; }
+        public DbSet<PhaseAssignLog> PhaseAssignLogs { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -493,6 +494,49 @@ namespace ProjectTracking.Data
                 // ✅ ถ้า PhaseAssign ของคุณ "มี" navigation ที่ทำให้ชน เช่น a.ProjectPhase
                 // และคุณไม่ได้ใช้มันจริง ๆ ให้เปิด ignore บรรทัดนี้เพื่อตัดปัญหาชน (ไม่ลบ property ใน model)
                 // entity.Ignore(a => a.ProjectPhase);
+            });
+
+            // =========================
+            // PHASE ASSIGN LOGS
+            // =========================
+            modelBuilder.Entity<PhaseAssignLog>(entity =>
+            {
+                entity.ToTable("phase_assign_logs");
+
+                entity.HasKey(x => x.LogId);
+
+                entity.Property(x => x.AssignId)
+                    .HasColumnName("assign_id")
+                    .IsRequired();
+
+                entity.Property(x => x.Status)
+                    .HasColumnName("status")
+                    .HasColumnType("varchar(10)")
+                    .IsRequired();
+
+                entity.Property(x => x.Remark)
+                    .HasColumnName("remark")
+                    .HasColumnType("varchar(1000)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RoundNo)
+                    .HasColumnName("round_no")
+                    .HasDefaultValue(1);
+
+                entity.Property(x => x.CreatedBy)
+                    .HasColumnName("created_by")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime");
+
+                entity.HasIndex(x => x.AssignId);
+
+                entity.HasOne(x => x.PhaseAssign)
+                    .WithMany(p => p.Logs)
+                    .HasForeignKey(x => x.AssignId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // =========================

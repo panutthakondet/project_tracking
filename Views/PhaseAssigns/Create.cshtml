@@ -97,7 +97,12 @@
                 <!-- REMARK -->
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">📝 Remark</label>
-                    <textarea asp-for="Remark" class="form-control" rows="3"></textarea>
+                    <textarea asp-for="Remark"
+                              class="form-control"
+                              rows="4"
+                              maxlength="1000"
+                              placeholder="กรอกรายละเอียดเพิ่มเติม (สูงสุด 1000 ตัวอักษร)"></textarea>
+                    <small id="remarkCounter" class="text-muted">0 / 1000</small>
                 </div>
 
             </div>
@@ -248,5 +253,28 @@
         applyFromSelectedOption();
         if (roleDisplay && roleDisplay.value) lastAutoRole = roleDisplay.value.trim();
     });
+})();
+</script>
+<script>
+// Remark counter
+(function () {
+    const ta = document.querySelector('textarea[name="Remark"]');
+    const counter = document.getElementById('remarkCounter');
+    if (!ta || !counter) return;
+
+    function update() {
+        const len = ta.value ? ta.value.length : 0;
+        counter.textContent = len + ' / 1000';
+        if (len > 900) {
+            counter.classList.remove('text-muted');
+            counter.classList.add('text-danger');
+        } else {
+            counter.classList.remove('text-danger');
+            counter.classList.add('text-muted');
+        }
+    }
+
+    ta.addEventListener('input', update);
+    update();
 })();
 </script>

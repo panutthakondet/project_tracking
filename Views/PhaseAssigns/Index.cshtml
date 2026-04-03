@@ -218,27 +218,76 @@ thead .sticky-col { z-index: 5; }
                         </td>
                         <td class="col-remark">@a.Remark</td>
                         <td class="text-center">
-                            @if (CanMenu("PhaseAssigns.Edit"))
-                            {
-                                <a asp-action="Edit" asp-route-id="@a.AssignId" class="btn btn-sm btn-outline-primary me-1" title="แก้ไขการมอบหมาย">✏️ Edit</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">✏️ Edit</button>
-                            }
+                            <div class="d-flex flex-wrap justify-content-center gap-1">
 
-                            @if (CanMenu("PhaseAssigns.Delete"))
-                            {
-                                <form asp-action="Delete" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@a.AssignId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบการมอบหมาย" onclick="return confirm('ยืนยันการลบ Assign นี้?');">🗑 Delete</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">🗑 Delete</button>
-                            }
+                                @* ===== Edit ===== *@
+                                @if (CanMenu("PhaseAssigns.Edit"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@a.AssignId"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="แก้ไขข้อมูล (Edit)">
+                                        ✏️
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                        ✏️
+                                    </button>
+                                }
+
+                                @* ===== Delete ===== *@
+                                @if (CanMenu("PhaseAssigns.Delete"))
+                                {
+                                    <form asp-action="Delete" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.AssignId" />
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger"
+                                                title="ลบข้อมูล (Delete)"
+                                                onclick="return confirm('ยืนยันการลบ Assign นี้?');">
+                                            🗑
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                        🗑
+                                    </button>
+                                }
+
+                                @* ===== PASS ===== *@
+                                @if (CanMenu("PhaseAssigns.Edit"))
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-success"
+                                            title="บันทึกผล: ผ่านงาน (PASS)"
+                                            onclick="openLogModal(@a.AssignId, 'PASS')">
+                                        ✅
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">✅</button>
+                                }
+
+                                @* ===== REWORK ===== *@
+                                @if (CanMenu("PhaseAssigns.Edit"))
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-warning"
+                                            title="บันทึกผล: แก้ไขใหม่ (REWORK)"
+                                            onclick="openLogModal(@a.AssignId, 'REWORK')">
+                                        🔁
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">🔁</button>
+                                }
+
+                            </div>
                         </td>
                     </tr>
                     row++;
@@ -254,6 +303,33 @@ else
 }
 
 <form id="antiForgeryForm" method="post" style="display:none;">@Html.AntiForgeryToken()</form>
+
+<div class="modal fade" id="logModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">บันทึกผล (PASS / REWORK)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-bold">Remark</label>
+        <textarea id="logRemark"
+                  class="form-control"
+                  rows="6"
+                  maxlength="1000"
+                  oninput="onRemarkInput()"
+                  placeholder="พิมพ์หมายเหตุได้สูงสุด 1000 ตัวอักษร"></textarea>
+        <div class="text-end text-muted mt-1">
+            <span id="logCounter">0 / 1000</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="submitLog()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 @section Scripts{
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -366,5 +442,53 @@ $(function () {
 
     refreshRowNumbers();
 })();
+</script>
+
+<script>
+let __logAssignId = null;
+let __logStatus = null;
+
+function openLogModal(assignId, status) {
+    __logAssignId = assignId;
+    __logStatus = status;
+
+    const ta = document.getElementById('logRemark');
+    const counter = document.getElementById('logCounter');
+    ta.value = '';
+    counter.textContent = '0 / 1000';
+
+    const modal = new bootstrap.Modal(document.getElementById('logModal'));
+    modal.show();
+}
+
+function onRemarkInput() {
+    const ta = document.getElementById('logRemark');
+    const counter = document.getElementById('logCounter');
+    const len = ta.value.length;
+    counter.textContent = `${len} / 1000`;
+}
+
+function submitLog() {
+    const ta = document.getElementById('logRemark');
+    const remark = ta.value || '';
+
+    fetch('/PhaseAssigns/SaveLog', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `assignId=${__logAssignId}&status=${__logStatus}&remark=${encodeURIComponent(remark)}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && data.success) {
+            alert('บันทึกสำเร็จ (รอบ ' + data.round + ')');
+            location.reload();
+        } else {
+            alert('บันทึกไม่สำเร็จ');
+        }
+    })
+    .catch(() => alert('เกิดข้อผิดพลาด'));
+}
 </script>
 }

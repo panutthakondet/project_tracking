@@ -44,8 +44,8 @@ namespace ProjectTracking.Models
         [Column("actual_end")]
         public DateTime? ActualEnd { get; set; }
 
-        // remark ใน MySQL เป็น varchar(255)
-        [MaxLength(255)]
+        // remark ใน MySQL เป็น varchar(1000)
+        [MaxLength(1000)]
         [Column("remark")]
         public string? Remark { get; set; }
 
@@ -58,5 +58,8 @@ namespace ProjectTracking.Models
 
         [ForeignKey(nameof(EmpId))]
         public Employee? Employee { get; set; }
+
+        // 🔗 Logs history (PASS / REWORK)
+        public ICollection<PhaseAssignLog>? Logs { get; set; }
     }
 }

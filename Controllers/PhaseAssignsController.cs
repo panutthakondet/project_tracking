@@ -187,6 +187,12 @@ namespace ProjectTracking.Controllers
                 model.PhaseOrder = phase.PhaseOrder;
             }
 
+            // 🔒 Validate Remark length (server-side protection)
+            if (model.Remark != null && model.Remark.Length > 1000)
+            {
+                ModelState.AddModelError("Remark", "Remark ต้องไม่เกิน 1000 ตัวอักษร");
+            }
+
             if (!ModelState.IsValid)
             {
                 await ReloadCreateDropdown(projectId, model);
@@ -311,6 +317,12 @@ namespace ProjectTracking.Controllers
             else
             {
                 ModelState.AddModelError(nameof(model.PhaseId), "Phase is required");
+            }
+
+            // 🔒 Validate Remark length (server-side protection)
+            if (model.Remark != null && model.Remark.Length > 1000)
+            {
+                ModelState.AddModelError("Remark", "Remark ต้องไม่เกิน 1000 ตัวอักษร");
             }
 
             if (!ModelState.IsValid)
@@ -577,6 +589,46 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index), new { projectId });
+        }
+
+        // =====================================================
+        // SAVE LOG (PASS / REWORK)
+        // =====================================================
+        [HttpPost]
+        public async Task<IActionResult> SaveLog(int assignId, string status, string? remark)
+        {
+            try
+            {
+                // 🔍 หา round ล่าสุด
+                var lastRound = await _context.PhaseAssignLogs
+                    .Where(x => x.AssignId == assignId)
+                    .OrderByDescending(x => x.RoundNo)
+                    .Select(x => x.RoundNo)
+                    .FirstOrDefaultAsync();
+
+                int nextRound = (lastRound ?? 0) + 1;
+
+                var userId = HttpContext.Session.GetInt32("UserId");
+
+                var log = new PhaseAssignLog
+                {
+                    AssignId = assignId,
+                    Status = status?.Trim().ToUpper() ?? "REWORK",
+                    Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(),
+                    RoundNo = nextRound,
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.PhaseAssignLogs.Add(log);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, round = nextRound });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
 
         // =====================================================

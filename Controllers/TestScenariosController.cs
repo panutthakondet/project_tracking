@@ -64,14 +64,8 @@ namespace ProjectTracking.Controllers
                 .Select(x => x.s)
                 .ToListAsync();
 
-            var projectGroupIds = scenarios
-                .Select(x => x.group_id.GetValueOrDefault())
-                .Where(x => x != 0)
-                .Distinct()
-                .ToList();
-
             ViewBag.Groups = _context.TestTemplateGroups
-                .Where(g => g.is_active && projectGroupIds.Contains(g.group_id))
+                .Where(g => g.is_active)
                 .OrderBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();

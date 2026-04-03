@@ -87,6 +87,7 @@
             margin-bottom: 4px;
         }
 
+
         .checkbox-row {
             margin: 8px 0;
         }
@@ -169,9 +170,20 @@
     <!-- COMMENT -->
     <div class="section">
         <div class="label">ความคิดเห็น</div>
-        @for (int i = 0; i < 4; i++)
+        @if (!string.IsNullOrWhiteSpace(Model.Remark))
         {
-            <div class="comment-line"></div>
+            <div class="text-value" style="margin-top:0; white-space:pre-line; padding:0 8px 8px 8px; min-height:80px; line-height:1.1;">
+                <span style="display:block; margin-top:0;">@Model.Remark</span>
+            </div>
+        }
+        else
+        {
+            <div>
+                @for (int i = 0; i < 4; i++)
+                {
+                    <div class="comment-line"></div>
+                }
+            </div>
         }
     </div>
 
@@ -180,9 +192,6 @@
         ☐ ผ่าน ☐ ไม่ผ่าน(ครั้งที่ 1) ☐ ไม่ผ่าน(ครั้งที่ 2)
     </div>
 
-    <div class="row">
-        ระยะเวลาแก้ไข <span class="line"></span>
-    </div>
 
     <!-- SIGNATURE -->
     <table class="sign-table">
