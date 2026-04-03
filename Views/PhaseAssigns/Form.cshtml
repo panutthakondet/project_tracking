@@ -24,7 +24,7 @@
         body {
             font-family: "TH Sarabun New", "TH SarabunPSK", "Sarabun", Tahoma, Arial;
             font-size: 16pt;
-            line-height: 1.0;
+            line-height: 1.1;
         }
 
         .header {
@@ -59,7 +59,8 @@
         }
 
         .row {
-            margin-bottom: 6px;
+            margin-bottom: 0;
+            line-height: 1.0;
         }
 
         .label {
@@ -78,7 +79,7 @@
         }
 
         .section {
-            margin-top: 8px;
+            margin-top: 4px;
         }
 
         .comment-line {
@@ -97,6 +98,9 @@
             border-collapse: collapse;
             margin-top: 14px;
             font-size: 16pt;
+
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .sign-cell {
@@ -170,10 +174,31 @@
     <!-- COMMENT -->
     <div class="section">
         <div class="label">ความคิดเห็น</div>
-        @if (!string.IsNullOrWhiteSpace(Model.Remark))
+        @{
+            var logs = Model.Logs != null
+                ? ((IEnumerable<ProjectTracking.Models.PhaseAssignLog>)Model.Logs)
+                    .OrderBy(l => l.RoundNo)
+                    .ToList()
+                : new List<ProjectTracking.Models.PhaseAssignLog>();
+            var lastLog = logs.OrderByDescending(l => l.RoundNo).FirstOrDefault();
+        }
+
+        @if (logs.Any())
         {
-            <div class="text-value" style="margin-top:0; white-space:pre-line; padding:0 8px 8px 8px; min-height:80px; line-height:1.1;">
-                <span style="display:block; margin-top:0;">@Model.Remark</span>
+            <div class="text-value" style="margin-top:0; padding:0 8px 4px 8px; min-height:60px; line-height:1.0;">
+                @foreach (var log in logs)
+                {
+                    var statusText = log?.Status == "PASS" ? "ผ่าน" : "แก้ไข และนำเสนอใหม่";
+
+                    <div style="margin-bottom:0;">
+                        <div style="font-weight:bold; margin-bottom:0;">
+                            ครั้งที่ @(log?.RoundNo ?? 0) : @statusText
+                        </div>
+                        <div style="padding-left:20px; margin:0;">
+                            @(string.IsNullOrWhiteSpace(log?.Remark) ? "-" : log?.Remark.Trim())
+                        </div>
+                    </div>
+                }
             </div>
         }
         else
@@ -187,13 +212,10 @@
         }
     </div>
 
-    <!-- RESULT -->
-    <div class="checkbox-row">
-        ☐ ผ่าน ☐ ไม่ผ่าน(ครั้งที่ 1) ☐ ไม่ผ่าน(ครั้งที่ 2)
-    </div>
 
 
     <!-- SIGNATURE -->
+    <div style="page-break-inside: avoid; break-inside: avoid; page-break-before: auto;">
     <table class="sign-table">
         <tr>
             <td class="sign-cell">
@@ -217,6 +239,7 @@
             </td>
         </tr>
     </table>
+    </div>
 
 </body>
 </html>

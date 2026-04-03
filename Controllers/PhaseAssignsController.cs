@@ -81,7 +81,11 @@ namespace ProjectTracking.Controllers
                     Remark = a.Remark,
 
                     Phase = ph,
-                    Employee = e
+                    Employee = e,
+                    Logs = _context.PhaseAssignLogs
+                        .Where(l => l.AssignId == a.AssignId)
+                        .OrderByDescending(l => l.RoundNo)
+                        .ToList()
                 };
 
             if (empId.HasValue)
@@ -489,7 +493,11 @@ namespace ProjectTracking.Controllers
                     Remark = a.Remark,
 
                     Phase = ph,
-                    Employee = e
+                    Employee = e,
+                    Logs = _context.PhaseAssignLogs
+                        .Where(l => l.AssignId == a.AssignId)
+                        .OrderBy(l => l.RoundNo)
+                        .ToList()
                 };
 
             if (empId.HasValue)
@@ -517,6 +525,7 @@ namespace ProjectTracking.Controllers
             var assign = await _context.PhaseAssigns
                 .AsNoTracking()
                 .Include(a => a.Employee)
+                .Include(a => a.Logs)
                 .FirstOrDefaultAsync(a => a.AssignId == id);
 
             if (assign == null)

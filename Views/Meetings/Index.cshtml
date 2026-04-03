@@ -111,7 +111,7 @@
     .fc .fc-daygrid-day.fc-day-sun { background: rgba(220,53,69,0.12) !important; }
 
     .fc .fc-col-header-cell-cushion {
-        color: #fff !important;
+        color: #000 !important;
     }
 
     .fc .fc-day-today {
@@ -135,9 +135,16 @@
         border-radius: 10px;
         border: 1px solid rgba(0,0,0,.12);
         padding: 2px 6px;
+        color: #000 !important;
     }
 
-    .fc .fc-event-title { font-weight: 700; }
+    .fc .fc-event-title {
+        font-weight: 700;
+        color: #000 !important;
+    }
+    .fc-event * {
+        color: #000 !important;
+    }
 
     /* Event urgency colors */
     .fc-event.green-event { background:#d1e7dd !important; border-color:#badbcc !important; color:#0f5132 !important; }

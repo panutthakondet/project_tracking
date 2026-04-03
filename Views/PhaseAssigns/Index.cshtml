@@ -216,7 +216,40 @@ thead .sticky-col { z-index: 5; }
                         <td class="text-center nowrap">
                             @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
-                        <td class="col-remark">@a.Remark</td>
+                        <td class="col-remark">
+                            @{
+                                var lastLog = a.Logs?
+                                    .OrderByDescending(l => l.RoundNo)
+                                    .FirstOrDefault();
+                            }
+
+                            @if (lastLog != null)
+                            {
+                                var statusText = lastLog.Status == "PASS" ? "ผ่าน" : "แก้ไข และนำเสนอใหม่";
+                                var badgeClass = lastLog.Status == "PASS" ? "bg-success" : "bg-warning text-dark";
+
+                                <div>
+                                    <span class="badge @badgeClass">@statusText</span>
+                                </div>
+
+                                <div class="mt-1">
+                                    <b>Log :</b>
+                                    @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)
+                                </div>
+
+                                <div class="mt-1 text-muted">
+                                    <b>Assign :</b>
+                                    @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <b>Assign :</b>
+                                    @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)
+                                </div>
+                            }
+                        </td>
                         <td class="text-center">
                             <div class="d-flex flex-wrap justify-content-center gap-1">
 
