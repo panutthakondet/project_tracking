@@ -293,6 +293,17 @@
             </div>
             }
 
+            @if (CanMenu("Attendance.Map"))
+            {
+            <div class="col-md-3">
+                <a asp-controller="Attendance" asp-action="Map" class="menu-card">
+                    <div class="icon">📍</div>
+                    <div class="title">รายงาน(Check-in/Check-out)</div>
+                    <div class="desc">แสดงเข้า-ออกงาน</div>
+                </a>
+            </div>
+            }
+
         </div>
     </div>
 

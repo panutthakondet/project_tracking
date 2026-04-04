@@ -1,0 +1,166 @@
+@model IEnumerable<dynamic>
+
+<h3>📍 รายงานเข้า-ออกงาน</h3>
+
+<form method="get" class="mb-3">
+    <label>จากวันที่:</label>
+    <input type="text" id="fromDate" name="fromDate" value="@(ViewBag.FromDate ?? DateTime.Now.ToString("dd/MM/yyyy"))" class="form-control" style="max-width:180px; display:inline-block;" placeholder="dd/MM/2569" />
+
+    <label class="ms-2">ถึงวันที่:</label>
+    <input type="text" id="toDate" name="toDate" value="@(ViewBag.ToDate ?? DateTime.Now.ToString("dd/MM/yyyy"))" class="form-control" style="max-width:180px; display:inline-block;" placeholder="dd/MM/2569" />
+
+    <button type="submit" class="btn btn-primary ms-2">ค้นหา</button>
+</form>
+
+<table class="table table-bordered table-sm">
+    <thead class="table-light text-center">
+        <tr>
+            <th>ลำดับ</th>
+            <th>วันที่</th>
+            <th>ชื่อ</th>
+            <th>ตำแหน่ง</th>
+            <th>เวลาเข้า</th>
+            <th>เวลาออก</th>
+            <th>แผนที่</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            var i = 1;
+        }
+        @foreach (var item in Model)
+        {
+            <tr class="text-center">
+                <td>@i</td>
+                <td>
+                    @{
+                        DateTime d = item.WorkDate;
+                        @d.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("th-TH"))
+                    }
+                </td>
+                <td>@item.EmpName</td>
+                <td>@item.Position</td>
+                <td>@item.CheckinTime?.ToString("HH:mm")</td>
+                <td>@item.CheckoutTime?.ToString("HH:mm")</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-success"
+                            onclick="openGoogleMap('@item.CheckinLat','@item.CheckinLng','@item.CheckoutLat','@item.CheckoutLng')">
+                        ดูแผนที่
+                    </button>
+                </td>
+            @{ i++; }
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Modal -->
+<div id="mapModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000099; z-index:9999;">
+    <div style="width:80%; height:80%; background:#fff; margin:5% auto; padding:10px; border-radius:10px;">
+        <div style="display:flex; justify-content:space-between;">
+            <h5 id="mapTitle"></h5>
+            <button class="btn btn-danger btn-sm" onclick="closeMap()">ปิด</button>
+        </div>
+        <div id="map" style="width:100%; height:500px;"></div>
+    </div>
+</div>
+
+<!-- 🔥 ใส่ Google Maps API KEY ของคุณแทน YOUR_KEY -->
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&callback=initMapLoader" defer></script>
+
+<script>
+    let map;
+
+    function initMapLoader() {
+        // placeholder to ensure API is ready
+    }
+
+    function openMap(inLat, inLng, outLat, outLng, name) {
+        if (!inLat || !inLng) {
+            alert('ไม่พบพิกัด Check-in');
+            return;
+        }
+
+        document.getElementById("mapModal").style.display = "block";
+        document.getElementById("mapTitle").innerText = name;
+
+        const checkin = { lat: parseFloat(inLat), lng: parseFloat(inLng) };
+        const mapOptions = {
+            zoom: 14,
+            center: checkin
+        };
+
+        map = new google.maps.Map(document.getElementById("map"), mapOptions);
+
+        setTimeout(() => {
+            google.maps.event.trigger(map, 'resize');
+            map.setCenter(checkin);
+        }, 300);
+
+        // IN
+        new google.maps.Marker({
+            position: checkin,
+            map: map,
+            label: "IN"
+        });
+
+        // OUT
+        if (outLat && outLng) {
+            const checkout = { lat: parseFloat(outLat), lng: parseFloat(outLng) };
+
+            new google.maps.Marker({
+                position: checkout,
+                map: map,
+                label: "OUT"
+            });
+
+            new google.maps.Polyline({
+                path: [checkin, checkout],
+                map: map,
+                strokeColor: "#007bff",
+                strokeWeight: 3
+            });
+        }
+    }
+
+    function closeMap() {
+        document.getElementById("mapModal").style.display = "none";
+    }
+</script>
+<script>
+function openGoogleMap(inLat, inLng, outLat, outLng) {
+    if (!inLat || !inLng) {
+        alert('ไม่พบพิกัด Check-in');
+        return;
+    }
+
+    // ถ้ามีทั้งเข้าและออก → เปิด route
+    if (outLat && outLng) {
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${inLat},${inLng}&destination=${outLat},${outLng}`;
+        window.open(url, '_blank');
+    } else {
+        // ถ้ามีแค่เข้า → เปิดจุดเดียว
+        const url = `https://www.google.com/maps?q=${inLat},${inLng}`;
+        window.open(url, '_blank');
+    }
+}
+</script>
+<script>
+function convertToThaiDate(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el || !el.value) return;
+
+    const parts = el.value.split('-');
+    if (parts.length === 3) {
+        const y = parseInt(parts[0]) + 543;
+        const m = parts[1];
+        const d = parts[2];
+        el.value = `${d}/${m}/${y}`;
+    }
+}
+
+window.onload = function() {
+    convertToThaiDate('fromDate');
+    convertToThaiDate('toDate');
+};
+</script>

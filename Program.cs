@@ -222,15 +222,16 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(self), microphone=(), camera=()";
 
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; " +
-        "img-src 'self' data: blob:; " +
-        "style-src 'self' 'unsafe-inline' https:; " +
-        "script-src 'self' 'unsafe-inline' https:; " +
-        "font-src 'self' data: https:; " +
-        "connect-src 'self';";
+        "img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://*.google.com; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://cdn.jsdelivr.net; " +
+        "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net https:; " +
+        "font-src 'self' data: https://fonts.gstatic.com https:; " +
+        "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com; " +
+        "frame-src https://www.google.com https://maps.google.com;";
 
     await next();
 });

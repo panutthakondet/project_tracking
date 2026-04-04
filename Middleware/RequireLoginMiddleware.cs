@@ -28,7 +28,8 @@ namespace ProjectTracking.Middleware
                 "ProjectDocuments",
                 "SupportOrders",
                 "SupportOrdersDev",
-                "Followups"
+                "Followups",
+                "Attendance"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)
@@ -51,6 +52,9 @@ namespace ProjectTracking.Middleware
                 // Dashboard permissions
                 { ("Dashboard", "Index"), "Dashboard.Index" },
                 { ("Dashboard", "Details"), "Dashboard.Index" },
+
+                // Attendance permissions
+                { ("Attendance", "Map"), "Attendance.Map" },
 
                 // Meetings permissions
                 { ("Meetings", "Index"), "Meetings.Index" },

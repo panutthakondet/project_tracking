@@ -54,6 +54,8 @@ namespace ProjectTracking.Data
         public DbSet<ProjectFollowup> ProjectFollowups { get; set; }
         public DbSet<ProjectFollowupLog> ProjectFollowupLogs { get; set; }
         public DbSet<PhaseAssignLog> PhaseAssignLogs { get; set; }
+        public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<SystemConfig> SystemConfigs { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -700,6 +702,68 @@ namespace ProjectTracking.Data
             {
                 entity.HasNoKey();
                 entity.ToView("vw_phase_owner_status");
+            });
+
+            // =========================
+            // ATTENDANCE
+            // =========================
+            modelBuilder.Entity<Attendance>(entity =>
+            {
+                entity.ToTable("attendance");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EmpId)
+                    .HasColumnName("emp_id")
+                    .IsRequired();
+
+                entity.Property(x => x.WorkDate)
+                    .HasColumnName("work_date")
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.CheckinTime)
+                    .HasColumnName("checkin_time")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CheckinLat)
+                    .HasColumnName("checkin_lat")
+                    .HasColumnType("decimal(10,7)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CheckinLng)
+                    .HasColumnName("checkin_lng")
+                    .HasColumnType("decimal(10,7)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CheckoutTime)
+                    .HasColumnName("checkout_time")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CheckoutLat)
+                    .HasColumnName("checkout_lat")
+                    .HasColumnType("decimal(10,7)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CheckoutLng)
+                    .HasColumnName("checkout_lng")
+                    .HasColumnType("decimal(10,7)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime");
+
+                entity.HasIndex(x => new { x.EmpId, x.WorkDate })
+                    .IsUnique()
+                    .HasDatabaseName("uq_emp_date");
+
+                entity.HasOne<Employee>()
+                    .WithMany()
+                    .HasForeignKey(x => x.EmpId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }
