@@ -82,7 +82,12 @@ function check() {
                         alert("✅ ออกงานเรียบร้อย");
                     }
 
-                    location.reload();
+                    // location.reload();
+
+                    // Smooth update message instead of reload
+                    setTimeout(() => {
+                        document.getElementById("distanceBox").style.opacity = "1";
+                    }, 100);
 
                 } else {
                     alert("❌ " + res.message);

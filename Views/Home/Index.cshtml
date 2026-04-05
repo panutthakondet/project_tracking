@@ -61,6 +61,14 @@
                         <span class="label">สิทธิ์</span>
                         <span class="value">@(!string.IsNullOrWhiteSpace(role) ? role : "-")</span>
                     </div>
+                    <div>
+                        <span class="label">เวลาเข้า</span>
+                        <span class="value">@(ViewBag.CheckInTime ?? "-")</span>
+                    </div>
+                    <div>
+                        <span class="label">เวลาออก</span>
+                        <span class="value">@(ViewBag.CheckOutTime ?? "-")</span>
+                    </div>
                 </div>
             </div>
 

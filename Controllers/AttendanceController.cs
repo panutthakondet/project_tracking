@@ -70,7 +70,11 @@ namespace ProjectTracking.Controllers
                 _context.Attendances.Add(newRecord);
                 await _context.SaveChangesAsync();
 
-                return Json(new { success = true, type = "checkin" });
+                return Json(new {
+                    success = true,
+                    type = "checkin",
+                    checkinTime = Convert.ToDateTime(newRecord.CheckinTime).ToString("HH:mm")
+                });
             }
 
             // CHECK-OUT
@@ -111,7 +115,9 @@ namespace ProjectTracking.Controllers
                 return Json(new {
                     success = true,
                     type = "checkout",
-                    distanceKm = record.DistanceKm
+                    distanceKm = record.DistanceKm,
+                    checkinTime = record.CheckinTime.HasValue ? record.CheckinTime.Value.ToString("HH:mm") : null,
+                    checkoutTime = record.CheckoutTime.HasValue ? record.CheckoutTime.Value.ToString("HH:mm") : null
                 });
             }
 
