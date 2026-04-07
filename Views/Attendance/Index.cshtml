@@ -4,9 +4,13 @@
     @Html.AntiForgeryToken()
 </form>
 
-<div style="display:flex;justify-content:center;">
-    <button onclick="check()" style="padding:12px 28px;border:none;border-radius:10px;background:#4CAF50;color:white;font-weight:bold;cursor:pointer;font-size:16px;">
-        📍 เช็คเข้างาน / ออกงาน 
+<div style="display:flex;justify-content:center;gap:15px;">
+    <button id="btnCheckIn" onclick="check('checkin')" style="padding:12px 28px;border:none;border-radius:10px;background:#4CAF50;color:white;font-weight:bold;cursor:pointer;font-size:16px;">
+        📍 เช็คเข้างาน
+    </button>
+
+    <button id="btnCheckOut" onclick="check('checkout')" style="padding:12px 28px;border:none;border-radius:10px;background:#f44336;color:white;font-weight:bold;cursor:pointer;font-size:16px;">
+        📍 เช็คออกงาน
     </button>
 </div>
 
@@ -32,7 +36,7 @@ function loadCurrentLocation() {
     });
 }
 
-function check() {
+function check(type) {
     if (!navigator.geolocation) {
         alert("อุปกรณ์นี้ไม่รองรับ GPS");
         return;
@@ -54,7 +58,8 @@ function check() {
                 },
                 body: JSON.stringify({
                     lat: pos.coords.latitude,
-                    lng: pos.coords.longitude
+                    lng: pos.coords.longitude,
+                    type: type
                 })
             })
             .then(r => r.json())
@@ -78,8 +83,19 @@ function check() {
 
                     if (res.type === "checkin") {
                         alert("✅ เข้างานเรียบร้อย");
+
+                        let btn = document.getElementById("btnCheckIn");
+                        btn.disabled = true;
+                        btn.style.opacity = "0.5";
+                        btn.style.cursor = "not-allowed";
+
                     } else if (res.type === "checkout") {
                         alert("✅ ออกงานเรียบร้อย");
+
+                        let btn = document.getElementById("btnCheckOut");
+                        btn.disabled = true;
+                        btn.style.opacity = "0.5";
+                        btn.style.cursor = "not-allowed";
                     }
 
                     // location.reload();

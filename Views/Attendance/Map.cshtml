@@ -10,6 +10,10 @@
     <input type="text" id="toDate" name="toDate" value="@(ViewBag.ToDate ?? DateTime.Now.ToString("dd/MM/yyyy"))" class="form-control" style="max-width:180px; display:inline-block;" placeholder="dd/MM/2569" />
 
     <button type="submit" class="btn btn-primary ms-2">ค้นหา</button>
+
+    <button type="button" class="btn btn-danger ms-2" onclick="openPdfNewTab()">
+        🖨️ Preview PDF
+    </button>
 </form>
 
 <table class="table table-bordered table-sm">
@@ -21,6 +25,7 @@
             <th>ตำแหน่ง</th>
             <th>เวลาเข้า</th>
             <th>เวลาออก</th>
+            <th>ระยะทาง (km)</th>
             <th>แผนที่</th>
         </tr>
     </thead>
@@ -42,6 +47,7 @@
                 <td>@item.Position</td>
                 <td>@item.CheckinTime?.ToString("HH:mm")</td>
                 <td>@item.CheckoutTime?.ToString("HH:mm")</td>
+                <td>@(item.DistanceKm != null ? string.Format("{0:0.00}", item.DistanceKm) : "-")</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-success"
                             onclick="openGoogleMap('@item.CheckinLat','@item.CheckinLng','@item.CheckoutLat','@item.CheckoutLng')">
@@ -62,6 +68,17 @@
             <button class="btn btn-danger btn-sm" onclick="closeMap()">ปิด</button>
         </div>
         <div id="map" style="width:100%; height:500px;"></div>
+    </div>
+</div>
+
+<!-- PDF Modal -->
+<div id="pdfModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000099; z-index:9999;">
+    <div style="width:90%; height:90%; background:#fff; margin:3% auto; padding:10px; border-radius:10px;">
+        <div style="display:flex; justify-content:space-between;">
+            <h5>Preview PDF</h5>
+            <button class="btn btn-danger btn-sm" onclick="closePdf()">ปิด</button>
+        </div>
+        <iframe id="pdfFrame" style="width:100%; height:90%; border:none;"></iframe>
     </div>
 </div>
 
@@ -163,4 +180,19 @@ window.onload = function() {
     convertToThaiDate('fromDate');
     convertToThaiDate('toDate');
 };
+</script>
+<script>
+function openPdfNewTab() {
+    const fromDate = document.getElementById("fromDate").value;
+    const toDate = document.getElementById("toDate").value;
+
+    const url = `/Attendance/ExportPdf?fromDate=${fromDate}&toDate=${toDate}`;
+
+    window.open(url, '_blank');
+}
+
+function closePdf() {
+    document.getElementById("pdfModal").style.display = "none";
+    document.getElementById("pdfFrame").src = "";
+}
 </script>

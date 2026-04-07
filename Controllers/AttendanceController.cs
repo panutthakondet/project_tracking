@@ -1,3 +1,4 @@
+using ProjectTracking.Reports;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -56,31 +57,50 @@ namespace ProjectTracking.Controllers
                 .FirstOrDefaultAsync(x => x.EmpId == empId && x.WorkDate == today);
 
             // CHECK-IN
-            if (record == null)
+            if (dto.Type == "checkin")
             {
-                var newRecord = new Attendance
+                if (record != null && record.CheckinTime != null)
+                {
+                    return Json(new { success = false, message = "วันนี้เช็คเข้างานแล้ว" });
+                }
+
+                var newRecord = record ?? new Attendance
                 {
                     EmpId = empId,
-                    WorkDate = today,
-                    CheckinTime = DateTime.Now,
-                    CheckinLat = (decimal)dto.Lat,
-                    CheckinLng = (decimal)dto.Lng
+                    WorkDate = today
                 };
 
-                _context.Attendances.Add(newRecord);
+                newRecord.CheckinTime = DateTime.Now;
+                newRecord.CheckinLat = (decimal)dto.Lat;
+                newRecord.CheckinLng = (decimal)dto.Lng;
+
+                if (record == null)
+                    _context.Attendances.Add(newRecord);
+
                 await _context.SaveChangesAsync();
 
-                return Json(new {
+                return Json(new
+                {
                     success = true,
                     type = "checkin",
-                    checkinTime = Convert.ToDateTime(newRecord.CheckinTime).ToString("HH:mm")
+                    checkinTime = newRecord.CheckinTime?.ToString("HH:mm")
                 });
             }
 
             // CHECK-OUT
-            if (record.CheckoutTime == null)
+            if (dto.Type == "checkout")
             {
-                // 🔥 validate location (within 5 km from check-in)
+                if (record == null || record.CheckinTime == null)
+                {
+                    return Json(new { success = false, message = "กรุณาเช็คเข้างานก่อน" });
+                }
+
+                if (record.CheckoutTime != null)
+                {
+                    return Json(new { success = false, message = "วันนี้เช็คออกงานแล้ว" });
+                }
+
+                // 🔥 validate location (within distance)
                 var distance = GetDistanceKm(
                     (double)(record.CheckinLat ?? 0),
                     (double)(record.CheckinLng ?? 0),
@@ -105,24 +125,26 @@ namespace ProjectTracking.Controllers
                 }
 
                 record.DistanceKm = (decimal)distance;
-
                 record.CheckoutTime = DateTime.Now;
                 record.CheckoutLat = (decimal)dto.Lat;
                 record.CheckoutLng = (decimal)dto.Lng;
 
                 await _context.SaveChangesAsync();
 
-                return Json(new {
+                return Json(new
+                {
                     success = true,
                     type = "checkout",
                     distanceKm = record.DistanceKm,
-                    checkinTime = record.CheckinTime.HasValue ? record.CheckinTime.Value.ToString("HH:mm") : null,
-                    checkoutTime = record.CheckoutTime.HasValue ? record.CheckoutTime.Value.ToString("HH:mm") : null
+                    checkinTime = record.CheckinTime?.ToString("HH:mm"),
+                    checkoutTime = record.CheckoutTime?.ToString("HH:mm")
                 });
             }
 
+            return Json(new { success = false, message = "ประเภทการเช็คไม่ถูกต้อง" });
+
             // already completed
-            return Json(new { success = false, message = "วันนี้เช็คครบแล้ว" });
+            // return Json(new { success = false, message = "วันนี้เช็คครบแล้ว" });
         }
 
         private double GetDistanceKm(double lat1, double lon1, double lat2, double lon2)
@@ -178,7 +200,8 @@ namespace ProjectTracking.Controllers
                                   a.CheckoutLat,
                                   a.CheckoutLng,
                                   a.CheckinTime,
-                                  a.CheckoutTime
+                                  a.CheckoutTime,
+                                  a.DistanceKm
                               })
                               .ToListAsync();
 
@@ -187,6 +210,42 @@ namespace ProjectTracking.Controllers
             ViewBag.ToDate = end.AddYears(543).ToString("dd/MM/yyyy");
 
             return View(data);
+        }
+
+        [RequireMenu("Attendance.Map")]
+        public async Task<IActionResult> ExportPdf(string fromDate, string toDate)
+        {
+            DateTime start;
+            DateTime end;
+
+            if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParseExact(fromDate, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var f))
+                start = f.AddYears(-543);
+            else
+                start = DateTime.Today;
+
+            if (!string.IsNullOrEmpty(toDate) && DateTime.TryParseExact(toDate, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var t))
+                end = t.AddYears(-543);
+            else
+                end = DateTime.Today;
+
+            var data = await (from a in _context.Attendances
+                              join e in _context.Employees on a.EmpId equals e.EmpId
+                              where a.WorkDate >= start && a.WorkDate <= end
+                              orderby a.WorkDate, e.EmpName
+                              select new
+                              {
+                                  EmpName = e.EmpName,
+                                  Position = e.Position,
+                                  WorkDate = a.WorkDate,
+                                  CheckinTime = a.CheckinTime,
+                                  CheckoutTime = a.CheckoutTime,
+                                  DistanceKm = a.DistanceKm
+                              }).ToListAsync();
+
+            var pdf = AttendanceReport.Generate(data.Cast<dynamic>().ToList());
+
+            Response.Headers["Content-Disposition"] = "inline; filename=attendance-report.pdf";
+            return File(pdf, "application/pdf");
         }
     }
 }
