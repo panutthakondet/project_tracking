@@ -110,7 +110,7 @@ else if(item.DevStatus == "FIXED")
 
 <td class="text-center">
 <div class="btn-group btn-group-sm">
-@if (CanMenu("SupportOrdersDev.View"))
+@if (CanMenu("SupportOrdersDev.Details"))
 {
     <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-info" title="ดูรายละเอียด">
         View

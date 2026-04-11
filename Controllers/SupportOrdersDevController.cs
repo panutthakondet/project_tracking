@@ -49,7 +49,7 @@ namespace ProjectTracking.Controllers
         // =========================
         // View Details
         // =========================
-        [RequireMenu("SupportOrdersDev.Index")]
+        [RequireMenu("SupportOrdersDev.Details")]
         public async Task<IActionResult> Details(int id)
         {
             var order = await _context.ProjectSupportOrders
