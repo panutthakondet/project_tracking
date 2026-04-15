@@ -51,7 +51,7 @@ namespace ProjectTracking.Controllers
             var meetings = rows.Select(x => new
             {
                 id = x.Id,
-                title = (x.ProjectName == null ? x.Title : $"[{x.ProjectName}] {x.Title}"),
+                title = x.ProjectName ?? "",
                 allDay = false,
                 start = $"{x.MeetingDate:yyyy-MM-dd}T{x.StartTime.Hours:D2}:{x.StartTime.Minutes:D2}:{x.StartTime.Seconds:D2}",
                 end   = $"{x.MeetingDate:yyyy-MM-dd}T{x.EndTime.Hours:D2}:{x.EndTime.Minutes:D2}:{x.EndTime.Seconds:D2}",
@@ -59,6 +59,7 @@ namespace ProjectTracking.Controllers
                 {
                     projectId = x.ProjectId,
                     projectName = x.ProjectName,
+                    meetingTitle = x.Title,
                     location = x.Location
                 }
             }).ToList();
