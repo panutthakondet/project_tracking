@@ -26,7 +26,15 @@
         margin-bottom: 12px;
     }
 
-    .meeting-title { margin: 0; line-height: 1.2; }
+    .meeting-header > div:first-child {
+        flex: 1;
+    }
+
+    .meeting-title {
+        margin: 0;
+        line-height: 1.2;
+        width: 100%;
+    }
     .meeting-subtitle { margin: 6px 0 0 0; color: #6c757d; font-size: 0.95rem; }
 
     /* Card-like container */
@@ -67,7 +75,12 @@
     .calendar-card__body { padding: 12px 12px 14px 12px; }
 
     /* FullCalendar polish */
-    .fc .fc-toolbar-title { font-size: 1.15rem; font-weight: 700; }
+    .fc .fc-toolbar-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        flex-grow: 1;
+        text-align: center;
+    }
     .fc .fc-button {
         border-radius: 10px;
         border: 1px solid rgba(0,0,0,.10) !important;
@@ -170,54 +183,107 @@
         line-height: 1.35;
     }
 
-    /* ===== Meeting list table styling ===== */
-    #meetingListTable thead th {
-        background: linear-gradient(180deg,#0d6efd,#0b5ed7);
-        color: #fff;
-        border: 0;
-        font-weight: 700;
+
+    .meeting-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
 
-    #meetingListTable tbody tr {
-        transition: all .15s ease;
+    .meeting-row {
+        display: flex;
+        gap: 18px;
+        background: #f8f9fb;
+        border-radius: 14px;
+        padding: 16px;
+        border: 1px solid #e5e7eb;
+        align-items: stretch;
+        height: 100%;
     }
 
-    #meetingListTable tbody tr:nth-child(even) {
-        background: #f8fbff;
+    .meeting-col {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 18px;
+        border: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
     }
 
-    #meetingListTable tbody tr:hover {
-        background: #e9f2ff;
-        transform: translateY(-1px);
+    .meeting-date-box {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
     }
 
-    .meeting-date-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 8px;
+    .meeting-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
         background: #e7f1ff;
-        color: #0d6efd;
-        font-weight: 700;
-        font-size: .85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
     }
 
-    .meeting-project-badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 8px;
+    .meeting-day {
+        font-size: .8rem;
+        color: #6c757d;
+    }
+
+    .meeting-project {
+        display: flex;
+        gap: 10px;
+    }
+
+    .meeting-project-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
         background: #d1e7dd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .meeting-project-text {
+        font-size: .9rem;
+        line-height: 1.5;
         color: #0f5132;
         font-weight: 600;
-        font-size: .85rem;
-        white-space: normal;
-        word-break: break-word;
-        max-width: 100%;
     }
 
-    @@media (max-width: 768px) {
-        .calendar-card__body { padding: 8px; }
-        .fc .fc-toolbar { flex-direction: column; gap: 10px; }
-        .fc .fc-toolbar-title { text-align: center; }
+    .meeting-desc {
+        font-weight: 700;
+        font-size: .95rem;
+        margin-bottom: 8px;
+        line-height: 1.3;
+    }
+
+    .meeting-location {
+        font-size: .82rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .meeting-col > * {
+        width: 100%;
+    }
+
+    .meeting-row > .meeting-col:nth-child(1) {
+        flex: 0 0 auto;   /* ให้กว้างตามเนื้อหา */
+        min-width: 90px;  /* กันเล็กเกินไป */
+    }
+
+    .meeting-row > .meeting-col:nth-child(2) {
+        flex: 1;
+    }
+
+    .meeting-row > .meeting-col:nth-child(3) {
+        flex: 1;
     }
 </style>
 
@@ -276,16 +342,7 @@
                         รายการประชุม
                     </div>
                     <div class="card-body" style="padding:10px;overflow:auto;">
-                        <table class="table table-sm table-hover" id="meetingListTable">
-                            <thead>
-                                <tr>
-                                    <th style="width:140px;">วันที่ / เวลา</th>
-                                    <th>โครงการ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
+                        <div id="meetingListTable" class="meeting-list"></div>
                     </div>
                 </div>
             </div>
@@ -438,8 +495,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/Meetings/List')
             .then(r => r.json())
             .then(data => {
-                const tbody = document.querySelector('#meetingListTable tbody');
-                tbody.innerHTML = '';
+                const container = document.getElementById('meetingListTable');
+                container.innerHTML = '';
 
                 const today = new Date();
                 today.setHours(0,0,0,0);
@@ -451,8 +508,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     const d = new Date(e.start);
                     if (d >= today) {
 
-                        const tr = document.createElement('tr');
-
                         const date = d.toLocaleDateString('th-TH');
 
                         const project = e.extendedProps && e.extendedProps.projectName
@@ -462,24 +517,40 @@ document.addEventListener('DOMContentLoaded', function () {
                         const start = e.start ? new Date(e.start).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
                         const end = e.end ? new Date(e.end).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
 
-                        tr.innerHTML = `
-                            <td>
-                                <div class="meeting-date-badge">${date}</div>
-                                <div style="font-size:.8rem;color:#6c757d;margin-top:2px;">${start}${end ? ' - ' + end : ''}</div>
-                            </td>
-                            <td style="white-space: normal; word-break: break-word;">
-                                <span class="meeting-project-badge" style="display:inline-block; max-width:100%; white-space:normal;">
-                                    ${project}
-                                </span>
-                            </td>
-                        `;
+                        const div = document.createElement('div');
+                        div.className = 'meeting-row';
 
-                        tr.style.cursor = 'pointer';
-                        tr.onclick = () => {
+                        div.innerHTML = `
+    <div class="meeting-col">
+        <div class="meeting-date-box">
+            <div class="meeting-icon">📅</div>
+            <div>
+                <div class="meeting-date">${date}</div>
+                <div class="meeting-day">${d.toLocaleDateString('th-TH', { weekday: 'long' })}</div>
+                <div class="meeting-time">⏰ ${start}${end ? ' - ' + end : ''}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="meeting-col">
+        <div class="meeting-project">
+            <div class="meeting-project-icon">💼</div>
+            <div class="meeting-project-text">${project}</div>
+        </div>
+    </div>
+
+    <div class="meeting-col">
+        <div class="meeting-desc">${e.extendedProps?.description || '-'}</div>
+        <div class="meeting-location">📍 ${e.extendedProps?.location || 'Online'}</div>
+    </div>
+`;
+
+                        div.style.cursor = 'pointer';
+                        div.onclick = () => {
                             window.location.href = '/Meetings/Show/' + e.id;
                         };
 
-                        tbody.appendChild(tr);
+                        container.appendChild(div);
                     }
                 });
             });

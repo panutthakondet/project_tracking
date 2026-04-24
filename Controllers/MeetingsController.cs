@@ -44,7 +44,8 @@ namespace ProjectTracking.Controllers
                     m.EndTime,
                     m.ProjectId,
                     ProjectName = p == null ? null : p.ProjectName,
-                    m.Location
+                    m.Location,
+                    m.Description
                 }
             ).ToListAsync();
 
@@ -60,6 +61,7 @@ namespace ProjectTracking.Controllers
                     projectId = x.ProjectId,
                     projectName = x.ProjectName,
                     meetingTitle = x.Title,
+                    description = x.Description,
                     location = x.Location
                 }
             }).ToList();
