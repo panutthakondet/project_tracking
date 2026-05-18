@@ -93,10 +93,17 @@
     }
     .fc .fc-button-primary:disabled { opacity: .55; }
 
-    .fc .fc-daygrid-day-frame { padding: 6px; }
+    .fc .fc-daygrid-day-frame {
+        padding: 8px;
+        min-height: 130px;
+    }
     .fc .fc-daygrid-day-number { font-weight: 600; color: rgba(0,0,0,.70); }
 
-    .fc .fc-col-header-cell-cushion { font-weight: 700; color: rgba(0,0,0,.65); }
+    .fc .fc-col-header-cell-cushion {
+        font-weight: 700;
+        font-size: 1rem;
+        text-shadow: 0 1px 1px rgba(0,0,0,.15);
+    }
 
     /* Header background color */
     .fc .fc-col-header-cell {
@@ -106,25 +113,59 @@
     }
 
     /* Thai traditional day colors (Mon–Sun) */
-    .fc .fc-col-header-cell:nth-child(1) { background:#ffc107; color:#000; }  /* Monday - Yellow */
-    .fc .fc-col-header-cell:nth-child(2) { background:#ff69b4; color:#fff; }  /* Tuesday - Pink */
-    .fc .fc-col-header-cell:nth-child(3) { background:#28a745; color:#fff; }  /* Wednesday - Green */
-    .fc .fc-col-header-cell:nth-child(4) { background:#fd7e14; color:#fff; }  /* Thursday - Orange */
-    .fc .fc-col-header-cell:nth-child(5) { background:#0d6efd; color:#fff; }  /* Friday - Blue */
-    .fc .fc-col-header-cell:nth-child(6) { background:#6f42c1; color:#fff; }  /* Saturday - Purple */
-    .fc .fc-col-header-cell:nth-child(7) { background:#dc3545; color:#fff; }  /* Sunday - Red */
+    .fc .fc-col-header-cell:nth-child(1) { background:#dc3545; color:#fff; }  /* Sunday - Red */
+    .fc .fc-col-header-cell:nth-child(2) { background:#ffc107; color:#000; }  /* Monday - Yellow */
+    .fc .fc-col-header-cell:nth-child(3) { background:#ff69b4; color:#fff; }  /* Tuesday - Pink */
+    .fc .fc-col-header-cell:nth-child(4) { background:#28a745; color:#fff; }  /* Wednesday - Green */
+    .fc .fc-col-header-cell:nth-child(5) { background:#fd7e14; color:#fff; }  /* Thursday - Orange */
+    .fc .fc-col-header-cell:nth-child(6) { background:#0d6efd; color:#fff; }  /* Friday - Blue */
+    .fc .fc-col-header-cell:nth-child(7) { background:#6f42c1; color:#fff; }  /* Saturday - Purple */
 
     /* Light background using FullCalendar weekday classes (force correct color even with fc-day-other) */
+    .fc .fc-daygrid-day.fc-day-sun { background: rgba(220,53,69,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-mon { background: rgba(255,193,7,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-tue { background: rgba(255,105,180,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-wed { background: rgba(40,167,69,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-thu { background: rgba(253,126,20,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-fri { background: rgba(13,110,253,0.12) !important; }
     .fc .fc-daygrid-day.fc-day-sat { background: rgba(111,66,193,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-sun { background: rgba(220,53,69,0.12) !important; }
 
-    .fc .fc-col-header-cell-cushion {
-        color: #000 !important;
+    /* Make header text readable */
+    .fc .fc-col-header-cell:nth-child(1) .fc-col-header-cell-cushion { color: #000000 !important; } /* Sunday */
+    .fc .fc-col-header-cell:nth-child(2) .fc-col-header-cell-cushion { color: #000000 !important; } /* Monday */
+    .fc .fc-col-header-cell:nth-child(3) .fc-col-header-cell-cushion { color: #000000 !important; } /* Tuesday */
+    .fc .fc-col-header-cell:nth-child(4) .fc-col-header-cell-cushion { color: #000000 !important; } /* Wednesday */
+    .fc .fc-col-header-cell:nth-child(5) .fc-col-header-cell-cushion { color: #000000 !important; } /* Thursday */
+    .fc .fc-col-header-cell:nth-child(6) .fc-col-header-cell-cushion { color: #000000 !important; } /* Friday */
+    .fc .fc-col-header-cell:nth-child(7) .fc-col-header-cell-cushion { color: #000000 !important; } /* Saturday */
+
+    /* Day number colors only (do not override header text) */
+    .fc-day-sun .fc-daygrid-day-number {
+        color: #dc2626 !important; /* Sunday = Red */
+    }
+
+    .fc-day-mon .fc-daygrid-day-number {
+        color: #d4a017 !important; /* Monday = Yellow */
+    }
+
+    .fc-day-tue .fc-daygrid-day-number {
+        color: #e91e63 !important; /* Tuesday = Pink */
+    }
+
+    .fc-day-wed .fc-daygrid-day-number {
+        color: #16a34a !important; /* Wednesday = Green */
+    }
+
+    .fc-day-thu .fc-daygrid-day-number {
+        color: #f97316 !important; /* Thursday = Orange */
+    }
+
+    .fc-day-fri .fc-daygrid-day-number {
+        color: #2563eb !important; /* Friday = Blue */
+    }
+
+    .fc-day-sat .fc-daygrid-day-number {
+        color: #7c3aed !important; /* Saturday = Purple */
     }
 
     .fc .fc-day-today {
@@ -145,30 +186,61 @@
     }
 
     .fc .fc-event {
-        border-radius: 10px;
-        border: 1px solid rgba(0,0,0,.12);
-        padding: 2px 4px;
-        font-size: 0.75rem;
-        line-height: 1.2;
+        border-radius: 10px !important;
+        border: 1px solid rgba(0,0,0,.08) !important;
+        padding: 8px 10px !important;
+        font-size: 0.80rem;
+        line-height: 1.4;
         white-space: normal !important;
         word-break: break-word;
         overflow: hidden;
+        margin-bottom: 8px !important;
+        box-shadow: none !important;
+        transition: all .15s ease;
+    }
+
+    .fc .fc-event:hover {
+        transform: translateY(-1px);
     }
 
     .fc .fc-event-title {
         font-weight: 600;
-        font-size: 0.75rem;
+        font-size: 0.78rem;
         white-space: normal !important;
         word-break: break-word;
-    }
-    .fc-event * {
-        color: #000 !important;
+        color: #1f2937 !important;
+        line-height: 1.4;
     }
 
-    /* Event urgency colors */
-    .fc-event.green-event { background:#d1e7dd !important; border-color:#badbcc !important; color:#0f5132 !important; }
-    .fc-event.yellow-event { background:#fff3cd !important; border-color:#ffecb5 !important; color:#664d03 !important; }
-    .fc-event.red-event { background:#f8d7da !important; border-color:#f5c2c7 !important; color:#842029 !important; }
+    .fc-event.customer-event {
+        background: #dff2dc !important;
+        border-color: #b7dcb0 !important;
+    }
+
+    .fc-event.team-event {
+        background: #fff0bf !important;
+        border-color: #ecd47a !important;
+    }
+
+    .fc-event.executive-event {
+        background: #fde0e0 !important;
+        border-color: #f0b1b1 !important;
+    }
+
+    .fc-event.manager-event {
+        background: #ead7fb !important;
+        border-color: #cfb0f5 !important;
+    }
+
+    .fc-event.vendor-event {
+        background: #ffe8cf !important;
+        border-color: #f3be86 !important;
+    }
+
+    .fc-event.other-event {
+        background: #dcecff !important;
+        border-color: #a9c8f7 !important;
+    }
 
     .fc-tooltip {
         background: #212529;
@@ -201,13 +273,14 @@
         height: 100%;
     }
 
-    .meeting-row.sun { background: #fdecea; }
-    .meeting-row.mon { background: #fff8e1; }
-    .meeting-row.tue { background: #fce4ec; }
-    .meeting-row.wed { background: #e8f5e9; }
-    .meeting-row.thu { background: #fff3e0; }
-    .meeting-row.fri { background: #e3f2fd; }
-    .meeting-row.sat { background: #f3e5f5; }
+    /* Correct weekday colors */
+    .meeting-row.sun { background: #fdecea; } /* Sunday - Red */
+    .meeting-row.mon { background: #fff8e1; } /* Monday - Yellow */
+    .meeting-row.tue { background: #fce4ec; } /* Tuesday - Pink */
+    .meeting-row.wed { background: #e8f5e9; } /* Wednesday - Green */
+    .meeting-row.thu { background: #fff3e0; } /* Thursday - Orange */
+    .meeting-row.fri { background: #e3f2fd; } /* Friday - Blue */
+    .meeting-row.sat { background: #f3e5f5; } /* Saturday - Purple */
 
     .meeting-col {
         background: #ffffff;
@@ -412,16 +485,45 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         eventClassNames: function(arg) {
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const eventDate = new Date(arg.event.start);
-            eventDate.setHours(0,0,0,0);
+            const audience = (
+                arg.event.extendedProps?.meetingAudience ||
+                arg.event.extendedProps?.audience ||
+                arg.event.extendedProps?.meetingWith ||
+                arg.event.extendedProps?.meeting_with ||
+                ''
+            ).trim();
 
-            const diffDays = Math.floor((eventDate - today) / (1000*60*60*24));
+            switch(audience.toLowerCase()) {
+                case 'ลูกค้า':
+                case 'customer':
+                    return ['customer-event'];
 
-            if (diffDays <= 0) return ['red-event'];          // วันนี้หรือผ่านมาแล้ว
-            if (diffDays <= 2) return ['yellow-event'];       // อีก 1-2 วัน
-            return ['green-event'];                           // อีกมากกว่า 2 วัน
+                case 'ทีมงาน':
+                case 'team':
+                case 'internal':
+                    return ['team-event'];
+
+                case 'ผู้บริหาร':
+                case 'executive':
+                    return ['executive-event'];
+
+                case 'ผู้จัดการ':
+                case 'manager':
+                    return ['manager-event'];
+
+                case 'vendor':
+                case 'vendor / partner':
+                case 'partner':
+                    return ['vendor-event'];
+
+                case 'อื่นๆ':
+                case 'other':
+                    return ['other-event'];
+
+                default:
+                    console.log('Unknown meeting audience:', audience, arg.event.extendedProps);
+                    return ['other-event'];
+            }
         },
 
         displayEventTime: false,
@@ -441,13 +543,79 @@ document.addEventListener('DOMContentLoaded', function () {
             const shortProject = eventCounter + '. ' + truncate(project, 30);
             const shortMeeting = meetingTitle || '';
 
+            // Add meetingWith extraction
+            const meetingWith = (
+                props.meetingAudienceText ||
+                props.meetingAudience ||
+                props.audience ||
+                props.meetingWith ||
+                props.meeting_with ||
+                '-'
+            ).trim();
+
             const container = document.createElement('div');
             container.style.whiteSpace = 'normal';
             container.style.wordBreak = 'break-word';
 
+            const audience = (
+                props.meetingAudience ||
+                props.audience ||
+                props.meetingWith ||
+                props.meeting_with ||
+                ''
+            ).trim();
+            let icon = '📌';
+            switch(audience.toLowerCase()) {
+                case 'ลูกค้า':
+                case 'customer':
+                    icon = '👤';
+                    break;
+
+                case 'ทีมงาน':
+                case 'team':
+                case 'internal':
+                    icon = '👨‍💻';
+                    break;
+
+                case 'ผู้บริหาร':
+                case 'executive':
+                    icon = '🏢';
+                    break;
+
+                case 'ผู้จัดการ':
+                case 'manager':
+                    icon = '📋';
+                    break;
+
+                case 'vendor':
+                case 'vendor / partner':
+                case 'partner':
+                    icon = '🤝';
+                    break;
+
+                default:
+                    icon = '📄';
+                    break;
+            }
+
             container.innerHTML = `
-                <div>${shortProject}</div>
-                ${shortMeeting ? `<div style="font-size:0.7rem;color:#555;">${shortMeeting}</div>` : ''}
+                <div style="display:flex;gap:8px;align-items:flex-start;">
+                    <div style="font-size:1rem;line-height:1;margin-top:2px;">${icon}</div>
+                    <div style="flex:1;overflow:hidden;">
+                        <div style="font-weight:700;font-size:.78rem;line-height:1.35;">
+                            ${shortProject}
+                        </div>
+                        ${shortMeeting ? `
+                            <div style="font-size:.73rem;line-height:1.3;margin-top:2px;opacity:.85;">
+                                ${shortMeeting}
+                            </div>
+                        ` : ''}
+
+                        <div style="font-size:.72rem;margin-top:4px;font-weight:600;color:#374151;">
+                            👥 ${meetingWith}
+                        </div>
+                    </div>
+                </div>
             `;
 
             return { domNodes: [container] };
@@ -455,6 +623,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         eventDidMount: function(info) {
             const props = info.event.extendedProps || {};
+            console.log('Meeting props:', props);
             function escapeHtml(text) {
                 const div = document.createElement('div');
                 div.textContent = text || '';
@@ -556,6 +725,13 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="meeting-col">
         <div class="meeting-desc">${e.extendedProps?.description || '-'}</div>
         <div class="meeting-location">📍 ${e.extendedProps?.location || 'Online'}</div>
+        <div class="meeting-location" style="margin-top:6px;font-weight:600;color:#374151;">
+            👥 ประชุมกับ: ${
+                e.extendedProps?.meetingAudienceText ||
+                e.extendedProps?.meetingAudience ||
+                '-'
+            }
+        </div>
     </div>
 `;
 

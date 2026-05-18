@@ -90,6 +90,11 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(255)")
                     .IsRequired(false);
 
+                entity.Property(m => m.MeetingAudience)
+                    .HasColumnName("meeting_audience")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
                 entity.Property(m => m.ProjectId)
                     .HasColumnType("int")
                     .IsRequired(false);
@@ -435,11 +440,48 @@ namespace ProjectTracking.Data
             // =========================
             modelBuilder.Entity<ProjectPhase>(entity =>
             {
+                entity.ToTable("project_phase");
+
                 entity.HasKey(p => p.PhaseId);
 
-                // ✅ เสริม mapping ช่วงแผนให้ชัด (ใช้กับ workload overlap)
-                entity.Property(p => p.PlanStart).IsRequired(false);
-                entity.Property(p => p.PlanEnd).IsRequired(false);
+                entity.Property(p => p.PhaseId)
+                    .HasColumnName("phase_id");
+
+                entity.Property(p => p.ProjectId)
+                    .HasColumnName("project_id")
+                    .IsRequired();
+
+                entity.Property(p => p.PhaseName)
+                    .HasColumnName("phase_name")
+                    .HasColumnType("varchar(500)");
+
+                entity.Property(p => p.PhaseStatus)
+                    .HasColumnName("phase_status")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
+                entity.Property(p => p.PlanStart)
+                    .HasColumnName("plan_start")
+                    .IsRequired(false);
+
+                entity.Property(p => p.PlanEnd)
+                    .HasColumnName("plan_end")
+                    .IsRequired(false);
+
+                entity.Property(p => p.PeriodStartDate)
+                    .HasColumnName("period_start_date")
+                    .IsRequired(false);
+
+                entity.Property(p => p.PeriodEndDate)
+                    .HasColumnName("period_end_date")
+                    .IsRequired(false);
+
+                // ✅ Relation ProjectPhase -> Project
+                entity.HasOne(p => p.Project)
+                    .WithMany()
+                    .HasForeignKey(p => p.ProjectId)
+                    .HasPrincipalKey(p => p.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(p => p.ProjectId);
                 entity.HasIndex(p => p.PlanStart);

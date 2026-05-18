@@ -105,6 +105,22 @@
                     <div>@(string.IsNullOrWhiteSpace(Model.Location) ? "-" : Model.Location)</div>
                 </div>
 
+                <div class="col-md-6">
+                    <div class="text-muted">ประชุมกับ</div>
+                    <div>
+                        @if (string.IsNullOrWhiteSpace(Model.MeetingAudience))
+                        {
+                            <span>-</span>
+                        }
+                        else
+                        {
+                            <div style="font-weight:600;">
+                                👥 @Model.MeetingAudience
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 <div class="col-12">
                     <hr />
                     <div class="d-flex align-items-center justify-content-between">

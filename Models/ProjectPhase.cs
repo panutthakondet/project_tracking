@@ -37,12 +37,30 @@ namespace ProjectTracking.Models
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
 
-        // ✅ เปลี่ยน Mapping ไปที่ชื่อใหม่ใน DB
+        // Period วันที่เริ่ม/สิ้นสุดงวดงาน
         [Column("period_start_date")]
-        public DateTime? ActualStart { get; set; }
+        public DateTime? PeriodStartDate { get; set; }
 
         [Column("period_end_date")]
-        public DateTime? ActualEnd { get; set; }
+        public DateTime? PeriodEndDate { get; set; }
+
+        // =============================
+        // Backward compatibility
+        // อย่ากระทบของเดิม
+        // =============================
+        [NotMapped]
+        public DateTime? ActualStart
+        {
+            get => PeriodStartDate;
+            set => PeriodStartDate = value;
+        }
+
+        [NotMapped]
+        public DateTime? ActualEnd
+        {
+            get => PeriodEndDate;
+            set => PeriodEndDate = value;
+        }
 
         // ✅ สถานะงวดงาน
         [Column("phase_status")]

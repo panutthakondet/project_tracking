@@ -33,6 +33,10 @@ namespace ProjectTracking.Models
         [MaxLength(255)]
         public string? Location { get; set; }
 
+        [Column("meeting_audience")]
+        [MaxLength(50)]
+        public string? MeetingAudience { get; set; }
+
         [Column("created_by")]
         public int? CreatedBy { get; set; }
 

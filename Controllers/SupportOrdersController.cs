@@ -222,11 +222,24 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
                 return View(order);
 
+            // โหลดข้อมูลเดิมก่อน เพื่อกันค่า DevStatus หาย
+            var existingOrder = await _context.ProjectSupportOrders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.OrderId == order.OrderId);
+
+            if (existingOrder == null)
+                return NotFound();
+
             // ===== Programmer Status Logic =====
-            // If programmer uploads AFTER images -> mark FIXED
+            // ถ้า programmer upload AFTER image -> FIXED
             if (afterFiles != null && afterFiles.Count > 0)
             {
                 order.DevStatus = "FIXED";
+            }
+            else
+            {
+                // ถ้าไม่ได้ส่งค่า DevStatus จากหน้า form ให้คงค่าเดิมไว้
+                order.DevStatus = existingOrder.DevStatus;
             }
 
             _context.ProjectSupportOrders.Update(order);

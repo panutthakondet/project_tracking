@@ -45,7 +45,8 @@ namespace ProjectTracking.Controllers
                     m.ProjectId,
                     ProjectName = p == null ? null : p.ProjectName,
                     m.Location,
-                    m.Description
+                    m.Description,
+                    m.MeetingAudience
                 }
             ).ToListAsync();
 
@@ -62,7 +63,8 @@ namespace ProjectTracking.Controllers
                     projectName = x.ProjectName,
                     meetingTitle = x.Title,
                     description = x.Description,
-                    location = x.Location
+                    location = x.Location,
+                    meetingAudience = x.MeetingAudience
                 }
             }).ToList();
 
@@ -224,6 +226,7 @@ namespace ProjectTracking.Controllers
             meeting.StartTime = model.StartTime;
             meeting.EndTime = model.EndTime;
             meeting.Location = model.Location;
+            meeting.MeetingAudience = model.MeetingAudience;
             meeting.ProjectId = model.ProjectId;
 
             // อัปเดตรายชื่อผู้เข้าร่วม

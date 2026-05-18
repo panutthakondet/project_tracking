@@ -762,12 +762,23 @@ document.addEventListener("DOMContentLoaded", function () {
     </a>
 }
 
+
 @if (CanMenu("Attendance.Index"))
 {
     <a href="/Attendance"
        class="followup-float-btn"
        style="bottom:316px;background:linear-gradient(135deg,#10b981,#059669);color:white;">
         ⏱️
+    </a>
+}
+
+@if (CanMenu("PhaseCalendar.Index"))
+{
+    <a href="/PhaseCalendar"
+       class="followup-float-btn"
+       style="bottom:388px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;"
+       title="ปฏิทินกำหนดส่งงาน">
+        🗓️
     </a>
 }
 
