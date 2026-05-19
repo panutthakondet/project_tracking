@@ -89,7 +89,7 @@
                 <th>Employee</th>
                 <th>Role</th>
                 <th>Plan Period</th>
-                <th>Actual Period</th>
+                <th>Status</th>
                 <th>Remark</th>
             </tr>
         </thead>
@@ -124,9 +124,18 @@
                         @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                     </td>
                     <td class="text-center">
-                        @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
-                        –
-                        @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        @if (a.WorkStatus == "DONE")
+                        {
+                            <span class="badge bg-success">
+                                ✅ เสร็จสิ้น
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">
+                                🟡 กำลังดำเนินการ
+                            </span>
+                        }
                     </td>
                     <td style="white-space:normal;">@a.Remark</td>
                 </tr>

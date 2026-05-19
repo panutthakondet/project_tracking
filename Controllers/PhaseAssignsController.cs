@@ -76,8 +76,7 @@ namespace ProjectTracking.Controllers
                     Role = a.Role,
                     PlanStart = a.PlanStart,
                     PlanEnd = a.PlanEnd,
-                    ActualStart = a.ActualStart,
-                    ActualEnd = a.ActualEnd,
+                    WorkStatus = a.WorkStatus,
                     Remark = a.Remark,
 
                     Phase = ph,
@@ -127,7 +126,10 @@ namespace ProjectTracking.Controllers
 
             // ✅ เติมค่าเริ่มต้นให้แสดงทันที (กรณีมี phase อย่างน้อย 1)
             var firstPhase = phases.FirstOrDefault();
-            var defaultModel = new PhaseAssign();
+            var defaultModel = new PhaseAssign
+            {
+                WorkStatus = "IN_PROGRESS"
+            };
             if (firstPhase != null)
             {
                 defaultModel.PhaseId = firstPhase.PhaseId;
@@ -202,7 +204,6 @@ namespace ProjectTracking.Controllers
                 await ReloadCreateDropdown(projectId, model);
                 return View(model);
             }
-
             // ✅ phase_sort is NOT NULL in MySQL, so always set a value
             // Keep a single total order per project (same order used by drag-reorder on Index)
             if (model.PhaseSort == null || model.PhaseSort <= 0)
@@ -216,6 +217,8 @@ namespace ProjectTracking.Controllers
 
                 model.PhaseSort = (maxSort ?? 0) + 1;
             }
+            if (string.IsNullOrWhiteSpace(model.WorkStatus))
+                model.WorkStatus = "IN_PROGRESS";
             _context.PhaseAssigns.Add(model);
             await _context.SaveChangesAsync();
 
@@ -370,9 +373,10 @@ namespace ProjectTracking.Controllers
             db.EmpId = model.EmpId;
             db.PlanStart = model.PlanStart;
             db.PlanEnd = model.PlanEnd;
-            db.ActualStart = model.ActualStart;
-            db.ActualEnd = model.ActualEnd;
             db.Remark = model.Remark;
+            db.WorkStatus = string.IsNullOrWhiteSpace(model.WorkStatus)
+                ? "IN_PROGRESS"
+                : model.WorkStatus;
 
             // ✅ Role: allow manual edit (fallback to PhaseName)
             var roleText = (model.Role ?? string.Empty).Trim();
@@ -488,8 +492,7 @@ namespace ProjectTracking.Controllers
                     Role = a.Role,
                     PlanStart = a.PlanStart,
                     PlanEnd = a.PlanEnd,
-                    ActualStart = a.ActualStart,
-                    ActualEnd = a.ActualEnd,
+                    WorkStatus = a.WorkStatus,
                     Remark = a.Remark,
 
                     Phase = ph,

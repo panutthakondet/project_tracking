@@ -17,6 +17,7 @@ namespace ProjectTracking.Controllers
             _context = context;
         }
 
+        [RequireMenu("PhaseCalendar.Index")]
         public IActionResult Index()
         {
             return View();

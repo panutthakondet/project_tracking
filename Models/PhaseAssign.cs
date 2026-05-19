@@ -38,11 +38,9 @@ namespace ProjectTracking.Models
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
 
-        [Column("actual_start")]
-        public DateTime? ActualStart { get; set; }
+        [Column("work_status")]
+        public string? WorkStatus { get; set; }
 
-        [Column("actual_end")]
-        public DateTime? ActualEnd { get; set; }
 
         // remark ใน MySQL เป็น varchar(1000)
         [MaxLength(1000)]

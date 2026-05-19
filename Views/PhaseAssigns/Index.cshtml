@@ -156,7 +156,7 @@ thead .sticky-col { z-index: 5; }
                 <col class="col-phase" />
                 <col class="col-role" />
                 <col class="col-period" />
-                <col class="col-period" />
+                <col style="width:180px;" />
                 <col class="col-remark" />
                 <col class="col-action" />
             </colgroup>
@@ -167,7 +167,7 @@ thead .sticky-col { z-index: 5; }
                     <th class="col-phase">Phase</th>
                     <th class="col-role">Role</th>
                     <th class="col-period">Plan Period</th>
-                    <th class="col-period">Actual Period</th>
+                    <th style="width:180px;">Status</th>
                     <th class="col-remark">Remark</th>
                     <th class="col-action">Action</th>
                 </tr>
@@ -213,8 +213,19 @@ thead .sticky-col { z-index: 5; }
                         <td class="text-center nowrap">
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
-                        <td class="text-center nowrap">
-                            @(a.ActualStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        <td class="text-center">
+                            @if (a.WorkStatus == "DONE")
+                            {
+                                <span class="badge bg-success px-3 py-2">
+                                    ✅ เสร็จสิ้น
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark px-3 py-2">
+                                    🟡 กำลังดำเนินการ
+                                </span>
+                            }
                         </td>
                         <td class="col-remark">
                             @{

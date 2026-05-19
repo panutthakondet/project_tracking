@@ -29,7 +29,9 @@ namespace ProjectTracking.Middleware
                 "SupportOrders",
                 "SupportOrdersDev",
                 "Followups",
-                "Attendance"
+                "Attendance",
+                "PhaseWorkload",
+                "PhaseCalendar"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)
@@ -55,6 +57,12 @@ namespace ProjectTracking.Middleware
 
                 // Attendance permissions
                 { ("Attendance", "Map"), "Attendance.Map" },
+
+                // PhaseWorkload permissions
+                { ("PhaseWorkload", "Index"), "PhaseWorkload.Index" },
+
+                // PhaseCalendar permissions
+                { ("PhaseCalendar", "Index"), "PhaseCalendar.Index" },
 
                 // Meetings permissions
                 { ("Meetings", "Index"), "Meetings.Index" },

@@ -83,15 +83,24 @@
                 </div>
 
                 <!-- PLAN START -->
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">📅 Plan Start</label>
                     <input asp-for="PlanStart" type="date" class="form-control" id="planStart" />
                 </div>
 
                 <!-- PLAN END -->
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">📅 Plan End</label>
                     <input asp-for="PlanEnd" type="date" class="form-control" id="planEnd" />
+                </div>
+
+                <!-- WORK STATUS -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">📌 Status</label>
+                    <select asp-for="WorkStatus" class="form-select">
+                        <option value="IN_PROGRESS">🟡 กำลังดำเนินการ</option>
+                        <option value="DONE">✅ เสร็จสิ้น</option>
+                    </select>
                 </div>
 
                 <!-- REMARK -->

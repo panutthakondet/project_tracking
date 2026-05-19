@@ -1,0 +1,281 @@
+@model List<ProjectTracking.Models.PhaseAssign>
+
+@{
+    ViewData["Title"] = "ปริมาณงานทีม";
+
+    int year = ViewBag.Year;
+    int month = ViewBag.Month;
+
+    var firstDay = new DateTime(year, month, 1);
+    int daysInMonth = DateTime.DaysInMonth(year, month);
+
+    string selectedEmpId = Context.Request.Query["empId"].ToString();
+
+    var employees = Model
+        .Where(x => x.Employee != null)
+        .GroupBy(x => new
+        {
+            x.EmpId,
+            EmpName = x.Employee!.EmpName ?? ""
+        })
+        .OrderBy(x => x.Key.EmpName)
+        .ToList();
+}
+
+<div class="container-fluid mt-3">
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+                <h4 class="mb-0">
+                    📅 ปริมาณงานทีม
+                </h4>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+
+                    <form method="get" class="d-flex align-items-center gap-2 mb-0 flex-nowrap">
+
+                        <input type="hidden" name="year" value="@year" />
+                        <input type="hidden" name="month" value="@month" />
+
+                        <label class="fw-bold mb-0 text-nowrap">
+                            ผู้รับผิดชอบ
+                        </label>
+
+                        <select name="empId"
+                                class="form-select form-select-sm emp-select"
+                                onchange="this.form.submit()">
+
+                            <option value="">
+                                -- ทั้งหมด --
+                            </option>
+
+                            @foreach (var emp in employees)
+                            {
+                                <option value="@emp.Key.EmpId"
+                                        selected="@(selectedEmpId == emp.Key.EmpId.ToString())">
+                                    @emp.Key.EmpName
+                                </option>
+                            }
+
+                        </select>
+
+                    </form>
+
+                    <a class="btn btn-outline-secondary"
+                       href="@Url.Action("Index", new {
+                           year = firstDay.AddMonths(-1).Year,
+                           month = firstDay.AddMonths(-1).Month,
+                           empId = selectedEmpId
+                       })">
+                        ← เดือนก่อน
+                    </a>
+
+                    <span class="fw-bold fs-5 mx-3">
+                        @(firstDay.ToString("MMMM", new System.Globalization.CultureInfo("th-TH")) + " " + (firstDay.Year + 543))
+                    </span>
+
+                    <a class="btn btn-outline-secondary"
+                       href="@Url.Action("Index", new {
+                           year = firstDay.AddMonths(1).Year,
+                           month = firstDay.AddMonths(1).Month,
+                           empId = selectedEmpId
+                       })">
+                        เดือนถัดไป →
+                    </a>
+                </div>
+
+            </div>
+
+            <div class="table-responsive" style="overflow-x:auto;">
+
+                <table class="table table-bordered align-middle text-center workload-table">
+
+                    <thead>
+                        <tr>
+                            <th style="min-width:220px; width:220px;">
+                                ผู้รับผิดชอบ
+                            </th>
+
+                            @for (int day = 1; day <= daysInMonth; day++)
+                            {
+                                var date = new DateTime(year, month, day);
+
+                                <th style="min-width:120px; width:120px;">
+                                    <div>@day</div>
+                                    <small class="text-muted">
+                                        @date.ToString("ddd")
+                                    </small>
+                                </th>
+                            }
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var emp in employees
+                            .Where(e => string.IsNullOrEmpty(selectedEmpId)
+                                || e.Key.EmpId.ToString() == selectedEmpId))
+                        {
+                            <tr>
+
+                                <td class="text-start fw-bold bg-light">
+                                    @emp.Key.EmpName
+                                </td>
+
+                                @for (int day = 1; day <= daysInMonth; day++)
+                                {
+                                    var currentDate = new DateTime(year, month, day);
+
+                                    var works = Model
+                                        .Where(x =>
+                                            x.EmpId == emp.Key.EmpId &&
+                                            x.PlanStart.HasValue &&
+                                            x.PlanEnd.HasValue &&
+                                            currentDate >= x.PlanStart.Value &&
+                                            currentDate <= x.PlanEnd.Value
+                                        )
+                                        .OrderBy(x => x.Phase!.ProjectId)
+                                        .ThenBy(x => x.Phase!.PhaseSort)
+                                        .ToList();
+
+                                    var projectGroups = works
+                                        .GroupBy(x => x.Phase?.ProjectId)
+                                        .ToList();
+
+                                    <td class="p-1 workload-cell">
+
+                                        <div class="project-group-wrap">
+                                        @foreach (var project in projectGroups)
+                                        {
+                                            <div class="project-row-wrap">
+
+                                            @foreach (var work in project)
+                                            {
+                                                string bgColor = "#FFE69C"; // IN_PROGRESS
+
+                                                if (work.WorkStatus == "DONE")
+                                                {
+                                                    bgColor = "#A3E4B5"; // DONE
+                                                }
+
+                                                <a href="/ProjectPhases?projectId=@work.Phase?.ProjectId"
+                                                   class="text-decoration-none"
+                                                   title="Project : @(work.Phase?.Project?.ProjectName)
+Phase : @(work.Phase?.PhaseName)
+Role : @(work.Role)
+Plan : @(work.PlanStart?.ToString("dd/MM/yyyy")) - @(work.PlanEnd?.ToString("dd/MM/yyyy"))
+Status : @(work.WorkStatus == "DONE"
+    ? "เสร็จสิ้น"
+    : "กำลังดำเนินการ")">
+
+                                                    <div class="work-item project-inline mb-1"
+                                                         style="background:@bgColor">
+
+                                                        <div class="text-dark fw-bold"
+                                                             style="font-size:9px; white-space:normal; word-break:break-word; line-height:1.15;">
+                                                            @work.Phase?.Project?.ProjectName
+                                                        </div>
+
+                                                        <div class="text-dark"
+                                                             style="font-size:8px; white-space:normal; word-break:break-word; line-height:1.15;">
+                                                            @work.Phase?.PhaseName
+                                                        </div>
+
+                                                        <div class="text-muted"
+                                                             style="font-size:7px; white-space:normal; word-break:break-word; line-height:1.15;">
+                                                            @work.Role
+                                                        </div>
+
+                                                    </div>
+                                                </a>
+                                            }
+
+                                            </div>
+                                        }
+                                        </div>
+
+                                    </td>
+                                }
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .workload-table th {
+        background: #f8f9fa;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .workload-table {
+        min-width: max-content;
+    }
+
+    .workload-cell {
+        vertical-align: top;
+        height: 72px;
+        min-width: 70px;
+        padding: 2px !important;
+    }
+
+    .work-item {
+        border-radius: 5px;
+        padding: 3px 5px;
+        font-size: 9px;
+        border: 1px solid rgba(0,0,0,.08);
+        min-height: 52px;
+        text-align: left;
+        overflow: visible;
+        line-height: 1.15;
+        margin-bottom: 2px !important;
+    }
+
+    .work-item:hover {
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+
+    .project-group-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .project-row-wrap {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        align-items: flex-start;
+        overflow-x: auto;
+    }
+
+    .project-inline {
+        width: 108px;
+        flex: 0 0 auto;
+    }
+</style>
+
+<style>
+.emp-select {
+    width: 420px !important;
+    min-width: 420px !important;
+    padding-right: 55px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>
