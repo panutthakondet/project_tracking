@@ -21,6 +21,7 @@
         /* ✅ Global Font */
         body {
             font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+            overflow-x: hidden;
         }
         .navbar {
             background: linear-gradient(135deg, #1f2933, #111827);
@@ -260,6 +261,10 @@
             padding:6px 10px;
             border-radius:999px;
             white-space:nowrap;
+            max-width:220px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            pointer-events:none;
             box-shadow:0 8px 20px rgba(0,0,0,.25);
         }
         /* ===== PRINT ONLY: ซ่อน navbar/footer ตอนสั่งพิมพ์จริง (ยังแสดงบนหน้าจอ) ===== */
@@ -813,7 +818,7 @@ document.addEventListener("DOMContentLoaded", function () {
        class="followup-float-btn"
        style="bottom:@(floatBottom += floatStep)px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;"
        title="ปฏิทินกำหนดส่งงาน">
-        <span class="followup-float-label">ปฏิทินเสร็จงาน</span>
+        <span class="followup-float-label">ปฏิทินกำหนดส่งงาน</span>
         🗓️
     </a>
 }
