@@ -497,6 +497,7 @@ namespace ProjectTracking.Controllers
 
                     Phase = ph,
                     Employee = e,
+
                     Logs = _context.PhaseAssignLogs
                         .Where(l => l.AssignId == a.AssignId)
                         .OrderBy(l => l.RoundNo)

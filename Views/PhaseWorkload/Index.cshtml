@@ -5,9 +5,10 @@
 
     int year = ViewBag.Year;
     int month = ViewBag.Month;
-
+    int monthTo = ViewBag.MonthTo ?? month;
     var firstDay = new DateTime(year, month, 1);
-    int daysInMonth = DateTime.DaysInMonth(year, month);
+    var endDay = new DateTime(year, monthTo, DateTime.DaysInMonth(year, monthTo));
+    var totalDays = (endDay - firstDay).Days + 1;
 
     string selectedEmpId = Context.Request.Query["empId"].ToString();
 
@@ -29,62 +30,100 @@
 
             <div class="d-flex justify-content-between align-items-center mb-3 flex-nowrap gap-2">
 
-                <h4 class="mb-0">
-                    📅 ปริมาณงานทีม
-                </h4>
+                <div>
+                    <h4 class="mb-1">
+                        📅 ปริมาณงานทีม
+                    </h4>
 
-                <div class="d-flex align-items-center gap-2 flex-nowrap justify-content-end workload-toolbar">
+                    <div class="d-flex align-items-center gap-3 small text-muted workload-legend">
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="legend-dot legend-done"></span>
+                            <span>DONE</span>
+                        </div>
 
-                    <form method="get" class="d-flex align-items-center gap-2 mb-0 flex-nowrap employee-filter-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="legend-dot legend-progress"></span>
+                            <span>IN_PROGRESS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-end flex-nowrap">
+
+                    <form id="filterForm"
+                          method="get"
+                          class="d-flex align-items-center gap-2 mb-0 flex-nowrap employee-filter-wrap"
+                          style="width:auto; flex:none;">
 
                         <input type="hidden" name="year" value="@year" />
-                        <input type="hidden" name="month" value="@month" />
 
                         <label class="fw-bold mb-0 text-nowrap">
                             ผู้รับผิดชอบ
                         </label>
 
-                        <select name="empId"
-                                class="form-select form-select-sm emp-select"
-                                onchange="this.form.submit()">
+                        <div style="width:300px; min-width:300px; flex:0 0 300px;">
+                            <select id="empFilter"
+                                    name="empId"
+                                    class="form-select emp-select-fixed"
+                                    onchange="this.form.submit()">
 
-                            <option value="">
-                                -- ทั้งหมด --
-                            </option>
+                                <option value="">
+                                    -- ทั้งหมด --
+                                </option>
 
-                            @foreach (var emp in employees)
+                                @foreach (var emp in employees)
+                                {
+                                    <option value="@emp.Key.EmpId"
+                                            selected="@(selectedEmpId == emp.Key.EmpId.ToString())">
+                                        @emp.Key.EmpName
+                                    </option>
+                                }
+
+                            </select>
+                        </div>
+
+                        <label class="fw-bold mb-0 text-nowrap">
+                            เดือน
+                        </label>
+
+                        <div style="width:180px; min-width:180px; flex:0 0 180px;">
+                            <select name="month"
+                                    class="form-select month-select"
+                                    form="filterForm">
+                            @for (int m = 1; m <= 12; m++)
                             {
-                                <option value="@emp.Key.EmpId"
-                                        selected="@(selectedEmpId == emp.Key.EmpId.ToString())">
-                                    @emp.Key.EmpName
+                                <option value="@m" selected="@(month == m)">
+                                    @(new DateTime(year, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("th-TH")))
                                 </option>
                             }
+                            </select>
+                        </div>
 
-                        </select>
+                        <span>ถึง</span>
+
+                        <div style="width:180px; min-width:180px; flex:0 0 180px;">
+                            <select name="monthTo"
+                                    class="form-select month-select"
+                                    form="filterForm">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m" selected="@(monthTo == m)">
+                                    @(new DateTime(year, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("th-TH")))
+                                </option>
+                            }
+                            </select>
+                        </div>
+
+                        <button type="submit"
+                                form="filterForm"
+                                class="btn btn-primary toolbar-btn">
+                            แสดง
+                        </button>
 
                     </form>
+                    <div class="workload-toolbar">
+                    </div>
 
-                    <a class="btn btn-outline-secondary"
-                       href="@Url.Action("Index", new {
-                           year = firstDay.AddMonths(-1).Year,
-                           month = firstDay.AddMonths(-1).Month,
-                           empId = selectedEmpId
-                       })">
-                        ← เดือนก่อน
-                    </a>
-
-                    <span class="fw-bold fs-5 mx-3">
-                        @(firstDay.ToString("MMMM", new System.Globalization.CultureInfo("th-TH")) + " " + (firstDay.Year + 543))
-                    </span>
-
-                    <a class="btn btn-outline-secondary"
-                       href="@Url.Action("Index", new {
-                           year = firstDay.AddMonths(1).Year,
-                           month = firstDay.AddMonths(1).Month,
-                           empId = selectedEmpId
-                       })">
-                        เดือนถัดไป →
-                    </a>
                 </div>
 
             </div>
@@ -95,17 +134,26 @@
 
                     <thead>
                         <tr>
-                            <th style="min-width:220px; width:220px;">
+                            <th class="sticky-employee-col" style="min-width:320px; width:320px;">
                                 ผู้รับผิดชอบ
                             </th>
 
-                            @for (int day = 1; day <= daysInMonth; day++)
+                            @for (int i = 0; i < totalDays; i++)
                             {
-                                var date = new DateTime(year, month, day);
+                                var date = firstDay.AddDays(i);
+                                bool isToday = date.Date == DateTime.Today;
+                                bool isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
 
-                                <th style="min-width:40px; width:40px;">
-                                    <div>@day</div>
-                                    <small class="text-muted">
+                                <th class="@(isToday ? "today-column-header" : "") @(isWeekend ? "weekend-column" : "")"
+                                    style="min-width:40px; width:40px; position:relative;">
+
+                                    <div style="font-size:10px;font-weight:700;color:#2563eb;line-height:1; margin-bottom:2px; white-space:nowrap;">
+                                        @date.ToString("MMM", new System.Globalization.CultureInfo("th-TH"))
+                                    </div>
+
+                                    <div>@date.Day</div>
+
+                                    <small class="text-muted" style="font-size:10px;">
                                         @date.ToString("ddd")
                                     </small>
                                 </th>
@@ -159,9 +207,11 @@
                                         </div>
                                     </td>
 
-                                    @for (int day = 1; day <= daysInMonth; day++)
+                                    @for (int i = 0; i < totalDays; i++)
                                     {
-                                        var currentDate = new DateTime(year, month, day);
+                                        var currentDate = firstDay.AddDays(i);
+                                        bool isToday = currentDate.Date == DateTime.Today;
+                                        bool isWeekend = currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday;
 
                                         bool isWorking = phase.PlanStart.HasValue
                                             && phase.PlanEnd.HasValue
@@ -172,7 +222,7 @@
                                             ? "#A3E4B5"
                                             : "#FFE69C";
 
-                                        <td class="timeline-cell p-0 align-middle">
+                                        <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "")">
                                             @if (isWorking)
                                             {
                                                 <a href="/PhaseAssigns?projectId=@phase.Phase?.ProjectId&phaseId=@phase.Phase?.PhaseId"
@@ -212,6 +262,14 @@
         font-size: 13px;
         font-weight: 700;
         border-bottom: 2px solid #dee2e6;
+    }
+
+    .sticky-employee-col {
+        position: sticky;
+        left: 0;
+        z-index: 20 !important;
+        background: linear-gradient(180deg,#f8fafc,#eef2f7) !important;
+        box-shadow: 4px 0 8px rgba(0,0,0,.04);
     }
 
     .workload-table {
@@ -263,36 +321,118 @@
     .phase-project-cell {
         min-width: 320px;
         width: 320px;
+        max-width: 320px;
         vertical-align: middle;
         background: #fbfcfd !important;
         border-right: 2px solid #e9ecef;
         padding: 10px 14px !important;
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        box-shadow: 4px 0 8px rgba(0,0,0,.04);
+    }
+
+    .weekend-column {
+        background: #f8fafc !important;
+    }
+
+    .today-column {
+        background: #eef6ff !important;
+        box-shadow: inset 2px 0 0 #3b82f6,
+                    inset -2px 0 0 #3b82f6;
+    }
+
+    .today-column-header {
+        background: linear-gradient(180deg,#dbeafe,#bfdbfe) !important;
+        color: #1d4ed8 !important;
+        box-shadow: inset 2px 0 0 #3b82f6,
+                    inset -2px 0 0 #3b82f6;
+    }
+
+    .workload-legend {
+        margin-top: -2px;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .legend-done {
+        background: #A3E4B5;
+        border: 1px solid #65b87d;
+    }
+
+    .legend-progress {
+        background: #FFE69C;
+        border: 1px solid #d4b85f;
     }
 </style>
 
 <style>
 .employee-filter-wrap {
-    width: 100%;
-    min-width: 360px;
-    max-width: 420px;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap !important;
+    flex: none !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    white-space: nowrap;
 }
 
-.emp-select {
+.emp-select-fixed,
+#empFilter {
     width: 100% !important;
-    min-width: 0 !important;
-    padding-right: 55px !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 100% !important;
+    max-width: 100% !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    padding: 0 38px 0 10px !important;
+    line-height: 34px !important;
+    box-sizing: border-box !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* replaced month-select styles */
+.month-select {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    padding: 0 38px 0 10px !important;
+    line-height: 34px !important;
+    box-sizing: border-box !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 </style>
 
 <style>
 .workload-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap !important;
     white-space: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    flex-wrap: nowrap !important;
+    min-width: 0;
 }
 
 .workload-toolbar::-webkit-scrollbar {

@@ -78,7 +78,7 @@ thead .sticky-col { z-index: 5; }
 .table-assign th, .table-assign td { vertical-align: middle; }
 .table-assign .col-phase { width:240px; }
 .table-assign .col-role { width:220px; }
-.table-assign .col-period { width:280px; white-space: nowrap; }
+.table-assign .col-period { width:380px; white-space: nowrap; }
 .table-assign .col-remark { width:360px; }
 .table-assign .col-action { width:190px; }
 
@@ -166,7 +166,7 @@ thead .sticky-col { z-index: 5; }
                     <th class="sticky-col sticky-2">Employee</th>
                     <th class="col-phase">Phase</th>
                     <th class="col-role">Role</th>
-                    <th class="col-period">Plan Period</th>
+                    <th class="col-period">Plan / Period Date</th>
                     <th style="width:180px;">Status</th>
                     <th class="col-remark">Remark</th>
                     <th class="col-action">Action</th>
@@ -210,8 +210,28 @@ thead .sticky-col { z-index: 5; }
                         <td class="fw-semibold sticky-col sticky-2">👤 @a.Employee?.EmpName</td>
                         <td class="fw-semibold">@GetPhaseNameSafe(a)</td>
                         <td>@a.Role</td>
-                        <td class="text-center nowrap">
-                            @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") <span class="mx-1">–</span> @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        <td class="nowrap">
+                            <div>
+                                <span class="fw-semibold text-primary">Plan :</span>
+                                @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                                <span class="mx-1">–</span>
+                                @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                            </div>
+
+                            <div class="text-muted small mt-1">
+                                <span class="fw-semibold">Period :</span>
+                                @(
+                                    a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
+                                    ?? a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
+                                    ?? "-"
+                                )
+                                <span class="mx-1">–</span>
+                                @(
+                                    a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
+                                    ?? a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th)
+                                    ?? "-"
+                                )
+                            </div>
                         </td>
                         <td class="text-center">
                             @if (a.WorkStatus == "DONE")

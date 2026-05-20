@@ -15,15 +15,20 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? month)
+        public async Task<IActionResult> Index(int? year, int? month, int? monthTo, string? empId)
         {
             var currentDate = DateTime.Today;
 
             int selectedYear = year ?? currentDate.Year;
             int selectedMonth = month ?? currentDate.Month;
+            int selectedMonthTo = monthTo ?? selectedMonth;
 
             var monthStart = new DateTime(selectedYear, selectedMonth, 1);
-            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var monthEnd = new DateTime(
+                selectedYear,
+                selectedMonthTo,
+                DateTime.DaysInMonth(selectedYear, selectedMonthTo)
+            );
 
             var data = await _context.PhaseAssigns
                 .Include(x => x.Employee)
@@ -38,6 +43,10 @@ namespace ProjectTracking.Controllers
                     (
                         x.Phase.PhaseStatus == "วางแผน" ||
                         x.Phase.PhaseStatus == "กำลังดำเนินการ"
+                    ) &&
+                    (
+                        string.IsNullOrEmpty(empId)
+                        || x.EmpId.ToString() == empId
                     )
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
@@ -46,6 +55,8 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Year = selectedYear;
             ViewBag.Month = selectedMonth;
+            ViewBag.MonthTo = selectedMonthTo;
+            ViewBag.SelectedEmpId = empId;
             ViewBag.MonthStart = monthStart;
             ViewBag.MonthEnd = monthEnd;
 
