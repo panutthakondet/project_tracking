@@ -49,6 +49,16 @@ namespace ProjectTracking.Controllers
                         || x.EmpId.ToString() == empId
                     )
                 )
+                .Select(x => new Models.PhaseAssign
+                {
+                    AssignId = x.AssignId,
+                    EmpId = x.EmpId,
+                    Employee = x.Employee,
+                    PhaseId = x.PhaseId,
+                    Phase = x.Phase,
+                    PlanStart = x.PlanStart,
+                    PlanEnd = x.PlanEnd
+                })
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.PlanStart)
                 .ToListAsync();

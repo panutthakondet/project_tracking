@@ -205,6 +205,15 @@
                                             -
                                             @(phase.PlanEnd?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")))
                                         </div>
+                                        @if (phase.Phase?.PeriodStartDate.HasValue == true || phase.Phase?.PeriodEndDate.HasValue == true)
+                                        {
+                                            <div style="font-size:11px;color:#7c3aed;line-height:1.3; margin-top:3px;">
+                                                🗓️ งวดงาน:
+                                                @(phase.Phase?.PeriodStartDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
+                                                -
+                                                @(phase.Phase?.PeriodEndDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
+                                            </div>
+                                        }
                                     </td>
 
                                     @for (int i = 0; i < totalDays; i++)
