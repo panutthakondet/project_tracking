@@ -222,8 +222,12 @@
         .floating-tools-panel{
             position:fixed;
             right:28px;
-            bottom:28px;
+            bottom:108px;
             z-index:9998;
+            display:flex;
+            flex-direction:column-reverse;
+            align-items:flex-end;
+            gap:12px;
             transition:all .25s ease;
             transform-origin:bottom right;
         }
@@ -258,8 +262,7 @@
             transform:translateY(-2px) scale(1.03);
         }
         .followup-float-btn{
-            position:fixed;
-            right:28px;
+            position:relative;
             width:60px;
             height:60px;
             border-radius:50%;
@@ -776,7 +779,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/Followups/Dashboard"
        class="followup-float-btn"
-       style="bottom:108px"
+       style=""
        title="ติดตาม">
         <span class="followup-float-label">ติดตามงาน Followups</span>
         📌
@@ -794,7 +797,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/Followups/DashboardDone"
        class="followup-float-btn"
-       style="bottom:180px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;"
+       style="background:linear-gradient(135deg,#22c55e,#16a34a);color:white;"
        title="เสร็จแล้ว">
         <span class="followup-float-label">ติดตามงาน(เสร็จแล้ว)</span>
         ✔
@@ -812,7 +815,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/Followups/DashboardACK"
        class="followup-float-btn"
-       style="bottom:252px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;"
+       style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;"
        title="รับทราบ">
         <span class="followup-float-label">ติดตามงาน(รับทราบแล้ว)</span>
         📥
@@ -830,7 +833,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/Meetings"
        class="followup-float-btn"
-       style="bottom:324px;background:linear-gradient(135deg,#6366f1,#4338ca);color:white;"
+       style="background:linear-gradient(135deg,#6366f1,#4338ca);color:white;"
        title="ประชุม">
         <span class="followup-float-label">ปฏิทินการประชุม</span>
         📅
@@ -848,7 +851,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/Attendance"
        class="followup-float-btn"
-       style="bottom:396px;background:linear-gradient(135deg,#10b981,#059669);color:white;"
+       style="background:linear-gradient(135deg,#10b981,#059669);color:white;"
        title="เวลา">
         <span class="followup-float-label">เช็คเข้าออกงาน</span>
         ⏱️
@@ -859,7 +862,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/PhaseCalendar"
        class="followup-float-btn"
-       style="bottom:468px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;"
+       style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;"
        title="ปฏิทินกำหนดส่งงาน">
         <span class="followup-float-label">ปฏิทินกำหนดส่งงาน</span>
         🗓️
@@ -870,7 +873,7 @@ document.addEventListener("DOMContentLoaded", function () {
 {
     <a href="/PhaseWorkload"
        class="followup-float-btn"
-       style="bottom:540px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"
+       style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"
        title="ปริมาณงานทีม">
         <span class="followup-float-label">ปริมาณงานทีม</span>
         📊
