@@ -178,9 +178,9 @@
                         </td>
 
                         <td class="text-center">
-                            @(phase.ActualStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            @(phase.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
                             &nbsp;–&nbsp;
-                            @(phase.ActualEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                            @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
 
                         <td class="text-center">

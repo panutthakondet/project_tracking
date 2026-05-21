@@ -220,17 +220,9 @@ thead .sticky-col { z-index: 5; }
 
                             <div class="text-muted small mt-1">
                                 <span class="fw-semibold">Period :</span>
-                                @(
-                                    a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
-                                    ?? a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
-                                    ?? "-"
-                                )
+                                @(a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
                                 <span class="mx-1">–</span>
-                                @(
-                                    a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th)
-                                    ?? a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th)
-                                    ?? "-"
-                                )
+                                @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                             </div>
                         </td>
                         <td class="text-center">
