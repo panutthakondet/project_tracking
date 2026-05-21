@@ -56,6 +56,7 @@ namespace ProjectTracking.Controllers
                     Employee = x.Employee,
                     PhaseId = x.PhaseId,
                     Phase = x.Phase,
+                    Role = x.Role,
                     PlanStart = x.PlanStart,
                     PlanEnd = x.PlanEnd
                 })
