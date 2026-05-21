@@ -15,19 +15,21 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? month, int? monthTo, string? empId)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId)
         {
             var currentDate = DateTime.Today;
 
             int selectedYear = year ?? currentDate.Year;
+            int selectedYearTo = yearTo ?? selectedYear;
+
             int selectedMonth = month ?? currentDate.Month;
             int selectedMonthTo = monthTo ?? selectedMonth;
 
             var monthStart = new DateTime(selectedYear, selectedMonth, 1);
             var monthEnd = new DateTime(
-                selectedYear,
+                selectedYearTo,
                 selectedMonthTo,
-                DateTime.DaysInMonth(selectedYear, selectedMonthTo)
+                DateTime.DaysInMonth(selectedYearTo, selectedMonthTo)
             );
 
             var data = await _context.PhaseAssigns
@@ -65,6 +67,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.Year = selectedYear;
+            ViewBag.YearTo = selectedYearTo;
             ViewBag.Month = selectedMonth;
             ViewBag.MonthTo = selectedMonthTo;
             ViewBag.SelectedEmpId = empId;

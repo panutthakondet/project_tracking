@@ -4,10 +4,12 @@
     ViewData["Title"] = "ปริมาณงานทีม";
 
     int year = ViewBag.Year;
+    int yearTo = ViewBag.YearTo ?? year;
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
+
     var firstDay = new DateTime(year, month, 1);
-    var endDay = new DateTime(year, monthTo, DateTime.DaysInMonth(year, monthTo));
+    var endDay = new DateTime(yearTo, monthTo, DateTime.DaysInMonth(yearTo, monthTo));
     var totalDays = (endDay - firstDay).Days + 1;
 
     string selectedEmpId = Context.Request.Query["empId"].ToString();
@@ -28,7 +30,7 @@
     <div class="card shadow-sm border-0" style="max-width: 100%;">
         <div class="card-body">
 
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-nowrap gap-2">
+            <div class="mb-3">
 
                 <div>
                     <h4 class="mb-1">
@@ -48,8 +50,7 @@
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center justify-content-end flex-nowrap">
-
+                <div class="d-flex align-items-center flex-nowrap mt-3">
                     <form id="filterForm"
                           method="get"
                           class="d-flex align-items-center gap-2 mb-0 flex-nowrap employee-filter-wrap"
@@ -61,7 +62,7 @@
                             ผู้รับผิดชอบ
                         </label>
 
-                        <div style="width:300px; min-width:300px; flex:0 0 300px;">
+                        <div style="width:250px; min-width:250px; flex:0 0 250px;">
                             <select id="empFilter"
                                     name="empId"
                                     class="form-select emp-select-fixed"
@@ -83,6 +84,21 @@
                         </div>
 
                         <label class="fw-bold mb-0 text-nowrap">
+                            ปีเริ่ม
+                        </label>
+
+                        <div style="width:110px; min-width:110px; flex:0 0 110px;">
+                            <select name="year"
+                                    class="form-select"
+                                    form="filterForm">
+                            @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
+                            {
+                                <option value="@y" selected="@(year == y)">@(y + 543)</option>
+                            }
+                            </select>
+                        </div>
+
+                        <label class="fw-bold mb-0 text-nowrap">
                             เดือน
                         </label>
 
@@ -100,6 +116,25 @@
                         </div>
 
                         <span>ถึง</span>
+
+                        <label class="fw-bold mb-0 text-nowrap">
+                            ปีสิ้นสุด
+                        </label>
+
+                        <div style="width:110px; min-width:110px; flex:0 0 110px;">
+                            <select name="yearTo"
+                                    class="form-select"
+                                    form="filterForm">
+                            @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
+                            {
+                                <option value="@y" selected="@(yearTo == y)">@(y + 543)</option>
+                            }
+                            </select>
+                        </div>
+
+                        <label class="fw-bold mb-0 text-nowrap">
+                            เดือน
+                        </label>
 
                         <div style="width:180px; min-width:180px; flex:0 0 180px;">
                             <select name="monthTo"
@@ -123,7 +158,6 @@
                     </form>
                     <div class="workload-toolbar">
                     </div>
-
                 </div>
 
             </div>
@@ -143,9 +177,14 @@
                                 var date = firstDay.AddDays(i);
                                 bool isToday = date.Date == DateTime.Today;
                                 bool isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+                                bool isNewYear = date.Month == 1 && date.Day == 1;
 
-                                <th class="@(isToday ? "today-column-header" : "") @(isWeekend ? "weekend-column" : "")"
+                                <th class="@(isToday ? "today-column-header" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")"
                                     style="min-width:40px; width:40px; position:relative;">
+
+                                    <div style="font-size:9px;color:#64748b;line-height:1; margin-bottom:2px;">
+                                        @(date.Year + 543)
+                                    </div>
 
                                     <div style="font-size:10px;font-weight:700;color:#2563eb;line-height:1; margin-bottom:2px; white-space:nowrap;">
                                         @date.ToString("MMM", new System.Globalization.CultureInfo("th-TH"))
@@ -217,6 +256,7 @@
                                         var currentDate = firstDay.AddDays(i);
                                         bool isToday = currentDate.Date == DateTime.Today;
                                         bool isWeekend = currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday;
+                                        bool isNewYear = currentDate.Month == 1 && currentDate.Day == 1;
 
                                         bool isWorking = phase.PlanStart.HasValue
                                             && phase.PlanEnd.HasValue
@@ -227,7 +267,7 @@
                                             ? "#A3E4B5"
                                             : "#FFE69C";
 
-                                        <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "")">
+                                        <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")">
                                             @if (isWorking)
                                             {
                                                 <a href="/PhaseAssigns?projectId=@phase.Phase?.ProjectId&phaseId=@phase.Phase?.PhaseId"
@@ -339,6 +379,9 @@
 
     .weekend-column {
         background: #f8fafc !important;
+    }
+    .newyear-column {
+        background: #ffe4e6 !important;
     }
 
     .today-column {
