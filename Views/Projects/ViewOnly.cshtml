@@ -28,12 +28,14 @@
     .project-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
 
     .col-id{ width:70px; min-width:70px; }
-    .col-name{ width:280px; min-width:280px; }
-    .col-system{ width:130px; min-width:130px; }
-    .col-db{ width:130px; min-width:130px; }
-    .col-date{ width:115px; min-width:115px; }
-    .col-status{ width:110px; min-width:110px; }
-    .col-mini{ width:70px; min-width:70px; }
+    .col-name{ width:320px; min-width:320px; }
+    .col-system{ width:180px; min-width:180px; }
+    .col-db{ width:180px; min-width:180px; }
+    .col-url{ width:280px; min-width:280px; }
+    .col-account{ width:220px; min-width:220px; }
+    .col-date{ width:120px; min-width:120px; }
+    .col-status{ width:120px; min-width:120px; }
+    .col-mini{ width:90px; min-width:90px; }
 
     .sticky-col-1{
         position:sticky;
@@ -57,6 +59,35 @@
     }
 
     #tbl th, #tbl td{ vertical-align:middle; word-break:break-word; }
+
+    /* สีอ่อนแยกตาม Project */
+    .project-row-even td {
+        background:#f8fafc;
+    }
+
+    .project-row-odd td {
+        background:#eaf4ff;
+    }
+
+    /* sticky column ให้สีตามแถวด้วย */
+    .project-row-even .sticky-col-1,
+    .project-row-even .sticky-col-2 {
+        background:#f8fafc !important;
+    }
+
+    .project-row-odd .sticky-col-1,
+    .project-row-odd .sticky-col-2 {
+        background:#eaf4ff !important;
+    }
+
+    .project-row-even:hover td,
+    .project-row-odd:hover td,
+    .project-row-even:hover .sticky-col-1,
+    .project-row-even:hover .sticky-col-2,
+    .project-row-odd:hover .sticky-col-1,
+    .project-row-odd:hover .sticky-col-2 {
+        background:#eef6ff !important;
+    }
 </style>
 }
 
@@ -68,9 +99,7 @@
             <div class="text-muted">แสดงรายการโครงการ (สำหรับดู/พิมพ์)</div>
         </div>
 
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-warning" onclick="window.print()">🖨 พิมพ์</button>
-        </div>
+        <div></div>
     </div>
 
     <div class="row mb-3 no-print">
@@ -88,6 +117,8 @@
                     <th class="sticky-col-2 col-name">Project</th>
                     <th class="col-system">System</th>
                     <th class="col-db">Database</th>
+                    <th class="col-url">Remote URL</th>
+                    <th class="col-account">Test Account</th>
                     <th class="col-date">Start</th>
                     <th class="col-date">End</th>
                     <th class="col-status">Status</th>
@@ -98,7 +129,7 @@
             @if (Model == null || !Model.Any())
             {
                 <tr>
-                    <td colspan="8" class="text-center text-muted">— No project data —</td>
+                    <td colspan="10" class="text-center text-muted">— No project data —</td>
                 </tr>
             }
             else
@@ -106,11 +137,38 @@
                 var i = 1;
                 foreach (var p in Model.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
                 {
-                    <tr>
+                    <tr class="@(i % 2 == 0 ? "project-row-even" : "project-row-odd")">
                         <td class="sticky-col-1 col-id text-center">@i</td>
                         <td class="sticky-col-2 col-name fw-semibold">@p.ProjectName</td>
-                        <td class="col-system">@p.LinkName</td>
+                        <td class="col-system small">
+                            @if (!string.IsNullOrWhiteSpace(p.LinkName))
+                            {
+                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                foreach (var part in parts)
+                                {
+                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <a href="@part" target="_blank" rel="noopener noreferrer">@part</a>
+                                        <br />
+                                    }
+                                    else
+                                    {
+                                        <span>@part </span>
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
                         <td class="col-db">@p.DatabaseName</td>
+                        <td class="col-url">
+                            @(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)
+                        </td>
+
+                        <td class="col-account">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</td>
                         <td class="text-center col-date">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
                         <td class="text-center col-date">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
                         <td class="text-center col-status">@p.Status</td>
