@@ -25,7 +25,7 @@
         .ToList();
 }
 
-<div class="container-fluid mt-3 px-2 px-md-3 d-flex justify-content-center">
+<div class="container-fluid mt-3 px-2 px-md-3 d-flex justify-content-center workload-page-wrap">
 
     <div class="card shadow-sm border-0" style="max-width: 100%;">
         <div class="card-body">
@@ -162,7 +162,7 @@
 
             </div>
 
-            <div class="table-responsive" style="overflow-x:auto;">
+            <div class="table-responsive workload-responsive-wrap">
 
                 <table class="table table-bordered align-middle text-center workload-table">
 
@@ -506,16 +506,27 @@
 }
 
 @@media (max-width: 992px) {
+    .workload-responsive-wrap {
+        overflow-x: hidden !important;
+    }
+
+    .workload-table {
+        min-width: unset !important;
+        width: 100% !important;
+        table-layout: fixed;
+    }
     .filter-toolbar {
-        overflow-x: auto;
-        overflow-y: hidden;
-        white-space: nowrap;
-        padding-bottom: 6px;
+        overflow: visible !important;
+        white-space: normal !important;
     }
 
     .employee-filter-wrap {
-        flex-wrap: nowrap !important;
-        min-width: max-content;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        width: 100% !important;
+        min-width: unset !important;
+        white-space: normal !important;
     }
 
     .phase-project-cell,
@@ -532,6 +543,15 @@
 }
 
 @@media (max-width: 768px) {
+    .workload-responsive-wrap {
+        overflow-x: hidden !important;
+    }
+
+    .workload-table {
+        min-width: unset !important;
+        width: 100% !important;
+        table-layout: fixed;
+    }
     .card-body {
         padding: 12px !important;
     }
@@ -541,22 +561,28 @@
     }
 
     .employee-filter-wrap {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
         align-items: end;
         width: 100% !important;
     }
 
     .employee-filter-wrap > div {
-        width: 100% !important;
-        min-width: unset !important;
-        flex: unset !important;
+        flex: 1 1 160px !important;
+        min-width: 160px !important;
     }
 
     .employee-filter-wrap button {
         width: 100%;
         min-height: 38px;
-        grid-column: span 2;
+        margin-top: 4px;
+    }
+
+    .employee-filter-wrap label,
+    .employee-filter-wrap span {
+        width: 100%;
+        margin-bottom: -4px;
     }
 
     .phase-project-cell,
@@ -577,9 +603,9 @@
     }
 
     .timeline-cell {
-        min-width: 28px;
-        width: 28px;
-        height: 52px;
+        min-width: 20px;
+        width: 20px;
+        height: 48px;
     }
 
     .work-item {
@@ -599,4 +625,45 @@
         font-size: 12px;
     }
 }
-</style>
+/* ปิดการเลื่อนซ้ายขวาของทั้งหน้า */
+html,
+body {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+}
+
+.workload-page-wrap {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+}
+
+@@media (max-width: 992px) {
+    .container-fluid {
+        overflow-x: hidden !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .card {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+}
+
+@@media (max-width: 768px) {
+    .phase-project-cell,
+    .sticky-employee-col {
+        min-width: 120px !important;
+        width: 120px !important;
+        max-width: 120px !important;
+        font-size: 11px !important;
+        padding: 6px !important;
+    }
+
+    .timeline-cell {
+        min-width: 16px !important;
+        width: 16px !important;
+    }
+}
