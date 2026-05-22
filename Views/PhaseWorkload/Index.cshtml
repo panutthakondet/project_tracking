@@ -25,7 +25,7 @@
         .ToList();
 }
 
-<div class="container-fluid mt-3 d-flex justify-content-center">
+<div class="container-fluid mt-3 px-2 px-md-3 d-flex justify-content-center">
 
     <div class="card shadow-sm border-0" style="max-width: 100%;">
         <div class="card-body">
@@ -50,10 +50,10 @@
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center flex-nowrap mt-3">
+                <div class="filter-toolbar d-flex align-items-center mt-3">
                     <form id="filterForm"
                           method="get"
-                          class="d-flex align-items-center gap-2 mb-0 flex-nowrap employee-filter-wrap"
+                          class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
                           style="width:auto; flex:none;">
 
                         <input type="hidden" name="year" value="@year" />
@@ -423,10 +423,10 @@
 .employee-filter-wrap {
     display: inline-flex !important;
     align-items: center;
-    gap: 10px;
-    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
     flex: none !important;
-    width: auto !important;
+    width: 100% !important;
     max-width: none !important;
     overflow: visible !important;
     white-space: nowrap;
@@ -490,5 +490,113 @@
 .workload-toolbar::-webkit-scrollbar-thumb {
     background: #d1d5db;
     border-radius: 999px;
+}
+</style>
+<style>
+/* ============================
+   Responsive
+============================ */
+@@media (max-width: 1200px) {
+    .phase-project-cell,
+    .sticky-employee-col {
+        min-width: 280px !important;
+        width: 280px !important;
+        max-width: 280px !important;
+    }
+}
+
+@@media (max-width: 992px) {
+    .filter-toolbar {
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        padding-bottom: 6px;
+    }
+
+    .employee-filter-wrap {
+        flex-wrap: nowrap !important;
+        min-width: max-content;
+    }
+
+    .phase-project-cell,
+    .sticky-employee-col {
+        min-width: 220px !important;
+        width: 220px !important;
+        max-width: 220px !important;
+    }
+
+    .timeline-cell {
+        min-width: 30px;
+        width: 30px;
+    }
+}
+
+@@media (max-width: 768px) {
+    .card-body {
+        padding: 12px !important;
+    }
+
+    .filter-toolbar {
+        overflow: visible !important;
+    }
+
+    .employee-filter-wrap {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        align-items: end;
+        width: 100% !important;
+    }
+
+    .employee-filter-wrap > div {
+        width: 100% !important;
+        min-width: unset !important;
+        flex: unset !important;
+    }
+
+    .employee-filter-wrap button {
+        width: 100%;
+        min-height: 38px;
+        grid-column: span 2;
+    }
+
+    .phase-project-cell,
+    .sticky-employee-col {
+        min-width: 200px !important;
+        width: 200px !important;
+        max-width: 200px !important;
+        padding: 8px 10px !important;
+    }
+
+    /* ลดความสูง header วันที่ */
+    .workload-table th small {
+        display: none;
+    }
+
+    .workload-table th div:first-child {
+        display: none;
+    }
+
+    .timeline-cell {
+        min-width: 28px;
+        width: 28px;
+        height: 52px;
+    }
+
+    .work-item {
+        height: 24px;
+        min-height: 24px;
+    }
+
+    .workload-table th {
+        font-size: 11px;
+    }
+
+    .workload-table td {
+        font-size: 12px;
+    }
+
+    .employee-filter-wrap label {
+        font-size: 12px;
+    }
 }
 </style>

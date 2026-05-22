@@ -188,9 +188,9 @@
     .fc .fc-event {
         border-radius: 10px !important;
         border: 1px solid rgba(0,0,0,.08) !important;
-        padding: 8px 10px !important;
-        font-size: 0.80rem;
-        line-height: 1.4;
+        padding: 6px 8px !important;
+font-size: 0.76rem;
+line-height: 1.25;
         white-space: normal !important;
         word-break: break-word;
         overflow: hidden;
@@ -366,6 +366,106 @@
     .meeting-row > .meeting-col:nth-child(3) {
         flex: 1;
     }
+    /* ============================
+       Responsive Meeting Calendar
+    ============================ */
+    @@media (max-width: 768px) {
+
+        .meeting-page {
+            padding: 4px 0;
+        }
+
+        .meeting-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .toolbar-right {
+            width: 100%;
+            justify-content: stretch;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-right .btn,
+        .toolbar-right .hint-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .calendar-card__toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .fc-toolbar {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .fc-toolbar-chunk {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1rem !important;
+        }
+
+        .fc .fc-daygrid-day-frame {
+            min-height: 90px;
+            padding: 4px;
+        }
+
+        .fc .fc-event {
+            padding: 4px 6px !important;
+            font-size: 11px !important;
+            margin-bottom: 4px !important;
+        }
+
+        .fc .fc-event-title {
+            font-size: .7rem;
+        }
+
+        /* มือถือใช้ list view อ่านง่ายกว่า */
+        #calendar {
+            min-height: 580px;
+        }
+
+        /* รายการประชุม responsive */
+        .meeting-row {
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .meeting-col {
+            padding: 14px;
+        }
+
+        .meeting-row > .meeting-col:nth-child(1),
+        .meeting-row > .meeting-col:nth-child(2),
+        .meeting-row > .meeting-col:nth-child(3) {
+            flex: unset;
+            min-width: unset;
+            width: 100%;
+        }
+
+        .meeting-project {
+            align-items: flex-start;
+        }
+
+        .meeting-project-text {
+            font-size: .85rem;
+        }
+
+        .meeting-desc {
+            font-size: .9rem;
+        }
+    }
 </style>
 
 <div class="container meeting-page">
@@ -439,7 +539,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let eventCounter = 0;
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: window.matchMedia('(max-width: 768px)').matches
+            ? 'listMonth'
+            : 'dayGridMonth',
         locale: 'en',
         dayHeaderFormat: { weekday: 'long' },
         height: 'auto',
@@ -452,7 +554,9 @@ document.addEventListener('DOMContentLoaded', function () {
         headerToolbar: {
             left: 'prev,next',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: window.matchMedia('(max-width: 768px)').matches
+                ? 'listMonth'
+                : 'dayGridMonth,timeGridWeek,timeGridDay'
         },
 
         titleFormat: { year: 'numeric', month: 'long' },
@@ -541,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const shortProject = eventCounter + '. ' + truncate(project, 30);
-            const shortMeeting = meetingTitle || '';
+            const shortMeeting = truncate(meetingTitle || '', 28);
 
             // Add meetingWith extraction
             const meetingWith = (
@@ -555,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const container = document.createElement('div');
             container.style.whiteSpace = 'normal';
-            container.style.wordBreak = 'break-word';
+            container.style.overflow = 'hidden';
 
             const audience = (
                 props.meetingAudience ||
@@ -602,18 +706,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div style="display:flex;gap:8px;align-items:flex-start;">
                     <div style="font-size:1rem;line-height:1;margin-top:2px;">${icon}</div>
                     <div style="flex:1;overflow:hidden;">
-                        <div style="font-weight:700;font-size:.78rem;line-height:1.35;">
+                        <div style="font-weight:700;font-size:.78rem;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
                             ${shortProject}
                         </div>
                         ${shortMeeting ? `
-                            <div style="font-size:.73rem;line-height:1.3;margin-top:2px;opacity:.85;">
-                                ${shortMeeting}
-                            </div>
-                        ` : ''}
+    <div style="
+        font-size:.72rem;
+        line-height:1.25;
+        margin-top:2px;
+        opacity:.88;
+        overflow:hidden;
+        display:-webkit-box;
+        -webkit-line-clamp:2;
+        -webkit-box-orient:vertical;
+        text-overflow:ellipsis;
+        color:#374151;">
+        ${shortMeeting}
+    </div>
+` : ''}
 
-                        <div style="font-size:.72rem;margin-top:4px;font-weight:600;color:#374151;">
-                            👥 ${meetingWith}
-                        </div>
+                        <div style="
+    font-size:.68rem;
+    margin-top:3px;
+    font-weight:600;
+    color:#4b5563;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;">
+    👥 ${meetingWith}
+</div>
                     </div>
                 </div>
             `;

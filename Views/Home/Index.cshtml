@@ -85,7 +85,7 @@
 
             @if (CanMenu("Employees.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Employees" asp-action="Index" class="menu-card">
                     <div class="icon">👤</div>
                     <div class="title">จัดการพนักงาน</div>
@@ -96,7 +96,7 @@
 
             @if (CanMenu("Projects.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Projects" asp-action="Index" class="menu-card">
                     <div class="icon">📁</div>
                     <div class="title">จัดการโครงการ</div>
@@ -107,7 +107,7 @@
 
             @if (CanMenu("ProjectPhases.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="ProjectPhases" asp-action="Index" class="menu-card">
                     <div class="icon">🧩</div>
                     <div class="title">จัดการงวดงาน</div>
@@ -118,7 +118,7 @@
 
             @if (CanMenu("PhaseAssigns.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="PhaseAssigns" asp-action="Index" class="menu-card">
                     <div class="icon">👥</div>
                     <div class="title">จัดการมอบหมายงาน</div>
@@ -129,7 +129,7 @@
 
               @if (CanMenu("ProjectIssues.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="ProjectIssues" asp-action="Index" class="menu-card">
                     <div class="icon">🐞</div>
                     <div class="title">จัดการปัญหาโครงการ</div>
@@ -140,7 +140,7 @@
 
             @if (CanMenu("ProjectIssues.DevIndex"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="ProjectIssues" asp-action="DevIndex" class="menu-card">
                     <div class="icon">👨‍💻</div>
                     <div class="title">จัดการแก้ไขปัญหาโครงการ</div>
@@ -150,7 +150,7 @@
             }
             @if (CanMenu("SupportOrders.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="SupportOrders" asp-action="Index" class="menu-card">
                     <div class="icon">🛠️</div>
                     <div class="title">จัดการงานรับประกัน</div>
@@ -161,7 +161,7 @@
 
             @if (CanMenu("SupportOrdersDev.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="SupportOrdersDev" asp-action="Index" class="menu-card">
                     <div class="icon">👨‍💻</div>
                     <div class="title">จัดการงานแก้ไขรับประกัน</div>
@@ -173,7 +173,7 @@
 
             @if (CanMenu("Followups.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Followups" asp-action="Index" class="menu-card">
                     <div class="icon">📌</div>
                     <div class="title">จัดการงานติดตาม</div>
@@ -184,7 +184,7 @@
 
             @if (CanMenu("TestScenarios.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="TestScenarios" asp-action="Index" class="menu-card">
                     <div class="icon">🧪</div>
                     <div class="title">จัดการสถานการณ์ทดสอบ</div>
@@ -195,7 +195,7 @@
 
             @if (CanMenu("TestScenarioTemplates.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="TestScenarioTemplates" asp-action="Index" class="menu-card">
                     <div class="icon">📋</div>
                     <div class="title">จัดการต้นแบบ สถานการณ์ทดสอบ</div>
@@ -206,7 +206,7 @@
 
             @if (CanMenu("TestTemplateGroups.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="TestTemplateGroups" asp-action="Index" class="menu-card">
                     <div class="icon">📦</div>
                     <div class="title">จัดการกลุ่มของต้นแบบ</div>
@@ -225,7 +225,7 @@
 
             @if (CanMenu("Projects.ViewOnly"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Projects" asp-action="ViewOnly" class="menu-card">
                     <div class="icon">📁</div>
                     <div class="title">รายงานข้อมูลโครงการ</div>
@@ -236,7 +236,7 @@
 
             @if (CanMenu("ProjectIssues.ViewOnly"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="menu-card">
                     <div class="icon">📝</div>
                     <div class="title">รายงานปัญหาและสถานะโครงการ</div>
@@ -247,7 +247,7 @@
 
             @if (CanMenu("PhaseAssigns.Print"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="PhaseAssigns" asp-action="Print" class="menu-card">
                     <div class="icon">📄</div>
                     <div class="title">รายงานการมอบหมายงาน</div>
@@ -258,7 +258,7 @@
 
             @if (CanMenu("PhaseStatusReport.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="PhaseStatusReport" asp-action="Index" class="menu-card">
                     <div class="icon">📊</div>
                     <div class="title">รายงานสถานะงานค้าง</div>
@@ -269,7 +269,7 @@
 
             @if (CanMenu("PhaseStatusReport.Timeline"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="PhaseStatusReport" asp-action="Timeline" class="menu-card">
                     <div class="icon">🗓️</div>
                     <div class="title">Timeline / Gantt</div>
@@ -280,7 +280,7 @@
 
             @if (CanMenu("Dashboard.Workload"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Dashboard" asp-action="Workload" class="menu-card">
                     <div class="icon">🔥</div>
                     <div class="title">สถานะภาระงานพนักงาน</div>
@@ -292,7 +292,7 @@
             <!-- ISSUE DASHBOARD -->
             @if (CanMenu("IssueDashboard.Index"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="IssueDashboard" asp-action="Index" class="menu-card">
                     <div class="icon">📊</div>
                     <div class="title">ภาพรวมทั้งโครงการ</div>
@@ -303,7 +303,7 @@
 
             @if (CanMenu("Attendance.Map"))
             {
-            <div class="col-md-3">
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
                 <a asp-controller="Attendance" asp-action="Map" class="menu-card">
                     <div class="icon">📍</div>
                     <div class="title">รายงาน(Check-in/Check-out)</div>
@@ -322,6 +322,12 @@
 /* ===== ORANGE HOVER FOR ALL CARDS ===== */
 .menu-card{
     display:block;
+    width:100%;
+    min-height:180px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
     padding:24px;
     border-radius:20px;
     background:linear-gradient(180deg, rgba(40,55,80,.85), rgba(25,35,60,.95));
@@ -429,4 +435,25 @@
 .icon{ font-size:36px; color:#ffb347; }
 .title{ font-weight:800; font-size:17px; color:#ffffff; }
 .desc{ font-size:13px; color:#cbd5e1; }
+
+/* ===== Responsive Cards ===== */
+@@media (max-width: 768px){
+    .menu-card{
+        min-height:160px;
+        padding:18px;
+        border-radius:16px;
+    }
+
+    .icon{
+        font-size:30px;
+    }
+
+    .title{
+        font-size:16px;
+    }
+
+    .desc{
+        font-size:12px;
+    }
+}
 </style>

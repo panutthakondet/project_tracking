@@ -186,6 +186,60 @@
         font-size: .8rem;
         font-weight: 700;
     }
+    /* ============================
+       Responsive Calendar
+    ============================ */
+    @@media (max-width: 768px) {
+
+        .calendar-card {
+            padding: 14px;
+            border-radius: 14px;
+        }
+
+        .fc-toolbar {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch !important;
+        }
+
+        .fc-toolbar-chunk {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .fc-toolbar-title {
+            font-size: 1.1rem !important;
+            text-align: center;
+        }
+
+        #calendar {
+            min-height: 620px;
+        }
+
+        .fc-event {
+            padding: 2px 4px !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+        }
+
+        .fc-daygrid-event {
+            white-space: normal !important;
+        }
+
+        .fc .fc-daygrid-day-frame {
+            min-height: 90px;
+        }
+
+        .fc-col-header-cell-cushion {
+            font-size: .8rem !important;
+        }
+
+        .fc-daygrid-day-number {
+            font-size: .8rem !important;
+        }
+    }
 </style>
 
 <div class="container-fluid mt-3">
@@ -213,7 +267,9 @@
         const calendarEl = document.getElementById('calendar');
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
+            initialView: window.innerWidth < 768
+                ? 'listMonth'
+                : 'dayGridMonth',
             locale: 'th',
             height: 'auto',
             headerToolbar: {
@@ -258,11 +314,11 @@
                             </div>
 
                             <div style="min-width:0;overflow:hidden;flex:1;">
-                                <div style="font-weight:700;color:#2563eb;white-space:normal;word-break:break-word;">
+                                <div style="font-weight:700;color:#2563eb;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
                                     ${props.projectName ?? '-'}
                                 </div>
 
-                                <div style="white-space:normal;word-break:break-word;color:#111827;">
+                                <div style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;color:#111827;">
                                     ${props.phaseName ?? '-'}
                                 </div>
 
