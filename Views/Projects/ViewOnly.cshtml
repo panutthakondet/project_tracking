@@ -25,7 +25,7 @@
         margin-bottom:12px;
     }
 
-    .project-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; }
+    .project-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; display:none; }
 
     .col-id{ width:70px; min-width:70px; }
     .col-name{ width:320px; min-width:320px; }
@@ -88,6 +88,65 @@
     .project-row-odd:hover .sticky-col-2 {
         background:#eef6ff !important;
     }
+
+    .project-report-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .project-report-card {
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        border-radius: 26px;
+        padding: 22px 24px;
+        transition: .2s ease;
+        box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    }
+
+    .project-report-card:hover {
+        border-color: #93c5fd;
+        background: #f8fbff;
+    }
+
+    .project-report-header {
+        display: block;
+        border: 0;
+        width: 100%;
+        min-width: unset;
+        padding: 0;
+    }
+
+    .project-report-avatar {
+        display: none;
+    }
+
+    .project-report-grid {
+        display: block;
+        margin-top: 8px;
+    }
+
+    .project-report-box {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        margin-bottom: 6px;
+    }
+
+    .project-label {
+        display: inline;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #111827;
+        margin-right: 4px;
+    }
+
+    .project-value {
+        display: inline;
+        font-weight: 500;
+        color: #1f2937;
+    }
 </style>
 }
 
@@ -109,7 +168,7 @@
         </div>
     </div>
 
-    <div class="table-responsive project-table-wrapper">
+    <div class="table-responsive project-table-wrapper" style="display:none;">
         <table class="table table-bordered table-hover align-middle" id="tbl">
             <thead class="table-dark text-center">
                 <tr>
@@ -135,7 +194,9 @@
             else
             {
                 var i = 1;
-                foreach (var p in Model.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
+                foreach (var p in Model
+                    .OrderBy(x => x.Status == "IN_PROGRESS" ? 0 : x.Status == "PLAN" ? 1 : 2)
+                    .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
                 {
                     <tr class="@(i % 2 == 0 ? "project-row-even" : "project-row-odd")">
                         <td class="sticky-col-1 col-id text-center">@i</td>
@@ -185,6 +246,132 @@
         </table>
     </div>
 
+    <div class="project-report-cards">
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center text-muted py-5">
+            — No project data —
+        </div>
+    }
+    else
+    {
+        var i = 1;
+
+        foreach (var p in Model
+            .OrderBy(x => x.Status == "IN_PROGRESS" ? 0 : x.Status == "PLAN" ? 1 : 2)
+            .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
+        {
+            <div class="project-report-card"
+                 data-search="@($"{p.ProjectName} {p.LinkName} {p.DatabaseName} {p.RemoteUrl} {p.TestAccount} {p.Status}".ToLower())">
+
+                <div class="project-report-header">
+
+                    <div class="project-report-title mb-2">
+                        @i. @p.ProjectName
+                    </div>
+
+                    <span class="badge @(p.Status == "IN_PROGRESS" ? "bg-info" : p.Status == "DONE" ? "bg-success" : "bg-secondary") rounded-pill px-3 py-2 mb-2">
+                        @p.Status
+                    </span>
+
+                </div>
+
+                <div class="project-report-grid">
+
+                    <div class="project-report-box">
+                        <span class="project-label">BA</span>
+                        <span class="project-value">@(string.IsNullOrWhiteSpace(p.LinkName) ? "-" : p.LinkName)</span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">System</span>
+
+                        <span class="project-value text-break">
+                            @if (!string.IsNullOrWhiteSpace(p.LinkName))
+                            {
+                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                foreach (var part in parts)
+                                {
+                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <a href="@part"
+                                           target="_blank"
+                                           rel="noopener noreferrer">
+                                            @part
+                                        </a>
+                                        <br />
+                                    }
+                                    else
+                                    {
+                                        <span>@part </span>
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">Database</span>
+                        <span class="project-value">
+                            @(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)
+                        </span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">Remote URL</span>
+
+                        <span class="project-value text-break">
+                            @(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)
+                        </span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">Test Account</span>
+                        <span class="project-value text-break">
+                            @(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)
+                        </span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">Start</span>
+                        <span class="project-value">
+                            @(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")
+                        </span>
+                    </div>
+
+                    <div class="project-report-box">
+                        <span class="project-label">End</span>
+                        <span class="project-value">
+                            @(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                        </span>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3 flex-wrap">
+                        @if (!string.IsNullOrEmpty(p.FigmaLink))
+                        {
+                            <a href="@p.FigmaLink"
+                               target="_blank"
+                               class="btn btn-outline-primary btn-sm rounded-pill">
+                                🎨 Figma
+                            </a>
+                        }
+                    </div>
+
+                </div>
+            </div>
+
+            i++;
+        }
+    }
+
+    </div>
+
 </div>
 
 @section Scripts {
@@ -195,8 +382,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     input.addEventListener('keyup', () => {
         const k = input.value.toLowerCase().trim();
+
         document.querySelectorAll('#tbl tbody tr').forEach(r => {
             r.style.display = r.innerText.toLowerCase().includes(k) ? '' : 'none';
+        });
+
+        document.querySelectorAll('.project-report-card').forEach(card => {
+            const text = (card.dataset.search || '').toLowerCase();
+            card.style.display = text.includes(k) ? '' : 'none';
         });
     });
 });

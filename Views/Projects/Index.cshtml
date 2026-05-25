@@ -225,12 +225,57 @@
 
                     <div class="project-info-row">
                         <span class="project-label">System</span>
-                        <span>@(p.LinkName ?? "-")</span>
+
+                        <span class="text-break text-end">
+                            @if (!string.IsNullOrEmpty(p.LinkName))
+                            {
+                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                foreach (var part in parts)
+                                {
+                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <a href="@part"
+                                           target="_blank"
+                                           rel="noopener noreferrer">
+                                            @part
+                                        </a>
+                                        <br />
+                                    }
+                                    else
+                                    {
+                                        <span>@part </span>
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </span>
                     </div>
 
                     <div class="project-info-row">
                         <span class="project-label">Database</span>
                         <span>@(p.DatabaseName ?? "-")</span>
+                    </div>
+
+                    <div class="project-info-row">
+                        <span class="project-label">Test</span>
+                        <span class="text-break text-end">
+                            @(string.IsNullOrWhiteSpace(p.TestAccount)
+                                ? "-"
+                                : p.TestAccount)
+                        </span>
+                    </div>
+
+                    <div class="project-info-row">
+                        <span class="project-label">Remote</span>
+                        <span class="text-break text-end">
+                            @(string.IsNullOrWhiteSpace(p.RemoteUrl)
+                                ? "-"
+                                : p.RemoteUrl)
+                        </span>
                     </div>
 
                     <div class="project-info-row">
@@ -273,6 +318,16 @@
                        class="btn btn-outline-secondary btn-sm">
                         📂 Docs
                     </a>
+
+                    @if (!string.IsNullOrEmpty(p.FigmaLink))
+                    {
+                        <a href="@p.FigmaLink"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-outline-primary btn-sm">
+                            🎨 Figma
+                        </a>
+                    }
                 </div>
             </div>
 
@@ -412,6 +467,7 @@ thead .sticky-col-2{
         background: #f8fafc;
         border-radius: 14px;
         border: 1px solid #e5e7eb;
+        word-break: break-word;
     }
 
     .project-label {
@@ -423,6 +479,7 @@ thead .sticky-col-2{
 
     .project-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-top: 18px;
     }
@@ -440,7 +497,7 @@ thead .sticky-col-2{
     width: 100%;
 
     background: #fff;
-    border: 2px solid #cbd5e1;
+    border: 2px solid #94a3b8;
     border-radius: 20px;
     padding: 22px;
     margin-bottom: 8px;

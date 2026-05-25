@@ -55,10 +55,12 @@ else
 
 @if (!string.IsNullOrEmpty(Context.Request.Query["projectId"]))
 {
+    int no = 1;
     <div class="mb-2">
         <strong>จำนวน Follow-up:</strong> @Model.Count()
     </div>
 
+    <div class="table-responsive" style="display:none;">
     <table class="table table-bordered">
     <thead>
         <tr>
@@ -74,9 +76,6 @@ else
     </thead>
 
     <tbody>
-    @{
-        int no = 1;
-    }
     @foreach (var item in Model)
     {
         var rowClass = "";
@@ -207,7 +206,270 @@ else
     }
     </tbody>
     </table>
+    </div>
+
+    <div class="followup-cards">
+    @foreach (var item in Model)
+    {
+        var rowClass = "";
+        if (item.NextFollowupDate != null)
+        {
+            var d = item.NextFollowupDate.Value.Date;
+            if (d < DateTime.Today)
+                rowClass = "table-danger";
+            else if (d == DateTime.Today)
+                rowClass = "table-warning";
+            else
+                rowClass = "table-success";
+        }
+    <div class="followup-card @rowClass">
+
+        <div class="followup-card-header">
+            <div class="followup-avatar">📌</div>
+
+            <div class="followup-header-content">
+                <div class="followup-title">@item.TaskTitle</div>
+                <div class="followup-partner">@item.PartnerName</div>
+            </div>
+
+            <span class="badge bg-secondary">@item.Status</span>
+        </div>
+
+        <div class="followup-info">
+
+            <div class="followup-info-row">
+                <span class="followup-label">Owner</span>
+                <span>@item.Owner?.EmpName</span>
+            </div>
+
+            <div class="followup-info-row">
+                <span class="followup-label">Next</span>
+                <span>@item.NextFollowupDate?.ToString("dd/MM/yyyy")</span>
+            </div>
+
+            <div class="followup-info-row">
+                <span class="followup-label">Last</span>
+                <span>
+                    @if(item.LastContactDate != null)
+                    {
+                        @(item.LastContactDate?.ToString("dd/MM/yyyy")) @(" (" + item.LastContactType + ")")
+                    }
+                </span>
+            </div>
+        </div>
+
+        <div class="followup-actions">
+            @if (HasMenu("Followups.Details"))
+            {
+                <a href="/Followups/Details/@item.FollowupId" 
+                   class="btn btn-sm btn-info"
+                   title="ดูรายละเอียด">
+                    View
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู">
+                    View
+                </button>
+            }
+
+            @if (HasMenu("Followups.Edit"))
+            {
+                <a href="/Followups/Edit/@item.FollowupId" 
+                   class="btn btn-sm btn-secondary"
+                   title="แก้ไข">
+                    Edit
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                    Edit
+                </button>
+            }
+
+            @if (HasMenu("Followups.Delete"))
+            {
+                <form method="post" action="/Followups/Delete" style="display:inline;" onsubmit="return confirm('ต้องการลบ Follow-up นี้หรือไม่?');">
+                    <input type="hidden" name="followupId" value="@item.FollowupId" />
+                    <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
+                    <button class="btn btn-sm btn-danger" title="ลบ">Delete</button>
+                </form>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                    Delete
+                </button>
+            }
+
+            @if (HasMenu("Followups.Done"))
+            {
+                if(item.Status == "DONE" || item.Status == "ACK")
+                {
+                    <button class="btn btn-sm btn-success"
+                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
+                            onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                        Done
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-success"
+                            title="ปิดงาน"
+                            onclick="openDonePopup(@item.FollowupId)">
+                        Done
+                    </button>
+                }
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ปิดงาน">
+                    Done
+                </button>
+            }
+
+            @if (HasMenu("Followups.Log"))
+            {
+                if(item.Status == "DONE" || item.Status == "ACK")
+                {
+                    <button class="btn btn-sm btn-outline-primary"
+                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
+                            onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                        Log
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-outline-primary"
+                            title="บันทึกการติดตาม"
+                            onclick="openQuickLog(@item.FollowupId)">
+                        Log
+                    </button>
+                }
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์บันทึก">
+                    Log
+                </button>
+            }
+        </div>
+
+    </div>
+    no++;
+    }
+    </div>
+
 }
+
+<style>
+.followup-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 18px;
+}
+
+.followup-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 20px;
+    border: 2px solid #dbeafe;
+    box-shadow: 0 8px 22px rgba(15,23,42,.06);
+}
+
+.followup-card.table-danger {
+    border-color: #fecaca;
+    background: #fff5f5;
+}
+
+.followup-card.table-warning {
+    border-color: #fde68a;
+    background: #fffdf4;
+}
+
+.followup-card.table-success {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.followup-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.followup-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.followup-header-content {
+    flex: 1;
+}
+
+.followup-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.followup-partner {
+    font-size: .92rem;
+    color: #6b7280;
+}
+
+.followup-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.followup-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,.75);
+    border: 1px solid rgba(0,0,0,.05);
+    border-radius: 14px;
+    padding: 10px 14px;
+}
+
+.followup-label {
+    color: #64748b;
+    min-width: 70px;
+    font-weight: 600;
+}
+
+.followup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.followup-actions .btn {
+    flex: 1 1 calc(33.33% - 8px);
+    min-width: 90px;
+}
+
+@@media (max-width:768px){
+    .followup-cards {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 
 <!-- Quick Log Modal -->
 <div id="quickLogModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
