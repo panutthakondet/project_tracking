@@ -23,6 +23,33 @@
 }
 
 <style>
+    .project-header-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 18px 22px;
+        box-shadow: 0 2px 10px rgba(15,23,42,.05);
+    }
+
+    .project-title {
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    .project-header-action {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    @@media (max-width: 768px) {
+        .project-header-action {
+            justify-content: stretch;
+        }
+
+        .project-header-action .btn {
+            width: 100%;
+        }
+    }
     table tbody tr.phase-main > td {
         background-color: #ffffff !important;
     }
@@ -47,6 +74,146 @@
     }
     table td {
         word-break: break-word;
+    }
+
+    /* --- Responsive Phase Card Layout --- */
+    .phase-card-container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .phase-card {
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        border-radius: 24px;
+        padding: 22px;
+        box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    }
+
+    .phase-card-main {
+        border-left: 6px solid #2563eb;
+    }
+
+    .phase-card-support {
+        border-left: 6px solid #dc2626;
+        background: #fff7f7;
+    }
+
+    .phase-card-header {
+        margin-bottom: 18px;
+    }
+
+    .phase-card-drag {
+        cursor: grab;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+    .phase-card-title {
+        font-weight: 700;
+        color: #2563eb;
+        margin-bottom: 4px;
+    }
+
+    .phase-card-name {
+        font-size: 1.08rem;
+        font-weight: 700;
+    }
+
+    .phase-card-inline {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        line-height: 1.7;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .phase-no {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #2563eb;
+    }
+
+    .phase-period {
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .phase-name-row {
+        margin-top: 4px;
+        font-size: 1.06rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.45;
+    }
+
+    .phase-name-inline {
+        font-weight: 700;
+        color: #111827;
+        display: block;
+    }
+
+    .phase-plan-inline {
+        color: #475569;
+        font-weight: 500;
+    }
+
+    .phase-plan-label {
+        font-weight: 700;
+        color: #334155;
+        margin-right: 4px;
+    }
+
+    .phase-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+        gap: 12px;
+    }
+
+    .phase-info-box {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 14px;
+    }
+
+    .phase-info-label {
+        font-size: .82rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .phase-info-value {
+        font-weight: 600;
+    }
+
+    .phase-date-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+        margin-top: 8px;
+        color: #475569;
+        font-size: .95rem;
+    }
+
+    .phase-date-item {
+        white-space: nowrap;
+    }
+
+    .phase-date-item strong {
+        color: #334155;
+        margin-right: 4px;
+    }
+
+    .phase-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 </style>
 
@@ -95,33 +262,39 @@
 {
     var selectedProject = ViewBag.SelectedProject;
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold">
-            📌 Project : @selectedProject.ProjectName
-        </h4>
+    <div class="project-header-card mb-3">
 
-        @if (CanMenu("ProjectPhases.Create"))
-        {
-            <a asp-action="Create"
-               asp-route-projectId="@selectedProject.ProjectId"
-               class="btn btn-primary"
-               title="เพิ่ม Phase">
-                ➕ Add Phase
-            </a>
-        }
-        else
-        {
-            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
-                ➕ Add Phase
-            </button>
-        }
+        <div class="project-header-top">
+            <h4 class="fw-bold mb-0 project-title">
+                📌 Project : @selectedProject.ProjectName
+            </h4>
+        </div>
+
+        <div class="project-header-action mt-3">
+            @if (CanMenu("ProjectPhases.Create"))
+            {
+                <a asp-action="Create"
+                   asp-route-projectId="@selectedProject.ProjectId"
+                   class="btn btn-primary"
+                   title="เพิ่ม Phase">
+                    ➕ Add Phase
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
+                    ➕ Add Phase
+                </button>
+            }
+        </div>
+
     </div>
 
     <form id="antiForm" method="post" style="display:none;">
         @Html.AntiForgeryToken()
     </form>
 
-    <div class="table-responsive">
+    <div class="table-responsive" style="display:none;">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark text-center">
                 <tr>
@@ -191,8 +364,7 @@
                                 "วางแผน" => "bg-secondary",
                                 "กำลังดำเนินการ" => "bg-primary",
                                 "ส่งงวดงานแล้ว" => "bg-warning text-dark",
-                                "อนุมัติแล้ว" => "bg-success",
-                                "ตีกลับ" => "bg-danger",
+                                "อนุมัติจ่ายเงินแล้ว" => "bg-success",
                                 _ => "bg-light text-dark"
                             };
                         }
@@ -265,6 +437,153 @@
             </tbody>
         </table>
     </div>
+
+<div id="phaseCardContainer" class="phase-card-container" data-project-id="@selectedProject.ProjectId">
+
+@if (!orderedPhases.Any())
+{
+    <div class="text-center text-muted py-5">
+        — No Phase —
+    </div>
+}
+else
+{
+    var rowCard = 1;
+
+    foreach (var phase in orderedPhases)
+    {
+        var displayNo = rowCard;
+        rowCard++;
+
+        var status = phase.PhaseStatus ?? "";
+        string badgeClass = status switch
+        {
+            "วางแผน" => "bg-secondary",
+            "กำลังดำเนินการ" => "bg-primary",
+            "ส่งงวดงานแล้ว" => "bg-warning text-dark",
+            "อนุมัติจ่ายเงินแล้ว" => "bg-success",
+            _ => "bg-light text-dark"
+        };
+
+        <div class="phase-card @(phase.PhaseType == "SUPPORT" ? "phase-card-support" : "phase-card-main")"
+             data-phase-id="@phase.PhaseId">
+
+            <div class="phase-card-header">
+                <div class="d-flex align-items-start gap-3 flex-grow-1">
+                    <div class="phase-drag-handle phase-card-drag"
+                         title="ลากเพื่อสลับลำดับ">
+                        ☰
+                    </div>
+
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+
+                            <div class="flex-grow-1">
+
+                                <div class="phase-title-row">
+                                    <span class="phase-no">#@displayNo</span>
+                                    <span class="phase-period">— งวด @phase.PhaseOrder</span>
+                                </div>
+
+                                <div class="phase-name-row">
+                                    @phase.PhaseName
+                                </div>
+
+                            </div>
+
+                            <span class="badge @badgeClass px-3 py-2 rounded-pill shadow-sm">
+                                @(string.IsNullOrEmpty(status) ? "-" : status)
+                            </span>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase-card-body">
+
+                <div class="phase-date-row">
+
+                    <span class="phase-date-item">
+                        <strong>Plan Date</strong>
+                        @(phase.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(phase.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                    </span>
+
+                    <span class="phase-date-item">
+                        <strong>Period Date</strong>
+                        @(phase.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
+                        –
+                        @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </span>
+
+                </div>
+
+                <div class="phase-card-actions mt-3">
+
+                    @if (CanMenu("ProjectPhases.Edit"))
+                    {
+                        <a asp-action="Edit"
+                           asp-route-id="@phase.PhaseId"
+                           class="btn btn-outline-primary btn-sm">
+                            ✏️ Edit
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            ✏️ Edit
+                        </button>
+                    }
+
+                    @if (CanMenu("PhaseAssigns.Index"))
+                    {
+                        <a asp-controller="PhaseAssigns"
+                           asp-action="Index"
+                           asp-route-projectId="@selectedProject.ProjectId"
+                           asp-route-phaseId="@phase.PhaseId"
+                           class="btn btn-outline-info btn-sm">
+                            👥 Assign
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            👥 Assign
+                        </button>
+                    }
+
+                    @if (CanMenu("ProjectPhases.Delete"))
+                    {
+                        <form asp-action="Delete"
+                              method="post"
+                              class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@phase.PhaseId" />
+                            <input type="hidden" name="projectId"
+                                   value="@selectedProject.ProjectId" />
+
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                🗑 Delete
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🗑 Delete
+                        </button>
+                    }
+
+                </div>
+            </div>
+        </div>
+    }
+}
+</div>
 }
 else
 {
@@ -351,25 +670,37 @@ else
         }
 
         // =========================
-        // Drag & Drop reorder rows
+        // Drag & Drop reorder rows/cards
         // =========================
         const tbody = document.getElementById("phaseTbody");
-        if (!tbody) return;
+        const cardContainer = document.getElementById("phaseCardContainer");
+        const sortableTarget = cardContainer || tbody;
+
+        if (!sortableTarget) return;
 
         // Anti-forgery token (from hidden form #antiForm)
         const token = document.querySelector('#antiForm input[name="__RequestVerificationToken"]')?.value;
 
         // helper: update No. column (1..N) after drag
         function refreshRowNumbers() {
-            const rows = tbody.querySelectorAll('tr[data-phase-id]');
+            const rows = sortableTarget.querySelectorAll('[data-phase-id]');
             let i = 1;
             rows.forEach(tr => {
+                // For table row
                 const noSpan = tr.querySelector('td.phase-sort-cell span.ms-2');
-                if (noSpan) noSpan.textContent = String(i++);
+                if (noSpan) noSpan.textContent = String(i);
+                // For card
+                const cardNo = tr.querySelector('.phase-card-title');
+                if (cardNo) {
+                    // #n — งวด ...
+                    let txt = cardNo.textContent;
+                    cardNo.textContent = txt.replace(/^#\d+/, `#${i}`);
+                }
+                i++;
             });
         }
 
-        new Sortable(tbody, {
+        new Sortable(sortableTarget, {
             animation: 150,
             handle: ".phase-drag-handle", // drag by hamburger icon
             ghostClass: "table-active",
@@ -377,11 +708,11 @@ else
                 refreshRowNumbers();
 
                 // Collect phase ids in new order
-                const phaseIds = Array.from(tbody.querySelectorAll('tr[data-phase-id]'))
+                const phaseIds = Array.from(sortableTarget.querySelectorAll('[data-phase-id]'))
                     .map(tr => parseInt(tr.getAttribute('data-phase-id')))
                     .filter(n => !Number.isNaN(n));
 
-                const projectId = parseInt(tbody.getAttribute('data-project-id'));
+                const projectId = parseInt(sortableTarget.getAttribute('data-project-id'));
 
                 // If no projectId or no ids, stop.
                 if (Number.isNaN(projectId) || phaseIds.length === 0) return;

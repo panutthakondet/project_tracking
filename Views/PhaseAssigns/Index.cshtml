@@ -136,220 +136,323 @@ thead .sticky-col { z-index: 5; }
 
 @if (ViewBag.SelectedProject != null)
 {
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0">📌 Project : @ViewBag.SelectedProject.ProjectName</h4>
-        @if (CanMenu("PhaseAssigns.Create"))
-        {
-            <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary" title="เพิ่มการมอบหมายงาน">➕ Add Assign</a>
+    <style>
+    /* Card-style layout for assign cards */
+    .assign-card-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .assign-card {
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05), 0 0.5px 1.5px rgba(0,0,0,0.03);
+        background: #fff;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        min-height: 1px;
+        transition: box-shadow .15s;
+        border: 1px solid #ececec;
+        position: relative;
+    }
+    .assign-card.dragging-row, .assign-card.sortable-ghost {
+        opacity: 0.60;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.11);
+    }
+    .assign-card .assign-card-left {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 1rem 1.25rem 1rem 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: inherit;
+        border-radius: 1rem 0 0 1rem;
+    }
+    .assign-card .assign-card-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-end;
+        min-width: 160px;
+        padding: 1rem 1.25rem 1rem 0.75rem;
+        background: inherit;
+        border-radius: 0 1rem 1rem 0;
+    }
+    .assign-card-header-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.5rem 1rem;
+        width: 100%;
+    }
+    .assign-card-emp {
+        font-weight: 600;
+        font-size: 1.07rem;
+        word-break: break-word;
+        margin-right: 0.5em;
+    }
+    .assign-card-phase {
+        font-size: 1rem;
+        color: #5c5c5c;
+        font-weight: 500;
+        margin-top: 0.1em;
+    }
+    .assign-card-index {
+        font-weight: 700;
+        font-size: 1.02rem;
+        color: #4b4b4b;
+        margin-right: 0.5em;
+        min-width: 2.5em;
+        display: inline-flex;
+        align-items: center;
+    }
+    .assign-card .drag-handle {
+        cursor: grab;
+        margin-right: 0.75em;
+        font-size: 1.15em;
+        color: #888;
+        user-select: none;
+    }
+    .assign-card-dates {
+        font-size: 0.97rem;
+        color: #2b2b2b;
+        margin-top: 0.2em;
+        margin-bottom: 0.5em;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75em 2em;
+    }
+    .assign-card-role {
+        font-size: 0.97rem;
+        color: #555;
+        font-weight: 500;
+        margin-bottom: 0.2em;
+    }
+    .assign-card-remark {
+        font-size: 0.96rem;
+        margin-bottom: 0.2em;
+        margin-top: 0.2em;
+    }
+    .assign-card-log-badge {
+        margin-right: 0.5em;
+        font-size: 0.98rem;
+        vertical-align: middle;
+    }
+    .assign-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4em;
+        margin-top: 0.5em;
+        align-items: center;
+    }
+    .assign-card-status-badge {
+        font-size: 1.01rem;
+        padding: 0.35em 1.1em;
+        border-radius: 1.5em;
+        font-weight: 600;
+        margin-bottom: 0.25em;
+        white-space: nowrap;
+    }
+    .assign-card .assign-card-right {
+        min-width: 175px;
+        max-width: 220px;
+    }
+    @@media (max-width: 768px) {
+        .assign-card {
+            flex-direction: column;
         }
-        else
-        {
-            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน">➕ Add Assign</button>
+        .assign-card .assign-card-left, .assign-card .assign-card-right {
+            border-radius: 1rem !important;
+            padding: 1rem 1.1rem;
         }
-    </div>
+        .assign-card .assign-card-right {
+            align-items: stretch;
+            min-width: 0;
+        }
+    }
+    </style>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle table-assign" style="min-width:1500px;">
-            <colgroup>
-                <col style="width:70px;" />
-                <col style="width:280px;" />
-                <col class="col-phase" />
-                <col class="col-role" />
-                <col class="col-period" />
-                <col style="width:180px;" />
-                <col class="col-remark" />
-                <col class="col-action" />
-            </colgroup>
-            <thead class="table-dark text-center">
-                <tr>
-                    <th class="sticky-col sticky-1">↕ No.</th>
-                    <th class="sticky-col sticky-2">Employee</th>
-                    <th class="col-phase">Phase</th>
-                    <th class="col-role">Role</th>
-                    <th class="col-period">Plan / Period Date</th>
-                    <th style="width:180px;">Status</th>
-                    <th class="col-remark">Remark</th>
-                    <th class="col-action">Action</th>
-                </tr>
-            </thead>
-            @if (!Model.Any())
+    <div class="d-flex align-items-stretch gap-3 mb-3" style="flex-wrap:wrap;">
+        <div style="flex:1 1 0; min-width:0;">
+            <div class="card border-0 shadow-sm rounded-3 p-3 px-4 h-100" style="background:#f7fafd;">
+                <div class="fw-bold" style="font-size:1.12rem;line-height:1.5;">
+                    📌 Project :
+                    <span style="word-break:break-word;">@ViewBag.SelectedProject.ProjectName</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            @if (CanMenu("PhaseAssigns.Create"))
             {
-                <tbody>
-                    <tr><td colspan="8" class="text-center text-muted py-4">— No assignment —</td></tr>
-                </tbody>
+                <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary px-4" title="เพิ่มการมอบหมายงาน" style="font-size:1.07rem;">➕ Add Assign</a>
             }
             else
             {
-                var row = 1;
-
-                // รวมเป็น tbody เดียวเพื่อให้ลากสลับแถวได้ทุกแถว (รวมแถวสุดท้าย) และทำให้ลำดับถาวรจาก phase_sort
-                // เรียงหลักจาก phase_sort (ใน phase_assign) ถ้าไม่มีให้ไปตาม phase_order ของ project_phase แล้วตาม assign_id
-                var ordered = Model
-                    .OrderBy(a => a.PhaseSort ?? int.MaxValue)
-                    .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
-                              ?? ReadNestedInt(a, "Phase", "PhaseOrder")
-                              ?? ReadNestedInt(a, "PhaseOrder")
-                              ?? int.MaxValue)
-                    .ThenBy(a => a.AssignId);
-
-                <tbody id="assign-tbody">
-                @foreach (var a in ordered)
-                {
-                    if (!empColorMap.ContainsKey(a.EmpId))
-                    {
-                        empColorMap[a.EmpId] = pastelColors[colorIndex % pastelColors.Length];
-                        colorIndex++;
-                    }
-                    var bg = empColorMap[a.EmpId];
-
-                    <tr style="background-color:@bg;" data-assign-id="@a.AssignId">
-                        <td class="text-center fw-semibold sticky-col sticky-1">
-                            <span class="drag-handle" title="ลากเพื่อสลับแถว" style="cursor:grab; user-select:none;">☰</span>
-                            <span class="ms-2">@row</span>
-                        </td>
-                        <td class="fw-semibold sticky-col sticky-2">👤 @a.Employee?.EmpName</td>
-                        <td class="fw-semibold">@GetPhaseNameSafe(a)</td>
-                        <td>@a.Role</td>
-                        <td class="nowrap">
-                            <div>
-                                <span class="fw-semibold text-primary">Plan :</span>
-                                @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
-                                <span class="mx-1">–</span>
-                                @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
-                            </div>
-
-                            <div class="text-muted small mt-1">
-                                <span class="fw-semibold">Period :</span>
-                                @(a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                                <span class="mx-1">–</span>
-                                @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                            </div>
-                        </td>
-                        <td class="text-center">
-                            @if (a.WorkStatus == "DONE")
-                            {
-                                <span class="badge bg-success px-3 py-2">
-                                    ✅ เสร็จสิ้น
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark px-3 py-2">
-                                    🟡 กำลังดำเนินการ
-                                </span>
-                            }
-                        </td>
-                        <td class="col-remark">
-                            @{
-                                var lastLog = a.Logs?
-                                    .OrderByDescending(l => l.RoundNo)
-                                    .FirstOrDefault();
-                            }
-
-                            @if (lastLog != null)
-                            {
-                                var statusText = lastLog.Status == "PASS" ? "ผ่าน" : "แก้ไข และนำเสนอใหม่";
-                                var badgeClass = lastLog.Status == "PASS" ? "bg-success" : "bg-warning text-dark";
-
-                                <div>
-                                    <span class="badge @badgeClass">@statusText</span>
-                                </div>
-
-                                <div class="mt-1">
-                                    <b>Log :</b>
-                                    @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)
-                                </div>
-
-                                <div class="mt-1 text-muted">
-                                    <b>Assign :</b>
-                                    @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)
-                                </div>
-                            }
-                            else
-                            {
-                                <div>
-                                    <b>Assign :</b>
-                                    @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)
-                                </div>
-                            }
-                        </td>
-                        <td class="text-center">
-                            <div class="d-flex flex-wrap justify-content-center gap-1">
-
-                                @* ===== Edit ===== *@
-                                @if (CanMenu("PhaseAssigns.Edit"))
-                                {
-                                    <a asp-action="Edit" asp-route-id="@a.AssignId"
-                                       class="btn btn-sm btn-outline-primary"
-                                       title="แก้ไขข้อมูล (Edit)">
-                                        ✏️
-                                    </a>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                        ✏️
-                                    </button>
-                                }
-
-                                @* ===== Delete ===== *@
-                                @if (CanMenu("PhaseAssigns.Delete"))
-                                {
-                                    <form asp-action="Delete" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@a.AssignId" />
-                                        <button type="submit"
-                                                class="btn btn-sm btn-outline-danger"
-                                                title="ลบข้อมูล (Delete)"
-                                                onclick="return confirm('ยืนยันการลบ Assign นี้?');">
-                                            🗑
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                        🗑
-                                    </button>
-                                }
-
-                                @* ===== PASS ===== *@
-                                @if (CanMenu("PhaseAssigns.Edit"))
-                                {
-                                    <button type="button"
-                                            class="btn btn-sm btn-success"
-                                            title="บันทึกผล: ผ่านงาน (PASS)"
-                                            onclick="openLogModal(@a.AssignId, 'PASS')">
-                                        ✅
-                                    </button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">✅</button>
-                                }
-
-                                @* ===== REWORK ===== *@
-                                @if (CanMenu("PhaseAssigns.Edit"))
-                                {
-                                    <button type="button"
-                                            class="btn btn-sm btn-warning"
-                                            title="บันทึกผล: แก้ไขใหม่ (REWORK)"
-                                            onclick="openLogModal(@a.AssignId, 'REWORK')">
-                                        🔁
-                                    </button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">🔁</button>
-                                }
-
-                            </div>
-                        </td>
-                    </tr>
-                    row++;
-                }
-                </tbody>
+                <button class="btn btn-primary px-4" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน" style="font-size:1.07rem;">➕ Add Assign</button>
             }
+        </div>
+    </div>
+
+    @* Card layout for assign records *@
+    var row = 1;
+    var ordered = Model
+        .OrderBy(a => a.PhaseSort ?? int.MaxValue)
+        .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
+                  ?? ReadNestedInt(a, "Phase", "PhaseOrder")
+                  ?? ReadNestedInt(a, "PhaseOrder")
+                  ?? int.MaxValue)
+        .ThenBy(a => a.AssignId)
+        .ToList();
+    @if (!Model.Any())
+    {
+        <div class="alert alert-secondary text-center py-4 mb-4">— No assignment —</div>
+    }
+    else
+    {
+        <div class="assign-card-list" id="assign-tbody">
+        @foreach (var a in ordered)
+        {
+            if (!empColorMap.ContainsKey(a.EmpId))
+            {
+                empColorMap[a.EmpId] = pastelColors[colorIndex % pastelColors.Length];
+                colorIndex++;
+            }
+            var bg = empColorMap[a.EmpId];
+            var lastLog = a.Logs?.OrderByDescending(l => l.RoundNo).FirstOrDefault();
+            var statusText = lastLog?.Status == "PASS" ? "ผ่าน" : lastLog != null ? "แก้ไข และนำเสนอใหม่" : null;
+            var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
+            <div class="assign-card" data-assign-id="@a.AssignId" style="background-color:@bg;">
+                <div class="assign-card-left">
+                    <div class="assign-card-header-row align-items-center mb-1">
+                        <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
+                        <span class="assign-card-index">#@row</span>
+                        <span class="assign-card-emp">👤 @a.Employee?.EmpName</span>
+                    </div>
+                    <div class="assign-card-phase">@GetPhaseNameSafe(a)</div>
+                    <div class="assign-card-dates mt-2">
+                        <div>
+                            <span class="fw-semibold text-primary">Plan Date</span>
+                            @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
+                            <span class="mx-1">–</span>
+                            @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                        </div>
+                        <div>
+                            <span class="fw-semibold text-secondary">Period Date</span>
+                            @(a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
+                            <span class="mx-1">–</span>
+                            @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                        </div>
+                    </div>
+                    <div class="assign-card-role">Role: <span class="text-dark">@a.Role</span></div>
+                    <div class="assign-card-remark">
+                        @if (lastLog != null)
+                        {
+                            <span class="assign-card-log-badge badge @badgeClass">@statusText</span>
+                            <span><b>Log:</b> @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</span>
+                            <br />
+                            <span class="text-muted"><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</span>
+                        }
+                        else
+                        {
+                            <span><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</span>
+                        }
+                    </div>
+                    <div class="assign-card-actions">
+                        @* ===== Edit ===== *@
+                        @if (CanMenu("PhaseAssigns.Edit"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@a.AssignId"
+                               class="btn btn-sm btn-outline-primary"
+                               title="แก้ไขข้อมูล (Edit)">
+                                ✏️
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                ✏️
+                            </button>
+                        }
+
+                        @* ===== Delete ===== *@
+                        @if (CanMenu("PhaseAssigns.Delete"))
+                        {
+                            <form asp-action="Delete" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.AssignId" />
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger"
+                                        title="ลบข้อมูล (Delete)"
+                                        onclick="return confirm('ยืนยันการลบ Assign นี้?');">
+                                    🗑
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                🗑
+                            </button>
+                        }
+
+                        @* ===== PASS ===== *@
+                        @if (CanMenu("PhaseAssigns.Edit"))
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-success"
+                                    title="บันทึกผล: ผ่านงาน (PASS)"
+                                    onclick="openLogModal(@a.AssignId, 'PASS')">
+                                ✅
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">✅</button>
+                        }
+
+                        @* ===== REWORK ===== *@
+                        @if (CanMenu("PhaseAssigns.Edit"))
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-warning"
+                                    title="บันทึกผล: แก้ไขใหม่ (REWORK)"
+                                    onclick="openLogModal(@a.AssignId, 'REWORK')">
+                                🔁
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">🔁</button>
+                        }
+                    </div>
+                </div>
+                <div class="assign-card-right">
+                    @if (a.WorkStatus == "DONE")
+                    {
+                        <span class="assign-card-status-badge badge bg-success">
+                            ✅ เสร็จสิ้น
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="assign-card-status-badge badge bg-warning text-dark">
+                            🟡 กำลังดำเนินการ
+                        </span>
+                    }
+                </div>
+            </div>
+            row++;
+        }
+        </div>
+    }
+
+    @* Hidden table for reorder logic only (kept for SortableJS compatibility) *@
+    <div style="display:none;">
+        <table>
+            <tbody id="assign-tbody-hidden"></tbody>
         </table>
     </div>
 }
@@ -422,19 +525,19 @@ $(function () {
     const antiForgeryToken = tokenEl ? tokenEl.value : null;
 
     function refreshRowNumbers() {
-        const rows = Array.from(document.querySelectorAll('tr[data-assign-id]'));
+        const rows = Array.from(document.querySelectorAll('.assign-card[data-assign-id]'));
         let i = 1;
         for (const r of rows) {
-            const noCell = r.querySelector('td.sticky-1');
-            if (!noCell) continue;
-            const spanNo = noCell.querySelector('span.ms-2');
-            if (spanNo) spanNo.textContent = String(i);
+            const noCell = r.querySelector('.assign-card-index');
+            if (noCell) {
+                noCell.textContent = '#' + i;
+            }
             i++;
         }
     }
 
     function collectAssignIds() {
-        const rows = Array.from(tbody.querySelectorAll('tr[data-assign-id]'));
+        const rows = Array.from(tbody.querySelectorAll('.assign-card[data-assign-id]'));
         return rows
             .map(r => parseInt(r.getAttribute('data-assign-id') || '0', 10))
             .filter(x => Number.isFinite(x) && x > 0);
