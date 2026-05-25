@@ -136,4 +136,172 @@
         }
         </tbody>
     </table>
+<!-- END TABLE -->
 </div>
+
+<!-- Mobile Card View -->
+<div class="employee-mobile-cards">
+    @if (Model.Any())
+    {
+        var mobileRow = 0;
+
+        foreach (var emp in Model.OrderBy(e => e.Position).ThenBy(e => e.EmpId))
+        {
+            mobileRow++;
+
+            <div class="employee-card">
+
+                <div class="employee-card-header">
+                    <div class="employee-avatar">👤</div>
+
+                    <div>
+                        <div class="employee-name">
+                            @mobileRow. @emp.EmpName
+                        </div>
+
+                        <div class="employee-position">
+                            @emp.Position
+                        </div>
+                    </div>
+                </div>
+
+                <div class="employee-info">
+                    <div class="employee-info-row">
+                        <span class="employee-label">Email</span>
+                        <span>
+                            @(emp.LoginUser?.Email ?? "-")
+                        </span>
+                    </div>
+
+                    <div class="employee-info-row">
+                        <span class="employee-label">Status</span>
+                        <span class="badge @(emp.Status == "ACTIVE" ? "bg-success" : "bg-secondary")">
+                            @emp.Status
+                        </span>
+                    </div>
+                </div>
+
+                <div class="employee-actions">
+                    @if (HasMenu("Employees.Edit"))
+                    {
+                        <a asp-action="Edit"
+                           asp-route-id="@emp.EmpId"
+                           class="btn btn-outline-primary btn-sm">
+                            ✏️ Edit
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            ✏️ Edit
+                        </button>
+                    }
+
+                    @if (HasMenu("Employees.Delete"))
+                    {
+                        <a asp-action="Delete"
+                           asp-route-id="@emp.EmpId"
+                           class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('ยืนยันลบพนักงานคนนี้?');">
+                            🗑 Delete
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🗑 Delete
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+/* Mobile Employee Cards */
+.employee-mobile-cards {
+    display: none;
+}
+
+@@media (max-width: 768px) {
+
+    .table-responsive {
+        display: none !important;
+    }
+
+    .employee-mobile-cards {
+        display: flex !important;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .employee-card {
+        background: rgba(255,255,255,.95);
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid rgba(0,0,0,.06);
+        box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    }
+
+    .employee-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .employee-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: linear-gradient(135deg,#3b82f6,#1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+    }
+
+    .employee-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .employee-position {
+        font-size: .9rem;
+        color: #6b7280;
+    }
+
+    .employee-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .employee-info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: .92rem;
+    }
+
+    .employee-label {
+        color: #6b7280;
+        min-width: 70px;
+    }
+
+    .employee-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .employee-actions .btn {
+        flex: 1;
+    }
+}
+</style>

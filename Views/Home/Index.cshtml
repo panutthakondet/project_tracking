@@ -438,22 +438,87 @@
 
 /* ===== Responsive Cards ===== */
 @@media (max-width: 768px){
+
+    .container-fluid{
+        padding-left:12px !important;
+        padding-right:12px !important;
+    }
+
+    /* HEADER */
+    .header-card{
+        padding:20px 18px !important;
+        border-radius:20px;
+    }
+
+    .header-card .d-flex{
+        flex-direction:column !important;
+        align-items:center !important;
+        text-align:center;
+        gap:18px !important;
+    }
+
+    .welcome-logo{
+        height:110px !important;
+    }
+
+    h2.fw-bold{
+        font-size:2rem !important;
+    }
+
+    .system-name{
+        font-size:1rem;
+    }
+
+    /* INFO BOX */
+    .welcome-info{
+        width:100% !important;
+        display:grid !important;
+        grid-template-columns:repeat(2, minmax(0,1fr));
+        gap:12px;
+        padding:16px !important;
+        border-radius:18px;
+        text-align:center;
+    }
+
+    .welcome-info > div{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+    }
+
+    .label{
+        font-size:.85rem;
+        opacity:.75;
+    }
+
+    .value{
+        font-size:1.1rem;
+    }
+
+    /* SECTION TITLE */
+    .group-title{
+        font-size:1.25rem !important;
+        margin-bottom:14px;
+    }
+
+    /* CARD */
     .menu-card{
-        min-height:160px;
-        padding:18px;
-        border-radius:16px;
+        min-height:135px !important;
+        padding:18px !important;
+        border-radius:18px;
     }
 
     .icon{
-        font-size:30px;
+        font-size:2rem !important;
+        margin-bottom:10px;
     }
 
     .title{
-        font-size:16px;
+        font-size:1.1rem !important;
     }
 
     .desc{
-        font-size:12px;
+        font-size:.9rem !important;
     }
 }
 </style>
