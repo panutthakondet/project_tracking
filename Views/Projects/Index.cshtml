@@ -193,7 +193,8 @@
                           x.Status == "PLAN" ? 2 : 3)
             .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
         {
-            <div class="project-card">
+            <div class="project-card"
+                 data-search="@($"{p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
 
                 <div class="project-card-header">
                     <div class="project-avatar">📁</div>
@@ -466,19 +467,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const keyword = (searchBox.value || "").toLowerCase().trim();
 
+        // desktop table
         const rows = document.querySelectorAll("#projectTable tbody tr");
 
         rows.forEach(row => {
-
             const text = row.innerText.toLowerCase();
-
             const matchSearch = !keyword || text.includes(keyword);
+            row.style.display = matchSearch ? "" : "none";
+        });
 
-            if(matchSearch){
-                row.style.display = "";
-            }else{
-                row.style.display = "none";
-            }
+        // mobile cards
+        const cards = document.querySelectorAll(".project-card");
+
+        cards.forEach(card => {
+            const text = (card.dataset.search || "").toLowerCase();
+            const matchSearch = !keyword || text.includes(keyword);
+            card.style.display = matchSearch ? "" : "none";
         });
 
         // re-number visible rows after filtering
