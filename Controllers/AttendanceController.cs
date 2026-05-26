@@ -185,25 +185,41 @@ namespace ProjectTracking.Controllers
                 end = DateTime.Today;
             }
 
-            var data = await (from a in _context.Attendances
-                              join e in _context.Employees on a.EmpId equals e.EmpId
-                              where a.WorkDate >= start && a.WorkDate <= end
-                              orderby a.WorkDate, e.EmpName
-                              select new
-                              {
-                                  a.EmpId,
-                                  EmpName = e.EmpName,
-                                  Position = e.Position,
-                                  WorkDate = a.WorkDate,
-                                  a.CheckinLat,
-                                  a.CheckinLng,
-                                  a.CheckoutLat,
-                                  a.CheckoutLng,
-                                  a.CheckinTime,
-                                  a.CheckoutTime,
-                                  a.DistanceKm
-                              })
-                              .ToListAsync();
+            var employees = await _context.Employees
+                .Where(x => x.Status == "ACTIVE")
+                .ToListAsync();
+
+            var attendances = await _context.Attendances
+                .Where(x => x.WorkDate >= start && x.WorkDate <= end)
+                .ToListAsync();
+
+            var dates = Enumerable.Range(0, (end - start).Days + 1)
+                .Select(i => start.AddDays(i))
+                .ToList();
+
+            var data = (from emp in employees
+                        from date in dates
+                        join att in attendances
+                            on new { emp.EmpId, WorkDate = date.Date }
+                            equals new { att.EmpId, WorkDate = att.WorkDate.Date }
+                            into gj
+                        from a in gj.DefaultIfEmpty()
+                        orderby date, emp.EmpName
+                        select new
+                        {
+                            EmpId = emp.EmpId,
+                            EmpName = emp.EmpName,
+                            Position = emp.Position,
+                            WorkDate = date,
+                            CheckinLat = a?.CheckinLat,
+                            CheckinLng = a?.CheckinLng,
+                            CheckoutLat = a?.CheckoutLat,
+                            CheckoutLng = a?.CheckoutLng,
+                            CheckinTime = a?.CheckinTime,
+                            CheckoutTime = a?.CheckoutTime,
+                            DistanceKm = a?.DistanceKm
+                        })
+                        .ToList();
 
             // ส่งกลับเป็น พ.ศ.
             ViewBag.FromDate = start.AddYears(543).ToString("dd/MM/yyyy");
@@ -228,19 +244,36 @@ namespace ProjectTracking.Controllers
             else
                 end = DateTime.Today;
 
-            var data = await (from a in _context.Attendances
-                              join e in _context.Employees on a.EmpId equals e.EmpId
-                              where a.WorkDate >= start && a.WorkDate <= end
-                              orderby a.WorkDate, e.EmpName
-                              select new
-                              {
-                                  EmpName = e.EmpName,
-                                  Position = e.Position,
-                                  WorkDate = a.WorkDate,
-                                  CheckinTime = a.CheckinTime,
-                                  CheckoutTime = a.CheckoutTime,
-                                  DistanceKm = a.DistanceKm
-                              }).ToListAsync();
+            var employees = await _context.Employees
+                .Where(x => x.Status == "ACTIVE")
+                .ToListAsync();
+
+            var attendances = await _context.Attendances
+                .Where(x => x.WorkDate >= start && x.WorkDate <= end)
+                .ToListAsync();
+
+            var dates = Enumerable.Range(0, (end - start).Days + 1)
+                .Select(i => start.AddDays(i))
+                .ToList();
+
+            var data = (from emp in employees
+                        from date in dates
+                        join att in attendances
+                            on new { emp.EmpId, WorkDate = date.Date }
+                            equals new { att.EmpId, WorkDate = att.WorkDate.Date }
+                            into gj
+                        from a in gj.DefaultIfEmpty()
+                        orderby date, emp.EmpName
+                        select new
+                        {
+                            EmpName = emp.EmpName,
+                            Position = emp.Position,
+                            WorkDate = date,
+                            CheckinTime = a?.CheckinTime,
+                            CheckoutTime = a?.CheckoutTime,
+                            DistanceKm = a?.DistanceKm
+                        })
+                        .ToList();
 
             var pdf = AttendanceReport.Generate(data.Cast<dynamic>().ToList());
 

@@ -284,14 +284,34 @@ thead .sticky-col { z-index: 5; }
                 </div>
             </div>
         </div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2" style="flex-wrap:wrap;">
+            <a asp-controller="ProjectPhases"
+               asp-action="Index"
+               asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
+               class="btn btn-outline-secondary px-4"
+               title="กลับไปจัดการ Phase"
+               style="font-size:1.07rem;">
+                ↩ Project Phases
+            </a>
+
             @if (CanMenu("PhaseAssigns.Create"))
             {
-                <a asp-action="Create" asp-route-projectId="@ViewBag.SelectedProject.ProjectId" class="btn btn-primary px-4" title="เพิ่มการมอบหมายงาน" style="font-size:1.07rem;">➕ Add Assign</a>
+                <a asp-action="Create"
+                   asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
+                   class="btn btn-primary px-4"
+                   title="เพิ่มการมอบหมายงาน"
+                   style="font-size:1.07rem;">
+                    ➕ Add Assign
+                </a>
             }
             else
             {
-                <button class="btn btn-primary px-4" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน" style="font-size:1.07rem;">➕ Add Assign</button>
+                <button class="btn btn-primary px-4"
+                        disabled
+                        title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน"
+                        style="font-size:1.07rem;">
+                    ➕ Add Assign
+                </button>
             }
         </div>
     </div>

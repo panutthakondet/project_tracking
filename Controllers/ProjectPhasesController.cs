@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -99,6 +101,51 @@ namespace ProjectTracking.Controllers
         }
 
         // ===========================
+        // Helper to parse Thai Buddhist year dates
+        private DateTime? ParseThaiDate(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+
+            // yyyy-MM-dd
+            if (DateTime.TryParseExact(
+                    value,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var isoDate))
+            {
+                return isoDate;
+            }
+
+            // dd/MM/yyyy (พ.ศ.)
+            var parts = value.Split('/');
+            if (parts.Length == 3)
+            {
+                if (int.TryParse(parts[0], out var d) &&
+                    int.TryParse(parts[1], out var m) &&
+                    int.TryParse(parts[2], out var y))
+                {
+                    if (y > 2400)
+                        y -= 543;
+
+                    try
+                    {
+                        return new DateTime(y, m, d);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // ===========================
         // CREATE (POST)
         // ===========================
         [HttpPost]
@@ -106,6 +153,16 @@ namespace ProjectTracking.Controllers
         [RequireMenu("ProjectPhases.Create")]
         public async Task<IActionResult> Create(ProjectPhase phase)
         {
+            // รองรับวันที่ไทย dd/MM/พ.ศ.
+            phase.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
+            phase.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
+            phase.ActualStart = ParseThaiDate(Request.Form["ActualStart"]);
+            phase.ActualEnd = ParseThaiDate(Request.Form["ActualEnd"]);
+
+            ModelState.Remove("PlanStart");
+            ModelState.Remove("PlanEnd");
+            ModelState.Remove("ActualStart");
+            ModelState.Remove("ActualEnd");
             if (phase.ProjectId <= 0)
             {
                 ModelState.AddModelError("ProjectId", "กรุณาเลือก Project");
@@ -190,6 +247,17 @@ namespace ProjectTracking.Controllers
         {
             if (id != phase.PhaseId)
                 return NotFound();
+
+            // รองรับวันที่ไทย dd/MM/พ.ศ.
+            phase.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
+            phase.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
+            phase.ActualStart = ParseThaiDate(Request.Form["ActualStart"]);
+            phase.ActualEnd = ParseThaiDate(Request.Form["ActualEnd"]);
+
+            ModelState.Remove("PlanStart");
+            ModelState.Remove("PlanEnd");
+            ModelState.Remove("ActualStart");
+            ModelState.Remove("ActualEnd");
 
             if (!ModelState.IsValid)
             {

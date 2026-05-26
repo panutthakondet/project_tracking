@@ -34,13 +34,52 @@
 
 <p class="text-muted">รายการโครงการทั้งหมดในระบบ</p>
 
-<div class="row mb-3">
-    <div class="col-md-5">
-        <label class="form-label fw-bold">🔍 ค้นหา Project</label>
-        <input type="text" id="projectSearchBox"
-               class="form-control"
-               placeholder="พิมพ์ชื่อโครงการ / system / database / url ..."
-               autocomplete="off" />
+<div class="card shadow-sm border-0 rounded-4 mb-3">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-lg-6 col-md-6">
+                <label class="form-label fw-bold">📂 Project</label>
+                <select id="projectFilter"
+                        class="form-select rounded-3"
+                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                    <option value="">ทั้งหมด</option>
+                    @foreach (var p in Model.OrderBy(x => x.ProjectName))
+                    {
+                        <option value="@p.ProjectName">@p.ProjectName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-bold">👤 BA</label>
+                <select id="baFilter"
+                        class="form-select rounded-3"
+                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                    <option value="">ทั้งหมด</option>
+                    @foreach (var ba in Model
+                        .Select(x => x.BA?.EmpName)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct()
+                        .OrderBy(x => x))
+                    {
+                        <option value="@ba">@ba</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label fw-bold">📌 Status</label>
+                <select id="statusFilter"
+                        class="form-select rounded-3"
+                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                    <option value="">ทั้งหมด</option>
+                    <option value="PLAN">PLAN</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="DONE">DONE</option>
+                </select>
+            </div>
+
+        </div>
     </div>
 </div>
 
@@ -78,7 +117,10 @@
                               x.Status == "PLAN" ? 2 : 3)
                 .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
             {
-                <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")">
+                <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")"
+                    data-project="@p.ProjectName.ToLower()"
+                    data-ba="@((p.BA?.EmpName ?? "").ToLower())"
+                    data-status="@((p.Status ?? "").ToLower())">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
                     <td class="sticky-col-2 col-name fw-semibold">
@@ -194,6 +236,9 @@
             .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
         {
             <div class="project-card"
+                 data-project="@p.ProjectName.ToLower()"
+                 data-ba="@((p.BA?.EmpName ?? "").ToLower())"
+                 data-status="@((p.Status ?? "").ToLower())"
                  data-search="@($"{p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
 
                 <div class="project-card-header">
@@ -518,45 +563,127 @@ thead .sticky-col-2{
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    const searchBox = document.getElementById("projectSearchBox");
+window.applyProjectFilter = function () {
 
-    function applyFilters(){
+    const selectedProject = (
+        document.getElementById("projectFilter")?.value || ""
+    ).trim().toLowerCase();
+    localStorage.setItem("projects.selectedProject", selectedProject);
 
-        const keyword = (searchBox.value || "").toLowerCase().trim();
+    const selectedBa = (
+        document.getElementById("baFilter")?.value || ""
+    ).trim().toLowerCase();
 
-        // desktop table
-        const rows = document.querySelectorAll("#projectTable tbody tr");
+    localStorage.setItem("projects.selectedBa", selectedBa);
 
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            const matchSearch = !keyword || text.includes(keyword);
-            row.style.display = matchSearch ? "" : "none";
-        });
+    const selectedStatus = (
+        document.getElementById("statusFilter")?.value || ""
+    ).trim().toLowerCase();
 
-        // mobile cards
-        const cards = document.querySelectorAll(".project-card");
+    localStorage.setItem("projects.selectedStatus", selectedStatus);
 
-        cards.forEach(card => {
-            const text = (card.dataset.search || "").toLowerCase();
-            const matchSearch = !keyword || text.includes(keyword);
-            card.style.display = matchSearch ? "" : "none";
-        });
+    // mobile cards (หน้าที่ใช้งานจริง)
+    document.querySelectorAll(".project-card").forEach(card => {
 
-        // re-number visible rows after filtering
-        let index = 1;
-        document.querySelectorAll("#projectTable tbody tr").forEach(r => {
-            if (r.style.display !== "none" && r.cells.length > 0) {
-                const cell = r.querySelector('.col-id');
-                if (cell) {
-                    cell.innerText = index;
-                    index++;
-                }
-            }
-        });
+        const projectName = (
+            card.dataset.project || ""
+        ).trim().toLowerCase();
+
+        const baName = (
+            card.dataset.ba || ""
+        ).trim().toLowerCase();
+
+        const statusName = (
+            card.dataset.status || ""
+        ).trim().toLowerCase();
+
+        const matchProject = !selectedProject ||
+                             projectName === selectedProject;
+
+        const matchBa = !selectedBa ||
+                        baName.includes(selectedBa);
+
+        const matchStatus = !selectedStatus ||
+                            statusName.includes(selectedStatus);
+
+        const visible = matchProject && matchBa && matchStatus;
+
+        card.style.display = visible ? "block" : "none";
+    });
+
+    // desktop table (กันไว้)
+    document.querySelectorAll("#projectTable tbody tr").forEach(row => {
+
+        const projectName = (
+            row.dataset.project || ""
+        ).trim().toLowerCase();
+
+        const baName = (
+            row.dataset.ba || ""
+        ).trim().toLowerCase();
+
+        const statusName = (
+            row.dataset.status || ""
+        ).trim().toLowerCase();
+
+        const matchProject = !selectedProject ||
+                             projectName === selectedProject;
+
+        const matchBa = !selectedBa ||
+                        baName.includes(selectedBa);
+
+        const matchStatus = !selectedStatus ||
+                            statusName.includes(selectedStatus);
+
+        const visible = matchProject && matchBa && matchStatus;
+
+        row.style.display = visible ? "table-row" : "none";
+    });
+};
+
+document.getElementById("projectFilter")?.addEventListener("change", window.applyProjectFilter);
+document.getElementById("baFilter")?.addEventListener("change", window.applyProjectFilter);
+document.getElementById("statusFilter")?.addEventListener("change", window.applyProjectFilter);
+const savedProject = localStorage.getItem("projects.selectedProject") || "";
+const ddl = document.getElementById("projectFilter");
+const baSaved = localStorage.getItem("projects.selectedBa") || "";
+const baDdl = document.getElementById("baFilter");
+const statusSaved = localStorage.getItem("projects.selectedStatus") || "";
+const statusDdl = document.getElementById("statusFilter");
+
+if (savedProject && ddl) {
+    const exists = Array.from(ddl.options)
+        .some(opt => opt.value.trim().toLowerCase() === savedProject);
+
+    if (exists) {
+        ddl.value = Array.from(ddl.options)
+            .find(opt => opt.value.trim().toLowerCase() === savedProject)?.value || "";
     }
+}
 
-    searchBox.addEventListener("keyup", applyFilters);
+if (baSaved && baDdl) {
+    const exists = Array.from(baDdl.options)
+        .some(opt => opt.value.trim().toLowerCase() === baSaved);
 
+    if (exists) {
+        baDdl.value = Array.from(baDdl.options)
+            .find(opt => opt.value.trim().toLowerCase() === baSaved)?.value || "";
+    }
+}
+
+if (statusSaved && statusDdl) {
+    const exists = Array.from(statusDdl.options)
+        .some(opt => opt.value.trim().toLowerCase() === statusSaved);
+
+    if (exists) {
+        statusDdl.value = Array.from(statusDdl.options)
+            .find(opt => opt.value.trim().toLowerCase() === statusSaved)?.value || "";
+    }
+}
+
+setTimeout(() => {
+    window.applyProjectFilter();
+}, 50);
 });
 </script>
 }

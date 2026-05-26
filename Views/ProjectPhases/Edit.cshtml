@@ -2,6 +2,32 @@
 
 @{
     ViewData["Title"] = "Edit Project Phase";
+
+    DateTime? planStart = Model?.PlanStart;
+    DateTime? planEnd = Model?.PlanEnd;
+    DateTime? actualStart = Model?.ActualStart;
+    DateTime? actualEnd = Model?.ActualEnd;
+
+    var ps = planStart.GetValueOrDefault();
+    var pe = planEnd.GetValueOrDefault();
+    var aps = actualStart.GetValueOrDefault();
+    var ape = actualEnd.GetValueOrDefault();
+
+    string planStartText = planStart.HasValue
+        ? $"{ps:dd/MM/}{ps.Year + 543}"
+        : "";
+
+    string planEndText = planEnd.HasValue
+        ? $"{pe:dd/MM/}{pe.Year + 543}"
+        : "";
+
+    string actualStartText = actualStart.HasValue
+        ? $"{aps:dd/MM/}{aps.Year + 543}"
+        : "";
+
+    string actualEndText = actualEnd.HasValue
+        ? $"{ape:dd/MM/}{ape.Year + 543}"
+        : "";
 }
 
 <div class="mb-4">
@@ -82,36 +108,44 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">📅 Plan Start</label>
                     <input asp-for="PlanStart"
-                           type="date"
-                           class="form-control"
-                           id="editPlanStart" />
+                           type="text"
+                           class="form-control thai-date"
+                           id="editPlanStart"
+                           value="@planStartText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- Plan End -->
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">📅 Plan End</label>
                     <input asp-for="PlanEnd"
-                           type="date"
-                           class="form-control"
-                           id="editPlanEnd" />
+                           type="text"
+                           class="form-control thai-date"
+                           id="editPlanEnd"
+                           value="@planEndText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- Period Start -->
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">🚀 Period Start</label>
                     <input asp-for="ActualStart"
-                           type="date"
-                           class="form-control"
-                           id="editPeriodStart" />
+                           type="text"
+                           class="form-control thai-date"
+                           id="editPeriodStart"
+                           value="@actualStartText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- Period End -->
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">🏁 Period End</label>
                     <input asp-for="ActualEnd"
-                           type="date"
-                           class="form-control"
-                           id="editPeriodEnd" />
+                           type="text"
+                           class="form-control thai-date"
+                           id="editPeriodEnd"
+                           value="@actualEndText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
             </div>
@@ -123,7 +157,7 @@
                 </button>
 
                 <a asp-action="Index"
-                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-projectId="@(Model?.ProjectId ?? 0)"
                    class="btn btn-outline-secondary">
                     ↩ Back
                 </a>
@@ -169,18 +203,79 @@
 
             if (!checkbox) return;
 
+            function toThaiDate(dateStr) {
+                if (!dateStr) return "";
+
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return dateStr;
+
+                const [y, m, d] = parts;
+                return `${d}/${m}/${parseInt(y) + 543}`;
+            }
+
             checkbox.addEventListener("change", function () {
 
                 if (this.checked) {
 
-                    if (lastPlanStart !== "") planStart.value = lastPlanStart;
-                    if (lastPlanEnd !== "") planEnd.value = lastPlanEnd;
-                    if (lastPeriodStart !== "") periodStart.value = lastPeriodStart;
-                    if (lastPeriodEnd !== "") periodEnd.value = lastPeriodEnd;
+                    if (lastPlanStart !== "") planStart.value = toThaiDate(lastPlanStart);
+                    if (lastPlanEnd !== "") planEnd.value = toThaiDate(lastPlanEnd);
+                    if (lastPeriodStart !== "") periodStart.value = toThaiDate(lastPeriodStart);
+                    if (lastPeriodEnd !== "") periodEnd.value = toThaiDate(lastPeriodEnd);
 
                 }
             });
 
+        });
+    </script>
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('editPlanStart'));
+        formatThaiDateInput(document.getElementById('editPlanEnd'));
+        formatThaiDateInput(document.getElementById('editPeriodStart'));
+        formatThaiDateInput(document.getElementById('editPeriodEnd'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
         });
     </script>
 }

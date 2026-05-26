@@ -142,8 +142,21 @@
 
                     <div class="col-md-6">
                         <label class="form-label">วันที่ <span class="req">*</span></label>
-                        <input type="date" name="MeetingDate" value="@ViewBag.Date" class="form-control" required />
-                        <small class="form-hint">คลิกจากปฏิทิน ระบบจะใส่วันที่ให้เอง</small>
+
+                        <input type="text"
+                               id="MeetingDateDisplay"
+                               class="form-control"
+                               placeholder="วว/ดด/ปปปป"
+                               autocomplete="off"
+                               maxlength="10"
+                               required />
+
+                        <input type="hidden"
+                               name="MeetingDate"
+                               id="MeetingDate"
+                               value="@ViewBag.Date" />
+
+                        <small class="form-hint">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</small>
                     </div>
 
                     <div class="col-md-6">
@@ -215,6 +228,62 @@
     const startInput = form.querySelector('input[name="StartTime"]');
     const endInput = form.querySelector('input[name="EndTime"]');
     const hint = document.getElementById('timeHint');
+    const displayDate = document.getElementById('MeetingDateDisplay');
+    const hiddenDate = document.getElementById('MeetingDate');
+    function formatDateInput(value) {
+        const digits = value.replace(/\D/g, '').slice(0, 8);
+
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 4) {
+            return digits.slice(0, 2) + '/' + digits.slice(2);
+        }
+
+        return digits.slice(0, 2) + '/' +
+               digits.slice(2, 4) + '/' +
+               digits.slice(4);
+    }
+
+    function syncHiddenDate() {
+        if (!displayDate || !hiddenDate) return;
+
+        const raw = displayDate.value.trim();
+        const parts = raw.split('/');
+
+        if (parts.length !== 3) {
+            hiddenDate.value = '';
+            return;
+        }
+
+        let [dd, mm, yyyy] = parts;
+
+        if (yyyy.length === 4 && parseInt(yyyy) > 2400) {
+            yyyy = (parseInt(yyyy) - 543).toString();
+        }
+
+        if (dd && mm && yyyy) {
+            hiddenDate.value = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+        }
+    }
+
+    if (displayDate) {
+
+        if (hiddenDate?.value) {
+            const d = new Date(hiddenDate.value);
+
+            if (!isNaN(d)) {
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear() + 543;
+
+                displayDate.value = `${dd}/${mm}/${yyyy}`;
+            }
+        }
+
+        displayDate.addEventListener('input', function () {
+            this.value = formatDateInput(this.value);
+            syncHiddenDate();
+        });
+    }
 
     function validateTime() {
         if (!startInput || !endInput) return true;
@@ -231,6 +300,14 @@
     if (endInput) endInput.addEventListener('change', validateTime);
 
     form.addEventListener('submit', function (e) {
+        syncHiddenDate();
+
+        if (!hiddenDate?.value) {
+            e.preventDefault();
+            displayDate?.focus();
+            return;
+        }
+
         if (!validateTime()) {
             e.preventDefault();
             endInput?.focus();

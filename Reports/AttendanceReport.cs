@@ -34,13 +34,13 @@ namespace ProjectTracking.Reports
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.ConstantColumn(40);   // ลำดับ
-                            columns.RelativeColumn(1.5f); // วันที่
-                            columns.RelativeColumn(3);    // ชื่อ
-                            columns.RelativeColumn(2);    // ตำแหน่ง
-                            columns.RelativeColumn(1);    // เวลาเข้า
-                            columns.RelativeColumn(1);    // เวลาออก
-                            columns.RelativeColumn(1.2f); // ระยะทาง
+                            columns.ConstantColumn(35);   // ลำดับ
+                            columns.RelativeColumn(1.3f); // วันที่
+                            columns.RelativeColumn(2.8f); // ชื่อ
+                            columns.RelativeColumn(2.2f); // ตำแหน่ง
+                            columns.RelativeColumn(1.2f); // เวลาเข้า
+                            columns.RelativeColumn(1.2f); // เวลาออก
+                            columns.RelativeColumn(1.1f); // ระยะทาง
                         });
 
                         // ===== HEADER =====
@@ -56,11 +56,14 @@ namespace ProjectTracking.Reports
                             static IContainer CellHeader(IContainer container)
                             {
                                 return container
+                                    .Background(Colors.Blue.Lighten4)
+                                    .Border(1)
+                                    .BorderColor(Colors.Grey.Lighten1)
                                     .PaddingVertical(8)
-                                    .PaddingHorizontal(6)
+                                    .PaddingHorizontal(5)
                                     .AlignCenter()
                                     .AlignMiddle()
-                                    .DefaultTextStyle(x => x.Bold().FontSize(11));
+                                    .DefaultTextStyle(x => x.Bold().FontSize(10));
                             }
                         });
 
@@ -68,23 +71,66 @@ namespace ProjectTracking.Reports
 
                         foreach (var item in data)
                         {
+                            bool isEvenRow = i % 2 == 0;
                             var row = (dynamic)item;
 
                             string date = ((DateTime)row.WorkDate).AddYears(543).ToString("dd/MM/yyyy");
-                            string checkin = row.CheckinTime != null ? ((DateTime)row.CheckinTime).ToString("HH:mm") : "-";
-                            string checkout = row.CheckoutTime != null ? ((DateTime)row.CheckoutTime).ToString("HH:mm") : "-";
-                            string distance = row.DistanceKm != null ? string.Format("{0:0.00}", row.DistanceKm) : "-";
+                            string checkin = row.CheckinTime != null
+                                ? ((DateTime)row.CheckinTime).ToString("HH:mm")
+                                : "ไม่เช็คเข้า";
+
+                            string checkout = row.CheckoutTime != null
+                                ? ((DateTime)row.CheckoutTime).ToString("HH:mm")
+                                : "ไม่เช็คออก";
+
+                            string distance = row.DistanceKm != null
+                                ? string.Format("{0:0.00}", row.DistanceKm)
+                                : "0.00";
 
                             string empName = row.EmpName?.ToString() ?? "-";
                             string position = row.Position?.ToString() ?? "-";
 
-                            table.Cell().Element(CellBody).AlignCenter().Text(i.ToString());
-                            table.Cell().Element(CellBody).AlignCenter().Text(date);
-                            table.Cell().Element(CellBody).Text(empName);
-                            table.Cell().Element(CellBody).AlignCenter().Text(position);
-                            table.Cell().Element(CellBody).AlignCenter().Text(checkin);
-                            table.Cell().Element(CellBody).AlignCenter().Text(checkout);
-                            table.Cell().Element(CellBody).AlignCenter().Text(distance);
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White)).AlignCenter().Text(i.ToString());
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White)).AlignCenter().Text(date);
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White)).Text(empName);
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White)).Text(position);
+
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White))
+                                .AlignCenter()
+                                .Text(checkin)
+                                .FontColor(checkin == "ไม่เช็คเข้า"
+                                    ? Colors.Red.Darken2
+                                    : Colors.Black);
+
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White))
+                                .AlignCenter()
+                                .Text(checkout)
+                                .FontColor(checkout == "ไม่เช็คออก"
+                                    ? Colors.Orange.Darken2
+                                    : Colors.Black);
+
+                            table.Cell().Element(c => CellBody(c)
+                                .Background(isEvenRow
+                                    ? Colors.Grey.Lighten5
+                                    : Colors.White)).AlignCenter().Text(distance);
 
                             i++;
                         }
@@ -92,10 +138,12 @@ namespace ProjectTracking.Reports
                         static IContainer CellBody(IContainer container)
                         {
                             return container
-                                .PaddingVertical(6)
-                                .PaddingHorizontal(6)
+                                .BorderBottom(1)
+                                .BorderColor(Colors.Grey.Lighten2)
+                                .PaddingVertical(5)
+                                .PaddingHorizontal(5)
                                 .AlignMiddle()
-                                .DefaultTextStyle(x => x.FontSize(10));
+                                .DefaultTextStyle(x => x.FontSize(9.5f));
                         }
                     });
 

@@ -37,8 +37,21 @@
 
         <div class="col-md-4">
             <label class="form-label">วันที่</label>
-            <input type="date" name="MeetingDate" class="form-control"
-                   value="@Model.MeetingDate.ToString("yyyy-MM-dd")" required />
+
+            <input type="text"
+                   id="MeetingDateDisplay"
+                   class="form-control"
+                   placeholder="วว/ดด/ปปปป"
+                   autocomplete="off"
+                   maxlength="10"
+                   required />
+
+            <input type="hidden"
+                   name="MeetingDate"
+                   id="MeetingDate"
+                   value="@Model.MeetingDate.ToString("yyyy-MM-dd")" />
+
+            <div class="form-text">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</div>
         </div>
 
         <div class="col-md-4">
@@ -96,4 +109,74 @@
         <button type="submit" class="btn btn-success">💾 บันทึกการแก้ไข</button>
         <a href="/Meetings/Show/@Model.Id" class="btn btn-secondary">ยกเลิก</a>
     </div>
-</form>
+    </form>
+
+<script>
+(function () {
+
+    const form = document.getElementById('meetingForm');
+    const displayDate = document.getElementById('MeetingDateDisplay');
+    const hiddenDate = document.getElementById('MeetingDate');
+
+    function formatDateInput(value) {
+        const digits = value.replace(/\D/g, '').slice(0, 8);
+
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 4) {
+            return digits.slice(0, 2) + '/' + digits.slice(2);
+        }
+
+        return digits.slice(0, 2) + '/' +
+               digits.slice(2, 4) + '/' +
+               digits.slice(4);
+    }
+
+    function syncHiddenDate() {
+        if (!displayDate || !hiddenDate) return;
+
+        const raw = displayDate.value.trim();
+        const parts = raw.split('/');
+
+        if (parts.length !== 3) {
+            hiddenDate.value = '';
+            return;
+        }
+
+        let [dd, mm, yyyy] = parts;
+
+        if (yyyy.length === 4 && parseInt(yyyy) > 2400) {
+            yyyy = (parseInt(yyyy) - 543).toString();
+        }
+
+        if (dd && mm && yyyy) {
+            hiddenDate.value = `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+        }
+    }
+
+    if (displayDate && hiddenDate?.value) {
+        const d = new Date(hiddenDate.value);
+
+        if (!isNaN(d)) {
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear() + 543;
+
+            displayDate.value = `${dd}/${mm}/${yyyy}`;
+        }
+    }
+
+    displayDate?.addEventListener('input', function () {
+        this.value = formatDateInput(this.value);
+        syncHiddenDate();
+    });
+
+    form?.addEventListener('submit', function (e) {
+        syncHiddenDate();
+
+        if (!hiddenDate?.value) {
+            e.preventDefault();
+            displayDate?.focus();
+        }
+    });
+})();
+</script>

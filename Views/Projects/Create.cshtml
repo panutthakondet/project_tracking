@@ -2,6 +2,20 @@
 
 @{
     ViewData["Title"] = "Create Project";
+
+    DateTime? startDate = Model?.StartDate;
+    DateTime? endDate = Model?.EndDate;
+
+    var sd = startDate.GetValueOrDefault();
+    var ed = endDate.GetValueOrDefault();
+
+    string startDateText = startDate.HasValue
+        ? $"{sd:dd/MM/}{sd.Year + 543}"
+        : "";
+
+    string endDateText = endDate.HasValue
+        ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
 }
 
 <!-- ================= HEADER ================= -->
@@ -72,8 +86,10 @@
                         ▶ Start Date
                     </label>
                     <input asp-for="StartDate"
-                           type="date"
-                           class="form-control" />
+                           type="text"
+                           class="form-control thai-date"
+                           value="@startDateText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- End Date -->
@@ -82,8 +98,10 @@
                         ⏹ End Date
                     </label>
                     <input asp-for="EndDate"
-                           type="date"
-                           class="form-control" />
+                           type="text"
+                           class="form-control thai-date"
+                           value="@endDateText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- ================= SYSTEM / DATABASE INFO ================= -->
@@ -167,4 +185,54 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('StartDate'));
+        formatThaiDateInput(document.getElementById('EndDate'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
+        });
+    </script>
 }

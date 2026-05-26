@@ -32,22 +32,49 @@
     }
 
     .project-title {
-        line-height: 1.5;
+        line-height: 1.45;
         word-break: break-word;
+        flex: 1;
+        min-width: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .project-header-wrapper {
+        display: flex;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+
+    .project-header-top {
+        flex: 1;
+        min-width: 0;
     }
 
     .project-header-action {
         display: flex;
+        align-items: center;
         justify-content: flex-end;
+        flex-shrink: 0;
+        padding-top: 10px;
     }
 
     @@media (max-width: 768px) {
+        .project-header-wrapper {
+            flex-direction: column;
+        }
+
         .project-header-action {
-            justify-content: stretch;
+            width: 100%;
+            justify-content: flex-start;
         }
 
         .project-header-action .btn {
-            width: 100%;
+            width: auto;
         }
     }
     table tbody tr.phase-main > td {
@@ -132,22 +159,23 @@
     }
 
     .phase-no {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 800;
         color: #2563eb;
     }
 
     .phase-period {
+        font-size: .98rem;
         font-weight: 700;
         color: #0f172a;
     }
 
     .phase-name-row {
-        margin-top: 4px;
-        font-size: 1.06rem;
+        margin-top: 6px;
+        font-size: 1.12rem;
         font-weight: 700;
         color: #111827;
-        line-height: 1.45;
+        line-height: 1.55;
     }
 
     .phase-name-inline {
@@ -196,9 +224,9 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 24px;
-        margin-top: 8px;
+        margin-top: 10px;
         color: #475569;
-        font-size: .95rem;
+        font-size: .97rem;
     }
 
     .phase-date-item {
@@ -214,6 +242,11 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .phase-card-actions .btn {
+        font-size: .93rem;
+        font-weight: 600;
     }
 </style>
 
@@ -262,30 +295,69 @@
 {
     var selectedProject = ViewBag.SelectedProject;
 
-    <div class="project-header-card mb-3">
+    <div class="project-header-wrapper">
 
         <div class="project-header-top">
-            <h4 class="fw-bold mb-0 project-title">
-                📌 Project : @selectedProject.ProjectName
-            </h4>
+            <div class="project-header-card h-100">
+                <h4 class="fw-bold mb-0 project-title">
+                    📌 Project : @selectedProject.ProjectName
+                </h4>
+            </div>
         </div>
 
-        <div class="project-header-action mt-3">
-            @if (CanMenu("ProjectPhases.Create"))
-            {
-                <a asp-action="Create"
-                   asp-route-projectId="@selectedProject.ProjectId"
-                   class="btn btn-primary"
-                   title="เพิ่ม Phase">
-                    ➕ Add Phase
+        <div class="project-header-action">
+            <div class="d-flex align-items-center gap-2" style="flex-wrap:wrap;">
+
+                <a asp-controller="Projects"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary px-4"
+                   title="กลับไปหน้ารายการโครงการ"
+                   style="font-size:1.07rem; white-space:nowrap; height: 40px;">
+                    ↩ Projects
                 </a>
-            }
-            else
-            {
-                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
-                    ➕ Add Phase
-                </button>
-            }
+
+                @if (CanMenu("ProjectPhases.Create"))
+                {
+                    <a asp-action="Create"
+                       asp-route-projectId="@selectedProject.ProjectId"
+                       class="btn btn-primary px-4"
+                       title="เพิ่ม Phase"
+                       style="font-size:1.07rem; white-space:nowrap; height: 40px;">
+                        ➕ Add Phase
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-primary px-4"
+                            disabled
+                            title="ไม่มีสิทธิ์เพิ่ม Phase"
+                            style="font-size:1.07rem; white-space:nowrap; height: 40px;">
+                        ➕ Add Phase
+                    </button>
+                }
+
+                @if (CanMenu("PhaseAssigns.Index"))
+                {
+                    <a asp-controller="PhaseAssigns"
+                       asp-action="Index"
+                       asp-route-projectId="@selectedProject.ProjectId"
+                       class="btn btn-outline-info px-4"
+                       title="จัดการ Assign"
+                       style="font-size:1.07rem; white-space:nowrap; height:40px;">
+                        👥 Assign
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary px-4"
+                            disabled
+                            title="ไม่มีสิทธิ์เข้าหน้า Assign"
+                            style="font-size:1.07rem; white-space:nowrap; height:40px;">
+                        👥 Assign
+                    </button>
+                }
+
+            </div>
         </div>
 
     </div>
@@ -534,23 +606,6 @@ else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
                             ✏️ Edit
-                        </button>
-                    }
-
-                    @if (CanMenu("PhaseAssigns.Index"))
-                    {
-                        <a asp-controller="PhaseAssigns"
-                           asp-action="Index"
-                           asp-route-projectId="@selectedProject.ProjectId"
-                           asp-route-phaseId="@phase.PhaseId"
-                           class="btn btn-outline-info btn-sm">
-                            👥 Assign
-                        </a>
-                    }
-                    else
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            👥 Assign
                         </button>
                     }
 

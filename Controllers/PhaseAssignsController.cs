@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.IO;
+using System;
+using System.Globalization;
 
 namespace ProjectTracking.Controllers
 {
@@ -18,6 +20,50 @@ namespace ProjectTracking.Controllers
         public PhaseAssignsController(AppDbContext context)
         {
             _context = context;
+        }
+
+        // รองรับวันที่ไทย dd/MM/พ.ศ.
+        private DateTime? ParseThaiDate(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+
+            // yyyy-MM-dd
+            if (DateTime.TryParseExact(
+                    value,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var isoDate))
+            {
+                return isoDate;
+            }
+
+            // dd/MM/yyyy (พ.ศ.)
+            var parts = value.Split('/');
+            if (parts.Length == 3)
+            {
+                if (int.TryParse(parts[0], out var d) &&
+                    int.TryParse(parts[1], out var m) &&
+                    int.TryParse(parts[2], out var y))
+                {
+                    if (y > 2400)
+                        y -= 543;
+
+                    try
+                    {
+                        return new DateTime(y, m, d);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            return null;
         }
 
         // =====================================================
@@ -157,6 +203,12 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseAssigns.Create")]
         public async Task<IActionResult> Create(PhaseAssign model, int projectId)
         {
+            // รองรับวันที่ไทย dd/MM/พ.ศ.
+            model.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
+            model.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
+
+            ModelState.Remove("PlanStart");
+            ModelState.Remove("PlanEnd");
             var phase = await _context.ProjectPhases
                 .FirstOrDefaultAsync(p => p.PhaseId == model.PhaseId);
 
@@ -286,6 +338,13 @@ namespace ProjectTracking.Controllers
         {
             if (id != model.AssignId)
                 return NotFound();
+
+            // รองรับวันที่ไทย dd/MM/พ.ศ.
+            model.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
+            model.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
+
+            ModelState.Remove("PlanStart");
+            ModelState.Remove("PlanEnd");
 
             var db = await _context.PhaseAssigns
                 .FirstOrDefaultAsync(a => a.AssignId == id);

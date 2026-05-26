@@ -16,6 +16,109 @@
     </button>
 </form>
 
+@{
+    var noCheckin = Model
+        .Where(x => x.CheckinTime == null)
+        .Select(x => new {
+            x.EmpName,
+            x.Position,
+            WorkDate = (DateTime)x.WorkDate
+        })
+        .ToList();
+
+    var noCheckout = Model
+        .Where(x => x.CheckoutTime == null)
+        .Select(x => new {
+            x.EmpName,
+            x.Position,
+            WorkDate = (DateTime)x.WorkDate
+        })
+        .ToList();
+}
+
+@if (noCheckin.Any() || noCheckout.Any())
+{
+    <div class="row mb-3">
+
+        <div class="col-md-6 mb-3">
+            <div class="card border-danger shadow-sm h-100">
+                <div class="card-header bg-danger text-white fw-bold">
+                    ❌ คนที่ไม่ได้เช็คเข้า (@noCheckin.Count คน)
+                </div>
+                <div class="card-body p-2">
+                    @if (noCheckin.Any())
+                    {
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ชื่อ</th>
+                                    <th>ตำแหน่ง</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var emp in noCheckin)
+                                {
+                                    <tr>
+                                        <td>@emp.WorkDate.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("th-TH"))</td>
+                                        <td>@emp.EmpName</td>
+                                        <td>@emp.Position</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-success text-center py-2">
+                            ✅ ทุกคนเช็คเข้าแล้ว
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-header bg-warning fw-bold text-dark">
+                    ⚠️ คนที่ไม่ได้เช็คออก (@noCheckout.Count คน)
+                </div>
+                <div class="card-body p-2">
+                    @if (noCheckout.Any())
+                    {
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ชื่อ</th>
+                                    <th>ตำแหน่ง</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var emp in noCheckout)
+                                {
+                                    <tr>
+                                        <td>@emp.WorkDate.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("th-TH"))</td>
+                                        <td>@emp.EmpName</td>
+                                        <td>@emp.Position</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-success text-center py-2">
+                            ✅ ทุกคนเช็คออกแล้ว
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+}
+
 <table class="table table-bordered table-sm">
     <thead class="table-light text-center">
         <tr>
@@ -45,8 +148,26 @@
                 </td>
                 <td>@item.EmpName</td>
                 <td>@item.Position</td>
-                <td>@item.CheckinTime?.ToString("HH:mm")</td>
-                <td>@item.CheckoutTime?.ToString("HH:mm")</td>
+                <td>
+                    @if (item.CheckinTime != null)
+                    {
+                        @item.CheckinTime?.ToString("HH:mm")
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">ไม่เช็คเข้า</span>
+                    }
+                </td>
+                <td>
+                    @if (item.CheckoutTime != null)
+                    {
+                        @item.CheckoutTime?.ToString("HH:mm")
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">ไม่เช็คออก</span>
+                    }
+                </td>
                 <td>@(item.DistanceKm != null ? string.Format("{0:0.00}", item.DistanceKm) : "-")</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-success"

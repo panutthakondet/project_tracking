@@ -2,6 +2,20 @@
 
 @{
     ViewData["Title"] = "Assign Employee";
+
+    DateTime? planStart = Model?.PlanStart;
+    DateTime? planEnd = Model?.PlanEnd;
+
+    var ps = planStart.GetValueOrDefault();
+    var pe = planEnd.GetValueOrDefault();
+
+    string planStartText = planStart.HasValue
+        ? $"{ps:dd/MM/}{ps.Year + 543}"
+        : "";
+
+    string planEndText = planEnd.HasValue
+        ? $"{pe:dd/MM/}{pe.Year + 543}"
+        : "";
 }
 
 <div class="mb-4">
@@ -83,15 +97,25 @@
                 </div>
 
                 <!-- PLAN START -->
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">📅 Plan Start</label>
-                    <input asp-for="PlanStart" type="date" class="form-control" id="planStart" />
+                    <input asp-for="PlanStart"
+                           type="text"
+                           class="form-control thai-date"
+                           id="planStart"
+                           value="@planStartText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- PLAN END -->
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">📅 Plan End</label>
-                    <input asp-for="PlanEnd" type="date" class="form-control" id="planEnd" />
+                    <input asp-for="PlanEnd"
+                           type="text"
+                           class="form-control thai-date"
+                           id="planEnd"
+                           value="@planEndText"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <!-- WORK STATUS -->
@@ -144,6 +168,55 @@
     }
 
     onReady(function () {
+        function toThaiDate(dateStr) {
+            if (!dateStr) return "";
+
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+
+            const [y, m, d] = parts;
+            return `${d}/${m}/${parseInt(y) + 543}`;
+        }
+
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
         const phaseSelect = document.getElementById("phaseSelect");
         const planStart = document.getElementById("planStart");
         const planEnd = document.getElementById("planEnd");
@@ -177,6 +250,9 @@
                 planEndTouched = true;
             });
         }
+
+        formatThaiDateInput(planStart);
+        formatThaiDateInput(planEnd);
 
         if (!phaseSelect) return;
 
@@ -227,8 +303,8 @@
                 phaseOrderHidden.value = phaseOrder;
             }
 
-            if (planStart && !planStartTouched) planStart.value = ps;
-            if (planEnd && !planEndTouched) planEnd.value = pe;
+            if (planStart && !planStartTouched) planStart.value = toThaiDate(ps);
+            if (planEnd && !planEndTouched) planEnd.value = toThaiDate(pe);
         }
 
         function applyFromSelectedOption() {
@@ -261,6 +337,15 @@
         // โหลดค่าเริ่มต้น (กรณีมี PhaseId ติดมา)
         applyFromSelectedOption();
         if (roleDisplay && roleDisplay.value) lastAutoRole = roleDisplay.value.trim();
+
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function () {
+                document.querySelectorAll('.thai-date').forEach(input => {
+                    input.value = convertThaiDateToIso(input.value);
+                });
+            });
+        }
     });
 })();
 </script>
