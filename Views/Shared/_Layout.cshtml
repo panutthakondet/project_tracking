@@ -921,6 +921,7 @@
 @@media (max-width: 1100px){
     .v2-sidebar{
         width:92px;
+        transition:width .22s ease, box-shadow .22s ease;
     }
 
     .v2-page{
@@ -968,6 +969,54 @@
         text-align:center;
         font-size:11px;
         padding:8px 4px;
+    }
+
+    .v2-sidebar.sidebar-expanded{
+        width:280px;
+        box-shadow:16px 0 44px rgba(0,0,0,.35);
+    }
+
+    .v2-sidebar.sidebar-expanded .v2-profile-card{
+        padding:18px 20px 12px;
+    }
+
+    .v2-sidebar.sidebar-expanded .v2-avatar{
+        width:86px;
+        height:86px;
+    }
+
+    .v2-sidebar.sidebar-expanded .v2-avatar-upload,
+    .v2-sidebar.sidebar-expanded .v2-profile-name,
+    .v2-sidebar.sidebar-expanded .v2-profile-role-row,
+    .v2-sidebar.sidebar-expanded .nav-label,
+    .v2-sidebar.sidebar-expanded .dropdown-toggle::after{
+        display:inline-flex;
+    }
+
+    .v2-sidebar.sidebar-expanded .v2-profile-name,
+    .v2-sidebar.sidebar-expanded .v2-profile-role-row{
+        display:block;
+    }
+
+    .v2-sidebar.sidebar-expanded .navbar{
+        padding:0 14px 14px !important;
+    }
+
+    .v2-sidebar.sidebar-expanded .navbar-dark .navbar-nav .nav-link,
+    .v2-sidebar.sidebar-expanded .navbar-dark .navbar-nav .dropdown-toggle{
+        justify-content:flex-start;
+        padding:13px 18px !important;
+        gap:0;
+    }
+
+    .v2-sidebar.sidebar-expanded .dropdown-menu{
+        padding:3px 0 7px 43px !important;
+    }
+
+    .v2-sidebar.sidebar-expanded .dropdown-item{
+        text-align:left;
+        font-size:13px;
+        padding:7px 13px;
     }
 }
 
@@ -1149,6 +1198,16 @@
                                 <span class="nav-label">Dashboard</span>
                             </a>
                         </li>
+
+                        @if (CanMenu("Employees.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="Employees" ? "active-menu" : "")" asp-controller="Employees" asp-action="Index" title="จัดการพนักงาน">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
+                                    <span class="nav-label">Employees</span>
+                                </a>
+                            </li>
+                        }
 
                         @if (CanMenu("Projects.Index") || CanMenu("Projects.ViewOnly") || CanMenu("ProjectDocuments.Index"))
                         {
@@ -1547,6 +1606,54 @@
         $dropdown.find('.s2-custom-search').val('');
         $dropdown.find('.select2-results__option').show();
     });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.querySelector('.v2-sidebar');
+    const responsiveSidebar = window.matchMedia('(max-width: 1100px) and (min-width: 721px)');
+
+    if (!sidebar) return;
+
+    function shouldUseOverlayMenu() {
+        return responsiveSidebar.matches;
+    }
+
+    function expandSidebar() {
+        if (shouldUseOverlayMenu()) {
+            sidebar.classList.add('sidebar-expanded');
+        }
+    }
+
+    function collapseSidebar() {
+        sidebar.classList.remove('sidebar-expanded');
+    }
+
+    sidebar.querySelectorAll('.nav-item.dropdown').forEach(function (item) {
+        item.addEventListener('show.bs.dropdown', expandSidebar);
+        item.addEventListener('hidden.bs.dropdown', function () {
+            window.setTimeout(function () {
+                if (!sidebar.querySelector('.dropdown-menu.show')) {
+                    collapseSidebar();
+                }
+            }, 0);
+        });
+    });
+
+    sidebar.querySelectorAll('.dropdown-item').forEach(function (item) {
+        item.addEventListener('click', collapseSidebar);
+    });
+
+    document.addEventListener('pointerdown', function (event) {
+        if (!shouldUseOverlayMenu()) return;
+        if (!sidebar.classList.contains('sidebar-expanded')) return;
+        if (!sidebar.contains(event.target)) collapseSidebar();
+    });
+
+    responsiveSidebar.addEventListener('change', function () {
+        if (!shouldUseOverlayMenu()) collapseSidebar();
+    });
+});
 </script>
 
 <script>

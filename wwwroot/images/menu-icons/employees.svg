@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Employees">
+  <defs>
+    <linearGradient id="g" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#g)"/>
+  <circle cx="32" cy="22" r="10" fill="#fff"/>
+  <path d="M13 53c3-12 10-18 19-18s16 6 19 18" fill="#fff"/>
+  <circle cx="47" cy="31" r="7" fill="#DBEAFE"/>
+  <path d="M40 53c1.4-7 5.2-11 10-11 2.2 0 4.2.8 6 2.3V53H40Z" fill="#DBEAFE"/>
+</svg>
