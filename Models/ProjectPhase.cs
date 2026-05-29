@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System;
 
 namespace ProjectTracking.Models
 {
@@ -36,6 +37,12 @@ namespace ProjectTracking.Models
 
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
+
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
+
+        [Column("entry_id")]
+        public int? EntryId { get; set; }
 
         // Period วันที่เริ่ม/สิ้นสุดงวดงาน
         [Column("period_start_date")]

@@ -33,6 +33,9 @@ namespace ProjectTracking.Models
         [Column("dev_status")]
         public string? DevStatus { get; set; }
 
+        [Column("created_by")]
+        public int? CreatedBy { get; set; }
+
         [Column("due_date")]
         public DateTime? DueDate { get; set; }
 

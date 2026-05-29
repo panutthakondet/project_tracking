@@ -1,0 +1,145 @@
+namespace ProjectTracking.ViewModels
+{
+    public class HomeDashboardViewModel
+    {
+        public string Username { get; set; } = "ผู้ใช้งาน";
+
+        public int TotalProjectCount { get; set; }
+        public int MeetingsTodayCount { get; set; }
+        public int OpenIssueCount { get; set; }
+        public int ActiveMemberCount { get; set; }
+        public int OverdueTaskCount { get; set; }
+
+        public string TotalProjectsNote { get; set; } = "ข้อมูลทั้งหมดในระบบ";
+        public string MeetingsTodayNote { get; set; } = "รายการประชุมวันนี้";
+        public string OpenIssuesNote { get; set; } = "Issue ที่ยังไม่ปิด";
+        public string ActiveMembersNote { get; set; } = "พนักงานสถานะ ACTIVE";
+        public string OverdueTasksNote { get; set; } = "งานติดตามเลยกำหนด";
+
+        public List<HomeDashboardMetric> ProjectStatusMetrics { get; set; } = new();
+        public string ProjectStatusDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+
+        public List<HomeDashboardMetric> PhaseTypeMetrics { get; set; } = new();
+        public int PhaseTypeTotal { get; set; }
+        public string PhaseTypeDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+
+        public List<HomeDashboardMetric> IssueMetrics { get; set; } = new();
+        public int IssueTotal { get; set; }
+        public string IssueDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+
+        public List<HomeDashboardChartSeries> ProjectOverviewSeries { get; set; } = new();
+        public List<HomeDashboardMonthPoint> ProjectOverviewMonths { get; set; } = new();
+        public HomeDashboardMonthPoint? ProjectOverviewTooltip { get; set; }
+
+        public List<HomeDashboardProjectProgress> TopProjectProgress { get; set; } = new();
+        public List<HomeDashboardActivity> RecentActivities { get; set; } = new();
+        public List<HomeDashboardMeeting> TodayMeetings { get; set; } = new();
+        public List<HomeDashboardTaskPeriod> YearlyTasks { get; set; } = new();
+        public List<HomeDashboardWatchProject> WatchProjects { get; set; } = new();
+        public List<HomeDashboardWorkload> TeamWorkload { get; set; } = new();
+
+        public decimal MonthWorkHours { get; set; }
+        public decimal ClosedWorkHours { get; set; }
+        public decimal OpenWorkHours { get; set; }
+        public int PendingCheckoutCount { get; set; }
+        public int TodayCheckinCount { get; set; }
+        public int TodayCheckoutCount { get; set; }
+        public int TodayMissingCheckinCount { get; set; }
+        public int MonthAttendanceDays { get; set; }
+        public decimal AverageHoursPerDay { get; set; }
+        public int LongShiftCount { get; set; }
+        public int LongDistanceCount { get; set; }
+        public List<string> PendingCheckoutNames { get; set; } = new();
+        public string TimeTrackingDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+        public string WorkHourTrendText { get; set; } = "ข้อมูลเดือนนี้จาก attendance";
+        public string WorkHourTrendClass { get; set; } = "neutral";
+    }
+
+    public class HomeDashboardMetric
+    {
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
+        public decimal Percent { get; set; }
+        public string Color { get; set; } = "blue";
+        public string HexColor { get; set; } = "#1688f5";
+
+        public string CountPercentText => $"{Count} ({Percent:0.#}%)";
+    }
+
+    public class HomeDashboardChartSeries
+    {
+        public string Name { get; set; } = "";
+        public string Color { get; set; } = "blue";
+        public string Points { get; set; } = "";
+    }
+
+    public class HomeDashboardMonthPoint
+    {
+        public string Label { get; set; } = "";
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Pending { get; set; }
+        public int Cancelled { get; set; }
+    }
+
+    public class HomeDashboardProjectProgress
+    {
+        public string Name { get; set; } = "";
+        public int Value { get; set; }
+        public string Color { get; set; } = "green";
+    }
+
+    public class HomeDashboardActivity
+    {
+        public string Actor { get; set; } = "";
+        public string Detail { get; set; } = "";
+        public string OwnerText { get; set; } = "";
+        public string TimeText { get; set; } = "";
+        public string Color { get; set; } = "blue";
+        public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+        public string? Url { get; set; }
+    }
+
+    public class HomeDashboardMeeting
+    {
+        public string Title { get; set; } = "";
+        public string Detail { get; set; } = "";
+        public string TimeText { get; set; } = "";
+        public string TimeColor { get; set; } = "blue";
+        public int AttendeeCount { get; set; }
+        public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+    }
+
+    public class HomeDashboardTaskPeriod
+    {
+        public string PeriodLabel { get; set; } = "";
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Pending { get; set; }
+        public int CompletedHeight { get; set; }
+        public int InProgressHeight { get; set; }
+        public int PendingHeight { get; set; }
+    }
+
+    public class HomeDashboardWatchProject
+    {
+        public int ProjectId { get; set; }
+        public string ProjectName { get; set; } = "";
+        public string OwnerName { get; set; } = "";
+        public string RiskLevel { get; set; } = "";
+        public string RiskColor { get; set; } = "orange";
+        public string DueText { get; set; } = "";
+        public int RiskScore { get; set; }
+        public int Progress { get; set; }
+        public List<string> Reasons { get; set; } = new();
+    }
+
+    public class HomeDashboardWorkload
+    {
+        public string Name { get; set; } = "";
+        public int Value { get; set; }
+        public int ActiveTaskCount { get; set; }
+        public string Color { get; set; } = "blue";
+        public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+    }
+}

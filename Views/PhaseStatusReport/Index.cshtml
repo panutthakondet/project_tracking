@@ -26,10 +26,14 @@
     var overdueDays = sortedModel.Sum(x => x.OverdueDays);
 }
 
-<h2 class="mb-3 fw-bold">📊 รายงานสถานะงานตามพนักงาน</h2>
+<div class="phase-report-page">
+<div class="phase-report-title">
+    <span class="title-mark">▮▮▮</span>
+    <h2>รายงานสถานะงานตามพนักงาน</h2>
+</div>
 
 <!-- ================= SUMMARY ================= -->
-<div class="row g-3 mb-4 no-print">
+<div class="row g-3 mb-4 no-print phase-summary-row">
     <div class="col-md-2">
         <div class="card text-center shadow-sm">
             <div class="card-body">
@@ -77,7 +81,7 @@
 </div>
 
 <!-- ================= FILTER ================= -->
-<form method="get" class="row g-3 mb-3 no-print">
+<form method="get" class="row g-3 mb-3 no-print phase-filter-row">
     <div class="col-md-4">
         <label class="form-label fw-semibold">👤 Employee</label>
         <select name="empName" class="form-select" onchange="this.form.submit()">
@@ -99,6 +103,19 @@
             {
                 <option value="@p" selected="@(ViewBag.SelectedProject == p)">
                     @p
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">📌 Status</label>
+        <select name="phaseStatus" class="form-select" onchange="this.form.submit()">
+            <option value="">-- All Statuses --</option>
+            @foreach (var status in ViewBag.StatusList)
+            {
+                <option value="@status" selected="@(ViewBag.SelectedStatus == status)">
+                    @status
                 </option>
             }
         </select>
@@ -140,7 +157,8 @@
                title="พิมพ์รายงาน"
                asp-action="Print"
                asp-route-empName="@ViewBag.SelectedEmp"
-               asp-route-projectName="@ViewBag.SelectedProject">
+               asp-route-projectName="@ViewBag.SelectedProject"
+               asp-route-phaseStatus="@ViewBag.SelectedStatus">
                 🖨 พิมพ์รายงาน
             </a>
         }
@@ -154,10 +172,10 @@
 </div>
 
 <!-- ================= TABLE ================= -->
-<div class="table-responsive">
-    <table class="table table-bordered table-striped table-sm align-middle"
+<div class="table-responsive phase-report-table-wrap">
+    <table class="table table-bordered table-striped table-sm align-middle phase-report-table"
            style="min-width:2200px;">
-        <thead class="table-dark text-center">
+        <thead>
             <tr>
                 <th style="min-width:260px;">Project</th>
                 <th style="min-width:80px;">Order</th>
@@ -207,8 +225,122 @@
         </tbody>
     </table>
 </div>
+</div>
 
 <style>
+.phase-report-page {
+    color: #111827;
+}
+
+.phase-report-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 16px;
+}
+
+.phase-report-title h2 {
+    margin: 0;
+    color: #172033;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.title-mark {
+    display: inline-flex;
+    align-items: flex-end;
+    height: 34px;
+    color: transparent;
+    font-size: 0;
+}
+
+.title-mark::before {
+    content: "";
+    width: 34px;
+    height: 28px;
+    display: block;
+    border-radius: 7px;
+    background:
+        linear-gradient(90deg, #22c55e 0 27%, transparent 27% 36%, #2563eb 36% 63%, transparent 63% 72%, #ef4444 72% 100%);
+    box-shadow: 0 8px 18px rgba(37,99,235,.16);
+}
+
+.phase-summary-row .card {
+    border: 0 !important;
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(15,23,42,.08) !important;
+}
+
+.phase-summary-row .card-body {
+    padding: 18px 16px;
+}
+
+.phase-filter-row {
+    margin-bottom: 22px !important;
+}
+
+.phase-filter-row .form-label {
+    color: #1f2937;
+}
+
+.phase-filter-row .form-select {
+    min-height: 42px;
+    border-radius: 10px;
+}
+
+.phase-report-table-wrap {
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 14px 36px rgba(15,23,42,.08);
+    border: 1px solid rgba(148,163,184,.28);
+}
+
+.phase-report-table {
+    margin-bottom: 0;
+    border-color: #e2e8f0;
+}
+
+.phase-report-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 16px 18px;
+    color: #f8fbff;
+    background: linear-gradient(180deg, #18345d 0%, #102443 100%);
+    border-color: rgba(255,255,255,.08) !important;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
+}
+
+.phase-report-table thead th:first-child {
+    border-top-left-radius: 14px;
+}
+
+.phase-report-table thead th:last-child {
+    border-top-right-radius: 14px;
+}
+
+.phase-report-table tbody td {
+    padding: 16px 18px;
+    border-color: #dbe4ef;
+    font-size: 14px;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.phase-report-table tbody tr:nth-child(odd) td {
+    background: #fbfdff;
+}
+
+.phase-report-table tbody tr:hover td {
+    background: #eef7ff;
+}
+
 @@media print {
     .no-print {
         display: none !important;

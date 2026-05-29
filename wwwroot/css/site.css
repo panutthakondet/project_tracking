@@ -2,6 +2,13 @@ html {
   font-size: 14px;
 }
 
+:root {
+  --pt-accent: #14b8a6;
+  --pt-accent-dark: #0f766e;
+  --pt-accent-soft: rgba(20, 184, 166, .18);
+  --pt-sidebar-bg: #081c42;
+}
+
 @media (min-width: 768px) {
   html {
     font-size: 16px;
@@ -9,7 +16,7 @@ html {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--pt-accent-soft);
 }
 
 html {
@@ -28,4 +35,191 @@ body {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* ======================================================
+   PROJECTTRACKING V2.0 THEME
+====================================================== */
+
+body {
+  background: #eef3f9;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+  scrollbar-color: var(--pt-accent-dark) var(--pt-sidebar-bg);
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pt-sidebar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--pt-accent-dark);
+  border-radius: 20px;
+  border: 2px solid var(--pt-sidebar-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pt-accent);
+}
+
+/* ===== Content ===== */
+main {
+  width: 100%;
+}
+
+.container,
+.container-fluid {
+  max-width: 100% !important;
+}
+
+/* ===== Card ===== */
+.card,
+.card-modern,
+.dashboard-card {
+  border: none !important;
+  border-radius: 26px !important;
+  background: #ffffff;
+  box-shadow: 0 10px 35px rgba(15, 23, 42, .08);
+  transition: all .25s ease;
+}
+
+.card:hover,
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, .12);
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+  background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+  border: none !important;
+  border-radius: 14px !important;
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  opacity: .95;
+}
+
+.btn-success,
+.btn-info,
+.btn-warning,
+.btn-danger {
+  border-radius: 14px !important;
+}
+
+.btn-info {
+  background: var(--pt-accent) !important;
+  border-color: var(--pt-accent) !important;
+  color: #062b2f !important;
+  font-weight: 800;
+}
+
+.btn-info:hover,
+.btn-info:focus {
+  background: var(--pt-accent-dark) !important;
+  border-color: var(--pt-accent-dark) !important;
+  color: #fff !important;
+}
+
+.btn-outline-info,
+.btn-outline-primary {
+  border-color: var(--pt-accent) !important;
+  color: var(--pt-accent-dark) !important;
+  font-weight: 800;
+}
+
+.btn-outline-info:hover,
+.btn-outline-info:focus,
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background: var(--pt-accent) !important;
+  border-color: var(--pt-accent) !important;
+  color: #062b2f !important;
+}
+
+.bg-info {
+  background-color: var(--pt-accent) !important;
+  color: #062b2f !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--pt-accent) !important;
+  border-color: var(--pt-accent) !important;
+}
+
+.page-link {
+  color: var(--pt-accent-dark);
+}
+
+.page-link:hover,
+.page-link:focus {
+  color: #062b2f;
+  background-color: rgba(20, 184, 166, .12);
+  border-color: var(--pt-accent);
+}
+
+.active > .page-link,
+.page-link.active {
+  background-color: var(--pt-accent) !important;
+  border-color: var(--pt-accent) !important;
+  color: #062b2f !important;
+}
+
+/* ===== Inputs ===== */
+.form-control,
+.form-select {
+  border-radius: 16px !important;
+  min-height: 50px;
+  border: 1px solid #d8e2ef;
+  box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--pt-accent) !important;
+  box-shadow: 0 0 0 4px var(--pt-accent-soft) !important;
+}
+
+/* ===== Table ===== */
+.table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.table thead th {
+  border: none !important;
+  background: #eaf4fb;
+  color: #0f172a;
+  font-weight: 800;
+  padding: 18px;
+}
+
+.table tbody tr {
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,.04);
+}
+
+.table tbody td {
+  border-top: none !important;
+  padding: 18px;
+  vertical-align: middle;
+}
+
+/* ===== Badge ===== */
+.badge {
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+/* ===== Footer ===== */
+.footer-modern {
+  display: none;
 }

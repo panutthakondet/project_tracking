@@ -19,6 +19,14 @@
 
     <style>
         /* ✅ Global Font */
+        :root {
+            --pt-accent: #14b8a6;
+            --pt-accent-dark: #0f766e;
+            --pt-accent-deep: #0d5f59;
+            --pt-accent-soft: rgba(20, 184, 166, .18);
+            --pt-accent-glow: rgba(20, 184, 166, .30);
+        }
+
         body {
             font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
             overflow-x: hidden;
@@ -84,15 +92,15 @@
         .navbar.navbar-dark .navbar-nav .nav-link:hover,
         .navbar.navbar-dark .navbar-nav .nav-link:focus,
         .navbar.navbar-dark .navbar-nav .show > .nav-link{
-            background:#ffb347 !important;
-            color:#1f2933 !important;
+            background:rgba(20,184,166,.18) !important;
+            color:#fff !important;
             transform:translateY(-1px);
         }
 
         /* ===== ACTIVE PAGE ===== */
         .navbar.navbar-dark .navbar-nav .nav-link.active-menu{
-            background:#ffb347 !important;
-            color:#1f2933 !important;
+            background:linear-gradient(135deg,var(--pt-accent),var(--pt-accent-dark)) !important;
+            color:#fff !important;
             font-weight:700;
         }
 
@@ -113,8 +121,8 @@
         }
 
         .dropdown-item:hover {
-            background: #ffb347;
-            color: #1f2933;
+            background: rgba(20,184,166,.18);
+            color: #fff;
             font-weight: 600;
         }
 
@@ -129,14 +137,14 @@
             border-radius: 20px;
             padding: 6px 14px;
             font-weight: 600;
-            border: 1px solid #ffb347;
-            color: #ffb347;
+            border: 1px solid var(--pt-accent);
+            color: var(--pt-accent);
             transition: all .2s;
         }
 
         .btn-logout:hover {
-            background: #ffb347;
-            color: #1f2933;
+            background: var(--pt-accent);
+            color: #062b2f;
         }
 
         footer.footer-modern {
@@ -159,7 +167,7 @@
         .footer-modern .footer-brand {
             font-size: 14px;
             font-weight: 700;
-            color: #ffb347;
+            color: var(--pt-accent);
         }
 
         .footer-modern .footer-text {
@@ -191,7 +199,7 @@
         .select2-container--default .select2-selection--single{
             min-height: 38px !important;
             height: auto !important;
-            border: 1px solid #ced4da;
+            border: 1px solid #cbd5e1;
             border-radius: .375rem;
             display: flex !important;
             align-items: center !important;
@@ -246,116 +254,764 @@
             width: 100% !important;
             height: 36px !important;
             padding: 6px 10px !important;
-            border: 1px solid #ced4da !important;
+            border: 1px solid #cbd5e1 !important;
             border-radius: .375rem !important;
             box-sizing: border-box !important;
         }
 
-        /* ===== Floating Follow-up Button ===== */
-        .floating-tools-wrapper{
-            position:fixed;
-            right:28px;
-            bottom:28px;
-            z-index:9999;
-            display:block;
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .s2-custom-search:focus {
+            border-color: var(--pt-accent) !important;
+            box-shadow: 0 0 0 4px var(--pt-accent-soft) !important;
+            outline: none !important;
         }
 
-        .floating-tools-panel{
-            position:fixed;
-            right:28px;
-            bottom:108px;
-            z-index:9998;
-            display:flex;
-            flex-direction:column-reverse;
-            align-items:flex-end;
-            gap:12px;
-            transition:all .25s ease;
-            transform-origin:bottom right;
+        .select2-container--default .select2-results__option--highlighted[aria-selected],
+        .select2-container--default .select2-results__option--selected {
+            background: var(--pt-accent) !important;
+            color: #062b2f !important;
         }
 
-        .floating-tools-panel.collapsed{
-            opacity:0;
-            transform:translateY(20px) scale(.92);
-            pointer-events:none;
-        }
-
-        .floating-toggle-btn{
-            width:64px;
-            height:64px;
-            border:none;
-            border-radius:50%;
-            background:linear-gradient(135deg,#1f2933,#111827);
-            color:#fff;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:28px;
-            box-shadow:0 12px 28px rgba(0,0,0,.35);
-            cursor:pointer;
-            transition:all .2s ease;
-            position:fixed;
-            right:28px;
-            bottom:28px;
-            z-index:10000;
-        }
-
-        .floating-toggle-btn:hover{
-            transform:translateY(-2px) scale(1.03);
-        }
-        .followup-float-btn{
-            position:relative;
-            width:60px;
-            height:60px;
-            border-radius:50%;
-            background:linear-gradient(135deg,#ffb347,#ff8c00);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:26px;
-            color:#1f2933;
-            box-shadow:0 12px 28px rgba(0,0,0,.35);
-            z-index:9999;
-            text-decoration:none;
-            transition:all .2s ease;
-        }
-
-        .followup-float-btn:hover{
-            transform:translateY(-3px);
-            color:#1f2933;
-        }
-
-        .followup-badge{
-            position:absolute;
-            top:-6px;
-            right:-6px;
-            background:#dc3545;
-            color:#fff;
-            font-size:12px;
-            font-weight:700;
+        .nav-count-badge{
+            float:right;
             min-width:20px;
             height:20px;
-            border-radius:50%;
-            display:flex;
+            border-radius:999px;
+            display:inline-flex;
             align-items:center;
             justify-content:center;
-        }
-        .followup-float-label{
-            position:absolute;
-            right:72px;
-            top:50%;
-            transform:translateY(-50%);
-            background:rgba(31,41,51,.95);
+            margin-left:8px;
+            padding:0 7px;
+            background:#dc3545;
             color:#fff;
-            font-size:12px;
-            font-weight:700;
-            padding:8px 12px;
-            border-radius:999px;
-            white-space:nowrap;
-            opacity:1;
-            visibility:visible;
-            pointer-events:none;
-            box-shadow:0 10px 22px rgba(0,0,0,.28);
+            font-size:11px;
+            line-height:20px;
+            font-weight:800;
         }
+        /* ===== V2 DASHBOARD LAYOUT ===== */
+.v2-shell{
+    display:flex;
+    min-height:100vh;
+    background:#eef3f9;
+}
+
+.v2-sidebar{
+    width:280px;
+    background:linear-gradient(180deg,#02173c 0%, #062356 55%, #03132d 100%);
+    position:fixed;
+    left:0;
+    top:0;
+    height:100vh;
+    overflow:hidden;
+    color:#fff;
+    z-index:1000;
+    border-top-right-radius:34px;
+    border-bottom-right-radius:34px;
+    box-shadow:10px 0 30px rgba(0,0,0,.22);
+    padding-bottom:0;
+}
+
+.v2-sidebar .container-fluid{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:stretch !important;
+    width:100%;
+    padding:0 !important;
+}
+
+.v2-profile-card{
+    text-align:center;
+    padding:22px 24px 18px;
+}
+
+.v2-avatar{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    margin:0 auto 18px;
+    border:5px solid rgba(255,255,255,.18);
+    box-shadow:0 16px 36px rgba(0,0,0,.35);
+    overflow:hidden;
+    background:#0f172a;
+}
+
+.v2-profile-name{
+    font-size:20px;
+    font-weight:800;
+    color:#fff;
+    line-height:1.35;
+    margin-bottom:4px;
+}
+
+.v2-profile-role{
+    color:#d8e2f1;
+    font-size:16px;
+    font-weight:500;
+}
+
+.v2-online-badge{
+    margin-top:10px;
+    display:inline-block;
+    background:rgba(16,185,129,.18);
+    color:#86efac;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+}
+
+.sidebar-logo{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:8px 18px 26px;
+    padding:0 12px;
+    color:white;
+}
+
+.sidebar-logo-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    background:linear-gradient(135deg,#22d3ee,#14b8a6);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    box-shadow:0 10px 24px rgba(20,184,166,.28);
+}
+
+.sidebar-logo-text{
+    font-size:22px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.v2-sidebar header{
+    padding-top:8px;
+}
+
+.v2-page{
+    flex:1;
+    margin-left:280px;
+    width:calc(100% - 280px);
+    max-width:calc(100vw - 280px);
+    min-width:0;
+    padding:16px 24px;
+}
+
+.v2-page .container{
+    max-width:100%;
+    min-width:0;
+    padding:0;
+}
+
+.navbar{
+    background:transparent !important;
+    box-shadow:none !important;
+    display:block !important;
+    padding:18px !important;
+}
+
+.navbar-collapse{
+    display:block !important;
+    width:100%;
+}
+
+/* ===== LEFT MENU LIKE REFERENCE ===== */
+.navbar-nav{
+    display:flex !important;
+    flex-direction:column !important;
+    width:100%;
+    gap:6px;
+    margin:0 !important;
+    padding:8px 14px 18px !important;
+}
+
+.nav-item{
+    width:100%;
+}
+
+.navbar-dark .navbar-nav .nav-link,
+.navbar-dark .navbar-nav .dropdown-toggle{
+    width:100%;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    padding:13px 18px !important;
+    border-radius:18px;
+    font-size:15px;
+    font-weight:600;
+    color:#ffffff !important;
+    background:transparent;
+    transition:all .2s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .show > .nav-link{
+    background:rgba(255,255,255,.06) !important;
+    color:#fff !important;
+}
+
+.navbar-dark .navbar-nav .nav-link.active-menu{
+    background:linear-gradient(135deg,var(--pt-accent),var(--pt-accent-dark)) !important;
+    color:#fff !important;
+    box-shadow:0 12px 26px var(--pt-accent-glow);
+}
+
+.dropdown-toggle::after{
+    margin-left:auto !important;
+    opacity:.8;
+}
+
+.dropdown-menu{
+    position:relative !important;
+    inset:auto !important;
+    transform:none !important;
+    width:100%;
+    background:transparent !important;
+    border:none !important;
+    border-radius:0 !important;
+    margin:0 !important;
+    padding:4px 0 8px 18px !important;
+}
+
+.dropdown-item{
+    color:#cfd9ea !important;
+    font-size:13px;
+    font-weight:500;
+    border-radius:12px;
+    padding:8px 14px;
+}
+
+.dropdown-item:hover{
+    background:rgba(255,255,255,.06) !important;
+    color:#fff !important;
+}
+
+.navbar-nav::after{
+    content:'';
+    display:block;
+    height:1px;
+    background:rgba(255,255,255,.08);
+    margin:18px 10px 14px;
+    flex-shrink:0;
+}
+
+/* ===== DASHBOARD REFERENCE SIDEBAR POLISH ===== */
+.v2-shell{
+    background:#eaf1fa;
+}
+
+.v2-sidebar{
+    width:286px;
+    border-radius:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    background:
+        radial-gradient(circle at 50% 118%, rgba(17,213,205,.2) 0 34%, transparent 35%),
+        linear-gradient(180deg,#032245 0%, #062b57 48%, #031934 100%);
+    box-shadow:10px 0 34px rgba(3,18,42,.24);
+    scrollbar-width: thin;
+    scrollbar-color: var(--pt-accent-dark) rgba(3,25,52,.9);
+}
+
+.v2-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.v2-sidebar::-webkit-scrollbar-track {
+    background: rgba(3,25,52,.9);
+}
+
+.v2-sidebar::-webkit-scrollbar-thumb {
+    background: var(--pt-accent-dark);
+    border-radius: 999px;
+    border: 2px solid rgba(3,25,52,.9);
+}
+
+.v2-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--pt-accent);
+}
+
+.v2-sidebar::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+        radial-gradient(circle at 50% 7%, rgba(16,211,209,.14), transparent 28%),
+        linear-gradient(90deg, rgba(255,255,255,.05), transparent 20%, transparent 80%, rgba(0,0,0,.18));
+}
+
+.v2-profile-card{
+    position:relative;
+    z-index:1;
+    padding:16px 22px 14px;
+}
+
+.v2-avatar{
+    width:162px;
+    height:162px;
+    border:3px solid #18e4d8;
+    box-shadow:0 0 0 4px rgba(24,228,216,.13), 0 18px 34px rgba(0,0,0,.36);
+    position:relative;
+}
+
+.v2-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+.v2-profile-upload-form{
+    margin:0;
+}
+
+.v2-profile-input{
+    position:absolute;
+    width:1px;
+    height:1px;
+    opacity:0;
+    pointer-events:none;
+}
+
+.v2-avatar-upload{
+    position:absolute;
+    right:10px;
+    bottom:10px;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#06224a;
+    background:rgba(255,255,255,.92);
+    border:1px solid rgba(255,255,255,.8);
+    box-shadow:0 10px 18px rgba(0,0,0,.22);
+    cursor:pointer;
+    z-index:2;
+    transition:all .18s ease;
+}
+
+.v2-avatar-upload:hover{
+    transform:translateY(-1px);
+    background:#fff;
+}
+
+.v2-avatar-upload svg{
+    width:19px;
+    height:19px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.profile-crop-modal{
+    position:fixed;
+    inset:0;
+    z-index:20000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(3,12,30,.72);
+    backdrop-filter:blur(8px);
+}
+
+.profile-crop-modal.is-open{
+    display:flex;
+}
+
+.profile-crop-dialog{
+    width:min(520px, 100%);
+    border-radius:22px;
+    padding:22px;
+    color:#eaf5ff;
+    background:linear-gradient(180deg, rgba(15,35,75,.98), rgba(8,22,49,.98));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 28px 70px rgba(0,0,0,.42);
+}
+
+.profile-crop-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:16px;
+}
+
+.profile-crop-head h3{
+    margin:0;
+    color:#fff;
+    font-size:20px;
+    font-weight:900;
+}
+
+.profile-crop-head p{
+    margin:4px 0 0;
+    color:#a9bad8;
+    font-size:13px;
+    font-weight:700;
+}
+
+.profile-crop-close{
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:50%;
+    color:#dbeafe;
+    background:rgba(255,255,255,.1);
+    font-size:24px;
+    line-height:1;
+}
+
+.profile-crop-stage{
+    position:relative;
+    width:min(320px, 80vw);
+    height:min(320px, 80vw);
+    margin:0 auto 16px;
+    overflow:hidden;
+    border-radius:50%;
+    cursor:grab;
+    touch-action:none;
+    background:#07162f;
+    box-shadow:0 0 0 6px rgba(20,184,166,.18), 0 18px 44px rgba(0,0,0,.35);
+}
+
+.profile-crop-stage:active{
+    cursor:grabbing;
+}
+
+.profile-crop-stage img{
+    position:absolute;
+    left:0;
+    top:0;
+    max-width:none;
+    user-select:none;
+    -webkit-user-drag:none;
+}
+
+.profile-crop-stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border:3px solid rgba(255,255,255,.9);
+    box-shadow:inset 0 0 0 999px rgba(255,255,255,.03);
+    pointer-events:none;
+}
+
+.profile-crop-controls{
+    display:grid;
+    gap:8px;
+    margin:0 auto 18px;
+    max-width:360px;
+}
+
+.profile-crop-controls label{
+    color:#cbd5e1;
+    font-size:13px;
+    font-weight:800;
+}
+
+.profile-crop-controls input{
+    accent-color:var(--pt-accent);
+}
+
+.profile-crop-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+}
+
+.profile-crop-actions .btn{
+    min-width:92px;
+    border-radius:999px !important;
+    font-weight:800;
+}
+
+.v2-profile-flash{
+    display:inline-block;
+    max-width:210px;
+    margin-top:8px;
+    padding:6px 10px;
+    border-radius:999px;
+    color:#ecfeff;
+    background:rgba(16,185,129,.18);
+    border:1px solid rgba(45,212,191,.28);
+    font-size:11px;
+    font-weight:800;
+}
+
+.v2-profile-flash.error{
+    color:#fff1f2;
+    background:rgba(244,63,94,.2);
+    border-color:rgba(251,113,133,.34);
+}
+
+.v2-profile-name{
+    margin-top:8px;
+    font-size:26px;
+    line-height:1.15;
+}
+
+.v2-profile-role-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    margin-top:9px;
+}
+
+.v2-profile-role{
+    color:#eff6ff;
+    font-size:16px;
+    font-weight:800;
+}
+
+.v2-page{
+    margin-left:286px;
+    width:calc(100% - 286px);
+    max-width:calc(100vw - 286px);
+    min-width:0;
+    padding:18px 22px 28px;
+}
+
+.v2-page > .container{
+    max-width:100%;
+    min-width:0;
+    padding:0;
+}
+
+.v2-page main{
+    min-width:0;
+    max-width:100%;
+}
+
+.v2-page .table-responsive{
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overflow-y:visible;
+    -webkit-overflow-scrolling:touch;
+}
+
+.navbar{
+    margin-bottom:0 !important;
+    padding:0 16px 18px !important;
+}
+
+.navbar-nav{
+    position:relative;
+    z-index:1;
+    gap:3px;
+    min-height:calc(100vh - 306px);
+    padding:0 0 18px !important;
+}
+
+.navbar-nav::after{
+    display:none;
+}
+
+.navbar-dark .navbar-nav .nav-link,
+.navbar-dark .navbar-nav .dropdown-toggle{
+    min-height:52px;
+    gap:14px;
+    padding:11px 15px !important;
+    border-radius:28px;
+    font-size:17px;
+    font-weight:850;
+    color:#f8fbff !important;
+    letter-spacing:0;
+}
+
+.navbar.navbar-dark .navbar-nav .nav-link:hover,
+.navbar.navbar-dark .navbar-nav .nav-link:focus,
+.navbar-dark .navbar-nav .show > .nav-link{
+    transform:translateX(2px);
+    background:rgba(255,255,255,.08) !important;
+    color:#fff !important;
+}
+
+.navbar.navbar-dark .navbar-nav .nav-link.active-menu{
+    color:#fff !important;
+    background:linear-gradient(135deg,var(--pt-accent),var(--pt-accent-dark)) !important;
+    box-shadow:0 12px 24px var(--pt-accent-glow);
+}
+
+.nav-ico{
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:currentColor;
+    font-size:26px;
+}
+
+.nav-ico svg,
+.nav-ico img{
+    width:28px;
+    height:28px;
+}
+
+.nav-ico img{
+    display:block;
+    object-fit:contain;
+}
+
+.nav-ico svg{
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.nav-label{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.dropdown-toggle::after{
+    border:solid currentColor;
+    border-width:0 2px 2px 0;
+    width:8px;
+    height:8px;
+    transform:rotate(45deg);
+    opacity:.9;
+}
+
+.dropdown-menu{
+    padding:3px 0 7px 43px !important;
+}
+
+.dropdown-item{
+    padding:7px 13px;
+    color:#d6e4fb !important;
+    font-size:13px;
+    font-weight:800;
+}
+
+.dropdown-item:hover{
+    transform:translateX(2px);
+    background:rgba(255,255,255,.08) !important;
+}
+
+.nav-spacer{
+    flex:1 1 auto;
+    min-height:20px;
+    margin:10px 10px 8px;
+    border-top:1px solid rgba(255,255,255,.18);
+}
+
+.nav-logout{
+    margin-top:2px;
+}
+
+@@media (max-width: 1100px){
+    .v2-sidebar{
+        width:92px;
+    }
+
+    .v2-page{
+        margin-left:92px;
+        width:calc(100% - 92px);
+        max-width:calc(100vw - 92px);
+        padding:16px 16px 24px;
+    }
+
+    .v2-profile-card{
+        padding:18px 12px 12px;
+    }
+
+    .v2-avatar{
+        width:58px;
+        height:58px;
+        border-width:2px;
+    }
+
+    .v2-avatar-upload,
+    .v2-profile-name,
+    .v2-profile-role-row,
+    .nav-label,
+    .dropdown-toggle::after{
+        display:none;
+    }
+
+    .navbar{
+        padding:0 10px 14px !important;
+    }
+
+    .navbar-dark .navbar-nav .nav-link,
+    .navbar-dark .navbar-nav .dropdown-toggle{
+        justify-content:center;
+        border-radius:18px;
+        padding:12px !important;
+        gap:0;
+    }
+
+    .dropdown-menu{
+        padding:4px 0 8px !important;
+    }
+
+    .dropdown-item{
+        text-align:center;
+        font-size:11px;
+        padding:8px 4px;
+    }
+}
+
+@@media (max-width: 720px){
+    .v2-shell{
+        display:block;
+    }
+
+    .v2-sidebar{
+        position:relative;
+        width:100%;
+        height:auto;
+        min-height:0;
+    }
+
+    .v2-page{
+        margin-left:0;
+        width:100%;
+        max-width:100vw;
+        padding:14px 12px 22px;
+    }
+
+    .v2-profile-card{
+        display:none;
+    }
+
+    .navbar{
+        padding:10px !important;
+    }
+
+    .navbar-nav{
+        min-height:0;
+        display:grid !important;
+        grid-template-columns:repeat(5, minmax(0, 1fr));
+        gap:6px;
+        padding:0 !important;
+    }
+
+    .nav-spacer{
+        display:none;
+    }
+}
+
+
         /* ===== PRINT ONLY: ซ่อน navbar/footer ตอนสั่งพิมพ์จริง (ยังแสดงบนหน้าจอ) ===== */
         @@media print {
             header, .navbar, footer { display: none !important; }
@@ -363,10 +1019,17 @@
     </style>
 </head>
 <body>
+<div class="v2-shell">
 
 @{
     var userId = Context.Session.GetInt32("UserId");
     var username = Context.Session.GetString("Username");
+    var profileImagePath = Context.Session.GetString("ProfileImagePath");
+    if (string.IsNullOrWhiteSpace(profileImagePath))
+    {
+        profileImagePath = "/images/Profile/profile.png";
+    }
+    var currentReturnUrl = Context.Request.Path + Context.Request.QueryString;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
 
@@ -385,11 +1048,6 @@
     );
 
     bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
-
-    bool HasMenu(string key)
-    {
-        return isAdmin || allowedMenus.Contains(key);
-    }
 
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
     var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload") || CanMenu("Dashboard.Index");
@@ -415,215 +1073,328 @@
     var canReports = CanMenu("PhaseAssigns.Print")
                   || CanMenu("PhaseStatusReport.Index")
                   || CanMenu("PhaseStatusReport.Timeline")
-                  || CanMenu("Projects.ViewOnly");
+                  || CanMenu("Projects.ViewOnly")
+                  || CanMenu("PhaseWorkload.Index");
+
+    var canFollowups = CanMenu("Followups.Dashboard")
+                    || CanMenu("Followups.DashboardDone")
+                    || CanMenu("Followups.DashboardACK");
+
+    var followupAlertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
+    var followupDoneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
+    var followupAckCount = Convert.ToInt32(ViewBag?.FollowupAckCount ?? 0);
 }
+
+<aside class="v2-sidebar">
+    <div class="v2-profile-card">
+        <form asp-controller="Auth"
+              asp-action="UpdateProfileImage"
+              method="post"
+              enctype="multipart/form-data"
+              class="v2-profile-upload-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@currentReturnUrl" />
+            <input type="hidden" id="croppedProfileImageInput" name="croppedProfileImage" />
+
+            <div class="v2-avatar">
+                <img src="@profileImagePath"
+                     alt="profile"
+                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                @if (userId != null)
+                {
+                    <label class="v2-avatar-upload" for="profileImageInput" title="เปลี่ยนรูปโปรไฟล์" aria-label="เปลี่ยนรูปโปรไฟล์">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 7h3l2-3h6l2 3h3v13H4z" />
+                            <path d="M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                        </svg>
+                    </label>
+                    <input id="profileImageInput"
+                           class="v2-profile-input"
+                           type="file"
+                           name="profileImage"
+                           accept="image/png,image/jpeg,image/webp"
+                           onchange="openProfileCropper(this)" />
+                }
+            </div>
+        </form>
+        <div class="v2-profile-name">@(string.IsNullOrWhiteSpace(username) ? "ผู้ใช้งาน" : username)</div>
+        <div class="v2-profile-role-row">
+            <span class="v2-profile-role">@(role == "ADMIN" ? "Administrator" : "Developer")</span>
+        </div>
+        @if (TempData["ProfileSuccess"] != null)
+        {
+            <div class="v2-profile-flash">@TempData["ProfileSuccess"]</div>
+        }
+        @if (TempData["ProfileError"] != null)
+        {
+            <div class="v2-profile-flash error">@TempData["ProfileError"]</div>
+        }
+    </div>
 
 <header>
     <nav class="navbar navbar-expand-lg navbar-dark mb-3">
         <div class="container-fluid">
 
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                ProjectTracking
-            </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <span class="navbar-toggler-icon"></span>
-            </button>
 
-            <div class="collapse navbar-collapse" id="navbarMain">
+
+            <div class="navbar-collapse show" id="navbarMain" style="display:block !important;">
                 @if (userId != null)
                 {
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav mb-2 mb-lg-0" style="width:100%;">
 
-                        <!-- Home (always) -->
                         <li class="nav-item">
-                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 หน้าแรก</a>
+                            <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
+                                <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
+                                <span class="nav-label">Dashboard</span>
+                            </a>
                         </li>
 
-
-                        <!-- Dashboards -->
-                        @if (canDashboards)
+                        @if (CanMenu("Projects.Index") || CanMenu("Projects.ViewOnly") || CanMenu("ProjectDocuments.Index"))
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="IssueDashboard" || controller=="Dashboard" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📊 แดชบอร์ด</a>
+                                <a class="nav-link dropdown-toggle @(controller=="Projects" || controller=="ProjectDocuments" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/projects.svg" alt="" /></span>
+                                    <span class="nav-label">Projects</span>
+                                </a>
                                 <ul class="dropdown-menu">
-                                    @if (HasMenu("IssueDashboard.Index"))
+                                    @if (CanMenu("Projects.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="IssueDashboard" asp-action="Index">📊 ภาพรวมทั้งโครงการ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">บันทึกข้อมูลโครงการ</a></li>
                                     }
-                                    @if (CanMenu("Dashboard.Index"))
+                                    @if (CanMenu("Projects.ViewOnly"))
                                     {
-                                        <li><a class="dropdown-item" href="/Followups/Dashboard">📌 Dashboard งานติดตาม</a></li>
-                                    }
-                                    @if (CanMenu("Dashboard.Workload"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Workload">🔥 สถานะภาระงานพนักงาน</a></li>
-                                    }
-                                </ul>
-                            </li>
-                        }
-
-                        <!-- Management -->
-                        @if (canManagement)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(
-                                    controller=="Employees" 
-                                    || controller=="Projects" 
-                                    || controller=="ProjectPhases" 
-                                    || controller=="PhaseAssigns" 
-                                    || controller=="Meetings" 
-                                    || controller=="TestScenarios"
-                                    || controller=="TestScenarioTemplates"
-                                    || controller=="TestTemplateGroups"
-                                    || controller=="ProjectDocuments"
-                                    ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📁 จัดการโครงการ</a>
-                                <ul class="dropdown-menu">
-                                    @if (CanMenu("Employees.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">👤 บันทึกข้อมูลพนักงาน</a></li>
-                                    }
-                                    @if (HasMenu("Projects.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">📁 บันทึกข้อมูลโครงการ</a></li>
-                                    }
-                                    @if (CanMenu("ProjectPhases.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">🧩 บันทึกข้อมูลแผนงานและงวดงาน</a></li>
-                                    }
-                                    @if (CanMenu("PhaseAssigns.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">👥 บันทึกข้อมูลการมอบหมายงาน</a></li>
-                                    }
-                                    @if (CanMenu("TestScenarios.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">🧪 บันทึก Test Scenario</a></li>
-                                    }
-                                    @if (CanMenu("TestScenarioTemplates.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="TestScenarioTemplates" asp-action="Index">📋 จัดการ Test Scenario Template</a></li>
-                                    }
-                                    @if (CanMenu("TestTemplateGroups.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">🗂 จัดการ Template Group</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">รายงานข้อมูลโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectDocuments.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectDocuments" asp-action="Index">📄 เอกสารโครงการ (BRD / TOR)</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectDocuments" asp-action="Index">เอกสารโครงการ (BRD / TOR)</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                        <!-- Issues -->
+                        @if (CanMenu("ProjectPhases.Index") || CanMenu("PhaseStatusReport.Index") || CanMenu("PhaseStatusReport.Timeline") || CanMenu("PhaseCalendar.Index"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(
+                                    controller=="ProjectPhases" 
+                                    || controller=="PhaseStatusReport"
+                                    || controller=="PhaseCalendar"
+                                    ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/phases.svg" alt="" /></span>
+                                    <span class="nav-label">Project Phases</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("ProjectPhases.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">บันทึกข้อมูลงวดงาน</a></li>
+                                    }
+                                    @if (CanMenu("PhaseStatusReport.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">รายงานสถานะงานค้าง</a></li>
+                                    }
+                                    @if (CanMenu("PhaseStatusReport.Timeline"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">Timeline / Gantt</a></li>
+                                    }
+                                    @if (CanMenu("PhaseCalendar.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseCalendar" asp-action="Index">ปฏิทินกำหนดส่งงาน</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        @if (CanMenu("PhaseAssigns.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="PhaseAssigns" && action!="Print" ? "active-menu" : "")" asp-controller="PhaseAssigns" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/assign.svg" alt="" /></span>
+                                    <span class="nav-label">Assign Phase</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CanMenu("Meetings.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="Meetings" ? "active-menu" : "")" asp-controller="Meetings" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
+                                    <span class="nav-label">Meetings</span>
+                                </a>
+                            </li>
+                        }
+
                         @if (canIssues)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">🐞 ปัญหาโครงการ</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/issues.svg" alt="" /></span>
+                                    <span class="nav-label">Issues</span>
+                                </a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("ProjectIssues.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">🐞 บันทึกข้อมูลปัญหาโครงการ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">บันทึกข้อมูลปัญหาโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectIssues.ViewOnly"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">📝 รายงานปัญหาและสถานะโครงการ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">รายงานปัญหาและสถานะโครงการ</a></li>
                                     }
                                     @if (CanMenu("ProjectIssues.DevIndex"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">👨‍💻 แก้ไขสถานะปัญหาโครงการ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">แก้ไขสถานะปัญหาโครงการ</a></li>
                                     }
                                     @if (CanMenu("SupportOrders.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">🛠️ งานแก้ไขช่วงรับประกัน</a></li>
+                                        <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">งานแก้ไขช่วงรับประกัน</a></li>
                                     }
                                     @if (CanMenu("SupportOrdersDev.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="SupportOrdersDev" asp-action="Index">👨‍💻 งานแก้ไขช่วงรับประกัน (Dev)</a></li>
+                                        <li><a class="dropdown-item" asp-controller="SupportOrdersDev" asp-action="Index">งานแก้ไขช่วงรับประกัน (Dev)</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                        <!-- Reports -->
+                        @if (CanMenu("Attendance.Index") || CanMenu("Attendance.Map"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Attendance" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
+                                    <span class="nav-label">Attendance</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("Attendance.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Index">เช็คเข้าออกงาน</a></li>
+                                    }
+                                    @if (CanMenu("Attendance.Map"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Map">รายงาน Check-in/Check-out</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        @if (canFollowups)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Followups" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/followups.svg" alt="" /></span>
+                                    <span class="nav-label">Followups</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("Followups.Dashboard"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Followups" asp-action="Dashboard">
+                                                ติดตามงาน Followups
+                                                @if (followupAlertCount > 0)
+                                                {
+                                                    <span class="nav-count-badge">@followupAlertCount</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (CanMenu("Followups.DashboardDone"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Followups" asp-action="DashboardDone">
+                                                ติดตามงานเสร็จแล้ว
+                                                @if (followupDoneCount > 0)
+                                                {
+                                                    <span class="nav-count-badge">@followupDoneCount</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (CanMenu("Followups.DashboardACK"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Followups" asp-action="DashboardACK">
+                                                ติดตามงานรับทราบแล้ว
+                                                @if (followupAckCount > 0)
+                                                {
+                                                    <span class="nav-count-badge">@followupAckCount</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
                         @if (canReports)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(
-                                    ((controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport")
+                                    ((controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport" || controller=="PhaseWorkload")
                                         ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">📄 รายงาน</a>
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/reports.svg" alt="" /></span>
+                                    <span class="nav-label">Reports</span>
+                                </a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("PhaseAssigns.Print"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">📄 รายงานการมอบหมายงาน</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">รายงานการมอบหมายงาน</a></li>
                                     }
                                     @if (CanMenu("PhaseStatusReport.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">📊 รายงานสถานะงานค้าง</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">รายงานสถานะงานค้าง</a></li>
                                     }
                                     @if (CanMenu("PhaseStatusReport.Timeline"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">📅 Timeline / Gantt</a></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">Timeline / Gantt</a></li>
                                     }
                                     @if (CanMenu("Projects.ViewOnly"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">📁 รายงานข้อมูลโครงการ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">รายงานข้อมูลโครงการ</a></li>
+                                    }
+                                    @if (CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                    </ul>
+                        @if (CanMenu("UserManagement.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="UserManagement" ? "active-menu" : "")" asp-controller="UserManagement" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
+                                    <span class="nav-label">Settings</span>
+                                </a>
+                            </li>
+                        }
 
-                    <ul class="navbar-nav align-items-center">
-
-                        <li class="nav-item dropdown me-2">
-                            <a class="nav-link dropdown-toggle navbar-text text-white"
-                               href="#"
-                               role="button"
-                               data-bs-toggle="dropdown">
-                                👤 @username
+                        <li class="nav-spacer" aria-hidden="true"></li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-logout" asp-controller="Auth" asp-action="Logout">
+                                <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/logout.svg" alt="" /></span>
+                                <span class="nav-label">Logout</span>
                             </a>
-
-                            <ul class="dropdown-menu dropdown-menu-end">
-
-                                @if (CanMenu("UserManagement.Index"))
-                                {
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-controller="UserManagement"
-                                           asp-action="Index">
-                                           ⚙️ จัดการผู้ใช้งาน
-                                        </a>
-                                    </li>
-                                }
-
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item text-danger"
-                                       asp-controller="Auth"
-                                       asp-action="Logout">
-                                       🚪 Logout
-                                    </a>
-                                </li>
-
-                            </ul>
                         </li>
 
                     </ul>
+
                 }
                 else
                 {
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav mb-2 mb-lg-0" style="width:100%;">
                         <li class="nav-item">
-                            <a class="nav-link @(controller=="Home"?"active-menu":"")" asp-controller="Home" asp-action="Index">🏠 หน้าแรก</a>
+                            <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
+                                <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
+                                <span class="nav-label">Dashboard</span>
+                            </a>
                         </li>
                     </ul>
 
@@ -637,12 +1408,40 @@
         </div>
     </nav>
 </header>
+</aside>
+
+<div id="profileCropModal" class="profile-crop-modal" aria-hidden="true">
+    <div class="profile-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="profileCropTitle">
+        <div class="profile-crop-head">
+            <div>
+                <h3 id="profileCropTitle">จัดตำแหน่งรูปโปรไฟล์</h3>
+                <p>ลากรูปเพื่อขยับตำแหน่ง และปรับซูมให้ได้ส่วนที่ต้องการ</p>
+            </div>
+            <button type="button" class="profile-crop-close" onclick="closeProfileCropper()" aria-label="ปิด">×</button>
+        </div>
+        <div id="profileCropStage" class="profile-crop-stage">
+            <img id="profileCropImage" alt="" />
+        </div>
+        <div class="profile-crop-controls">
+            <label for="profileCropZoom">ซูมรูป</label>
+            <input id="profileCropZoom" type="range" min="1" max="3" step="0.01" value="1" />
+        </div>
+        <div class="profile-crop-actions">
+            <button type="button" class="btn btn-outline-light" onclick="closeProfileCropper()">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitProfileCrop()">บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<div class="v2-page">
 
 <div class="container">
     <main role="main" class="pb-3">
         @RenderBody()
     </main>
 </div>
+
+ </div>
 
 <footer class="footer-modern">
     <div class="container">
@@ -651,7 +1450,7 @@
             <div>
                 <div class="footer-brand">ProjectTracking</div>
                 <div class="footer-text">
-                    © @DateTime.Now.Year ProjectTracking By <strong>#C PM</strong>
+                    © 2026 <strong>#C</strong> By <strong>SO-AT SOLUTION</strong>
                 </div>
             </div>
 
@@ -750,6 +1549,185 @@
     });
 </script>
 
+<script>
+(function () {
+    const modal = document.getElementById('profileCropModal');
+    const stage = document.getElementById('profileCropStage');
+    const cropImage = document.getElementById('profileCropImage');
+    const zoomInput = document.getElementById('profileCropZoom');
+    const croppedInput = document.getElementById('croppedProfileImageInput');
+
+    const cropState = {
+        input: null,
+        naturalWidth: 0,
+        naturalHeight: 0,
+        baseScale: 1,
+        zoom: 1,
+        x: 0,
+        y: 0,
+        dragging: false,
+        startX: 0,
+        startY: 0,
+        originX: 0,
+        originY: 0
+    };
+
+    function stageSize() {
+        return stage ? stage.clientWidth : 320;
+    }
+
+    function currentScale() {
+        return cropState.baseScale * cropState.zoom;
+    }
+
+    function clampPosition() {
+        const size = stageSize();
+        const scale = currentScale();
+        const width = cropState.naturalWidth * scale;
+        const height = cropState.naturalHeight * scale;
+
+        cropState.x = width <= size
+            ? (size - width) / 2
+            : Math.min(0, Math.max(size - width, cropState.x));
+
+        cropState.y = height <= size
+            ? (size - height) / 2
+            : Math.min(0, Math.max(size - height, cropState.y));
+    }
+
+    function renderCropImage() {
+        if (!cropImage) return;
+
+        const scale = currentScale();
+        cropImage.style.width = `${cropState.naturalWidth * scale}px`;
+        cropImage.style.height = `${cropState.naturalHeight * scale}px`;
+        cropImage.style.transform = `translate(${cropState.x}px, ${cropState.y}px)`;
+    }
+
+    function setupCropImage() {
+        const size = stageSize();
+        cropState.naturalWidth = cropImage.naturalWidth;
+        cropState.naturalHeight = cropImage.naturalHeight;
+        cropState.baseScale = Math.max(size / cropState.naturalWidth, size / cropState.naturalHeight);
+        cropState.zoom = 1;
+        cropState.x = (size - cropState.naturalWidth * cropState.baseScale) / 2;
+        cropState.y = (size - cropState.naturalHeight * cropState.baseScale) / 2;
+        if (zoomInput) zoomInput.value = '1';
+        clampPosition();
+        renderCropImage();
+    }
+
+    window.openProfileCropper = function (input) {
+        if (!input || !input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        if (!file.type || !file.type.startsWith('image/')) {
+            input.form.submit();
+            return;
+        }
+
+        cropState.input = input;
+        if (croppedInput) croppedInput.value = '';
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            cropImage.onload = setupCropImage;
+            cropImage.src = event.target.result;
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+        };
+        reader.readAsDataURL(file);
+    };
+
+    window.closeProfileCropper = function () {
+        if (modal) {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        if (cropState.input) cropState.input.value = '';
+        if (croppedInput) croppedInput.value = '';
+        cropState.input = null;
+    };
+
+    window.submitProfileCrop = function () {
+        if (!cropState.input || !cropImage || cropState.naturalWidth <= 0) return;
+
+        const size = stageSize();
+        const scale = currentScale();
+        const sourceSize = size / scale;
+        const sourceX = Math.max(0, -cropState.x / scale);
+        const sourceY = Math.max(0, -cropState.y / scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(cropImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, canvas.width, canvas.height);
+
+        if (croppedInput) {
+            croppedInput.value = canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        cropState.input.disabled = true;
+        cropState.input.form.submit();
+    };
+
+    if (stage) {
+        stage.addEventListener('pointerdown', function (event) {
+            event.preventDefault();
+            cropState.dragging = true;
+            cropState.startX = event.clientX;
+            cropState.startY = event.clientY;
+            cropState.originX = cropState.x;
+            cropState.originY = cropState.y;
+            stage.setPointerCapture(event.pointerId);
+        });
+
+        stage.addEventListener('pointermove', function (event) {
+            if (!cropState.dragging) return;
+            cropState.x = cropState.originX + event.clientX - cropState.startX;
+            cropState.y = cropState.originY + event.clientY - cropState.startY;
+            clampPosition();
+            renderCropImage();
+        });
+
+        stage.addEventListener('pointerup', function (event) {
+            cropState.dragging = false;
+            stage.releasePointerCapture(event.pointerId);
+        });
+
+        stage.addEventListener('pointercancel', function () {
+            cropState.dragging = false;
+        });
+    }
+
+    if (zoomInput) {
+        zoomInput.addEventListener('input', function () {
+            const size = stageSize();
+            const oldScale = currentScale();
+            const centerX = (size / 2 - cropState.x) / oldScale;
+            const centerY = (size / 2 - cropState.y) / oldScale;
+
+            cropState.zoom = parseFloat(zoomInput.value || '1');
+            const newScale = currentScale();
+            cropState.x = size / 2 - centerX * newScale;
+            cropState.y = size / 2 - centerY * newScale;
+            clampPosition();
+            renderCropImage();
+        });
+    }
+
+    window.addEventListener('resize', function () {
+        if (!modal || !modal.classList.contains('is-open') || cropState.naturalWidth <= 0) return;
+        setupCropImage();
+    });
+})();
+</script>
+
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -825,150 +1803,6 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 @RenderSection("Scripts", required: false)
 
-<div class="floating-tools-wrapper">
-
-    <div id="floatingToolsPanel" class="floating-tools-panel">
-
-@if (CanMenu("Followups.Dashboard"))
-{
-    <a href="/Followups/Dashboard"
-       class="followup-float-btn"
-       style=""
-       title="ติดตาม">
-        <span class="followup-float-label">ติดตามงาน Followups</span>
-        📌
-        @{
-            var alertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
-        }
-        @if (alertCount > 0)
-        {
-            <span class="followup-badge">@alertCount</span>
-        }
-    </a>
-}
-
-@if (CanMenu("Followups.DashboardDone"))
-{
-    <a href="/Followups/DashboardDone"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#22c55e,#16a34a);color:white;"
-       title="เสร็จแล้ว">
-        <span class="followup-float-label">ติดตามงาน(เสร็จแล้ว)</span>
-        ✔
-        @{
-            var doneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
-        }
-        @if (doneCount > 0)
-        {
-            <span class="followup-badge">@doneCount</span>
-        }
-    </a>
-}
-
-@if (CanMenu("Followups.DashboardACK"))
-{
-    <a href="/Followups/DashboardACK"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;"
-       title="รับทราบ">
-        <span class="followup-float-label">ติดตามงาน(รับทราบแล้ว)</span>
-        📥
-        @{
-            var ackCount = Convert.ToInt32(ViewBag?.FollowupAckCount ?? 0);
-        }
-        @if (ackCount > 0)
-        {
-            <span class="followup-badge">@ackCount</span>
-        }
-    </a>
-}
-
-@if (CanMenu("Meetings.Index"))
-{
-    <a href="/Meetings"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#6366f1,#4338ca);color:white;"
-       title="ประชุม">
-        <span class="followup-float-label">ปฏิทินการประชุม</span>
-        📅
-        @{
-            var meetingCount = Convert.ToInt32(ViewBag?.MeetingCount ?? 0);
-        }
-        @if (meetingCount > 0)
-        {
-            <span class="followup-badge">@meetingCount</span>
-        }
-    </a>
-}
-
-@if (CanMenu("Attendance.Index"))
-{
-    <a href="/Attendance"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#10b981,#059669);color:white;"
-       title="เวลา">
-        <span class="followup-float-label">เช็คเข้าออกงาน</span>
-        ⏱️
-    </a>
-}
-
-@if (CanMenu("PhaseCalendar.Index"))
-{
-    <a href="/PhaseCalendar"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;"
-       title="ปฏิทินกำหนดส่งงาน">
-        <span class="followup-float-label">ปฏิทินกำหนดส่งงาน</span>
-        🗓️
-    </a>
-}
-
-@if (CanMenu("PhaseWorkload.Index"))
-{
-    <a href="/PhaseWorkload"
-       class="followup-float-btn"
-       style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"
-       title="ปริมาณงานทีม">
-        <span class="followup-float-label">ปริมาณงานทีม</span>
-        📊
-    </a>
-}
-
-</div>
-
-<button type="button"
-        id="floatingToggleBtn"
-        class="floating-toggle-btn"
-        title="เปิด/ปิดเมนูลัด">
-    ☰
-</button>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const panel = document.getElementById('floatingToolsPanel');
-        const btn = document.getElementById('floatingToggleBtn');
-
-        if (!panel || !btn) return;
-
-        const storageKey = 'floating-tools-collapsed';
-        const savedState = localStorage.getItem(storageKey);
-        const isCollapsed = savedState === null ? true : savedState === 'true';
-
-        function setCollapsed(collapsed) {
-            panel.classList.toggle('collapsed', collapsed);
-            btn.innerHTML = collapsed ? '☰' : '✕';
-        }
-
-        setCollapsed(isCollapsed);
-
-        btn.addEventListener('click', function () {
-            const collapsed = !panel.classList.contains('collapsed');
-            setCollapsed(collapsed);
-            localStorage.setItem(storageKey, collapsed);
-        });
-    });
-</script>
-
+ </div>
 </body>
 </html>

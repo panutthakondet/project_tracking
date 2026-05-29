@@ -1,524 +1,1488 @@
-﻿@using System
-@using System.Linq
-@using System.Collections.Generic
+@model ProjectTracking.ViewModels.HomeDashboardViewModel
 @using System.Globalization
-@using Microsoft.AspNetCore.Http
+@using ProjectTracking.ViewModels
 
 @{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = "Dashboard";
+
     var th = new CultureInfo("th-TH");
-
-    // ✅ ดึงชื่อผู้ใช้จาก Session เป็นหลัก + fallback เป็น ViewBag
-    var username = Context?.Session?.GetString("Username")
-                   ?? (ViewBag.Username as string)
-                   ?? "-";
-
-    // ✅ role จาก Session (เช่น "ADMIN")
-    var role = (Context?.Session?.GetString("Role") ?? "").Trim().ToUpperInvariant();
-    var isAdmin = role == "ADMIN";
-
-    // ✅ เมนูที่อนุญาตให้เห็น (กำหนดต่อผู้ใช้)
-    // รูปแบบใน Session: "Employees.Index,Projects.Index,ProjectIssues.DevIndex" (คั่นด้วย ,)
-    var menuRaw = (Context?.Session?.GetString("Menus") ?? "").Trim();
-    var allowedMenus = new HashSet<string>(
-        menuRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
-               .Select(x => x.Trim()),
-        StringComparer.OrdinalIgnoreCase
-    );
-
-    bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
+    var dashboard = Model ?? new HomeDashboardViewModel();
+    var projectTooltip = dashboard.ProjectOverviewTooltip ?? new HomeDashboardMonthPoint { Label = DateTime.Today.ToString("MMM", th) };
+    var closedHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.ClosedWorkHours * 100m / dashboard.MonthWorkHours, 1);
+    var openHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.OpenWorkHours * 100m / dashboard.MonthWorkHours, 1);
 }
 
-<div class="home-bg">
-<div class="container-fluid">
+<div class="dashboard-view">
+    <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก">
+        <article class="kpi-card kpi-blue">
+            <span class="kpi-icon" aria-hidden="true">□</span>
+            <div>
+                <p>Total Projects</p>
+                <strong>@dashboard.TotalProjectCount</strong>
+                <small>@dashboard.TotalProjectsNote</small>
+            </div>
+        </article>
+        <article class="kpi-card kpi-purple">
+            <span class="kpi-icon" aria-hidden="true">▦</span>
+            <div>
+                <p>Meetings Today</p>
+                <strong>@dashboard.MeetingsTodayCount</strong>
+                <small>@dashboard.MeetingsTodayNote</small>
+            </div>
+        </article>
+        <article class="kpi-card kpi-orange">
+            <span class="kpi-icon" aria-hidden="true">!</span>
+            <div>
+                <p>Open Issues</p>
+                <strong>@dashboard.OpenIssueCount</strong>
+                <small>@dashboard.OpenIssuesNote</small>
+            </div>
+        </article>
+        <article class="kpi-card kpi-green">
+            <span class="kpi-icon" aria-hidden="true">◉</span>
+            <div>
+                <p>Active Members</p>
+                <strong>@dashboard.ActiveMemberCount</strong>
+                <small>@dashboard.ActiveMembersNote</small>
+            </div>
+        </article>
+        <article class="kpi-card kpi-pink">
+            <span class="kpi-icon" aria-hidden="true">⏱</span>
+            <div>
+                <p>Overdue Tasks</p>
+                <strong>@dashboard.OverdueTaskCount</strong>
+                <small>@dashboard.OverdueTasksNote</small>
+            </div>
+        </article>
+    </section>
 
-    <!-- ================= HEADER ================= -->
-    <div class="header-card mb-5">
-        <div class="d-flex align-items-center gap-4">
-
-            <img src="~/images/auth/logosoatnew.png"
-                 alt="Logo"
-                 class="welcome-logo" />
-
-            <div class="flex-grow-1">
-                <h2 class="fw-bold mb-1 text-white">ยินดีต้อนรับ</h2>
-                <div class="system-name text-light">
-                    ระบบติดตามโครงการ (Project Tracking System)
+    <section class="dashboard-grid" aria-label="ภาพรวม dashboard">
+        <article class="glass-panel panel-wide">
+            <div class="panel-head">
+                <h2>ภาพรวมโครงการ (Projects Overview)</h2>
+                <a asp-controller="Projects" asp-action="Index" class="panel-filter">ปีนี้ (This Year)</a>
+            </div>
+            <div class="legend-row">
+                <span><i class="dot green"></i>Completed</span>
+                <span><i class="dot blue"></i>In Progress</span>
+                <span><i class="dot orange"></i>Pending</span>
+                <span><i class="dot pink"></i>Cancelled</span>
+            </div>
+            <div class="line-chart">
+                <svg viewBox="0 0 720 255" preserveAspectRatio="none" aria-hidden="true">
+                    <g class="grid-lines">
+                        <path d="M30 40h670M30 90h670M30 140h670M30 190h670M30 235h670" />
+                    </g>
+                    @foreach (var series in dashboard.ProjectOverviewSeries)
+                    {
+                        <polyline class="line @series.Color" points="@series.Points" />
+                    }
+                </svg>
+                <div class="chart-tooltip">
+                    <b>@projectTooltip.Label</b>
+                    <span><i class="dot green"></i>Completed <strong>@projectTooltip.Completed</strong></span>
+                    <span><i class="dot blue"></i>In Progress <strong>@projectTooltip.InProgress</strong></span>
+                    <span><i class="dot orange"></i>Pending <strong>@projectTooltip.Pending</strong></span>
+                    <span><i class="dot pink"></i>Cancelled <strong>@projectTooltip.Cancelled</strong></span>
                 </div>
-
-                <div class="welcome-info mt-3">
-                    <div>
-                        <span class="label">ผู้ใช้งาน</span>
-                        <span class="value">@username</span>
-                    </div>
-                    <div>
-                        <span class="label">วันที่</span>
-                        <span class="value">
-                            @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
-                        </span>
-                    </div>
-                    <div>
-                        <span class="label">สิทธิ์</span>
-                        <span class="value">@(!string.IsNullOrWhiteSpace(role) ? role : "-")</span>
-                    </div>
-                    <div>
-                        <span class="label">เวลาเข้า</span>
-                        <span class="value">@(ViewBag.CheckInTime ?? "-")</span>
-                    </div>
-                    <div>
-                        <span class="label">เวลาออก</span>
-                        <span class="value">@(ViewBag.CheckOutTime ?? "-")</span>
-                    </div>
+                <div class="months-row">
+                    @foreach (var month in dashboard.ProjectOverviewMonths)
+                    {
+                        <span>@month.Label</span>
+                    }
                 </div>
             </div>
+        </article>
 
-        </div>
-    </div>
-
-    <!-- PROJECT -->
-    <!-- PROJECT -->
-    <div class="menu-group">
-        <div class="group-title">📁 การบันทึกข้อมูล และการจัดการโครงการ</div>
-
-        <div class="row g-3">
-
-
-            @if (CanMenu("Employees.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Employees" asp-action="Index" class="menu-card">
-                    <div class="icon">👤</div>
-                    <div class="title">จัดการพนักงาน</div>
-                     <div class="desc">(Employee)</div>
-                </a>
+        <article class="glass-panel panel-project-status">
+            <div class="panel-head">
+                <h2>สถานะโครงการ</h2>
+                <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact">รายละเอียด</a>
             </div>
-            }
-
-            @if (CanMenu("Projects.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Projects" asp-action="Index" class="menu-card">
-                    <div class="icon">📁</div>
-                    <div class="title">จัดการโครงการ</div>
-                    <div class="desc">(Project)</div>
-                </a>
+            <div class="donut-layout">
+                <div class="donut" style="--donut:@dashboard.ProjectStatusDonut;">
+                    <div><strong>@dashboard.TotalProjectCount</strong><span>โครงการ</span></div>
+                </div>
+                <div class="metric-list">
+                    @foreach (var metric in dashboard.ProjectStatusMetrics)
+                    {
+                        <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                    }
+                </div>
             </div>
-            }
+        </article>
 
-            @if (CanMenu("ProjectPhases.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="ProjectPhases" asp-action="Index" class="menu-card">
-                    <div class="icon">🧩</div>
-                    <div class="title">จัดการงวดงาน</div>
-                    <div class="desc">(Project installment)</div>
-                </a>
+        <article class="glass-panel side-panel panel-activity">
+            <div class="panel-head">
+                <h2>กิจกรรมล่าสุด (Recent Activity)</h2>
+                <a asp-controller="Home" asp-action="Activities" class="panel-link">ดูทั้งหมด</a>
             </div>
-            }
-
-            @if (CanMenu("PhaseAssigns.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="PhaseAssigns" asp-action="Index" class="menu-card">
-                    <div class="icon">👥</div>
-                    <div class="title">จัดการมอบหมายงาน</div>
-                    <div class="desc">(Assign a task)</div>
-                </a>
+            <div class="activity-list">
+                @if (dashboard.RecentActivities.Count == 0)
+                {
+                    <p class="empty-state">ยังไม่มีกิจกรรมล่าสุด</p>
+                }
+                else
+                {
+                    foreach (var activity in dashboard.RecentActivities)
+                    {
+                        <a class="activity-row @activity.Color" href="@(string.IsNullOrWhiteSpace(activity.Url) ? Url.Action("Activities", "Home") : activity.Url)">
+                            <img class="activity-avatar"
+                                 src="@activity.AvatarPath"
+                                 alt=""
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                            <span>
+                                <b>@activity.Actor</b>
+                                <small>@activity.Detail</small>
+                                @if (!string.IsNullOrWhiteSpace(activity.OwnerText))
+                                {
+                                    <em>@activity.OwnerText</em>
+                                }
+                            </span>
+                            <time>@activity.TimeText</time>
+                        </a>
+                    }
+                }
             </div>
-            }
+        </article>
 
-              @if (CanMenu("ProjectIssues.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="ProjectIssues" asp-action="Index" class="menu-card">
-                    <div class="icon">🐞</div>
-                    <div class="title">จัดการปัญหาโครงการ</div>
-                    <div class="desc">(Issues Problems with the project)</div>
-                </a>
+        <article class="glass-panel compact-panel panel-top-projects">
+            <div class="panel-head">
+                <h2>Top 5 Projects Progress</h2>
+                <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
             </div>
-            }
-
-            @if (CanMenu("ProjectIssues.DevIndex"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="ProjectIssues" asp-action="DevIndex" class="menu-card">
-                    <div class="icon">👨‍💻</div>
-                    <div class="title">จัดการแก้ไขปัญหาโครงการ</div>
-                    <div class="desc">(Issues Problem solving project)</div>
-                </a>
+            <div class="progress-list">
+                @if (dashboard.TopProjectProgress.Count == 0)
+                {
+                    <p class="empty-state">ยังไม่มีข้อมูลโครงการ</p>
+                }
+                else
+                {
+                    for (var i = 0; i < dashboard.TopProjectProgress.Count; i++)
+                    {
+                        var project = dashboard.TopProjectProgress[i];
+                        <div class="progress-row">
+                            <span>@(i + 1). @project.Name</span>
+                            <div class="progress-track"><i class="@project.Color" style="width:@project.Value%"></i></div>
+                            <b>@project.Value%</b>
+                        </div>
+                    }
+                }
             </div>
-            }
-            @if (CanMenu("SupportOrders.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="SupportOrders" asp-action="Index" class="menu-card">
-                    <div class="icon">🛠️</div>
-                    <div class="title">จัดการงานรับประกัน</div>
-                    <div class="desc">(Warranty work)</div>
-                </a>
+        </article>
+
+        <article class="glass-panel compact-panel panel-issues">
+            <div class="panel-head">
+                <h2>Issues Overview</h2>
             </div>
-            }
-
-            @if (CanMenu("SupportOrdersDev.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="SupportOrdersDev" asp-action="Index" class="menu-card">
-                    <div class="icon">👨‍💻</div>
-                    <div class="title">จัดการงานแก้ไขรับประกัน</div>
-                    <div class="desc">(Warranty repair work)</div>
-                </a>
+            <div class="donut-layout compact-donut-layout">
+                <div class="donut donut-small" style="--donut:@dashboard.IssueDonut;">
+                    <div><strong>@dashboard.IssueTotal</strong><span>ประเด็น</span></div>
+                </div>
+                <div class="metric-list slim">
+                    @foreach (var metric in dashboard.IssueMetrics)
+                    {
+                        <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                    }
+                </div>
             </div>
-            }
+        </article>
 
-
-            @if (CanMenu("Followups.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Followups" asp-action="Index" class="menu-card">
-                    <div class="icon">📌</div>
-                    <div class="title">จัดการงานติดตาม</div>
-                    <div class="desc">(Follow-up)</div>
-                </a>
+        <article class="glass-panel side-panel compact-panel panel-meetings">
+            <div class="panel-head">
+                <h2>ปฏิทินการประชุมวันนี้</h2>
+                <a asp-controller="Meetings" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
             </div>
-            }
-
-            @if (CanMenu("TestScenarios.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="TestScenarios" asp-action="Index" class="menu-card">
-                    <div class="icon">🧪</div>
-                    <div class="title">จัดการสถานการณ์ทดสอบ</div>
-                    <div class="desc">(Test Scenarios)</div>
-                </a>
+            <div class="meeting-list">
+                @if (dashboard.TodayMeetings.Count == 0)
+                {
+                    <p class="empty-state">วันนี้ยังไม่มีประชุม</p>
+                }
+                else
+                {
+                    foreach (var meeting in dashboard.TodayMeetings)
+                    {
+                        <div class="meeting-row">
+                            <time class="time-pill @meeting.TimeColor">@Html.Raw(meeting.TimeText)</time>
+                            <span><b>@meeting.Title</b><small>@meeting.Detail</small></span>
+                            <span class="avatar-stack">
+                                <img src="@meeting.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                <i>+@meeting.AttendeeCount</i>
+                            </span>
+                        </div>
+                    }
+                }
             </div>
-            }
+        </article>
 
-            @if (CanMenu("TestScenarioTemplates.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="TestScenarioTemplates" asp-action="Index" class="menu-card">
-                    <div class="icon">📋</div>
-                    <div class="title">จัดการต้นแบบ สถานการณ์ทดสอบ</div>
-                    <div class="desc">(Test Scenario templates)</div>
-                </a>
+        <article class="glass-panel panel-task">
+            <div class="panel-head">
+                <h2>Task Progress (รายปี)</h2>
+                <div class="legend-row compact">
+                    <span><i class="dot green"></i>Completed</span>
+                    <span><i class="dot blue"></i>In Progress</span>
+                    <span><i class="dot orange"></i>Pending</span>
+                </div>
             </div>
-            }
-
-            @if (CanMenu("TestTemplateGroups.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="TestTemplateGroups" asp-action="Index" class="menu-card">
-                    <div class="icon">📦</div>
-                    <div class="title">จัดการกลุ่มของต้นแบบ</div>
-                    <div class="desc">(Test Template Groups)</div>
-                </a>
+            <div class="bar-chart">
+                @foreach (var task in dashboard.YearlyTasks)
+                {
+                    <div class="bar-group">
+                        <span class="@(task.CompletedHeight == 0 ? "is-zero" : "")" style="height:@task.CompletedHeight%"></span>
+                        <span class="@(task.InProgressHeight == 0 ? "is-zero" : "")" style="height:@task.InProgressHeight%"></span>
+                        <span class="@(task.PendingHeight == 0 ? "is-zero" : "")" style="height:@task.PendingHeight%"></span>
+                        <b>@task.PeriodLabel</b>
+                    </div>
+                }
             </div>
-            }
+        </article>
 
-        </div>
-    </div>
-
-    <!-- REPORT -->
-    <div class="menu-group">
-        <div class="group-title">🐞 รายงานและติดตามงาน</div>
-        <div class="row g-3">
-
-            @if (CanMenu("Projects.ViewOnly"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Projects" asp-action="ViewOnly" class="menu-card">
-                    <div class="icon">📁</div>
-                    <div class="title">รายงานข้อมูลโครงการ</div>
-                    <div class="desc">แสดงรายการโครงการ (สำหรับดู/พิมพ์)</div>
-                </a>
+        <article class="glass-panel panel-watch">
+            <div class="panel-head">
+                <h2>โครงการที่ต้องเฝ้าระวัง</h2>
+                <a asp-controller="ProjectStatus" asp-action="Index" class="panel-link">ดูภาพรวม</a>
             </div>
-            }
-
-            @if (CanMenu("ProjectIssues.ViewOnly"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="menu-card">
-                    <div class="icon">📝</div>
-                    <div class="title">รายงานปัญหาและสถานะโครงการ</div>
-                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
-                </a>
+            <div class="watch-list">
+                @if (dashboard.WatchProjects.Count == 0)
+                {
+                    <p class="empty-state">ยังไม่มีโครงการที่เข้าเงื่อนไขเสี่ยง</p>
+                }
+                else
+                {
+                    foreach (var project in dashboard.WatchProjects)
+                    {
+                        <a class="watch-row @project.RiskColor"
+                           asp-controller="ProjectStatus"
+                           asp-action="Index"
+                           asp-route-projectId="@project.ProjectId">
+                            <span class="watch-main">
+                                <b>@project.ProjectName</b>
+                                <small>เจ้าของ: @project.OwnerName</small>
+                            </span>
+                            <span class="watch-status">
+                                <i class="risk-pill @project.RiskColor">@project.RiskLevel</i>
+                                <small>@project.DueText</small>
+                            </span>
+                            <span class="watch-progress">
+                                <span class="progress-track"><i class="@project.RiskColor" style="width:@project.Progress%"></i></span>
+                                <b class="watch-percent">@project.Progress%</b>
+                            </span>
+                            <span class="watch-reasons">
+                                @foreach (var reason in project.Reasons)
+                                {
+                                    <i>@reason</i>
+                                }
+                            </span>
+                        </a>
+                    }
+                }
             </div>
-            }
+        </article>
 
-            @if (CanMenu("PhaseAssigns.Print"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="PhaseAssigns" asp-action="Print" class="menu-card">
-                    <div class="icon">📄</div>
-                    <div class="title">รายงานการมอบหมายงาน</div>
-                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
-                </a>
+        <article class="glass-panel panel-time">
+            <div class="panel-head">
+                <h2>Time Tracking (ชั่วโมงทำงาน)</h2>
+                <a asp-controller="Attendance" asp-action="Map" class="panel-link">ดูรายละเอียด</a>
             </div>
-            }
-
-            @if (CanMenu("PhaseStatusReport.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="PhaseStatusReport" asp-action="Index" class="menu-card">
-                    <div class="icon">📊</div>
-                    <div class="title">รายงานสถานะงานค้าง</div>
-                    <div class="desc">สำหรับตรวจสอบและพิมพ์รายงาน</div>
-                </a>
+            <div class="time-layout">
+                <div class="time-number">
+                    <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
+                    <span>ชั่วโมง</span>
+                    <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
+                </div>
+                <div class="gauge" style="--donut:@dashboard.TimeTrackingDonut;">
+                    <div>⏱</div>
+                </div>
+                <div class="metric-card">
+                    <span><i class="dot green"></i>บันทึกครบ <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
+                    <span><i class="dot blue"></i>ยังไม่ออกงาน <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
+                </div>
             </div>
-            }
-
-            @if (CanMenu("PhaseStatusReport.Timeline"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="PhaseStatusReport" asp-action="Timeline" class="menu-card">
-                    <div class="icon">🗓️</div>
-                    <div class="title">Timeline / Gantt</div>
-                    <div class="desc">มุมมองไทม์ไลน์และแผนภูมิ Gantt</div>
-                </a>
+            <div class="time-detail-grid">
+                <span><small>เข้างานวันนี้</small><b>@dashboard.TodayCheckinCount คน</b></span>
+                <span><small>ออกงานแล้ว</small><b>@dashboard.TodayCheckoutCount คน</b></span>
+                <span><small>ยังไม่ออกงาน</small><b>@dashboard.PendingCheckoutCount คน</b></span>
+                <span><small>ยังไม่เข้างาน</small><b>@dashboard.TodayMissingCheckinCount คน</b></span>
+                <span><small>วันที่มีบันทึก</small><b>@dashboard.MonthAttendanceDays วัน</b></span>
+                <span><small>เฉลี่ยต่อวัน</small><b>@dashboard.AverageHoursPerDay.ToString("0.#") ชม.</b></span>
+                <span><small>เกิน 12 ชม.</small><b>@dashboard.LongShiftCount ครั้ง</b></span>
+                <span><small>ระยะเกิน 5 กม.</small><b>@dashboard.LongDistanceCount ครั้ง</b></span>
             </div>
-            }
-
-            @if (CanMenu("Dashboard.Workload"))
+            @if (dashboard.PendingCheckoutNames.Count > 0)
             {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Dashboard" asp-action="Workload" class="menu-card">
-                    <div class="icon">🔥</div>
-                    <div class="title">สถานะภาระงานพนักงาน</div>
-                    <div class="desc">Dashboard ภาระงานพนักงาน</div>
-                </a>
-            </div>
+                <div class="time-alert-row">
+                    <b>ยังไม่ออกงาน</b>
+                    <span>@string.Join(", ", dashboard.PendingCheckoutNames)</span>
+                </div>
             }
+        </article>
 
-            <!-- ISSUE DASHBOARD -->
-            @if (CanMenu("IssueDashboard.Index"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="IssueDashboard" asp-action="Index" class="menu-card">
-                    <div class="icon">📊</div>
-                    <div class="title">ภาพรวมทั้งโครงการ</div>
-                    <div class="desc">Dashboard ภาพรวมโครงการ</div>
-                </a>
+        <article class="glass-panel side-panel panel-team">
+            <div class="panel-head">
+                <h2>ทีมงานที่ทำงานหนักที่สุด</h2>
+                <a asp-controller="PhaseWorkload" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
             </div>
-            }
-
-            @if (CanMenu("Attendance.Map"))
-            {
-            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 d-flex">
-                <a asp-controller="Attendance" asp-action="Map" class="menu-card">
-                    <div class="icon">📍</div>
-                    <div class="title">รายงาน(Check-in/Check-out)</div>
-                    <div class="desc">แสดงเข้า-ออกงาน</div>
-                </a>
+            <div class="workload-list">
+                @if (dashboard.TeamWorkload.Count == 0)
+                {
+                    <p class="empty-state">ยังไม่มีงานที่กำลังดำเนินการ</p>
+                }
+                else
+                {
+                    foreach (var member in dashboard.TeamWorkload)
+                    {
+                        <div class="workload-row">
+                            <img src="@member.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                            <span>@member.Name</span>
+                            <div class="progress-track"><i class="@member.Color" style="width:@member.Value%"></i></div>
+                            <b>@member.Value%</b>
+                        </div>
+                    }
+                }
             </div>
-            }
+        </article>
+    </section>
 
-        </div>
-    </div>
-
-</div>
+    <footer class="dashboard-footer">
+        © 2026 <strong>#C</strong> By <strong>SO-AT SOLUTION</strong>
+    </footer>
 </div>
 
 <style>
-/* ===== ORANGE HOVER FOR ALL CARDS ===== */
-.menu-card{
-    display:block;
-    width:100%;
-    min-height:180px;
-    height:100%;
+.dashboard-view {
+    --panel:#111f3c;
+    min-height:100vh;
+    padding:18px 24px 26px 10px;
+    background:
+        radial-gradient(circle at 18% 16%, rgba(34,211,238,.18), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(244,63,94,.12), transparent 24%),
+        linear-gradient(180deg, #edf4fb 0%, #e7eff8 100%);
+}
+
+.dashboard-view,
+.dashboard-view * {
+    box-sizing:border-box;
+}
+
+.floating-tools-wrapper {
+    display:none !important;
+}
+
+.dashboard-topbar {
+    display:grid;
+    grid-template-columns:max-content minmax(360px, 1fr) max-content;
+    align-items:center;
+    gap:24px;
+    margin-bottom:20px;
+}
+
+.brand-cluster {
     display:flex;
-    flex-direction:column;
-    justify-content:flex-start;
-    padding:24px;
-    border-radius:20px;
-    background:linear-gradient(180deg, rgba(40,55,80,.85), rgba(25,35,60,.95));
-    backdrop-filter:blur(10px);
-    color:#eaf2ff;
-    transition:.25s;
-    border:1px solid rgba(255,255,255,.25);
-    box-shadow:0 10px 28px rgba(0,0,0,.35);
+    align-items:center;
+    gap:20px;
+    min-width:510px;
+    color:#17213d;
+    text-decoration:none;
+}
+
+.brand-cluster img {
+    width:auto;
+    height:76px;
+    max-width:320px;
+    object-fit:contain;
+}
+
+.brand-cluster strong {
+    font-size:24px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.dashboard-search {
+    width:100%;
+    max-width:540px;
+    justify-self:center;
+    height:54px;
+    border-radius:28px;
+    background:rgba(255,255,255,.75);
+    border:1px solid rgba(139,152,181,.22);
+    box-shadow:0 12px 28px rgba(15,23,42,.06);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:0 18px 0 24px;
+    color:#74809b;
+}
+
+.dashboard-search input {
+    flex:1;
+    min-width:0;
+    height:100%;
+    border:0;
+    outline:0;
+    background:transparent;
+    color:#17213a;
+    font-size:15px;
+    font-weight:700;
+}
+
+.dashboard-actions {
+    display:flex;
+    justify-content:flex-end;
+    gap:14px;
+}
+
+.top-icon-button {
+    width:54px;
+    height:54px;
+    border-radius:50%;
+    color:#081632;
+    background:rgba(255,255,255,.72);
+    box-shadow:0 12px 32px rgba(15,23,42,.08);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    font-size:22px;
+    font-weight:900;
+}
+
+.kpi-grid {
+    display:grid;
+    grid-template-columns:repeat(5, minmax(178px, 1fr));
+    gap:16px;
+    margin-bottom:16px;
+}
+
+.kpi-card {
+    min-height:130px;
     position:relative;
     overflow:hidden;
+    border-radius:16px;
+    padding:18px;
+    color:#fff;
+    box-shadow:0 18px 34px rgba(15,23,42,.18);
+    display:grid;
+    grid-template-columns:72px minmax(0, 1fr);
+    align-items:center;
+    gap:16px;
 }
-.menu-card:hover{
-    transform:translateY(-8px) scale(1.01);
-    box-shadow:0 22px 55px rgba(0,0,0,.55);
-    background:linear-gradient(180deg, rgba(55,75,110,.95), rgba(30,45,75,.98));
-    border-color:#ff9f43;
-}
-.menu-card:hover .icon{ color:#ffb347; }
-.menu-card:hover .title{ color:#ffb347; }
-.menu-card::before{
+
+.kpi-card::before {
     content:"";
     position:absolute;
-    inset:0 0 auto 0;
-    height:2px;
-    border-radius:20px 20px 0 0;
-    background:linear-gradient(90deg, transparent, rgba(255,179,71,.8), transparent);
-    opacity:.6;
+    width:104px;
+    height:104px;
+    left:18px;
+    top:26px;
+    border-radius:50%;
+    background:rgba(255,255,255,.13);
 }
 
-/* ✅ Admin card: same theme as menu-card + subtle orange accent */
-.admin-card{
-    background:linear-gradient(180deg, rgba(40,55,80,.85), rgba(25,35,60,.95));
-    border:1px solid rgba(255,159,67,.45);
-    box-shadow:0 10px 28px rgba(0,0,0,.35);
-    color:#eaf2ff !important;
-}
-.admin-card::before{
-    content:"";
-    position:absolute;
-    inset:0 0 auto 0;
-    height:2px;
-    border-radius:20px 20px 0 0;
-    background:linear-gradient(90deg, transparent, rgba(255,179,71,.9), transparent);
-    opacity:.9;
-}
-.admin-card .icon{ color:#ffb347; }
-.admin-card .title{ color:#ffffff; }
-.admin-card .desc{ color:#cbd5e1; }
-.admin-card:hover{
-    transform:translateY(-8px) scale(1.01);
-    box-shadow:0 22px 55px rgba(0,0,0,.55);
-    background:linear-gradient(180deg, rgba(55,75,110,.95), rgba(30,45,75,.98));
-    border-color:#ff9f43;
+.kpi-blue { background:linear-gradient(135deg,#2d90ff,#005fe8); }
+.kpi-purple { background:linear-gradient(135deg,#9c44ff,#5512ca); }
+.kpi-orange { background:linear-gradient(135deg,#ff9b22,#ff4d0d); }
+.kpi-green { background:linear-gradient(135deg,#15cd8e,#009b91); }
+.kpi-pink { background:linear-gradient(135deg,#ff487a,#d90962); }
+
+.kpi-icon {
+    position:relative;
+    z-index:1;
+    left:auto;
+    top:auto;
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.16);
+    font-size:34px;
+    font-weight:900;
 }
 
-/* ===== Background ===== */
-.home-bg{ min-height:calc(100vh - 70px); }
-.home-bg::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:url('/images/auth/soathome.png') center center / cover no-repeat;
-    z-index:-2;
-}
-.home-bg::after{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:linear-gradient(rgba(10,20,40,.78),rgba(10,20,40,.85));
-    z-index:-1;
+.kpi-card > div {
+    min-width:0;
+    position:relative;
+    z-index:1;
 }
 
-/* HEADER */
-.header-card{
-    background:rgba(255,255,255,.15);
-    backdrop-filter:blur(12px);
-    border-radius:22px;
-    padding:28px 32px;
-    border:1px solid rgba(255,255,255,.25);
+.kpi-card p {
+    margin:0 0 4px;
+    font-size:15px;
+    line-height:1.18;
+    font-weight:900;
+    overflow-wrap:anywhere;
 }
-.welcome-logo{ height:150px; }
-.welcome-info{
-    display:flex;
-    gap:36px;
-    background:rgba(255,255,255,.9);
-    padding:10px 16px;
-    border-radius:14px;
-    width:fit-content;
-}
-.value{ font-weight:700; color:#ff8c2a; }
 
-/* MENU */
-.group-title{
-    font-size:18px;
+.kpi-card strong {
+    display:block;
+    font-size:38px;
+    line-height:1;
+    font-weight:900;
+}
+
+.kpi-card small {
+    display:block;
+    margin-top:12px;
+    color:rgba(255,255,255,.9);
+    font-size:12px;
+    line-height:1.25;
     font-weight:800;
-    margin-bottom:16px;
-    padding-left:14px;
-    border-left:6px solid #ff9f43;
-    color:white;
+    overflow-wrap:anywhere;
 }
-/* spacing between header card and section title */
-.menu-group{
-    margin-top:22px;
+
+.dashboard-grid {
+    display:grid;
+    grid-template-columns:repeat(24, minmax(0, 1fr));
+    gap:12px;
 }
-.icon{ font-size:36px; color:#ffb347; }
-.title{ font-weight:800; font-size:17px; color:#ffffff; }
-.desc{ font-size:13px; color:#cbd5e1; }
 
-/* ===== Responsive Cards ===== */
-@@media (max-width: 768px){
+.dashboard-footer {
+    margin-top:18px;
+    padding:16px 8px 2px;
+    text-align:center;
+    color:#64748b;
+    font-size:12px;
+    font-weight:900;
+}
 
-    .container-fluid{
-        padding-left:12px !important;
-        padding-right:12px !important;
+.dashboard-footer strong {
+    color:#0f766e;
+}
+
+.glass-panel {
+    min-height:238px;
+    position:relative;
+    overflow:hidden;
+    min-width:0;
+    border-radius:12px;
+    padding:17px 18px;
+    color:#fff;
+    background:
+        linear-gradient(180deg, rgba(23,43,82,.96), rgba(9,24,50,.98)),
+        radial-gradient(circle at 78% 10%, rgba(28,211,217,.18), transparent 30%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.11), 0 12px 24px rgba(5,15,35,.26);
+    border:1px solid rgba(115,142,184,.22);
+}
+
+.panel-wide { order:1; grid-column:span 15; min-height:278px; }
+.compact-panel { min-height:198px; }
+.panel-project-status { order:2; grid-column:span 9; min-height:278px; }
+.panel-task { order:3; grid-column:span 24; min-height:218px; }
+.panel-watch { order:4; grid-column:span 24; min-height:278px; }
+.panel-top-projects { order:5; grid-column:span 16; min-height:238px; }
+.panel-issues { order:6; grid-column:span 8; min-height:238px; }
+.panel-time { order:7; grid-column:span 12; min-height:278px; }
+.panel-team { order:8; grid-column:span 12; min-height:278px; }
+.panel-activity { order:9; grid-column:span 18; min-height:278px; }
+.panel-meetings { order:9; grid-column:span 6; min-height:278px; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+
+.panel-head {
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:14px;
+    min-width:0;
+}
+
+.panel-head h2 {
+    margin:0;
+    min-width:0;
+    color:#f6fbff;
+    font-size:16px;
+    line-height:1.15;
+    font-weight:900;
+    overflow-wrap:anywhere;
+}
+
+.panel-filter,
+.panel-link {
+    border:0;
+    border-radius:999px;
+    padding:8px 14px;
+    color:#dce7ff;
+    background:rgba(255,255,255,.08);
+    font-size:12px;
+    font-weight:900;
+    text-decoration:none;
+    white-space:nowrap;
+}
+
+.panel-link {
+    color:#7da9ff;
+    background:transparent;
+    padding:0;
+}
+
+.legend-row {
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    gap:24px;
+    margin:0 0 4px 28px;
+    color:#f4f7ff;
+    font-size:12px;
+    font-weight:900;
+    flex-wrap:wrap;
+}
+
+.legend-row.compact {
+    margin:0;
+    gap:10px 14px;
+    color:#96a7c8;
+}
+
+.legend-row span {
+    min-width:0;
+    display:inline-flex;
+    align-items:center;
+    white-space:normal;
+}
+
+.dot {
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    display:inline-block;
+    margin-right:8px;
+    box-shadow:0 0 12px currentColor;
+}
+
+.dot.green { color:#10d58f; background:#10d58f; }
+.dot.blue { color:#1688f5; background:#1688f5; }
+.dot.orange { color:#fb9a13; background:#fb9a13; }
+.dot.pink { color:#ff2d62; background:#ff2d62; }
+.dot.purple { color:#8b4df4; background:#8b4df4; }
+.dot.cyan { color:#0ad0c8; background:#0ad0c8; }
+.dot.lime { color:#52d11f; background:#52d11f; }
+
+.line-chart {
+    position:relative;
+    z-index:1;
+    height:212px;
+    margin-top:4px;
+    padding-bottom:42px;
+}
+
+.line-chart svg {
+    width:100%;
+    height:158px;
+}
+
+.grid-lines path {
+    stroke:rgba(255,255,255,.12);
+    stroke-width:1;
+}
+
+.line {
+    fill:none;
+    stroke-width:4;
+    filter:drop-shadow(0 0 8px currentColor);
+}
+
+.line.green { color:#10d58f; stroke:#10d58f; }
+.line.blue { color:#1688f5; stroke:#1688f5; }
+.line.orange { color:#fb9a13; stroke:#fb9a13; }
+.line.pink { color:#ff2d62; stroke:#ff2d62; }
+
+.chart-tooltip {
+    position:absolute;
+    left:34px;
+    right:0;
+    bottom:24px;
+    width:auto;
+    min-height:32px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:7px 10px;
+    border-radius:10px;
+    background:rgba(8,13,27,.42);
+    box-shadow:none;
+    backdrop-filter:blur(6px);
+    font-size:12px;
+}
+
+.chart-tooltip b,
+.chart-tooltip span {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-top:0;
+    white-space:nowrap;
+}
+
+.chart-tooltip b {
+    margin-bottom:0;
+    color:#fff;
+}
+
+.months-row {
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    color:#d8e4ff;
+    font-size:12px;
+    font-weight:800;
+    padding:0 4px 0 34px;
+}
+
+.donut-layout {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:minmax(118px, .9fr) minmax(0, 1fr);
+    align-items:center;
+    gap:12px;
+    min-width:0;
+}
+
+.compact-donut-layout {
+    grid-template-columns:112px minmax(0, 1fr);
+}
+
+.donut,
+.gauge {
+    --donut:conic-gradient(#10d58f 0 40%, #1688f5 40% 80%, #fb9a13 80% 100%);
+    width:min(170px, 100%);
+    aspect-ratio:1;
+    margin:0 auto;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    background:var(--donut);
+    box-shadow:0 0 24px rgba(22,136,245,.2);
+}
+
+.donut > div,
+.gauge > div {
+    width:112px;
+    aspect-ratio:1;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    align-content:center;
+    background:#111d3b;
+    box-shadow:inset 0 0 18px rgba(255,255,255,.08);
+}
+
+.donut strong {
+    display:block;
+    font-size:35px;
+    line-height:1;
+    font-weight:900;
+}
+
+.donut span {
+    display:block;
+    margin-top:4px;
+    color:#f2f7ff;
+    font-size:13px;
+    font-weight:900;
+}
+
+.donut-small {
+    width:108px;
+}
+
+.donut-small > div {
+    width:66px;
+}
+
+.donut-small strong {
+    font-size:25px;
+}
+
+.metric-list {
+    display:grid;
+    gap:16px;
+    font-size:13px;
+    font-weight:900;
+    min-width:0;
+}
+
+.metric-list > span {
+    min-width:0;
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr) max-content;
+    align-items:center;
+    gap:6px;
+    overflow:hidden;
+}
+
+.metric-name {
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.metric-list b {
+    justify-self:end;
+    white-space:nowrap;
+}
+
+.metric-list.slim {
+    gap:10px;
+    font-size:11px;
+}
+
+.panel-issues .compact-donut-layout {
+    grid-template-columns:124px minmax(0, 1fr);
+    gap:14px;
+}
+
+.panel-issues .donut-small {
+    width:124px;
+}
+
+.panel-issues .donut-small > div {
+    width:76px;
+}
+
+.panel-issues .metric-list.slim {
+    gap:12px;
+    font-size:12px;
+}
+
+.panel-issues .metric-list > span {
+    grid-template-columns:auto minmax(72px, 1fr) max-content;
+}
+
+.empty-state,
+.empty-inline {
+    position:relative;
+    z-index:1;
+    margin:0;
+    color:#9fb0d0;
+    font-size:12px;
+    font-weight:900;
+}
+
+.empty-state {
+    padding:16px 4px;
+}
+
+.activity-list,
+.meeting-list,
+.progress-list,
+.workload-list {
+    position:relative;
+    z-index:1;
+    display:grid;
+    gap:10px;
+}
+
+.panel-team .workload-list {
+    grid-template-columns:1fr;
+    gap:10px;
+}
+
+.watch-list {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-items:start;
+    gap:10px;
+}
+
+.watch-row {
+    display:grid;
+    grid-template-columns:minmax(0, 1.35fr) 126px;
+    gap:8px 12px;
+    padding:10px 12px;
+    border-radius:12px;
+    color:inherit;
+    text-decoration:none;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.08);
+    min-width:0;
+}
+
+.watch-row:hover {
+    background:rgba(255,255,255,.075);
+}
+
+.watch-row.pink { box-shadow:inset 3px 0 0 #ff2d62; }
+.watch-row.orange { box-shadow:inset 3px 0 0 #fb9a13; }
+.watch-row.blue { box-shadow:inset 3px 0 0 #1688f5; }
+
+.watch-main,
+.watch-status,
+.watch-progress,
+.watch-reasons {
+    min-width:0;
+}
+
+.watch-main b {
+    display:block;
+    color:#fff;
+    font-size:13px;
+    line-height:1.25;
+    font-weight:900;
+    overflow-wrap:anywhere;
+}
+
+.watch-main small,
+.watch-status small {
+    display:block;
+    margin-top:3px;
+    color:#9fb0d0;
+    font-size:11px;
+    line-height:1.25;
+    font-weight:800;
+    overflow-wrap:anywhere;
+}
+
+.watch-status {
+    justify-self:end;
+    text-align:right;
+}
+
+.risk-pill {
+    min-width:56px;
+    min-height:24px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:4px 9px;
+    color:#fff;
+    font-size:11px;
+    font-style:normal;
+    font-weight:900;
+}
+
+.risk-pill.pink { background:linear-gradient(135deg,#ff2d62,#ff6043); }
+.risk-pill.orange { background:linear-gradient(135deg,#fb9a13,#ffb13b); }
+.risk-pill.blue { background:linear-gradient(135deg,#1688f5,#0ad0c8); }
+
+.watch-progress {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 58px;
+    align-items:center;
+    gap:10px;
+}
+
+.watch-progress .progress-track {
+    display:block;
+}
+
+.watch-percent {
+    min-width:54px;
+    min-height:26px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    justify-self:end;
+    background:rgba(255,255,255,.1);
+    color:#f4f8ff;
+    font-size:12px;
+    font-weight:900;
+    text-align:right;
+    white-space:nowrap;
+}
+
+.watch-reasons {
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    justify-content:flex-end;
+}
+
+.watch-reasons i {
+    border-radius:999px;
+    padding:4px 8px;
+    color:#d9e4fb;
+    background:rgba(255,255,255,.075);
+    font-size:10px;
+    font-style:normal;
+    font-weight:900;
+    line-height:1.1;
+}
+
+.activity-row {
+    display:grid;
+    grid-template-columns:34px minmax(0, 1fr) max-content;
+    align-items:center;
+    gap:10px;
+    padding:6px 4px;
+    border-radius:10px;
+    color:inherit;
+    text-decoration:none;
+    min-width:0;
+}
+
+.activity-row:hover {
+    background:rgba(255,255,255,.06);
+}
+
+.activity-avatar {
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    object-fit:cover;
+    background:#172849;
+    border:2px solid rgba(255,255,255,.2);
+    box-shadow:0 8px 14px rgba(0,0,0,.2);
+}
+
+.activity-row.green .activity-avatar { border-color:rgba(16,213,143,.65); }
+.activity-row.pink .activity-avatar { border-color:rgba(255,45,98,.65); }
+.activity-row.blue .activity-avatar { border-color:rgba(22,136,245,.65); }
+.activity-row.orange .activity-avatar { border-color:rgba(251,154,19,.65); }
+.activity-row.cyan .activity-avatar { border-color:rgba(10,208,200,.65); }
+.activity-row.purple .activity-avatar { border-color:rgba(139,77,244,.65); }
+
+.activity-row b,
+.meeting-row b {
+    display:block;
+    min-width:0;
+    color:#fff;
+    font-size:13px;
+    line-height:1.2;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.activity-row small,
+.meeting-row small {
+    display:block;
+    margin-top:2px;
+    color:#b7c6e7;
+    font-size:11px;
+    font-weight:800;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.activity-row span,
+.meeting-row span {
+    min-width:0;
+}
+
+.activity-row em {
+    display:block;
+    margin-top:2px;
+    color:#8ea0c3;
+    font-size:10px;
+    font-style:normal;
+    font-weight:800;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.activity-row time {
+    color:#7d8dad;
+    font-size:11px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.progress-row,
+.workload-row {
+    display:grid;
+    grid-template-columns:minmax(124px, 1fr) minmax(110px, 1.2fr) 40px;
+    align-items:center;
+    gap:10px;
+    color:#f4f8ff;
+    font-size:12px;
+    font-weight:900;
+    min-width:0;
+}
+
+.progress-row span,
+.workload-row span {
+    min-width:0;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow-wrap:anywhere;
+}
+
+.panel-top-projects .progress-row {
+    align-items:start;
+    grid-template-columns:minmax(220px, 1.45fr) minmax(180px, 1fr) 48px;
+}
+
+.panel-top-projects .progress-row span {
+    display:block;
+    overflow:visible;
+    -webkit-line-clamp:unset;
+    white-space:normal;
+}
+
+.panel-top-projects .progress-track {
+    margin-top:4px;
+}
+
+.panel-top-projects .progress-list {
+    gap:12px;
+}
+
+.progress-row b,
+.workload-row b {
+    white-space:nowrap;
+    text-align:right;
+}
+
+.progress-track {
+    height:10px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#020712;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+}
+
+.progress-track i {
+    display:block;
+    height:100%;
+    border-radius:inherit;
+}
+
+.progress-track .green { background:linear-gradient(90deg,#20df4c,#92ff84); }
+.progress-track .blue { background:linear-gradient(90deg,#1688f5,#2ec8ff); }
+.progress-track .orange { background:linear-gradient(90deg,#fb9a13,#ff6333); }
+.progress-track .purple { background:linear-gradient(90deg,#8b4df4,#d352ff); }
+.progress-track .pink { background:linear-gradient(90deg,#ff2d62,#ff6a94); }
+.progress-track .cyan { background:linear-gradient(90deg,#0ad0c8,#12d8ff); }
+.progress-track .lime { background:linear-gradient(90deg,#52d11f,#a4ff73); }
+
+.meeting-row {
+    display:grid;
+    grid-template-columns:58px minmax(0, 1fr) 54px;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.time-pill {
+    width:58px;
+    height:44px;
+    border-radius:9px;
+    display:inline-flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:11px;
+    line-height:1.05;
+    font-weight:900;
+}
+
+.time-pill.pink { background:linear-gradient(135deg,#ff2d62,#ff6043); }
+.time-pill.purple { background:linear-gradient(135deg,#8b4df4,#5b2fd3); }
+.time-pill.blue { background:linear-gradient(135deg,#1688f5,#0ad0c8); }
+.time-pill.orange { background:linear-gradient(135deg,#fb9a13,#ff6333); }
+.time-pill.green { background:linear-gradient(135deg,#10d58f,#078f6d); }
+
+.avatar-stack {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+}
+
+.avatar-stack img,
+.workload-row img {
+    width:25px;
+    height:25px;
+    object-fit:cover;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.75);
+}
+
+.avatar-stack i {
+    min-width:26px;
+    height:24px;
+    margin-left:-6px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:#1d355f;
+    color:#fff;
+    font-size:10px;
+    font-style:normal;
+    font-weight:900;
+}
+
+.bar-chart {
+    position:relative;
+    z-index:1;
+    height:142px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(58px, 1fr));
+    align-items:end;
+    gap:14px;
+    padding:14px 16px 0;
+    background:repeating-linear-gradient(to top, rgba(255,255,255,.1) 0 1px, transparent 1px 32px);
+}
+
+.bar-group {
+    height:116px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    align-items:end;
+    gap:5px;
+    position:relative;
+}
+
+.bar-group span {
+    min-height:8px;
+    border-radius:5px 5px 0 0;
+}
+
+.bar-group span.is-zero {
+    min-height:0;
+}
+
+.bar-group span:nth-child(1) { background:linear-gradient(#16d686,#047c65); }
+.bar-group span:nth-child(2) { background:linear-gradient(#12d8ff,#127be4); }
+.bar-group span:nth-child(3) { background:linear-gradient(#ffb01e,#ff8400); }
+
+.bar-group b {
+    position:absolute;
+    left:50%;
+    bottom:-22px;
+    transform:translateX(-50%);
+    color:#d9e4fb;
+    font-size:11px;
+}
+
+.time-layout {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:.74fr .9fr minmax(118px, .9fr);
+    gap:14px;
+    align-items:center;
+    min-width:0;
+}
+
+.time-number,
+.metric-card {
+    min-width:0;
+}
+
+.time-number strong {
+    display:block;
+    font-size:clamp(30px, 3vw, 39px);
+    line-height:1;
+    font-weight:900;
+}
+
+.time-number span {
+    display:block;
+    margin-top:8px;
+    font-size:17px;
+    font-weight:900;
+}
+
+.time-number small {
+    display:block;
+    margin-top:16px;
+    color:#9fb0d0;
+    font-size:12px;
+    font-weight:900;
+}
+
+.time-number small.negative { color:#ff385b; }
+.time-number small.positive { color:#7dffad; }
+
+.gauge {
+    width:min(138px, 100%);
+}
+
+.gauge > div {
+    width:82px;
+    color:#fff;
+    font-size:38px;
+}
+
+.metric-card {
+    display:grid;
+    gap:12px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);
+    font-size:12px;
+    font-weight:900;
+}
+
+.metric-card span {
+    min-width:0;
+    display:grid;
+    gap:2px;
+    overflow-wrap:anywhere;
+}
+
+.metric-card b {
+    display:block;
+    min-width:0;
+    overflow-wrap:anywhere;
+}
+
+.time-detail-grid {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:8px;
+    margin-top:12px;
+}
+
+.time-detail-grid > span {
+    min-width:0;
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.055);
+}
+
+.time-detail-grid small {
+    display:block;
+    color:#99aacb;
+    font-size:10px;
+    font-weight:900;
+    line-height:1.15;
+}
+
+.time-detail-grid b {
+    display:block;
+    min-width:0;
+    margin-top:4px;
+    color:#fff;
+    font-size:14px;
+    font-weight:900;
+    overflow-wrap:anywhere;
+}
+
+.time-alert-row {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:max-content minmax(0, 1fr);
+    gap:8px;
+    margin-top:10px;
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid rgba(251,154,19,.22);
+    background:rgba(251,154,19,.12);
+    color:#ffe6c2;
+    font-size:11px;
+    font-weight:900;
+}
+
+.time-alert-row span {
+    min-width:0;
+    color:#fff;
+    overflow-wrap:anywhere;
+}
+
+.workload-row {
+    grid-template-columns:32px minmax(180px, .9fr) minmax(180px, 1.2fr) 52px;
+    gap:10px;
+    padding:7px 8px;
+    border-radius:10px;
+    background:rgba(255,255,255,.035);
+}
+
+.panel-team .workload-row img {
+    width:30px;
+    height:30px;
+}
+
+@@media (max-width:1440px) {
+    .dashboard-view { padding:16px 16px 16px 8px; }
+    .brand-cluster { gap:14px; min-width:430px; }
+    .brand-cluster img { height:66px; max-width:270px; }
+    .brand-cluster strong { font-size:22px; }
+    .kpi-grid { grid-template-columns:repeat(3, minmax(190px, 1fr)); }
+    .panel-wide,
+    .panel-project-status,
+    .panel-watch,
+    .panel-activity,
+    .panel-top-projects,
+    .panel-issues,
+    .panel-meetings,
+    .panel-task,
+    .panel-time,
+    .panel-team,
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
+    .panel-task,
+    .panel-watch,
+    .panel-time { grid-column:1 / -1; }
+}
+
+@@media (max-width:1024px) {
+    .dashboard-topbar { grid-template-columns:1fr; }
+    .brand-cluster { min-width:0; }
+    .dashboard-actions { justify-content:flex-start; }
+    .kpi-grid { grid-template-columns:repeat(2, minmax(180px, 1fr)); }
+    .panel-wide,
+    .panel-project-status,
+    .panel-watch,
+    .panel-activity,
+    .panel-top-projects,
+    .panel-issues,
+    .panel-meetings,
+    .panel-task,
+    .panel-time,
+    .panel-team,
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
+}
+
+@@media (max-width:640px) {
+    .dashboard-view { padding:12px 12px 12px 8px; }
+    .brand-cluster img { height:52px; }
+    .brand-cluster strong { font-size:22px; }
+    .dashboard-actions { gap:10px; flex-wrap:wrap; }
+    .top-icon-button { width:48px; height:48px; }
+    .kpi-grid { grid-template-columns:1fr; }
+    .kpi-card {
+        min-height:122px;
+        padding:16px;
+        grid-template-columns:64px minmax(0, 1fr);
     }
-
-    /* HEADER */
-    .header-card{
-        padding:20px 18px !important;
-        border-radius:20px;
+    .kpi-icon {
+        left:auto;
+        top:auto;
+        width:58px;
+        height:58px;
     }
-
-    .header-card .d-flex{
-        flex-direction:column !important;
-        align-items:center !important;
-        text-align:center;
-        gap:18px !important;
-    }
-
-    .welcome-logo{
-        height:110px !important;
-    }
-
-    h2.fw-bold{
-        font-size:2rem !important;
-    }
-
-    .system-name{
-        font-size:1rem;
-    }
-
-    /* INFO BOX */
-    .welcome-info{
-        width:100% !important;
-        display:grid !important;
-        grid-template-columns:repeat(2, minmax(0,1fr));
-        gap:12px;
-        padding:16px !important;
-        border-radius:18px;
-        text-align:center;
-    }
-
-    .welcome-info > div{
-        display:flex;
-        flex-direction:column;
-        gap:4px;
-    }
-
-    .label{
-        font-size:.85rem;
-        opacity:.75;
-    }
-
-    .value{
-        font-size:1.1rem;
-    }
-
-    /* SECTION TITLE */
-    .group-title{
-        font-size:1.25rem !important;
-        margin-bottom:14px;
-    }
-
-    /* CARD */
-    .menu-card{
-        min-height:135px !important;
-        padding:18px !important;
-        border-radius:18px;
-    }
-
-    .icon{
-        font-size:2rem !important;
-        margin-bottom:10px;
-    }
-
-    .title{
-        font-size:1.1rem !important;
-    }
-
-    .desc{
-        font-size:.9rem !important;
+    .donut-layout,
+    .compact-donut-layout,
+    .time-layout { grid-template-columns:1fr; }
+    .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .time-alert-row { grid-template-columns:1fr; }
+    .chart-tooltip { display:none; }
+    .legend-row { margin-left:0; flex-wrap:wrap; gap:10px; }
+    .watch-list { grid-template-columns:1fr; }
+    .watch-row { grid-template-columns:1fr; }
+    .watch-status { justify-self:start; text-align:left; }
+    .watch-reasons { justify-content:flex-start; }
+    .panel-team .workload-list { grid-template-columns:1fr; }
+    .panel-top-projects .progress-row,
+    .progress-row { grid-template-columns:1fr; gap:6px; }
+    .workload-row { grid-template-columns:28px minmax(80px, 1fr) 38px; }
+    .workload-row .progress-track { grid-column:2 / -1; }
+    .chart-tooltip {
+        left:0;
+        flex-wrap:wrap;
+        gap:8px 12px;
     }
 }
 </style>

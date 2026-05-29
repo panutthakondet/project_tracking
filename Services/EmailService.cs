@@ -4,13 +4,29 @@ using Microsoft.Extensions.Options;
 using ProjectTracking.Models;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System;
 using Microsoft.Extensions.Logging;
 
 namespace ProjectTracking.Services
 {
+    public class EmailAttachment
+    {
+        public EmailAttachment(string fileName, string contentType, byte[] content)
+        {
+            FileName = fileName;
+            ContentType = contentType;
+            Content = content;
+        }
+
+        public string FileName { get; }
+        public string ContentType { get; }
+        public byte[] Content { get; }
+    }
+
     public class EmailService
     {
         private readonly EmailSettings _settings;
@@ -39,7 +55,8 @@ namespace ProjectTracking.Services
             string subject,
             string body,
             IEnumerable<string>? ccList = null,
-            IEnumerable<string>? bccList = null
+            IEnumerable<string>? bccList = null,
+            IEnumerable<EmailAttachment>? attachments = null
         )
         {
             // ✅ Resolve SMTP settings (Options first, then ENV fallback)
@@ -152,6 +169,27 @@ namespace ProjectTracking.Services
                 {
                     foreach (var addr in SplitEmails(bcc))
                         mail.Bcc.Add(addr.Trim().ToLowerInvariant());
+                }
+            }
+
+            // =================================================
+            // ATTACHMENTS
+            // =================================================
+            if (attachments != null)
+            {
+                foreach (var file in attachments.Where(x => x.Content.Length > 0))
+                {
+                    var stream = new MemoryStream(file.Content);
+                    var attachment = new Attachment(stream, file.FileName, file.ContentType);
+
+                    if (string.Equals(file.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase))
+                    {
+                        attachment.ContentType.CharSet = Encoding.UTF8.WebName;
+                        attachment.ContentType.Parameters.Add("method", "PUBLISH");
+                        attachment.TransferEncoding = TransferEncoding.Base64;
+                    }
+
+                    mail.Attachments.Add(attachment);
                 }
             }
 

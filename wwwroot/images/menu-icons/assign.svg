@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Assign Phase">
+  <defs>
+    <linearGradient id="g" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#g)"/>
+  <circle cx="25" cy="24" r="9" fill="#fff"/>
+  <path d="M10 51c2.2-10 8.2-16 15-16s12.8 6 15 16" fill="#fff"/>
+  <path d="M45 22v18M36 31h18" stroke="#D1FAE5" stroke-width="6" stroke-linecap="round"/>
+</svg>

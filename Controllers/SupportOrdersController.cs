@@ -145,6 +145,18 @@ namespace ProjectTracking.Controllers
                 return View(order);
             }
 
+            var loginUserId = HttpContext.Session.GetInt32("UserId");
+            if (loginUserId.HasValue)
+            {
+                order.CreatedBy = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.LoginUserId == loginUserId.Value)
+                    .Select(e => (int?)e.EmpId)
+                    .FirstOrDefaultAsync();
+            }
+
+            order.CreatedAt = DateTime.Now;
+
             _context.ProjectSupportOrders.Add(order);
             await _context.SaveChangesAsync();
 
@@ -242,6 +254,9 @@ namespace ProjectTracking.Controllers
                 order.DevStatus = existingOrder.DevStatus;
             }
 
+            order.CreatedBy = existingOrder.CreatedBy;
+            order.CreatedAt = DateTime.Now;
+
             _context.ProjectSupportOrders.Update(order);
             await _context.SaveChangesAsync();
 
@@ -336,6 +351,9 @@ namespace ProjectTracking.Controllers
 
             if (order == null)
                 return NotFound();
+
+            order.CreatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
 
             _context.ProjectSupportOrders.Remove(order);
             await _context.SaveChangesAsync();

@@ -16,6 +16,9 @@ appsettings.Development.json
 *.log
 web.config
 
+# runtime uploads
+wwwroot/uploads/profiles/
+
 keys/
 inetpub/
-C:\inetpub\
+C:/inetpub/

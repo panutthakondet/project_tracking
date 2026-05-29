@@ -185,6 +185,9 @@ builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 QuestPDF.Settings.License = LicenseType.Community;
 var app = builder.Build();
 
+await EnsureLoginUserProfileColumnAsync(app.Services);
+await EnsureActivityCreatedAtColumnsAsync(app.Services);
+
 // allow large upload requests
 app.Use(async (context, next) =>
 {
@@ -253,3 +256,98 @@ app.MapControllerRoute(
 );
 
 app.Run();
+
+static async Task EnsureLoginUserProfileColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'login_user'
+              AND COLUMN_NAME = 'profile_image_path';";
+
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (exists > 0) return;
+
+        command.CommandText = "ALTER TABLE login_user ADD COLUMN profile_image_path VARCHAR(500) NULL;";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureActivityCreatedAtColumnsAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        foreach (var tableName in new[] { "project", "project_phase", "phase_assign" })
+        {
+            await EnsureCreatedAtColumnAsync(connection, tableName);
+            await EnsureEntryIdColumnAsync(connection, tableName);
+        }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureCreatedAtColumnAsync(System.Data.Common.DbConnection connection, string tableName)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = $@"
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = '{tableName}'
+          AND COLUMN_NAME = 'created_at';";
+
+    var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+    if (exists == 0)
+    {
+        command.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN created_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP;";
+        await command.ExecuteNonQueryAsync();
+    }
+
+}
+
+static async Task EnsureEntryIdColumnAsync(System.Data.Common.DbConnection connection, string tableName)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = $@"
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = '{tableName}'
+          AND COLUMN_NAME = 'entry_id';";
+
+    var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+    if (exists == 0)
+    {
+        command.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN entry_id INT NULL;";
+        await command.ExecuteNonQueryAsync();
+    }
+}

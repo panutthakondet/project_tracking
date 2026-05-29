@@ -18,18 +18,27 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="fw-bold">📁 บันทึกข้อมูลโครงการ</h2>
 
-    @if (CanMenu("Projects.Create"))
-    {
-        <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
-            ➕ Add Project
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+        <a asp-controller="ProjectStatus"
+           asp-action="Index"
+           class="btn btn-outline-info"
+           title="ดูสถานะโครงการ">
+            📊 Project Status
         </a>
-    }
-    else
-    {
-        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มโครงการ">
-            ➕ Add Project
-        </button>
-    }
+
+        @if (CanMenu("Projects.Create"))
+        {
+            <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
+                ➕ Add Project
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มโครงการ">
+                ➕ Add Project
+            </button>
+        }
+    </div>
 </div>
 
 <p class="text-muted">รายการโครงการทั้งหมดในระบบ</p>
@@ -202,6 +211,11 @@
                                asp-action="Index" 
                                asp-route-projectId="@p.ProjectId" 
                                class="btn btn-sm btn-outline-secondary">📂</a>
+                            <a asp-controller="ProjectStatus"
+                               asp-action="Index"
+                               asp-route-projectId="@p.ProjectId"
+                               class="btn btn-sm btn-outline-success"
+                               title="ดูสถานะโครงการ">📊</a>
                             @if (CanMenu("Projects.Delete"))
                             {
                                 <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
@@ -364,6 +378,13 @@
                         📂 Docs
                     </a>
 
+                    <a asp-controller="ProjectStatus"
+                       asp-action="Index"
+                       asp-route-projectId="@p.ProjectId"
+                       class="btn btn-outline-success btn-sm">
+                        📊 Status
+                    </a>
+
                     @if (!string.IsNullOrEmpty(p.FigmaLink))
                     {
                         <a href="@p.FigmaLink"
@@ -410,7 +431,7 @@
 .col-mini{ width:60px; min-width:60px; }
 
 /* Action buttons compact but not cramped */
-.col-action{ width:180px; min-width:180px; }
+.col-action{ width:220px; min-width:220px; }
 
 .project-table{
     table-layout: auto;

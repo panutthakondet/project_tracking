@@ -122,6 +122,7 @@ namespace ProjectTracking.Controllers
                     Role = a.Role,
                     PlanStart = a.PlanStart,
                     PlanEnd = a.PlanEnd,
+                    CreatedAt = a.CreatedAt,
                     WorkStatus = a.WorkStatus,
                     Remark = a.Remark,
 
@@ -271,6 +272,8 @@ namespace ProjectTracking.Controllers
             }
             if (string.IsNullOrWhiteSpace(model.WorkStatus))
                 model.WorkStatus = "IN_PROGRESS";
+            model.CreatedAt = DateTime.Now;
+            model.EntryId = await GetCurrentEntryIdAsync();
             _context.PhaseAssigns.Add(model);
             await _context.SaveChangesAsync();
 
@@ -436,6 +439,8 @@ namespace ProjectTracking.Controllers
             db.WorkStatus = string.IsNullOrWhiteSpace(model.WorkStatus)
                 ? "IN_PROGRESS"
                 : model.WorkStatus;
+            db.CreatedAt = DateTime.Now;
+            db.EntryId = await GetCurrentEntryIdAsync();
 
             // ✅ Role: allow manual edit (fallback to PhaseName)
             var roleText = (model.Role ?? string.Empty).Trim();
@@ -657,6 +662,10 @@ namespace ProjectTracking.Controllers
                 .Select(p => (int?)p.ProjectId)
                 .FirstOrDefaultAsync();
 
+            assign.CreatedAt = DateTime.Now;
+            assign.EntryId = await GetCurrentEntryIdAsync();
+            await _context.SaveChangesAsync();
+
             _context.PhaseAssigns.Remove(assign);
             await _context.SaveChangesAsync();
 
@@ -693,6 +702,15 @@ namespace ProjectTracking.Controllers
                 };
 
                 _context.PhaseAssignLogs.Add(log);
+
+                var assign = await _context.PhaseAssigns
+                    .FirstOrDefaultAsync(x => x.AssignId == assignId);
+                if (assign != null)
+                {
+                    assign.CreatedAt = DateTime.Now;
+                    assign.EntryId = await GetCurrentEntryIdAsync();
+                }
+
                 await _context.SaveChangesAsync();
 
                 return Ok(new { success = true, round = nextRound });
@@ -996,12 +1014,16 @@ namespace ProjectTracking.Controllers
 
                     var finalOrder = ids.Concat(remaining).ToList();
 
+                    var entryId = await GetCurrentEntryIdAsync();
+                    var reorderedAt = DateTime.Now;
                     int sort = 1;
                     foreach (var id in finalOrder)
                     {
                         if (allMap.TryGetValue(id, out var row))
                         {
                             row.PhaseSort = sort;
+                            row.CreatedAt = reorderedAt;
+                            row.EntryId = entryId;
                             sort++;
                         }
                     }
@@ -1063,11 +1085,15 @@ namespace ProjectTracking.Controllers
                 }
 
                 int sort2 = 1;
+                var legacyEntryId = await GetCurrentEntryIdAsync();
+                var legacyReorderedAt = DateTime.Now;
                 foreach (var id in ids)
                 {
                     if (map.TryGetValue(id, out var row))
                     {
                         row.PhaseSort = sort2;
+                        row.CreatedAt = legacyReorderedAt;
+                        row.EntryId = legacyEntryId;
                         sort2++;
                     }
                 }
@@ -1104,6 +1130,26 @@ namespace ProjectTracking.Controllers
                 "EmpId",
                 "EmpName",
                 model.EmpId);
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
         }
     }
 }

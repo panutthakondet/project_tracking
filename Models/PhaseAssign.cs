@@ -38,6 +38,12 @@ namespace ProjectTracking.Models
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
 
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
+
+        [Column("entry_id")]
+        public int? EntryId { get; set; }
+
         [Column("work_status")]
         public string? WorkStatus { get; set; }
 

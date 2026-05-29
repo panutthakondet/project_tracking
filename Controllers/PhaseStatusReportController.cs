@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Models;
 using ProjectTracking.Services;
 using ProjectTracking.Middleware;
 
@@ -23,63 +24,79 @@ namespace ProjectTracking.Controllers
         // INDEX
         // =====================================================
         [RequireMenu("PhaseStatusReport.Index")]
-        public async Task<IActionResult> Index(string? empName, string? projectName)
+        public async Task<IActionResult> Index(string? empName, string? projectName, string? phaseStatus)
         {
-            ViewBag.EmpList = await _context.VwPhaseOwnerStatuses
+            var allRows = await BuildPhaseOwnerStatusRowsAsync();
+
+            ViewBag.EmpList = allRows
                 .Select(x => x.EmpName)
                 .Distinct()
                 .OrderBy(x => x)
-                .ToListAsync();
+                .ToList();
 
-            ViewBag.ProjectList = await _context.VwPhaseOwnerStatuses
+            ViewBag.ProjectList = allRows
                 .Select(x => x.ProjectName)
                 .Distinct()
                 .OrderBy(x => x)
-                .ToListAsync();
+                .ToList();
 
-            var query = _context.VwPhaseOwnerStatuses.AsQueryable();
+            ViewBag.StatusList = allRows
+                .Select(x => x.PhaseStatus)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .OrderBy(StatusRank)
+                .ThenBy(x => x)
+                .ToList();
+
+            var result = allRows.AsEnumerable();
 
             if (!string.IsNullOrEmpty(empName))
-                query = query.Where(x => x.EmpName == empName);
+                result = result.Where(x => x.EmpName == empName);
 
             if (!string.IsNullOrEmpty(projectName))
-                query = query.Where(x => x.ProjectName == projectName);
+                result = result.Where(x => x.ProjectName == projectName);
 
-            var result = await query
-                .OrderBy(x => x.ProjectName)
-                .ThenBy(x => x.PhaseOrder)
-                .ToListAsync();
+            if (!string.IsNullOrEmpty(phaseStatus))
+                result = result.Where(x => x.PhaseStatus == phaseStatus);
 
             ViewBag.SelectedEmp = empName;
             ViewBag.SelectedProject = projectName;
+            ViewBag.SelectedStatus = phaseStatus;
 
-            return View(result);
+            return View(result
+                .OrderBy(x => x.ProjectName)
+                .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PhaseId)
+                .ToList());
         }
 
         // =====================================================
         // PRINT
         // =====================================================
         [RequireMenu("PhaseStatusReport.Print")]
-        public async Task<IActionResult> Print(string? empName, string? projectName)
+        public async Task<IActionResult> Print(string? empName, string? projectName, string? phaseStatus)
         {
-            var query = _context.VwPhaseOwnerStatuses.AsQueryable();
+            var result = (await BuildPhaseOwnerStatusRowsAsync()).AsEnumerable();
 
             if (!string.IsNullOrEmpty(empName))
-                query = query.Where(x => x.EmpName == empName);
+                result = result.Where(x => x.EmpName == empName);
 
             if (!string.IsNullOrEmpty(projectName))
-                query = query.Where(x => x.ProjectName == projectName);
+                result = result.Where(x => x.ProjectName == projectName);
 
-            var result = await query
-                .OrderBy(x => x.ProjectName)
-                .ThenBy(x => x.PhaseOrder)
-                .ToListAsync();
+            if (!string.IsNullOrEmpty(phaseStatus))
+                result = result.Where(x => x.PhaseStatus == phaseStatus);
 
             ViewBag.EmpName = string.IsNullOrEmpty(empName) ? "All Employees" : empName;
             ViewBag.ProjectName = string.IsNullOrEmpty(projectName) ? "All Projects" : projectName;
+            ViewBag.PhaseStatus = string.IsNullOrEmpty(phaseStatus) ? "All Statuses" : phaseStatus;
             ViewBag.PrintDate = DateTime.Now;
 
-            return View(result);
+            return View(result
+                .OrderBy(x => x.ProjectName)
+                .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PhaseId)
+                .ToList());
         }
 
         // =====================================================
@@ -88,24 +105,27 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseStatusReport.Timeline")]
         public async Task<IActionResult> Timeline(string? projectName)
         {
-            ViewBag.ProjectList = await _context.VwPhaseOwnerStatuses
+            var allRows = await BuildPhaseOwnerStatusRowsAsync();
+
+            ViewBag.ProjectList = allRows
                 .Select(x => x.ProjectName)
                 .Distinct()
                 .OrderBy(x => x)
-                .ToListAsync();
+                .ToList();
 
             ViewBag.SelectedProject = projectName;
 
-            var query = _context.VwPhaseOwnerStatuses.AsQueryable();
+            var result = allRows.AsEnumerable();
 
             if (!string.IsNullOrEmpty(projectName))
-                query = query.Where(x => x.ProjectName == projectName);
+                result = result.Where(x => x.ProjectName == projectName);
 
-            var result = await query
+            result = result
                 .Where(x => x.PlanStart != null && x.PlanEnd != null)
                 .OrderBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
-                .ToListAsync();
+                .ThenBy(x => x.PhaseId)
+                .ToList();
 
             return View(result);
         }
@@ -122,6 +142,121 @@ namespace ProjectTracking.Controllers
 
             TempData["Success"] = "ส่ง Email แจ้ง Phase Overdue เรียบร้อยแล้ว";
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<List<VwPhaseOwnerStatus>> BuildPhaseOwnerStatusRowsAsync()
+        {
+            var today = DateTime.Today;
+
+            var rows = await (
+                from assign in _context.PhaseAssigns.AsNoTracking()
+                join phase in _context.ProjectPhases.AsNoTracking()
+                    on assign.PhaseId equals phase.PhaseId
+                join project in _context.Projects.AsNoTracking()
+                    on phase.ProjectId equals project.ProjectId
+                join employee in _context.Employees.AsNoTracking()
+                    on assign.EmpId equals employee.EmpId
+                select new
+                {
+                    project.ProjectId,
+                    project.ProjectName,
+                    project.StartDate,
+                    project.EndDate,
+                    phase.PhaseId,
+                    phase.PhaseOrder,
+                    phase.PhaseStatus,
+                    PhasePlanStart = phase.PlanStart,
+                    PhasePlanEnd = phase.PlanEnd,
+                    phase.PeriodStartDate,
+                    phase.PeriodEndDate,
+                    assign.EmpId,
+                    employee.EmpName,
+                    assign.Role,
+                    AssignPlanStart = assign.PlanStart,
+                    AssignPlanEnd = assign.PlanEnd,
+                    assign.WorkStatus,
+                    assign.Remark
+                }
+            ).ToListAsync();
+
+            return rows.Select(row =>
+            {
+                var planStart = row.AssignPlanStart ?? row.PhasePlanStart;
+                var planEnd = row.AssignPlanEnd ?? row.PhasePlanEnd;
+                var isDone = IsDone(row.WorkStatus, row.PhaseStatus);
+                var overdueDays = !isDone && planEnd != null && planEnd.Value.Date < today
+                    ? (today - planEnd.Value.Date).Days
+                    : 0;
+
+                return new VwPhaseOwnerStatus
+                {
+                    ProjectId = row.ProjectId,
+                    ProjectName = row.ProjectName,
+                    StartDate = row.StartDate,
+                    EndDate = row.EndDate,
+                    PhaseId = row.PhaseId,
+                    PhaseOrder = row.PhaseOrder,
+                    EmpId = row.EmpId,
+                    EmpName = row.EmpName,
+                    Role = row.Role ?? "",
+                    PlanStart = planStart,
+                    PlanEnd = planEnd,
+                    ActualStart = row.PeriodStartDate,
+                    ActualEnd = row.PeriodEndDate,
+                    PlanDays = DaysInclusive(planStart, planEnd),
+                    ActualDays = DaysInclusive(row.PeriodStartDate, row.PeriodEndDate),
+                    PhaseStatus = NormalizeReportStatus(row.WorkStatus, row.PhaseStatus, overdueDays),
+                    OverdueDays = overdueDays,
+                    Remark = row.Remark
+                };
+            }).ToList();
+        }
+
+        private static int? DaysInclusive(DateTime? start, DateTime? end)
+        {
+            if (start == null || end == null) return null;
+            if (end.Value.Date < start.Value.Date) return null;
+            return (end.Value.Date - start.Value.Date).Days + 1;
+        }
+
+        private static bool IsDone(string? workStatus, string? phaseStatus)
+        {
+            var work = Norm(workStatus);
+            var phase = Norm(phaseStatus);
+            return work == "DONE"
+                || phase is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+        }
+
+        private static string NormalizeReportStatus(string? workStatus, string? phaseStatus, int overdueDays)
+        {
+            if (IsDone(workStatus, phaseStatus)) return "DONE";
+            if (overdueDays > 0) return "DELAY";
+
+            var work = Norm(workStatus);
+            if (work == "IN_PROGRESS") return "IN_PROGRESS";
+
+            var phase = Norm(phaseStatus);
+            if (phase == "กำลังดำเนินการ") return "IN_PROGRESS";
+            if (phase == "วางแผน") return "PLAN";
+
+            return string.IsNullOrWhiteSpace(work) ? phase : work;
+        }
+
+        private static string Norm(string? value)
+        {
+            return (value ?? "").Trim().ToUpperInvariant();
+        }
+
+        private static int StatusRank(string? status)
+        {
+            return Norm(status) switch
+            {
+                "DELAY" => 1,
+                "IN_PROGRESS" => 2,
+                "PLAN" => 3,
+                "DONE" => 4,
+                _ => 99
+            };
         }
     }
 }

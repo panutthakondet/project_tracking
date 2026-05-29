@@ -199,6 +199,8 @@ namespace ProjectTracking.Controllers
                 .MaxAsync(p => (int?)p.PhaseSort) ?? 0;
 
             phase.PhaseSort = lastSort + 1;
+            phase.CreatedAt = DateTime.Now;
+            phase.EntryId = await GetCurrentEntryIdAsync();
 
             _context.ProjectPhases.Add(phase);
             await _context.SaveChangesAsync();
@@ -278,6 +280,8 @@ namespace ProjectTracking.Controllers
             existing.ActualStart = phase.ActualStart;
             existing.ActualEnd = phase.ActualEnd;
             existing.PhaseStatus = phase.PhaseStatus;
+            existing.CreatedAt = DateTime.Now;
+            existing.EntryId = await GetCurrentEntryIdAsync();
 
             await _context.SaveChangesAsync();
 
@@ -309,13 +313,30 @@ namespace ProjectTracking.Controllers
             try
             {
                 // ✅ ลบข้อมูลลูกก่อน เพื่อไม่ให้ FK บล็อก (phase_assign.phase_id -> project_phase.phase_id)
+                var entryId = await GetCurrentEntryIdAsync();
                 var assigns = await _context.Set<PhaseAssign>()
                     .Where(a => a.PhaseId == id)
                     .ToListAsync();
 
                 if (assigns.Count > 0)
                 {
+                    var deletedAt = DateTime.Now;
+                    foreach (var assign in assigns)
+                    {
+                        assign.CreatedAt = deletedAt;
+                        assign.EntryId = entryId;
+                    }
+                    phase.CreatedAt = deletedAt;
+                    phase.EntryId = entryId;
+                    await _context.SaveChangesAsync();
+
                     _context.Set<PhaseAssign>().RemoveRange(assigns);
+                }
+                else
+                {
+                    phase.CreatedAt = DateTime.Now;
+                    phase.EntryId = entryId;
+                    await _context.SaveChangesAsync();
                 }
 
                 _context.ProjectPhases.Remove(phase);
@@ -391,11 +412,15 @@ namespace ProjectTracking.Controllers
                 return BadRequest(new { ok = false, message = "some phases not found in project", missing });
 
             // ✅ 1) ใส่ลำดับตามที่ส่งมา
+            var entryId = await GetCurrentEntryIdAsync();
+            var reorderedAt = DateTime.Now;
             var sort = 1;
             var used = new HashSet<int>();
             foreach (var id in orderedIds)
             {
                 map[id].PhaseSort = sort++;
+                map[id].CreatedAt = reorderedAt;
+                map[id].EntryId = entryId;
                 used.Add(id);
             }
 
@@ -424,6 +449,26 @@ namespace ProjectTracking.Controllers
                 new[] { "MAIN", "SUPPORT" },
                 selected
             );
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
         }
     }
 }

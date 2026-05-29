@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace ProjectTracking.Services
             public string? location { get; set; }
             public string? project_name { get; set; }
             public DateTime start_at { get; set; }
+            public DateTime end_at { get; set; }
         }
 
         private class RecipientRow
@@ -75,6 +77,7 @@ namespace ProjectTracking.Services
             using var scope = _scopeFactory.CreateScope();
             var email = scope.ServiceProvider.GetRequiredService<EmailService>();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var reminderDate = GetBangkokToday().AddDays(REMIND_DAYS);
 
             // 1) Ensure log table exists (no migration required)
             const string createLogSql = @"
@@ -90,7 +93,7 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
 
             await db.Database.ExecuteSqlRawAsync(createLogSql, ct);
 
-            // 2) Find meetings scheduled for tomorrow (full-day match, no minute window)
+            // 2) Find meetings scheduled for tomorrow in the app timezone.
             const string meetingsSql = @"
 SELECT
   m.id,
@@ -98,30 +101,44 @@ SELECT
   m.description,
   m.location,
   p.project_name,
-  TIMESTAMP(m.meeting_date, m.start_time) AS start_at
+  TIMESTAMP(m.meeting_date, m.start_time) AS start_at,
+  TIMESTAMP(m.meeting_date, m.end_time) AS end_at
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id
-WHERE DATE(m.meeting_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY);";
+WHERE DATE(m.meeting_date) = @reminderDate;";
 
-            var meetings = new List<(int Id, string Title, string? Description, string? Location, string? ProjectName, DateTime StartAt)>();
+            var meetings = new List<(int Id, string Title, string? Description, string? Location, string? ProjectName, DateTime StartAt, DateTime EndAt)>();
 
             var meetingRows = await db.Database
-                .SqlQueryRaw<MeetingRow>(meetingsSql)
+                .SqlQueryRaw<MeetingRow>(
+                    meetingsSql,
+                    new MySqlConnector.MySqlParameter("@reminderDate", reminderDate))
                 .ToListAsync(ct);
 
             foreach (var row in meetingRows)
             {
-                meetings.Add((row.id, row.title, row.description, row.location, row.project_name, row.start_at));
+                meetings.Add((row.id, row.title, row.description, row.location, row.project_name, row.start_at, row.end_at));
             }
 
             if (meetings.Count == 0)
             {
-                _logger.LogInformation("🔔 No meetings scheduled for tomorrow (1-day reminder)");
+                _logger.LogInformation("🔔 No meetings scheduled for {ReminderDate:yyyy-MM-dd} ({ReminderDays}-day reminder)", reminderDate, REMIND_DAYS);
                 return;
             }
 
+            _logger.LogInformation("🔔 Found {Count} meeting(s) scheduled for {ReminderDate:yyyy-MM-dd}", meetings.Count, reminderDate);
+
             foreach (var m in meetings)
             {
+                var calendarAttachment = BuildCalendarAttachment(
+                    m.Id,
+                    m.Title,
+                    m.Description,
+                    m.Location,
+                    m.ProjectName,
+                    m.StartAt,
+                    m.EndAt);
+
                 // 3) Get recipients using RAW SQL join on DB columns (no dependency on Employee.LoginUserId property)
                 const string recipientsSql = @"
 SELECT
@@ -134,7 +151,8 @@ JOIN employee e ON e.emp_id = ma.user_id
 JOIN login_user u ON u.user_id = e.login_user_id
 WHERE ma.meeting_id = @mid
   AND u.email IS NOT NULL
-  AND u.email <> ''";
+  AND u.email <> ''
+ORDER BY ma.id";
 
                 var recipients = new List<(int AttendeeId, string DisplayName, string Email)>();
 
@@ -172,39 +190,182 @@ WHERE ma.meeting_id = @mid
 
                     if (exists) continue;
 
-                    // 5) Send email
-                    var subject = $"แจ้งเตือนการประชุม: {m.Title}";
-                    var sb = new StringBuilder();
-                    sb.Append($"สวัสดี {System.Net.WebUtility.HtmlEncode(r.DisplayName)}<br/>");
-                    if (!string.IsNullOrWhiteSpace(m.ProjectName))
+                    try
                     {
-                        sb.Append($"โครงการ: <b>{System.Net.WebUtility.HtmlEncode(m.ProjectName)}</b><br/>");
-                    }
-                    sb.Append($"การประชุม <b>{System.Net.WebUtility.HtmlEncode(m.Title)}</b> จะเริ่มวันที่ <b>{m.StartAt:dd/MM/yyyy}</b> เวลา <b>{m.StartAt:HH:mm}</b> (แจ้งล่วงหน้า 1 วัน)<br/>");
-                    if (!string.IsNullOrWhiteSpace(m.Location)) sb.Append($"สถานที่: {System.Net.WebUtility.HtmlEncode(m.Location)}<br/>");
-                    if (!string.IsNullOrWhiteSpace(m.Description)) sb.Append($"รายละเอียด: {System.Net.WebUtility.HtmlEncode(m.Description)}<br/>");
-                    sb.Append("<br/><small>ProjectTracking</small>");
-
-                    await email.SendAsync(r.Email, subject, sb.ToString());
-
-                    // 6) Insert log after successful send
-                    const string insertSql = @"INSERT INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at) VALUES(@mid, @aid, @kind, NOW())";
-
-                    await db.Database.ExecuteSqlRawAsync(
-                        insertSql,
-                        new object[]
+                        // 5) Send email
+                        var subject = $"แจ้งเตือนการประชุม: {m.Title}";
+                        var sb = new StringBuilder();
+                        sb.Append($"สวัสดี {System.Net.WebUtility.HtmlEncode(r.DisplayName)}<br/>");
+                        if (!string.IsNullOrWhiteSpace(m.ProjectName))
                         {
-                            new MySqlConnector.MySqlParameter("@mid", m.Id),
-                            new MySqlConnector.MySqlParameter("@aid", r.AttendeeId),
-                            new MySqlConnector.MySqlParameter("@kind", REMIND_KIND)
-                        },
-                        ct);
+                            sb.Append($"โครงการ: <b>{System.Net.WebUtility.HtmlEncode(m.ProjectName)}</b><br/>");
+                        }
+                        sb.Append($"การประชุม <b>{System.Net.WebUtility.HtmlEncode(m.Title)}</b> จะเริ่มวันที่ <b>{m.StartAt:dd/MM/yyyy}</b> เวลา <b>{m.StartAt:HH:mm}</b> (แจ้งล่วงหน้า 1 วัน)<br/>");
+                        if (!string.IsNullOrWhiteSpace(m.Location)) sb.Append($"สถานที่: {System.Net.WebUtility.HtmlEncode(m.Location)}<br/>");
+                        if (!string.IsNullOrWhiteSpace(m.Description)) sb.Append($"รายละเอียด: {System.Net.WebUtility.HtmlEncode(m.Description)}<br/>");
+                        sb.Append("<br/><small>ProjectTracking</small>");
 
-                    _logger.LogInformation("📧 Sent {Kind} meeting={MeetingId} attendee={AttendeeId} to={Email}", REMIND_KIND, m.Id, r.AttendeeId, r.Email);
+                        await email.SendAsync(
+                            r.Email,
+                            subject,
+                            sb.ToString(),
+                            attachments: new[] { calendarAttachment });
+
+                        // 6) Insert log after successful send
+                        const string insertSql = @"INSERT INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at) VALUES(@mid, @aid, @kind, NOW())";
+
+                        await db.Database.ExecuteSqlRawAsync(
+                            insertSql,
+                            new object[]
+                            {
+                                new MySqlConnector.MySqlParameter("@mid", m.Id),
+                                new MySqlConnector.MySqlParameter("@aid", r.AttendeeId),
+                                new MySqlConnector.MySqlParameter("@kind", REMIND_KIND)
+                            },
+                            ct);
+
+                        _logger.LogInformation("📧 Sent {Kind} meeting={MeetingId} attendee={AttendeeId} to={Email}", REMIND_KIND, m.Id, r.AttendeeId, r.Email);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send {Kind} meeting={MeetingId} attendee={AttendeeId} to={Email}", REMIND_KIND, m.Id, r.AttendeeId, r.Email);
+                    }
                 }
             }
 
             _logger.LogInformation("🔔 Meeting reminder check complete");
+        }
+
+        private static EmailAttachment BuildCalendarAttachment(
+            int meetingId,
+            string title,
+            string? description,
+            string? location,
+            string? projectName,
+            DateTime startAt,
+            DateTime endAt)
+        {
+            if (endAt <= startAt)
+            {
+                endAt = startAt.AddHours(1);
+            }
+
+            var summary = string.IsNullOrWhiteSpace(projectName)
+                ? title
+                : $"{projectName} - {title}";
+
+            var detail = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(projectName))
+            {
+                detail.Append("โครงการ: ").Append(projectName).Append('\n');
+            }
+
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                detail.Append(description);
+            }
+
+            var lines = new List<string>
+            {
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//SO-AT Solution//ProjectTracking//TH",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "BEGIN:VTIMEZONE",
+                "TZID:Asia/Bangkok",
+                "BEGIN:STANDARD",
+                "DTSTART:19700101T000000",
+                "TZOFFSETFROM:+0700",
+                "TZOFFSETTO:+0700",
+                "TZNAME:ICT",
+                "END:STANDARD",
+                "END:VTIMEZONE",
+                "BEGIN:VEVENT",
+                $"UID:meeting-{meetingId}@projecttracking.local",
+                $"DTSTAMP:{DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture)}",
+                $"DTSTART;TZID=Asia/Bangkok:{startAt.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)}",
+                $"DTEND;TZID=Asia/Bangkok:{endAt.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)}",
+                $"SUMMARY:{EscapeIcsText(summary)}",
+                $"DESCRIPTION:{EscapeIcsText(detail.ToString())}",
+                $"LOCATION:{EscapeIcsText(location)}",
+                "STATUS:CONFIRMED",
+                "TRANSP:OPAQUE",
+                "X-MICROSOFT-CDO-BUSYSTATUS:BUSY",
+                "END:VEVENT",
+                "END:VCALENDAR"
+            };
+
+            var content = new StringBuilder();
+            foreach (var line in lines)
+            {
+                foreach (var foldedLine in FoldIcsLine(line))
+                {
+                    content.Append(foldedLine).Append("\r\n");
+                }
+            }
+
+            return new EmailAttachment(
+                $"meeting-{meetingId}.ics",
+                "text/calendar",
+                Encoding.UTF8.GetBytes(content.ToString()));
+        }
+
+        private static DateTime GetBangkokToday()
+        {
+            try
+            {
+                var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone).Date;
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return DateTime.Today;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return DateTime.Today;
+            }
+        }
+
+        private static string EscapeIcsText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "";
+            }
+
+            return value
+                .Replace("\\", "\\\\")
+                .Replace(";", "\\;")
+                .Replace(",", "\\,")
+                .Replace("\r\n", "\\n")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\n");
+        }
+
+        private static IEnumerable<string> FoldIcsLine(string line)
+        {
+            const int MaxLength = 70;
+
+            if (line.Length <= MaxLength)
+            {
+                yield return line;
+                yield break;
+            }
+
+            var offset = 0;
+            var firstLine = true;
+            while (offset < line.Length)
+            {
+                var prefix = firstLine ? "" : " ";
+                var segmentLength = Math.Min(MaxLength - prefix.Length, line.Length - offset);
+
+                yield return prefix + line.Substring(offset, segmentLength);
+
+                offset += segmentLength;
+                firstLine = false;
+            }
         }
     }
 }

@@ -1,0 +1,1176 @@
+@model ProjectTracking.ViewModels.ProjectStatusDetailViewModel
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "รายละเอียดสถานะโครงการ";
+    var statusPage = Model ?? new ProjectTracking.ViewModels.ProjectStatusDetailViewModel();
+    var bdmGroups = statusPage.TeamGroups
+        .Where(x => x.ClassName == "business-development-manager")
+        .ToList();
+    var managerGroups = statusPage.TeamGroups
+        .Where(x => x.ClassName == "project-manager")
+        .ToList();
+    var baGroups = statusPage.TeamGroups
+        .Where(x => x.ClassName == "project-manager-it" || x.ClassName == "business-analyst")
+        .ToList();
+    var baLevelMembers = baGroups
+        .SelectMany(x => x.Members)
+        .ToList();
+    var researchGroups = statusPage.TeamGroups
+        .Where(x => x.ClassName == "research-and-development")
+        .ToList();
+    var otherTeamGroups = statusPage.TeamGroups
+        .Where(x => x.ClassName != "business-development-manager"
+            && x.ClassName != "project-manager"
+            && x.ClassName != "project-manager-it"
+            && x.ClassName != "business-analyst"
+            && x.ClassName != "research-and-development")
+        .ToList();
+    var otherTeamMembers = otherTeamGroups
+        .SelectMany(x => x.Members)
+        .ToList();
+    var hasTeamMembers = statusPage.TeamGroups.Any(x => x.Members.Count > 0);
+    string PercentText(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+}
+
+<div class="project-status-page">
+    <header class="project-status-header">
+        <div>
+            <span>ProjectTracking</span>
+            <h1>ทีมงานและสถานะโครงการ</h1>
+            <p>@statusPage.SelectedProjectName</p>
+        </div>
+        <div class="project-status-actions">
+            <a asp-controller="Home" asp-action="Index" class="status-back-link">กลับ Dashboard</a>
+        </div>
+    </header>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-3 project-status-filter-card">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-12">
+                    <label for="projectId" class="form-label fw-bold">Project</label>
+                    <form asp-controller="ProjectStatus" asp-action="Index" method="get" class="project-filter-form">
+                        <select id="projectId"
+                                name="projectId"
+                                class="form-select rounded-3"
+                                onchange="this.form.submit()">
+                            <option value="">ทุกโครงการ</option>
+                            @foreach (var project in statusPage.ProjectOptions)
+                            {
+                                if (statusPage.SelectedProjectId == project.ProjectId)
+                                {
+                                    <option value="@project.ProjectId" selected>@project.ProjectName</option>
+                                }
+                                else
+                                {
+                                    <option value="@project.ProjectId">@project.ProjectName</option>
+                                }
+                            }
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="team-project-board" aria-label="ทีมงานและสถานะโครงการ">
+        <div class="status-left-column">
+            <article class="status-board-card status-pie-card">
+                <div class="board-card-head">
+                    <h2>สถานะโครงการ</h2>
+                    <strong>@statusPage.TotalProjects</strong>
+                </div>
+
+                <div class="project-status-pie-wrap">
+                    <div class="project-status-pie" style="--pie:@statusPage.ProjectStatusChart;"></div>
+                </div>
+
+                <div class="status-metrics">
+                    @foreach (var metric in statusPage.StatusMetrics)
+                    {
+                        <div class="status-metric">
+                            <span><i style="--dot:@metric.Color;"></i>@metric.Label</span>
+                            <b>@metric.Count <small>@PercentText(metric.Percent)%</small></b>
+                        </div>
+                    }
+                </div>
+            </article>
+
+            <article class="status-board-card task-overview-card">
+                <div class="board-card-head">
+                    <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
+                    <span>@statusPage.WeekRangeText</span>
+                </div>
+
+                <div class="task-chart-legend">
+                    <span><i class="done"></i>เสร็จแล้ว</span>
+                    <span><i class="working"></i>กำลังทำ</span>
+                    <span><i class="stuck"></i>ล่าช้า</span>
+                </div>
+
+                @if (statusPage.TaskOverview.Count == 0)
+                {
+                    <p class="status-empty">ยังไม่มีข้อมูลงานสำหรับแสดงผล</p>
+                }
+                else
+                {
+                    <div class="task-overview-scroll">
+                        <div class="task-overview-chart" style="--task-count:@statusPage.TaskOverview.Count; --task-min-width:@(statusPage.TaskOverview.Count * 112)px;">
+                            @foreach (var member in statusPage.TaskOverview)
+                            {
+                                <div class="task-overview-item" title="@member.Name">
+                                    <div class="task-stack-frame">
+                                        <div class="task-stack" style="height:@member.TotalHeightPercent%;">
+                                            <span class="done" style="height:@member.DoneHeightPercent%;"></span>
+                                            <span class="working" style="height:@member.InProgressHeightPercent%;"></span>
+                                            <span class="stuck" style="height:@member.DelayHeightPercent%;"></span>
+                                        </div>
+                                    </div>
+                                    <img src="@member.AvatarPath"
+                                         alt=""
+                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <b>@member.Name</b>
+                                    <small>@member.TotalCount งาน</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </article>
+        </div>
+
+        <div class="status-right-column">
+            <article class="status-board-card org-chart-card">
+                <div class="board-card-head">
+                    <h2>แผนผัง ทีมพัฒนาระบบ</h2>
+                </div>
+
+                <div class="role-lane-board">
+                    @if (!hasTeamMembers)
+                    {
+                        <p class="system-team-empty">ยังไม่มีข้อมูลทีม</p>
+                    }
+
+                    @foreach (var group in bdmGroups)
+                    {
+                        @if (group.Members.Count > 0)
+                        {
+                            <section class="role-lane role-lane-@group.ClassName">
+                                <div class="role-lane-head">
+                                    <span>Business</span>
+                                    <h3>@group.Label</h3>
+                                    <b>@group.Members.Count คน</b>
+                                </div>
+                                <div class="role-member-grid">
+                                    @foreach (var member in group.Members)
+                                    {
+                                        <div class="role-member-card">
+                                            <img src="@member.AvatarPath"
+                                                 alt=""
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <div>
+                                                <b>@member.Name</b>
+                                                <small>@member.Role</small>
+                                                @if (member.WorkCount > 0)
+                                                {
+                                                    <em>@member.WorkCount งาน</em>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    }
+
+                    @foreach (var group in managerGroups)
+                    {
+                        @if (group.Members.Count > 0)
+                        {
+                            <section class="role-lane role-lane-@group.ClassName">
+                                <div class="role-lane-head">
+                                    <span>Management</span>
+                                    <h3>@group.Label</h3>
+                                    <b>@group.Members.Count คน</b>
+                                </div>
+                                <div class="role-member-grid">
+                                    @foreach (var member in group.Members)
+                                    {
+                                        <div class="role-member-card">
+                                            <img src="@member.AvatarPath"
+                                                 alt=""
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <div>
+                                                <b>@member.Name</b>
+                                                <small>@member.Role</small>
+                                                @if (member.WorkCount > 0)
+                                                {
+                                                    <em>@member.WorkCount งาน</em>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    }
+
+                    @if (baLevelMembers.Count > 0)
+                    {
+                        <section class="role-lane role-lane-analyst-tier">
+                            <div class="role-lane-head">
+                                <span>Analysis</span>
+                                <h3>Project Manager IT / Business Analyst</h3>
+                                <b>@baLevelMembers.Count คน</b>
+                            </div>
+                            <div class="role-member-grid">
+                                @foreach (var member in baLevelMembers)
+                                {
+                                    <div class="role-member-card">
+                                        <img src="@member.AvatarPath"
+                                             alt=""
+                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <div>
+                                            <b>@member.Name</b>
+                                            <small>@member.Role</small>
+                                            @if (member.WorkCount > 0)
+                                            {
+                                                <em>@member.WorkCount งาน</em>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+
+                    @foreach (var group in researchGroups)
+                    {
+                        @if (group.Members.Count > 0)
+                        {
+                            <section class="role-lane role-lane-@group.ClassName">
+                                <div class="role-lane-head">
+                                    <span>Research</span>
+                                    <h3>@group.Label</h3>
+                                    <b>@group.Members.Count คน</b>
+                                </div>
+                                <div class="role-member-grid">
+                                    @foreach (var member in group.Members)
+                                    {
+                                        <div class="role-member-card">
+                                            <img src="@member.AvatarPath"
+                                                 alt=""
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <div>
+                                                <b>@member.Name</b>
+                                                <small>@member.Role</small>
+                                                @if (member.WorkCount > 0)
+                                                {
+                                                    <em>@member.WorkCount งาน</em>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    }
+
+                    @if (otherTeamMembers.Count > 0)
+                    {
+                        <section class="role-lane role-lane-operation">
+                            <div class="role-lane-head">
+                                <span>Delivery</span>
+                                <h3>ทีมปฏิบัติการ</h3>
+                                <b>@otherTeamMembers.Count คน</b>
+                            </div>
+                            <div class="role-member-grid">
+                                @foreach (var member in otherTeamMembers)
+                                {
+                                    <div class="role-member-card">
+                                        <img src="@member.AvatarPath"
+                                             alt=""
+                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <div>
+                                            <b>@member.Name</b>
+                                            <small>@member.Role</small>
+                                            @if (member.WorkCount > 0)
+                                            {
+                                                <em>@member.WorkCount งาน</em>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            </article>
+
+            <article class="status-board-card week-task-card">
+                <div class="board-card-head">
+                    <h2>งานสัปดาห์นี้</h2>
+                    <span>@statusPage.WeekRangeText</span>
+                </div>
+
+                @if (statusPage.ThisWeekTasks.Count == 0)
+                {
+                    <p class="status-empty">สัปดาห์นี้ยังไม่มีงานตามแผน</p>
+                }
+                else
+                {
+                    <div class="week-task-table-wrap">
+                        <table class="week-task-table">
+                            <thead>
+                                <tr>
+                                    <th>งาน</th>
+                                    <th>ผู้รับผิดชอบ</th>
+                                    <th>กำหนดส่ง</th>
+                                    <th>สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var task in statusPage.ThisWeekTasks)
+                                {
+                                    <tr>
+                                        <td>
+                                            <b>@task.Title</b>
+                                            <small>@task.ProjectName</small>
+                                        </td>
+                                        <td>
+                                            <span class="task-owner">
+                                                <img src="@task.AvatarPath"
+                                                     alt=""
+                                                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                @task.OwnerName
+                                            </span>
+                                        </td>
+                                        <td>@task.DueDateText</td>
+                                        <td><span class="week-status @task.StatusClass">@task.StatusText</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </article>
+        </div>
+    </section>
+</div>
+
+@section Styles {
+    <style>
+        .project-status-page {
+            min-height: calc(100vh - 60px);
+            padding: 8px 2px 34px;
+            color: #1f2937;
+        }
+
+        .project-status-page,
+        .project-status-page * {
+            box-sizing: border-box;
+        }
+
+        .project-status-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            margin: 0 0 18px;
+            padding: 0 2px;
+        }
+
+        .project-status-header span {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .project-status-header h1 {
+            margin: 2px 0 0;
+            color: #222831;
+            font-size: 34px;
+            line-height: 1.05;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .project-status-header p {
+            max-width: 720px;
+            margin: 8px 0 0;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 850;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-status-actions {
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .project-status-filter-card {
+            max-width: 1320px;
+            overflow: visible;
+        }
+
+        .project-filter-form {
+            width: 100%;
+            min-width: 0;
+            margin: 0;
+        }
+
+        .project-filter-form select {
+            width: 100%;
+            min-height: 40px;
+            border: 1px solid rgba(148, 163, 184, .45);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .92);
+            color: #1f2937;
+            padding: 0 38px 0 12px;
+            font-size: 13px;
+            font-weight: 850;
+            outline: 0;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+        }
+
+        .project-filter-form select:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, .13);
+        }
+
+        .project-status-filter-card .form-label {
+            color: #263548;
+            margin-bottom: 6px;
+        }
+
+        .project-status-filter-card .select2-container--default .select2-selection--single {
+            min-height: 40px !important;
+            border-radius: 12px !important;
+        }
+
+        .status-back-link {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+            border-radius: 8px;
+            color: #0f766e;
+            background: #d7fbf7;
+            border: 1px solid rgba(20, 184, 166, .28);
+            font-weight: 900;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .team-project-board {
+            display: grid;
+            grid-template-columns: minmax(260px, .8fr) minmax(320px, 1fr) minmax(420px, 1.25fr);
+            gap: 16px;
+            align-items: stretch;
+            max-width: 1320px;
+        }
+
+        .status-left-column,
+        .status-right-column {
+            display: contents;
+            min-width: 0;
+        }
+
+        .org-chart-card {
+            order: 5;
+            grid-column: 1 / -1;
+        }
+
+        .status-pie-card {
+            order: 2;
+        }
+
+        .task-overview-card {
+            order: 1;
+            grid-column: 1 / -1;
+        }
+
+        .week-task-card {
+            order: 3;
+            grid-column: span 2;
+        }
+
+        .status-board-card {
+            height: 100%;
+            min-width: 0;
+            overflow: hidden;
+            padding: 22px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid rgba(203, 213, 225, .54);
+            box-shadow: 0 16px 38px rgba(15, 23, 42, .08);
+        }
+
+        .board-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .board-card-head h2 {
+            margin: 0;
+            color: #262b35;
+            font-size: 18px;
+            line-height: 1.2;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .board-card-head strong {
+            color: #0f172a;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .board-card-head span {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .status-pie-card {
+            min-height: 318px;
+        }
+
+        .project-status-pie-wrap {
+            display: grid;
+            place-items: center;
+            padding: 2px 0 14px;
+        }
+
+        .project-status-pie {
+            width: min(232px, 82%);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: var(--pie);
+            box-shadow: inset -14px -10px 0 rgba(15, 23, 42, .05), 0 16px 24px rgba(15, 23, 42, .08);
+        }
+
+        .status-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 14px;
+        }
+
+        .status-metric {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .status-metric span {
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-metric i {
+            width: 10px;
+            height: 10px;
+            flex: 0 0 10px;
+            border-radius: 50%;
+            background: var(--dot);
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot) 14%, transparent);
+        }
+
+        .status-metric b {
+            color: #0f172a;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .status-metric small {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        .task-overview-card {
+            min-height: 360px;
+        }
+
+        .task-overview-card .board-card-head {
+            align-items: center;
+        }
+
+        .task-overview-card .board-card-head h2 {
+            max-width: none;
+        }
+
+        .task-chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: -4px 0 12px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .task-chart-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-chart-legend i {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .task-chart-legend .done,
+        .task-stack .done {
+            background: #19c979;
+        }
+
+        .task-chart-legend .working,
+        .task-stack .working {
+            background: #ffb444;
+        }
+
+        .task-chart-legend .stuck,
+        .task-stack .stuck {
+            background: #e9435a;
+        }
+
+        .task-overview-scroll {
+            height: 276px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #0f766e #e8eef6;
+        }
+
+        .task-overview-scroll::-webkit-scrollbar,
+        .week-task-table-wrap::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .task-overview-scroll::-webkit-scrollbar-track,
+        .week-task-table-wrap::-webkit-scrollbar-track {
+            border-radius: 999px;
+            background: #e8eef6;
+        }
+
+        .task-overview-scroll::-webkit-scrollbar-thumb,
+        .week-task-table-wrap::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: #0f766e;
+        }
+
+        .task-overview-chart {
+            min-width: max(100%, var(--task-min-width));
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(var(--task-count), minmax(92px, 1fr));
+            align-items: end;
+            gap: 18px;
+            padding: 12px 12px 0;
+            border-bottom: 1px solid #e6edf5;
+            background:
+                linear-gradient(#e8eef6 1px, transparent 1px) 0 32px / 100% 42px no-repeat,
+                linear-gradient(#e8eef6 1px, transparent 1px) 0 74px / 100% 42px no-repeat,
+                linear-gradient(#e8eef6 1px, transparent 1px) 0 116px / 100% 42px no-repeat;
+        }
+
+        .task-overview-item {
+            min-width: 0;
+            height: 100%;
+            display: grid;
+            grid-template-rows: 1fr 32px minmax(32px, auto) 16px;
+            justify-items: center;
+            align-items: end;
+            gap: 6px;
+        }
+
+        .task-stack-frame {
+            width: 36px;
+            height: 158px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .task-stack {
+            width: 100%;
+            min-height: 10px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            border-radius: 7px 7px 2px 2px;
+            background: #edf2f8;
+        }
+
+        .task-stack span {
+            display: block;
+            min-height: 0;
+        }
+
+        .task-overview-item img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, .15);
+        }
+
+        .task-overview-item b,
+        .task-overview-item small {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            text-align: center;
+        }
+
+        .task-overview-item b {
+            color: #1f2937;
+            font-size: 11px;
+            line-height: 1.2;
+            font-weight: 900;
+        }
+
+        .task-overview-item small {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 850;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .org-chart-card {
+            min-height: 350px;
+        }
+
+        .role-lane-board {
+            display: grid;
+            gap: 14px;
+            padding: 2px 0 0;
+        }
+
+        .system-team-empty {
+            min-height: 84px;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            border-radius: 8px;
+            color: #94a3b8;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .role-lane {
+            --lane: #14b8a6;
+            --lane-soft: rgba(20, 184, 166, .1);
+            display: grid;
+            grid-template-columns: 218px minmax(0, 1fr);
+            gap: 16px;
+            align-items: stretch;
+            padding: 14px;
+            border-radius: 8px;
+            background:
+                linear-gradient(90deg, var(--lane-soft), transparent 52%),
+                #f8fbff;
+            border: 1px solid rgba(203, 213, 225, .68);
+            border-left: 5px solid var(--lane);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, .06);
+        }
+
+        .role-lane-business-development-manager {
+            --lane: #0f766e;
+            --lane-soft: rgba(15, 118, 110, .1);
+        }
+
+        .role-lane-project-manager {
+            --lane: #2563eb;
+            --lane-soft: rgba(37, 99, 235, .1);
+        }
+
+        .role-lane-analyst-tier {
+            --lane: #7c3aed;
+            --lane-soft: rgba(124, 58, 237, .1);
+        }
+
+        .role-lane-research-and-development {
+            --lane: #e11d48;
+            --lane-soft: rgba(225, 29, 72, .1);
+        }
+
+        .role-lane-operation {
+            --lane: #f97316;
+            --lane-soft: rgba(249, 115, 22, .12);
+        }
+
+        .role-lane-head {
+            min-width: 0;
+            display: grid;
+            align-content: center;
+            gap: 6px;
+            padding: 10px 14px 10px 2px;
+            border-right: 1px solid rgba(148, 163, 184, .22);
+        }
+
+        .role-lane-head span {
+            color: var(--lane);
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .role-lane-head h3 {
+            margin: 0;
+            color: #111827;
+            font-size: 16px;
+            line-height: 1.25;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+
+        .role-lane-head b {
+            width: fit-content;
+            padding: 3px 10px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: #d7fbf7;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .role-member-grid {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 12px;
+        }
+
+        .role-member-card {
+            min-width: 0;
+            min-height: 98px;
+            display: grid;
+            grid-template-columns: 70px minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .96);
+            border: 1px solid rgba(203, 213, 225, .68);
+            box-shadow: 0 10px 18px rgba(15, 23, 42, .07);
+        }
+
+        .role-member-card img {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 3px var(--lane), 0 9px 18px rgba(15, 23, 42, .18);
+        }
+
+        .role-member-card div {
+            min-width: 0;
+        }
+
+        .role-member-card b,
+        .role-member-card small {
+            display: block;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+
+        .role-member-card b {
+            color: #111827;
+            font-size: 13px;
+            line-height: 1.3;
+            font-weight: 900;
+        }
+
+        .role-member-card small {
+            margin-top: 3px;
+            color: #64748b;
+            font-size: 11px;
+            line-height: 1.3;
+            font-weight: 800;
+        }
+
+        .role-member-card em {
+            width: fit-content;
+            display: inline-flex;
+            margin-top: 8px;
+            padding: 2px 9px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: #d7fbf7;
+            font-size: 10px;
+            font-style: normal;
+            font-weight: 900;
+        }
+
+        .week-task-card {
+            min-height: 220px;
+        }
+
+        .week-task-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #0f766e #e8eef6;
+        }
+
+        .week-task-table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0 6px;
+        }
+
+        .week-task-table th {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 900;
+            text-align: left;
+            padding: 0 10px 4px;
+            white-space: nowrap;
+        }
+
+        .week-task-table td {
+            padding: 10px;
+            background: #f6f8fb;
+            border-top: 1px solid #edf1f6;
+            border-bottom: 1px solid #edf1f6;
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 800;
+            vertical-align: middle;
+        }
+
+        .week-task-table tr td:first-child {
+            border-left: 3px solid #8b5cf6;
+            border-radius: 7px 0 0 7px;
+        }
+
+        .week-task-table tr td:last-child {
+            border-radius: 0 7px 7px 0;
+        }
+
+        .week-task-table th:nth-child(1),
+        .week-task-table td:nth-child(1) {
+            width: 46%;
+        }
+
+        .week-task-table th:nth-child(2),
+        .week-task-table td:nth-child(2) {
+            width: 25%;
+        }
+
+        .week-task-table th:nth-child(3),
+        .week-task-table td:nth-child(3) {
+            width: 14%;
+        }
+
+        .week-task-table th:nth-child(4),
+        .week-task-table td:nth-child(4) {
+            width: 15%;
+        }
+
+        .week-task-table td b,
+        .week-task-table td small {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .week-task-table td b {
+            color: #111827;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .week-task-table td small {
+            margin-top: 2px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .task-owner {
+            width: 100%;
+            max-width: 100%;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .task-owner img {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 5px 10px rgba(15, 23, 42, .13);
+        }
+
+        .week-status {
+            width: 100%;
+            min-width: 0;
+            min-height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .week-status.done {
+            background: #19c979;
+        }
+
+        .week-status.working {
+            background: #ffb444;
+        }
+
+        .week-status.stuck {
+            background: #e9435a;
+        }
+
+        .status-empty {
+            margin: 18px 0 0;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        @@media (max-width: 1280px) {
+            .team-project-board {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                max-width: 100%;
+            }
+
+            .org-chart-card,
+            .week-task-card {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @@media (max-width: 760px) {
+            .project-status-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .project-status-header p {
+                white-space: normal;
+            }
+
+            .project-status-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .project-status-header h1 {
+                font-size: 30px;
+            }
+
+            .status-board-card {
+                padding: 18px;
+            }
+
+            .status-metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .team-project-board {
+                grid-template-columns: 1fr;
+            }
+
+            .org-chart-card,
+            .week-task-card {
+                grid-column: auto;
+            }
+
+            .task-overview-chart {
+                min-width: max(100%, var(--task-min-width));
+            }
+
+            .task-overview-scroll {
+                height: 300px;
+            }
+
+            .system-team-empty {
+                min-height: 48px;
+            }
+
+            .role-lane {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .role-lane-head {
+                padding: 0 0 10px;
+                border-right: 0;
+                border-bottom: 1px solid rgba(148, 163, 184, .22);
+            }
+
+            .role-member-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .role-member-card {
+                grid-template-columns: 62px minmax(0, 1fr);
+            }
+
+            .role-member-card img {
+                width: 56px;
+                height: 56px;
+            }
+
+            .week-task-table {
+                min-width: 620px;
+            }
+        }
+    </style>
+}

@@ -170,8 +170,15 @@ namespace ProjectTracking.Data
             // =========================
             // LOGIN USER
             // =========================
-            modelBuilder.Entity<LoginUser>()
-                .HasKey(u => u.UserId);
+            modelBuilder.Entity<LoginUser>(entity =>
+            {
+                entity.HasKey(u => u.UserId);
+
+                entity.Property(u => u.ProfileImagePath)
+                    .HasColumnName("profile_image_path")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+            });
 
             // =========================
             // USER MENU PERMISSIONS
@@ -231,6 +238,16 @@ namespace ProjectTracking.Data
                 // 👤 Business Analyst
                 entity.Property(p => p.BaEmpId)
                     .HasColumnName("ba_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(p => p.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(p => p.EntryId)
+                    .HasColumnName("entry_id")
                     .HasColumnType("int")
                     .IsRequired(false);
 
@@ -468,6 +485,16 @@ namespace ProjectTracking.Data
                     .HasColumnName("plan_end")
                     .IsRequired(false);
 
+                entity.Property(p => p.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(p => p.EntryId)
+                    .HasColumnName("entry_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
                 entity.Property(p => p.PeriodStartDate)
                     .HasColumnName("period_start_date")
                     .IsRequired(false);
@@ -502,6 +529,16 @@ namespace ProjectTracking.Data
                 entity.HasIndex(a => a.EmpId);
                 entity.HasIndex(a => a.PhaseId);
                 entity.HasIndex(a => new { a.EmpId, a.PhaseId });
+
+                entity.Property(a => a.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(a => a.EntryId)
+                    .HasColumnName("entry_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
 
                 // =========================
                 // ✅ FIX WARNING PhaseId1 (Shadow FK)

@@ -44,5 +44,9 @@ namespace ProjectTracking.Models
         // 👇 ผูกกับ employee
         [Column("emp_id")]
         public int? EmpId { get; set; }
+
+        [Column("profile_image_path")]
+        [StringLength(500)]
+        public string? ProfileImagePath { get; set; }
     }
 }

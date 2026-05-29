@@ -169,6 +169,8 @@ namespace ProjectTracking.Controllers
             }
 
             // 1️⃣ Save Project ก่อน
+            project.CreatedAt = DateTime.Now;
+            project.EntryId = await GetCurrentEntryIdAsync();
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
@@ -299,6 +301,8 @@ namespace ProjectTracking.Controllers
 
             // 🔹 BUSINESS ANALYST
             db.BaEmpId = model.BaEmpId;
+            db.CreatedAt = DateTime.Now;
+            db.EntryId = await GetCurrentEntryIdAsync();
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
@@ -330,11 +334,35 @@ namespace ProjectTracking.Controllers
             var project = await _context.Projects.FindAsync(id);
             if (project != null)
             {
+                project.CreatedAt = DateTime.Now;
+                project.EntryId = await GetCurrentEntryIdAsync();
+                await _context.SaveChangesAsync();
+
                 _context.Projects.Remove(project);
                 await _context.SaveChangesAsync();
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
         }
     }
 }
