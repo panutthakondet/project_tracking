@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
-using ProjectTracking.Attributes;
+using ProjectTracking.Middleware;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers

@@ -563,11 +563,10 @@ namespace ProjectTracking.Controllers
             if (user == null) return NotFound();
 
             var allMenusRaw = MenuScanner.ScanMenus() ?? new List<(string Key, string Label)>();
-            Console.WriteLine("RAW MENU COUNT = " + allMenusRaw.Count);
 
             if (!allMenusRaw.Any())
             {
-                Console.WriteLine("❌ MenuScanner returned EMPTY");
+                _logger.LogWarning("MenuScanner returned no permission keys.");
             }
 
             var groupedMenus = allMenusRaw
@@ -582,10 +581,12 @@ namespace ProjectTracking.Controllers
                         Label = TranslateMenuKey(x.Key),
                         Action = x.Key.Contains(".") ? x.Key.Split('.')[1] : x.Key
                     })
-                    .OrderBy(x => x.Action)
+                    .OrderBy(x => GetMenuActionOrder(x.Action))
+                    .ThenBy(x => x.Action)
                     .ToList()
                 })
-                .OrderBy(x => x.Controller)
+                .OrderBy(x => GetMenuControllerOrder(x.Controller))
+                .ThenBy(x => x.Controller)
                 .ToList();
 
             var selected = await _context.UserMenus
@@ -708,6 +709,72 @@ namespace ProjectTracking.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        private static int GetMenuControllerOrder(string controller)
+        {
+            return controller switch
+            {
+                "Home" => 10,
+                "Projects" => 20,
+                "ProjectDocuments" => 30,
+                "ProjectPhases" => 40,
+                "PhaseAssigns" => 50,
+                "PhaseStatusReport" => 60,
+                "PhaseCalendar" => 70,
+                "ProjectStatus" => 80,
+                "ProjectIssues" => 90,
+                "SupportOrders" => 100,
+                "SupportOrdersDev" => 110,
+                "Meetings" => 120,
+                "Attendance" => 130,
+                "Followups" => 140,
+                "Employees" => 150,
+                "IssueDashboard" => 160,
+                "Dashboard" => 170,
+                "PhaseWorkload" => 180,
+                "TestScenarios" => 190,
+                "TestScenarioTemplates" => 200,
+                "TestTemplateGroups" => 210,
+                "UserManagement" => 220,
+                _ => 999
+            };
+        }
+
+        private static int GetMenuActionOrder(string action)
+        {
+            return action switch
+            {
+                "Index" => 10,
+                "ViewOnly" => 20,
+                "View" => 30,
+                "Details" => 40,
+                "Show" => 45,
+                "Create" => 50,
+                "Edit" => 60,
+                "Toggle" => 65,
+                "Delete" => 70,
+                "DeleteAll" => 75,
+                "Upload" => 80,
+                "Preview" => 90,
+                "Download" => 100,
+                "Import" => 110,
+                "Export" => 120,
+                "Print" => 130,
+                "SendMail" => 140,
+                "Timeline" => 150,
+                "Map" => 160,
+                "Dashboard" => 170,
+                "DashboardDone" => 180,
+                "DashboardACK" => 190,
+                "Log" => 200,
+                "Done" => 210,
+                "History" => 220,
+                "Sort" => 230,
+                "Permissions" => 240,
+                _ => 999
+            };
+        }
+
         private string TranslateMenuKey(string key)
         {
             if (string.IsNullOrWhiteSpace(key)) return key;
@@ -720,22 +787,62 @@ namespace ProjectTracking.Controllers
 
             var controllerTh = controller switch
             {
+                "Home" => "Dashboard",
+                "Employees" => "พนักงาน",
                 "Projects" => "โครงการ",
-                "UserManagement" => "ผู้ใช้งาน",
-                "Meetings" => "ประชุม",
-                "TestScenarios" => "Test Scenario",
-                "Dashboard" => "แดชบอร์ด",
+                "ProjectDocuments" => "เอกสารโครงการ",
+                "ProjectPhases" => "งวดงาน",
+                "PhaseAssigns" => "มอบหมายงวดงาน",
+                "PhaseStatusReport" => "รายงานสถานะงาน",
+                "PhaseCalendar" => "ปฏิทินกำหนดส่งงาน",
+                "PhaseWorkload" => "ปริมาณงานทีม",
+                "ProjectIssues" => "ปัญหาโครงการ",
+                "IssueDashboard" => "ภาพรวมปัญหา",
+                "SupportOrders" => "งานรับประกัน",
+                "SupportOrdersDev" => "งานรับประกัน Dev",
+                "Meetings" => "การประชุม",
+                "Attendance" => "ลงเวลา",
                 "Followups" => "งานติดตาม",
+                "Dashboard" => "แดชบอร์ด",
+                "TestScenarios" => "Test Scenario",
+                "TestScenarioTemplates" => "Template Test",
+                "TestTemplateGroups" => "กลุ่ม Template",
+                "UserManagement" => "ผู้ใช้งาน",
                 _ => controller
             };
 
             var actionTh = action switch
             {
                 "Index" => "เข้าใช้งาน",
+                "ViewOnly" => "ดูรายงาน",
+                "View" => "ดูรายละเอียด",
+                "Show" => "ดูรายละเอียด",
                 "Create" => "เพิ่ม",
                 "Edit" => "แก้ไข",
+                "Toggle" => "เปิด/ปิดสถานะ",
                 "Delete" => "ลบ",
+                "DeleteAll" => "ลบทั้งหมด",
                 "Details" => "รายละเอียด",
+                "Upload" => "อัปโหลด",
+                "Preview" => "ดูไฟล์",
+                "Download" => "ดาวน์โหลด",
+                "Import" => "นำเข้า",
+                "Export" => "ส่งออก",
+                "Print" => "พิมพ์รายงาน",
+                "SendMail" => "ส่งอีเมล",
+                "Timeline" => "Timeline / Gantt",
+                "Map" => "แผนที่/รายงานเวลา",
+                "Dashboard" => "Dashboard",
+                "DashboardDone" => "งานเสร็จแล้ว",
+                "DashboardACK" => "งานรับทราบแล้ว",
+                "DevIndex" => "หน้า Dev",
+                "DevDetails" => "รายละเอียด Dev",
+                "Log" => "บันทึกประวัติ",
+                "Done" => "ปิดงาน",
+                "History" => "ประวัติ",
+                "Sort" => "จัดลำดับ",
+                "Permissions" => "กำหนดสิทธิ์",
+                "Workload" => "ภาระงาน",
                 _ => action
             };
 

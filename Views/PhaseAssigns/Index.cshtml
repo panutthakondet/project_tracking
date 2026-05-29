@@ -5,27 +5,20 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
 @{
     ViewData["Title"] = "บันทึกข้อมูลการมอบหมายงาน";
     var th = new CultureInfo("th-TH");
-
-    var empColorMap = new Dictionary<int, string>();
-    var pastelColors = new[]
-    {
-        "#f8f9fa",
-        "#e9f5ff",
-        "#eafaf1",
-        "#fff4e6",
-        "#f3e8ff",
-        "#e7f1ff",
-        "#fef7e0"
-    };
-    var colorIndex = 0;
+    var selectedProject = ViewBag.SelectedProject;
+    var selectedProjectId = (int?)ViewBag.SelectedProjectId;
 }
 
 @functions {
@@ -88,36 +81,204 @@ thead .sticky-col { z-index: 5; }
 .dragging-row { opacity: .65; }
 .sortable-ghost { opacity: .35; }
 .drag-handle { font-weight: 700; }
+
+.assign-filter-form {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #d8e3ef;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.assign-filter-row {
+    width: 100%;
+    min-width: 0;
+}
+
+.assign-filter-form .form-select {
+    min-height: 48px;
+    border-radius: 14px;
+    font-weight: 700;
+}
+
+.assign-filter-form .form-control {
+    min-height: 48px;
+    border-radius: 14px;
+    font-weight: 700;
+}
+
+#projectDropdown,
+#employeeDropdown {
+    width: 100%;
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
+}
+
+.search-dropdown-field {
+    position: relative;
+}
+
+.search-dropdown-field .form-control {
+    padding-right: 48px;
+}
+
+.search-dropdown-clear {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    background: #e2e8f0;
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: .15s ease;
+}
+
+.search-dropdown-clear.is-visible {
+    display: inline-flex;
+}
+
+.search-dropdown-clear:hover {
+    color: #fff;
+    background: #0f766e;
+}
+
+.search-dropdown-clear:disabled {
+    opacity: .35;
+    pointer-events: none;
+}
 </style>
 
-<div class="mb-3">
-    <h2 class="fw-bold">👥 บันทึกข้อมูลการมอบหมายงาน</h2>
-    <p class="text-muted mb-0">จัดการการมอบหมายงาน (Assign) ของพนักงานในแต่ละโครงการ</p>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">บันทึกข้อมูลการมอบหมายงาน</h2>
+        <p class="index-subtitle">จัดการการมอบหมายงานของพนักงานในแต่ละโครงการ</p>
+    </div>
+
+    @if (selectedProject != null)
+    {
+        <div class="index-actions">
+            <a asp-controller="ProjectPhases"
+               asp-action="Index"
+               asp-route-projectId="@selectedProject.ProjectId"
+               class="btn btn-outline-secondary"
+               title="กลับไปจัดการ Phase">
+                Project Phases
+            </a>
+
+            @if (CanMenu("ProjectIssues.Index"))
+            {
+                <a asp-controller="ProjectIssues"
+                   asp-action="Index"
+                   asp-route-projectId="@selectedProject.ProjectId"
+                   class="btn btn-outline-danger"
+                   title="เปิด Issue ของโครงการนี้">
+                    Project Issues
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปิด Project Issues">
+                    Project Issues
+                </button>
+            }
+
+            @if (CanMenu("PhaseAssigns.Create"))
+            {
+                <a asp-action="Create"
+                   asp-route-projectId="@selectedProject.ProjectId"
+                   class="btn btn-primary"
+                   title="เพิ่มการมอบหมายงาน">
+                    Add Assign
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน">
+                    Add Assign
+                </button>
+            }
+        </div>
+    }
 </div>
 
-<form method="get" class="row g-3 mb-4" id="filterForm">
-    <div class="col-md-4">
-        <label class="form-label fw-bold">📁 Project</label>
-        <select name="projectId" id="projectSelect" class="form-select">
+<form method="get" class="assign-filter-form mb-4" id="filterForm">
+    <div class="assign-filter-row">
+        <label class="form-label fw-bold">📁 Select Project</label>
+
+        <div class="search-dropdown-field">
+            <input type="text"
+                   id="projectSearch"
+                   class="form-control form-control-lg"
+                   placeholder="🔍 พิมพ์ค้นหา Project..."
+                   autocomplete="off" />
+            <button type="button"
+                    id="clearProjectSearch"
+                    class="search-dropdown-clear"
+                    title="เลือก Project ใหม่"
+                    aria-label="เลือก Project ใหม่">
+                ×
+            </button>
+        </div>
+
+        <div id="projectDropdown"
+             class="list-group mt-1"
+             style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+        </div>
+
+        <select name="projectId" id="hiddenProjectSelect" style="display:none;">
             <option value="">-- Select Project --</option>
             @foreach (var p in ((IEnumerable<dynamic>)ViewBag.Projects)
                                 .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
-                if (ViewBag.SelectedProject?.ProjectId == p.ProjectId)
-                {
-                    <option value="@p.ProjectId" selected>@p.ProjectName</option>
-                }
-                else
-                {
-                    <option value="@p.ProjectId">@p.ProjectName</option>
-                }
+                <option value="@p.ProjectId"
+                        data-end-date="@(p.EndDate?.ToString("yyyy-MM-dd") ?? "")"
+                        selected="@(selectedProjectId == p.ProjectId)">
+                    @p.ProjectName
+                </option>
             }
         </select>
     </div>
 
-    <div class="col-md-4">
+    <div class="assign-filter-row">
         <label class="form-label fw-bold">👤 Employee</label>
-        <select name="empId" id="empSelect" class="form-select" @(ViewBag.SelectedProject == null ? "disabled" : "")>
+
+        <div class="search-dropdown-field">
+            <input type="text"
+                   id="employeeSearch"
+                   class="form-control form-control-lg"
+                   placeholder="🔍 พิมพ์ค้นหา Employee..."
+                   autocomplete="off"
+                   @(ViewBag.SelectedProject == null ? "disabled" : "") />
+            <button type="button"
+                    id="clearEmployeeSearch"
+                    class="search-dropdown-clear"
+                    title="เลือก Employee ใหม่"
+                    aria-label="เลือก Employee ใหม่"
+                    @(ViewBag.SelectedProject == null ? "disabled" : "")>
+                ×
+            </button>
+        </div>
+
+        <div id="employeeDropdown"
+             class="list-group mt-1"
+             style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+        </div>
+
+        <select name="empId" id="hiddenEmployeeSelect" style="display:none;" @(ViewBag.SelectedProject == null ? "disabled" : "")>
             <option value="">-- All Employees --</option>
             @foreach (var e in ViewBag.EmployeeList)
             {
@@ -134,7 +295,7 @@ thead .sticky-col { z-index: 5; }
     </div>
 </form>
 
-@if (ViewBag.SelectedProject != null)
+@if (selectedProject != null)
 {
     <style>
     /* Card-style layout for assign cards */
@@ -273,48 +434,224 @@ thead .sticky-col { z-index: 5; }
             min-width: 0;
         }
     }
+
+    .assign-card-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .assign-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(420px, .48fr);
+        align-items: stretch;
+        min-height: 0;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-left: 5px solid #f59e0b;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .assign-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
+    }
+
+    .assign-card.is-done {
+        border-left-color: #22c55e;
+    }
+
+    .assign-card .assign-card-left,
+    .assign-card .assign-card-right {
+        min-width: 0;
+        padding: 18px;
+        background: transparent;
+        border-radius: 0;
+    }
+
+    .assign-card .assign-card-left {
+        display: block;
+    }
+
+    .assign-card .assign-card-right {
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 14px;
+        background: #f8fafc;
+        border-left: 1px solid #e2e8f0;
+    }
+
+    .assign-card-header-row {
+        flex-wrap: nowrap;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .assign-card-index {
+        min-width: 46px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        border-radius: 999px;
+        font-size: 1rem;
+        font-weight: 900;
+        margin-right: 0;
+    }
+
+    .assign-card .drag-handle {
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        margin-right: 0;
+        font-size: 1.1rem;
+        font-weight: 900;
+    }
+
+    .assign-card-emp {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        margin-right: 0;
+    }
+
+    .assign-card-phase {
+        color: #64748b;
+        font-size: .95rem;
+        font-weight: 800;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-card-dates {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin-top: 14px;
+        margin-bottom: 12px;
+    }
+
+    .assign-meta-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .assign-card-role,
+    .assign-card-remark {
+        color: #475569;
+        font-size: .98rem;
+        font-weight: 700;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-status-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .assign-status-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .assign-status-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .assign-status-row .badge {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    .assign-card-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        gap: 6px;
+        margin-top: 0;
+    }
+
+    .assign-card-actions form {
+        margin: 0;
+    }
+
+    .assign-card-actions .btn {
+        flex: 0 0 90px;
+        width: 90px;
+        min-height: 38px;
+        padding: .4rem .55rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .8rem;
+        font-weight: 800;
+        line-height: 1.15;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 991.98px) {
+        .assign-card {
+            grid-template-columns: 1fr;
+        }
+
+        .assign-card .assign-card-right {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .assign-card-actions {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .assign-card-actions {
+            flex-wrap: wrap;
+        }
+
+        .assign-card-actions .btn {
+            flex: 1 1 calc(50% - 6px);
+            width: auto;
+        }
+    }
     </style>
-
-    <div class="d-flex align-items-stretch gap-3 mb-3" style="flex-wrap:wrap;">
-        <div style="flex:1 1 0; min-width:0;">
-            <div class="card border-0 shadow-sm rounded-3 p-3 px-4 h-100" style="background:#f7fafd;">
-                <div class="fw-bold" style="font-size:1.12rem;line-height:1.5;">
-                    📌 Project :
-                    <span style="word-break:break-word;">@ViewBag.SelectedProject.ProjectName</span>
-                </div>
-            </div>
-        </div>
-        <div class="d-flex align-items-center gap-2" style="flex-wrap:wrap;">
-            <a asp-controller="ProjectPhases"
-               asp-action="Index"
-               asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
-               class="btn btn-outline-secondary px-4"
-               title="กลับไปจัดการ Phase"
-               style="font-size:1.07rem;">
-                ↩ Project Phases
-            </a>
-
-            @if (CanMenu("PhaseAssigns.Create"))
-            {
-                <a asp-action="Create"
-                   asp-route-projectId="@ViewBag.SelectedProject.ProjectId"
-                   class="btn btn-primary px-4"
-                   title="เพิ่มการมอบหมายงาน"
-                   style="font-size:1.07rem;">
-                    ➕ Add Assign
-                </a>
-            }
-            else
-            {
-                <button class="btn btn-primary px-4"
-                        disabled
-                        title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน"
-                        style="font-size:1.07rem;">
-                    ➕ Add Assign
-                </button>
-            }
-        </div>
-    </div>
 
     @* Card layout for assign records *@
     var row = 1;
@@ -335,51 +672,56 @@ thead .sticky-col { z-index: 5; }
         <div class="assign-card-list" id="assign-tbody">
         @foreach (var a in ordered)
         {
-            if (!empColorMap.ContainsKey(a.EmpId))
-            {
-                empColorMap[a.EmpId] = pastelColors[colorIndex % pastelColors.Length];
-                colorIndex++;
-            }
-            var bg = empColorMap[a.EmpId];
             var lastLog = a.Logs?.OrderByDescending(l => l.RoundNo).FirstOrDefault();
             var statusText = lastLog?.Status == "PASS" ? "ผ่าน" : lastLog != null ? "แก้ไข และนำเสนอใหม่" : null;
             var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
-            <div class="assign-card" data-assign-id="@a.AssignId" style="background-color:@bg;">
-                <div class="assign-card-left">
+            <div class="assign-card @(a.WorkStatus == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
+                <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
                         <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
                         <span class="assign-card-index">#@row</span>
-                        <span class="assign-card-emp">👤 @a.Employee?.EmpName</span>
+                        <div class="min-w-0">
+                            <span class="assign-card-emp">@a.Employee?.EmpName</span>
+                            <div class="assign-card-phase">@GetPhaseNameSafe(a)</div>
+                        </div>
                     </div>
-                    <div class="assign-card-phase">@GetPhaseNameSafe(a)</div>
+
                     <div class="assign-card-dates mt-2">
-                        <div>
-                            <span class="fw-semibold text-primary">Plan Date</span>
+                        <span class="assign-meta-pill">
+                            Plan Date:
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
-                            <span class="mx-1">–</span>
+                            -
                             @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
-                        </div>
-                        <div>
-                            <span class="fw-semibold text-secondary">Period Date</span>
+                        </span>
+                        <span class="assign-meta-pill">
+                            Period Date:
                             @(a.Phase?.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                            <span class="mx-1">–</span>
+                            -
                             @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                        </div>
+                        </span>
                     </div>
                     <div class="assign-card-role">Role: <span class="text-dark">@a.Role</span></div>
                     <div class="assign-card-remark">
-                        @if (lastLog != null)
-                        {
-                            <span class="assign-card-log-badge badge @badgeClass">@statusText</span>
-                            <span><b>Log:</b> @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</span>
-                            <br />
-                            <span class="text-muted"><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</span>
-                        }
-                        else
-                        {
-                            <span><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</span>
-                        }
+                        <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                        <div class="text-muted"><b>Log:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
                     </div>
+                </section>
+
+                <aside class="assign-card-right">
+                    <div class="assign-status-grid">
+                        <div class="assign-status-row">
+                            <small>Work</small>
+                            @if (a.WorkStatus == "DONE")
+                            {
+                                <span class="badge bg-success">เสร็จสิ้น</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">กำลังดำเนินการ</span>
+                            }
+                        </div>
+                    </div>
+
                     <div class="assign-card-actions">
                         @* ===== Edit ===== *@
                         @if (CanMenu("PhaseAssigns.Edit"))
@@ -387,13 +729,13 @@ thead .sticky-col { z-index: 5; }
                             <a asp-action="Edit" asp-route-id="@a.AssignId"
                                class="btn btn-sm btn-outline-primary"
                                title="แก้ไขข้อมูล (Edit)">
-                                ✏️
+                                Edit
                             </a>
                         }
                         else
                         {
                             <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                ✏️
+                                Edit
                             </button>
                         }
 
@@ -407,14 +749,14 @@ thead .sticky-col { z-index: 5; }
                                         class="btn btn-sm btn-outline-danger"
                                         title="ลบข้อมูล (Delete)"
                                         onclick="return confirm('ยืนยันการลบ Assign นี้?');">
-                                    🗑
+                                    Delete
                                 </button>
                             </form>
                         }
                         else
                         {
                             <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                🗑
+                                Delete
                             </button>
                         }
 
@@ -425,12 +767,12 @@ thead .sticky-col { z-index: 5; }
                                     class="btn btn-sm btn-success"
                                     title="บันทึกผล: ผ่านงาน (PASS)"
                                     onclick="openLogModal(@a.AssignId, 'PASS')">
-                                ✅
+                                PASS
                             </button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">✅</button>
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">PASS</button>
                         }
 
                         @* ===== REWORK ===== *@
@@ -440,29 +782,15 @@ thead .sticky-col { z-index: 5; }
                                     class="btn btn-sm btn-warning"
                                     title="บันทึกผล: แก้ไขใหม่ (REWORK)"
                                     onclick="openLogModal(@a.AssignId, 'REWORK')">
-                                🔁
+                                REWORK
                             </button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">🔁</button>
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">REWORK</button>
                         }
                     </div>
-                </div>
-                <div class="assign-card-right">
-                    @if (a.WorkStatus == "DONE")
-                    {
-                        <span class="assign-card-status-badge badge bg-success">
-                            ✅ เสร็จสิ้น
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="assign-card-status-badge badge bg-warning text-dark">
-                            🟡 กำลังดำเนินการ
-                        </span>
-                    }
-                </div>
+                </aside>
             </div>
             row++;
         }
@@ -513,26 +841,137 @@ else
 @section Scripts{
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
-$(function () {
-    const $form = $('#filterForm');
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("filterForm");
     const hasProject = @(ViewBag.SelectedProject != null ? "true" : "false");
 
-    if (!window.jQuery || !$.fn || !$.fn.select2) {
-        console.error('Select2 ยังไม่ถูกโหลด (ตรวจสอบ _Layout.cshtml ว่ามี jquery + select2.js และลำดับการโหลดถูกต้อง)');
-        return;
+    function submitSafely() {
+        setTimeout(function () {
+            form?.submit();
+        }, 0);
     }
 
-    $('#projectSelect').select2({ placeholder: "-- Select Project --", allowClear: true, width: '100%', minimumResultsForSearch: 0, dropdownParent: $(document.body) });
+    function bindSearchDropdown(config) {
+        const searchInput = document.getElementById(config.searchId);
+        const dropdown = document.getElementById(config.dropdownId);
+        const hiddenSelect = document.getElementById(config.selectId);
+        const clearButton = document.getElementById(config.clearId);
 
-    if (!hasProject) {
-        $('#empSelect').prop('disabled', true);
-    } else {
-        $('#empSelect').select2({ placeholder: "-- All Employees --", allowClear: true, width: '100%', minimumResultsForSearch: 0, dropdownParent: $(document.body) });
+        if (!searchInput || !dropdown || !hiddenSelect) return;
+
+        const options = Array.from(hiddenSelect.options);
+
+        function updateClearButton() {
+            if (!clearButton) return;
+            clearButton.classList.toggle("is-visible", Boolean(searchInput.value || hiddenSelect.value));
+        }
+
+        function renderList(filter = "") {
+            dropdown.innerHTML = "";
+
+            const filtered = options.filter(o =>
+                o.text.toLowerCase().includes(filter.toLowerCase()) &&
+                o.value !== ""
+            )
+            .sort((a, b) => {
+                if (!config.sortByEndDate) {
+                    return a.text.localeCompare(b.text, "th");
+                }
+
+                const aRaw = a.dataset.endDate;
+                const bRaw = b.dataset.endDate;
+
+                if (!aRaw && !bRaw) return 0;
+                if (!aRaw) return 1;
+                if (!bRaw) return -1;
+
+                return new Date(aRaw) - new Date(bRaw);
+            });
+
+            if (filtered.length === 0) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            filtered.forEach(o => {
+                const item = document.createElement("a");
+                item.className = "list-group-item list-group-item-action";
+                item.textContent = o.text;
+
+                item.onclick = function () {
+                    searchInput.value = o.text;
+                    hiddenSelect.value = o.value;
+                    dropdown.style.display = "none";
+                    updateClearButton();
+                    config.onSelect?.();
+                    submitSafely();
+                };
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = "block";
+        }
+
+        const selectedOption = options.find(o => o.selected && o.value !== "");
+        if (selectedOption) {
+            searchInput.value = selectedOption.text;
+        }
+        updateClearButton();
+
+        searchInput.addEventListener("input", function () {
+            renderList(this.value);
+            updateClearButton();
+        });
+
+        searchInput.addEventListener("focus", function () {
+            renderList(this.value);
+        });
+
+        clearButton?.addEventListener("click", function () {
+            searchInput.value = "";
+            hiddenSelect.value = "";
+            dropdown.style.display = "none";
+            updateClearButton();
+            config.onClear?.();
+            submitSafely();
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearButton?.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
     }
 
-    function submitSafely() { setTimeout(function () { $form.trigger('submit'); }, 0); }
-    $('#projectSelect').on('select2:select select2:clear', function () { submitSafely(); });
-    $('#empSelect').on('select2:select select2:clear', function () { if (hasProject) submitSafely(); });
+    bindSearchDropdown({
+        searchId: "projectSearch",
+        dropdownId: "projectDropdown",
+        selectId: "hiddenProjectSelect",
+        clearId: "clearProjectSearch",
+        sortByEndDate: true,
+        onSelect: function () {
+            const employeeSelect = document.getElementById("hiddenEmployeeSelect");
+            if (employeeSelect) employeeSelect.value = "";
+        },
+        onClear: function () {
+            const employeeInput = document.getElementById("employeeSearch");
+            const employeeSelect = document.getElementById("hiddenEmployeeSelect");
+            const employeeClear = document.getElementById("clearEmployeeSearch");
+            if (employeeInput) employeeInput.value = "";
+            if (employeeSelect) employeeSelect.value = "";
+            employeeClear?.classList.remove("is-visible");
+        }
+    });
+
+    if (hasProject) {
+        bindSearchDropdown({
+            searchId: "employeeSearch",
+            dropdownId: "employeeDropdown",
+            selectId: "hiddenEmployeeSelect",
+            clearId: "clearEmployeeSearch"
+        });
+    }
 });
 </script>
 

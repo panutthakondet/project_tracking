@@ -34,13 +34,13 @@
 }
 
 <div class="project-status-page">
-    <header class="project-status-header">
-        <div>
-            <span>ProjectTracking</span>
-            <h1>ทีมงานและสถานะโครงการ</h1>
-            <p>@statusPage.SelectedProjectName</p>
+    <header class="project-status-header index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h1 class="index-title">ทีมงานและสถานะโครงการ</h1>
+            <p class="index-subtitle">@statusPage.SelectedProjectName</p>
         </div>
-        <div class="project-status-actions">
+        <div class="project-status-actions index-actions">
             <a asp-controller="Home" asp-action="Index" class="status-back-link">กลับ Dashboard</a>
         </div>
     </header>
@@ -372,7 +372,7 @@
             box-sizing: border-box;
         }
 
-        .project-status-header {
+        .project-status-header:not(.index-hero) {
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
@@ -381,7 +381,7 @@
             padding: 0 2px;
         }
 
-        .project-status-header span {
+        .project-status-header:not(.index-hero) span {
             display: block;
             color: #64748b;
             font-size: 13px;
@@ -390,7 +390,7 @@
             text-transform: uppercase;
         }
 
-        .project-status-header h1 {
+        .project-status-header:not(.index-hero) h1 {
             margin: 2px 0 0;
             color: #222831;
             font-size: 34px;
@@ -399,12 +399,25 @@
             letter-spacing: 0;
         }
 
-        .project-status-header p {
+        .project-status-header:not(.index-hero) p {
             max-width: 720px;
             margin: 8px 0 0;
             color: #475569;
             font-size: 14px;
             font-weight: 850;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-status-header.index-hero {
+            align-items: flex-start;
+            margin-bottom: 18px;
+            padding: 22px 24px;
+        }
+
+        .project-status-header.index-hero .index-subtitle {
+            max-width: 720px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.ViewModels;
-using ProjectTracking.Attributes;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
@@ -407,6 +408,81 @@ namespace ProjectTracking.Controllers
             };
 
             return View(vm);
+        }
+
+        [RequireMenu("IssueDashboard.Export")]
+        public async Task<IActionResult> Export()
+        {
+            var today = DateTime.Today;
+            var yearStart = new DateTime(today.Year, 1, 1);
+            var yearEnd = new DateTime(today.Year, 12, 31);
+
+            static string Norm(string? s) => (s ?? "").Trim().ToUpperInvariant();
+            static string Csv(string? value)
+            {
+                value ??= "";
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+            }
+
+            var issues = await _context.ProjectIssues
+                .AsNoTracking()
+                .ToListAsync();
+
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .ToListAsync();
+
+            var phasesInYear = phases
+                .Where(p =>
+                    p.PlanStart != null &&
+                    p.PlanEnd != null &&
+                    p.PlanEnd.Value.Date >= yearStart &&
+                    p.PlanStart.Value.Date <= yearEnd)
+                .ToList();
+
+            var sb = new StringBuilder();
+            sb.AppendLine("Category,Name,Count");
+            sb.AppendLine($"Issue,Total,{issues.Count}");
+            sb.AppendLine($"Issue,Open,{issues.Count(x => Norm(x.IssueStatus) == "OPEN")}");
+            sb.AppendLine($"Issue,WIP,{issues.Count(x => Norm(x.IssueStatus) == "WIP")}");
+            sb.AppendLine($"Issue,Fixed,{issues.Count(x => Norm(x.IssueStatus) == "FIXED")}");
+            sb.AppendLine($"Issue,Reopen,{issues.Count(x => x.IsReopen)}");
+            sb.AppendLine($"IssuePriority,Urgent,{issues.Count(x => Norm(x.IssuePriority) == "URGENT")}");
+            sb.AppendLine($"IssuePriority,Normal,{issues.Count(x => Norm(x.IssuePriority) == "NORMAL")}");
+            sb.AppendLine($"Phase,Total,{phasesInYear.Count}");
+            sb.AppendLine($"Phase,Planned,{phasesInYear.Count(x => x.PlanStart != null && x.PlanStart.Value.Date > today)}");
+            sb.AppendLine($"Phase,Doing,{phasesInYear.Count(x => x.PlanStart != null && x.PlanEnd != null && x.PlanStart.Value.Date <= today && x.PlanEnd.Value.Date >= today)}");
+            sb.AppendLine($"Phase,Done,{phasesInYear.Count(x => Norm(x.PhaseStatus) == "DONE" || Norm(x.PhaseStatus) == "อนุมัติจ่ายเงินแล้ว")}");
+            sb.AppendLine($"Phase,Overdue,{phasesInYear.Count(x => x.PlanEnd != null && x.PlanEnd.Value.Date < today && Norm(x.PhaseStatus) != "DONE" && Norm(x.PhaseStatus) != "อนุมัติจ่ายเงินแล้ว")}");
+
+            var openByOwner = issues
+                .Where(x => Norm(x.IssueStatus) == "OPEN")
+                .GroupBy(x => x.EmpId)
+                .Select(g => new { EmpId = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(20)
+                .ToList();
+
+            if (openByOwner.Any())
+            {
+                var empIds = openByOwner.Select(x => x.EmpId).ToList();
+                var employeeNames = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => empIds.Contains(e.EmpId))
+                    .ToDictionaryAsync(e => e.EmpId, e => e.EmpName);
+
+                foreach (var owner in openByOwner)
+                {
+                    employeeNames.TryGetValue(owner.EmpId, out var name);
+                    sb.AppendLine($"OpenByOwner,{Csv(name ?? owner.EmpId.ToString())},{owner.Count}");
+                }
+            }
+
+            var bytes = Encoding.UTF8.GetPreamble()
+                .Concat(Encoding.UTF8.GetBytes(sb.ToString()))
+                .ToArray();
+
+            return File(bytes, "text/csv; charset=utf-8", $"issue-dashboard-{today:yyyyMMdd}.csv");
         }
     }
 }

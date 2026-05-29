@@ -3,152 +3,387 @@
 
 @{
     ViewData["Title"] = "Developer Orders";
-}
 
-@{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
+
+    var selectedProjectId = Context.Request.Query["projectId"].ToString();
+    var hasSelectedProject = !string.IsNullOrWhiteSpace(selectedProjectId);
+    var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
+    var th = new System.Globalization.CultureInfo("th-TH");
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "bg-danger",
+        "HIGH" => "bg-danger",
+        "MEDIUM" => "bg-warning text-dark",
+        "LOW" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    string PriorityTone(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "is-danger",
+        "HIGH" => "is-danger",
+        "MEDIUM" => "is-warning",
+        "LOW" => "is-success",
+        _ => "is-muted"
+    };
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "bg-secondary",
+        "IN_PROGRESS" => "bg-primary",
+        "WAIT_TEST" => "bg-info text-dark",
+        "DONE" => "bg-success",
+        "CLOSE" => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "IN_PROGRESS" => "bg-warning text-dark",
+        "FIXED" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>🛠 Developer Orders</h3>
-</div>
+<style>
+    .support-dev-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
 
-<form method="get" class="mb-3">
-    <div class="row g-2 align-items-end">
-        <div class="col-md-4">
-            <label class="fw-bold mb-1">Project</label>
-            <select name="projectId" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Select Project --</option>
-                @foreach (var p in (SelectList)ViewBag.ProjectList)
-                {
-                    <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
-                        @p.Text
-                    </option>
-                }
-            </select>
+    .support-dev-hero {
+        color: #fff;
+        background:
+            radial-gradient(circle at 86% 8%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
+
+    .support-dev-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .support-dev-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 6px 0 0;
+    }
+
+    .support-dev-filter,
+    .support-dev-card,
+    .support-dev-empty {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .support-dev-filter {
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .support-dev-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .support-dev-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, .46fr);
+        overflow: hidden;
+        border-left: 5px solid #94a3b8;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .support-dev-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
+    }
+
+    .support-dev-card.is-danger {
+        border-left-color: #ef4444;
+    }
+
+    .support-dev-card.is-warning {
+        border-left-color: #f59e0b;
+    }
+
+    .support-dev-card.is-success {
+        border-left-color: #22c55e;
+    }
+
+    .support-dev-main,
+    .support-dev-side {
+        min-width: 0;
+        padding: 18px;
+    }
+
+    .support-dev-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+        background: #f8fafc;
+        border-left: 1px solid #e2e8f0;
+    }
+
+    .support-dev-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .support-dev-no {
+        flex: 0 0 auto;
+        min-width: 46px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        border-radius: 999px;
+        font-weight: 900;
+    }
+
+    .support-dev-order-title {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .support-dev-project {
+        margin-top: 4px;
+        color: #64748b;
+        font-weight: 800;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .support-dev-detail {
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.55;
+        margin: 12px 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .support-dev-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .support-dev-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .support-dev-status-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .support-dev-status-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .support-dev-status-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-dev-status-row .badge {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    .support-dev-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .support-dev-empty {
+        color: #64748b;
+        padding: 28px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 991.98px) {
+        .support-dev-card {
+            grid-template-columns: 1fr;
+        }
+
+        .support-dev-side {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .support-dev-actions {
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+<div class="support-dev-page">
+    <div class="support-dev-hero index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="support-dev-title index-title">Developer Orders</h2>
+            <p class="support-dev-subtitle index-subtitle">รายการงานแก้ไขสำหรับทีมพัฒนา อัปเดตสถานะและแนบหลักฐานการแก้ไข</p>
         </div>
     </div>
-</form>
 
-@{
-    var selectedProjectId = Context.Request.Query["projectId"].ToString();
-}
+    <form method="get" class="support-dev-filter">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label fw-semibold">Project</label>
+                <select name="projectId" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Select Project --</option>
+                    @foreach (var p in (SelectList)ViewBag.ProjectList)
+                    {
+                        <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
+                            @p.Text
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
 
-@if (!string.IsNullOrEmpty(selectedProjectId))
-{
-    int no = 1;
-<div class="table-responsive">
-<table class="table table-bordered table-hover align-middle table-sm w-100" style="table-layout:fixed;">
-<thead class="table-dark">
-<tr>
-<th style="width:50px" class="text-center">No.</th>
-<th style="width:160px" class="text-center">Project</th>
-<th style="width:200px" class="text-center">Title</th>
-<th class="text-center">Detail</th>
-<th style="width:110px" class="text-center">Priority</th>
-<th style="width:120px" class="text-center">Dev Status</th>
-<th style="width:110px" class="text-center">Due Date</th>
-<th style="width:140px" class="text-center">Action</th>
-</tr>
-</thead>
+    @if (!hasSelectedProject)
+    {
+        <div class="support-dev-empty">
+            กรุณาเลือก Project ก่อนเพื่อแสดงรายการงาน
+        </div>
+    }
+    else if (!orders.Any())
+    {
+        <div class="support-dev-empty">
+            ไม่พบรายการงานในโครงการนี้
+        </div>
+    }
+    else
+    {
+        <div class="support-dev-list">
+            @{
+                var no = 1;
+            }
 
-<tbody>
-@foreach (var item in Model)
-{
-<tr>
-<td class="text-center">@no</td>
+            @foreach (var item in orders)
+            {
+                <article class="support-dev-card @PriorityTone(item.Priority)">
+                    <section class="support-dev-main">
+                        <div class="support-dev-head">
+                            <span class="support-dev-no">#@no</span>
+                            <div class="min-w-0">
+                                <span class="support-dev-order-title">@TextOrDash(item.OrderTitle)</span>
+                                <div class="support-dev-project">@TextOrDash(item.Project?.ProjectName)</div>
+                            </div>
+                        </div>
 
-<td>
-@(item.Project != null ? item.Project.ProjectName : "-")
-</td>
+                        <div class="support-dev-detail">@TextOrDash(item.OrderDetail)</div>
 
-<td>
-<strong>@item.OrderTitle</strong>
-</td>
+                        <div class="support-dev-meta">
+                            <span class="support-dev-pill">กำหนดส่ง: @DateText(item.DueDate)</span>
+                            <span class="support-dev-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
+                        </div>
+                    </section>
 
-<td style="word-break:break-word;">
-@item.OrderDetail
-</td>
+                    <aside class="support-dev-side">
+                        <div class="support-dev-status-grid">
+                            <div class="support-dev-status-row">
+                                <small>Priority</small>
+                                <span class="badge @PriorityClass(item.Priority)">@TextOrDash(item.Priority)</span>
+                            </div>
+                            <div class="support-dev-status-row">
+                                <small>Status</small>
+                                <span class="badge @StatusClass(item.Status)">@TextOrDash(item.Status)</span>
+                            </div>
+                            <div class="support-dev-status-row">
+                                <small>Dev</small>
+                                <span class="badge @DevStatusClass(item.DevStatus)">@TextOrDash(item.DevStatus)</span>
+                            </div>
+                        </div>
 
-<td class="text-center">
-@if(item.Priority == "HIGH")
-{
-<span class="badge bg-danger">HIGH</span>
-}
-else if(item.Priority == "MEDIUM")
-{
-<span class="badge bg-warning text-dark">MEDIUM</span>
-}
-else
-{
-<span class="badge bg-secondary">@item.Priority</span>
-}
-</td>
+                        <div class="support-dev-actions">
+                            @if (CanMenu("SupportOrdersDev.Details"))
+                            {
+                                <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-info text-white fw-bold" title="ดูรายละเอียด">
+                                    View
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
+                                    View
+                                </button>
+                            }
 
-<td class="text-center">
-@if(string.IsNullOrEmpty(item.DevStatus))
-{
-<span class="badge bg-secondary">-</span>
-}
-else if(item.DevStatus == "IN_PROGRESS")
-{
-<span class="badge bg-warning text-dark">IN_PROGRESS</span>
-}
-else if(item.DevStatus == "FIXED")
-{
-<span class="badge bg-success">FIXED</span>
-}
-</td>
+                            @if (CanMenu("SupportOrdersDev.Edit"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-warning fw-bold" title="แก้ไข/แก้บั๊ก">
+                                    Fix
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                    Fix
+                                </button>
+                            }
+                        </div>
+                    </aside>
+                </article>
 
-<td class="text-center">
-@(item.DueDate.HasValue ? item.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) : "-")
-</td>
-
-<td class="text-center">
-<div class="btn-group btn-group-sm">
-@if (CanMenu("SupportOrdersDev.Details"))
-{
-    <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-info" title="ดูรายละเอียด">
-        View
-    </a>
-}
-else
-{
-    <button class="btn btn-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
-        View
-    </button>
-}
-
-@if (CanMenu("SupportOrdersDev.Edit"))
-{
-    <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-warning" title="แก้ไข/แก้บั๊ก">
-        Fix
-    </a>
-}
-else
-{
-    <button class="btn btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-        Fix
-    </button>
-}
+                no++;
+            }
+        </div>
+    }
 </div>
-</td>
-
-</tr>
-
-no++;
-}
-</tbody>
-</table>
-</div>
-}
-else
-{
-    <div class="alert alert-info">
-        กรุณาเลือก Project ก่อนเพื่อแสดงรายการงาน
-    </div>
-}

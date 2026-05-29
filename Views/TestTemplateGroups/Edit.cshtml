@@ -8,7 +8,7 @@
     <h3>Edit Template Group</h3>
     <hr />
 
-    <form asp-action="Edit" method="post">
+    <form asp-action="Edit" asp-route-id="@Model.group_id" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="group_id" />
 

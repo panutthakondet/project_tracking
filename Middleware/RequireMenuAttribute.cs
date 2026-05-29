@@ -46,7 +46,7 @@ namespace ProjectTracking.Middleware
             var menuRaw = (http.Session.GetString("Menus") ?? "").Trim();
             if (string.IsNullOrWhiteSpace(menuRaw))
             {
-                context.Result = new RedirectToActionResult("Index", "Home", null);
+                context.Result = new RedirectToActionResult("AccessDenied", "Auth", new { key = _menuKey });
                 return;
             }
 
@@ -56,7 +56,7 @@ namespace ProjectTracking.Middleware
 
             if (!allowed.Contains(_menuKey, StringComparer.OrdinalIgnoreCase))
             {
-                context.Result = new RedirectToActionResult("Index", "Home", null);
+                context.Result = new RedirectToActionResult("AccessDenied", "Auth", new { key = _menuKey });
             }
         }
     }

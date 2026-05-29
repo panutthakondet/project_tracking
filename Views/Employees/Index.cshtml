@@ -14,27 +14,30 @@
 }
 
 <!-- ================= HEADER ================= -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="fw-bold">👤 บันทึกข้อมูลพนักงาน</h2>
-    @if (HasMenu("Employees.Create"))
-    {
-        <a asp-action="Create"
-           class="btn btn-primary"
-           title="เพิ่มพนักงาน">
-            ➕ Add Employee
-        </a>
-    }
-    else
-    {
-        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มพนักงาน">
-            ➕ Add Employee
-        </button>
-    }
-</div>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">บันทึกข้อมูลพนักงาน</h2>
+        <p class="index-subtitle">รายชื่อพนักงานทั้งหมดในระบบ</p>
+    </div>
 
-<p class="text-muted">
-    รายชื่อพนักงานทั้งหมดในระบบ
-</p>
+    <div class="index-actions">
+        @if (HasMenu("Employees.Create"))
+        {
+            <a asp-action="Create"
+               class="btn btn-primary"
+               title="เพิ่มพนักงาน">
+                Add Employee
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มพนักงาน">
+                Add Employee
+            </button>
+        }
+    </div>
+</div>
 
 <!-- ================= TABLE ================= -->
 <div class="table-responsive" style="display:none;">

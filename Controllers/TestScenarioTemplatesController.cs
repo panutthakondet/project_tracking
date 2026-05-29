@@ -208,7 +208,7 @@ namespace ProjectTracking.Controllers
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("TestScenarioTemplates.Edit")]
+        [RequireMenu("TestScenarioTemplates.Toggle")]
         public async Task<IActionResult> ToggleActive(int id)
         {
             var template = await _context.TestScenarioTemplates

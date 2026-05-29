@@ -1,101 +1,245 @@
-
-
 @model ProjectTracking.Models.ProjectIssue
 
 @{
-    ViewData["Title"] = "Issue Details (Dev)";
+    ViewData["Title"] = "รายละเอียด Issue (Dev)";
+    var beforeImages = Model.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
+    var afterImages = Model.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
+
+    string BadgeClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "bg-warning text-dark",
+        "WIP" => "bg-info text-dark",
+        "FIXED" => "bg-success",
+        "PASS" => "bg-primary",
+        "FAIL" => "bg-danger",
+        "REJECT" => "bg-dark",
+        "TODO" => "bg-secondary",
+        "DOING" => "bg-info text-dark",
+        "BLOCK" => "bg-danger",
+        _ => "bg-secondary"
+    };
 }
 
-<div class="container mt-3">
+<style>
+    .dev-detail-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
 
-    <h2 class="fw-bold mb-3">@Model.IssueName</h2>
+    .dev-detail-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
 
-    <div class="mb-3">
-        <label class="fw-semibold">Project</label>
-        <div>@Model.Project?.ProjectName</div>
-    </div>
+    .dev-detail-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+        word-break: break-word;
+    }
 
-    <div class="mb-3">
-        <label class="fw-semibold">Issue Detail</label>
-        <div class="border rounded p-2 bg-light">
-            @(Model.IssueDetail ?? "-")
-        </div>
-    </div>
+    .dev-detail-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 8px 0 0;
+    }
 
-    <div class="mb-3">
-        <label class="fw-semibold">Dev Detail</label>
-        <div class="border rounded p-2 bg-light">
-            @(Model.DevDetail ?? "-")
-        </div>
-    </div>
+    .dev-detail-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 16px;
+        align-items: start;
+    }
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <label class="fw-semibold">Priority</label>
-            <div>@Model.IssuePriority</div>
-        </div>
+    .dev-panel {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+        padding: 18px;
+    }
 
-        <div class="col-md-3">
-            <label class="fw-semibold">Status</label>
-            <div>@Model.IssueStatus</div>
-        </div>
+    .dev-panel + .dev-panel {
+        margin-top: 16px;
+    }
 
-        <div class="col-md-3">
-            <label class="fw-semibold">Dev Status</label>
-            <div>@Model.DevStatus</div>
-        </div>
+    .dev-panel h3 {
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 12px;
+    }
 
-        <div class="col-md-3">
-            <label class="fw-semibold">Last Fix</label>
-            <div>@(Model.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</div>
-        </div>
-    </div>
+    .dev-text-box {
+        min-height: 130px;
+        color: #24364d;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
 
-    <div class="mb-4">
-        <label class="fw-semibold">Assign To</label>
-        <div>@Model.Employee?.EmpName</div>
-    </div>
+    .dev-meta-grid {
+        display: grid;
+        gap: 10px;
+    }
 
-    <hr />
+    .dev-meta-row {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+    }
 
-    <h5>Issue Images (Before Fix)</h5>
+    .dev-meta-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
 
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        @if (Model.Images != null)
-        {
-            foreach (var img in Model.Images)
-            {
-                <a href="@img.FilePath" target="_blank">
-                    <img src="@img.FilePath"
-                         style="width:150px;height:150px;object-fit:cover"
-                         class="img-thumbnail" />
-                </a>
-            }
+    .dev-meta-row b {
+        color: #10233f;
+        word-break: break-word;
+    }
+
+    .dev-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 12px;
+    }
+
+    .dev-gallery-grid img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid #d8e3ef;
+        background: #f8fafc;
+    }
+
+    .dev-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 991.98px) {
+        .dev-detail-hero,
+        .dev-detail-grid {
+            grid-template-columns: 1fr;
+            display: grid;
         }
+    }
+</style>
+
+<div class="dev-detail-page">
+    <div class="dev-detail-hero">
+        <div>
+            <h2 class="dev-detail-title">@Model.IssueName</h2>
+            <p class="dev-detail-subtitle">Project: @(Model.Project?.ProjectName ?? "-")</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="DevEdit" asp-route-id="@Model.IssueId" asp-route-projectId="@Model.ProjectId" class="btn btn-primary">Edit Dev</a>
+            <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-light">Back</a>
+        </div>
     </div>
 
-    <h5>Issue Images (After Fix)</h5>
+    <div class="dev-detail-grid">
+        <div>
+            <div class="dev-panel">
+                <h3>รายละเอียด Issue</h3>
+                <div class="dev-text-box">@(Model.IssueDetail ?? "-")</div>
+            </div>
 
-    <div class="d-flex flex-wrap gap-2">
-        @if (Model.FixImages != null)
-        {
-            foreach (var img in Model.FixImages)
-            {
-                <a href="@img.FilePath" target="_blank">
-                    <img src="@img.FilePath"
-                         style="width:150px;height:150px;object-fit:cover"
-                         class="img-thumbnail border-success" />
-                </a>
-            }
-        }
+            <div class="dev-panel">
+                <h3>รายละเอียดการแก้ไข</h3>
+                <div class="dev-text-box">@(Model.DevDetail ?? "-")</div>
+            </div>
+
+            <div class="dev-panel">
+                <h3>รูปก่อนแก้ (@beforeImages.Count)</h3>
+                @if (beforeImages.Any())
+                {
+                    <div class="dev-gallery-grid">
+                        @foreach (var img in beforeImages)
+                        {
+                            <a href="@img.FilePath" target="_blank" rel="noopener">
+                                <img src="@img.FilePath" alt="@img.FileName" />
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="dev-empty">ยังไม่มีรูปก่อนแก้</div>
+                }
+            </div>
+
+            <div class="dev-panel">
+                <h3>รูปหลังแก้ (@afterImages.Count)</h3>
+                @if (afterImages.Any())
+                {
+                    <div class="dev-gallery-grid">
+                        @foreach (var img in afterImages)
+                        {
+                            <a href="@img.FilePath" target="_blank" rel="noopener">
+                                <img src="@img.FilePath" alt="@img.FileName" />
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="dev-empty">ยังไม่มีรูปหลังแก้</div>
+                }
+            </div>
+        </div>
+
+        <div>
+            <div class="dev-panel">
+                <h3>สถานะ</h3>
+                <div class="dev-meta-grid">
+                    <div class="dev-meta-row">
+                        <small>Priority</small>
+                        <span class="badge @(Model.IssuePriority == "URGENT" ? "bg-danger" : "bg-secondary")">@Model.IssuePriority</span>
+                    </div>
+                    <div class="dev-meta-row">
+                        <small>Issue</small>
+                        <span class="badge @BadgeClass(Model.IssueStatus)">@Model.IssueStatus</span>
+                    </div>
+                    <div class="dev-meta-row">
+                        <small>Dev</small>
+                        <span class="badge @BadgeClass(Model.DevStatus)">@Model.DevStatus</span>
+                    </div>
+                    <div class="dev-meta-row">
+                        <small>Last Fix</small>
+                        <b>@(Model.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
+                    </div>
+                    <div class="dev-meta-row">
+                        <small>Owner</small>
+                        <b>@(Model.Employee?.EmpName ?? "-")</b>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="mt-4">
-        <a asp-action="DevIndex"
-           asp-route-projectId="@Model.ProjectId"
-           class="btn btn-secondary">
-            Back
-        </a>
-    </div>
-
 </div>

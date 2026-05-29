@@ -2,211 +2,438 @@
 @model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
 
 @{
+    ViewData["Title"] = "Support Orders";
+
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
+
+    var selectedProjectId = Context.Request.Query["projectId"].ToString();
+    var hasSelectedProject = !string.IsNullOrWhiteSpace(selectedProjectId);
+    var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
+    var th = new System.Globalization.CultureInfo("th-TH");
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "bg-danger",
+        "HIGH" => "bg-danger",
+        "MEDIUM" => "bg-warning text-dark",
+        "LOW" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    string PriorityTone(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "is-danger",
+        "HIGH" => "is-danger",
+        "MEDIUM" => "is-warning",
+        "LOW" => "is-success",
+        _ => "is-muted"
+    };
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "bg-secondary",
+        "IN_PROGRESS" => "bg-primary",
+        "WAIT_TEST" => "bg-info text-dark",
+        "DONE" => "bg-success",
+        "CLOSE" => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "IN_PROGRESS" => "bg-warning text-dark",
+        "FIXED" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
 }
 
 <style>
-.sticky-col-1 { position: sticky; left: 0; background: #fff; z-index: 3; width:60px; }
-.sticky-col-2 { position: sticky; left: 60px; background: #fff; z-index: 3; width:260px; }
-.sticky-col-3 { position: sticky; left: 320px; background: #fff; z-index: 3; width:320px; }
+    .support-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
 
-thead .sticky-col-1,
-thead .sticky-col-2,
-thead .sticky-col-3 {
-    background:#212529;
-    color:#fff;
-    z-index:4;
-}
+    .support-hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 86% 8%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
 
-/* Prevent long text breaking layout */
-td {
-    word-break: break-word;
-}
+    .support-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .support-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 6px 0 0;
+    }
+
+    .support-filter-card,
+    .support-order-card,
+    .support-empty-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .support-filter-card {
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .support-selected-project {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        margin-top: 12px;
+        padding: 8px 12px;
+        color: #0f3b6f;
+        background: #eaf7ff;
+        border: 1px solid #cdeaff;
+        border-radius: 999px;
+        font-weight: 800;
+    }
+
+    .support-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .support-order-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, .46fr);
+        overflow: hidden;
+        border-left: 5px solid #94a3b8;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .support-order-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
+    }
+
+    .support-order-card.is-danger {
+        border-left-color: #ef4444;
+    }
+
+    .support-order-card.is-warning {
+        border-left-color: #f59e0b;
+    }
+
+    .support-order-card.is-success {
+        border-left-color: #22c55e;
+    }
+
+    .support-main,
+    .support-side {
+        min-width: 0;
+        padding: 18px;
+    }
+
+    .support-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+        background: #f8fafc;
+        border-left: 1px solid #e2e8f0;
+    }
+
+    .support-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .support-no {
+        flex: 0 0 auto;
+        min-width: 46px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        border-radius: 999px;
+        font-weight: 900;
+    }
+
+    .support-order-title {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .support-project-name {
+        margin-top: 4px;
+        color: #64748b;
+        font-weight: 800;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .support-detail {
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.55;
+        margin: 12px 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .support-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .support-meta-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 6px 10px;
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .support-status-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .support-status-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .support-status-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-status-row .badge {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: center;
+    }
+
+    .support-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .support-actions form {
+        margin: 0;
+    }
+
+    .support-empty-card {
+        color: #64748b;
+        padding: 28px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 991.98px) {
+        .support-hero {
+            flex-direction: column;
+        }
+
+        .support-order-card {
+            grid-template-columns: 1fr;
+        }
+
+        .support-side {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .support-actions {
+            justify-content: flex-start;
+        }
+    }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>📌 Support Orders</h3>
-    @if (CanMenu("SupportOrders.Create"))
-    {
-        <button class="btn btn-primary" onclick="createOrder()" title="เพิ่มงาน Support">
-            + Add Order
-        </button>
-    }
-    else
-    {
-        <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มงาน">
-            + Add Order
-        </button>
-    }
-</div>
+<div class="support-page">
+    <div class="support-hero index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="support-title index-title">Support Orders</h2>
+            <p class="support-subtitle index-subtitle">งานแก้ไขช่วงรับประกัน แยกตามโครงการและผู้รับผิดชอบ</p>
+        </div>
 
-@if (ViewBag.SelectedProjectName != null)
-{
-    <div class="alert alert-info mb-3">
-        <strong>Project:</strong> @ViewBag.SelectedProjectName
+        <div class="index-actions">
+            @if (CanMenu("SupportOrders.Create"))
+            {
+                <button class="btn btn-light fw-bold" onclick="createOrder()" title="เพิ่มงาน Support">
+                    Add Order
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-light fw-bold" disabled title="ไม่มีสิทธิ์เพิ่มงาน">
+                    Add Order
+                </button>
+            }
+        </div>
     </div>
-}
 
-<form method="get" class="mb-3" style="max-width:400px;">
-    <label class="form-label">Select Project</label>
-    <select name="projectId" class="form-select" asp-items="ViewBag.ProjectList" onchange="this.form.submit()">
-        <option value="">-- All Projects --</option>
-    </select>
-</form>
+    <form method="get" class="support-filter-card">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label fw-semibold">Project</label>
+                <select name="projectId" class="form-select" asp-items="ViewBag.ProjectList" onchange="this.form.submit()">
+                    <option value="">-- All Projects --</option>
+                </select>
+            </div>
+        </div>
 
-@if (Context.Request.Query["projectId"].Count > 0 && !string.IsNullOrEmpty(Context.Request.Query["projectId"]))
-{
-<div style="overflow-x:auto;">
-<table class="table table-bordered table-hover align-middle table-sm" style="min-width:1200px; table-layout:fixed;">
+        @if (ViewBag.SelectedProjectName != null)
+        {
+            <div class="support-selected-project">
+                Project: @ViewBag.SelectedProjectName
+            </div>
+        }
+    </form>
 
-<thead class="table-dark">
-<tr>
-<th style="width:60px" class="text-center sticky-col-1">No.</th>
-<th style="width:260px" class="text-center sticky-col-2">Project</th>
-<th style="width:320px" class="text-center sticky-col-3">Title</th>
-<th style="width:420px" class="text-center">Detail</th>
-<th style="width:110px" class="text-center">Priority</th>
-<th style="width:120px" class="text-center">Status</th>
-<th style="width:120px" class="text-center">Dev Status</th>
-<th style="width:120px" class="text-center">Due Date</th>
-<th style="width:180px" class="text-center">Assigned To</th>
-<th style="width:200px" class="text-center">Action</th>
-</tr>
-</thead>
-
-<tbody>
-
-@{
-    int no = 1;
-}
-
-@foreach(var item in Model)
-{
-<tr>
-<td class="text-center sticky-col-1">@no</td>
-
-<td class="sticky-col-2" style="width:260px;">
-@(item.Project != null ? item.Project.ProjectName : "-")
-</td>
-
-<td class="sticky-col-3" style="width:320px;">
-<strong>@item.OrderTitle</strong>
-</td>
-
-<td>
-@item.OrderDetail
-</td>
-
-<td class="text-center">
-@if(item.Priority == "HIGH" || item.Priority == "URGENT")
-{
-<span class="badge bg-danger">@item.Priority</span>
-}
-else if(item.Priority == "MEDIUM")
-{
-<span class="badge bg-warning text-dark">@item.Priority</span>
-}
-else
-{
-<span class="badge bg-success">@item.Priority</span>
-}
-</td>
-
-<td class="text-center">
-@if(item.Status == "DONE")
-{
-<span class="badge bg-success">@item.Status</span>
-}
-else if(item.Status == "IN_PROGRESS")
-{
-<span class="badge bg-primary">@item.Status</span>
-}
-else
-{
-<span class="badge bg-secondary">@item.Status</span>
-}
-</td>
-<td class="text-center">
-@if(string.IsNullOrEmpty(item.DevStatus))
-{
-    <span class="text-muted">-</span>
-}
-else if(item.DevStatus == "IN_PROGRESS")
-{
-    <span class="badge bg-warning text-dark">@item.DevStatus</span>
-}
-else if(item.DevStatus == "FIXED")
-{
-    <span class="badge bg-success">@item.DevStatus</span>
-}
-else
-{
-    <span class="badge bg-secondary">@item.DevStatus</span>
-}
-</td>
-
-<td class="text-center">
-@(item.DueDate.HasValue ? item.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) : "-")
-</td>
-
-<td>
-@(item.Employee != null ? item.Employee.EmpName : "-")
-</td>
-
-<td class="text-center">
-<div class="btn-group btn-group-sm" role="group">
-    <a class="btn btn-sm btn-primary" asp-action="Details" asp-route-id="@item.OrderId">View</a>
-
-    @if (CanMenu("SupportOrders.Edit"))
+    @if (!hasSelectedProject)
     {
-        <a class="btn btn-sm btn-warning" asp-action="Edit" asp-route-id="@item.OrderId" title="แก้ไขงาน">
-            Edit
-        </a>
+        <div class="support-empty-card">
+            กรุณาเลือก Project ก่อนเพื่อแสดงรายการ Support Orders
+        </div>
+    }
+    else if (!orders.Any())
+    {
+        <div class="support-empty-card">
+            ไม่พบรายการ Support Orders ในโครงการนี้
+        </div>
     }
     else
     {
-        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-            Edit
-        </button>
-    }
+        <div class="support-list">
+            @{
+                var no = 1;
+            }
 
-    @if (CanMenu("SupportOrders.Delete"))
-    {
-        <form asp-action="Delete" asp-route-id="@item.OrderId" method="post" style="display:inline">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-sm btn-danger" title="ลบงาน"
-                    onclick="return confirm('Are you sure you want to delete this order?');">
-                Delete
-            </button>
-        </form>
-    }
-    else
-    {
-        <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-            Delete
-        </button>
+            @foreach (var item in orders)
+            {
+                <article class="support-order-card @PriorityTone(item.Priority)">
+                    <section class="support-main">
+                        <div class="support-head">
+                            <span class="support-no">#@no</span>
+                            <div class="min-w-0">
+                                <span class="support-order-title">@TextOrDash(item.OrderTitle)</span>
+                                <div class="support-project-name">@TextOrDash(item.Project?.ProjectName)</div>
+                            </div>
+                        </div>
+
+                        <div class="support-detail">@TextOrDash(item.OrderDetail)</div>
+
+                        <div class="support-meta">
+                            <span class="support-meta-pill">กำหนดส่ง: @DateText(item.DueDate)</span>
+                            <span class="support-meta-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
+                        </div>
+                    </section>
+
+                    <aside class="support-side">
+                        <div class="support-status-grid">
+                            <div class="support-status-row">
+                                <small>Priority</small>
+                                <span class="badge @PriorityClass(item.Priority)">@TextOrDash(item.Priority)</span>
+                            </div>
+                            <div class="support-status-row">
+                                <small>Status</small>
+                                <span class="badge @StatusClass(item.Status)">@TextOrDash(item.Status)</span>
+                            </div>
+                            <div class="support-status-row">
+                                <small>Dev</small>
+                                <span class="badge @DevStatusClass(item.DevStatus)">@TextOrDash(item.DevStatus)</span>
+                            </div>
+                        </div>
+
+                        <div class="support-actions">
+                            <a class="btn btn-sm btn-info text-white fw-bold" asp-action="Details" asp-route-id="@item.OrderId">View</a>
+
+                            @if (CanMenu("SupportOrders.Edit"))
+                            {
+                                <a class="btn btn-sm btn-warning fw-bold" asp-action="Edit" asp-route-id="@item.OrderId" title="แก้ไขงาน">
+                                    Edit
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                    Edit
+                                </button>
+                            }
+
+                            @if (CanMenu("SupportOrders.Delete"))
+                            {
+                                <form asp-action="Delete" asp-route-id="@item.OrderId" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-danger fw-bold" title="ลบงาน"
+                                            onclick="return confirm('Are you sure you want to delete this order?');">
+                                        Delete
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                    Delete
+                                </button>
+                            }
+                        </div>
+                    </aside>
+                </article>
+
+                no++;
+            }
+        </div>
     }
 </div>
-</td>
-</tr>
-
-no++;
-}
-
-</tbody>
-</table>
-</div>
-}
-else
-{
-    <div class="alert alert-warning">
-        Please select a Project first to display Support Orders.
-    </div>
-}
 
 <script>
 function createOrder() {
@@ -218,6 +445,6 @@ function createOrder() {
         return;
     }
 
-    window.location.href = '/SupportOrders/Create?projectId=' + projectId;
+    window.location.href = '/SupportOrders/Create?projectId=' + encodeURIComponent(projectId);
 }
 </script>

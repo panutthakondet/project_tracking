@@ -6,12 +6,15 @@
     ViewData["Title"] = "User Management";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-        <h2 class="fw-bold mb-0">👤 จัดการผู้ใช้งาน</h2>
-        <div class="text-muted">จัดการผู้ใช้งาน (เพิ่ม / แก้ไข / กำหนดสิทธิ์)</div>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">จัดการผู้ใช้งาน</h2>
+        <p class="index-subtitle">จัดการผู้ใช้งาน เพิ่ม แก้ไข และกำหนดสิทธิ์</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary" style="border-radius:12px; font-weight:800;">➕ Create User</a>
+    <div class="index-actions">
+        <a asp-action="Create" class="btn btn-primary">Create User</a>
+    </div>
 </div>
 
 @if (TempData["Success"] != null)

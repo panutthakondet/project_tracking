@@ -82,7 +82,8 @@
 </div>
 
 
-<form asp-action="Edit" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+<form asp-action="Edit" asp-route-id="@Model.OrderId" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+@Html.AntiForgeryToken()
 
 <input type="hidden" asp-for="OrderId" />
 <input type="hidden" asp-for="ProjectId" />

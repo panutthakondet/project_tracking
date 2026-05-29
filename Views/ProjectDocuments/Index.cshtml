@@ -9,14 +9,24 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
 <div class="container mt-4">
 
-    <h3 class="mb-3">📂 Project Documents</h3>
+    <div class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">Project Documents</h2>
+            <p class="index-subtitle">อัปโหลดและจัดการเอกสารของโครงการ</p>
+        </div>
+    </div>
 
     <!-- Upload Section -->
     <div class="card mb-4">

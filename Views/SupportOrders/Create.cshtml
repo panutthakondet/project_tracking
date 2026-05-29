@@ -3,6 +3,7 @@
 <h3>สร้าง Support Order</h3>
 
 <form asp-action="Create" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+@Html.AntiForgeryToken()
 
 <div class="mb-3">
 <label>Project</label>
@@ -33,11 +34,12 @@
 
 <div class="mb-3">
 <label>Status</label>
-<select name="Status" class="form-select">
+<select asp-for="Status" class="form-select">
 <option value="OPEN">OPEN</option>
 <option value="IN_PROGRESS">IN PROGRESS</option>
+<option value="WAIT_TEST">WAIT TEST</option>
 <option value="DONE">DONE</option>
-<option value="CANCELLED">CANCELLED</option>
+<option value="CLOSE">CLOSE</option>
 </select>
 </div>
 

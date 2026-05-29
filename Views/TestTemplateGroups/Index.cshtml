@@ -5,8 +5,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -24,21 +28,28 @@
     }
 </style>
 
-<h2>Template Groups</h2>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Template Groups</h2>
+        <p class="index-subtitle">จัดกลุ่ม Template และลำดับการแสดงผล</p>
+    </div>
 
-
-@if (CanMenu("TestTemplateGroups.Create"))
-{
-    <a asp-action="Create" class="btn btn-success mb-3" title="เพิ่มกลุ่ม Template">
-        + Add Group
-    </a>
-}
-else
-{
-    <button class="btn btn-success mb-3" disabled title="ไม่มีสิทธิ์เพิ่มกลุ่ม">
-        + Add Group
-    </button>
-}
+    <div class="index-actions">
+        @if (CanMenu("TestTemplateGroups.Create"))
+        {
+            <a asp-action="Create" class="btn btn-success" title="เพิ่มกลุ่ม Template">
+                Add Group
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-success" disabled title="ไม่มีสิทธิ์เพิ่มกลุ่ม">
+                Add Group
+            </button>
+        }
+    </div>
+</div>
 
 @if (Model == null || !Model.Any())
 {

@@ -138,6 +138,14 @@ namespace ProjectTracking.Controllers
             return RedirectToAction("Login");
         }
 
+        [HttpGet]
+        public IActionResult AccessDenied(string? key = null)
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            var menuKey = string.IsNullOrWhiteSpace(key) ? "-" : key.Trim();
+            return Content($"ไม่มีสิทธิ์เข้าถึงเมนูนี้ ({menuKey}) กรุณาติดต่อผู้ดูแลระบบ", "text/plain; charset=utf-8");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateProfileImage(IFormFile? profileImage, string? croppedProfileImage = null, string? returnUrl = null)

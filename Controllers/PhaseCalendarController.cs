@@ -2,8 +2,8 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProjectTracking.Attributes;
 using ProjectTracking.Data;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {
@@ -24,6 +24,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
+        [RequireMenu("PhaseCalendar.Index")]
         public async Task<IActionResult> List()
         {
             var phases = await _context.ProjectPhases

@@ -31,6 +31,7 @@
     <div class="card-body">
 
         <form asp-action="Edit"
+              asp-route-id="@(Model?.ProjectId ?? 0)"
               method="post"
               enctype="multipart/form-data"
               onsubmit="return confirm('คุณต้องการบันทึกการแก้ไข Project นี้หรือไม่?');">
@@ -86,7 +87,7 @@
                     <label class="form-label fw-semibold">
                         📅 Start Date
                     </label>
-                    <input asp-for="StartDate"
+                    <input name="StartDate"
                            type="text"
                            class="form-control thai-date"
                            id="StartDate"
@@ -99,7 +100,7 @@
                     <label class="form-label fw-semibold">
                         📅 End Date
                     </label>
-                    <input asp-for="EndDate"
+                    <input name="EndDate"
                            type="text"
                            class="form-control thai-date"
                            id="EndDate"

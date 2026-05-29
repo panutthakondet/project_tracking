@@ -1,6 +1,5 @@
 @model IEnumerable<ProjectTracking.Models.ProjectFollowup>
 
-<h2>งานที่ต้องติดตาม</h2>
 @if (TempData["FollowupMessage"] != null)
 {
     <script>
@@ -15,9 +14,33 @@
     bool HasMenu(string key)
     {
         return allowedMenus.Contains(key);
-    }
+}
 }
 
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">งานที่ต้องติดตาม</h2>
+        <p class="index-subtitle">ติดตามงาน นัดหมาย และการประสานงานที่ยังต้องดำเนินการต่อ</p>
+    </div>
+
+    <div class="index-actions">
+        @if (HasMenu("Followups.Create"))
+        {
+            <a href="/Followups/Create?projectId=@Context.Request.Query["projectId"]"
+               class="btn btn-primary"
+               title="สร้างงานติดตาม">
+                สร้างงานติดตาม
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์สร้างงานติดตาม">
+                สร้างงานติดตาม
+            </button>
+        }
+    </div>
+</div>
 
 <form method="get" action="/Followups/Index" class="mb-2">
     <select name="projectId"
@@ -35,23 +58,6 @@
         ⬆ กรุณาเลือก Project ก่อน
     </div>
 }
-
-<div class="mb-3">
-@if (HasMenu("Followups.Create"))
-{
-    <a href="/Followups/Create?projectId=@Context.Request.Query["projectId"]" 
-       class="btn btn-primary"
-       title="สร้างงานติดตาม">
-        + สร้างงานติดตาม
-    </a>
-}
-else
-{
-    <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์สร้างงานติดตาม">
-        + สร้างงานติดตาม
-    </button>
-}
-</div>
 
 @if (!string.IsNullOrEmpty(Context.Request.Query["projectId"]))
 {

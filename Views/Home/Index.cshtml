@@ -240,7 +240,7 @@
         <article class="glass-panel panel-watch">
             <div class="panel-head">
                 <h2>โครงการที่ต้องเฝ้าระวัง</h2>
-                <a asp-controller="ProjectStatus" asp-action="Index" class="panel-link">ดูภาพรวม</a>
+                <a asp-controller="ProjectPhases" asp-action="Index" class="panel-link">ดูงวดงาน</a>
             </div>
             <div class="watch-list">
                 @if (dashboard.WatchProjects.Count == 0)
@@ -252,9 +252,10 @@
                     foreach (var project in dashboard.WatchProjects)
                     {
                         <a class="watch-row @project.RiskColor"
-                           asp-controller="ProjectStatus"
+                           asp-controller="ProjectPhases"
                            asp-action="Index"
-                           asp-route-projectId="@project.ProjectId">
+                           asp-route-projectId="@project.ProjectId"
+                           title="ดูงวดงานของ @project.ProjectName">
                             <span class="watch-main">
                                 <b>@project.ProjectName</b>
                                 <small>เจ้าของ: @project.OwnerName</small>

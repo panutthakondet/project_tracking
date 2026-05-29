@@ -6,8 +6,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -52,8 +56,8 @@
         justify-content: space-between;
         gap: 12px;
         padding: 14px 16px;
-        background: linear-gradient(180deg, rgba(13,110,253,.06), rgba(13,110,253,.0));
-        border-bottom: 1px solid rgba(0,0,0,.06);
+        background: linear-gradient(180deg, #f8fafc, #eef6fb);
+        border-bottom: 1px solid #d8e3ef;
     }
 
     .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -88,8 +92,10 @@
         padding: .35rem .65rem;
     }
     .fc .fc-button-primary {
-        background: #0d6efd;
-        border-color: rgba(13,110,253,.55) !important;
+        background: linear-gradient(135deg, #14b8a6, #0f766e) !important;
+        border-color: transparent !important;
+        color: #062b2f !important;
+        font-weight: 800;
     }
     .fc .fc-button-primary:disabled { opacity: .55; }
 
@@ -107,75 +113,87 @@
 
     /* Header background color */
     .fc .fc-col-header-cell {
-        background: linear-gradient(180deg, #0d6efd, #0b5ed7);
-        color: #fff;
-        border-color: rgba(255,255,255,.2) !important;
+        background: #10233f !important;
+        color: #fff !important;
+        border-color: rgba(255,255,255,.12) !important;
     }
 
-    /* Thai traditional day colors (Mon–Sun) */
-    .fc .fc-col-header-cell:nth-child(1) { background:#dc3545; color:#fff; }  /* Sunday - Red */
-    .fc .fc-col-header-cell:nth-child(2) { background:#ffc107; color:#000; }  /* Monday - Yellow */
-    .fc .fc-col-header-cell:nth-child(3) { background:#ff69b4; color:#fff; }  /* Tuesday - Pink */
-    .fc .fc-col-header-cell:nth-child(4) { background:#28a745; color:#fff; }  /* Wednesday - Green */
-    .fc .fc-col-header-cell:nth-child(5) { background:#fd7e14; color:#fff; }  /* Thursday - Orange */
-    .fc .fc-col-header-cell:nth-child(6) { background:#0d6efd; color:#fff; }  /* Friday - Blue */
-    .fc .fc-col-header-cell:nth-child(7) { background:#6f42c1; color:#fff; }  /* Saturday - Purple */
+    .fc .fc-col-header-cell:nth-child(1),
+    .fc .fc-col-header-cell:nth-child(2),
+    .fc .fc-col-header-cell:nth-child(3),
+    .fc .fc-col-header-cell:nth-child(4),
+    .fc .fc-col-header-cell:nth-child(5),
+    .fc .fc-col-header-cell:nth-child(6),
+    .fc .fc-col-header-cell:nth-child(7) {
+        background: #10233f !important;
+        color: #fff !important;
+    }
 
-    /* Light background using FullCalendar weekday classes (force correct color even with fc-day-other) */
-    .fc .fc-daygrid-day.fc-day-sun { background: rgba(220,53,69,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-mon { background: rgba(255,193,7,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-tue { background: rgba(255,105,180,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-wed { background: rgba(40,167,69,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-thu { background: rgba(253,126,20,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-fri { background: rgba(13,110,253,0.12) !important; }
-    .fc .fc-daygrid-day.fc-day-sat { background: rgba(111,66,193,0.12) !important; }
+    /* Keep calendar surface neutral to match dashboard theme */
+    .fc .fc-daygrid-day,
+    .fc .fc-daygrid-day.fc-day-sun,
+    .fc .fc-daygrid-day.fc-day-mon,
+    .fc .fc-daygrid-day.fc-day-tue,
+    .fc .fc-daygrid-day.fc-day-wed,
+    .fc .fc-daygrid-day.fc-day-thu,
+    .fc .fc-daygrid-day.fc-day-fri,
+    .fc .fc-daygrid-day.fc-day-sat {
+        background: #ffffff !important;
+    }
+
+    .fc .fc-daygrid-day.fc-day-other {
+        background: #f8fafc !important;
+    }
 
     /* Make header text readable */
-    .fc .fc-col-header-cell:nth-child(1) .fc-col-header-cell-cushion { color: #000000 !important; } /* Sunday */
-    .fc .fc-col-header-cell:nth-child(2) .fc-col-header-cell-cushion { color: #000000 !important; } /* Monday */
-    .fc .fc-col-header-cell:nth-child(3) .fc-col-header-cell-cushion { color: #000000 !important; } /* Tuesday */
-    .fc .fc-col-header-cell:nth-child(4) .fc-col-header-cell-cushion { color: #000000 !important; } /* Wednesday */
-    .fc .fc-col-header-cell:nth-child(5) .fc-col-header-cell-cushion { color: #000000 !important; } /* Thursday */
-    .fc .fc-col-header-cell:nth-child(6) .fc-col-header-cell-cushion { color: #000000 !important; } /* Friday */
-    .fc .fc-col-header-cell:nth-child(7) .fc-col-header-cell-cushion { color: #000000 !important; } /* Saturday */
+    .fc .fc-col-header-cell:nth-child(1) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(2) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(3) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(4) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(5) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(6) .fc-col-header-cell-cushion,
+    .fc .fc-col-header-cell:nth-child(7) .fc-col-header-cell-cushion {
+        color: #ffffff !important;
+    }
 
     /* Day number colors only (do not override header text) */
     .fc-day-sun .fc-daygrid-day-number {
-        color: #dc2626 !important; /* Sunday = Red */
+        color: #10233f !important;
     }
 
     .fc-day-mon .fc-daygrid-day-number {
-        color: #d4a017 !important; /* Monday = Yellow */
+        color: #10233f !important;
     }
 
     .fc-day-tue .fc-daygrid-day-number {
-        color: #e91e63 !important; /* Tuesday = Pink */
+        color: #10233f !important;
     }
 
     .fc-day-wed .fc-daygrid-day-number {
-        color: #16a34a !important; /* Wednesday = Green */
+        color: #10233f !important;
     }
 
     .fc-day-thu .fc-daygrid-day-number {
-        color: #f97316 !important; /* Thursday = Orange */
+        color: #10233f !important;
     }
 
     .fc-day-fri .fc-daygrid-day-number {
-        color: #2563eb !important; /* Friday = Blue */
+        color: #10233f !important;
     }
 
     .fc-day-sat .fc-daygrid-day-number {
-        color: #7c3aed !important; /* Saturday = Purple */
+        color: #10233f !important;
     }
 
     .fc .fc-day-today {
-        background: rgba(13,110,253,.08) !important;
+        background: linear-gradient(180deg, rgba(20,184,166,.28), rgba(20,184,166,.16)) !important;
+        box-shadow: inset 0 0 0 2px rgba(15,118,110,.30);
     }
 
     /* Circle highlight around today's date number */
     .fc .fc-day-today .fc-daygrid-day-number {
-        background: #0d6efd;
-        color: #fff !important;
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
+        color: #062b2f !important;
         border-radius: 50%;
         width: 28px;
         height: 28px;
@@ -186,8 +204,10 @@
     }
 
     .fc .fc-event {
+        background: #f8fafc !important;
         border-radius: 10px !important;
-        border: 1px solid rgba(0,0,0,.08) !important;
+        border: 1px solid #d8e3ef !important;
+        border-left: 5px solid #14b8a6 !important;
         padding: 8px 10px !important;
         font-size: 0.80rem;
         line-height: 1.4;
@@ -208,38 +228,44 @@
         font-size: 0.78rem;
         white-space: normal !important;
         word-break: break-word;
-        color: #1f2937 !important;
+        color: #10233f !important;
         line-height: 1.4;
     }
 
     .fc-event.customer-event {
-        background: #dff2dc !important;
-        border-color: #b7dcb0 !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-event.team-event {
-        background: #fff0bf !important;
-        border-color: #ecd47a !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-event.executive-event {
-        background: #fde0e0 !important;
-        border-color: #f0b1b1 !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-event.manager-event {
-        background: #ead7fb !important;
-        border-color: #cfb0f5 !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-event.vendor-event {
-        background: #ffe8cf !important;
-        border-color: #f3be86 !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-event.other-event {
-        background: #dcecff !important;
-        border-color: #a9c8f7 !important;
+        background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+        border-left-color: #14b8a6 !important;
     }
 
     .fc-tooltip {
@@ -273,14 +299,15 @@
         height: 100%;
     }
 
-    /* Correct weekday colors */
-    .meeting-row.sun { background: #fdecea; } /* Sunday - Red */
-    .meeting-row.mon { background: #fff8e1; } /* Monday - Yellow */
-    .meeting-row.tue { background: #fce4ec; } /* Tuesday - Pink */
-    .meeting-row.wed { background: #e8f5e9; } /* Wednesday - Green */
-    .meeting-row.thu { background: #fff3e0; } /* Thursday - Orange */
-    .meeting-row.fri { background: #e3f2fd; } /* Friday - Blue */
-    .meeting-row.sat { background: #f3e5f5; } /* Saturday - Purple */
+    .meeting-row.sun,
+    .meeting-row.mon,
+    .meeting-row.tue,
+    .meeting-row.wed,
+    .meeting-row.thu,
+    .meeting-row.fri,
+    .meeting-row.sat {
+        background: #f8fafc;
+    }
 
     .meeting-col {
         background: #ffffff;
@@ -302,7 +329,8 @@
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: #e7f1ff;
+        background: rgba(20,184,166,.14);
+        color: #062b2f;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -323,7 +351,8 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #d1e7dd;
+        background: rgba(20,184,166,.14);
+        color: #062b2f;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -333,7 +362,7 @@
     .meeting-project-text {
         font-size: .9rem;
         line-height: 1.5;
-        color: #0f5132;
+        color: #10233f;
         font-weight: 600;
     }
 
@@ -469,24 +498,25 @@
 </style>
 
 <div class="container meeting-page">
-    <div class="meeting-header">
-        <div>
-            <h2 class="meeting-title">@ViewData["Title"]</h2>
-            <p class="meeting-subtitle">คลิกวันที่เพื่อสร้างนัดประชุม และคลิกนัดเพื่อดูรายละเอียด</p>
+    <div class="meeting-header index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="meeting-title index-title">@ViewData["Title"]</h2>
+            <p class="meeting-subtitle index-subtitle">คลิกวันที่เพื่อสร้างนัดประชุม และคลิกนัดเพื่อดูรายละเอียด</p>
         </div>
 
-        <div class="toolbar-right">
-            <span class="hint-chip">คลิกวันที่เพื่อสร้างนัด</span>
+        <div class="toolbar-right index-actions">
+            <span class="hint-chip index-chip">คลิกวันที่เพื่อสร้างนัด</span>
             @if (CanMenu("Meetings.Create"))
             {
                 <a class="btn btn-primary" href="/Meetings/Create" title="สร้างนัดประชุม">
-                    <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
+                    สร้างนัดประชุม
                 </a>
             }
             else
             {
                 <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์สร้างนัดประชุม">
-                    <span style="margin-right:6px;">＋</span> สร้างนัดประชุม
+                    สร้างนัดประชุม
                 </button>
             }
         </div>

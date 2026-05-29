@@ -51,7 +51,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // DETAILS (VIEW)
         // =====================================================
-        [RequireMenu("ProjectIssues.Index")]
+        [RequireMenu("ProjectIssues.View")]
         public async Task<IActionResult> Details(int id)
         {
             var issue = await _context.ProjectIssues
@@ -240,6 +240,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Edit(int id)
         {
             var issue = await _context.ProjectIssues
+                .Include(i => i.Project)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .FirstOrDefaultAsync(i => i.IssueId == id);
@@ -247,6 +248,7 @@ namespace ProjectTracking.Controllers
             if (issue == null) return NotFound();
 
             ViewBag.ProjectId = issue.ProjectId;
+            ViewBag.ProjectName = issue.Project?.ProjectName;
             ViewBag.Employees = GetEmployeeList(issue.EmpId);
             ViewBag.StatusList = GetStatusList(issue.IssueStatus);
 
@@ -271,6 +273,10 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
+                ViewBag.ProjectName = await _context.Projects
+                    .Where(p => p.ProjectId == model.ProjectId)
+                    .Select(p => p.ProjectName)
+                    .FirstOrDefaultAsync();
                 ViewBag.Employees = GetEmployeeList(model.EmpId);
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
                 return View(model);

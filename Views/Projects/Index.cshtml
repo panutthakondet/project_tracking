@@ -5,8 +5,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -15,43 +19,93 @@
     var th = new CultureInfo("th-TH");
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="fw-bold">📁 บันทึกข้อมูลโครงการ</h2>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">บันทึกข้อมูลโครงการ</h2>
+        <p class="index-subtitle">รายการโครงการทั้งหมดในระบบ</p>
+    </div>
 
-    <div class="d-flex gap-2 flex-wrap justify-content-end">
+    <div class="index-actions">
         <a asp-controller="ProjectStatus"
            asp-action="Index"
            class="btn btn-outline-info"
            title="ดูสถานะโครงการ">
-            📊 Project Status
+            Project Status
         </a>
+
+        @if (CanMenu("ProjectIssues.Index"))
+        {
+            <a asp-controller="ProjectIssues"
+               asp-action="Index"
+               class="btn btn-outline-danger"
+               title="ดูปัญหาโครงการ">
+                Project Issues
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Project Issues">
+                Project Issues
+            </button>
+        }
+
+        @if (CanMenu("SupportOrders.Index"))
+        {
+            <a asp-controller="SupportOrders"
+               asp-action="Index"
+               class="btn btn-outline-warning"
+               title="ดูงาน Support Orders">
+                Support Orders
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Support Orders">
+                Support Orders
+            </button>
+        }
 
         @if (CanMenu("Projects.Create"))
         {
             <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
-                ➕ Add Project
+                Add Project
             </a>
         }
         else
         {
             <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มโครงการ">
-                ➕ Add Project
+                Add Project
             </button>
         }
     </div>
 </div>
 
-<p class="text-muted">รายการโครงการทั้งหมดในระบบ</p>
-
 <div class="card shadow-sm border-0 rounded-4 mb-3">
     <div class="card-body py-3">
-        <div class="row g-3 align-items-end">
+        <div class="project-filter-form">
 
-            <div class="col-lg-6 col-md-6">
+            <div class="project-filter-row">
                 <label class="form-label fw-bold">📂 Project</label>
-                <select id="projectFilter"
-                        class="form-select rounded-3"
-                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                <div class="search-dropdown-field">
+                    <input type="text"
+                           id="projectFilterSearch"
+                           class="form-control form-control-lg"
+                           placeholder="🔍 พิมพ์ค้นหา Project..."
+                           autocomplete="off" />
+                    <button type="button"
+                            id="clearProjectFilter"
+                            class="search-dropdown-clear"
+                            title="เลือก Project ใหม่"
+                            aria-label="เลือก Project ใหม่">
+                        ×
+                    </button>
+                </div>
+                <div id="projectFilterDropdown"
+                     class="list-group mt-1"
+                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                </div>
+                <select id="projectFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
                     @foreach (var p in Model.OrderBy(x => x.ProjectName))
                     {
@@ -60,11 +114,27 @@
                 </select>
             </div>
 
-            <div class="col-lg-4 col-md-6">
+            <div class="project-filter-row">
                 <label class="form-label fw-bold">👤 BA</label>
-                <select id="baFilter"
-                        class="form-select rounded-3"
-                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                <div class="search-dropdown-field">
+                    <input type="text"
+                           id="baFilterSearch"
+                           class="form-control form-control-lg"
+                           placeholder="🔍 พิมพ์ค้นหา BA..."
+                           autocomplete="off" />
+                    <button type="button"
+                            id="clearBaFilter"
+                            class="search-dropdown-clear"
+                            title="เลือก BA ใหม่"
+                            aria-label="เลือก BA ใหม่">
+                        ×
+                    </button>
+                </div>
+                <div id="baFilterDropdown"
+                     class="list-group mt-1"
+                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                </div>
+                <select id="baFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
                     @foreach (var ba in Model
                         .Select(x => x.BA?.EmpName)
@@ -76,11 +146,28 @@
                     }
                 </select>
             </div>
-            <div class="col-lg-2 col-md-6">
+
+            <div class="project-filter-row">
                 <label class="form-label fw-bold">📌 Status</label>
-                <select id="statusFilter"
-                        class="form-select rounded-3"
-                        onchange="window.applyProjectFilter && window.applyProjectFilter()">
+                <div class="search-dropdown-field">
+                    <input type="text"
+                           id="statusFilterSearch"
+                           class="form-control form-control-lg"
+                           placeholder="🔍 พิมพ์ค้นหา Status..."
+                           autocomplete="off" />
+                    <button type="button"
+                            id="clearStatusFilter"
+                            class="search-dropdown-clear"
+                            title="เลือก Status ใหม่"
+                            aria-label="เลือก Status ใหม่">
+                        ×
+                    </button>
+                </div>
+                <div id="statusFilterDropdown"
+                     class="list-group mt-1"
+                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                </div>
+                <select id="statusFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
                     <option value="PLAN">PLAN</option>
                     <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -216,6 +303,30 @@
                                asp-route-projectId="@p.ProjectId"
                                class="btn btn-sm btn-outline-success"
                                title="ดูสถานะโครงการ">📊</a>
+                            @if (CanMenu("ProjectIssues.Index"))
+                            {
+                                <a asp-controller="ProjectIssues"
+                                   asp-action="Index"
+                                   asp-route-projectId="@p.ProjectId"
+                                   class="btn btn-sm btn-outline-danger"
+                                   title="ดูปัญหาโครงการ">🐞</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Project Issues">🐞</button>
+                            }
+                            @if (CanMenu("SupportOrders.Index"))
+                            {
+                                <a asp-controller="SupportOrders"
+                                   asp-action="Index"
+                                   asp-route-projectId="@p.ProjectId"
+                                   class="btn btn-sm btn-outline-warning"
+                                   title="ดู Support Orders">🛠</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Support Orders">🛠</button>
+                            }
                             @if (CanMenu("Projects.Delete"))
                             {
                                 <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
@@ -385,6 +496,38 @@
                         📊 Status
                     </a>
 
+                    @if (CanMenu("ProjectIssues.Index"))
+                    {
+                        <a asp-controller="ProjectIssues"
+                           asp-action="Index"
+                           asp-route-projectId="@p.ProjectId"
+                           class="btn btn-outline-danger btn-sm">
+                            🐞 Issues
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🐞 Issues
+                        </button>
+                    }
+
+                    @if (CanMenu("SupportOrders.Index"))
+                    {
+                        <a asp-controller="SupportOrders"
+                           asp-action="Index"
+                           asp-route-projectId="@p.ProjectId"
+                           class="btn btn-outline-warning btn-sm">
+                            🛠 Support
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🛠 Support
+                        </button>
+                    }
+
                     @if (!string.IsNullOrEmpty(p.FigmaLink))
                     {
                         <a href="@p.FigmaLink"
@@ -403,6 +546,68 @@
 </div>
 
 <style>
+.project-filter-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.project-filter-row {
+    width: 100%;
+    min-width: 0;
+}
+
+.project-filter-form .form-control {
+    min-height: 48px;
+    border-radius: 14px;
+    font-weight: 700;
+}
+
+.search-dropdown-field {
+    position: relative;
+}
+
+.search-dropdown-field .form-control {
+    padding-right: 48px;
+}
+
+.search-dropdown-clear {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    background: #e2e8f0;
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1;
+    transition: .15s ease;
+}
+
+.search-dropdown-clear.is-visible {
+    display: inline-flex;
+}
+
+.search-dropdown-clear:hover {
+    color: #fff;
+    background: #0f766e;
+}
+
+#projectFilterDropdown,
+#baFilterDropdown,
+#statusFilterDropdown {
+    width: 100%;
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
+}
+
 .project-table-wrapper{
     overflow-x:auto;
     border:1px solid #ddd;
@@ -431,7 +636,7 @@
 .col-mini{ width:60px; min-width:60px; }
 
 /* Action buttons compact but not cramped */
-.col-action{ width:220px; min-width:220px; }
+.col-action{ width:300px; min-width:300px; }
 
 .project-table{
     table-layout: auto;
@@ -558,6 +763,39 @@ thead .sticky-col-2{
     }
 }
 
+.project-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-top: 18px;
+}
+
+.project-actions .btn {
+    flex: 0 0 90px;
+    width: 90px;
+    min-height: 38px;
+    padding: .4rem .55rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+@@media (max-width: 575.98px) {
+    .project-actions {
+        flex-wrap: wrap;
+    }
+
+    .project-actions .btn {
+        flex: 1 1 calc(50% - 6px);
+        width: auto;
+    }
+}
+
 .project-card {
     transition: .2s ease;
     width: 100%;
@@ -662,45 +900,123 @@ window.applyProjectFilter = function () {
     });
 };
 
-document.getElementById("projectFilter")?.addEventListener("change", window.applyProjectFilter);
-document.getElementById("baFilter")?.addEventListener("change", window.applyProjectFilter);
-document.getElementById("statusFilter")?.addEventListener("change", window.applyProjectFilter);
-const savedProject = localStorage.getItem("projects.selectedProject") || "";
-const ddl = document.getElementById("projectFilter");
-const baSaved = localStorage.getItem("projects.selectedBa") || "";
-const baDdl = document.getElementById("baFilter");
-const statusSaved = localStorage.getItem("projects.selectedStatus") || "";
-const statusDdl = document.getElementById("statusFilter");
+function restoreFilter(selectId, storageKey) {
+    const savedValue = localStorage.getItem(storageKey) || "";
+    const select = document.getElementById(selectId);
+    if (!savedValue || !select) return;
 
-if (savedProject && ddl) {
-    const exists = Array.from(ddl.options)
-        .some(opt => opt.value.trim().toLowerCase() === savedProject);
+    const match = Array.from(select.options)
+        .find(opt => opt.value.trim().toLowerCase() === savedValue);
 
-    if (exists) {
-        ddl.value = Array.from(ddl.options)
-            .find(opt => opt.value.trim().toLowerCase() === savedProject)?.value || "";
+    if (match) {
+        select.value = match.value;
     }
 }
 
-if (baSaved && baDdl) {
-    const exists = Array.from(baDdl.options)
-        .some(opt => opt.value.trim().toLowerCase() === baSaved);
+function bindFilterDropdown(config) {
+    const searchInput = document.getElementById(config.searchId);
+    const dropdown = document.getElementById(config.dropdownId);
+    const hiddenSelect = document.getElementById(config.selectId);
+    const clearButton = document.getElementById(config.clearId);
 
-    if (exists) {
-        baDdl.value = Array.from(baDdl.options)
-            .find(opt => opt.value.trim().toLowerCase() === baSaved)?.value || "";
+    if (!searchInput || !dropdown || !hiddenSelect) return;
+
+    const options = Array.from(hiddenSelect.options);
+
+    function updateClearButton() {
+        if (!clearButton) return;
+        clearButton.classList.toggle("is-visible", Boolean(searchInput.value || hiddenSelect.value));
     }
+
+    function renderList(filter = "") {
+        dropdown.innerHTML = "";
+
+        const keyword = filter.trim().toLowerCase();
+        const filtered = options.filter(option => {
+            if (option.value === "") return false;
+
+            const text = `${option.text} ${option.value}`.trim().toLowerCase();
+            return !keyword || text.includes(keyword);
+        });
+
+        if (filtered.length === 0) {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        filtered.forEach(option => {
+            const item = document.createElement("a");
+            item.className = "list-group-item list-group-item-action";
+            item.textContent = option.text;
+
+            item.addEventListener("click", function () {
+                searchInput.value = option.text;
+                hiddenSelect.value = option.value;
+                dropdown.style.display = "none";
+                updateClearButton();
+                window.applyProjectFilter();
+            });
+
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = "block";
+    }
+
+    const selectedOption = options.find(option => option.selected && option.value !== "");
+    if (selectedOption) {
+        searchInput.value = selectedOption.text;
+    }
+    updateClearButton();
+
+    searchInput.addEventListener("input", function () {
+        renderList(this.value);
+        updateClearButton();
+    });
+
+    searchInput.addEventListener("focus", function () {
+        renderList(this.value);
+    });
+
+    clearButton?.addEventListener("click", function () {
+        searchInput.value = "";
+        hiddenSelect.value = "";
+        dropdown.style.display = "none";
+        updateClearButton();
+        window.applyProjectFilter();
+    });
+
+    document.addEventListener("click", function (e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearButton?.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
 }
 
-if (statusSaved && statusDdl) {
-    const exists = Array.from(statusDdl.options)
-        .some(opt => opt.value.trim().toLowerCase() === statusSaved);
+restoreFilter("projectFilter", "projects.selectedProject");
+restoreFilter("baFilter", "projects.selectedBa");
+restoreFilter("statusFilter", "projects.selectedStatus");
 
-    if (exists) {
-        statusDdl.value = Array.from(statusDdl.options)
-            .find(opt => opt.value.trim().toLowerCase() === statusSaved)?.value || "";
-    }
-}
+bindFilterDropdown({
+    searchId: "projectFilterSearch",
+    dropdownId: "projectFilterDropdown",
+    selectId: "projectFilter",
+    clearId: "clearProjectFilter"
+});
+
+bindFilterDropdown({
+    searchId: "baFilterSearch",
+    dropdownId: "baFilterDropdown",
+    selectId: "baFilter",
+    clearId: "clearBaFilter"
+});
+
+bindFilterDropdown({
+    searchId: "statusFilterSearch",
+    dropdownId: "statusFilterDropdown",
+    selectId: "statusFilter",
+    clearId: "clearStatusFilter"
+});
 
 setTimeout(() => {
     window.applyProjectFilter();

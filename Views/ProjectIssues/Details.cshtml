@@ -1,113 +1,419 @@
+@model ProjectTracking.Models.ProjectIssue
+@using Microsoft.AspNetCore.Http
+@using System.Linq
+
 @{
     ViewData["Title"] = "Issue Details";
-}
 
-<h3 class="mb-4">@Model?.IssueName</h3>
+    var issue = Model;
+    var beforeImages = issue?.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
+    var afterImages = issue?.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
 
-<div class="mb-3">
-    <label class="fw-bold">Project</label>
-    <div>@(Model?.Project?.ProjectName ?? "-")</div>
-</div>
-
-<div class="mb-4">
-    <label class="fw-bold">Issue Detail</label>
-    <div>@(Model?.IssueDetail ?? "-")</div>
-</div>
-
-<div class="mb-4">
-    <label class="fw-bold">Dev Detail</label>
-    <div>@(Model?.DevDetail ?? "-")</div>
-</div>
-
-<div class="row mb-3">
-    <div class="col-md-3">
-        <label class="fw-bold">Priority</label>
-        <div>@(Model?.IssuePriority ?? "-")</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Status</label>
-        <div>@(Model?.IssueStatus ?? "-")</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Dev Status</label>
-        <div>@(Model?.DevStatus ?? "-")</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Due Date</label>
-        <div>@(Model?.CreatedAt?.ToString("dd MMM yyyy") ?? "-")</div>
-    </div>
-</div>
-
-<div class="mb-4">
-    <label class="fw-bold">Assign To</label>
-    <div>@(Model?.Employee?.EmpName ?? "-")</div>
-</div>
-
-<h5 class="mb-3">BA Images</h5>
-
-<div class="row mb-4">
-@{
-    var beforeImages = Model?.Images ?? new List<ProjectTracking.Models.ProjectIssueImage>();
-}
-
-@if (beforeImages.Count > 0)
-{
-    foreach (var img in beforeImages)
+    bool CanMenu(string key)
     {
-        <div class="col-md-2 mb-3">
-            <img src="@img.FilePath"
-                 class="img-fluid border rounded preview-img"
-                 style="cursor:pointer"
-                 onclick="previewImage('@img.FilePath')" />
-        </div>
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
-}
-else
-{
-    <div class="text-muted">No images</div>
-}
-</div>
 
-<h5 class="mb-3">After Fix Images</h5>
-
-<div class="row mb-4">
-@{
-    var afterImages = Model?.FixImages ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
-}
-
-@if (afterImages.Count > 0)
-{
-    foreach (var img in afterImages)
+    string IssueStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        <div class="col-md-2 mb-3">
-            <img src="@img.FilePath"
-                 class="img-fluid border rounded preview-img"
-                 style="cursor:pointer"
-                 onclick="previewImage('@img.FilePath')" />
-        </div>
+        "OPEN" => "bg-warning text-dark",
+        "WIP" => "bg-info text-dark",
+        "FIXED" => "bg-success",
+        "PASS" => "bg-primary",
+        "FAIL" => "bg-danger",
+        "REJECT" => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "TODO" => "bg-secondary",
+        "DOING" => "bg-info text-dark",
+        "FIXED" => "bg-success",
+        "BLOCK" => "bg-danger",
+        _ => "bg-dark"
+    };
+
+    var isUrgent = string.Equals(issue?.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    .issue-detail-page {
+        max-width: 1180px;
+        margin: 0 auto;
     }
-}
-else
-{
-    <div class="text-muted">No images</div>
-}
+
+    .issue-hero {
+        background: linear-gradient(135deg, #10233f, #1f3b63);
+        color: #fff;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .22);
+        margin-bottom: 18px;
+    }
+
+    .issue-hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+    }
+
+    .issue-eyebrow {
+        color: #94dbe1;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .issue-title {
+        font-size: clamp(24px, 3vw, 36px);
+        font-weight: 900;
+        line-height: 1.25;
+        margin: 0;
+        word-break: break-word;
+    }
+
+    .issue-project {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 18px;
+        margin-top: 12px;
+        color: #d8e6f7;
+        font-weight: 700;
+    }
+
+    .issue-badge-stack {
+        min-width: 230px;
+        display: grid;
+        gap: 8px;
+    }
+
+    .issue-badge-line {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+    }
+
+    .issue-badge-line small {
+        color: #bfd0e5;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .issue-badge-line .badge {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+    }
+
+    .issue-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .issue-actions .btn {
+        border-radius: 12px;
+        font-weight: 800;
+        padding-inline: 16px;
+    }
+
+    .issue-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .issue-summary-card,
+    .issue-panel {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .issue-summary-card {
+        padding: 14px 16px;
+        min-height: 90px;
+    }
+
+    .issue-summary-card small {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .issue-summary-card b {
+        color: #10233f;
+        font-size: 16px;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .issue-summary-card .muted {
+        color: #94a3b8;
+    }
+
+    .issue-content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .issue-panel {
+        padding: 18px;
+    }
+
+    .issue-panel h3 {
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 12px;
+    }
+
+    .issue-text-box {
+        min-height: 150px;
+        color: #24364d;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .issue-gallery-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .issue-gallery-head .badge {
+        border-radius: 999px;
+    }
+
+    .issue-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    .issue-image-card {
+        border: 1px solid #d8e3ef;
+        background: #f8fafc;
+        border-radius: 14px;
+        overflow: hidden;
+        padding: 8px;
+        cursor: pointer;
+        transition: transform .15s, box-shadow .15s;
+    }
+
+    .issue-image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .14);
+    }
+
+    .issue-image-card img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+        display: block;
+    }
+
+    .issue-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    @@media (max-width: 991.98px) {
+        .issue-hero-top,
+        .issue-content-grid {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .issue-badge-stack {
+            min-width: 0;
+        }
+
+        .issue-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .issue-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="issue-detail-page">
+    <section class="issue-hero">
+        <div class="issue-hero-top">
+            <div>
+                <div class="issue-eyebrow">Project Issue #@(issue?.IssueId ?? 0)</div>
+                <h1 class="issue-title">@(issue?.IssueName ?? "-")</h1>
+                <div class="issue-project">
+                    <span>Project: @(issue?.Project?.ProjectName ?? "-")</span>
+                    <span>Owner: @(issue?.Employee?.EmpName ?? "-")</span>
+                </div>
+            </div>
+
+            <div class="issue-badge-stack">
+                <div class="issue-badge-line">
+                    <small>Issue</small>
+                    <span class="badge @IssueStatusClass(issue?.IssueStatus)">@(issue?.IssueStatus ?? "-")</span>
+                </div>
+                <div class="issue-badge-line">
+                    <small>Dev</small>
+                    <span class="badge @DevStatusClass(issue?.DevStatus)">@(issue?.DevStatus ?? "-")</span>
+                </div>
+                <div class="issue-badge-line">
+                    <small>Priority</small>
+                    <span class="badge @(isUrgent ? "bg-danger" : "bg-secondary")">@(issue?.IssuePriority ?? "-")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="issue-actions">
+            <a asp-action="Index"
+               asp-route-projectId="@issue?.ProjectId"
+               class="btn btn-light">
+                กลับรายการ Issue
+            </a>
+
+            @if (issue != null && CanMenu("ProjectIssues.Edit"))
+            {
+                <a asp-action="Edit"
+                   asp-route-id="@issue.IssueId"
+                   asp-route-projectId="@issue.ProjectId"
+                   class="btn btn-warning">
+                    แก้ไข Issue
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="issue-summary-grid">
+        <div class="issue-summary-card">
+            <small>Created</small>
+            <b>@(issue?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
+        </div>
+        <div class="issue-summary-card">
+            <small>Last Fix</small>
+            <b>@(issue?.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
+        </div>
+        <div class="issue-summary-card">
+            <small>Reopen</small>
+            <b>@(issue?.IsReopen == true ? $"{issue.ReopenCount} ครั้ง" : "ไม่เคย Reopen")</b>
+        </div>
+        <div class="issue-summary-card">
+            <small>Images</small>
+            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+        </div>
+    </section>
+
+    <section class="issue-content-grid">
+        <article class="issue-panel">
+            <h3>รายละเอียดปัญหา</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.IssueDetail) ? "-" : issue.IssueDetail)</div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
+        </article>
+    </section>
+
+    <section class="issue-content-grid">
+        <article class="issue-panel">
+            <div class="issue-gallery-head">
+                <h3>รูปก่อนแก้</h3>
+                <span class="badge bg-primary">@beforeImages.Count รูป</span>
+            </div>
+
+            @if (beforeImages.Count > 0)
+            {
+                <div class="issue-gallery-grid">
+                    @foreach (var img in beforeImages)
+                    {
+                        <button type="button"
+                                class="issue-image-card"
+                                onclick="previewImage('@img.FilePath')"
+                                aria-label="ดูรูปก่อนแก้">
+                            <img src="@img.FilePath" alt="Issue image before fix" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="issue-empty">ไม่มีรูปก่อนแก้</div>
+            }
+        </article>
+
+        <article class="issue-panel">
+            <div class="issue-gallery-head">
+                <h3>รูปหลังแก้</h3>
+                <span class="badge bg-success">@afterImages.Count รูป</span>
+            </div>
+
+            @if (afterImages.Count > 0)
+            {
+                <div class="issue-gallery-grid">
+                    @foreach (var img in afterImages)
+                    {
+                        <button type="button"
+                                class="issue-image-card"
+                                onclick="previewImage('@img.FilePath')"
+                                aria-label="ดูรูปหลังแก้">
+                            <img src="@img.FilePath" alt="Issue image after fix" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="issue-empty">ไม่มีรูปหลังแก้</div>
+            }
+        </article>
+    </section>
 </div>
 
-<a asp-action="Index"
-   asp-route-projectId="@Model?.ProjectId"
-   class="btn btn-secondary">
-    Back
-</a>
-
-<!-- Image Preview Modal -->
-<div class="modal fade" id="imagePreviewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content bg-dark">
-            <div class="modal-body text-center">
-                <img id="previewImage" src="" class="img-fluid rounded" />
+            <div class="modal-body text-center p-2">
+                <img id="previewImage" src="" class="img-fluid rounded" alt="preview" />
             </div>
         </div>
     </div>

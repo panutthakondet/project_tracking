@@ -4,8 +4,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 @model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
@@ -27,9 +31,12 @@
 }
 
 <div class="phase-report-page">
-<div class="phase-report-title">
-    <span class="title-mark">▮▮▮</span>
-    <h2>รายงานสถานะงานตามพนักงาน</h2>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">รายงานสถานะงานตามพนักงาน</h2>
+        <p class="index-subtitle">สรุปสถานะ Phase และงานที่ล่าช้าของผู้รับผิดชอบ</p>
+    </div>
 </div>
 
 <!-- ================= SUMMARY ================= -->

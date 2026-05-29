@@ -4,20 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
-using ProjectTracking.Attributes;
-
-namespace ProjectTracking.Attributes
-{
-    public class RequireMenuAttribute : Attribute
-    {
-        public string MenuKey { get; }
-
-        public RequireMenuAttribute(string menuKey)
-        {
-            MenuKey = menuKey;
-        }
-    }
-}
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {

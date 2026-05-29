@@ -6,131 +6,321 @@
     var selectedEmp = ViewBag.SelectedEmp as string;
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var issueList = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "bg-warning text-dark",
+        "WIP" => "bg-info text-dark",
+        "FIXED" => "bg-success",
+        "PASS" => "bg-primary",
+        "FAIL" => "bg-danger",
+        "REJECT" => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "TODO" => "bg-secondary",
+        "DOING" => "bg-info text-dark",
+        "FIXED" => "bg-success",
+        "BLOCK" => "bg-danger",
+        _ => "bg-dark"
+    };
 }
 
 <style>
-.table-wrapper{
-    overflow-x:auto;
-}
-.issue-table{
-    min-width:1200px;
-}
-.col-id{ width:70px; text-align:center; }
-.col-issue{ min-width:300px; }
-.col-owner{ width:160px; text-align:center; }
-.col-status{ width:150px; text-align:center; }
-.col-priority{ width:120px; text-align:center; }
-.col-action{ width:120px; text-align:center; white-space:nowrap; }
+    .dev-issue-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    .dev-issue-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
+
+    .dev-issue-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .dev-issue-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 6px 0 0;
+    }
+
+    .dev-filter-card,
+    .dev-issue-card,
+    .dev-empty-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .dev-filter-card {
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .dev-issue-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .dev-issue-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, .6fr);
+        overflow: hidden;
+        border-left: 5px solid #14b8a6;
+    }
+
+    .dev-issue-card.is-urgent {
+        border-left-color: #ef4444;
+    }
+
+    .dev-issue-main,
+    .dev-issue-side {
+        padding: 18px;
+        min-width: 0;
+    }
+
+    .dev-issue-side {
+        border-left: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .dev-issue-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .dev-issue-no {
+        flex: 0 0 auto;
+        min-width: 46px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        font-weight: 900;
+    }
+
+    .dev-issue-name {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .dev-issue-detail {
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.55;
+        margin: 8px 0 12px;
+        word-break: break-word;
+    }
+
+    .dev-issue-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .dev-status-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .dev-status-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .dev-status-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .dev-status-row .badge {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+    }
+
+    .dev-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .dev-empty-card {
+        color: #64748b;
+        padding: 28px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 991.98px) {
+        .dev-issue-card {
+            grid-template-columns: 1fr;
+        }
+
+        .dev-issue-side {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+    }
 </style>
 
-<div class="mb-3">
-    <h2 class="fw-bold mb-0">👨‍💻 แก้ไขสถานะปัญหาโครงการ</h2>
-    <small class="text-muted">โปรแกรมเมอร์แก้ Dev Status เท่านั้น</small>
-</div>
-
-<form method="get" id="filterForm" class="row g-3 mb-4">
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">📁 Project</label>
-        <select id="projectSelect" name="projectId" class="form-select" onchange="document.getElementById('filterForm').submit()">
-            <option value="">-- Select Project --</option>
-            @foreach (var p in projects
-                                .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
-            {
-                <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">@p.ProjectName</option>
-            }
-        </select>
+<div class="dev-issue-page">
+    <div class="dev-issue-hero">
+        <div>
+            <h2 class="dev-issue-title">แก้ไขสถานะปัญหาโครงการ</h2>
+            <p class="dev-issue-subtitle">โปรแกรมเมอร์อัปเดต Dev Status และผลการแก้ไข</p>
+        </div>
     </div>
 
-    @if (selectedProject != null)
-    {
-        <div class="col-md-4">
-            <label class="form-label fw-semibold">👤 Owner</label>
-            <select name="empName" class="form-select" onchange="document.getElementById('filterForm').submit()">
-                <option value="">-- All --</option>
-                @foreach (var emp in empList)
-                {
-                    <option value="@emp" selected="@(emp == selectedEmp)">@emp</option>
-                }
-            </select>
-        </div>
-    }
-</form>
+    <form method="get" id="filterForm" class="dev-filter-card">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Project</label>
+                <select id="projectSelect" name="projectId" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">-- Select Project --</option>
+                    @foreach (var p in projects.OrderBy(x => x.EndDate ?? DateTime.MaxValue))
+                    {
+                        <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">@p.ProjectName</option>
+                    }
+                </select>
+            </div>
 
-@if (selectedProject == null)
-{
-    <div class="alert alert-info">⬆ กรุณาเลือก Project เพื่อดูรายการ Issue</div>
-}
-else
-{
-    @if (Model == null || !Model.Any())
-    {
-        <div class="alert alert-warning">ไม่พบรายการ Issue</div>
-        return;
-    }
-    <div class="table-wrapper">
-        <table class="table table-bordered table-hover align-middle issue-table">
-            <thead class="table-dark text-center">
-                <tr>
-                    <th class="col-id">No.</th>
-                    <th class="col-issue">Issue</th>
-                    <th class="col-owner">Owner</th>
-                    <th class="col-status">Status</th>
-                    <th class="col-status">Dev Status</th>
-                    <th class="col-priority">Priority</th>
-                    <th class="col-action">Dev</th>
-                </tr>
-            </thead>
-
-            <tbody>
-            @{ var row = 1; }
-            @foreach (var i in Model)
+            @if (selectedProject != null)
             {
-                var urgent = i.IssuePriority == "URGENT";
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Owner</label>
+                    <select name="empName" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                        <option value="">-- All --</option>
+                        @foreach (var emp in empList)
+                        {
+                            <option value="@emp" selected="@(emp == selectedEmp)">@emp</option>
+                        }
+                    </select>
+                </div>
+            }
+        </div>
+    </form>
 
-                string statusClass =
-                    i.IssueStatus == "OPEN" ? "bg-warning text-dark" :
-                    i.IssueStatus == "WIP" ? "bg-info text-dark" :
-                    i.IssueStatus == "FIXED" ? "bg-success" :
-                    i.IssueStatus == "PASS" ? "bg-primary" :
-                    i.IssueStatus == "FAIL" ? "bg-danger" :
-                    i.IssueStatus == "REJECT" ? "bg-dark" :
-                    "bg-secondary";
+    @if (selectedProject == null)
+    {
+        <div class="dev-empty-card">กรุณาเลือก Project เพื่อดูรายการ Issue</div>
+    }
+    else if (!issueList.Any())
+    {
+        <div class="dev-empty-card">ไม่พบรายการ Issue</div>
+    }
+    else
+    {
+        <div class="dev-issue-list">
+            @{
+                var row = 1;
+            }
 
-                <tr class="@(urgent ? "table-danger" : "")">
-                    <td class="col-id fw-semibold">@row</td>
+            @foreach (var i in issueList)
+            {
+                var urgent = string.Equals(i.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase);
 
-                    <td class="col-issue">
-                        <div class="fw-semibold">@i.IssueName</div>
-                        <small class="text-muted">📅 @i.CreatedAt.ToString("dd/MM/yyyy")</small>
-                    </td>
+                <article class="dev-issue-card @(urgent ? "is-urgent" : "")">
+                    <div class="dev-issue-main">
+                        <div class="dev-issue-head">
+                            <span class="dev-issue-no">#@row</span>
+                            <div>
+                                <span class="dev-issue-name">@i.IssueName</span>
+                                <div class="dev-issue-detail">
+                                    @(string.IsNullOrWhiteSpace(i.IssueDetail) ? "ไม่มีรายละเอียดเพิ่มเติม" : i.IssueDetail)
+                                </div>
+                            </div>
+                        </div>
 
-                    <td class="col-owner"><span class="badge bg-light text-dark border">@(i.Employee?.EmpName ?? "-")</span></td>
-                    <td class="col-status"><span class="badge @statusClass">@i.IssueStatus</span></td>
-                    <td class="col-status">
-                        <span class="badge 
-                            @(i.DevStatus == "TODO" ? "bg-secondary" :
-                              i.DevStatus == "DOING" ? "bg-info text-dark" :
-                              i.DevStatus == "FIXED" ? "bg-success" :
-                              i.DevStatus == "BLOCK" ? "bg-danger" : "bg-dark")">
-                            @i.DevStatus
-                        </span>
-                    </td>
-                    <td class="col-priority"><span class="badge @(urgent ? "bg-danger" : "bg-secondary")">@(urgent ? "🔥 URGENT" : "NORMAL")</span></td>
+                        <div class="dev-issue-meta">
+                            <span>สร้างเมื่อ @i.CreatedAt.ToString("dd/MM/yyyy")</span>
+                            <span>Owner: @(i.Employee?.EmpName ?? "-")</span>
+                            <span>Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                        </div>
+                    </div>
 
-                    <td class="col-action">
-                        <div class="d-inline-flex gap-1">
+                    <div class="dev-issue-side">
+                        <div class="dev-status-grid">
+                            <div class="dev-status-row">
+                                <small>Issue</small>
+                                <span class="badge @StatusClass(i.IssueStatus)">@i.IssueStatus</span>
+                            </div>
+                            <div class="dev-status-row">
+                                <small>Dev</small>
+                                <span class="badge @DevStatusClass(i.DevStatus)">@i.DevStatus</span>
+                            </div>
+                            <div class="dev-status-row">
+                                <small>Priority</small>
+                                <span class="badge @(urgent ? "bg-danger" : "bg-secondary")">
+                                    @(urgent ? "URGENT" : "NORMAL")
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="dev-actions">
                             <a asp-controller="ProjectIssues"
                                asp-action="DevDetails"
                                asp-route-id="@i.IssueId"
-                               asp-route-projectId="@selectedProject!.ProjectId"
-                               class="btn btn-sm btn-outline-secondary">👁 View</a>
-                            <a asp-action="DevEdit" asp-route-id="@i.IssueId" asp-route-projectId="@selectedProject?.ProjectId" class="btn btn-sm btn-warning">✏️ Edit</a>
+                               asp-route-projectId="@selectedProject.ProjectId"
+                               class="btn btn-sm btn-outline-secondary">
+                                View
+                            </a>
+                            <a asp-action="DevEdit"
+                               asp-route-id="@i.IssueId"
+                               asp-route-projectId="@selectedProject.ProjectId"
+                               class="btn btn-sm btn-primary">
+                                Edit Dev
+                            </a>
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                </article>
+
                 row++;
             }
-            </tbody>
-        </table>
-    </div>
-}
+        </div>
+    }
+</div>

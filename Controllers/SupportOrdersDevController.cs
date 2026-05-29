@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
-using ProjectTracking.Attributes;
+using ProjectTracking.Middleware;
 
 namespace ProjectTracking.Controllers
 {

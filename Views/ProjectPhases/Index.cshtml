@@ -5,14 +5,19 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
 @{
     ViewData["Title"] = "บันทึกข้อมูลแผนงานและงวดงาน";
     var th = new CultureInfo("th-TH");
+    var selectedProject = ViewBag.SelectedProject;
 
     // ✅ เรียงตาม phase_sort เป็นหลัก (0 หรือ null ให้ไปท้าย) เพื่อให้การลากสลับแถว "ถาวร" ตามค่า PhaseSort
     //    แล้วค่อย tie-break ด้วย PlanEnd (null ไปท้าย) และ PhaseId
@@ -20,63 +25,39 @@
         .OrderBy(p => (p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort))
         .ThenBy(p => p.PlanEnd ?? DateTime.MaxValue)
         .ThenBy(p => p.PhaseId);
+
+    string PhaseStatusClass(string? status) => (status ?? "").Trim() switch
+    {
+        "วางแผน" => "bg-secondary",
+        "กำลังดำเนินการ" => "bg-primary",
+        "ส่งงวดงานแล้ว" => "bg-warning text-dark",
+        "อนุมัติจ่ายเงินแล้ว" => "bg-success",
+        _ => "bg-light text-dark"
+    };
+
+    string PhaseTone(string? phaseType) => (phaseType ?? "").Trim().ToUpperInvariant() switch
+    {
+        "SUPPORT" => "is-support",
+        "MAIN" => "is-main",
+        _ => "is-muted"
+    };
+
+    string PhaseTypeText(string? phaseType) => (phaseType ?? "").Trim().ToUpperInvariant() switch
+    {
+        "SUPPORT" => "Support Phase",
+        "MAIN" => "Main Phase",
+        _ => "-"
+    };
+
+    string DateRange(DateTime? start, DateTime? end)
+    {
+        var startText = start?.ToString("dd MMM yyyy", th) ?? "-";
+        var endText = end?.ToString("dd MMM yyyy", th) ?? "-";
+        return $"{startText} - {endText}";
+    }
 }
 
 <style>
-    .project-header-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 18px;
-        padding: 18px 22px;
-        box-shadow: 0 2px 10px rgba(15,23,42,.05);
-    }
-
-    .project-title {
-        line-height: 1.45;
-        word-break: break-word;
-        flex: 1;
-        min-width: 0;
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .project-header-wrapper {
-        display: flex;
-        align-items: stretch;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 18px;
-        flex-wrap: wrap;
-    }
-
-    .project-header-top {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .project-header-action {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        flex-shrink: 0;
-        padding-top: 10px;
-    }
-
-    @@media (max-width: 768px) {
-        .project-header-wrapper {
-            flex-direction: column;
-        }
-
-        .project-header-action {
-            width: 100%;
-            justify-content: flex-start;
-        }
-
-        .project-header-action .btn {
-            width: auto;
-        }
-    }
     table tbody tr.phase-main > td {
         background-color: #ffffff !important;
     }
@@ -103,169 +84,353 @@
         word-break: break-word;
     }
 
-    /* --- Responsive Phase Card Layout --- */
+    /* --- SupportOrders-style Phase Card Layout --- */
     .phase-card-container {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
+        display: grid;
+        gap: 14px;
     }
 
     .phase-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, .42fr);
         background: #fff;
-        border: 2px solid #cbd5e1;
-        border-radius: 24px;
-        padding: 22px;
-        box-shadow: 0 4px 14px rgba(15,23,42,.05);
+        border: 1px solid #d8e3ef;
+        border-left: 5px solid #94a3b8;
+        border-radius: 18px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+        transition: transform .15s ease, box-shadow .15s ease;
     }
 
-    .phase-card-main {
-        border-left: 6px solid #2563eb;
+    .phase-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .12);
     }
 
+    .phase-card.is-main {
+        border-left-color: #14b8a6;
+    }
+
+    .phase-card.is-support {
+        border-left-color: #f59e0b;
+    }
+
+    .phase-card-main,
     .phase-card-support {
-        border-left: 6px solid #dc2626;
-        background: #fff7f7;
+        background: #fff;
     }
 
-    .phase-card-header {
-        margin-bottom: 18px;
+    .phase-card-content,
+    .phase-card-side {
+        min-width: 0;
+        padding: 18px;
+    }
+
+    .phase-card-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+        background: #f8fafc;
+        border-left: 1px solid #e2e8f0;
+    }
+
+    .phase-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
     }
 
     .phase-card-drag {
-        cursor: grab;
-        font-size: 1.3rem;
-        font-weight: 700;
-    }
-
-    .phase-card-title {
-        font-weight: 700;
-        color: #2563eb;
-        margin-bottom: 4px;
-    }
-
-    .phase-card-name {
-        font-size: 1.08rem;
-        font-weight: 700;
-    }
-
-    .phase-card-inline {
-        display: flex;
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        line-height: 1.7;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        white-space: nowrap;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        cursor: grab;
+        font-size: 1.1rem;
+        font-weight: 900;
+        user-select: none;
     }
 
     .phase-no {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        min-height: 32px;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        border-radius: 999px;
         font-size: 1rem;
-        font-weight: 800;
-        color: #2563eb;
+        font-weight: 900;
     }
 
     .phase-period {
-        font-size: .98rem;
-        font-weight: 700;
-        color: #0f172a;
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 900;
     }
 
     .phase-name-row {
-        margin-top: 6px;
-        font-size: 1.12rem;
-        font-weight: 700;
-        color: #111827;
-        line-height: 1.55;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
     }
 
-    .phase-name-inline {
-        font-weight: 700;
-        color: #111827;
-        display: block;
-    }
-
-    .phase-plan-inline {
+    .phase-detail {
         color: #475569;
-        font-weight: 500;
-    }
-
-    .phase-plan-label {
         font-weight: 700;
-        color: #334155;
-        margin-right: 4px;
+        line-height: 1.55;
+        margin-top: 12px;
+        overflow-wrap: anywhere;
     }
 
-    .phase-info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
-        gap: 12px;
-    }
-
-    .phase-info-box {
-        background: #f8fafc;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 14px;
-    }
-
-    .phase-info-label {
-        font-size: .82rem;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 4px;
-    }
-
-    .phase-info-value {
-        font-weight: 600;
-    }
-
-    .phase-date-row {
+    .phase-meta {
         display: flex;
         flex-wrap: wrap;
+        gap: 8px 12px;
+        margin-top: 14px;
+    }
+
+    .phase-meta-pill {
+        display: inline-flex;
         align-items: center;
-        gap: 24px;
-        margin-top: 10px;
+        min-height: 30px;
+        padding: 6px 10px;
         color: #475569;
-        font-size: .97rem;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
     }
 
-    .phase-date-item {
-        white-space: nowrap;
+    .phase-status-grid {
+        display: grid;
+        gap: 10px;
     }
 
-    .phase-date-item strong {
-        color: #334155;
-        margin-right: 4px;
+    .phase-status-row {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .phase-status-row small {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .phase-status-row .badge {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: center;
     }
 
     .phase-card-actions {
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .phase-card-actions form {
+        margin: 0;
     }
 
     .phase-card-actions .btn {
-        font-size: .93rem;
-        font-weight: 600;
+        flex: 0 0 90px;
+        width: 90px;
+        min-height: 38px;
+        padding: .4rem .55rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .8rem;
+        font-weight: 800;
+        line-height: 1.15;
+        white-space: nowrap;
+    }
+
+    .phase-filter-form {
+        width: 100%;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .phase-filter-row {
+        width: 100%;
+    }
+
+    .phase-filter-form .form-control {
+        min-height: 48px;
+        border-radius: 14px;
+        font-weight: 700;
+    }
+
+    #projectDropdown {
+        width: 100%;
+        border-radius: 14px;
+        box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
+    }
+
+    .search-dropdown-field {
+        position: relative;
+    }
+
+    .search-dropdown-field .form-control {
+        padding-right: 48px;
+    }
+
+    .search-dropdown-clear {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 999px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: #334155;
+        background: #e2e8f0;
+        font-size: 1.15rem;
+        font-weight: 900;
+        line-height: 1;
+        transition: .15s ease;
+    }
+
+    .search-dropdown-clear.is-visible {
+        display: inline-flex;
+    }
+
+    .search-dropdown-clear:hover {
+        color: #fff;
+        background: #0f766e;
+    }
+
+    @@media (max-width: 991.98px) {
+        .phase-card {
+            grid-template-columns: 1fr;
+        }
+
+        .phase-card-side {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .phase-card-actions {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .phase-card-actions {
+            flex-wrap: wrap;
+        }
+
+        .phase-card-actions .btn {
+            flex: 1 1 calc(50% - 6px);
+            width: auto;
+        }
     }
 </style>
 
-<h2 class="fw-bold mb-3">🧩 บันทึกข้อมูลแผนงานและงวดงาน</h2>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">บันทึกข้อมูลแผนงานและงวดงาน</h2>
+        <p class="index-subtitle">เลือกโครงการเพื่อจัดการ Phase ของแต่ละ Project</p>
+    </div>
 
-<p class="text-muted">
-    เลือกโครงการเพื่อจัดการ Phase ของแต่ละ Project
-</p>
+    @if (selectedProject != null)
+    {
+        <div class="index-actions">
+            <a asp-controller="Projects"
+               asp-action="Index"
+               class="btn btn-outline-secondary"
+               title="กลับไปหน้ารายการโครงการ">
+                Projects
+            </a>
 
-<form method="get" class="mb-4">
-    <div class="col-md-6">
+            @if (CanMenu("ProjectPhases.Create"))
+            {
+                <a asp-action="Create"
+                   asp-route-projectId="@selectedProject.ProjectId"
+                   class="btn btn-primary"
+                   title="เพิ่ม Phase">
+                    Add Phase
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
+                    Add Phase
+                </button>
+            }
+
+            @if (CanMenu("PhaseAssigns.Index"))
+            {
+                <a asp-controller="PhaseAssigns"
+                   asp-action="Index"
+                   asp-route-projectId="@selectedProject.ProjectId"
+                   class="btn btn-outline-info"
+                   title="จัดการ Assign">
+                    Assign
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เข้าหน้า Assign">
+                    Assign
+                </button>
+            }
+        </div>
+    }
+</div>
+
+<form method="get" class="phase-filter-form mb-4">
+    <div class="phase-filter-row">
 
         <label class="form-label fw-bold">📁 Select Project</label>
 
-        <input type="text"
-               id="projectSearch"
-               class="form-control"
-               placeholder="🔍 พิมพ์ค้นหา Project..."
-               autocomplete="off" />
+        <div class="search-dropdown-field">
+            <input type="text"
+                   id="projectSearch"
+                   class="form-control form-control-lg"
+                   placeholder="🔍 พิมพ์ค้นหา Project..."
+                   autocomplete="off" />
+            <button type="button"
+                    id="clearProjectSearch"
+                    class="search-dropdown-clear"
+                    title="เลือก Project ใหม่"
+                    aria-label="เลือก Project ใหม่">
+                ×
+            </button>
+        </div>
 
         <div id="projectDropdown"
              class="list-group mt-1"
@@ -291,77 +456,8 @@
     </div>
 </form>
 
-@if (ViewBag.SelectedProject != null)
+@if (selectedProject != null)
 {
-    var selectedProject = ViewBag.SelectedProject;
-
-    <div class="project-header-wrapper">
-
-        <div class="project-header-top">
-            <div class="project-header-card h-100">
-                <h4 class="fw-bold mb-0 project-title">
-                    📌 Project : @selectedProject.ProjectName
-                </h4>
-            </div>
-        </div>
-
-        <div class="project-header-action">
-            <div class="d-flex align-items-center gap-2" style="flex-wrap:wrap;">
-
-                <a asp-controller="Projects"
-                   asp-action="Index"
-                   class="btn btn-outline-secondary px-4"
-                   title="กลับไปหน้ารายการโครงการ"
-                   style="font-size:1.07rem; white-space:nowrap; height: 40px;">
-                    ↩ Projects
-                </a>
-
-                @if (CanMenu("ProjectPhases.Create"))
-                {
-                    <a asp-action="Create"
-                       asp-route-projectId="@selectedProject.ProjectId"
-                       class="btn btn-primary px-4"
-                       title="เพิ่ม Phase"
-                       style="font-size:1.07rem; white-space:nowrap; height: 40px;">
-                        ➕ Add Phase
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-primary px-4"
-                            disabled
-                            title="ไม่มีสิทธิ์เพิ่ม Phase"
-                            style="font-size:1.07rem; white-space:nowrap; height: 40px;">
-                        ➕ Add Phase
-                    </button>
-                }
-
-                @if (CanMenu("PhaseAssigns.Index"))
-                {
-                    <a asp-controller="PhaseAssigns"
-                       asp-action="Index"
-                       asp-route-projectId="@selectedProject.ProjectId"
-                       class="btn btn-outline-info px-4"
-                       title="จัดการ Assign"
-                       style="font-size:1.07rem; white-space:nowrap; height:40px;">
-                        👥 Assign
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-outline-secondary px-4"
-                            disabled
-                            title="ไม่มีสิทธิ์เข้าหน้า Assign"
-                            style="font-size:1.07rem; white-space:nowrap; height:40px;">
-                        👥 Assign
-                    </button>
-                }
-
-            </div>
-        </div>
-
-    </div>
-
     <form id="antiForm" method="post" style="display:none;">
         @Html.AntiForgeryToken()
     </form>
@@ -528,84 +624,63 @@ else
         rowCard++;
 
         var status = phase.PhaseStatus ?? "";
-        string badgeClass = status switch
-        {
-            "วางแผน" => "bg-secondary",
-            "กำลังดำเนินการ" => "bg-primary",
-            "ส่งงวดงานแล้ว" => "bg-warning text-dark",
-            "อนุมัติจ่ายเงินแล้ว" => "bg-success",
-            _ => "bg-light text-dark"
-        };
 
-        <div class="phase-card @(phase.PhaseType == "SUPPORT" ? "phase-card-support" : "phase-card-main")"
+        <div class="phase-card @(phase.PhaseType == "SUPPORT" ? "phase-card-support" : "phase-card-main") @PhaseTone(phase.PhaseType)"
              data-phase-id="@phase.PhaseId">
 
-            <div class="phase-card-header">
-                <div class="d-flex align-items-start gap-3 flex-grow-1">
-                    <div class="phase-drag-handle phase-card-drag"
-                         title="ลากเพื่อสลับลำดับ">
+            <section class="phase-card-content">
+                <div class="phase-card-head">
+                    <div class="phase-drag-handle phase-card-drag" title="ลากเพื่อสลับลำดับ">
                         ☰
                     </div>
 
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start gap-3">
-
-                            <div class="flex-grow-1">
-
-                                <div class="phase-title-row">
-                                    <span class="phase-no">#@displayNo</span>
-                                    <span class="phase-period">— งวด @phase.PhaseOrder</span>
-                                </div>
-
-                                <div class="phase-name-row">
-                                    @phase.PhaseName
-                                </div>
-
-                            </div>
-
-                            <span class="badge @badgeClass px-3 py-2 rounded-pill shadow-sm">
-                                @(string.IsNullOrEmpty(status) ? "-" : status)
-                            </span>
-
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <span class="phase-no">#@displayNo</span>
+                            <span class="phase-period">งวด @phase.PhaseOrder</span>
                         </div>
+
+                        <div class="phase-name-row">@phase.PhaseName</div>
                     </div>
                 </div>
-            </div>
 
-            <div class="phase-card-body">
-
-                <div class="phase-date-row">
-
-                    <span class="phase-date-item">
-                        <strong>Plan Date</strong>
-                        @(phase.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
-                        –
-                        @(phase.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
-                    </span>
-
-                    <span class="phase-date-item">
-                        <strong>Period Date</strong>
-                        @(phase.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                        –
-                        @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                    </span>
-
+                <div class="phase-detail">
+                    แผนงานและงวดงานของโครงการที่เลือก
                 </div>
 
-                <div class="phase-card-actions mt-3">
+                <div class="phase-meta">
+                    <span class="phase-meta-pill">Plan Date: @DateRange(phase.PlanStart, phase.PlanEnd)</span>
+                    <span class="phase-meta-pill">Period Date: @DateRange(phase.PeriodStartDate, phase.PeriodEndDate)</span>
+                </div>
+            </section>
 
+            <aside class="phase-card-side">
+                <div class="phase-status-grid">
+                    <div class="phase-status-row">
+                        <small>Type</small>
+                        <span class="badge @(phase.PhaseType == "SUPPORT" ? "bg-warning text-dark" : "bg-info text-dark")">
+                            @PhaseTypeText(phase.PhaseType)
+                        </span>
+                    </div>
+                    <div class="phase-status-row">
+                        <small>Status</small>
+                        <span class="badge @PhaseStatusClass(status)">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
+                    </div>
+                </div>
+
+                <div class="phase-card-actions">
                     @if (CanMenu("ProjectPhases.Edit"))
                     {
                         <a asp-action="Edit"
                            asp-route-id="@phase.PhaseId"
                            class="btn btn-outline-primary btn-sm">
-                            ✏️ Edit
+                            Edit
                         </a>
                     }
                     else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
-                            ✏️ Edit
+                            Edit
                         </button>
                     }
 
@@ -622,19 +697,18 @@ else
                             <button type="submit"
                                     class="btn btn-outline-danger btn-sm"
                                     onclick="return confirm('ยืนยันการลบ Phase นี้?');">
-                                🗑 Delete
+                                Delete
                             </button>
                         </form>
                     }
                     else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
-                            🗑 Delete
+                            Delete
                         </button>
                     }
-
                 </div>
-            </div>
+            </aside>
         </div>
     }
 }
@@ -660,9 +734,15 @@ else
         const searchInput = document.getElementById("projectSearch");
         const dropdown = document.getElementById("projectDropdown");
         const hiddenSelect = document.getElementById("hiddenProjectSelect");
+        const clearProjectSearch = document.getElementById("clearProjectSearch");
 
         if (searchInput && dropdown && hiddenSelect) {
             const options = Array.from(hiddenSelect.options);
+
+            function updateProjectClear() {
+                if (!clearProjectSearch) return;
+                clearProjectSearch.classList.toggle("is-visible", Boolean(searchInput.value || hiddenSelect.value));
+            }
 
             function renderList(filter = "") {
                 dropdown.innerHTML = "";
@@ -700,6 +780,7 @@ else
                         searchInput.value = o.text;
                         hiddenSelect.value = o.value;
                         dropdown.style.display = "none";
+                        updateProjectClear();
                         searchInput.closest("form").submit();
                     };
 
@@ -709,16 +790,33 @@ else
                 dropdown.style.display = "block";
             }
 
+            const selectedOption = options.find(o => o.selected && o.value !== "");
+            if (selectedOption) {
+                searchInput.value = selectedOption.text;
+            }
+            updateProjectClear();
+
             searchInput.addEventListener("input", function () {
                 renderList(this.value);
+                updateProjectClear();
             });
 
             searchInput.addEventListener("focus", function () {
                 renderList(this.value);
             });
 
+            if (clearProjectSearch) {
+                clearProjectSearch.addEventListener("click", function () {
+                    searchInput.value = "";
+                    hiddenSelect.value = "";
+                    dropdown.style.display = "none";
+                    updateProjectClear();
+                    searchInput.closest("form").submit();
+                });
+            }
+
             document.addEventListener("click", function (e) {
-                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearProjectSearch?.contains(e.target)) {
                     dropdown.style.display = "none";
                 }
             });
@@ -745,11 +843,9 @@ else
                 const noSpan = tr.querySelector('td.phase-sort-cell span.ms-2');
                 if (noSpan) noSpan.textContent = String(i);
                 // For card
-                const cardNo = tr.querySelector('.phase-card-title');
+                const cardNo = tr.querySelector('.phase-no');
                 if (cardNo) {
-                    // #n — งวด ...
-                    let txt = cardNo.textContent;
-                    cardNo.textContent = txt.replace(/^#\d+/, `#${i}`);
+                    cardNo.textContent = `#${i}`;
                 }
                 i++;
             });

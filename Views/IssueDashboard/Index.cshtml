@@ -4,8 +4,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 @{
@@ -256,30 +260,30 @@ canvas{display:block;}
 }
 </style>
 
-<h3 class="mb-2">
-    📊 ภาพรวมทั้งโครงการ
-    <span class="year-badge">ปี @currentYear</span>
-</h3>
-@if (CanMenu("IssueDashboard.Export"))
-{
-    <div class="mb-2">
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">ภาพรวมทั้งโครงการ</h2>
+        <p class="index-subtitle">กรองข้อมูลปี @currentYear (@yearStart.ToString("dd/MM/yyyy") - @yearEnd.ToString("dd/MM/yyyy"))</p>
+    </div>
+
+    <div class="index-actions">
+        <span class="index-chip">ปี @currentYear</span>
+        @if (CanMenu("IssueDashboard.Export"))
+        {
         <a href="/IssueDashboard/Export" 
-           class="btn btn-success btn-sm"
+           class="btn btn-success"
            title="Export รายงาน">
-            ⬇ Export
+            Export
         </a>
-    </div>
-}
-else
-{
-    <div class="mb-2">
-        <button class="btn btn-success btn-sm" disabled title="ไม่มีสิทธิ์ Export">
-            ⬇ Export
+        }
+        else
+        {
+        <button class="btn btn-success" disabled title="ไม่มีสิทธิ์ Export">
+            Export
         </button>
+        }
     </div>
-}
-<div class="year-subtitle">
-    กรองข้อมูลปี @currentYear (@yearStart.ToString("dd/MM/yyyy") - @yearEnd.ToString("dd/MM/yyyy"))
 </div>
 
 <div id="chartDebug"></div>

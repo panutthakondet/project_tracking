@@ -208,6 +208,11 @@ namespace ProjectTracking.Controllers
             Project model
         )
         {
+            if (id == 0 && model.ProjectId > 0)
+            {
+                id = model.ProjectId;
+            }
+
             if (id != model.ProjectId)
             {
                 return NotFound();
@@ -219,58 +224,10 @@ namespace ProjectTracking.Controllers
                 return NotFound();
             }
 
-            // รองรับวันที่แบบ วัน/เดือน/พ.ศ. และ yyyy-MM-dd
-            if (!string.IsNullOrWhiteSpace(Request.Form["StartDate"]))
-            {
-                var raw = Request.Form["StartDate"].ToString().Trim();
-
-                if (DateTime.TryParseExact(
-                        raw,
-                        "yyyy-MM-dd",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out var dt)
-                    || DateTime.TryParseExact(
-                        raw,
-                        "dd/MM/yyyy",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out dt))
-                {
-                    if (dt.Year > 2400)
-                    {
-                        dt = dt.AddYears(-543);
-                    }
-
-                    model.StartDate = dt;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(Request.Form["EndDate"]))
-            {
-                var raw = Request.Form["EndDate"].ToString().Trim();
-
-                if (DateTime.TryParseExact(
-                        raw,
-                        "yyyy-MM-dd",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out var dt)
-                    || DateTime.TryParseExact(
-                        raw,
-                        "dd/MM/yyyy",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out dt))
-                {
-                    if (dt.Year > 2400)
-                    {
-                        dt = dt.AddYears(-543);
-                    }
-
-                    model.EndDate = dt;
-                }
-            }
+            ModelState.Remove(nameof(Project.StartDate));
+            ModelState.Remove(nameof(Project.EndDate));
+            model.StartDate = ParseProjectDate(Request.Form["StartDate"]);
+            model.EndDate = ParseProjectDate(Request.Form["EndDate"]);
 
             if (!ModelState.IsValid)
             {
@@ -306,6 +263,30 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        private static DateTime? ParseProjectDate(string? value)
+        {
+            var raw = (value ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+
+            if (DateTime.TryParseExact(
+                    raw,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var date)
+                || DateTime.TryParseExact(
+                    raw,
+                    "dd/MM/yyyy",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out date))
+            {
+                return date.Year > 2400 ? date.AddYears(-543) : date;
+            }
+
+            return null;
         }
 
         // ===========================

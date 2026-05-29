@@ -223,3 +223,598 @@ main {
 .footer-modern {
   display: none;
 }
+
+/* ===== Create / Edit Forms ===== */
+main.route-action-create,
+main.route-action-edit {
+  overflow-wrap: anywhere;
+}
+
+main.route-action-create > h1:first-child,
+main.route-action-create > h2:first-child,
+main.route-action-create > h3:first-child,
+main.route-action-edit > h1:first-child,
+main.route-action-edit > h2:first-child,
+main.route-action-edit > h3:first-child {
+  max-width: 1180px;
+  margin: 0 auto 18px;
+  color: #10233f;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+main.route-action-create > h1:first-child + p,
+main.route-action-create > h2:first-child + p,
+main.route-action-create > h3:first-child + p,
+main.route-action-edit > h1:first-child + p,
+main.route-action-edit > h2:first-child + p,
+main.route-action-edit > h3:first-child + p {
+  max-width: 1180px;
+  margin: -8px auto 18px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+main.route-action-create > form,
+main.route-action-edit > form,
+main.route-action-create > .card,
+main.route-action-edit > .card {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main.route-action-create > form,
+main.route-action-edit > form {
+  background: #fff;
+  border: 1px solid #d8e3ef;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+}
+
+main.route-action-create .card,
+main.route-action-edit .card {
+  border-radius: 22px !important;
+}
+
+main.route-action-create .card-body,
+main.route-action-edit .card-body {
+  padding: 24px;
+}
+
+main.route-action-create label,
+main.route-action-edit label,
+main.route-action-create .form-label,
+main.route-action-edit .form-label {
+  color: #24364d;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+main.route-action-create .form-group,
+main.route-action-edit .form-group {
+  margin-bottom: 1rem;
+}
+
+main.route-action-create textarea.form-control,
+main.route-action-edit textarea.form-control {
+  min-height: 132px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+main.route-action-create .form-control[readonly],
+main.route-action-edit .form-control[readonly],
+main.route-action-create select:disabled,
+main.route-action-edit select:disabled {
+  background-color: #f8fafc;
+  color: #475569;
+  border-color: #d8e3ef;
+}
+
+main.route-action-create .btn,
+main.route-action-edit .btn {
+  border-radius: 14px !important;
+  font-weight: 800;
+}
+
+main.route-action-create > form > button[type="submit"],
+main.route-action-edit > form > button[type="submit"] {
+  margin-top: 8px;
+}
+
+main.route-action-create img,
+main.route-action-edit img {
+  max-width: 100%;
+}
+
+@media (max-width: 575.98px) {
+  main.route-action-create > form,
+  main.route-action-edit > form,
+  main.route-action-create .card-body,
+  main.route-action-edit .card-body {
+    padding: 16px;
+  }
+}
+
+/* ===== Shared Index Header Theme ===== */
+.index-page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.index-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .28), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border: 1px solid rgba(148, 219, 225, .18);
+  border-radius: 22px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+}
+
+.index-hero__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.index-title {
+  color: #fff;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 900;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.index-subtitle {
+  color: #d8e6f7;
+  font-weight: 700;
+  margin: 6px 0 0;
+}
+
+.index-eyebrow {
+  display: block;
+  color: rgba(216, 230, 247, .86);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.index-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.index-hero .btn {
+  border-radius: 999px;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
+}
+
+.index-hero .btn-primary,
+.index-hero .btn-success,
+.index-hero .btn-light {
+  color: #062b2f !important;
+  background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+  border-color: transparent !important;
+}
+
+.index-hero .btn-outline-primary,
+.index-hero .btn-outline-info,
+.index-hero .btn-outline-danger,
+.index-hero .btn-outline-secondary,
+.index-hero .btn-outline-light {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .55) !important;
+}
+
+.index-hero .btn-outline-primary:hover,
+.index-hero .btn-outline-info:hover,
+.index-hero .btn-outline-danger:hover,
+.index-hero .btn-outline-secondary:hover,
+.index-hero .btn-outline-light:hover {
+  background: rgba(255, 255, 255, .18) !important;
+}
+
+.index-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #062b2f;
+  background: linear-gradient(135deg, #8df1e4, #23c7c8);
+  font-size: .9rem;
+  font-weight: 900;
+  border: 0;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .22);
+}
+
+@media (max-width: 767.98px) {
+  .index-hero {
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .index-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .index-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ===== Meetings Theme ===== */
+.route-controller-meetings .meeting-page,
+.route-controller-meetings .meeting-create-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.route-controller-meetings .meeting-header,
+.route-controller-meetings .meeting-hero,
+.route-controller-meetings .meeting-detail-hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .28), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border: 1px solid rgba(148, 219, 225, .18);
+  border-radius: 22px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+}
+
+.route-controller-meetings .meeting-title,
+.route-controller-meetings .meeting-hero__title,
+.route-controller-meetings .meeting-detail-title {
+  color: #fff;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 900;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.route-controller-meetings .meeting-subtitle,
+.route-controller-meetings .meeting-hero__subtitle,
+.route-controller-meetings .meeting-detail-subtitle {
+  color: #d8e6f7;
+  font-weight: 700;
+}
+
+.route-controller-meetings .hint-chip,
+.route-controller-meetings .meeting-card__header .chip {
+  color: #062b2f;
+  background: linear-gradient(135deg, #8df1e4, #23c7c8);
+  border: 0;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .22);
+}
+
+.route-controller-meetings .meeting-header .btn-outline-secondary,
+.route-controller-meetings .meeting-hero .btn-outline-secondary,
+.route-controller-meetings .meeting-detail-hero .btn-outline-secondary,
+.route-controller-meetings .meeting-header .btn-outline-light,
+.route-controller-meetings .meeting-hero .btn-outline-light,
+.route-controller-meetings .meeting-detail-hero .btn-outline-light {
+  border-color: rgba(255,255,255,.55) !important;
+  color: #fff !important;
+  background: rgba(255,255,255,.08);
+}
+
+.route-controller-meetings .meeting-header .btn-outline-secondary:hover,
+.route-controller-meetings .meeting-hero .btn-outline-secondary:hover,
+.route-controller-meetings .meeting-detail-hero .btn-outline-secondary:hover,
+.route-controller-meetings .meeting-header .btn-outline-light:hover,
+.route-controller-meetings .meeting-hero .btn-outline-light:hover,
+.route-controller-meetings .meeting-detail-hero .btn-outline-light:hover {
+  background: rgba(255,255,255,.18) !important;
+}
+
+.route-controller-meetings .meeting-card,
+.route-controller-meetings .calendar-card,
+.route-controller-meetings .meeting-detail-card {
+  background: #fff;
+  border: 1px solid #d8e3ef;
+  border-radius: 22px;
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+  overflow: hidden;
+}
+
+.route-controller-meetings .meeting-card__header,
+.route-controller-meetings .calendar-card__toolbar,
+.route-controller-meetings .meeting-detail-card__header {
+  color: #10233f;
+  background: linear-gradient(180deg, #f8fafc, #eef6fb);
+  border-bottom: 1px solid #d8e3ef;
+  padding: 16px 18px;
+}
+
+.route-controller-meetings .meeting-card__body,
+.route-controller-meetings .calendar-card__body,
+.route-controller-meetings .meeting-detail-card__body {
+  padding: 20px;
+}
+
+.route-controller-meetings .section-title {
+  color: #10233f;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.route-controller-meetings .section-subtitle,
+.route-controller-meetings .form-hint {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.route-controller-meetings .divider {
+  background: #d8e3ef;
+}
+
+.route-controller-meetings .btn-pill {
+  border-radius: 999px !important;
+}
+
+.route-controller-meetings .fc {
+  color: #10233f;
+}
+
+.route-controller-meetings .fc .fc-toolbar-title {
+  color: #10233f;
+  font-weight: 900;
+}
+
+.route-controller-meetings .fc .fc-button-primary {
+  background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+  border-color: transparent !important;
+  color: #062b2f !important;
+  font-weight: 900 !important;
+}
+
+.route-controller-meetings .fc .fc-button-primary:not(:disabled):hover,
+.route-controller-meetings .fc .fc-button-primary:not(:disabled):focus {
+  color: #fff !important;
+}
+
+.route-controller-meetings .fc .fc-col-header-cell {
+  background: #10233f !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,.12) !important;
+}
+
+.route-controller-meetings .calendar-card .fc .fc-col-header-cell {
+  background: #10233f !important;
+  color: #fff !important;
+}
+
+.route-controller-meetings .fc .fc-col-header-cell .fc-col-header-cell-cushion {
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+.route-controller-meetings .calendar-card .fc .fc-col-header-cell .fc-col-header-cell-cushion {
+  color: #fff !important;
+}
+
+.route-controller-meetings .fc .fc-daygrid-day {
+  background: #fff !important;
+}
+
+.route-controller-meetings .fc .fc-daygrid-day-number {
+  color: #10233f !important;
+}
+
+.route-controller-meetings .fc .fc-daygrid-day.fc-day-other {
+  background: #f8fafc !important;
+}
+
+.route-controller-meetings .fc .fc-day-today {
+  background: linear-gradient(180deg, rgba(20, 184, 166, .28), rgba(20, 184, 166, .16)) !important;
+  box-shadow: inset 0 0 0 2px rgba(15, 118, 110, .30);
+}
+
+.route-controller-meetings .fc .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+  color: #062b2f !important;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .28);
+}
+
+.route-controller-meetings .fc .fc-event {
+  background: #f8fafc !important;
+  border: 1px solid #d8e3ef !important;
+  border-left: 5px solid var(--pt-accent) !important;
+  color: #10233f !important;
+  box-shadow: 0 6px 16px rgba(15, 35, 64, .08) !important;
+}
+
+.route-controller-meetings .fc .fc-event-title {
+  color: #10233f !important;
+}
+
+.route-controller-meetings .fc-event.customer-event { border-left-color: #22c55e !important; }
+.route-controller-meetings .fc-event.team-event { border-left-color: #f59e0b !important; }
+.route-controller-meetings .fc-event.executive-event { border-left-color: #ef4444 !important; }
+.route-controller-meetings .fc-event.manager-event { border-left-color: #8b5cf6 !important; }
+.route-controller-meetings .fc-event.vendor-event { border-left-color: #f97316 !important; }
+.route-controller-meetings .fc-event.other-event { border-left-color: #0ea5e9 !important; }
+
+.route-controller-meetings .fc-tooltip {
+  background: #10233f;
+  border: 1px solid rgba(148, 219, 225, .22);
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .25);
+}
+
+.route-controller-meetings .meeting-list {
+  gap: 12px;
+}
+
+.route-controller-meetings .meeting-row {
+  background: #f8fafc !important;
+  border: 1px solid #d8e3ef;
+  border-left: 5px solid var(--pt-accent);
+  box-shadow: 0 8px 18px rgba(15, 35, 64, .06);
+}
+
+.route-controller-meetings .meeting-row.sun { border-left-color: #ef4444; }
+.route-controller-meetings .meeting-row.mon { border-left-color: #f59e0b; }
+.route-controller-meetings .meeting-row.tue { border-left-color: #ec4899; }
+.route-controller-meetings .meeting-row.wed { border-left-color: #22c55e; }
+.route-controller-meetings .meeting-row.thu { border-left-color: #f97316; }
+.route-controller-meetings .meeting-row.fri { border-left-color: #0ea5e9; }
+.route-controller-meetings .meeting-row.sat { border-left-color: #8b5cf6; }
+
+.route-controller-meetings .meeting-col {
+  border-color: #e2e8f0;
+}
+
+.route-controller-meetings .meeting-icon,
+.route-controller-meetings .meeting-project-icon {
+  color: #062b2f;
+  background: rgba(20, 184, 166, .16);
+}
+
+.route-controller-meetings .meeting-project-text {
+  color: #10233f;
+}
+
+.route-controller-meetings .meeting-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.route-controller-meetings .meeting-detail-item,
+.route-controller-meetings .meeting-attendee-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.route-controller-meetings .meeting-detail-item {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.route-controller-meetings .meeting-detail-item.full {
+  grid-column: 1 / -1;
+}
+
+.route-controller-meetings .meeting-detail-title-card {
+  min-height: 112px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-left: 5px solid var(--pt-accent);
+}
+
+.route-controller-meetings .meeting-detail-description-card {
+  min-height: 148px;
+}
+
+.route-controller-meetings .meeting-detail-meta-card {
+  grid-column: span 2;
+}
+
+.route-controller-meetings .meeting-project-detail-card .meeting-detail-value {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.route-controller-meetings .meeting-project-id {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #062b2f;
+  background: rgba(20, 184, 166, .18);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.route-controller-meetings .meeting-project-name {
+  color: #10233f;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.route-controller-meetings .meeting-detail-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.route-controller-meetings .meeting-detail-value {
+  color: #10233f;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+.route-controller-meetings .meeting-attendee-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.route-controller-meetings .meeting-attendee-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 84px;
+}
+
+@media (max-width: 768px) {
+  .route-controller-meetings .meeting-header,
+  .route-controller-meetings .meeting-hero,
+  .route-controller-meetings .meeting-detail-hero {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .route-controller-meetings .meeting-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .route-controller-meetings .meeting-detail-meta-card {
+    grid-column: 1 / -1;
+  }
+
+  .route-controller-meetings .meeting-card__body,
+  .route-controller-meetings .calendar-card__body,
+  .route-controller-meetings .meeting-detail-card__body {
+    padding: 16px;
+  }
+}

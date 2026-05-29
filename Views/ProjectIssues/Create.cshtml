@@ -4,126 +4,205 @@
     ViewData["Title"] = "Add Issue";
 }
 
-<div class="mb-4">
-    <h2 class="fw-bold mb-1">➕ Add Project Issue</h2>
-    <p class="text-muted mb-0">
-        บันทึก Issue / Bug / ปัญหาที่พบในโครงการ
-    </p>
-</div>
+<style>
+    .issue-create-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
 
-<div class="card shadow-sm">
-    <div class="card-body">
+    .issue-create-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
 
-        <form asp-action="Create"
-              method="post"
-              enctype="multipart/form-data">
+    .issue-create-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+    }
 
-            @Html.AntiForgeryToken()
+    .issue-create-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 8px 0 0;
+    }
 
-            <!-- ProjectId -->
-            <input type="hidden" asp-for="ProjectId" />
+    .issue-create-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 16px;
+        align-items: start;
+    }
 
-            <!-- ✅ IMPORTANT: กันค่าถูก bind แปลก ๆ ถ้าไม่กรอก -->
-            <!-- (Controller จะเป็นตัวกำหนดค่าจริงอีกที) -->
-            <input type="hidden" asp-for="IsReopen" value="false" />
-            <input type="hidden" asp-for="ReopenCount" value="0" />
+    .issue-create-panel {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+        padding: 20px;
+    }
 
-            <div class="row g-3">
+    .issue-create-panel h3 {
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 14px;
+    }
 
-                <!-- Issue Name -->
-                <div class="col-md-12">
-                    <label class="form-label fw-semibold">🐞 Issue Name</label>
+    .issue-create-page .form-label {
+        color: #24364d;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .issue-create-page textarea.form-control {
+        min-height: 160px;
+        line-height: 1.6;
+    }
+
+    .issue-help-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.55;
+    }
+
+    .issue-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .issue-actions .btn {
+        border-radius: 12px;
+        font-weight: 900;
+        padding-inline: 18px;
+    }
+
+    @@media (max-width: 991.98px) {
+        .issue-create-hero,
+        .issue-create-grid {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+    }
+</style>
+
+<div class="issue-create-page">
+    <div class="issue-create-hero">
+        <div>
+            <h2 class="issue-create-title">Add Project Issue</h2>
+            <p class="issue-create-subtitle">บันทึก Issue / Bug / ปัญหาที่พบในโครงการ</p>
+        </div>
+        <a asp-action="Index"
+           asp-route-projectId="@Model.ProjectId"
+           class="btn btn-outline-light">
+            Back
+        </a>
+    </div>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="ProjectId" />
+        <input type="hidden" asp-for="DevStatus" value="TODO" />
+        <input type="hidden" asp-for="IsReopen" value="false" />
+        <input type="hidden" asp-for="ReopenCount" value="0" />
+
+        <div class="issue-create-grid">
+            <div class="issue-create-panel">
+                <h3>ข้อมูล Issue</h3>
+
+                <div class="mb-3">
+                    <label class="form-label">Issue Name</label>
                     <input asp-for="IssueName"
                            class="form-control"
-                           placeholder="Describe the issue" />
+                           placeholder="ระบุหัวข้อปัญหา" />
                     <span asp-validation-for="IssueName" class="text-danger"></span>
                 </div>
 
-                <!-- Issue Detail -->
-                <div class="col-md-12">
-                    <label class="form-label fw-semibold">📝 Issue Detail</label>
+                <div class="mb-3">
+                    <label class="form-label">Issue Detail</label>
                     <textarea asp-for="IssueDetail"
                               class="form-control"
-                              rows="4"
-                              placeholder="Describe the problem in detail"></textarea>
+                              rows="6"
+                              placeholder="อธิบายปัญหา เงื่อนไขที่พบ หรือขั้นตอนที่ทำให้เกิดปัญหา"></textarea>
                     <span asp-validation-for="IssueDetail" class="text-danger"></span>
                 </div>
 
-                <!-- Owner -->
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">👤 Owner (Employee)</label>
+                <div class="mb-3">
+                    <label class="form-label">Issue Images (Before Fix)</label>
+                    <input type="file"
+                           name="images"
+                           class="form-control"
+                           multiple
+                           accept="image/*" />
+                    <small class="text-muted">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
+                </div>
 
+                <div class="issue-actions">
+                    <a asp-action="Index"
+                       asp-route-projectId="@Model.ProjectId"
+                       class="btn btn-outline-secondary">
+                        Back
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Save Issue
+                    </button>
+                </div>
+            </div>
+
+            <div class="issue-create-panel">
+                <h3>ผู้รับผิดชอบและสถานะ</h3>
+
+                <div class="mb-3">
+                    <label class="form-label">Owner (Employee)</label>
                     <select asp-for="EmpId"
                             asp-items="ViewBag.Employees"
                             class="form-select">
                         <option value="">-- Select Employee --</option>
                     </select>
-
                     <span asp-validation-for="EmpId" class="text-danger"></span>
                 </div>
 
-                <!-- Status -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">📌 Status</label>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
                     <select asp-for="IssueStatus"
                             asp-items="ViewBag.StatusList"
                             class="form-select">
                     </select>
                 </div>
 
-                <!-- Priority -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">🚨 Priority</label>
+                <div class="mb-3">
+                    <label class="form-label">Priority</label>
                     <select asp-for="IssuePriority" class="form-select">
                         <option value="NORMAL">Normal</option>
                         <option value="URGENT">Urgent</option>
                     </select>
                 </div>
 
-                <!-- ✅ NOTE:
-                     ส่วน CreatedAt / IsReopen / ReopenCount / LastFixedAt
-                     แนะนำ "ไม่ต้องให้ผู้ใช้กรอก" เพราะจะทำให้ Yesterday/Trend เพี้ยน
-                     ให้ Controller เป็นคน set:
-                     - CreatedAt = DateTime.Now
-                     - IsReopen = false
-                     - ReopenCount = 0
-                     - LastFixedAt = null
-                -->
-
-                <!-- BEFORE IMAGES -->
-                <div class="col-md-12">
-                    <label class="form-label fw-semibold text-primary">
-                        🧾 Issue Images (Before Fix)
-                    </label>
-
-                    <input type="file"
-                           name="images"
-                           class="form-control"
-                           multiple
-                           accept="image/*" />
-
-                    <small class="text-muted">
-                        แนบรูปตอนพบปัญหา • รองรับหลายรูป (jpg / png)
-                    </small>
+                <div class="issue-help-box">
+                    เมื่อบันทึกแล้วระบบจะตั้ง Dev Status เริ่มต้นเป็น TODO และสร้างประวัติสถานะเริ่มต้นให้อัตโนมัติ
                 </div>
-
             </div>
-
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                    💾 Save Issue
-                </button>
-
-                <a asp-action="Index"
-                   asp-route-projectId="@Model.ProjectId"
-                   class="btn btn-outline-secondary">
-                    ↩ Back
-                </a>
-            </div>
-
-        </form>
-
-    </div>
+        </div>
+    </form>
 </div>
 
 @section Scripts {

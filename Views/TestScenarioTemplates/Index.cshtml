@@ -22,8 +22,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -59,7 +63,28 @@
     }
 </style>
 
-<h2>Scenario Templates</h2>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Scenario Templates</h2>
+        <p class="index-subtitle">จัดการ Template สำหรับสร้าง Test Scenario ตามกลุ่มงาน</p>
+    </div>
+
+    <div class="index-actions">
+        @if (CanMenu("TestScenarioTemplates.Create"))
+        {
+            <a id="addTemplateBtn" href="#" class="btn btn-success" title="เพิ่ม Template">
+                Add Template
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-success" disabled title="ไม่มีสิทธิ์เพิ่ม Template">
+                Add Template
+            </button>
+        }
+    </div>
+</div>
 
 <div class="row mb-3">
 <div class="col-md-8">
@@ -80,19 +105,6 @@
         </select>
     </div>
 </div>
-
-@if (CanMenu("TestScenarioTemplates.Create"))
-{
-    <a id="addTemplateBtn" href="#" class="btn btn-success mb-3" title="เพิ่ม Template">
-        + Add Template
-    </a>
-}
-else
-{
-    <button class="btn btn-success mb-3" disabled title="ไม่มีสิทธิ์เพิ่ม Template">
-        + Add Template
-    </button>
-}
 
 @if (Model == null || !Model.Any())
 {

@@ -4,112 +4,137 @@
     ViewData["Title"] = "แก้ไขนัดประชุม";
 }
 
-<h2 class="mb-4">แก้ไขนัดประชุม</h2>
+@{
+    var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var selectedUsers = ViewBag.SelectedUsers as IEnumerable<int> ?? Enumerable.Empty<int>();
+    var selectedSet = new HashSet<int>(selectedUsers);
+}
 
-<form method="post" action="/Meetings/Update" id="meetingForm">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="Id" value="@Model.Id" />
-
-    <div class="row g-3">
-
-        <div class="col-md-6">
-            <label class="form-label">หัวข้อการประชุม</label>
-            <input type="text" name="Title" class="form-control" required value="@Model.Title" />
+<div class="container meeting-create-wrap">
+    <div class="meeting-hero d-flex align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="meeting-hero__title">@ViewData["Title"]</h2>
+            <p class="meeting-hero__subtitle">ปรับรายละเอียด วันเวลา และผู้เข้าร่วมประชุม</p>
         </div>
-
-        <div class="col-md-6">
-            <label class="form-label">โครงการ</label>
-            <select name="ProjectId" class="form-select">
-                <option value="">-- ไม่ผูกโครงการ --</option>
-                @foreach (var p in ViewBag.Projects)
-                {
-                    <option value="@p.ProjectId" selected="@(Model.ProjectId == p.ProjectId)">
-                        @p.ProjectName
-                    </option>
-                }
-            </select>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-light btn-pill" href="/Meetings/Show/@Model.Id">กลับรายละเอียด</a>
+            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
         </div>
-
-        <div class="col-12">
-            <label class="form-label">รายละเอียด</label>
-            <textarea name="Description" class="form-control" rows="3">@Model.Description</textarea>
-        </div>
-
-        <div class="col-md-4">
-            <label class="form-label">วันที่</label>
-
-            <input type="text"
-                   id="MeetingDateDisplay"
-                   class="form-control"
-                   placeholder="วว/ดด/ปปปป"
-                   autocomplete="off"
-                   maxlength="10"
-                   required />
-
-            <input type="hidden"
-                   name="MeetingDate"
-                   id="MeetingDate"
-                   value="@Model.MeetingDate.ToString("yyyy-MM-dd")" />
-
-            <div class="form-text">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</div>
-        </div>
-
-        <div class="col-md-4">
-            <label class="form-label">เวลาเริ่ม</label>
-            <input type="time" name="StartTime" class="form-control"
-                   value="@Model.StartTime.ToString(@"hh\:mm")" required />
-        </div>
-
-        <div class="col-md-4">
-            <label class="form-label">เวลาสิ้นสุด</label>
-            <input type="time" name="EndTime" class="form-control"
-                   value="@Model.EndTime.ToString(@"hh\:mm")" required />
-        </div>
-
-        <div class="col-12">
-            <label class="form-label">สถานที่ / ลิงก์ประชุม</label>
-            <input type="text" name="Location" class="form-control" value="@Model.Location" />
-        </div>
-
-        <div class="col-md-6">
-            <label class="form-label">ประชุมกับใคร</label>
-            <select name="MeetingAudience" class="form-select">
-                <option value="" selected="@(string.IsNullOrEmpty(Model.MeetingAudience))">— เลือกประเภทการประชุม —</option>
-                <option value="ลูกค้า" selected="@(Model.MeetingAudience == "ลูกค้า")">👥 ลูกค้า</option>
-                <option value="ทีมงาน" selected="@(Model.MeetingAudience == "ทีมงาน")">👨‍💻 ทีมงาน</option>
-                <option value="ผู้บริหาร" selected="@(Model.MeetingAudience == "ผู้บริหาร")">🏢 ผู้บริหาร</option>
-                <option value="ผู้จัดการ" selected="@(Model.MeetingAudience == "ผู้จัดการ")">📋 ผู้จัดการ</option>
-                <option value="Vendor" selected="@(Model.MeetingAudience == "Vendor")">🤝 Vendor / Partner</option>
-                <option value="อื่นๆ" selected="@(Model.MeetingAudience == "อื่นๆ")">📝 อื่นๆ</option>
-            </select>
-            <div class="form-text">เลือกประเภทของการประชุม</div>
-        </div>
-        <div class="col-12">
-            <label class="form-label fw-semibold">ผู้เข้าร่วมประชุม</label>
-            @{
-                var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
-                var selectedUsers = ViewBag.SelectedUsers as IEnumerable<int> ?? Enumerable.Empty<int>();
-                var selectedSet = new HashSet<int>(selectedUsers);
-            }
-            <select class="form-select" name="users" multiple size="8">
-                @foreach (var e in employees)
-                {
-                    var isSelected = selectedSet.Contains((int)e.EmpId);
-                    <option value="@e.EmpId" selected="@(isSelected ? "selected" : null)">
-                        @e.EmpName @(e.Position != null ? $"({e.Position})" : "")
-                    </option>
-                }
-            </select>
-            <div class="form-text">กด Ctrl (Windows) / Cmd (Mac) เพื่อเลือกหลายคน</div>
-        </div>
-
     </div>
 
-    <div class="mt-4 d-flex gap-2">
-        <button type="submit" class="btn btn-success">💾 บันทึกการแก้ไข</button>
-        <a href="/Meetings/Show/@Model.Id" class="btn btn-secondary">ยกเลิก</a>
+    <div class="meeting-card">
+        <div class="meeting-card__header">
+            <strong>ข้อมูลการประชุม</strong>
+            <span class="chip">Meeting #@Model.Id</span>
+        </div>
+
+        <div class="meeting-card__body">
+            <form method="post" action="/Meetings/Update" id="meetingForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.Id" />
+
+                <h3 class="section-title">รายละเอียด</h3>
+                <p class="section-subtitle">แก้ไขข้อมูลหลักของนัดประชุม</p>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">หัวข้อการประชุม</label>
+                        <input type="text" name="Title" class="form-control" required value="@Model.Title" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">โครงการ</label>
+                        <select name="ProjectId" class="form-select">
+                            <option value="">-- ไม่ผูกโครงการ --</option>
+                            @foreach (var p in ViewBag.Projects)
+                            {
+                                <option value="@p.ProjectId" selected="@(Model.ProjectId == p.ProjectId)">
+                                    @p.ProjectName
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">รายละเอียด</label>
+                        <textarea name="Description" class="form-control" rows="3">@Model.Description</textarea>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">วันที่</label>
+
+                        <input type="text"
+                               id="MeetingDateDisplay"
+                               class="form-control"
+                               placeholder="วว/ดด/ปปปป"
+                               autocomplete="off"
+                               maxlength="10"
+                               required />
+
+                        <input type="hidden"
+                               name="MeetingDate"
+                               id="MeetingDate"
+                               value="@Model.MeetingDate.ToString("yyyy-MM-dd")" />
+
+                        <div class="form-hint">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">เวลาเริ่ม</label>
+                        <input type="time" name="StartTime" class="form-control"
+                               value="@Model.StartTime.ToString(@"hh\:mm")" required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">เวลาสิ้นสุด</label>
+                        <input type="time" name="EndTime" class="form-control"
+                               value="@Model.EndTime.ToString(@"hh\:mm")" required />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">สถานที่ / ลิงก์ประชุม</label>
+                        <input type="text" name="Location" class="form-control" value="@Model.Location" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">ประชุมกับใคร</label>
+                        <select name="MeetingAudience" class="form-select">
+                            <option value="" selected="@(string.IsNullOrEmpty(Model.MeetingAudience))">— เลือกประเภทการประชุม —</option>
+                            <option value="ลูกค้า" selected="@(Model.MeetingAudience == "ลูกค้า")">ลูกค้า</option>
+                            <option value="ทีมงาน" selected="@(Model.MeetingAudience == "ทีมงาน")">ทีมงาน</option>
+                            <option value="ผู้บริหาร" selected="@(Model.MeetingAudience == "ผู้บริหาร")">ผู้บริหาร</option>
+                            <option value="ผู้จัดการ" selected="@(Model.MeetingAudience == "ผู้จัดการ")">ผู้จัดการ</option>
+                            <option value="Vendor" selected="@(Model.MeetingAudience == "Vendor")">Vendor / Partner</option>
+                            <option value="อื่นๆ" selected="@(Model.MeetingAudience == "อื่นๆ")">อื่นๆ</option>
+                        </select>
+                        <div class="form-hint">เลือกประเภทของการประชุม</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">ผู้เข้าร่วมประชุม</label>
+                        <select class="form-select" name="users" multiple size="8">
+                            @foreach (var e in employees)
+                            {
+                                var isSelected = selectedSet.Contains((int)e.EmpId);
+                                <option value="@e.EmpId" selected="@(isSelected ? "selected" : null)">
+                                    @e.EmpName @(e.Position != null ? $"({e.Position})" : "")
+                                </option>
+                            }
+                        </select>
+                        <div class="form-hint">กด Ctrl (Windows) / Cmd (Mac) เพื่อเลือกหลายคน</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                    <a href="/Meetings/Show/@Model.Id" class="btn btn-outline-secondary btn-pill">ยกเลิก</a>
+                    <button type="submit" class="btn btn-primary btn-pill">บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
     </div>
-    </form>
+</div>
 
 <script>
 (function () {

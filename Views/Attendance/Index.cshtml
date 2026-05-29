@@ -1,17 +1,23 @@
-<h2 style="text-align:center;margin-bottom:20px;">ระบบเช็คชื่อเข้างาน และ ออกงาน</h2>
-
 <form id="antiForgeryForm" method="post">
     @Html.AntiForgeryToken()
 </form>
 
-<div style="display:flex;justify-content:center;gap:15px;">
-    <button id="btnCheckIn" onclick="check('checkin')" style="padding:12px 28px;border:none;border-radius:10px;background:#4CAF50;color:white;font-weight:bold;cursor:pointer;font-size:16px;">
-        📍 เช็คเข้างาน
-    </button>
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">ระบบเช็คชื่อเข้างาน และ ออกงาน</h2>
+        <p class="index-subtitle">บันทึกเวลาเข้าออกงานพร้อมตำแหน่งปัจจุบัน</p>
+    </div>
 
-    <button id="btnCheckOut" onclick="check('checkout')" style="padding:12px 28px;border:none;border-radius:10px;background:#f44336;color:white;font-weight:bold;cursor:pointer;font-size:16px;">
-        📍 เช็คออกงาน
-    </button>
+    <div class="index-actions">
+        <button id="btnCheckIn" onclick="check('checkin')" class="btn btn-primary">
+            เช็คเข้างาน
+        </button>
+
+        <button id="btnCheckOut" onclick="check('checkout')" class="btn btn-outline-danger">
+            เช็คออกงาน
+        </button>
+    </div>
 </div>
 
 <div id="distanceBox" style="margin-top:10px;font-weight:bold;color:#333;"></div>

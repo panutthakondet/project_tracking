@@ -1099,8 +1099,6 @@
     bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
 
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
-    var canDashboards = CanMenu("IssueDashboard.Index") || CanMenu("Dashboard.Workload") || CanMenu("Dashboard.Index");
-
     var canManagement = CanMenu("Employees.Index")
                      || CanMenu("Projects.Index")
                      || CanMenu("ProjectPhases.Index")
@@ -1114,8 +1112,6 @@
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.ViewOnly")
                  || CanMenu("ProjectIssues.DevIndex")
-                 || CanMenu("ProjectIssues.Details")
-                 || CanMenu("ProjectIssues.DevDetails")
                  || CanMenu("SupportOrders.Index")
                  || CanMenu("SupportOrdersDev.Index");
 
@@ -1192,12 +1188,15 @@
                 {
                     <ul class="navbar-nav mb-2 mb-lg-0" style="width:100%;">
 
-                        <li class="nav-item">
-                            <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
-                                <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
-                                <span class="nav-label">Dashboard</span>
-                            </a>
-                        </li>
+                        @if (CanMenu("Home.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
+                                    <span class="nav-label">Dashboard</span>
+                                </a>
+                            </li>
+                        }
 
                         @if (CanMenu("Employees.Index"))
                         {
@@ -1492,10 +1491,15 @@
     </div>
 </div>
 
+@{
+    var routeController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "unknown").ToLowerInvariant();
+    var routeAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "unknown").ToLowerInvariant();
+}
+
 <div class="v2-page">
 
 <div class="container">
-    <main role="main" class="pb-3">
+    <main role="main" class="pb-3 route-controller-@routeController route-action-@routeAction">
         @RenderBody()
     </main>
 </div>

@@ -135,7 +135,7 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseStatusReport.Index")]
+        [RequireMenu("PhaseStatusReport.SendMail")]
         public async Task<IActionResult> SendOverdueMail()
         {
             await _overdueMailService.SendOncePerDayAsync();

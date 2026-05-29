@@ -5,8 +5,12 @@
 @{
     bool CanMenu(string key)
     {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
         var menus = Context.Session.GetString("Menus") ?? "";
-        return menus.Contains(key);
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 }
 
@@ -28,21 +32,23 @@
     return;
 }
 
-<div class="container" style="max-width: 980px;">
-    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+<div class="container meeting-create-wrap">
+    <div class="meeting-detail-hero d-flex align-items-start justify-content-between gap-3">
         <div>
-            <h2 class="mb-1">📝 @ViewData["Title"]</h2>
-            <div class="text-muted">ข้อมูลการประชุมที่บันทึกไว้</div>
+            <div class="meeting-detail-subtitle">Meeting #@Model.Id</div>
+            <h2 class="meeting-detail-title">@ViewData["Title"]</h2>
+            <p class="meeting-detail-subtitle mb-0">ข้อมูลการประชุมที่บันทึกไว้</p>
         </div>
+
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-outline-secondary" asp-controller="Meetings" asp-action="Index" title="กลับไปหน้าปฏิทิน">← กลับไปปฏิทิน</a>
+            <a class="btn btn-outline-light btn-pill" asp-controller="Meetings" asp-action="Index" title="กลับไปหน้าปฏิทิน">กลับปฏิทิน</a>
             @if (CanMenu("Meetings.Edit"))
             {
-                <a class="btn btn-warning" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id" title="แก้ไขการประชุม">✏️ แก้ไข</a>
+                <a class="btn btn-primary btn-pill" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id" title="แก้ไขการประชุม">แก้ไข</a>
             }
             else
             {
-                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไขการประชุม">✏️ แก้ไข</button>
+                <button class="btn btn-outline-light btn-pill" disabled title="ไม่มีสิทธิ์แก้ไขการประชุม">แก้ไข</button>
             }
 
             @if (CanMenu("Meetings.Delete"))
@@ -51,109 +57,105 @@
                       onsubmit="return confirm('ยืนยันการยกเลิกการประชุมนี้ ?');" style="display:inline;">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <button type="submit" class="btn btn-danger" title="ยกเลิกการประชุม">🗑️ ยกเลิก</button>
+                    <button type="submit" class="btn btn-danger btn-pill" title="ยกเลิกการประชุม">ยกเลิก</button>
                 </form>
             }
             else
             {
-                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ยกเลิกการประชุม">🗑️ ยกเลิก</button>
+                <button class="btn btn-outline-light btn-pill" disabled title="ไม่มีสิทธิ์ยกเลิกการประชุม">ยกเลิก</button>
             }
         </div>
     </div>
 
-    <div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
-        <div class="card-body p-4">
-            <div class="row g-3">
-                <div class="col-12">
-                    <div class="text-muted">หัวข้อประชุม</div>
-                    <div style="font-size:1.15rem; font-weight:800;">@Model.Title</div>
-                </div>
-                <div class="col-12">
-                    <div class="text-muted">รายละเอียด</div>
-                    <div class="border rounded p-3" style="min-height:60px; background:#fafafa;">
-                        @(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)
-                    </div>
+    <div class="meeting-detail-card">
+        <div class="meeting-detail-card__header d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <strong>รายละเอียดการประชุม</strong>
+            <span class="badge bg-info">@Model.MeetingDate.ToString("dd/MM/yyyy")</span>
+        </div>
+
+        <div class="meeting-detail-card__body">
+            <div class="meeting-detail-grid">
+                <div class="meeting-detail-item full meeting-detail-title-card">
+                    <div class="meeting-detail-label">หัวข้อประชุม</div>
+                    <div class="meeting-detail-value">@Model.Title</div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="text-muted">โครงการ</div>
-                    <div>
+                <div class="meeting-detail-item meeting-detail-meta-card meeting-project-detail-card">
+                    <div class="meeting-detail-label">โครงการ</div>
+                    <div class="meeting-detail-value">
                         @if (Model.ProjectId == null)
                         {
-                            <span class="badge bg-secondary">ไม่ระบุโครงการ</span>
+                            <span>ไม่ระบุโครงการ</span>
                         }
                         else
                         {
-                            <span class="badge bg-primary">#@Model.ProjectId</span>
-                            <span class="ms-2">@projectName</span>
+                            <span class="meeting-project-id">#@Model.ProjectId</span>
+                            <span class="meeting-project-name">@projectName</span>
                         }
                     </div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="text-muted">วันที่</div>
-                    <div>@Model.MeetingDate.ToString("dd/MM/yyyy")</div>
+                <div class="meeting-detail-item meeting-detail-meta-card">
+                    <div class="meeting-detail-label">วันที่</div>
+                    <div class="meeting-detail-value">@Model.MeetingDate.ToString("dd/MM/yyyy")</div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="text-muted">เวลา</div>
-                    <div>@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
+                <div class="meeting-detail-item meeting-detail-meta-card">
+                    <div class="meeting-detail-label">เวลา</div>
+                    <div class="meeting-detail-value">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="text-muted">สถานที่</div>
-                    <div>@(string.IsNullOrWhiteSpace(Model.Location) ? "-" : Model.Location)</div>
+                <div class="meeting-detail-item meeting-detail-meta-card">
+                    <div class="meeting-detail-label">สถานที่</div>
+                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.Location) ? "-" : Model.Location)</div>
                 </div>
 
-                <div class="col-md-6">
-                    <div class="text-muted">ประชุมกับ</div>
-                    <div>
-                        @if (string.IsNullOrWhiteSpace(Model.MeetingAudience))
-                        {
-                            <span>-</span>
-                        }
-                        else
-                        {
-                            <div style="font-weight:600;">
-                                👥 @Model.MeetingAudience
+                <div class="meeting-detail-item meeting-detail-meta-card">
+                    <div class="meeting-detail-label">ประชุมกับ</div>
+                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.MeetingAudience) ? "-" : Model.MeetingAudience)</div>
+                </div>
+
+                <div class="meeting-detail-item full meeting-detail-description-card">
+                    <div class="meeting-detail-label">รายละเอียด</div>
+                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
+                <h3 class="section-title mb-0">ผู้เข้าร่วม (@attendeeList.Count)</h3>
+            </div>
+
+            @if (attendeeList.Count == 0)
+            {
+                <div class="meeting-detail-item">
+                    <div class="meeting-detail-value text-muted">ยังไม่มีผู้เข้าร่วม</div>
+                </div>
+            }
+            else
+            {
+                <div class="meeting-attendee-list">
+                    @foreach (var a in attendeeList)
+                    {
+                        <div class="meeting-attendee-card">
+                            <div>
+                                <div class="meeting-detail-value">@(a.EmpName ?? $"EmpId: {a.EmpId}")</div>
+                                @if (a.Position != null)
+                                {
+                                    <div class="text-muted fw-semibold">@a.Position</div>
+                                }
                             </div>
-                        }
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <hr />
-                    <div class="d-flex align-items-center justify-content-between">
-                        <strong>ผู้เข้าร่วม (@attendeeList.Count)</strong>
-                    </div>
-
-                    @if (attendeeList.Count == 0)
-                    {
-                        <div class="text-muted mt-2">ยังไม่มีผู้เข้าร่วม</div>
-                    }
-                    else
-                    {
-                        <ul class="mt-2 mb-0">
-                            @foreach (var a in attendeeList)
-                            {
-                                <li>
-                                    <strong>@(a.EmpName ?? $"EmpId: {a.EmpId}")</strong>
-                                    @if (a.Position != null)
-                                    {
-                                        <span class="text-muted">(@a.Position)</span>
-                                    }
-                                    — สถานะ: <span class="badge bg-light text-dark">@a.Status</span>
-                                </li>
-                            }
-                        </ul>
+                            <span class="badge bg-light text-dark">@a.Status</span>
+                        </div>
                     }
                 </div>
-                <div class="col-12">
-                    <hr />
-                    <div class="text-muted small">
-                        สร้างเมื่อ: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                    </div>
-                </div>
+            }
+
+            <div class="divider"></div>
+
+            <div class="text-muted fw-semibold">
+                สร้างเมื่อ: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
             </div>
         </div>
     </div>

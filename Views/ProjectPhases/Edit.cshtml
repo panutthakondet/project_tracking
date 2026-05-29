@@ -41,6 +41,7 @@
     <div class="card-body">
 
         <form asp-action="Edit"
+              asp-route-id="@(Model?.PhaseId ?? 0)"
               method="post"
               onsubmit="return confirm('บันทึกการแก้ไข Phase นี้หรือไม่?');">
 

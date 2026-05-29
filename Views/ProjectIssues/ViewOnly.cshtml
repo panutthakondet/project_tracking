@@ -7,195 +7,538 @@
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
 
-    var issueList = Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>();
+    var issueList = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
+    var totalIssues = issueList.Count;
     var totalReopen = issueList.Sum(x => x.ReopenCount);
+    var urgentCount = issueList.Count(x => string.Equals(x.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase));
+    var fixedCount = issueList.Count(x =>
+        string.Equals(x.IssueStatus, "FIXED", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "view-badge-warning",
+        "WIP" => "view-badge-info",
+        "FIXED" => "view-badge-success",
+        "PASS" => "view-badge-primary",
+        "FAIL" => "view-badge-danger",
+        "REJECT" => "view-badge-dark",
+        _ => "view-badge-muted"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "TODO" => "view-badge-muted",
+        "DOING" => "view-badge-info",
+        "FIXED" => "view-badge-success",
+        "BLOCK" => "view-badge-danger",
+        _ => "view-badge-dark"
+    };
+
+    string ReopenClass(int count) => count switch
+    {
+        0 => "view-badge-success",
+        1 => "view-badge-info",
+        <= 3 => "view-badge-warning",
+        _ => "view-badge-danger"
+    };
 }
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h2 class="fw-bold mb-0">👀 รายงานปัญหาและสถานะโครงการ</h2>
-        <p class="text-muted mb-0">รายงานสถานะงาน และงานซ้ำ (Reopen Tracking)</p>
-    </div>
-
-    @if (selectedProject != null)
-    {
-        <div>
-            <span class="badge bg-danger fs-6 me-3">
-                🔁 Reopen ทั้งหมด : @totalReopen ครั้ง
-            </span>
-
-            <a class="btn btn-outline-secondary"
-               target="_blank"
-               href="@Url.Action("Print","ProjectIssues", new { projectId = selectedProject.ProjectId, empName = selectedEmp ?? "" })">
-                🖨 พิมพ์รายงาน
-            </a>
-        </div>
+<style>
+    .issue-view-page {
+        max-width: 1280px;
+        margin: 0 auto;
     }
-</div>
 
-<form method="get" id="filterForm" class="row g-3 mb-4">
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">📁 Project</label>
-        <select id="projectSelect" name="projectId" class="form-select">
-            <option value="">-- Select Project --</option>
-            @foreach (var p in projects)
-            {
-                <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
-                    @p.ProjectName
-                </option>
-            }
-        </select>
-    </div>
+    .issue-view-hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 22px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+    }
 
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">👤 Employee</label>
-        <select id="empSelect" name="empName" class="form-select" @(selectedProject == null ? "disabled" : "")>
-            <option value="">-- All Employees --</option>
-            @foreach (var emp in empList)
-            {
-                <option value="@emp" selected="@(emp == selectedEmp)">
-                    @emp
-                </option>
-            }
-        </select>
-    </div>
-</form>
+    .issue-view-title {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.25;
+    }
 
-@if (selectedProject == null)
-{
-    <div class="alert alert-info">⬆ กรุณาเลือก Project เพื่อดู Issue</div>
-}
-else
-{
-    <div class="alert alert-light border mb-3">
-        📌 <b>Project:</b> @selectedProject.ProjectName
-        @if (!string.IsNullOrEmpty(selectedEmp))
+    .issue-view-subtitle {
+        color: #d8e6f7;
+        font-weight: 700;
+        margin: 6px 0 0;
+    }
+
+    .issue-view-hero-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .issue-view-filter,
+    .issue-view-summary,
+    .issue-view-selected,
+    .issue-view-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .issue-view-filter {
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .issue-view-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+
+    .issue-summary-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        min-height: 92px;
+    }
+
+    .issue-summary-item small {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .issue-summary-item b {
+        color: #10233f;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .issue-view-selected {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        color: #24364d;
+        font-weight: 800;
+    }
+
+    .issue-view-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .issue-view-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(250px, .55fr) minmax(320px, .85fr);
+        gap: 0;
+        overflow: hidden;
+        border-left: 5px solid #14b8a6;
+    }
+
+    .issue-view-card.is-urgent {
+        border-left-color: #ef4444;
+    }
+
+    .issue-view-main,
+    .issue-view-status,
+    .issue-view-media {
+        padding: 18px;
+        min-width: 0;
+    }
+
+    .issue-view-status,
+    .issue-view-media {
+        border-left: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .issue-view-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .issue-view-no {
+        flex: 0 0 auto;
+        min-width: 46px;
+        min-height: 32px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        font-weight: 900;
+    }
+
+    .issue-view-name {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .issue-view-detail {
+        color: #475569;
+        font-weight: 700;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 8px 0 12px;
+    }
+
+    .issue-view-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .issue-status-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    .issue-status-row {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .issue-status-row small,
+    .issue-media-title {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .view-badge {
+        min-height: 30px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 900;
+        text-align: center;
+        line-height: 1.15;
+        white-space: normal;
+    }
+
+    .view-badge-warning { background: #fff3cd; color: #8a5a00; }
+    .view-badge-info { background: #dff7ff; color: #075985; }
+    .view-badge-success { background: #dcfce7; color: #166534; }
+    .view-badge-primary { background: #e4edff; color: #1d4ed8; }
+    .view-badge-danger { background: #ffe4e6; color: #be123c; }
+    .view-badge-dark { background: #e5e7eb; color: #111827; }
+    .view-badge-muted { background: #eef2f7; color: #475569; }
+
+    .issue-media-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .issue-media-box {
+        min-width: 0;
+    }
+
+    .issue-thumb-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .issue-thumb-list img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #d8e3ef;
+        background: #fff;
+    }
+
+    .issue-empty-media {
+        margin-top: 8px;
+        color: #94a3b8;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    .issue-view-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 18px;
+        color: #64748b;
+        background: #fff;
+        padding: 28px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .issue-view-card {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .issue-view-status,
+        .issue-view-media {
+            border-left: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .issue-view-hero,
+        .issue-view-selected {
+            display: grid;
+        }
+
+        .issue-view-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .issue-media-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .issue-view-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="issue-view-page">
+    <div class="issue-view-hero">
+        <div>
+            <h2 class="issue-view-title">รายงานปัญหาและสถานะโครงการ</h2>
+            <p class="issue-view-subtitle">รายงานสถานะงานและงานที่ถูกส่งกลับมาแก้ซ้ำ</p>
+        </div>
+
+        @if (selectedProject != null)
         {
-            <span class="ms-3">👤 <b>Employee:</b> @selectedEmp</span>
+            <div class="issue-view-hero-actions">
+                <span class="view-badge view-badge-danger">Reopen ทั้งหมด @totalReopen ครั้ง</span>
+                <a class="btn btn-outline-light"
+                   target="_blank"
+                   href="@Url.Action("Print", "ProjectIssues", new { projectId = selectedProject.ProjectId, empName = selectedEmp ?? "" })">
+                    พิมพ์รายงาน
+                </a>
+            </div>
         }
     </div>
 
-    @if (!issueList.Any())
+    <form method="get" id="filterForm" class="issue-view-filter">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Project</label>
+                <select id="projectSelect" name="projectId" class="form-select">
+                    <option value="">-- Select Project --</option>
+                    @foreach (var p in projects)
+                    {
+                        <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
+                            @p.ProjectName
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Employee</label>
+                <select id="empSelect" name="empName" class="form-select" @(selectedProject == null ? "disabled" : "")>
+                    <option value="">-- All Employees --</option>
+                    @foreach (var emp in empList)
+                    {
+                        <option value="@emp" selected="@(emp == selectedEmp)">
+                            @emp
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+
+    @if (selectedProject == null)
     {
-        <div class="alert alert-warning">ไม่พบรายการ Issue สำหรับ Project นี้</div>
+        <div class="issue-view-empty">กรุณาเลือก Project เพื่อดู Issue</div>
     }
     else
     {
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark text-center">
-                <tr>
-                    <th style="width:60px;">No.</th>
-                    <th>Issue</th>
-                    <th style="width:160px;">Owner</th>
-                    <th style="width:120px;">Status</th>
-                    <th style="width:100px;">Priority</th>
-                    <th style="width:160px;">Last Fixed</th>
-                    <th style="width:260px;">Before</th>
-                    <th style="width:260px;">After</th>
-                </tr>
-            </thead>
+        <div class="issue-view-summary">
+            <div class="issue-summary-item">
+                <small>Issue ทั้งหมด</small>
+                <b>@totalIssues</b>
+            </div>
+            <div class="issue-summary-item">
+                <small>Reopen รวม</small>
+                <b>@totalReopen</b>
+            </div>
+            <div class="issue-summary-item">
+                <small>Urgent</small>
+                <b>@urgentCount</b>
+            </div>
+            <div class="issue-summary-item">
+                <small>Fixed / Pass</small>
+                <b>@fixedCount</b>
+            </div>
+        </div>
 
-            <tbody>
-            @if (!issueList.Any())
+        <div class="issue-view-selected">
+            <span>Project: @selectedProject.ProjectName</span>
+            @if (!string.IsNullOrEmpty(selectedEmp))
             {
-                <tr>
-                    <td colspan="8" class="text-center text-muted py-4">— No Issue —</td>
-                </tr>
+                <span>Employee: @selectedEmp</span>
             }
-            else
-            {
-                var row = 1;
+        </div>
 
-                foreach (var i in issueList)
+        @if (!issueList.Any())
+        {
+            <div class="issue-view-empty">ไม่พบรายการ Issue สำหรับ Project นี้</div>
+        }
+        else
+        {
+            <div class="issue-view-list">
+                @{
+                    var row = 1;
+                }
+
+                @foreach (var i in issueList)
                 {
-                    var urgent = i.IssuePriority == "URGENT";
-                    var rc = i.ReopenCount;
+                    var urgent = string.Equals(i.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase);
+                    var beforeImages = i.Images ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueImage>();
+                    var afterImages = i.FixImages ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueFixImage>();
+                    var reopenText = i.ReopenCount == 0 ? "Stable" : $"{i.ReopenCount} Reopen";
 
-                    string reopenClass =
-                        rc == 0 ? "" :
-                        rc == 1 ? "bg-info" :
-                        rc <= 3 ? "bg-warning text-dark" :
-                        "bg-danger";
-
-                    string reopenText =
-                        rc == 0 ? "" :
-                        rc == 1 ? "Reopen (1)" :
-                        rc <= 3 ? $"Reopen ({rc})" :
-                        $"Critical ({rc})";
-
-                    string rowColor =
-                        rc >= 4 ? "table-danger" :
-                        rc >= 2 ? "table-warning" :
-                        i.IssueStatus == "FIXED" ? "table-success" :
-                        "";
-
-                    <tr class="@rowColor">
-                        <td class="text-center fw-semibold">@row</td>
-
-                        <td>
-                            <div class="fw-semibold">
-                                @i.IssueName
-                                @if (rc > 0)
-                                {
-                                    <span class="badge @reopenClass ms-2">🔁 @reopenText</span>
-                                }
+                    <article class="issue-view-card @(urgent ? "is-urgent" : "")">
+                        <div class="issue-view-main">
+                            <div class="issue-view-head">
+                                <span class="issue-view-no">#@row</span>
+                                <div>
+                                    <span class="issue-view-name">@i.IssueName</span>
+                                    <div class="issue-view-detail">
+                                        @(string.IsNullOrWhiteSpace(i.IssueDetail) ? "ไม่มีรายละเอียดเพิ่มเติม" : i.IssueDetail)
+                                    </div>
+                                </div>
                             </div>
-                            <small class="text-muted">📅 @i.CreatedAt.ToString("dd/MM/yyyy")</small>
-                        </td>
 
-                        <td class="text-center">👤 @(i.Employee?.EmpName ?? "-")</td>
+                            <div class="issue-view-meta">
+                                <span>สร้างเมื่อ @i.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                <span>Owner: @(i.Employee?.EmpName ?? "-")</span>
+                                <span>Last Fixed: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                            </div>
+                        </div>
 
-                        <td class="text-center">
-                            <span class="badge
-                                @(i.IssueStatus == "OPEN" ? "bg-warning text-dark" :
-                                  i.IssueStatus == "WIP" ? "bg-info" :
-                                  i.IssueStatus == "FIXED" ? "bg-success" :
-                                  i.IssueStatus == "FAIL" ? "bg-danger" :
-                                  "bg-secondary")">
-                                @i.IssueStatus
-                            </span>
-                        </td>
+                        <div class="issue-view-status">
+                            <div class="issue-status-grid">
+                                <div class="issue-status-row">
+                                    <small>Issue</small>
+                                    <span class="view-badge @StatusClass(i.IssueStatus)">@i.IssueStatus</span>
+                                </div>
+                                <div class="issue-status-row">
+                                    <small>Dev</small>
+                                    <span class="view-badge @DevStatusClass(i.DevStatus)">@i.DevStatus</span>
+                                </div>
+                                <div class="issue-status-row">
+                                    <small>Priority</small>
+                                    <span class="view-badge @(urgent ? "view-badge-danger" : "view-badge-muted")">
+                                        @(urgent ? "URGENT" : "NORMAL")
+                                    </span>
+                                </div>
+                                <div class="issue-status-row">
+                                    <small>Reopen</small>
+                                    <span class="view-badge @ReopenClass(i.ReopenCount)">@reopenText</span>
+                                </div>
+                            </div>
+                        </div>
 
-                        <td class="text-center">
-                            <span class="badge @(urgent ? "bg-danger" : "bg-secondary")">
-                                @(urgent ? "URGENT" : "NORMAL")
-                            </span>
-                        </td>
+                        <div class="issue-view-media">
+                            <div class="issue-media-grid">
+                                <div class="issue-media-box">
+                                    <div class="issue-media-title">ก่อนแก้ (@beforeImages.Count())</div>
+                                    @if (beforeImages.Any())
+                                    {
+                                        <div class="issue-thumb-list">
+                                            @foreach (var img in beforeImages)
+                                            {
+                                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
+                                                    <img src="@img.FilePath" alt="@img.FileName" />
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="issue-empty-media">ไม่มีรูป</div>
+                                    }
+                                </div>
 
-                        <td class="text-center">
-                            @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")
-                        </td>
-
-                        <td>
-                            @foreach (var img in i.Images ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueImage>())
-                            {
-                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
-                                    <img src="@img.FilePath" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;" />
-                                </a>
-                            }
-                        </td>
-
-                        <td>
-                            @foreach (var img in i.FixImages ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssueFixImage>())
-                            {
-                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
-                                    <img src="@img.FilePath" class="img-thumbnail border-success" style="width:60px;height:60px;object-fit:cover;" />
-                                </a>
-                            }
-                        </td>
-                    </tr>
+                                <div class="issue-media-box">
+                                    <div class="issue-media-title">หลังแก้ (@afterImages.Count())</div>
+                                    @if (afterImages.Any())
+                                    {
+                                        <div class="issue-thumb-list">
+                                            @foreach (var img in afterImages)
+                                            {
+                                                <a href="@img.FilePath" target="_blank" rel="noopener noreferrer">
+                                                    <img src="@img.FilePath" alt="@img.FileName" />
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="issue-empty-media">ไม่มีรูป</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </article>
 
                     row++;
                 }
-            }
-            </tbody>
-        </table>
-    </div>
+            </div>
+        }
     }
-}
+</div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -209,8 +552,3 @@ $(function () {
     $('#empSelect').on('change', function () { $('#filterForm').submit(); });
 });
 </script>
-<style>
-    table td {
-        word-break: break-word;
-    }
-</style>

@@ -1,117 +1,393 @@
 @{
-    ViewData["Title"] = "Permissions";
+    ViewData["Title"] = "กำหนดสิทธิ์ผู้ใช้";
 
     var username = ViewBag.Username as string ?? "";
     var groupedMenus = (ViewBag.GroupedMenus as IEnumerable<dynamic>)?.ToList() ?? new List<dynamic>();
-    var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>();
+    var selected = ViewBag.SelectedMenus as HashSet<string> ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var groupIndex = 0;
 }
 
-<h3>🔐 กำหนดสิทธิ์ผู้ใช้ (@username)</h3>
+<style>
+    .permission-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
 
-<form method="post" id="permissionForm">
-    <input type="hidden" name="username" value="@username" />
+    .permission-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
 
-    @if (groupedMenus != null && groupedMenus.Count > 0)
-    {
-        foreach (var group in groupedMenus)
-        {
-        <div style="margin-bottom:20px; border:1px solid #ddd; border-radius:10px; padding:10px;">
-            
-            <!-- 🔥 Controller -->
-            <div style="font-weight:bold; background:#f1f5f9; padding:8px; border-radius:8px;">
-                <label style="display:flex; align-items:center; gap:6px;">
-                    <input type="checkbox"
-                           class="chk-parent"
-                           data-group="@group.ControllerLabel"
-                           style="transform:scale(1.2);" />
-                    📁 @group.ControllerLabel
-                </label>
-            </div>
+    .permission-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: #10233f;
+        margin: 0;
+    }
 
-            <!-- 🔥 Actions -->
-            @foreach (var item in group.Items)
-            {
-                var isChecked = selected.Contains(item.Key?.Trim());
+    .permission-subtitle {
+        color: #64748b;
+        font-weight: 700;
+        margin-top: 4px;
+    }
 
-                <div style="padding-left:25px; margin-top:6px;">
-                    <label>
-                        <input type="checkbox"
-                               class="chk-child"
-                               data-group="@group.ControllerLabel"
-                               style="transform:scale(1.2); margin-right:6px;"
-                               name="menus"
-                               value="@item.Key"
-                               @(isChecked ? "checked" : "") />
-                        └─ @item.Label
-                    </label>
-                    <div style="font-size:11px; color:#888;">@item.Key</div>
-                </div>
-            }
-        </div>
+    .permission-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto auto auto;
+        gap: 10px;
+        align-items: center;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .permission-search {
+        height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-weight: 700;
+        outline: none;
+    }
+
+    .permission-search:focus {
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, .16);
+    }
+
+    .permission-count {
+        color: #475569;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .permission-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .permission-group {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .permission-group-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #edf7f6;
+        border-bottom: 1px solid #d6eeeb;
+        padding: 12px 14px;
+        font-weight: 900;
+        color: #0f3440;
+    }
+
+    .permission-group-head input,
+    .permission-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: #14b8a6;
+        flex: 0 0 auto;
+    }
+
+    .permission-group-key {
+        margin-left: auto;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .permission-list {
+        padding: 10px;
+    }
+
+    .permission-row {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 9px 10px;
+        border-radius: 12px;
+    }
+
+    .permission-row:hover {
+        background: #f8fafc;
+    }
+
+    .permission-label {
+        color: #10233f;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .permission-key {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        word-break: break-word;
+        margin-top: 2px;
+    }
+
+    .permission-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .permission-btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-weight: 900;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+    }
+
+    .permission-btn.primary {
+        color: #fff;
+        background: #0f766e;
+    }
+
+    .permission-btn.muted {
+        color: #10233f;
+        background: #e5eaf0;
+    }
+
+    .permission-btn.light {
+        color: #0f766e;
+        background: #d9fbf5;
+    }
+
+    .permission-alert {
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-weight: 800;
+    }
+
+    .permission-alert.success {
+        color: #065f46;
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+    }
+
+    .permission-alert.empty {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+
+    @@media (max-width: 900px) {
+        .permission-toolbar {
+            grid-template-columns: 1fr;
+        }
+
+        .permission-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .permission-header,
+        .permission-actions {
+            flex-direction: column;
+            align-items: stretch;
         }
     }
-    else
-    {
-        <div style="color:red; font-weight:bold;">
-            ❌ ไม่พบเมนู (GroupedMenus ว่าง)
+</style>
+
+<div class="permission-page">
+    <div class="permission-header">
+        <div>
+            <h2 class="permission-title">กำหนดสิทธิ์ผู้ใช้</h2>
+            <div class="permission-subtitle">@username</div>
         </div>
+        <a asp-controller="UserManagement" asp-action="Index" class="permission-btn muted">ย้อนกลับ</a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="permission-alert success">@TempData["Success"]</div>
     }
 
-    <div style="margin-top:20px; display:flex; gap:10px;">
-        <button type="submit"
-                style="background:#2563eb; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold;">
-            💾 บันทึก
-        </button>
+    <form method="post" id="permissionForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="username" value="@username" />
 
-        <a href="/UserManagement"
-           style="background:#e5e7eb; color:#111; padding:8px 16px; border-radius:8px; text-decoration:none; font-weight:bold;">
-            🔙 ย้อนกลับ
-        </a>
-    </div>
-</form>
+        <div class="permission-toolbar">
+            <input id="permissionSearch"
+                   class="permission-search"
+                   type="search"
+                   placeholder="ค้นหาเมนูหรือ key..."
+                   autocomplete="off" />
+            <div id="permissionCount" class="permission-count">เลือก 0 รายการ</div>
+            <button type="button" id="checkVisible" class="permission-btn light">เลือกที่เห็น</button>
+            <button type="button" id="clearVisible" class="permission-btn muted">ล้างที่เห็น</button>
+        </div>
+
+        @if (groupedMenus.Count > 0)
+        {
+            <div class="permission-grid">
+                @foreach (var group in groupedMenus)
+                {
+                    var groupKey = (string)group.Controller;
+                    var groupId = $"permission_group_{groupIndex++}";
+
+                    <section class="permission-group"
+                             data-group-card
+                             data-group-text="@($"{group.ControllerLabel} {groupKey}".ToLowerInvariant())">
+                        <label class="permission-group-head" for="@groupId">
+                            <input type="checkbox"
+                                   id="@groupId"
+                                   class="chk-parent"
+                                   data-menu-group="@groupKey" />
+                            <span>@group.ControllerLabel</span>
+                            <span class="permission-group-key">@groupKey</span>
+                        </label>
+
+                        <div class="permission-list">
+                            @foreach (var item in group.Items)
+                            {
+                                var itemKey = ((string)item.Key).Trim();
+                                var isChecked = selected.Contains(itemKey);
+                                var itemText = $"{item.Label} {itemKey}".ToLowerInvariant();
+
+                                <label class="permission-row" data-permission-row data-row-text="@itemText">
+                                    <input type="checkbox"
+                                           class="chk-child"
+                                           data-menu-group="@groupKey"
+                                           name="menus"
+                                           value="@itemKey"
+                                           @(isChecked ? "checked" : "") />
+                                    <span>
+                                        <span class="permission-label">@item.Label</span>
+                                        <span class="permission-key">@itemKey</span>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="permission-alert empty">ไม่พบเมนูสำหรับกำหนดสิทธิ์</div>
+        }
+
+        <div class="permission-actions">
+            <button type="submit" class="permission-btn primary">บันทึกสิทธิ์</button>
+            <a asp-controller="UserManagement" asp-action="Index" class="permission-btn muted">ยกเลิก</a>
+        </div>
+    </form>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("permissionForm");
+    const search = document.getElementById("permissionSearch");
+    const count = document.getElementById("permissionCount");
+    const parents = Array.from(document.querySelectorAll(".chk-parent"));
+    const children = Array.from(document.querySelectorAll(".chk-child"));
+    const groups = Array.from(document.querySelectorAll("[data-group-card]"));
 
-    document.querySelectorAll(".chk-parent").forEach(parent => {
+    function childrenOf(groupKey) {
+        return children.filter(child => child.dataset.menuGroup === groupKey);
+    }
 
-        const group = parent.getAttribute("data-group");
-        const children = document.querySelectorAll(`.chk-child[data-group="${group}"]`);
+    function updateParent(parent) {
+        const groupChildren = childrenOf(parent.dataset.menuGroup);
+        const visibleChildren = groupChildren.filter(child => !child.closest("[data-permission-row]").hidden);
+        const scopeChildren = visibleChildren.length ? visibleChildren : groupChildren;
+        const allChecked = scopeChildren.length > 0 && scopeChildren.every(child => child.checked);
+        const anyChecked = scopeChildren.some(child => child.checked);
 
-        // set initial state
-        const allChecked = Array.from(children).every(x => x.checked);
-        const anyChecked = Array.from(children).some(x => x.checked);
         parent.checked = allChecked;
         parent.indeterminate = !allChecked && anyChecked;
+    }
 
-        // parent click
-        parent.addEventListener("change", function () {
-            children.forEach(c => c.checked = parent.checked);
-        });
+    function updateAllParents() {
+        parents.forEach(updateParent);
+        updateCount();
+    }
 
-        // child change
-        children.forEach(c => {
-            c.addEventListener("change", function () {
-                const all = Array.from(children).every(x => x.checked);
-                const any = Array.from(children).some(x => x.checked);
+    function updateCount() {
+        const selectedCount = children.filter(child => child.checked).length;
+        count.textContent = `เลือก ${selectedCount} จาก ${children.length} รายการ`;
+    }
 
-                parent.checked = all;
-                parent.indeterminate = !all && any;
-            });
-        });
-
-    });
-
-    // 🔥 confirm before submit
-    const form = document.getElementById("permissionForm");
-    if (form) {
-        form.addEventListener("submit", function (e) {
-            const ok = confirm("💾 ยืนยันบันทึกสิทธิ์นี้หรือไม่?");
-            if (!ok) {
-                e.preventDefault();
-            }
+    function visibleChildren() {
+        return children.filter(child => {
+            const row = child.closest("[data-permission-row]");
+            const group = child.closest("[data-group-card]");
+            return row && group && !row.hidden && !group.hidden;
         });
     }
 
+    parents.forEach(parent => {
+        parent.addEventListener("change", function () {
+            childrenOf(parent.dataset.menuGroup)
+                .filter(child => !child.closest("[data-permission-row]").hidden)
+                .forEach(child => child.checked = parent.checked);
+            updateAllParents();
+        });
+    });
+
+    children.forEach(child => {
+        child.addEventListener("change", updateAllParents);
+    });
+
+    if (search) {
+        search.addEventListener("input", function () {
+            const keyword = search.value.trim().toLowerCase();
+
+            groups.forEach(group => {
+                const groupMatched = (group.dataset.groupText || "").includes(keyword);
+                const rows = Array.from(group.querySelectorAll("[data-permission-row]"));
+                let hasVisibleRow = false;
+
+                rows.forEach(row => {
+                    const matched = groupMatched || (row.dataset.rowText || "").includes(keyword);
+                    row.hidden = keyword.length > 0 && !matched;
+                    if (!row.hidden) hasVisibleRow = true;
+                });
+
+                group.hidden = keyword.length > 0 && !groupMatched && !hasVisibleRow;
+            });
+
+            updateAllParents();
+        });
+    }
+
+    document.getElementById("checkVisible")?.addEventListener("click", function () {
+        visibleChildren().forEach(child => child.checked = true);
+        updateAllParents();
+    });
+
+    document.getElementById("clearVisible")?.addEventListener("click", function () {
+        visibleChildren().forEach(child => child.checked = false);
+        updateAllParents();
+    });
+
+    form?.addEventListener("submit", function (event) {
+        if (!confirm("ยืนยันบันทึกสิทธิ์นี้หรือไม่?")) {
+            event.preventDefault();
+        }
+    });
+
+    updateAllParents();
 });
 </script>

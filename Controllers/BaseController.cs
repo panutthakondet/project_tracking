@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Http;
-using ProjectTracking.Attributes;
+using ProjectTracking.Middleware;
+using System;
 using System.Linq;
 
 namespace ProjectTracking.Controllers
@@ -29,11 +30,22 @@ namespace ProjectTracking.Controllers
 
             if (requireMenuAttr != null)
             {
+                var role = (httpContext.Session.GetString("Role") ?? "").Trim();
+                if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+                {
+                    base.OnActionExecuting(context);
+                    return;
+                }
+
                 var menus = httpContext.Session.GetString("Menus");
 
-                if (string.IsNullOrEmpty(menus) || !menus.Split(',').Contains(requireMenuAttr.MenuKey))
+                var allowed = (menus ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim());
+
+                if (string.IsNullOrWhiteSpace(menus) || !allowed.Contains(requireMenuAttr.Key, StringComparer.OrdinalIgnoreCase))
                 {
-                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", new { key = requireMenuAttr.Key });
                     return;
                 }
             }

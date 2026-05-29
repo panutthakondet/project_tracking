@@ -40,7 +40,7 @@ namespace ProjectTracking.Middleware
             new Dictionary<(string, string), string>(new ControllerActionComparer())
             {
                 { ("Projects", "ViewOnly"), "Projects.ViewOnly" },
-                { ("ProjectIssues", "Details"), "ProjectIssues.Index" },
+                { ("ProjectIssues", "Details"), "ProjectIssues.View" },
                 { ("ProjectIssues", "DevDetails"), "ProjectIssues.DevIndex" },
                 { ("Followups", "Index"), "Followups.Index" },
                 { ("Followups", "Details"), "Followups.Index" },
@@ -50,10 +50,6 @@ namespace ProjectTracking.Middleware
                 { ("Followups", "History"), "Followups.Index" },
                 { ("Followups", "DashboardDone"), "Followups.DashboardDone" },
                 { ("Followups", "DashboardACK"), "Followups.DashboardACK" },
-
-                // Dashboard permissions
-                { ("Dashboard", "Index"), "Dashboard.Index" },
-                { ("Dashboard", "Details"), "Dashboard.Index" },
 
                 // Attendance permissions
                 { ("Attendance", "Map"), "Attendance.Map" },

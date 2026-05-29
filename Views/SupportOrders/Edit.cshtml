@@ -4,7 +4,8 @@
 
 <h3>Edit Support Order</h3>
 
-<form asp-action="Edit" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+<form asp-action="Edit" asp-route-id="@Model.OrderId" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
 
     <input asp-for="OrderId" type="hidden" />
     <input asp-for="ProjectId" type="hidden" />
