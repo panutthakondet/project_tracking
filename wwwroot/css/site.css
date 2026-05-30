@@ -7,6 +7,10 @@ html {
   --pt-accent-dark: #0f766e;
   --pt-accent-soft: rgba(20, 184, 166, .18);
   --pt-sidebar-bg: #081c42;
+  --pt-font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
+  --pt-control-font-size: 1rem;
+  --bs-body-font-family: var(--pt-font-family);
+  --bs-font-sans-serif: var(--pt-font-family);
 }
 
 @media (min-width: 768px) {
@@ -43,9 +47,61 @@ body {
 
 body {
   background: #eef3f9;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: var(--pt-font-family);
   overflow-x: hidden;
   scrollbar-color: var(--pt-accent-dark) var(--pt-sidebar-bg);
+}
+
+body,
+button,
+input,
+select,
+option,
+optgroup,
+textarea,
+.btn,
+.form-control,
+.form-select,
+.dropdown-menu,
+.dropdown-item,
+.list-group,
+.list-group-item,
+.list-group-item-action,
+.pt-search-select,
+.pt-search-select *,
+.select2-container,
+.select2-container *,
+.select2-dropdown,
+.select2-dropdown *,
+.table {
+  font-family: var(--pt-font-family) !important;
+}
+
+.form-control,
+.form-select,
+select,
+select option,
+select optgroup,
+.pt-search-select__input,
+.pt-search-select__option,
+.pt-search-select__empty,
+.search-dropdown-field .form-control,
+.list-group-item,
+.list-group-item-action,
+.select2-container .select2-selection--single .select2-selection__rendered,
+.select2-container .select2-selection--multiple .select2-selection__choice,
+.select2-results__option,
+.select2-search__field {
+  font-size: var(--pt-control-font-size) !important;
+  line-height: 1.35 !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+.pt-search-select__input::placeholder,
+.select2-search__field::placeholder {
+  font-family: var(--pt-font-family) !important;
+  font-size: var(--pt-control-font-size) !important;
 }
 
 /* ===== Scrollbar ===== */
@@ -112,6 +168,33 @@ main {
 .btn-warning,
 .btn-danger {
   border-radius: 14px !important;
+}
+
+.btn-secondary {
+  background: #334155 !important;
+  border-color: #334155 !important;
+  border-radius: 14px !important;
+  font-weight: 800;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background: #10233f !important;
+  border-color: #10233f !important;
+}
+
+.btn-outline-secondary {
+  border-color: #94a3b8 !important;
+  color: #334155 !important;
+  border-radius: 14px !important;
+  font-weight: 800;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background: #10233f !important;
+  border-color: #10233f !important;
+  color: #fff !important;
 }
 
 .btn-info {
@@ -187,6 +270,119 @@ main {
   box-shadow: 0 0 0 4px var(--pt-accent-soft) !important;
 }
 
+/* ===== Project-style Search Dropdown ===== */
+.pt-native-select-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip-path: inset(50%) !important;
+}
+
+.pt-search-select {
+  position: relative;
+  width: 100%;
+}
+
+.pt-search-select__field {
+  position: relative;
+}
+
+.pt-search-select__input {
+  width: 100%;
+  min-height: 48px;
+  padding-right: 48px !important;
+  border-radius: 14px !important;
+  font-weight: 700;
+}
+
+.pt-search-select__clear {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  transition: .15s ease;
+  z-index: 2;
+}
+
+.pt-search-select__clear.is-visible {
+  display: inline-flex;
+}
+
+.pt-search-select__clear:hover,
+.pt-search-select__clear:focus {
+  color: #fff;
+  background: var(--pt-accent-dark);
+}
+
+.pt-search-select__clear:disabled,
+.pt-search-select.is-disabled .pt-search-select__clear {
+  opacity: .35;
+  pointer-events: none;
+}
+
+.pt-search-select__dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1055;
+  width: 100%;
+  max-height: 250px;
+  overflow-y: auto;
+  display: none;
+  border: 1px solid #d8e2ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
+  padding: 4px;
+}
+
+.pt-search-select.is-open .pt-search-select__dropdown {
+  display: block;
+}
+
+.pt-search-select__option,
+.pt-search-select__empty {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  display: block;
+  padding: 10px 12px;
+  color: #10233f;
+  background: transparent;
+  text-align: left;
+  line-height: 1.35;
+  font-weight: 700;
+  white-space: normal;
+}
+
+.pt-search-select__option:hover,
+.pt-search-select__option:focus,
+.pt-search-select__option.is-selected {
+  color: #062b2f;
+  background: rgba(20, 184, 166, .16);
+}
+
+.pt-search-select__empty {
+  color: #94a3b8;
+  cursor: default;
+}
+
 /* ===== Table ===== */
 .table {
   border-collapse: separate;
@@ -199,6 +395,15 @@ main {
   color: #0f172a;
   font-weight: 800;
   padding: 18px;
+}
+
+.table-dark,
+.table thead.table-dark,
+.table thead.table-dark th,
+.table-dark th {
+  color: #fff !important;
+  background: linear-gradient(180deg, #18345d 0%, #102443 100%) !important;
+  border-color: rgba(255, 255, 255, .08) !important;
 }
 
 .table tbody tr {
@@ -217,6 +422,213 @@ main {
   border-radius: 999px;
   padding: 10px 16px;
   font-size: 13px;
+}
+
+/* ===== Status Text ===== */
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.badge, .view-badge, .issue-soft-badge),
+main.route-controller-projectphases .table .badge,
+main.route-controller-projects :is(.col-status .badge, .project-card .badge),
+main.route-controller-employees .badge,
+main.route-controller-followups :is(.followup-card .badge, .followup-info-row .badge),
+main.route-controller-supportordersdev :is(.support-dev-panel .badge, .support-dev-card .badge),
+.pt-status-text {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: inline !important;
+  font-size: .92rem !important;
+  font-weight: 900 !important;
+  line-height: 1.35 !important;
+  text-align: inherit !important;
+  white-space: normal !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-success, .view-badge-success, .badge-soft-success),
+main.route-controller-projectphases .table .bg-success,
+main.route-controller-projects :is(.col-status .bg-success, .project-card .bg-success),
+main.route-controller-employees .bg-success,
+main.route-controller-followups :is(.followup-card .bg-success, .followup-info-row .bg-success),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-success, .support-dev-card .bg-success),
+.pt-status-text.is-success {
+  color: #16a34a !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-warning, .view-badge-warning, .badge-soft-warning),
+main.route-controller-projectphases .table .bg-warning,
+main.route-controller-projects :is(.col-status .bg-warning, .project-card .bg-warning),
+main.route-controller-employees .bg-warning,
+main.route-controller-followups :is(.followup-card .bg-warning, .followup-info-row .bg-warning),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-warning, .support-dev-card .bg-warning),
+.pt-status-text.is-warning {
+  color: #f59e0b !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-danger, .view-badge-danger, .badge-soft-danger),
+main.route-controller-projectphases .table .bg-danger,
+main.route-controller-projects :is(.col-status .bg-danger, .project-card .bg-danger),
+main.route-controller-employees .bg-danger,
+main.route-controller-followups :is(.followup-card .bg-danger, .followup-info-row .bg-danger),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-danger, .support-dev-card .bg-danger),
+.pt-status-text.is-danger {
+  color: #ef4444 !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-primary, .view-badge-primary, .badge-soft-primary),
+main.route-controller-projectphases .table .bg-primary,
+main.route-controller-projects :is(.col-status .bg-primary, .project-card .bg-primary),
+main.route-controller-employees .bg-primary,
+main.route-controller-followups :is(.followup-card .bg-primary, .followup-info-row .bg-primary),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-primary, .support-dev-card .bg-primary),
+.pt-status-text.is-primary {
+  color: #2563eb !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-info, .view-badge-info, .badge-soft-info),
+main.route-controller-projectphases .table .bg-info,
+main.route-controller-projects :is(.col-status .bg-info, .project-card .bg-info),
+main.route-controller-employees .bg-info,
+main.route-controller-followups :is(.followup-card .bg-info, .followup-info-row .bg-info),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-info, .support-dev-card .bg-info),
+.pt-status-text.is-info {
+  color: #0f766e !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .issue-badge-line,
+  .issue-badge-row,
+  .issue-status-row,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) :is(.bg-secondary, .bg-dark, .view-badge-muted, .view-badge-dark, .badge-soft-muted, .badge-soft-dark),
+main.route-controller-projectphases .table :is(.bg-secondary, .bg-dark),
+main.route-controller-projects :is(.col-status .bg-secondary, .project-card .bg-secondary, .col-status .bg-dark, .project-card .bg-dark),
+main.route-controller-employees :is(.bg-secondary, .bg-dark),
+main.route-controller-followups :is(.followup-card .bg-secondary, .followup-info-row .bg-secondary, .followup-card .bg-dark, .followup-info-row .bg-dark),
+main.route-controller-supportordersdev :is(.support-dev-panel .bg-secondary, .support-dev-card .bg-secondary, .support-dev-panel .bg-dark, .support-dev-card .bg-dark),
+.pt-status-text.is-muted {
+  color: #64748b !important;
+}
+
+:is(
+  .phase-status-grid,
+  .assign-status-grid,
+  .issue-status-grid,
+  .dev-status-grid,
+  .support-status-grid,
+  .support-dev-status-grid
+) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px 18px !important;
+  width: 100% !important;
+  margin-top: 12px !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) {
+  display: inline-flex !important;
+  grid-template-columns: none !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  width: auto !important;
+}
+
+:is(
+  .phase-status-row,
+  .assign-status-row,
+  .issue-status-item,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row
+) small {
+  flex: 0 0 auto !important;
+}
+
+:is(
+  .phase-card-side,
+  .assign-card-right,
+  .issue-card-right,
+  .dev-issue-side,
+  .support-side,
+  .support-dev-side
+) {
+  justify-content: center !important;
 }
 
 /* ===== Footer ===== */
@@ -329,6 +741,78 @@ main.route-action-edit img {
   max-width: 100%;
 }
 
+.pt-form-hero,
+.pt-form-card {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pt-form-card {
+  overflow: visible;
+  border: 1px solid #d8e3ef !important;
+  border-radius: 22px !important;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(15, 35, 64, .10) !important;
+}
+
+.pt-form-card .card-body {
+  padding: 26px;
+}
+
+.pt-form-card .row {
+  --bs-gutter-x: 1rem;
+  --bs-gutter-y: 1rem;
+}
+
+.pt-form-card .form-label,
+.pt-form-card label {
+  color: #10233f;
+  font-weight: 900 !important;
+}
+
+.pt-form-card :is(.form-control, .form-select, .pt-search-select__input) {
+  min-height: 52px;
+  border-radius: 14px !important;
+  font-weight: 800;
+}
+
+.pt-form-card textarea.form-control {
+  min-height: 132px;
+}
+
+.pt-readonly-field {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #d8e3ef;
+  border-radius: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.pt-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pt-form-actions .btn {
+  min-width: 136px;
+  min-height: 42px;
+  border-radius: 999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
 @media (max-width: 575.98px) {
   main.route-action-create > form,
   main.route-action-edit > form,
@@ -336,6 +820,396 @@ main.route-action-edit img {
   main.route-action-edit .card-body {
     padding: 16px;
   }
+
+  .pt-form-card .card-body {
+    padding: 18px;
+  }
+
+  .pt-form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ===== Legacy Pages Theme Guardrails ===== */
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) {
+  color: #10233f;
+  overflow-wrap: anywhere;
+}
+
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > :is(h1, h2, h3):first-child,
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container:first-child > :is(h1, h2, h3):first-child,
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) .container-fluid > :is(h1, h2, h3):first-child {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .24), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border: 1px solid rgba(148, 219, 225, .18);
+  border-radius: 22px;
+  padding: 20px 22px;
+  margin: 0 auto 18px;
+  box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > :is(p, .text-muted):first-child,
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > :is(h1, h2, h3):first-child + p,
+main:is(
+  .route-action-create,
+  .route-action-edit,
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container:first-child > :is(h1, h2, h3):first-child + p {
+  color: #64748b !important;
+  font-weight: 700;
+}
+
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > :is(form, .card, .table-responsive, dl, .alert, .followup-history-card),
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container > :is(form, .card, .table-responsive, dl, .alert, .followup-history-card),
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container-fluid > :is(form, .card, .table-responsive, dl, .alert, .followup-history-card) {
+  border: 1px solid #d8e3ef;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+}
+
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > :is(form, dl, .alert),
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container > :is(form, dl, .alert),
+main:is(
+  .route-action-delete,
+  .route-action-details,
+  .route-action-show,
+  .route-action-upload,
+  .route-action-viewonly,
+  .route-action-devdetails,
+  .route-action-devedit,
+  .route-action-report,
+  .route-action-history,
+  .route-action-dashboard,
+  .route-action-dashboardack,
+  .route-action-dashboarddone,
+  .route-action-timeline,
+  .route-action-permissions,
+  .route-action-importbygroup
+) > .container-fluid > :is(form, dl, .alert) {
+  padding: 22px;
+}
+
+main:is(.route-action-delete, .route-action-details, .route-action-show) dl {
+  margin-bottom: 18px;
+}
+
+main:is(.route-action-delete, .route-action-details, .route-action-show) dt {
+  color: #64748b;
+  font-weight: 900;
+}
+
+main:is(.route-action-delete, .route-action-details, .route-action-show) dd {
+  color: #10233f;
+  font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+  main:is(
+    .route-action-delete,
+    .route-action-details,
+    .route-action-show,
+    .route-action-upload,
+    .route-action-viewonly,
+    .route-action-devdetails,
+    .route-action-devedit,
+    .route-action-report,
+    .route-action-history,
+    .route-action-dashboard,
+    .route-action-dashboardack,
+    .route-action-dashboarddone,
+    .route-action-timeline,
+    .route-action-permissions,
+    .route-action-importbygroup
+  ) > :is(form, dl, .alert),
+  main:is(
+    .route-action-delete,
+    .route-action-details,
+    .route-action-show,
+    .route-action-upload,
+    .route-action-viewonly,
+    .route-action-devdetails,
+    .route-action-devedit,
+    .route-action-report,
+    .route-action-history,
+    .route-action-dashboard,
+    .route-action-dashboardack,
+    .route-action-dashboarddone,
+    .route-action-timeline,
+    .route-action-permissions,
+    .route-action-importbygroup
+  ) > .container > :is(form, dl, .alert),
+  main:is(
+    .route-action-delete,
+    .route-action-details,
+    .route-action-show,
+    .route-action-upload,
+    .route-action-viewonly,
+    .route-action-devdetails,
+    .route-action-devedit,
+    .route-action-report,
+    .route-action-history,
+    .route-action-dashboard,
+    .route-action-dashboardack,
+    .route-action-dashboarddone,
+    .route-action-timeline,
+    .route-action-permissions,
+    .route-action-importbygroup
+  ) > .container-fluid > :is(form, dl, .alert) {
+    padding: 16px;
+  }
+}
+
+/* Broad fallback for older pages that do not yet have index-hero markup. */
+main > :is(h1, h2, h3):first-child,
+main > .container:first-child > :is(h1, h2, h3):first-child,
+main > .container-fluid:first-child > :is(h1, h2, h3):first-child {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .24), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border: 1px solid rgba(148, 219, 225, .18);
+  border-radius: 22px;
+  padding: 20px 22px;
+  margin: 0 0 18px;
+  box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+main > :is(h1, h2, h3):first-child + p,
+main > .container:first-child > :is(h1, h2, h3):first-child + p,
+main > .container-fluid:first-child > :is(h1, h2, h3):first-child + p {
+  color: #64748b !important;
+  font-weight: 700;
+}
+
+main > :is(form, .card, .table-responsive, dl, .alert):not(.index-hero),
+main > .container > :is(form, .card, .table-responsive, dl, .alert):not(.index-hero),
+main > .container-fluid > :is(form, .card, .table-responsive, dl, .alert):not(.index-hero) {
+  border-radius: 22px;
+}
+
+main > :is(form, dl):not(.v2-profile-upload-form),
+main > .container > :is(form, dl):not(.v2-profile-upload-form),
+main > .container-fluid > :is(form, dl):not(.v2-profile-upload-form) {
+  background: #fff;
+  border: 1px solid #d8e3ef;
+  padding: 22px;
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+}
+
+main :is(label, .form-label) {
+  color: #24364d;
+  font-weight: 800;
 }
 
 /* ===== Shared Index Header Theme ===== */
@@ -442,6 +1316,127 @@ main.route-action-edit img {
   border: 0;
   white-space: nowrap;
   box-shadow: 0 8px 18px rgba(20, 184, 166, .22);
+}
+
+/* ===== Shared Action Buttons ===== */
+:root {
+  --pt-action-btn-width: 90px;
+  --pt-action-btn-height: 38px;
+}
+
+:is(
+  .project-actions,
+  .phase-card-actions,
+  .assign-card-actions,
+  .issue-actions,
+  .dev-actions,
+  .support-actions,
+  .support-dev-actions,
+  .employee-actions,
+  .followup-actions
+) {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+}
+
+:is(
+  .project-actions,
+  .phase-card-actions,
+  .assign-card-actions,
+  .issue-actions,
+  .dev-actions,
+  .support-actions,
+  .support-dev-actions,
+  .employee-actions,
+  .followup-actions
+) form {
+  display: inline-flex !important;
+  margin: 0 !important;
+}
+
+:is(
+  .project-actions,
+  .phase-card-actions,
+  .assign-card-actions,
+  .issue-actions,
+  .dev-actions,
+  .support-actions,
+  .support-dev-actions,
+  .employee-actions,
+  .followup-actions
+) .btn,
+main td.col-action .btn.btn-sm,
+main td.text-center .btn.btn-sm,
+main td.text-end .btn.btn-sm,
+main td.text-center-col .btn.btn-sm,
+main td > .d-flex.justify-content-center .btn.btn-sm {
+  flex: 0 0 var(--pt-action-btn-width) !important;
+  width: var(--pt-action-btn-width) !important;
+  min-width: var(--pt-action-btn-width) !important;
+  min-height: var(--pt-action-btn-height) !important;
+  padding: .4rem .55rem !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  font-size: .8rem !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+main td.col-action form,
+main td.text-center form,
+main td.text-end form,
+main td.text-center-col form {
+  display: inline-flex !important;
+  margin: 3px !important;
+}
+
+main td.col-action .btn.btn-sm,
+main td.text-center .btn.btn-sm,
+main td.text-end .btn.btn-sm,
+main td.text-center-col .btn.btn-sm,
+main td > .d-flex.justify-content-center .btn.btn-sm {
+  margin: 3px !important;
+}
+
+@media (max-width: 575.98px) {
+  :is(
+    .project-actions,
+    .phase-card-actions,
+    .assign-card-actions,
+    .issue-actions,
+    .dev-actions,
+    .support-actions,
+    .support-dev-actions,
+    .employee-actions,
+    .followup-actions
+  ) {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+
+  :is(
+    .project-actions,
+    .phase-card-actions,
+    .assign-card-actions,
+    .issue-actions,
+    .dev-actions,
+    .support-actions,
+    .support-dev-actions,
+    .employee-actions,
+    .followup-actions
+  ) .btn {
+    flex: 1 1 calc(50% - 6px) !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
 }
 
 @media (max-width: 767.98px) {

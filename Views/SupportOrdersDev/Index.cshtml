@@ -334,9 +334,7 @@
                             <span class="support-dev-pill">กำหนดส่ง: @DateText(item.DueDate)</span>
                             <span class="support-dev-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
                         </div>
-                    </section>
 
-                    <aside class="support-dev-side">
                         <div class="support-dev-status-grid">
                             <div class="support-dev-status-row">
                                 <small>Priority</small>
@@ -351,7 +349,9 @@
                                 <span class="badge @DevStatusClass(item.DevStatus)">@TextOrDash(item.DevStatus)</span>
                             </div>
                         </div>
+                    </section>
 
+                    <aside class="support-dev-side">
                         <div class="support-dev-actions">
                             @if (CanMenu("SupportOrdersDev.Details"))
                             {

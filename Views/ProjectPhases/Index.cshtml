@@ -132,8 +132,6 @@
         flex-direction: column;
         justify-content: space-between;
         gap: 14px;
-        background: #f8fafc;
-        border-left: 1px solid #e2e8f0;
     }
 
     .phase-card-head {
@@ -652,9 +650,7 @@ else
                     <span class="phase-meta-pill">Plan Date: @DateRange(phase.PlanStart, phase.PlanEnd)</span>
                     <span class="phase-meta-pill">Period Date: @DateRange(phase.PeriodStartDate, phase.PeriodEndDate)</span>
                 </div>
-            </section>
 
-            <aside class="phase-card-side">
                 <div class="phase-status-grid">
                     <div class="phase-status-row">
                         <small>Type</small>
@@ -667,7 +663,9 @@ else
                         <span class="badge @PhaseStatusClass(status)">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
                     </div>
                 </div>
+            </section>
 
+            <aside class="phase-card-side">
                 <div class="phase-card-actions">
                     @if (CanMenu("ProjectPhases.Edit"))
                     {

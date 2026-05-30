@@ -8,120 +8,151 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
 <style>
+    .phase-calendar-page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 8px 0;
+    }
+
     .calendar-card {
         background: #fff;
-        border-radius: 18px;
+        border: 1px solid #d8e3ef;
+        border-radius: 22px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        overflow: hidden;
+        margin-bottom: 18px;
+    }
+
+    .calendar-card__toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #10233f;
+        background: linear-gradient(180deg, #f8fafc, #eef6fb);
+        border-bottom: 1px solid #d8e3ef;
+        padding: 16px 18px;
+    }
+
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .calendar-section-title {
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .calendar-section-subtitle {
+        color: #64748b;
+        font-size: .92rem;
+        font-weight: 700;
+    }
+
+    .calendar-card__body {
         padding: 20px;
-        box-shadow: 0 8px 25px rgba(0,0,0,.08);
-        margin-bottom: 20px;
     }
 
     #calendar {
-        min-height: 850px;
+        min-height: 760px;
     }
 
-    .fc-toolbar-title {
-        font-size: 1.6rem !important;
-        font-weight: 700;
+    .fc {
+        color: #10233f;
     }
 
-    .fc-event {
+    .fc .fc-toolbar-title {
+        color: #10233f;
+        font-size: 1.15rem !important;
+        font-weight: 900;
+        text-align: center;
+    }
+
+    .fc .fc-button {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,.10) !important;
+        box-shadow: none !important;
+        padding: .35rem .65rem;
+    }
+
+    .fc .fc-button-primary {
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+        border-color: transparent !important;
+        color: #062b2f !important;
+        font-weight: 900 !important;
+    }
+
+    .fc .fc-button-primary:not(:disabled):hover,
+    .fc .fc-button-primary:not(:disabled):focus {
+        color: #fff !important;
+    }
+
+    .fc .fc-daygrid-day-frame {
+        padding: 8px;
+        min-height: 130px;
+    }
+
+    .fc .fc-event {
+        background: #f8fafc !important;
+        border: 1px solid #d8e3ef !important;
+        border-left: 5px solid var(--pt-accent) !important;
+        color: #10233f !important;
         border-radius: 8px !important;
-        border: 1px solid rgba(255,255,255,.25) !important;
-        padding: 4px 6px !important;
+        padding: 8px 10px !important;
         font-size: 0.82rem;
-        font-weight: 600;
+        line-height: 1.4;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow: hidden;
+        margin-bottom: 8px !important;
         cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,.12);
-        transition: all .2s ease;
+        box-shadow: 0 6px 16px rgba(15, 35, 64, .08) !important;
+        transition: all .15s ease;
     }
 
-    .fc-event:hover {
+    .fc .fc-event:hover {
         transform: translateY(-1px);
-        filter: brightness(1.03);
     }
 
-    /* ===== สีตารางเหมือนปฏิทินประชุม ===== */
-    .fc .fc-col-header-cell:nth-child(1) {
-        background: #dc3545 !important;
+    .fc .fc-event-title {
+        color: #10233f !important;
     }
 
-    .fc .fc-col-header-cell:nth-child(2) {
-        background: #ffc107 !important;
-    }
+    .fc-event.status-plan { border-left-color: #94a3b8 !important; }
+    .fc-event.status-progress { border-left-color: #f59e0b !important; }
+    .fc-event.status-submitted { border-left-color: #06b6d4 !important; }
+    .fc-event.status-approved { border-left-color: #22c55e !important; }
+    .fc-event.status-rejected { border-left-color: #ef4444 !important; }
 
-    .fc .fc-col-header-cell:nth-child(3) {
-        background: #ff69b4 !important;
-    }
-
-    .fc .fc-col-header-cell:nth-child(4) {
-        background: #28a745 !important;
-    }
-
-    .fc .fc-col-header-cell:nth-child(5) {
-        background: #fd7e14 !important;
-    }
-
-    .fc .fc-col-header-cell:nth-child(6) {
-        background: #0d6efd !important;
-    }
-
-    .fc .fc-col-header-cell:nth-child(7) {
-        background: #6f42c1 !important;
+    .fc .fc-col-header-cell {
+        background: #10233f !important;
+        color: #fff !important;
+        border-color: rgba(255,255,255,.12) !important;
     }
 
     .fc .fc-col-header-cell-cushion {
-        color: #1f2937 !important;
-        font-weight: 700;
+        color: #fff !important;
+        font-weight: 900;
         font-size: .95rem;
-        text-shadow: none;
+        text-shadow: none !important;
     }
 
-    /* จันทร์ตัวหนังสือดำ อ่านง่าย */
-    .fc .fc-col-header-cell:nth-child(2) .fc-col-header-cell-cushion {
-        color: #111827 !important;
+    .fc .fc-daygrid-day {
+        background: #ffffff !important;
     }
 
-    /* วันอื่นใช้ขาวเหมือน Meetings */
-    .fc .fc-col-header-cell:nth-child(1) .fc-col-header-cell-cushion,
-    .fc .fc-col-header-cell:nth-child(3) .fc-col-header-cell-cushion,
-    .fc .fc-col-header-cell:nth-child(4) .fc-col-header-cell-cushion,
-    .fc .fc-col-header-cell:nth-child(5) .fc-col-header-cell-cushion,
-    .fc .fc-col-header-cell:nth-child(6) .fc-col-header-cell-cushion,
-    .fc .fc-col-header-cell:nth-child(7) .fc-col-header-cell-cushion {
-        color: white !important;
+    .fc .fc-daygrid-day.fc-day-other {
+        background: #f8fafc !important;
     }
 
-    .fc .fc-daygrid-day.fc-day-sun {
-        background: rgba(220,53,69,.06);
-    }
-
-    .fc .fc-daygrid-day.fc-day-mon {
-        background: rgba(255,193,7,.08);
-    }
-
-    .fc .fc-daygrid-day.fc-day-tue {
-        background: rgba(255,105,180,.06);
-    }
-
-    .fc .fc-daygrid-day.fc-day-wed {
-        background: rgba(40,167,69,.06);
-    }
-
-    .fc .fc-daygrid-day.fc-day-thu {
-        background: rgba(253,126,20,.06);
-    }
-
-    .fc .fc-daygrid-day.fc-day-fri {
-        background: rgba(13,110,253,.06);
-    }
-
-    .fc .fc-daygrid-day.fc-day-sat {
-        background: rgba(111,66,193,.06);
-    }
-
-    .fc-daygrid-day-number {
-        color: #111827 !important;
+    .fc .fc-daygrid-day-number {
+        color: #10233f !important;
         font-weight: 700;
         font-size: .95rem;
     }
@@ -132,68 +163,79 @@
         border-color: #e5e7eb !important;
     }
 
-    .fc-day-today {
-        background: rgba(13,110,253,.12) !important;
+    .fc .fc-day-today {
+        background: linear-gradient(180deg, rgba(20,184,166,.28), rgba(20,184,166,.16)) !important;
+        box-shadow: inset 0 0 0 2px rgba(15,118,110,.30);
     }
 
-    .fc-day-today .fc-daygrid-day-number {
-        background: #0d6efd;
-        color: white !important;
+    .fc .fc-day-today .fc-daygrid-day-number {
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+        color: #062b2f !important;
         width: 28px;
         height: 28px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 8px 18px rgba(20,184,166,.28);
     }
 
-    .fc-button-primary {
-        background: #2563eb !important;
-        border-color: #2563eb !important;
-    }
-
-    .fc-button-primary:hover {
-        background: #1d4ed8 !important;
-        border-color: #1d4ed8 !important;
+    .phase-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
 
     .phase-card {
-        background: #fff;
-        border-radius: 16px;
+        background: #f8fafc;
+        border-radius: 14px;
         padding: 16px;
-        margin-bottom: 12px;
-        border-left: 6px solid #d1d5db;
-        box-shadow: 0 4px 14px rgba(0,0,0,.06);
+        border: 1px solid #e5e7eb;
+        border-left: 5px solid #d1d5db;
+        box-shadow: 0 6px 16px rgba(15, 35, 64, .06);
     }
 
     .phase-title {
-        font-size: 1rem;
-        font-weight: 700;
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 900;
         margin-bottom: 6px;
+        line-height: 1.35;
     }
 
     .phase-detail {
-        color: #6b7280;
+        color: #64748b;
         font-size: .92rem;
         margin-bottom: 4px;
+        font-weight: 700;
     }
 
     .status-badge {
         display: inline-block;
         padding: 4px 12px;
         border-radius: 999px;
-        color: white;
+        color: #10233f;
         font-size: .8rem;
-        font-weight: 700;
+        font-weight: 900;
+        background: rgba(20,184,166,.14);
     }
     /* ============================
        Responsive Calendar
     ============================ */
     @@media (max-width: 768px) {
 
-        .calendar-card {
+        .phase-calendar-page {
+            padding: 4px 0;
+        }
+
+        .calendar-card__toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .calendar-card__body {
             padding: 14px;
-            border-radius: 14px;
         }
 
         .fc-toolbar {
@@ -209,7 +251,7 @@
             gap: 6px;
         }
 
-        .fc-toolbar-title {
+        .fc .fc-toolbar-title {
             font-size: 1.1rem !important;
             text-align: center;
         }
@@ -218,7 +260,7 @@
             min-height: 620px;
         }
 
-        .fc-event {
+        .fc .fc-event {
             padding: 2px 4px !important;
             font-size: 11px !important;
             border-radius: 6px !important;
@@ -232,35 +274,50 @@
             min-height: 90px;
         }
 
-        .fc-col-header-cell-cushion {
+        .fc .fc-col-header-cell-cushion {
             font-size: .8rem !important;
         }
 
-        .fc-daygrid-day-number {
+        .fc .fc-daygrid-day-number {
             font-size: .8rem !important;
         }
     }
 </style>
 
-<div class="container-fluid mt-3">
+<div class="container phase-calendar-page mt-3">
     <div class="index-hero">
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
             <h2 class="index-title">ปฏิทินกำหนดส่งงานโครงการ</h2>
             <p class="index-subtitle">ดูภาพรวมกำหนดส่งงานและรายการที่ต้องติดตามตามวัน</p>
         </div>
+        <div class="index-actions">
+            <span class="index-chip">งานที่ยังต้องติดตาม</span>
+        </div>
     </div>
 
     <div class="calendar-card">
-        <div id="calendar"></div>
+        <div class="calendar-card__toolbar">
+            <div class="toolbar-left">
+                <h3 class="calendar-section-title">Calendar</h3>
+                <span class="calendar-section-subtitle">ข้อมูลกำหนดส่งจากงวดงานโครงการ</span>
+            </div>
+        </div>
+        <div class="calendar-card__body">
+            <div id="calendar"></div>
+        </div>
     </div>
 
     <div class="calendar-card">
-        <h4 class="fw-bold mb-3">
-            📋 รายการกำหนดส่งงาน
-        </h4>
-
-        <div id="phaseList"></div>
+        <div class="calendar-card__toolbar">
+            <div class="toolbar-left">
+                <h3 class="calendar-section-title">รายการกำหนดส่งงาน</h3>
+                <span class="calendar-section-subtitle">เรียงตามวันกำหนดส่งใกล้สุดก่อน</span>
+            </div>
+        </div>
+        <div class="calendar-card__body">
+            <div id="phaseList" class="phase-list"></div>
+        </div>
     </div>
 </div>
 
@@ -310,28 +367,33 @@
 
                 return {
                     html: `
-                        <div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.25;color:#111827;font-weight:600;padding:2px 0;overflow:hidden;">
-
-                            <div style="font-size:16px;line-height:1;flex-shrink:0;margin-top:1px;">
-                                📌
-                            </div>
-
+                        <div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.3;color:#10233f;font-weight:700;padding:2px 0;overflow:hidden;">
                             <div style="min-width:0;overflow:hidden;flex:1;">
-                                <div style="font-weight:700;color:#2563eb;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
+                                <div style="font-weight:900;color:#10233f;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
                                     ${props.projectName ?? '-'}
                                 </div>
 
-                                <div style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;color:#111827;">
+                                <div style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;color:#475569;">
                                     ${props.phaseName ?? '-'}
                                 </div>
 
-                                <div style="margin-top:2px;font-size:11px;color:#6b7280;font-weight:600;">
-                                    📍 ${props.phaseStatus ?? '-'}
+                                <div style="margin-top:3px;font-size:11px;color:#0f766e;font-weight:900;">
+                                    ${props.phaseStatus ?? '-'}
                                 </div>
                             </div>
                         </div>
                     `
                 }
+            },
+
+            eventClassNames: function (arg) {
+                const status = arg.event.extendedProps?.phaseStatus;
+                if (status === 'วางแผน') return ['status-plan'];
+                if (status === 'กำลังดำเนินการ') return ['status-progress'];
+                if (status === 'ส่งงวดงานแล้ว') return ['status-submitted'];
+                if (status === 'อนุมัติแล้ว') return ['status-approved'];
+                if (status === 'ตีกลับ') return ['status-rejected'];
+                return [];
             },
 
             eventClick: function(info) {
@@ -407,7 +469,7 @@
                     </div>
 
                     <span class="status-badge"
-                          style="background:${statusColor}">
+                          style="color:${statusColor};background:${statusColor}22;">
                         ${item.extendedProps.phaseStatus}
                     </span>
                 </div>

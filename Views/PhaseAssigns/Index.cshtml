@@ -482,8 +482,6 @@ thead .sticky-col { z-index: 5; }
         justify-content: space-between;
         align-items: stretch;
         gap: 14px;
-        background: #f8fafc;
-        border-left: 1px solid #e2e8f0;
     }
 
     .assign-card-header-row {
@@ -705,9 +703,7 @@ thead .sticky-col { z-index: 5; }
                         <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
                         <div class="text-muted"><b>Log:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
                     </div>
-                </section>
 
-                <aside class="assign-card-right">
                     <div class="assign-status-grid">
                         <div class="assign-status-row">
                             <small>Work</small>
@@ -721,7 +717,9 @@ thead .sticky-col { z-index: 5; }
                             }
                         </div>
                     </div>
+                </section>
 
+                <aside class="assign-card-right">
                     <div class="assign-card-actions">
                         @* ===== Edit ===== *@
                         @if (CanMenu("PhaseAssigns.Edit"))

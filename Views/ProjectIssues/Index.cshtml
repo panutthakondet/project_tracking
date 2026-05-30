@@ -27,6 +27,18 @@
     gap: 1rem;
 }
 
+.issue-filter-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+}
+
+.issue-filter-row {
+    width: 100%;
+    min-width: 0;
+}
+
 .issue-card {
     display: flex;
     align-items: stretch;
@@ -204,10 +216,13 @@
     </div>
 </div>
 
-<form method="get" id="filterForm" class="row g-3 mb-4">
-    <div class="col-md-4">
+<form method="get" id="filterForm" class="issue-filter-form mb-4">
+    <div class="issue-filter-row">
         <label class="form-label fw-semibold">📁 Project</label>
-        <select id="projectSelect" name="projectId" class="form-select">
+        <select id="projectSelect"
+                name="projectId"
+                class="form-select"
+                onchange="document.getElementById('filterForm').submit()">
             <option value="">-- Select Project --</option>
             @foreach (var p in ((IEnumerable<ProjectTracking.Models.Project>)ViewBag.Projects ?? Enumerable.Empty<ProjectTracking.Models.Project>())
                                 .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
@@ -221,7 +236,7 @@
 
     @if (selectedProject != null)
     {
-        <div class="col-md-4">
+        <div class="issue-filter-row">
             <label class="form-label fw-semibold">👤 Owner</label>
             <select name="empName" class="form-select" onchange="document.getElementById('filterForm').submit()">
                 <option value="">-- All --</option>
@@ -312,9 +327,7 @@ else
                         <span>👤 Owner: @(i.Employee?.EmpName ?? "-")</span>
                         <span>🛠 Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>
-                </div>
 
-                <div class="issue-card-right">
                     <div class="issue-status-grid">
                         <div class="issue-status-item">
                             <small>Issue</small>
@@ -331,7 +344,9 @@ else
                             </span>
                         </div>
                     </div>
+                </div>
 
+                <div class="issue-card-right">
                     <div class="issue-actions">
                         @if (CanMenu("ProjectIssues.View"))
                         {
@@ -383,13 +398,4 @@ else
             row++;
         }
     </div>
-}
-
-@section Scripts{
-<script>
-$(function () {
-    $('#projectSelect').select2({ width:'100%' });
-    $('#projectSelect').on('change', function () { $('#filterForm').submit(); });
-});
-</script>
 }

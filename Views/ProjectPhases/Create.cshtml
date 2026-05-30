@@ -31,14 +31,23 @@
         : "";
 }
 
-<div class="mb-4">
-    <h2 class="fw-bold">🧩 Add Project Phase</h2>
-    <p class="text-muted mb-0">
-        เพิ่ม Phase ใหม่ให้กับโครงการ
-    </p>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Add Project Phase</h2>
+        <p class="index-subtitle">เพิ่มงวดงานใหม่ให้กับโครงการที่เลือก</p>
+    </div>
+
+    <div class="index-actions">
+        <a asp-action="Index"
+           asp-route-projectId="@(Model?.ProjectId ?? 0)"
+           class="btn btn-outline-light">
+            Back
+        </a>
+    </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm pt-form-card">
     <div class="card-body">
 
         <form asp-action="Create"
@@ -52,7 +61,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">📁 Project</label>
 
-                    <div class="form-control bg-light fw-semibold">
+                    <div class="form-control bg-light fw-semibold pt-readonly-field">
                         @(ViewBag.SelectedProjectName ?? "ไม่พบข้อมูลโครงการ")
                     </div>
 
@@ -148,7 +157,7 @@
 
             </div>
 
-            <div class="mt-4 d-flex gap-2">
+            <div class="pt-form-actions">
                 <button type="submit" class="btn btn-primary">
                     💾 Save Phase
                 </button>

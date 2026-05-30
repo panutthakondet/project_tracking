@@ -8,21 +8,6 @@
     var beforeImages = Model.Images?.ToList() ?? new List<ProjectIssueImage>();
     var projectName = (ViewBag.ProjectName as string) ?? Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
 
-    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
-    {
-        "OPEN" => "badge-soft-warning",
-        "WIP" => "badge-soft-info",
-        "FIXED" => "badge-soft-success",
-        "PASS" => "badge-soft-primary",
-        "FAIL" => "badge-soft-danger",
-        "REJECT" => "badge-soft-dark",
-        _ => "badge-soft-muted"
-    };
-
-    string PriorityClass(string? priority) =>
-        string.Equals(priority, "URGENT", StringComparison.OrdinalIgnoreCase)
-            ? "badge-soft-danger"
-            : "badge-soft-muted";
 }
 
 <style>
@@ -65,26 +50,6 @@
         font-weight: 700;
         margin: 10px 0 0;
         word-break: break-word;
-    }
-
-    .issue-hero-badges {
-        min-width: 250px;
-        display: grid;
-        gap: 10px;
-    }
-
-    .issue-badge-row {
-        display: grid;
-        grid-template-columns: 92px minmax(0, 1fr);
-        align-items: center;
-        gap: 10px;
-    }
-
-    .issue-badge-row small {
-        color: #bfd0e5;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
     }
 
     .issue-soft-badge {
@@ -289,9 +254,6 @@
             grid-template-columns: 1fr;
         }
 
-        .issue-hero-badges {
-            min-width: 0;
-        }
     }
 
     @@media (max-width: 575.98px) {
@@ -321,23 +283,6 @@
             <div class="issue-eyebrow">Project Issue #@Model.IssueId</div>
             <h1 class="issue-edit-title">แก้ไขปัญหาโครงการ</h1>
             <p class="issue-edit-subtitle">@projectName</p>
-        </div>
-
-        <div class="issue-hero-badges">
-            <div class="issue-badge-row">
-                <small>Issue</small>
-                <span class="issue-soft-badge @StatusClass(Model.IssueStatus)">@Model.IssueStatus</span>
-            </div>
-            <div class="issue-badge-row">
-                <small>Priority</small>
-                <span class="issue-soft-badge @PriorityClass(Model.IssuePriority)">@Model.IssuePriority</span>
-            </div>
-            <div class="issue-badge-row">
-                <small>Reopen</small>
-                <span class="issue-soft-badge @(Model.IsReopen ? "badge-soft-danger" : "badge-soft-success")">
-                    @(Model.IsReopen ? $"REOPEN {Model.ReopenCount} ครั้ง" : "NORMAL")
-                </span>
-            </div>
         </div>
     </div>
 

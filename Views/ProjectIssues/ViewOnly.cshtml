@@ -44,8 +44,6 @@
     };
 }
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
 <style>
     .issue-view-page {
         max-width: 1280px;
@@ -371,7 +369,10 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Project</label>
-                <select id="projectSelect" name="projectId" class="form-select">
+                <select id="projectSelect"
+                        name="projectId"
+                        class="form-select"
+                        onchange="document.getElementById('filterForm').submit()">
                     <option value="">-- Select Project --</option>
                     @foreach (var p in projects)
                     {
@@ -384,7 +385,11 @@
 
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Employee</label>
-                <select id="empSelect" name="empName" class="form-select" @(selectedProject == null ? "disabled" : "")>
+                <select id="empSelect"
+                        name="empName"
+                        class="form-select"
+                        onchange="document.getElementById('filterForm').submit()"
+                        @(selectedProject == null ? "disabled" : "")>
                     <option value="">-- All Employees --</option>
                     @foreach (var emp in empList)
                     {
@@ -539,16 +544,3 @@
         }
     }
 </div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script>
-$(function () {
-    $('#projectSelect').select2({ width: '100%' });
-    $('#empSelect').select2({ width: '100%' });
-
-    $('#projectSelect').on('change', function () { $('#filterForm').submit(); });
-    $('#empSelect').on('change', function () { $('#filterForm').submit(); });
-});
-</script>

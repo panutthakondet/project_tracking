@@ -32,7 +32,7 @@
 }
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="utf-8" />
     <title>Login - ระบบติดตามโครงการ </title>
@@ -40,19 +40,26 @@
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
         :root{
-            --p1:#2563eb; /* blue */
-            --p2:#4f46e5; /* indigo */
-            --card: rgba(255,255,255,.72);
+            --p1:#14b8a6;
+            --p2:#0f766e;
+            --navy:#10233f;
+            --navy-deep:#071a3b;
+            --card: rgba(255,255,255,.88);
+            --auth-font: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", sans-serif;
         }
 
         /* ✅ Background image + dark overlay (soathome.png) */
         body{
             min-height:100vh;
+            font-family: var(--auth-font);
             background:
-                linear-gradient(rgba(10,20,40,.72), rgba(10,20,40,.78)),
+                linear-gradient(rgba(4,16,40,.74), rgba(4,16,40,.82)),
                 url('/images/auth/soathome.png') center center / cover no-repeat fixed;
         }
 
@@ -77,11 +84,11 @@
         }
         .blob-1{
             left:-220px; top:-220px;
-            background: radial-gradient(circle, rgba(37,99,235,.95), transparent 60%);
+            background: radial-gradient(circle, rgba(20,184,166,.95), transparent 60%);
         }
         .blob-2{
             right:-240px; bottom:-240px;
-            background: radial-gradient(circle, rgba(79,70,229,.95), transparent 60%);
+            background: radial-gradient(circle, rgba(244,63,94,.55), transparent 60%);
         }
 
         .login-shell{
@@ -98,53 +105,73 @@
             background: var(--card);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
-            border: 1px solid rgba(255,255,255,.55);
+            border: 1px solid rgba(148, 219, 225, .28);
             box-shadow:
-                0 30px 90px rgba(0,0,0,.45),
+                0 30px 90px rgba(0,0,0,.42),
                 inset 0 1px 0 rgba(255,255,255,.55);
             overflow:hidden;
         }
 
         .card-head{
-            padding:26px 28px 14px;
-            border-bottom: 1px solid rgba(255,255,255,.35);
+            padding:24px 28px 18px;
+            border-bottom: 1px solid rgba(148,219,225,.18);
             background:
-                linear-gradient(135deg, rgba(37,99,235,.12), rgba(79,70,229,.12));
+                radial-gradient(circle at 90% 8%, rgba(20,184,166,.32), transparent 34%),
+                linear-gradient(135deg, var(--navy), #1f3b63);
         }
 
         .brand{
             display:flex;
             align-items:center;
-            justify-content:center;
-            gap:10px;
+            justify-content:flex-start;
+            gap:16px;
         }
 
-        .brand-mark{
-            width:40px;height:40px;border-radius:14px;
-            background: linear-gradient(135deg, var(--p1), var(--p2));
-            display:flex;align-items:center;justify-content:center;
-            color:#fff;
-            box-shadow: 0 14px 26px rgba(37,99,235,.30);
-            font-weight:900;
-            letter-spacing:.5px;
+        .brand-logo-frame{
+            width:164px;
+            height:116px;
+            max-width:40%;
+            flex:0 0 auto;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow:hidden;
+            border-radius:8px;
+            background:transparent;
+            box-shadow:none;
+        }
+
+        .brand-logo{
+            width:100%;
+            height:100%;
+            max-width:none;
+            display:block;
+            object-fit:contain;
+            object-position:center;
+            border:0;
+        }
+
+        .brand-copy{
+            min-width:0;
         }
 
         .brand-title{
             margin:0;
             font-weight:900;
             font-size:22px;
-            color:#0f172a;
+            color:#fff;
             line-height:1.1;
         }
 
         .brand-sub{
             margin:6px 0 0;
-            text-align:center;
-            color:#475569;
+            text-align:left;
+            color:#d8e6f7;
             font-size:13px;
+            font-weight:700;
         }
 
-        .muted-hint{ font-size: 12px; color:#64748b; }
+        .muted-hint{ font-size: 12px; color:#a9bdd8; }
 
         .card-body{
             padding:22px 28px 26px !important;
@@ -160,20 +187,22 @@
         /* Inputs */
         .form-label{
             font-weight:800;
-            color:#334155;
+            color:#10233f;
             font-size:13px;
         }
 
         .form-control{
             border-radius:14px;
-            border:1px solid rgba(15,23,42,.12);
+            border:1px solid #d8e2ef;
             padding:12px 14px;
             background: rgba(255,255,255,.92);
+            color:#10233f;
+            font-weight:700;
         }
 
         .form-control:focus{
-            border-color: rgba(37,99,235,.55);
-            box-shadow: 0 0 0 5px rgba(37,99,235,.16);
+            border-color: rgba(20,184,166,.85);
+            box-shadow: 0 0 0 5px rgba(20,184,166,.16);
             background:#fff;
         }
 
@@ -183,11 +212,12 @@
         }
 
         .password-toggle{
-            border:1px solid rgba(15,23,42,.12);
+            border:1px solid #d8e2ef;
             border-left:0;
             border-top-right-radius:14px;
             border-bottom-right-radius:14px;
             background: rgba(255,255,255,.82);
+            color:#0f766e;
             cursor:pointer;
             user-select:none;
             transition:.2s;
@@ -204,27 +234,46 @@
             letter-spacing:.2px;
             border:0;
             background: linear-gradient(135deg, var(--p1), var(--p2));
-            box-shadow: 0 18px 36px rgba(37,99,235,.35);
+            box-shadow: 0 18px 36px rgba(20,184,166,.30);
             transition:.18s;
         }
         .btn-login:hover{
             transform: translateY(-1px);
-            box-shadow: 0 22px 44px rgba(37,99,235,.40);
+            box-shadow: 0 22px 44px rgba(20,184,166,.38);
         }
         .btn-login:active{
             transform: translateY(0);
-            box-shadow: 0 14px 28px rgba(37,99,235,.30);
+            box-shadow: 0 14px 28px rgba(20,184,166,.28);
         }
 
         .foot{
             text-align:center;
             color:#64748b;
             font-size:12px;
+            font-weight:800;
             padding:14px 0 0;
+        }
+
+        .foot strong{
+            color:#0f766e;
+            font-weight:900;
         }
 
         @@media (max-width: 420px){
             .login-card{ width:100%; }
+            .brand{
+                flex-direction:column;
+                justify-content:center;
+                text-align:center;
+            }
+            .brand-logo-frame{
+                width:190px;
+                height:134px;
+                max-width:82%;
+            }
+            .brand-sub{
+                text-align:center;
+            }
         }
     </style>
 </head>
@@ -238,18 +287,19 @@
 
             <div class="card-head">
                 <div class="brand">
-                    <div class="brand-mark">PT</div>
-                    <div>
+                    <span class="brand-logo-frame">
+                        <img class="brand-logo" src="/images/auth/logosoat.png" alt="SO-AT SOLUTION" />
+                    </span>
+                    <div class="brand-copy">
                         <h3 class="brand-title">ระบบติดตามโครงการ</h3>
+                        <div class="brand-sub">
+                            กรุณาเข้าสู่ระบบเพื่อใช้งาน
+                            @if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl != "/")
+                            {
+                                <div class="muted-hint mt-1">You’ll be redirected after login.</div>
+                            }
+                        </div>
                     </div>
-                </div>
-
-                <div class="brand-sub">
-                    กรุณาเข้าสู่ระบบเพื่อใช้งาน
-                    @if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl != "/")
-                    {
-                        <div class="muted-hint mt-1">You’ll be redirected after login.</div>
-                    }
                 </div>
             </div>
 
@@ -313,7 +363,7 @@
                     </div>
                 </form>
 
-                <div class="foot">Copyright © 2026 ProjectTracking By #C PM</div>
+                <div class="foot">© 2026 <strong>#C</strong> By <strong>SO-AT SOLUTION</strong></div>
             </div>
 
         </div>

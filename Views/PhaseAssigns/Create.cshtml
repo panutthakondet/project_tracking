@@ -18,14 +18,23 @@
         : "";
 }
 
-<div class="mb-4">
-    <h2 class="fw-bold">➕ Assign Employee</h2>
-    <p class="text-muted mb-0">
-        มอบหมายพนักงานให้กับ Phase ของโครงการ
-    </p>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Assign Employee</h2>
+        <p class="index-subtitle">มอบหมายพนักงานให้กับงวดงานของโครงการ พร้อมกำหนดแผนและสถานะงาน</p>
+    </div>
+
+    <div class="index-actions">
+        <a asp-action="Index"
+           asp-route-projectId="@ViewBag.ProjectId"
+           class="btn btn-outline-light">
+            Back
+        </a>
+    </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm pt-form-card">
     <div class="card-body">
 
         <form asp-action="Create"
@@ -140,7 +149,7 @@
 
             </div>
 
-            <div class="mt-4 d-flex gap-2">
+            <div class="pt-form-actions">
                 <button type="submit" class="btn btn-primary">💾 Save Assign</button>
                 <a asp-action="Index" asp-route-projectId="@ViewBag.ProjectId" class="btn btn-outline-secondary">↩ Back</a>
             </div>

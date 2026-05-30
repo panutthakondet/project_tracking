@@ -281,9 +281,7 @@
                             <span>Owner: @(i.Employee?.EmpName ?? "-")</span>
                             <span>Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                         </div>
-                    </div>
 
-                    <div class="dev-issue-side">
                         <div class="dev-status-grid">
                             <div class="dev-status-row">
                                 <small>Issue</small>
@@ -300,7 +298,9 @@
                                 </span>
                             </div>
                         </div>
+                    </div>
 
+                    <div class="dev-issue-side">
                         <div class="dev-actions">
                             <a asp-controller="ProjectIssues"
                                asp-action="DevDetails"

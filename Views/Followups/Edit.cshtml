@@ -48,6 +48,15 @@
         </select>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">Back</a>
+    <div class="pt-form-actions">
+        <button type="submit" class="btn btn-primary">
+            Save
+        </button>
+
+        <a asp-action="Index"
+           asp-route-projectId="@Model.ProjectId"
+           class="btn btn-outline-secondary">
+            Back
+        </a>
+    </div>
 </form>

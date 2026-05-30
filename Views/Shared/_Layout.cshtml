@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,13 +8,12 @@
     <!-- ✅ Google Font (Thai): Sarabun -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <!-- ✅ SELECT2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     @RenderSection("Styles", required: false)
 
     <style>
@@ -25,12 +24,59 @@
             --pt-accent-deep: #0d5f59;
             --pt-accent-soft: rgba(20, 184, 166, .18);
             --pt-accent-glow: rgba(20, 184, 166, .30);
+            --pt-font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
+            --pt-control-font-size: 1rem;
+            --bs-body-font-family: var(--pt-font-family);
+            --bs-font-sans-serif: var(--pt-font-family);
         }
 
         body {
-            font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+            font-family: var(--pt-font-family);
             overflow-x: hidden;
         }
+
+        select,
+        option,
+        optgroup,
+        input,
+        textarea,
+        button,
+        .btn,
+        .form-control,
+        .form-select,
+        .dropdown-menu,
+        .dropdown-item,
+        .list-group,
+        .list-group-item,
+        .list-group-item-action,
+        .pt-search-select,
+        .pt-search-select *,
+        .select2-container,
+        .select2-container *,
+        .select2-dropdown,
+        .select2-dropdown * {
+            font-family: var(--pt-font-family) !important;
+        }
+
+        select,
+        option,
+        optgroup,
+        .form-select,
+        .form-control,
+        .pt-search-select__input,
+        .pt-search-select__option,
+        .pt-search-select__empty,
+        .search-dropdown-field .form-control,
+        .list-group-item,
+        .list-group-item-action,
+        .select2-container .select2-selection--single .select2-selection__rendered,
+        .select2-container .select2-selection--multiple .select2-selection__choice,
+        .select2-results__option,
+        .select2-search__field {
+            font-size: var(--pt-control-font-size) !important;
+            line-height: 1.35 !important;
+        }
+
         .navbar {
             background: linear-gradient(135deg, #1f2933, #111827);
             box-shadow: 0 6px 18px rgba(0,0,0,.35);
@@ -188,89 +234,6 @@
                 justify-content: center;
                 text-align: center;
             }
-        }
-
-        /* ===== Select2: FIX WRAP + ALIGN (เหมาะกับข้อความยาว/หน้า Print) ===== */
-
-        /* ให้ container เต็ม */
-        .select2-container { width: 100% !important; }
-
-        /* กล่องเลือก: ให้สูงขั้นต่ำ 38 แต่ยืดได้ */
-        .select2-container--default .select2-selection--single{
-            min-height: 38px !important;
-            height: auto !important;
-            border: 1px solid #cbd5e1;
-            border-radius: .375rem;
-            display: flex !important;
-            align-items: center !important;
-            padding: 6px 40px 6px 12px !important;  /* กันพื้นที่ให้ arrow + clear */
-            box-sizing: border-box;
-            position: relative; /* ✅ สำคัญ: ให้ arrow/clear absolute อิงกล่องนี้ */
-        }
-
-        /* ข้อความที่เลือก: wrap ได้ */
-        .select2-container--default .select2-selection--single .select2-selection__rendered{
-            white-space: normal !important;
-            line-height: 1.35 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        /* ลูกศร: จัดให้อยู่กลาง */
-        .select2-container--default .select2-selection--single .select2-selection__arrow{
-            position: absolute !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            right: 10px !important;
-            height: 20px !important;
-        }
-
-        /* ปุ่ม clear (x): จัดให้อยู่กลาง และไม่ทับข้อความ */
-        .select2-container--default .select2-selection--single .select2-selection__clear{
-            position: absolute !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            right: 32px !important; /* อยู่ซ้ายลูกศร */
-            margin: 0 !important;
-            font-size: 22px !important;
-            line-height: 1 !important;
-        }
-
-        /* dropdown รายการ: ให้ wrap เหมือนเดิม */
-        .select2-results__option{
-            white-space: normal !important;
-            line-height: 1.35 !important;
-            padding-top: .45rem;
-            padding-bottom: .45rem;
-        }
-
-        /* custom search: ให้เข้าธีมและขนาดพอดี */
-        .s2-custom-search-wrap{
-            padding: 8px !important;
-            border-bottom: 1px solid #e5e7eb !important;
-            background: #fff !important;
-        }
-        .s2-custom-search{
-            width: 100% !important;
-            height: 36px !important;
-            padding: 6px 10px !important;
-            border: 1px solid #cbd5e1 !important;
-            border-radius: .375rem !important;
-            box-sizing: border-box !important;
-        }
-
-        .select2-container--default.select2-container--focus .select2-selection--single,
-        .select2-container--default.select2-container--open .select2-selection--single,
-        .s2-custom-search:focus {
-            border-color: var(--pt-accent) !important;
-            box-shadow: 0 0 0 4px var(--pt-accent-soft) !important;
-            outline: none !important;
-        }
-
-        .select2-container--default .select2-results__option--highlighted[aria-selected],
-        .select2-container--default .select2-results__option--selected {
-            background: var(--pt-accent) !important;
-            color: #062b2f !important;
         }
 
         .nav-count-badge{
@@ -827,7 +790,7 @@
     padding:11px 15px !important;
     border-radius:28px;
     font-size:17px;
-    font-weight:850;
+    font-weight:800;
     color:#f8fbff !important;
     letter-spacing:0;
 }
@@ -1541,77 +1504,6 @@
 
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- ✅ SELECT2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script>
-    // ✅ GLOBAL: ทำ select2 ให้ทุก select ที่เป็น form-select (กันพลาดหน้า Print)
-    $(function () {
-        $('select.form-select').each(function () {
-            var $el = $(this);
-
-            // ถ้าตั้งใจไม่ใช้ select2 ให้ใส่ class นี้ไว้
-            if ($el.hasClass('no-select2')) return;
-
-            if ($el.data('select2')) return;
-
-            var ph = $el.find('option:first').text() || '';
-            var $parent = $el.closest('form');
-            if ($parent.length === 0) $parent = $(document.body);
-
-            $el.select2({
-                width: '100%',
-                allowClear: true,
-                placeholder: ph,
-                minimumResultsForSearch: 0,
-                dropdownParent: $parent
-            });
-        });
-    });
-
-    // ✅ FIX 100%: ถ้า Select2 ไม่สร้าง search box -> สร้างเองและ filter option ใน dropdown
-    $(document).on('select2:open', function () {
-        var $dropdown = $('.select2-container--open .select2-dropdown');
-        if ($dropdown.length === 0) return;
-
-        // ถ้ามี search จริงของ select2 แล้ว -> focus แล้วจบ
-        var $native = $dropdown.find('.select2-search__field');
-        if ($native.length > 0) {
-            $native.focus();
-            return;
-        }
-
-        // ถ้าสร้าง custom แล้ว -> focus
-        if ($dropdown.find('.s2-custom-search').length > 0) {
-            $dropdown.find('.s2-custom-search').focus();
-            return;
-        }
-
-        var $wrap = $('<div class="s2-custom-search-wrap"></div>');
-        var $input = $('<input type="text" class="s2-custom-search" placeholder="ค้นหา...">');
-        $wrap.append($input);
-        $dropdown.prepend($wrap);
-
-        $input.on('input', function () {
-            var term = ($(this).val() || '').toLowerCase();
-            $dropdown.find('.select2-results__option').each(function () {
-                var $opt = $(this);
-                var text = ($opt.text() || '').toLowerCase();
-                if (!term) $opt.show();
-                else $opt.toggle(text.indexOf(term) > -1);
-            });
-        });
-
-        setTimeout(function () { $input.focus(); }, 0);
-    });
-
-    $(document).on('select2:close', function () {
-        var $dropdown = $('.select2-dropdown');
-        $dropdown.find('.s2-custom-search').val('');
-        $dropdown.find('.select2-results__option').show();
-    });
-</script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const sidebar = document.querySelector('.v2-sidebar');
@@ -1913,6 +1805,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 60000);
 </script>
 @RenderSection("Scripts", required: false)
+<script src="~/js/site.js" asp-append-version="true"></script>
 
  </div>
 </body>
