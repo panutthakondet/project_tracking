@@ -124,20 +124,6 @@
         margin-bottom: 14px;
     }
 
-    .dev-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-    }
-
-    .dev-actions .btn {
-        border-radius: 12px;
-        font-weight: 900;
-        padding-inline: 18px;
-    }
-
     @@media (max-width: 991.98px) {
         .dev-edit-hero,
         .dev-edit-grid {
@@ -250,7 +236,7 @@
                     <small class="text-muted">อัปโหลดภาพผลลัพธ์หลังจากแก้ไข Issue ได้หลายรูป</small>
                 </div>
 
-                <div class="dev-actions">
+                <div class="pt-form-actions dev-form-actions">
                     <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-secondary">Back</a>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>

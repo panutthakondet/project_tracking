@@ -66,6 +66,22 @@
             </button>
         }
 
+        @if (CanMenu("TestScenarios.Index"))
+        {
+            <a asp-controller="TestScenarios"
+               asp-action="Index"
+               class="btn btn-outline-primary"
+               title="ดู Test Scenarios">
+                Test Scenarios
+            </a>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Test Scenarios">
+                Test Scenarios
+            </button>
+        }
+
         @if (CanMenu("Projects.Create"))
         {
             <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
@@ -327,6 +343,18 @@
                             {
                                 <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Support Orders">🛠</button>
                             }
+                            @if (CanMenu("TestScenarios.Index"))
+                            {
+                                <a asp-controller="TestScenarios"
+                                   asp-action="Index"
+                                   asp-route-projectId="@p.ProjectId"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="ดู Test Scenarios">🧪</a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Test Scenarios">🧪</button>
+                            }
                             @if (CanMenu("Projects.Delete"))
                             {
                                 <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
@@ -525,6 +553,22 @@
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
                             🛠 Support
+                        </button>
+                    }
+
+                    @if (CanMenu("TestScenarios.Index"))
+                    {
+                        <a asp-controller="TestScenarios"
+                           asp-action="Index"
+                           asp-route-projectId="@p.ProjectId"
+                           class="btn btn-outline-primary btn-sm">
+                            🧪 Test
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🧪 Test
                         </button>
                     }
 

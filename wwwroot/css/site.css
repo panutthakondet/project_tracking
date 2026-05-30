@@ -1333,7 +1333,10 @@ main :is(label, .form-label) {
   .support-actions,
   .support-dev-actions,
   .employee-actions,
-  .followup-actions
+  .followup-actions,
+  .scenario-card-actions,
+  .template-actions,
+  .group-actions
 ) {
   display: flex !important;
   flex-wrap: nowrap !important;
@@ -1351,7 +1354,10 @@ main :is(label, .form-label) {
   .support-actions,
   .support-dev-actions,
   .employee-actions,
-  .followup-actions
+  .followup-actions,
+  .scenario-card-actions,
+  .template-actions,
+  .group-actions
 ) form {
   display: inline-flex !important;
   margin: 0 !important;
@@ -1366,7 +1372,10 @@ main :is(label, .form-label) {
   .support-actions,
   .support-dev-actions,
   .employee-actions,
-  .followup-actions
+  .followup-actions,
+  .scenario-card-actions,
+  .template-actions,
+  .group-actions
 ) .btn,
 main td.col-action .btn.btn-sm,
 main td.text-center .btn.btn-sm,
@@ -1416,7 +1425,10 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
     .support-actions,
     .support-dev-actions,
     .employee-actions,
-    .followup-actions
+    .followup-actions,
+    .scenario-card-actions,
+    .template-actions,
+    .group-actions
   ) {
     flex-wrap: wrap !important;
     justify-content: flex-start !important;
@@ -1431,7 +1443,10 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
     .support-actions,
     .support-dev-actions,
     .employee-actions,
-    .followup-actions
+    .followup-actions,
+    .scenario-card-actions,
+    .template-actions,
+    .group-actions
   ) .btn {
     flex: 1 1 calc(50% - 6px) !important;
     width: auto !important;
@@ -1812,4 +1827,192 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
   .route-controller-meetings .meeting-detail-card__body {
     padding: 16px;
   }
+}
+
+/* ===== ProjectIssues Typography ===== */
+main.route-controller-projectissues {
+  font-family: var(--pt-font-family) !important;
+  color: #10233f;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+main.route-controller-projectissues :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  span,
+  a,
+  button,
+  label,
+  input,
+  select,
+  textarea,
+  small,
+  b,
+  .btn,
+  .badge,
+  .view-badge
+) {
+  font-family: var(--pt-font-family) !important;
+  letter-spacing: 0 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-detail-page .issue-title,
+  .issue-create-title,
+  .issue-view-title,
+  .dev-issue-title,
+  .dev-detail-title,
+  .dev-edit-title
+) {
+  font-size: clamp(24px, 2.4vw, 32px) !important;
+  line-height: 1.22 !important;
+  font-weight: 900 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-project,
+  .issue-create-subtitle,
+  .issue-view-subtitle,
+  .dev-issue-subtitle,
+  .dev-detail-subtitle,
+  .dev-edit-subtitle
+) {
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+  font-weight: 700 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-create-panel h3,
+  .issue-panel h3,
+  .dev-panel h3,
+  .dev-edit-panel h3,
+  .issue-edit-section-title
+) {
+  font-size: 1.08rem !important;
+  line-height: 1.3 !important;
+  font-weight: 900 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-card .issue-title,
+  .issue-view-name,
+  .dev-issue-name
+) {
+  font-size: 1.05rem !important;
+  line-height: 1.35 !important;
+  font-weight: 900 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .issue-text-box,
+  .dev-text-box,
+  .dev-readonly,
+  .issue-help-box,
+  .issue-edit-note
+) {
+  font-size: .96rem !important;
+  line-height: 1.58 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-meta,
+  .issue-view-meta,
+  .dev-issue-meta,
+  .issue-summary-card b,
+  .dev-meta-row b,
+  .issue-view-selected,
+  .issue-empty,
+  .dev-empty,
+  .issue-view-empty,
+  .dev-empty-card,
+  .issue-empty-media
+) {
+  font-size: .94rem !important;
+  line-height: 1.45 !important;
+}
+
+main.route-controller-projectissues .issue-summary-item b {
+  font-size: 1.75rem !important;
+  line-height: 1 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-status-item small,
+  .issue-status-row small,
+  .dev-status-row small,
+  .dev-meta-row small,
+  .issue-summary-card small,
+  .issue-summary-item small,
+  .issue-media-title,
+  .issue-eyebrow
+) {
+  font-size: .78rem !important;
+  line-height: 1.25 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+main.route-controller-projectissues :is(
+  .badge,
+  .view-badge,
+  .reopen-badge,
+  .issue-edit-count
+) {
+  font-size: .82rem !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+}
+
+main.route-controller-projectissues :is(
+  .form-label,
+  .pt-readonly-field
+) {
+  font-size: .96rem !important;
+  line-height: 1.4 !important;
+}
+
+main.route-controller-projectissues small.text-muted {
+  font-size: .88rem !important;
+  line-height: 1.4 !important;
+}
+
+main.route-controller-projectissues :is(
+  .form-control,
+  .form-select
+) {
+  font-size: 1rem !important;
+  line-height: 1.35 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-hero-actions .btn,
+  .issue-create-hero .btn,
+  .issue-view-hero .btn,
+  .dev-detail-hero .btn,
+  .dev-edit-hero .btn,
+  .pt-form-actions .btn,
+  .issue-create-actions .btn,
+  .dev-form-actions .btn
+) {
+  min-height: 42px !important;
+  font-size: .95rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+}
+
+main.route-controller-projectissues :is(
+  .issue-actions .btn,
+  .dev-actions .btn
+) {
+  font-size: .82rem !important;
+  line-height: 1.15 !important;
+  font-weight: 800 !important;
 }

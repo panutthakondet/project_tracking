@@ -7,170 +7,10 @@
 
     var beforeImages = Model.Images?.ToList() ?? new List<ProjectIssueImage>();
     var projectName = (ViewBag.ProjectName as string) ?? Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
-
 }
 
 <style>
-    .issue-edit-page {
-        max-width: 1180px;
-        margin: 0 auto;
-    }
-
-    .issue-edit-hero {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: flex-start;
-        color: #fff;
-        background: linear-gradient(135deg, #10233f, #1f3b63);
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 40px rgba(15, 35, 64, .22);
-    }
-
-    .issue-eyebrow {
-        color: #94dbe1;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-
-    .issue-edit-title {
-        font-size: clamp(24px, 3vw, 36px);
-        font-weight: 900;
-        line-height: 1.25;
-        margin: 0;
-    }
-
-    .issue-edit-subtitle {
-        color: #d8e6f7;
-        font-weight: 700;
-        margin: 10px 0 0;
-        word-break: break-word;
-    }
-
-    .issue-soft-badge {
-        min-height: 30px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 6px 12px;
-        font-size: 13px;
-        font-weight: 900;
-        line-height: 1.15;
-        text-align: center;
-        white-space: normal;
-    }
-
-    .badge-soft-warning { background: #fff3cd; color: #8a5a00; }
-    .badge-soft-info { background: #dff7ff; color: #075985; }
-    .badge-soft-success { background: #dffbea; color: #147a44; }
-    .badge-soft-primary { background: #e4edff; color: #1d4ed8; }
-    .badge-soft-danger { background: #ffe4e6; color: #be123c; }
-    .badge-soft-dark { background: #e5e7eb; color: #111827; }
-    .badge-soft-muted { background: #eef2f7; color: #475569; }
-
-    .issue-edit-form {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr);
-        gap: 18px;
-        align-items: start;
-    }
-
-    .issue-panel {
-        background: #fff;
-        border: 1px solid #d8e3ef;
-        border-radius: 18px;
-        padding: 20px;
-        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
-    }
-
-    .issue-panel + .issue-panel {
-        margin-top: 18px;
-    }
-
-    .issue-panel-title {
-        color: #10233f;
-        font-size: 18px;
-        font-weight: 900;
-        margin: 0 0 14px;
-    }
-
-    .issue-field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-    }
-
-    .issue-field-full {
-        grid-column: 1 / -1;
-    }
-
-    .issue-edit-page .form-label {
-        color: #24364d;
-        font-weight: 900;
-        margin-bottom: 6px;
-    }
-
-    .issue-edit-page .form-control,
-    .issue-edit-page .form-select {
-        min-height: 46px;
-        border-radius: 12px;
-        border-color: #cbd5e1;
-        font-weight: 700;
-    }
-
-    .issue-edit-page textarea.form-control {
-        min-height: 150px;
-        line-height: 1.6;
-    }
-
-    .issue-edit-page .form-control:focus,
-    .issue-edit-page .form-select:focus {
-        border-color: #23c7c8;
-        box-shadow: 0 0 0 .2rem rgba(35, 199, 200, .15);
-    }
-
-    .issue-history-grid {
-        display: grid;
-        gap: 12px;
-    }
-
-    .issue-history-item {
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        background: #f8fafc;
-        padding: 14px;
-    }
-
-    .issue-history-item small {
-        display: block;
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-
-    .issue-history-item b {
-        color: #10233f;
-        font-size: 16px;
-    }
-
-    .issue-help {
-        border-radius: 14px;
-        background: #eff6ff;
-        color: #1e3a8a;
-        padding: 12px 14px;
-        font-weight: 700;
-        line-height: 1.55;
-    }
-
-    .issue-gallery-head {
+    .issue-edit-gallery-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -178,13 +18,35 @@
         margin-bottom: 12px;
     }
 
-    .issue-gallery-grid {
+    .issue-edit-section-title {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .issue-edit-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .issue-edit-gallery {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
+        margin-bottom: 14px;
     }
 
-    .issue-image-card {
+    .issue-edit-image-card {
         border: 1px solid #d8e3ef;
         background: #f8fafc;
         border-radius: 14px;
@@ -192,7 +54,7 @@
         overflow: hidden;
     }
 
-    .issue-image-card img {
+    .issue-edit-image-card img {
         width: 100%;
         aspect-ratio: 1 / 1;
         object-fit: cover;
@@ -201,12 +63,12 @@
         transition: transform .15s, box-shadow .15s;
     }
 
-    .issue-image-card a:hover img {
+    .issue-edit-image-card a:hover img {
         transform: translateY(-2px);
         box-shadow: 0 10px 22px rgba(15, 35, 64, .15);
     }
 
-    .issue-delete-check {
+    .issue-edit-delete-check {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -216,7 +78,7 @@
         font-weight: 900;
     }
 
-    .issue-empty {
+    .issue-edit-empty {
         border: 1px dashed #cbd5e1;
         border-radius: 14px;
         color: #64748b;
@@ -224,236 +86,205 @@
         padding: 18px;
         font-weight: 800;
         text-align: center;
+        margin-bottom: 14px;
     }
 
-    .issue-upload-box {
-        border: 1px dashed #94a3b8;
-        border-radius: 16px;
-        background: #f8fafc;
-        padding: 16px;
-    }
-
-    .issue-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 18px;
-    }
-
-    .issue-actions .btn {
-        border-radius: 12px;
-        font-weight: 900;
-        padding: 10px 18px;
-    }
-
-    @@media (max-width: 991.98px) {
-        .issue-edit-hero,
-        .issue-edit-form {
-            display: grid;
-            grid-template-columns: 1fr;
-        }
-
-    }
-
-    @@media (max-width: 575.98px) {
-        .issue-edit-hero,
-        .issue-panel {
-            border-radius: 16px;
-            padding: 16px;
-        }
-
-        .issue-field-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .issue-actions {
-            justify-content: stretch;
-        }
-
-        .issue-actions .btn {
-            width: 100%;
-        }
+    .issue-edit-note {
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        padding: 12px 14px;
+        font-weight: 700;
+        line-height: 1.55;
     }
 </style>
 
-<div class="issue-edit-page">
-    <div class="issue-edit-hero">
-        <div>
-            <div class="issue-eyebrow">Project Issue #@Model.IssueId</div>
-            <h1 class="issue-edit-title">แก้ไขปัญหาโครงการ</h1>
-            <p class="issue-edit-subtitle">@projectName</p>
-        </div>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">Project Issue #@Model.IssueId</span>
+        <h2 class="index-title">แก้ไขปัญหาโครงการ</h2>
+        <p class="index-subtitle">@projectName</p>
     </div>
 
-    <form asp-action="Edit"
-          asp-route-id="@Model.IssueId"
-          method="post"
-          enctype="multipart/form-data"
-          class="issue-edit-form">
+    <div class="index-actions">
+        <a asp-action="Index"
+           asp-route-projectId="@Model.ProjectId"
+           class="btn btn-outline-light">
+            Back
+        </a>
+    </div>
+</div>
 
-        @Html.AntiForgeryToken()
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
+        <form asp-action="Edit"
+              asp-route-id="@Model.IssueId"
+              method="post"
+              enctype="multipart/form-data"
+              onsubmit="return confirm('บันทึกการแก้ไข Issue นี้หรือไม่?');">
 
-        <input type="hidden" asp-for="IssueId" />
-        <input type="hidden" asp-for="ProjectId" />
-        <input type="hidden" asp-for="DevStatus" />
-        <input type="hidden" asp-for="IsReopen" />
-        <input type="hidden" asp-for="ReopenCount" />
-        <input type="hidden" asp-for="LastFixedAt" />
+            @Html.AntiForgeryToken()
 
-        <div>
-            <div class="issue-panel">
-                <h2 class="issue-panel-title">ข้อมูล Issue</h2>
+            <input type="hidden" asp-for="IssueId" />
+            <input type="hidden" asp-for="ProjectId" />
+            <input type="hidden" asp-for="DevStatus" />
+            <input type="hidden" asp-for="IsReopen" />
+            <input type="hidden" asp-for="ReopenCount" />
+            <input type="hidden" asp-for="LastFixedAt" />
 
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                <div class="issue-field-grid">
-                    <div class="issue-field-full">
-                        <label asp-for="IssueName" class="form-label">หัวข้อปัญหา</label>
-                        <input asp-for="IssueName" class="form-control" placeholder="ระบุหัวข้อปัญหา" />
-                        <span asp-validation-for="IssueName" class="text-danger"></span>
-                    </div>
-
-                    <div class="issue-field-full">
-                        <label asp-for="IssueDetail" class="form-label">รายละเอียดปัญหา</label>
-                        <textarea asp-for="IssueDetail"
-                                  class="form-control"
-                                  rows="6"
-                                  placeholder="อธิบายปัญหา เงื่อนไขที่พบ หรือขั้นตอนที่ทำให้เกิดปัญหา"></textarea>
-                        <span asp-validation-for="IssueDetail" class="text-danger"></span>
-                    </div>
-
-                    <div>
-                        <label asp-for="EmpId" class="form-label">เจ้าของงาน</label>
-                        <select asp-for="EmpId" asp-items="ViewBag.Employees" class="form-select">
-                            <option value="">-- เลือกเจ้าของงาน --</option>
-                        </select>
-                        <span asp-validation-for="EmpId" class="text-danger"></span>
-                    </div>
-
-                    <div>
-                        <label asp-for="IssueStatus" class="form-label">สถานะ Issue</label>
-                        <select asp-for="IssueStatus" asp-items="ViewBag.StatusList" class="form-select"></select>
-                        <span asp-validation-for="IssueStatus" class="text-danger"></span>
-                    </div>
-
-                    <div>
-                        <label asp-for="IssuePriority" class="form-label">ความสำคัญ</label>
-                        <select asp-for="IssuePriority" class="form-select">
-                            <option value="NORMAL">Normal</option>
-                            <option value="URGENT">Urgent</option>
-                        </select>
-                        <span asp-validation-for="IssuePriority" class="text-danger"></span>
-                    </div>
-
-                    <div>
-                        <label asp-for="CreatedAt" class="form-label">วันที่สร้าง</label>
-                        <input asp-for="CreatedAt" type="datetime-local" class="form-control" readonly />
-                        <span asp-validation-for="CreatedAt" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="issue-panel">
-                <div class="issue-gallery-head">
-                    <h2 class="issue-panel-title mb-0">รูปประกอบก่อนแก้</h2>
-                    <span class="issue-soft-badge badge-soft-muted">@beforeImages.Count รูป</span>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">📁 Project</label>
+                    <div class="pt-readonly-field">@projectName</div>
                 </div>
 
-                @if (beforeImages.Any())
-                {
-                    <div class="issue-gallery-grid mb-3">
-                        @foreach (var img in beforeImages)
-                        {
-                            <div class="issue-image-card">
-                                <a href="@img.FilePath" target="_blank" rel="noopener">
-                                    <img src="@img.FilePath" alt="@img.FileName" />
-                                </a>
+                <div class="col-12">
+                    <label asp-for="IssueName" class="form-label fw-semibold">หัวข้อปัญหา</label>
+                    <input asp-for="IssueName"
+                           class="form-control"
+                           placeholder="ระบุหัวข้อปัญหา" />
+                    <span asp-validation-for="IssueName" class="text-danger"></span>
+                </div>
 
-                                <div class="issue-delete-check">
-                                    <input class="form-check-input"
-                                           type="checkbox"
-                                           name="deleteImageIds"
-                                           value="@img.ImageId"
-                                           id="del_@img.ImageId" />
-                                    <label for="del_@img.ImageId">ลบรูปนี้</label>
+                <div class="col-12">
+                    <label asp-for="IssueDetail" class="form-label fw-semibold">รายละเอียดปัญหา</label>
+                    <textarea asp-for="IssueDetail"
+                              class="form-control"
+                              rows="6"
+                              placeholder="อธิบายปัญหา เงื่อนไขที่พบ หรือขั้นตอนที่ทำให้เกิดปัญหา"></textarea>
+                    <span asp-validation-for="IssueDetail" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="EmpId" class="form-label fw-semibold">👤 เจ้าของงาน</label>
+                    <select asp-for="EmpId"
+                            asp-items="ViewBag.Employees"
+                            class="form-select">
+                        <option value="">-- เลือกเจ้าของงาน --</option>
+                    </select>
+                    <span asp-validation-for="EmpId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="IssueStatus" class="form-label fw-semibold">📌 สถานะ Issue</label>
+                    <select asp-for="IssueStatus"
+                            asp-items="ViewBag.StatusList"
+                            class="form-select"></select>
+                    <span asp-validation-for="IssueStatus" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="IssuePriority" class="form-label fw-semibold">⚡ ความสำคัญ</label>
+                    <select asp-for="IssuePriority"
+                            class="form-select">
+                        <option value="NORMAL">Normal</option>
+                        <option value="URGENT">Urgent</option>
+                    </select>
+                    <span asp-validation-for="IssuePriority" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="CreatedAt" class="form-label fw-semibold">📅 วันที่สร้าง</label>
+                    <input asp-for="CreatedAt"
+                           type="datetime-local"
+                           class="form-control"
+                           readonly />
+                    <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">🔁 Reopen Status</label>
+                    <div class="pt-readonly-field">@(Model.IsReopen ? "REOPEN" : "NORMAL")</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">🔢 Reopen Count</label>
+                    <div class="pt-readonly-field">@Model.ReopenCount ครั้ง</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">🛠 Last Fixed</label>
+                    <div class="pt-readonly-field">
+                        @(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "ยังไม่เคย Fix")
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">ℹ️ หมายเหตุการนับ Reopen</label>
+                    <div class="issue-edit-note">
+                        เมื่อเปลี่ยนสถานะจาก FIXED/PASS กลับเป็น OPEN/WIP ระบบจะนับ Reopen ให้อัตโนมัติ
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="issue-edit-gallery-head">
+                        <h3 class="issue-edit-section-title">รูปประกอบก่อนแก้</h3>
+                        <span class="issue-edit-count">@beforeImages.Count รูป</span>
+                    </div>
+
+                    @if (beforeImages.Any())
+                    {
+                        <div class="issue-edit-gallery">
+                            @foreach (var img in beforeImages)
+                            {
+                                <div class="issue-edit-image-card">
+                                    <a href="@img.FilePath" target="_blank" rel="noopener">
+                                        <img src="@img.FilePath" alt="@img.FileName" />
+                                    </a>
+
+                                    <div class="issue-edit-delete-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="deleteImageIds"
+                                               value="@img.ImageId"
+                                               id="del_@img.ImageId" />
+                                        <label for="del_@img.ImageId">ลบรูปนี้</label>
+                                    </div>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="issue-empty mb-3">ยังไม่มีรูปประกอบก่อนแก้</div>
-                }
-
-                <div class="issue-upload-box">
-                    <label class="form-label">เพิ่มรูปประกอบ</label>
-                    <input type="file" name="newImages" class="form-control" multiple accept="image/*" />
-                    <small class="text-muted d-block mt-2">เลือกได้หลายรูป ระบบจะบันทึกเป็นรูปก่อนแก้ของ Issue นี้</small>
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="issue-panel">
-                <h2 class="issue-panel-title">ประวัติและสถานะ</h2>
-
-                <div class="issue-history-grid">
-                    <div class="issue-history-item">
-                        <small>Reopen Status</small>
-                        <b>@(Model.IsReopen ? "REOPEN" : "NORMAL")</b>
-                    </div>
-
-                    <div class="issue-history-item">
-                        <small>Reopen Count</small>
-                        <b>@Model.ReopenCount ครั้ง</b>
-                    </div>
-
-                    <div class="issue-history-item">
-                        <small>Last Fixed</small>
-                        @if (Model.LastFixedAt.HasValue)
-                        {
-                            <b>@Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm")</b>
-                        }
-                        else
-                        {
-                            <b class="text-muted">ยังไม่เคย Fix</b>
-                        }
-                    </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="issue-edit-empty">ยังไม่มีรูปประกอบก่อนแก้</div>
+                    }
                 </div>
 
-                <div class="issue-help mt-3">
-                    เมื่อเปลี่ยนสถานะจาก FIXED/PASS กลับเป็น OPEN/WIP ระบบจะนับ Reopen ให้อัตโนมัติ
+                <div class="col-12">
+                    <label class="form-label fw-semibold">📎 เพิ่มรูปประกอบ</label>
+                    <input type="file"
+                           name="newImages"
+                           class="form-control"
+                           multiple
+                           accept="image/*" />
+                    <small class="text-muted d-block mt-2">
+                        เลือกได้หลายรูป ระบบจะบันทึกเป็นรูปก่อนแก้ของ Issue นี้
+                    </small>
                 </div>
             </div>
 
-            <div class="issue-panel">
-                <h2 class="issue-panel-title">การบันทึก</h2>
-                <p class="text-muted fw-semibold mb-0">
-                    ตรวจสอบหัวข้อ เจ้าของงาน สถานะ และรูปที่ต้องลบก่อนกดบันทึก
-                </p>
+            <div class="pt-form-actions">
+                <button type="submit"
+                        class="btn btn-primary">
+                    💾 Save Changes
+                </button>
 
-                <div class="issue-actions">
-                    <a asp-action="Details"
-                       asp-route-id="@Model.IssueId"
-                       class="btn btn-outline-secondary">
-                        ดูรายละเอียด
-                    </a>
+                <a asp-action="Details"
+                   asp-route-id="@Model.IssueId"
+                   class="btn btn-outline-secondary">
+                    ดูรายละเอียด
+                </a>
 
-                    <a asp-action="Index"
-                       asp-route-projectId="@Model.ProjectId"
-                       class="btn btn-outline-secondary">
-                        กลับ
-                    </a>
-
-                    <button type="submit" class="btn btn-primary">
-                        บันทึก
-                    </button>
-                </div>
+                <a asp-action="Index"
+                   asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-secondary">
+                    ↩ Back
+                </a>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 
 @section Scripts {

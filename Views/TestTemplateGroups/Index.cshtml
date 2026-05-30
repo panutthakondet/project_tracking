@@ -26,6 +26,77 @@
         text-align: center;
         vertical-align: middle;
     }
+
+    .group-card-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 16px;
+    }
+
+    .group-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-left: 5px solid #14b8a6;
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .group-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .group-drag {
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        cursor: grab;
+        font-weight: 900;
+    }
+
+    .group-card-title {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1.35;
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .group-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .group-pill {
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: .84rem;
+        font-weight: 800;
+    }
+
+    .group-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+    }
 </style>
 
 <div class="index-hero">
@@ -57,80 +128,79 @@
     return;
 }
 
-<table class="table table-bordered group-table">
-    <thead>
-        <tr>
-            <th width="50"></th>
-            <th width="100" class="text-center-col">Order</th>
-            <th>Group Name</th>
-            <th class="text-center-col">Created</th>
-            <th width="100" class="text-center-col">Edit</th>
-            <th width="150" class="text-center-col">Delete</th>
-        </tr>
-    </thead>
-    <tbody>
+<div class="group-card-list">
     @foreach (var g in Model)
     {
-        <tr data-id="@g.group_id">
-            <td class="text-center-col" style="cursor:move;">☰</td>
-            <td class="text-center-col">@g.sort_order</td>
-            <td>@g.group_name</td>
-            <td class="text-center-col">@g.created_at.ToString("dd/MM/yyyy")</td>
-            <td class="text-center-col">
+        <article class="group-card" data-id="@g.group_id">
+            <div class="group-card-head">
+                @if (CanMenu("TestTemplateGroups.Sort"))
+                {
+                    <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
+                }
+                <div>
+                    <h3 class="group-card-title">@g.group_name</h3>
+                    <div class="text-muted fw-semibold">Template Group</div>
+                </div>
+            </div>
+
+            <div class="group-card-meta">
+                <span class="group-pill">Order: @g.sort_order</span>
+                <span class="group-pill">Created: @g.created_at.ToString("dd/MM/yyyy")</span>
+            </div>
+
+            <div class="group-actions">
                 @if (CanMenu("TestTemplateGroups.Edit"))
                 {
                     <a asp-action="Edit"
                        asp-route-id="@g.group_id"
-                       class="btn btn-sm btn-warning"
+                       class="btn btn-sm btn-outline-primary"
                        title="แก้ไขกลุ่ม">
                         Edit
                     </a>
                 }
                 else
                 {
-                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
                         Edit
                     </button>
                 }
-            </td>
-            <td class="text-center-col">
+
                 @if (CanMenu("TestTemplateGroups.Delete"))
                 {
                     <form asp-action="Delete"
                           asp-route-id="@g.group_id"
                           method="post"
-                          style="display:inline;"
+                          class="d-inline"
                           onsubmit="return confirm('Delete this group?');">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-danger" title="ลบกลุ่ม">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบกลุ่ม">
                             Delete
                         </button>
                     </form>
                 }
                 else
                 {
-                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
                         Delete
                     </button>
                 }
-            </td>
-        </tr>
+            </div>
+        </article>
     }
-    </tbody>
-</table>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    var tbody = document.querySelector(".group-table tbody");
+    var groupList = document.querySelector(".group-card-list");
 
     if (@CanMenu("TestTemplateGroups.Sort").ToString().ToLower()) {
-        new Sortable(tbody, {
-            handle: "td",
+        new Sortable(groupList, {
+            handle: ".group-drag",
             animation: 150,
             onEnd: function () {
                 var order = [];
-                document.querySelectorAll(".group-table tbody tr").forEach((row, index) => {
+                document.querySelectorAll(".group-card-list .group-card").forEach((row, index) => {
                     order.push({
                         id: row.getAttribute("data-id"),
                         sort: index + 1

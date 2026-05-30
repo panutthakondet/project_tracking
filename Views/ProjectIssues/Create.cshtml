@@ -81,20 +81,6 @@
         line-height: 1.55;
     }
 
-    .issue-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-    }
-
-    .issue-actions .btn {
-        border-radius: 12px;
-        font-weight: 900;
-        padding-inline: 18px;
-    }
-
     @@media (max-width: 991.98px) {
         .issue-create-hero,
         .issue-create-grid {
@@ -156,7 +142,7 @@
                     <small class="text-muted">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
                 </div>
 
-                <div class="issue-actions">
+                <div class="pt-form-actions issue-create-actions">
                     <a asp-action="Index"
                        asp-route-projectId="@Model.ProjectId"
                        class="btn btn-outline-secondary">

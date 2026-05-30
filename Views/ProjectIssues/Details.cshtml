@@ -19,27 +19,7 @@
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 
-    string IssueStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
-    {
-        "OPEN" => "bg-warning text-dark",
-        "WIP" => "bg-info text-dark",
-        "FIXED" => "bg-success",
-        "PASS" => "bg-primary",
-        "FAIL" => "bg-danger",
-        "REJECT" => "bg-dark",
-        _ => "bg-secondary"
-    };
-
-    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
-    {
-        "TODO" => "bg-secondary",
-        "DOING" => "bg-info text-dark",
-        "FIXED" => "bg-success",
-        "BLOCK" => "bg-danger",
-        _ => "bg-dark"
-    };
-
-    var isUrgent = string.Equals(issue?.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase);
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 }
 
 <style>
@@ -60,76 +40,69 @@
     .issue-hero-top {
         display: flex;
         justify-content: space-between;
-        gap: 18px;
+        gap: 20px;
         align-items: flex-start;
     }
 
+    .issue-hero-main {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
     .issue-eyebrow {
-        color: #94dbe1;
+        color: rgba(216, 230, 247, .86);
         font-size: 12px;
         font-weight: 900;
         letter-spacing: .08em;
         text-transform: uppercase;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
 
     .issue-title {
-        font-size: clamp(24px, 3vw, 36px);
+        font-size: clamp(24px, 3vw, 34px);
         font-weight: 900;
-        line-height: 1.25;
+        line-height: 1.22;
         margin: 0;
-        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
-    .issue-project {
+    .issue-hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px 18px;
-        margin-top: 12px;
-        color: #d8e6f7;
-        font-weight: 700;
-    }
-
-    .issue-badge-stack {
-        min-width: 230px;
-        display: grid;
-        gap: 8px;
-    }
-
-    .issue-badge-line {
-        display: grid;
-        grid-template-columns: 74px minmax(0, 1fr);
+        justify-content: flex-end;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        flex: 0 0 auto;
     }
 
-    .issue-badge-line small {
-        color: #bfd0e5;
-        font-size: 12px;
+    .issue-hero-actions .btn {
+        min-width: 136px;
+        min-height: 42px;
+        border-radius: 999px !important;
+        font-size: .95rem;
         font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .issue-badge-line .badge {
-        min-height: 28px;
+        padding: .58rem 1.1rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        white-space: normal;
-        line-height: 1.15;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
     }
 
-    .issue-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 20px;
+    .issue-hero .btn-primary {
+        color: #062b2f !important;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+        border-color: transparent !important;
     }
 
-    .issue-actions .btn {
-        border-radius: 12px;
-        font-weight: 800;
-        padding-inline: 16px;
+    .issue-hero .btn-outline-light {
+        color: #fff !important;
+        background: rgba(255,255,255,.08);
+        border-color: rgba(255,255,255,.55) !important;
+    }
+
+    .issue-hero .btn-outline-light:hover {
+        background: rgba(255,255,255,.18) !important;
     }
 
     .issue-summary-grid {
@@ -177,6 +150,41 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 16px;
         margin-bottom: 18px;
+    }
+
+    .issue-detail-bottom {
+        display: grid;
+        gap: 16px;
+    }
+
+    .issue-info-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .issue-info-row {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .issue-info-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .issue-info-value {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.45;
+        word-break: break-word;
     }
 
     .issue-panel {
@@ -260,8 +268,8 @@
             display: grid;
         }
 
-        .issue-badge-stack {
-            min-width: 0;
+        .issue-hero-actions {
+            justify-content: flex-start;
         }
 
         .issue-summary-grid {
@@ -273,53 +281,43 @@
         .issue-summary-grid {
             grid-template-columns: 1fr;
         }
+
+        .issue-hero-actions .btn {
+            width: 100%;
+        }
+
+        .issue-info-row {
+            grid-template-columns: 1fr;
+            gap: 4px;
+        }
     }
 </style>
 
 <div class="issue-detail-page">
     <section class="issue-hero">
         <div class="issue-hero-top">
-            <div>
+            <div class="issue-hero-main">
                 <div class="issue-eyebrow">Project Issue #@(issue?.IssueId ?? 0)</div>
-                <h1 class="issue-title">@(issue?.IssueName ?? "-")</h1>
-                <div class="issue-project">
-                    <span>Project: @(issue?.Project?.ProjectName ?? "-")</span>
-                    <span>Owner: @(issue?.Employee?.EmpName ?? "-")</span>
-                </div>
+                <h1 class="issue-title">รายละเอียด Issue</h1>
             </div>
 
-            <div class="issue-badge-stack">
-                <div class="issue-badge-line">
-                    <small>Issue</small>
-                    <span class="badge @IssueStatusClass(issue?.IssueStatus)">@(issue?.IssueStatus ?? "-")</span>
-                </div>
-                <div class="issue-badge-line">
-                    <small>Dev</small>
-                    <span class="badge @DevStatusClass(issue?.DevStatus)">@(issue?.DevStatus ?? "-")</span>
-                </div>
-                <div class="issue-badge-line">
-                    <small>Priority</small>
-                    <span class="badge @(isUrgent ? "bg-danger" : "bg-secondary")">@(issue?.IssuePriority ?? "-")</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="issue-actions">
-            <a asp-action="Index"
-               asp-route-projectId="@issue?.ProjectId"
-               class="btn btn-light">
-                กลับรายการ Issue
-            </a>
-
-            @if (issue != null && CanMenu("ProjectIssues.Edit"))
-            {
-                <a asp-action="Edit"
-                   asp-route-id="@issue.IssueId"
-                   asp-route-projectId="@issue.ProjectId"
-                   class="btn btn-warning">
-                    แก้ไข Issue
+            <div class="issue-hero-actions">
+                <a asp-action="Index"
+                   asp-route-projectId="@issue?.ProjectId"
+                   class="btn btn-outline-light">
+                    กลับรายการ Issue
                 </a>
-            }
+
+                @if (issue != null && CanMenu("ProjectIssues.Edit"))
+                {
+                    <a asp-action="Edit"
+                       asp-route-id="@issue.IssueId"
+                       asp-route-projectId="@issue.ProjectId"
+                       class="btn btn-primary">
+                        แก้ไข Issue
+                    </a>
+                }
+            </div>
         </div>
     </section>
 
@@ -340,18 +338,6 @@
             <small>Images</small>
             <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
         </div>
-    </section>
-
-    <section class="issue-content-grid">
-        <article class="issue-panel">
-            <h3>รายละเอียดปัญหา</h3>
-            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.IssueDetail) ? "-" : issue.IssueDetail)</div>
-        </article>
-
-        <article class="issue-panel">
-            <h3>รายละเอียดการแก้ไข</h3>
-            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
-        </article>
     </section>
 
     <section class="issue-content-grid">
@@ -405,6 +391,36 @@
             {
                 <div class="issue-empty">ไม่มีรูปหลังแก้</div>
             }
+        </article>
+    </section>
+
+    <section class="issue-detail-bottom">
+        <article class="issue-panel">
+            <h3>ข้อมูล Issue</h3>
+            <div class="issue-info-grid">
+                <div class="issue-info-row">
+                    <div class="issue-info-label">Issue</div>
+                    <div class="issue-info-value">@(issue?.IssueName ?? "-")</div>
+                </div>
+                <div class="issue-info-row">
+                    <div class="issue-info-label">Project</div>
+                    <div class="issue-info-value">@TextOrDash(issue?.Project?.ProjectName)</div>
+                </div>
+                <div class="issue-info-row">
+                    <div class="issue-info-label">Owner</div>
+                    <div class="issue-info-value">@TextOrDash(issue?.Employee?.EmpName)</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>รายละเอียดปัญหา</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.IssueDetail) ? "-" : issue.IssueDetail)</div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
         </article>
     </section>
 </div>

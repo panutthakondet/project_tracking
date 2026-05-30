@@ -61,6 +61,144 @@
         width: 100%;
         min-width: 400px;
     }
+
+    .template-card-groups {
+        display: grid;
+        gap: 18px;
+    }
+
+    .template-group-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 22px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        overflow: hidden;
+    }
+
+    .template-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        background: linear-gradient(180deg, #f8fafc, #eef6fb);
+        border-bottom: 1px solid #d8e3ef;
+    }
+
+    .template-group-title {
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .template-group-count {
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .template-card-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .template-card {
+        background: #fff;
+        border: 1px solid #dbeafe;
+        border-left: 5px solid #14b8a6;
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
+        min-width: 0;
+    }
+
+    .template-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .template-title {
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .template-code {
+        color: #0f766e;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+    }
+
+    .template-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .template-pill {
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: .84rem;
+        font-weight: 800;
+    }
+
+    .template-detail-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .template-detail-label {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .template-detail-text {
+        color: #10233f;
+        font-weight: 700;
+        line-height: 1.45;
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+
+    .template-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    @@media (max-width: 575.98px) {
+        #templateFilter {
+            min-width: 0;
+        }
+
+        .template-card-list {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="index-hero">
@@ -112,116 +250,110 @@
 }
 else
 {
-    <div class="table-responsive">
-    <table class="table table-bordered table-striped table-sm align-middle template-table">
-    <thead>
-        <tr>
-            <th style="min-width:60px;">#</th>
-            <th style="min-width:180px;">Template Group</th>
-            <th style="min-width:180px;">Title</th>
-            <th style="min-width:220px;">Precondition</th>
-            <th style="min-width:320px;">Steps</th>
-            <th style="min-width:220px;">Expected Result</th>
-            <th style="min-width:90px;" class="text-center-col">Priority</th>
-            <th style="min-width:90px;" class="text-center-col">Status</th>
-            <th style="min-width:90px;" class="text-center-col">Active</th>
-            <th style="min-width:190px;" class="text-center-col">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    @{ 
-        int currentGroupId = int.MinValue;
-        int groupRowNo = 0;
-    }
-    @foreach (var item in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.template_id))
-    {
-        var gid = item.group_id ?? 0;
-        if (gid != currentGroupId)
+    <div class="template-card-groups">
+        @foreach (var grp in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.template_id).GroupBy(x => x.Group?.group_name ?? "Ungrouped"))
         {
-            currentGroupId = gid;
-            groupRowNo = 0;
+            <section class="template-group-card">
+                <div class="template-group-header">
+                    <h3 class="template-group-title">@grp.Key</h3>
+                    <span class="template-group-count">@grp.Count() รายการ</span>
+                </div>
+
+                <div class="template-card-list">
+                    @{ var groupRowNo = 0; }
+                    @foreach (var item in grp)
+                    {
+                        groupRowNo++;
+                        <article class="template-card" data-gid="@(item.group_id ?? 0)">
+                            <div class="template-card-head">
+                                <div>
+                                    <div class="template-code">#@groupRowNo · Template</div>
+                                    <div class="template-title">@item.title</div>
+                                </div>
+                                <span class="badge @(item.is_active ? "bg-success" : "bg-secondary")">
+                                    @(item.is_active ? "Active" : "Inactive")
+                                </span>
+                            </div>
+
+                            <div class="template-meta">
+                                <span class="template-pill">Priority: @item.priority_default</span>
+                                <span class="template-pill">Status: @item.status_default</span>
+                            </div>
+
+                            <div class="template-detail-box">
+                                <div class="template-detail-label">Precondition</div>
+                                <div class="template-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
+                            </div>
+                            <div class="template-detail-box">
+                                <div class="template-detail-label">Steps</div>
+                                <div class="template-detail-text">@item.steps</div>
+                            </div>
+                            <div class="template-detail-box">
+                                <div class="template-detail-label">Expected Result</div>
+                                <div class="template-detail-text">@item.expected_result</div>
+                            </div>
+
+                            <div class="template-actions">
+                                @if (CanMenu("TestScenarioTemplates.Edit"))
+                                {
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.template_id"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="แก้ไข">
+                                        Edit
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                        Edit
+                                    </button>
+                                }
+
+                                @if (CanMenu("TestScenarioTemplates.Toggle"))
+                                {
+                                    <form asp-action="ToggleActive"
+                                          asp-route-id="@item.template_id"
+                                          method="post"
+                                          class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิดการใช้งาน">
+                                            Toggle
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปลี่ยนสถานะ">
+                                        Toggle
+                                    </button>
+                                }
+
+                                @if (CanMenu("TestScenarioTemplates.Delete"))
+                                {
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.template_id"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Delete this template?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                            Delete
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                        Delete
+                                    </button>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
         }
-        groupRowNo++;
-
-        <tr data-gid="@gid">
-            <td>@groupRowNo</td>
-            <td>@(item.Group != null ? item.Group.group_name : "Ungrouped")</td>
-            <td>@item.title</td>
-            <td>@item.precondition</td>
-            <td>@Html.Raw((item.steps ?? "").Replace("\n", "<br/>"))</td>
-            <td>@Html.Raw((item.expected_result ?? "").Replace("\n", "<br/>"))</td>
-            <td class="text-center-col">@item.priority_default</td>
-            <td class="text-center-col">@item.status_default</td>
-            <td class="text-center-col">
-                @if (item.is_active)
-                {
-                    <span class="badge bg-success">Active</span>
-                }
-                else
-                {
-                    <span class="badge bg-secondary">Inactive</span>
-                }
-            </td>
-            <td class="text-center-col">
-                @if (CanMenu("TestScenarioTemplates.Edit"))
-                {
-                    <a asp-action="Edit"
-                       asp-route-id="@item.template_id"
-                       class="btn btn-sm btn-warning"
-                       title="แก้ไข">
-                        Edit
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                        Edit
-                    </button>
-                }
-
-                @if (CanMenu("TestScenarioTemplates.Toggle"))
-                {
-                    <form asp-action="ToggleActive"
-                          asp-route-id="@item.template_id"
-                          method="post"
-                          style="display:inline;">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-info" title="เปิด/ปิดการใช้งาน">
-                            Toggle
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์เปลี่ยนสถานะ">
-                        Toggle
-                    </button>
-                }
-
-                @if (CanMenu("TestScenarioTemplates.Delete"))
-                {
-                    <form asp-action="Delete"
-                          asp-route-id="@item.template_id"
-                          method="post"
-                          style="display:inline;"
-                          onsubmit="return confirm('Delete this template?');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-danger" title="ลบ">
-                            Delete
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                        Delete
-                    </button>
-                }
-            </td>
-        </tr>
-    }
-    </tbody>
-    </table>
     </div>
 }
 

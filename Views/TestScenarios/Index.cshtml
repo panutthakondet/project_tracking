@@ -140,6 +140,174 @@
     tbody tr:hover td.sticky-col-2 {
         background-color: #ffe69c !important;
     }
+
+    .scenario-card-groups {
+        display: grid;
+        gap: 18px;
+    }
+
+    .scenario-group-card {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 22px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        overflow: hidden;
+    }
+
+    .scenario-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        background: linear-gradient(180deg, #f8fafc, #eef6fb);
+        border-bottom: 1px solid #d8e3ef;
+    }
+
+    .scenario-group-title {
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .scenario-group-count {
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .scenario-card-list {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .scenario-card {
+        background: #fff;
+        border: 1px solid #dbeafe;
+        border-left: 5px solid #14b8a6;
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
+    }
+
+    .scenario-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .scenario-card-title {
+        min-width: 0;
+    }
+
+    .scenario-code {
+        color: #0f766e;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+    }
+
+    .scenario-title {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1.35;
+    }
+
+    .scenario-drag-handle {
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #062b2f;
+        background: rgba(20, 184, 166, .18);
+        cursor: grab;
+        font-weight: 900;
+    }
+
+    .scenario-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .scenario-pill {
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: .84rem;
+        font-weight: 800;
+    }
+
+    .scenario-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .scenario-detail-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px;
+        min-width: 0;
+    }
+
+    .scenario-detail-label {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .scenario-detail-text {
+        color: #10233f;
+        font-weight: 700;
+        line-height: 1.45;
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+
+    .scenario-card-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    @@media (max-width: 992px) {
+        .scenario-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .scenario-card-head,
+        .scenario-group-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .scenario-card-actions {
+            justify-content: stretch;
+        }
+    }
 </style>
 
 <div class="index-hero">
@@ -316,90 +484,99 @@
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped table-sm align-middle scenario-table">
-        <thead>
-            <tr>
-                <th class="sticky-col-0" style="width:60px;">#</th>
-                <th class="sticky-col" style="width:110px;">Code</th>
-                <th class="sticky-col-2" style="width:260px;">Title</th>
-                <th style="width:110px;" class="text-center-col">Status</th>
-                <th style="width:110px;" class="text-center-col">Priority</th>
-                <th style="width:220px;">Precondition</th>
-                <th style="width:320px;">Steps</th>
-                <th style="width:320px;">Expected Result</th>
-                <th style="width:150px;">Created</th>
-                <th style="width:150px;">Updated</th>
-                <th style="width:160px;" class="text-center-col">Edit / Delete</th>
-            </tr>
-        </thead>
-        <tbody id="scenarioTableBody">
+    <div class="scenario-card-groups">
         @{ var rowNo = 1; }
         @foreach (var grp in list.GroupBy(x => x.Group?.group_name ?? "No Group"))
         {
-            <tr class="group-header-row" data-group="@grp.Key">
-                <td colspan="11">
-                    Group : @grp.Key (Total: @grp.Count())
-                </td>
-            </tr>
+            <section class="scenario-group-card">
+                <div class="scenario-group-header">
+                    <h3 class="scenario-group-title">Group : @grp.Key</h3>
+                    <span class="scenario-group-count">@grp.Count() รายการ</span>
+                </div>
 
-            foreach (var item in grp)
-            {
-                <tr data-id="@item.scenario_id" data-group="@grp.Key">
-                    <td class="sticky-col-0">
-                        <span class="drag-handle" style="cursor:grab;margin-right:6px;color:#6c757d;">☰</span>
-                        @rowNo
-                    </td>
-                    <td class="sticky-col">@item.scenario_code</td>
-                    <td class="sticky-col-2">@item.title</td>
-                    <td class="text-center-col"><span class="badge @StatusBadge(item.status)">@item.status</span></td>
-                    <td class="text-center-col">@item.priority</td>
-                    <td class="multiline-cell">@item.precondition</td>
-                    <td class="multiline-cell">@item.steps</td>
-                    <td class="multiline-cell">@item.expected_result</td>
-                    <td class="nowrap-cell">@item.created_at.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td class="nowrap-cell">@item.updated_at?.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td class="text-center-col">
-                        @if (CanMenu("TestScenarios.Edit"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@item.scenario_id"
-                               class="btn btn-sm btn-warning" title="แก้ไข">
-                                Edit
-                            </a>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                Edit
-                            </button>
-                        }
+                <div class="scenario-card-list" data-group="@grp.Key">
+                    @foreach (var item in grp)
+                    {
+                        <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key">
+                            <div class="scenario-card-head">
+                                <div class="d-flex align-items-start gap-2">
+                                    @if (CanMenu("TestScenarios.Sort"))
+                                    {
+                                        <span class="scenario-drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
+                                    }
+                                    <div class="scenario-card-title">
+                                        <div class="scenario-code">#@rowNo · @item.scenario_code</div>
+                                        <div class="scenario-title">@item.title</div>
+                                    </div>
+                                </div>
+                                <span class="badge @StatusBadge(item.status)">@item.status</span>
+                            </div>
 
-                        @if (CanMenu("TestScenarios.Delete"))
-                        {
-                            <form asp-action="Delete"
-                                  asp-route-id="@item.scenario_id"
-                                  method="post"
-                                  style="display:inline;"
-                                  onsubmit="return confirm('Delete this scenario?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger" title="ลบ">
-                                    Delete
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                Delete
-                            </button>
-                        }
-                    </td>
-                    @{ rowNo++; }
-                </tr>
-            }
+                            <div class="scenario-meta">
+                                <span class="scenario-pill">Priority: @item.priority</span>
+                                <span class="scenario-pill">Created: @item.created_at.ToString("dd/MM/yyyy HH:mm")</span>
+                                <span class="scenario-pill">Updated: @(item.updated_at?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                            </div>
+
+                            <div class="scenario-detail-grid">
+                                <div class="scenario-detail-box">
+                                    <div class="scenario-detail-label">Precondition</div>
+                                    <div class="scenario-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
+                                </div>
+                                <div class="scenario-detail-box">
+                                    <div class="scenario-detail-label">Steps</div>
+                                    <div class="scenario-detail-text">@item.steps</div>
+                                </div>
+                                <div class="scenario-detail-box">
+                                    <div class="scenario-detail-label">Expected Result</div>
+                                    <div class="scenario-detail-text">@item.expected_result</div>
+                                </div>
+                            </div>
+
+                            <div class="scenario-card-actions">
+                                @if (CanMenu("TestScenarios.Edit"))
+                                {
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.scenario_id"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="แก้ไข">
+                                        Edit
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                        Edit
+                                    </button>
+                                }
+
+                                @if (CanMenu("TestScenarios.Delete"))
+                                {
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.scenario_id"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Delete this scenario?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                            Delete
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                        Delete
+                                    </button>
+                                }
+                            </div>
+                        </article>
+
+                        rowNo++;
+                    }
+                </div>
+            </section>
         }
-        </tbody>
-        </table>
     </div>
 }
 else
@@ -412,63 +589,33 @@ else
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const tbody = document.getElementById("scenarioTableBody");
+        if (!@CanMenu("TestScenarios.Sort").ToString().ToLower()) return;
 
-        if (!tbody) return;
+        document.querySelectorAll(".scenario-card-list").forEach(function (listEl) {
+            new Sortable(listEl, {
+                animation: 150,
+                handle: ".scenario-drag-handle",
+                ghostClass: "bg-light",
 
-        new Sortable(tbody, {
-            animation: 150,
-            handle: ".drag-handle",
-            ghostClass: "table-warning",
+                onEnd: function () {
+                    const order = [];
 
-            onStart: function (evt) {
-                evt.item.dataset.startGroup = evt.item.dataset.group;
-            },
-
-            onEnd: function (evt) {
-                const movedRow = evt.item;
-                const startGroup = movedRow.dataset.startGroup;
-
-                // Find nearest GROUP HEADER row above the dropped row
-                let prev = movedRow.previousElementSibling;
-                while (prev && !(prev.classList && prev.classList.contains('group-header-row'))) {
-                    prev = prev.previousElementSibling;
-                }
-
-                const targetGroup = prev && prev.dataset ? prev.dataset.group : startGroup;
-
-                // If the row was dropped above its own group header, treat it as same group
-                if (!prev && startGroup) {
-                    // no header found above; keep original group
-                }
-
-                if (targetGroup !== startGroup) {
-                    alert("ไม่สามารถลาก Scenario ข้าม Group ได้");
-                    location.reload();
-                    return;
-                }
-
-                // Only reorder within same group
-                const rows = Array.from(tbody.querySelectorAll("tr[data-id]"))
-                    .filter(r => r.dataset.group === startGroup);
-
-                const order = [];
-
-                rows.forEach((r, index) => {
-                    order.push({
-                        id: r.dataset.id,
-                        sort: index + 1
+                    listEl.querySelectorAll(".scenario-card[data-id]").forEach((card, index) => {
+                        order.push({
+                            id: card.dataset.id,
+                            sort: index + 1
+                        });
                     });
-                });
 
-                fetch("/TestScenarios/UpdateSort", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(order)
-                });
-            }
+                    fetch("/TestScenarios/UpdateSort", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(order)
+                    });
+                }
+            });
         });
     });
 

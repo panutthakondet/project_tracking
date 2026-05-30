@@ -1078,6 +1078,10 @@
                  || CanMenu("SupportOrders.Index")
                  || CanMenu("SupportOrdersDev.Index");
 
+    var canTestScenarios = CanMenu("TestScenarios.Index")
+                         || CanMenu("TestScenarioTemplates.Index")
+                         || CanMenu("TestTemplateGroups.Index");
+
     var canReports = CanMenu("PhaseAssigns.Print")
                   || CanMenu("PhaseStatusReport.Index")
                   || CanMenu("PhaseStatusReport.Timeline")
@@ -1246,6 +1250,35 @@
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
                                     <span class="nav-label">Meetings</span>
                                 </a>
+                            </li>
+                        }
+
+                        @if (canTestScenarios)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(
+                                    controller=="TestScenarios"
+                                    || controller=="TestScenarioTemplates"
+                                    || controller=="TestTemplateGroups"
+                                    ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/test-scenarios.svg" alt="" /></span>
+                                    <span class="nav-label">Test Scenario</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("TestScenarios.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">จัดการ Test Scenario</a></li>
+                                    }
+                                    @if (CanMenu("TestScenarioTemplates.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestScenarioTemplates" asp-action="Index">Template Test</a></li>
+                                    }
+                                    @if (CanMenu("TestTemplateGroups.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">กลุ่ม Template</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
 

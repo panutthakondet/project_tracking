@@ -58,8 +58,15 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Update</button>
-    <a asp-action="Index"
-       asp-route-groupId="@Model.group_id"
-       class="btn btn-secondary">Cancel</a>
+    <div class="pt-form-actions">
+        <button type="submit" class="btn btn-primary">
+            Update
+        </button>
+
+        <a asp-action="Index"
+           asp-route-groupId="@Model.group_id"
+           class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </div>
 </form>

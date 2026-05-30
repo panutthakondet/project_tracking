@@ -11,6 +11,17 @@
     {
         return allowedMenus.Contains(key);
     }
+
+    string EmployeeAvatar(ProjectTracking.Models.Employee emp)
+    {
+        var path = emp.LoginUser?.ProfileImagePath?.Trim();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "/images/Profile/profile.png";
+        }
+
+        return path.StartsWith("/") ? path : "/" + path.TrimStart('~', '/');
+    }
 }
 
 <!-- ================= HEADER ================= -->
@@ -45,6 +56,7 @@
         <thead class="table-dark text-center">
             <tr>
                 <th width="80">#</th>
+                <th width="80">Profile</th>
                 <th>Name</th>
                 <th>Position</th>
                 <th>Email</th>
@@ -57,7 +69,7 @@
         @if (!Model.Any())
         {
             <tr>
-                <td colspan="6"
+                <td colspan="7"
                     class="text-center text-muted">
                     — No employee data —
                 </td>
@@ -71,6 +83,14 @@
                 <tr>
                     @{ row++; }
                     <td class="text-center">@row</td>
+
+                    <td class="text-center">
+                        <img class="employee-table-avatar"
+                             src="@EmployeeAvatar(emp)"
+                             alt="@emp.EmpName"
+                             loading="lazy"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    </td>
 
                     <td>
                         <b>@emp.EmpName</b>
@@ -155,7 +175,11 @@
             <div class="employee-card">
 
                 <div class="employee-card-header">
-                    <div class="employee-avatar">👤</div>
+                    <img class="employee-avatar"
+                         src="@EmployeeAvatar(emp)"
+                         alt="@emp.EmpName"
+                         loading="lazy"
+                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
 
                     <div>
                         <div class="employee-name">
@@ -252,16 +276,26 @@
 }
 
 .employee-avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(135deg,#3b82f6,#1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.5rem;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    background: #fff;
+    border: 3px solid #14b8a6;
+    box-shadow: 0 8px 18px rgba(15, 35, 64, .16);
     flex-shrink: 0;
+}
+
+.employee-table-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    background: #fff;
+    border: 2px solid #14b8a6;
+    box-shadow: 0 5px 12px rgba(15, 35, 64, .12);
 }
 
 .employee-name {
