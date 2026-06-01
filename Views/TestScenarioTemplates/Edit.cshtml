@@ -39,23 +39,21 @@
         <textarea asp-for="expected_result" class="form-control" rows="5" required></textarea>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Priority Default</label>
-            <select asp-for="priority_default" class="form-select">
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-            </select>
-        </div>
+    <div class="mb-3">
+        <label class="form-label">Priority Default</label>
+        <select asp-for="priority_default" class="form-select">
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+        </select>
+    </div>
 
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Status Default</label>
-            <select asp-for="status_default" class="form-select">
-                <option value="DRAFT">DRAFT</option>
-                <option value="READY">READY</option>
-            </select>
-        </div>
+    <div class="mb-3">
+        <label class="form-label">Status Default</label>
+        <select asp-for="status_default" class="form-select">
+            <option value="DRAFT">DRAFT</option>
+            <option value="READY">READY</option>
+        </select>
     </div>
 
     <div class="pt-form-actions">

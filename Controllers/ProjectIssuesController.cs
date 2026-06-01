@@ -96,22 +96,26 @@ namespace ProjectTracking.Controllers
         {
             await LoadDropdown(projectId, empName);
 
-            if (!projectId.HasValue)
-                return View(new List<ProjectIssue>());
-
-            var issues = await _context.ProjectIssues
+            var query = _context.ProjectIssues
                 .AsNoTracking()
+                .Include(i => i.Project)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
-                .Where(i => i.ProjectId == projectId.Value)
-                .OrderByDescending(i => i.IsReopen)
+                .AsQueryable();
+
+            if (projectId.HasValue)
+                query = query.Where(i => i.ProjectId == projectId.Value);
+
+            if (!string.IsNullOrWhiteSpace(empName))
+                query = query.Where(i => i.Employee != null && i.Employee.EmpName == empName);
+
+            var issues = await query
+                .OrderBy(i => i.Project != null ? i.Project.ProjectName : "")
+                .ThenByDescending(i => i.IsReopen)
                 .ThenByDescending(i => i.ReopenCount)
                 .ThenBy(i => i.IssueId)
                 .ToListAsync();
-
-            if (!string.IsNullOrEmpty(empName))
-                issues = issues.Where(i => i.Employee != null && i.Employee.EmpName == empName).ToList();
 
             return View(issues);
         }
@@ -585,7 +589,13 @@ namespace ProjectTracking.Controllers
             if (!projectId.HasValue)
             {
                 ViewBag.SelectedProject = null;
-                ViewBag.EmpList = new List<string>();
+                ViewBag.EmpList = await _context.ProjectIssues
+                    .Include(i => i.Employee)
+                    .Where(i => i.Employee != null && i.Employee.EmpName != null && i.Employee.EmpName != "")
+                    .Select(i => i.Employee!.EmpName)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToListAsync();
                 return;
             }
 
@@ -641,20 +651,5 @@ namespace ProjectTracking.Controllers
             );
         }
 
-        // =====================================================
-        // PRINT VIEW (REPORT)
-        // =====================================================
-        [RequireMenu("ProjectIssues.ViewOnly")]
-        public async Task<IActionResult> Print(int? projectId, string? empName)
-        {
-            await LoadDropdown(projectId, empName);
-
-            if (!projectId.HasValue)
-                return RedirectToAction(nameof(ViewOnly));
-
-            var issues = await GetIssues(projectId.Value, empName);
-
-            return View("Print", issues);
-        }
     }
 }

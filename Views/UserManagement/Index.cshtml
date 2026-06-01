@@ -52,25 +52,29 @@
                 <tr>
                     <td class="fw-semibold">@u.Username</td>
                     <td>@u.Email</td>
-                    <td><span class="badge bg-secondary">@u.Role</span></td>
+                    <td>
+                        <span class="user-role-text @(string.Equals(u.Role, "ADMIN", StringComparison.OrdinalIgnoreCase) ? "is-admin" : "is-user")">
+                            @u.Role
+                        </span>
+                    </td>
                     <td>
                         @if ((u.Status ?? "").Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
                         {
-                            <span class="badge bg-success">ACTIVE</span>
+                            <span class="user-status-text is-active">ACTIVE</span>
                         }
                         else
                         {
-                            <span class="badge bg-danger">INACTIVE</span>
+                            <span class="user-status-text is-inactive">INACTIVE</span>
                         }
                     </td>
                     <td>
                         @if (u.EmailVerified)
                         {
-                            <span class="badge bg-success">YES</span>
+                            <span class="user-verified-text is-verified">YES</span>
                         }
                         else
                         {
-                            <span class="badge bg-warning text-dark">NO</span>
+                            <span class="user-verified-text is-unverified">NO</span>
                         }
                     </td>
                     <td class="text-end">
@@ -99,5 +103,43 @@
 <style>
     table td {
         word-break: break-word;
+    }
+
+    .user-status-text,
+    .user-role-text,
+    .user-verified-text {
+        display: inline;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        font-weight: 900;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    .user-role-text.is-admin {
+        color: #7c3aed;
+    }
+
+    .user-role-text.is-user {
+        color: #2563eb;
+    }
+
+    .user-status-text.is-active {
+        color: #16a34a;
+    }
+
+    .user-status-text.is-inactive {
+        color: #ef4444;
+    }
+
+    .user-verified-text.is-verified {
+        color: #16a34a;
+    }
+
+    .user-verified-text.is-unverified {
+        color: #f59e0b;
     }
 </style>

@@ -1,68 +1,720 @@
 @model IEnumerable<ProjectTracking.Models.TestScenario>
+@using System.Globalization
+
 @{
-    var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
-    string projectName = ViewBag.ProjectName as string ?? "Project Name";
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var rows = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var priorityList = ViewBag.PriorityList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var projectNames = ViewBag.ProjectNames as IDictionary<int, string> ?? new Dictionary<int, string>();
+    int? selectedProject = ViewBag.SelectedProject is int projectId ? projectId : null;
+    int? selectedGroup = ViewBag.SelectedGroup is int groupId ? groupId : null;
+    string selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    string selectedPriority = ViewBag.SelectedPriority as string ?? "";
+
+    string ProjectName(int id)
+    {
+        return projectNames.TryGetValue(id, out var name) ? name : "-";
+    }
+
+    string FormatDate(DateTime? value)
+    {
+        return value?.ToString("dd MMM yyyy HH:mm", th) ?? "-";
+    }
+
+    string StatusTextClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PASSED" => "status-text success",
+            "FAILED" => "status-text danger",
+            "READY" => "status-text info",
+            "DRAFT" => "status-text muted",
+            _ => "status-text warning"
+        };
+    }
+
+    string PriorityTextClass(string? priority)
+    {
+        return (priority ?? "").Trim().ToUpperInvariant() switch
+        {
+            "HIGH" => "status-text danger",
+            "MEDIUM" => "status-text warning",
+            "LOW" => "status-text success",
+            _ => "status-text muted"
+        };
+    }
 }
 
-<style>
-    body { font-family: Arial; }
-
-    .page { page-break-after: always; }
-
-    .cover {
-        text-align: center;
-        margin-top: 150px;
-    }
-
-    .section {
-        margin-bottom: 40px;
-    }
-
-    .label { font-weight: bold; }
-
-    .box {
-        border: 1px solid #ccc;
-        padding: 15px;
-        margin-top: 10px;
-    }
-
-    img {
-        max-width: 400px;
-        margin-top: 10px;
-        border: 1px solid #ccc;
-    }
-
-    @@media print {
-        .no-print { display: none; }
-        @@page { size: A4; margin: 15mm; }
-    }
-</style>
-
-<!-- COVER -->
-<div class="page cover">
-    <h1>TEST SCENARIO REPORT</h1>
-    <h3>@projectName</h3>
-    <p>Date: @DateTime.Now.ToString("dd/MM/yyyy")</p>
-</div>
-
-<!-- DETAIL -->
-@foreach (var item in list)
-{
-    <div class="page section">
-        <h3>@item.scenario_code : @item.title</h3>
-
-        <div class="box">
-            <p><span class="label">Status:</span> @item.status</p>
-            <p><span class="label">Priority:</span> @item.priority</p>
-            <p><span class="label">Precondition:</span> @item.precondition</p>
-            <p><span class="label">Steps:</span><br />@item.steps</p>
-            <p><span class="label">Expected Result:</span> @item.expected_result</p>
-        </div>
-
-        <div>
-            <p class="label">รูปภาพ</p>
-            <!-- future: show attachments -->
-            <p>(แนบรูปภาพจากระบบ)</p>
-        </div>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Test Scenario Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(170px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
+        }
+        .pt-search-select {
+            position: relative;
+            width: 100%;
+        }
+        .pt-search-select__field {
+            position: relative;
+        }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__clear {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            background: #e2e8f0;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .pt-search-select__clear.is-visible {
+            display: inline-flex;
+        }
+        .pt-search-select__clear:hover,
+        .pt-search-select__clear:focus {
+            color: #fff;
+            background: #102443;
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown {
+            display: block;
+        }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
+        }
+        .pt-search-select__empty {
+            padding: 10px;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+        tr:nth-child(even) td {
+            background: #f8fbff;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .status-text {
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.info { color: #0f6fa8; }
+        .status-text.danger { color: #d6294f; }
+        .status-text.muted { color: #64748b; }
+        .long-text {
+            white-space: pre-line;
+        }
+        .scenario-project {
+            margin: 0 0 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .scenario-project__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 13px;
+            color: #fff;
+            background: #18365e;
+            font-size: 13px;
+            font-weight: 900;
+        }
+        .scenario-project__label {
+            color: #8df1e4;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .scenario-project__count {
+            flex: 0 0 auto;
+            color: rgba(255, 255, 255, .78);
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .scenario-group {
+            margin: 0 0 14px;
+            border: 1px solid #d8e3ef;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .scenario-project .scenario-group {
+            border-top: 0;
+        }
+        .scenario-group__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 11px;
+            color: #102443;
+            background: #f8fbff;
+            border-left: 4px solid #14b8a6;
+            border-bottom: 1px solid #d8e3ef;
+        }
+        .scenario-group__title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+        .scenario-group__meta {
+            margin-top: 2px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.4;
+        }
+        .scenario-group__count {
+            flex: 0 0 auto;
+            padding: 5px 10px;
+            border-radius: 999px;
+            color: #0f766e;
+            background: rgba(20, 184, 166, .13);
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .scenario-group table {
+            margin-bottom: 0;
+        }
+        .scenario-group tr:nth-child(even) td {
+            background: #fbfdff;
+        }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body { padding: 0; }
+            .no-print,
+            .report-actions,
+            .filter-panel { display: none !important; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 900px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
     </div>
-}
+
+    <header class="print-header">
+        <h1>Test Scenario Report</h1>
+        <div>
+            Project: @(selectedProject.HasValue ? ProjectName(selectedProject.Value) : "All Projects")<br />
+            Group: @(selectedGroup.HasValue ? groups.FirstOrDefault(x => x.group_id == selectedGroup.Value)?.group_name ?? "-" : "All Groups")<br />
+            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+        </div>
+    </header>
+
+    <form method="get" class="filter-panel no-print">
+        <div class="field">
+            <label for="projectId">Project</label>
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+                <option value="">-- All Projects --</option>
+                @foreach (var project in projects)
+                {
+                    <option value="@project.ProjectId" selected="@(selectedProject == project.ProjectId ? "selected" : null)">
+                        @project.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="groupId">Group</label>
+            <select id="groupId" name="groupId" data-placeholder="🔍 พิมพ์ค้นหา Group..." onchange="this.form.submit()">
+                <option value="">-- All Groups --</option>
+                @foreach (var group in groups)
+                {
+                    <option value="@group.group_id" selected="@(selectedGroup == group.group_id ? "selected" : null)">
+                        @group.group_name
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                @foreach (var status in statusList)
+                {
+                    <option value="@status" selected="@(selectedStatus == status ? "selected" : null)">
+                        @status
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
+                <option value="">-- All Priorities --</option>
+                @foreach (var priority in priorityList)
+                {
+                    <option value="@priority" selected="@(selectedPriority == priority ? "selected" : null)">
+                        @priority
+                    </option>
+                }
+            </select>
+        </div>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi info">
+            <span>Total Scenario</span>
+            <strong>@rows.Count</strong>
+            <small>รายการทั้งหมด</small>
+        </article>
+        <article class="kpi">
+            <span>Passed</span>
+            <strong>@rows.Count(x => string.Equals(x.status, "PASSED", StringComparison.OrdinalIgnoreCase))</strong>
+            <small>ผ่านแล้ว</small>
+        </article>
+        <article class="kpi danger">
+            <span>Failed</span>
+            <strong>@rows.Count(x => string.Equals(x.status, "FAILED", StringComparison.OrdinalIgnoreCase))</strong>
+            <small>ไม่ผ่าน</small>
+        </article>
+        <article class="kpi warning">
+            <span>Ready</span>
+            <strong>@rows.Count(x => string.Equals(x.status, "READY", StringComparison.OrdinalIgnoreCase))</strong>
+            <small>พร้อมทดสอบ</small>
+        </article>
+        <article class="kpi">
+            <span>Draft</span>
+            <strong>@rows.Count(x => string.Equals(x.status, "DRAFT", StringComparison.OrdinalIgnoreCase))</strong>
+            <small>ร่าง</small>
+        </article>
+    </section>
+
+    <h2>Test Scenario List</h2>
+    @if (!rows.Any())
+    {
+        <div class="empty">— ไม่พบข้อมูล —</div>
+    }
+    else
+    {
+        var projectGroups = rows
+            .GroupBy(x => new
+            {
+                x.project_id,
+                ProjectName = ProjectName(x.project_id)
+            })
+            .OrderBy(x => x.Key.ProjectName)
+            .ToList();
+
+        foreach (var projectGroup in projectGroups)
+        {
+            var seq = 1;
+            var scenarioGroups = projectGroup
+                .GroupBy(x => new
+                {
+                    GroupId = x.group_id ?? 0,
+                    GroupName = x.Group?.group_name ?? x.GroupName ?? "ไม่ระบุ Group"
+                })
+                .OrderBy(x => x.Key.GroupName)
+                .ToList();
+
+            <section class="scenario-project">
+                <div class="scenario-project__header">
+                    <div>
+                        <span class="scenario-project__label">Project</span>
+                        @projectGroup.Key.ProjectName
+                    </div>
+                    <div class="scenario-project__count">@projectGroup.Count() รายการ</div>
+                </div>
+
+                @foreach (var scenarioGroup in scenarioGroups)
+                {
+                    <section class="scenario-group">
+                        <div class="scenario-group__header">
+                            <div>
+                                <h3 class="scenario-group__title">@scenarioGroup.Key.GroupName</h3>
+                                <div class="scenario-group__meta">Test Scenario Group</div>
+                            </div>
+                            <div class="scenario-group__count">@scenarioGroup.Count() รายการ</div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:42px;">Seq</th>
+                                    <th style="width:82px;">Code</th>
+                                    <th style="width:210px;">Title</th>
+                                    <th style="width:75px;">Status</th>
+                                    <th style="width:78px;">Priority</th>
+                                    <th>Precondition</th>
+                                    <th>Steps</th>
+                                    <th>Expected Result</th>
+                                    <th style="width:100px;">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var item in scenarioGroup)
+                            {
+                                <tr>
+                                    <td class="text-center">@seq</td>
+                                    <td class="text-center">@item.scenario_code</td>
+                                    <td>@item.title</td>
+                                    <td class="text-center">
+                                        <span class="@StatusTextClass(item.status)">@item.status</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="@PriorityTextClass(item.priority)">@item.priority</span>
+                                    </td>
+                                    <td class="long-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</td>
+                                    <td class="long-text">@item.steps</td>
+                                    <td class="long-text">@item.expected_result</td>
+                                    <td class="text-center">@FormatDate(item.updated_at ?? item.created_at)</td>
+                                </tr>
+
+                                seq++;
+                            }
+                            </tbody>
+                        </table>
+                    </section>
+                }
+            </section>
+        }
+    }
+
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const field = document.createElement("div");
+                field.className = "pt-search-select__field";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+
+                const clearButton = document.createElement("button");
+                clearButton.type = "button";
+                clearButton.className = "pt-search-select__clear";
+                clearButton.title = "เลือกใหม่";
+                clearButton.setAttribute("aria-label", "เลือกใหม่");
+                clearButton.textContent = "×";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                field.appendChild(input);
+                field.appendChild(clearButton);
+                wrapper.appendChild(field);
+                wrapper.appendChild(dropdown);
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                select.classList.add("pt-native-select-hidden", "pt-dropdown-enhanced");
+
+                const options = Array.from(select.options).map(option => ({
+                    value: option.value,
+                    text: option.text.trim(),
+                    option
+                }));
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value ? selected.text.trim() : "";
+                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
+                }
+
+                function renderOptions() {
+                    const term = normalize(input.value);
+                    dropdown.innerHTML = "";
+
+                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
+                    if (!matches.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    matches.forEach(item => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (item.option.selected) button.classList.add("is-selected");
+                        button.textContent = item.text || "--";
+                        button.addEventListener("click", () => {
+                            select.value = item.value;
+                            syncInput();
+                            wrapper.classList.remove("is-open");
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                input.addEventListener("focus", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                input.addEventListener("input", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                clearButton.addEventListener("click", () => {
+                    select.value = "";
+                    syncInput();
+                    dispatchSelectChange(select);
+                });
+
+                document.addEventListener("click", event => {
+                    if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
+                });
+
+                syncInput();
+                renderOptions();
+            }
+
+            document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+        })();
+
+    </script>
+</body>
+</html>

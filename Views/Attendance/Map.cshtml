@@ -1,23 +1,15 @@
 @model IEnumerable<dynamic>
-
-<h3>📍 รายงานเข้า-ออกงาน</h3>
-
-<form method="get" class="mb-3">
-    <label>จากวันที่:</label>
-    <input type="text" id="fromDate" name="fromDate" value="@(ViewBag.FromDate ?? DateTime.Now.ToString("dd/MM/yyyy"))" class="form-control" style="max-width:180px; display:inline-block;" placeholder="dd/MM/2569" />
-
-    <label class="ms-2">ถึงวันที่:</label>
-    <input type="text" id="toDate" name="toDate" value="@(ViewBag.ToDate ?? DateTime.Now.ToString("dd/MM/yyyy"))" class="form-control" style="max-width:180px; display:inline-block;" placeholder="dd/MM/2569" />
-
-    <button type="submit" class="btn btn-primary ms-2">ค้นหา</button>
-
-    <button type="button" class="btn btn-danger ms-2" onclick="openPdfNewTab()">
-        🖨️ Preview PDF
-    </button>
-</form>
+@using System.Globalization
 
 @{
-    var noCheckin = Model
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var rows = Model?.ToList() ?? new List<dynamic>();
+    var currentDateText = DateTime.Now.ToString("dd/MM/yyyy", th);
+    var fromDateText = ViewBag.FromDate as string ?? currentDateText;
+    var toDateText = ViewBag.ToDate as string ?? currentDateText;
+
+    var noCheckin = rows
         .Where(x => x.CheckinTime == null)
         .Select(x => new {
             x.EmpName,
@@ -26,7 +18,7 @@
         })
         .ToList();
 
-    var noCheckout = Model
+    var noCheckout = rows
         .Where(x => x.CheckinTime != null && x.CheckoutTime == null)
         .Select(x => new {
             x.EmpName,
@@ -53,284 +45,383 @@
         .OrderBy(x => x.WorkDate)
         .ThenBy(x => x.EmpName)
         .ToList();
+
+    var checkedInCount = rows.Count(x => x.CheckinTime != null);
+    var checkedOutCount = rows.Count(x => x.CheckoutTime != null);
 }
 
-@if (noCheckin.Any() || noCheckout.Any())
-{
-    <div class="card shadow-sm mb-3 attendance-issue-card">
-        <div class="card-header fw-bold">
-            รายการที่ต้องตรวจสอบ
-            <span class="badge bg-danger ms-2">ไม่เช็คเข้า @noCheckin.Count</span>
-            <span class="badge bg-warning text-dark ms-1">ไม่เช็คออก @noCheckout.Count</span>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm table-striped table-hover align-middle mb-0 attendance-issue-table">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:140px;">สถานะ</th>
-                        <th style="width:130px;">วันที่</th>
-                        <th>ชื่อพนักงาน</th>
-                        <th>ตำแหน่ง</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var emp in attendanceIssues)
-                    {
-                        <tr>
-                            <td>
-                                <span class="badge bg-@emp.Tone @(emp.Tone == "warning" ? "text-dark" : "")">@emp.Status</span>
-                            </td>
-                            <td>@emp.WorkDate.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("th-TH"))</td>
-                            <td>@emp.EmpName</td>
-                            <td>@emp.Position</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Attendance Check-in/Check-out Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 11px;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
+            align-items: end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .filter-submit {
+            width: auto;
+            min-width: 88px;
+            justify-self: start;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            text-align: center;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+        tr:nth-child(even) td { background: #f8fbff; }
+        .text-center { text-align: center; }
+        .status-text {
+            font-weight: 900;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.danger { color: #d6294f; }
+        .map-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
+            padding: 5px 10px;
+            border: 1px solid #14b8a6;
+            border-radius: 999px;
+            color: #0f766e;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        .muted {
+            color: #94a3b8;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body { padding: 0; }
+            .report-actions,
+            .filter-panel,
+            .no-print { display: none !important; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 900px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
     </div>
-}
-else
-{
-    <div class="alert alert-success mb-3">ทุกคนเช็คเข้า-ออกครบตามช่วงวันที่เลือก</div>
-}
 
-<div class="card shadow-sm attendance-table-card">
-    <div class="card-header fw-bold">ตารางเข้า-ออกงาน</div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm table-hover align-middle mb-0 attendance-main-table">
-            <thead class="table-light text-center">
+    <header class="print-header">
+        <h1>Attendance Check-in/Check-out Report</h1>
+        <div>
+            ช่วงวันที่ @fromDateText - @toDateText<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+        </div>
+    </header>
+
+    <form method="get" class="filter-panel">
+        <div class="field">
+            <label for="fromDate">จากวันที่</label>
+            <input type="text" id="fromDate" name="fromDate" value="@fromDateText" placeholder="dd/MM/2569" />
+        </div>
+        <div class="field">
+            <label for="toDate">ถึงวันที่</label>
+            <input type="text" id="toDate" name="toDate" value="@toDateText" placeholder="dd/MM/2569" />
+        </div>
+        <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi info">
+            <span>Rows</span>
+            <strong>@rows.Count</strong>
+            <small>รายการตามช่วงวันที่</small>
+        </article>
+        <article class="kpi">
+            <span>Checked In</span>
+            <strong>@checkedInCount</strong>
+            <small>เช็คเข้าแล้ว</small>
+        </article>
+        <article class="kpi">
+            <span>Checked Out</span>
+            <strong>@checkedOutCount</strong>
+            <small>เช็คออกแล้ว</small>
+        </article>
+        <article class="kpi danger">
+            <span>No Check-in</span>
+            <strong>@noCheckin.Count</strong>
+            <small>ยังไม่เช็คเข้า</small>
+        </article>
+        <article class="kpi warning">
+            <span>No Check-out</span>
+            <strong>@noCheckout.Count</strong>
+            <small>เช็คเข้าแล้วแต่ยังไม่เช็คออก</small>
+        </article>
+    </section>
+
+    <h2>รายการที่ต้องตรวจสอบ</h2>
+    @if (!attendanceIssues.Any())
+    {
+        <div class="empty">ทุกคนเช็คเข้า-ออกครบตามช่วงวันที่เลือก</div>
+    }
+    else
+    {
+        <table>
+            <thead>
                 <tr>
-                    <th style="width:70px;">ลำดับ</th>
-                    <th style="width:130px;">วันที่</th>
-                    <th>ชื่อพนักงาน</th>
-                    <th>ตำแหน่ง</th>
-                    <th style="width:120px;">เวลาเข้า</th>
-                    <th style="width:120px;">เวลาออก</th>
-                    <th style="width:130px;">ระยะทาง (km)</th>
-                    <th style="width:120px;">แผนที่</th>
+                    <th style="width:42px;">Seq</th>
+                    <th style="width:120px;">Status</th>
+                    <th style="width:110px;">Date</th>
+                    <th>Employee</th>
+                    <th>Position</th>
                 </tr>
             </thead>
             <tbody>
                 @{
-                    var i = 1;
+                    var issueSeq = 1;
                 }
-                @foreach (var item in Model)
+                @foreach (var item in attendanceIssues)
                 {
                     <tr>
-                        <td class="text-center">@i</td>
+                        <td class="text-center">@issueSeq</td>
                         <td class="text-center">
-                            @{
-                                DateTime d = item.WorkDate;
-                                @d.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("th-TH"))
-                            }
+                            <span class="status-text @(item.Tone == "danger" ? "danger" : "warning")">@item.Status</span>
                         </td>
+                        <td class="text-center">@item.WorkDate.ToString("dd/MM/yyyy", th)</td>
                         <td>@item.EmpName</td>
                         <td>@item.Position</td>
-                        <td class="text-center">
-                            @if (item.CheckinTime != null)
-                            {
-                                @item.CheckinTime?.ToString("HH:mm")
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">ไม่เช็คเข้า</span>
-                            }
-                        </td>
-                        <td class="text-center">
-                            @if (item.CheckoutTime != null)
-                            {
-                                @item.CheckoutTime?.ToString("HH:mm")
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">ไม่เช็คออก</span>
-                            }
-                        </td>
-                        <td class="text-center">@(item.DistanceKm != null ? string.Format("{0:0.00}", item.DistanceKm) : "-")</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-success"
-                                    onclick="openGoogleMap('@item.CheckinLat','@item.CheckinLng','@item.CheckoutLat','@item.CheckoutLng')">
-                                ดูแผนที่
-                            </button>
-                        </td>
-                    @{ i++; }
                     </tr>
+                    issueSeq++;
                 }
             </tbody>
         </table>
-    </div>
-</div>
-
-<style>
-    .attendance-issue-card,
-    .attendance-table-card {
-        border:0;
-        border-radius:14px;
-        overflow:hidden;
     }
 
-    .attendance-issue-card .card-header,
-    .attendance-table-card .card-header {
-        background:#10213f;
-        color:#fff;
-        border-bottom:0;
-    }
+    <h2>ตารางเข้า-ออกงาน</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:42px;">Seq</th>
+                <th style="width:110px;">Date</th>
+                <th>Employee</th>
+                <th>Position</th>
+                <th style="width:86px;">Check-in</th>
+                <th style="width:86px;">Check-out</th>
+                <th style="width:90px;">Distance</th>
+                <th class="no-print" style="width:90px;">Map</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var rowSeq = 1;
+            }
+            @foreach (var item in rows)
+            {
+                DateTime workDate = item.WorkDate;
+                var hasCheckinLocation = item.CheckinLat != null && item.CheckinLng != null;
+                <tr>
+                    <td class="text-center">@rowSeq</td>
+                    <td class="text-center">@workDate.ToString("dd/MM/yyyy", th)</td>
+                    <td>@item.EmpName</td>
+                    <td>@item.Position</td>
+                    <td class="text-center">
+                        @if (item.CheckinTime != null)
+                        {
+                            <span class="status-text success">@item.CheckinTime?.ToString("HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="status-text danger">ไม่เช็คเข้า</span>
+                        }
+                    </td>
+                    <td class="text-center">
+                        @if (item.CheckoutTime != null)
+                        {
+                            <span class="status-text success">@item.CheckoutTime?.ToString("HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="status-text warning">ไม่เช็คออก</span>
+                        }
+                    </td>
+                    <td class="text-center">@(item.DistanceKm != null ? string.Format("{0:0.00}", item.DistanceKm) : "-")</td>
+                    <td class="text-center no-print">
+                        @if (hasCheckinLocation)
+                        {
+                            <button type="button"
+                                    class="map-link"
+                                    onclick="openGoogleMap('@item.CheckinLat','@item.CheckinLng','@item.CheckoutLat','@item.CheckoutLng')">
+                                ดูแผนที่
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="muted">-</span>
+                        }
+                    </td>
+                </tr>
+                rowSeq++;
+            }
+        </tbody>
+    </table>
 
-    .attendance-issue-table thead th,
-    .attendance-main-table thead th {
-        color:#0f172a;
-        font-weight:800;
-        white-space:nowrap;
-        vertical-align:middle;
-    }
+    <script>
+        function openGoogleMap(inLat, inLng, outLat, outLng) {
+            if (!inLat || !inLng) {
+                alert('ไม่พบพิกัด Check-in');
+                return;
+            }
 
-    .attendance-issue-table td,
-    .attendance-main-table td {
-        vertical-align:middle;
-    }
+            if (outLat && outLng) {
+                const url = `https://www.google.com/maps/dir/?api=1&origin=${inLat},${inLng}&destination=${outLat},${outLng}`;
+                window.open(url, '_blank');
+                return;
+            }
 
-    .attendance-main-table td:nth-child(3),
-    .attendance-main-table td:nth-child(4),
-    .attendance-issue-table td:nth-child(3),
-    .attendance-issue-table td:nth-child(4) {
-        min-width:220px;
-    }
-</style>
-
-<!-- Modal -->
-<div id="mapModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000099; z-index:9999;">
-    <div style="width:80%; height:80%; background:#fff; margin:5% auto; padding:10px; border-radius:10px;">
-        <div style="display:flex; justify-content:space-between;">
-            <h5 id="mapTitle"></h5>
-            <button class="btn btn-danger btn-sm" onclick="closeMap()">ปิด</button>
-        </div>
-        <div id="map" style="width:100%; height:500px;"></div>
-    </div>
-</div>
-
-<!-- PDF Modal -->
-<div id="pdfModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#00000099; z-index:9999;">
-    <div style="width:90%; height:90%; background:#fff; margin:3% auto; padding:10px; border-radius:10px;">
-        <div style="display:flex; justify-content:space-between;">
-            <h5>Preview PDF</h5>
-            <button class="btn btn-danger btn-sm" onclick="closePdf()">ปิด</button>
-        </div>
-        <iframe id="pdfFrame" style="width:100%; height:90%; border:none;"></iframe>
-    </div>
-</div>
-
-<!-- 🔥 ใส่ Google Maps API KEY ของคุณแทน YOUR_KEY -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&callback=initMapLoader" defer></script>
-
-<script>
-    let map;
-
-    function initMapLoader() {
-        // placeholder to ensure API is ready
-    }
-
-    function openMap(inLat, inLng, outLat, outLng, name) {
-        if (!inLat || !inLng) {
-            alert('ไม่พบพิกัด Check-in');
-            return;
+            const url = `https://www.google.com/maps?q=${inLat},${inLng}`;
+            window.open(url, '_blank');
         }
-
-        document.getElementById("mapModal").style.display = "block";
-        document.getElementById("mapTitle").innerText = name;
-
-        const checkin = { lat: parseFloat(inLat), lng: parseFloat(inLng) };
-        const mapOptions = {
-            zoom: 14,
-            center: checkin
-        };
-
-        map = new google.maps.Map(document.getElementById("map"), mapOptions);
-
-        setTimeout(() => {
-            google.maps.event.trigger(map, 'resize');
-            map.setCenter(checkin);
-        }, 300);
-
-        // IN
-        new google.maps.Marker({
-            position: checkin,
-            map: map,
-            label: "IN"
-        });
-
-        // OUT
-        if (outLat && outLng) {
-            const checkout = { lat: parseFloat(outLat), lng: parseFloat(outLng) };
-
-            new google.maps.Marker({
-                position: checkout,
-                map: map,
-                label: "OUT"
-            });
-
-            new google.maps.Polyline({
-                path: [checkin, checkout],
-                map: map,
-                strokeColor: "#007bff",
-                strokeWeight: 3
-            });
-        }
-    }
-
-    function closeMap() {
-        document.getElementById("mapModal").style.display = "none";
-    }
-</script>
-<script>
-function openGoogleMap(inLat, inLng, outLat, outLng) {
-    if (!inLat || !inLng) {
-        alert('ไม่พบพิกัด Check-in');
-        return;
-    }
-
-    // ถ้ามีทั้งเข้าและออก → เปิด route
-    if (outLat && outLng) {
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${inLat},${inLng}&destination=${outLat},${outLng}`;
-        window.open(url, '_blank');
-    } else {
-        // ถ้ามีแค่เข้า → เปิดจุดเดียว
-        const url = `https://www.google.com/maps?q=${inLat},${inLng}`;
-        window.open(url, '_blank');
-    }
-}
-</script>
-<script>
-function convertToThaiDate(inputId) {
-    const el = document.getElementById(inputId);
-    if (!el || !el.value) return;
-
-    const parts = el.value.split('-');
-    if (parts.length === 3) {
-        const y = parseInt(parts[0]) + 543;
-        const m = parts[1];
-        const d = parts[2];
-        el.value = `${d}/${m}/${y}`;
-    }
-}
-
-window.onload = function() {
-    convertToThaiDate('fromDate');
-    convertToThaiDate('toDate');
-};
-</script>
-<script>
-function openPdfNewTab() {
-    const fromDate = document.getElementById("fromDate").value;
-    const toDate = document.getElementById("toDate").value;
-
-    const url = `/Attendance/ExportPdf?fromDate=${fromDate}&toDate=${toDate}`;
-
-    window.open(url, '_blank');
-}
-
-function closePdf() {
-    document.getElementById("pdfModal").style.display = "none";
-    document.getElementById("pdfFrame").src = "";
-}
-</script>
+    </script>
+</body>
+</html>

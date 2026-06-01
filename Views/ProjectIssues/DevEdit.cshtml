@@ -139,10 +139,6 @@
             <h2 class="dev-edit-title">Dev Update Issue</h2>
             <p class="dev-edit-subtitle">@Model.IssueName</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a asp-action="DevDetails" asp-route-id="@Model.IssueId" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-light">รายละเอียด</a>
-            <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-light">Back</a>
-        </div>
     </div>
 
     <div class="dev-edit-grid">

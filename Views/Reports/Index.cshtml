@@ -1,0 +1,503 @@
+@using Microsoft.AspNetCore.Http
+@using System.Globalization
+@model ProjectTracking.ViewModels.ReportCenterViewModel
+
+@{
+    ViewData["Title"] = "Report Center";
+    var th = new CultureInfo("th-TH");
+
+    bool CanMenu(string key)
+    {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    var reports = (Model?.Reports ?? new List<ProjectTracking.ViewModels.ReportCardViewModel>())
+        .Where(x => CanMenu(x.PermissionKey ?? $"{x.Controller}.{x.Action}"))
+        .ToList();
+
+    var featured = reports.FirstOrDefault(x => x.IsPrimary) ?? reports.FirstOrDefault();
+    var featuredKey = featured == null ? "" : $"{featured.Controller}.{featured.Action}.{featured.Title}";
+    var groupedReports = reports
+        .Where(x => $"{x.Controller}.{x.Action}.{x.Title}" != featuredKey)
+        .GroupBy(x => x.Group)
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    string GroupIconPath(string group)
+    {
+        return group switch
+        {
+            "Project Phases" => "/images/menu-icons/phases.svg",
+            "Projects" => "/images/menu-icons/projects.svg",
+            "Issues" => "/images/menu-icons/issues.svg",
+            "Support" => "/images/menu-icons/workload.svg",
+            "Test Scenario" => "/images/menu-icons/test-scenarios.svg",
+            "Attendance" => "/images/menu-icons/attendance.svg",
+            "Executive" => "/images/menu-icons/reports.svg",
+            _ => "/images/menu-icons/reports.svg"
+        };
+    }
+
+    string ReportIconPath(ProjectTracking.ViewModels.ReportCardViewModel report)
+    {
+        return string.IsNullOrWhiteSpace(report.Icon)
+            ? GroupIconPath(report.Group)
+            : report.Icon;
+    }
+}
+
+<div class="report-center-page">
+    <div class="index-hero report-center-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">Report Center</h2>
+            <p class="index-subtitle">ศูนย์รวมรายงานสำหรับประชุม ติดตามความเสี่ยง และพิมพ์ส่งผู้บริหาร</p>
+        </div>
+        <div class="report-hero-stats">
+            <span>
+                <strong>@reports.Count</strong>
+                รายงาน
+            </span>
+            <span>
+                <strong>@reports.Select(x => x.Group).Distinct().Count()</strong>
+                หมวด
+            </span>
+            <small>อัปเดต @((Model?.GeneratedAt ?? DateTime.Now).ToString("dd MMM yyyy HH:mm", th))</small>
+        </div>
+    </div>
+
+    @if (!reports.Any())
+    {
+        <div class="report-empty">
+            ยังไม่มีสิทธิ์เข้าถึงรายงาน
+        </div>
+    }
+    else
+    {
+        <section class="report-summary-strip">
+            @foreach (var group in reports.GroupBy(x => x.Group).OrderBy(g => g.Key))
+            {
+                <div class="report-summary-item">
+                    <span><img src="@GroupIconPath(group.Key)" alt="" /></span>
+                    <strong>@group.Key</strong>
+                    <small>@group.Count() รายงาน</small>
+                </div>
+            }
+        </section>
+
+        @if (featured != null)
+        {
+            <section class="featured-report tone-@featured.Tone">
+                <div class="featured-report__icon">
+                    <img src="@ReportIconPath(featured)" alt="" />
+                </div>
+                <div class="featured-report__body">
+                    <span>รายงานหลัก</span>
+                    <h3>@featured.Title</h3>
+                    <p>@featured.Description</p>
+                </div>
+                <a class="featured-report__action"
+                   asp-controller="@featured.Controller"
+                   asp-action="@featured.Action">
+                    เปิดรายงาน
+                </a>
+            </section>
+        }
+
+        foreach (var group in groupedReports)
+        {
+            <section class="report-group">
+                <div class="report-group-head">
+                    <div class="report-group-title">
+                        <span><img src="@GroupIconPath(group.Key)" alt="" /></span>
+                        <div>
+                            <h3>@group.Key</h3>
+                            <small>@group.Count() รายงาน</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="report-card-grid">
+                    @foreach (var report in group)
+                    {
+                        <a class="report-card tone-@report.Tone"
+                           asp-controller="@report.Controller"
+                           asp-action="@report.Action">
+                            <span class="report-card-icon">
+                                <img src="@ReportIconPath(report)" alt="" />
+                            </span>
+                            <span class="report-card-body">
+                                <strong>@report.Title</strong>
+                                <small>@report.Description</small>
+                            </span>
+                            <span class="report-card-arrow">›</span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+    }
+</div>
+
+<style>
+    .report-center-page {
+        color: #10233f;
+    }
+
+    .report-center-hero {
+        align-items: stretch;
+    }
+
+    .report-hero-stats {
+        flex: 0 0 auto;
+        min-width: 260px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-content: center;
+    }
+
+    .report-hero-stats span,
+    .report-hero-stats small {
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 16px;
+        padding: 10px 12px;
+        background: rgba(255,255,255,.08);
+        color: #d8e6f7;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .report-hero-stats strong {
+        display: block;
+        color: #fff;
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    .report-hero-stats small {
+        grid-column: 1 / -1;
+        font-size: .85rem;
+    }
+
+    .report-summary-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .report-summary-item {
+        min-height: 76px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "icon title"
+            "icon meta";
+        align-items: center;
+        column-gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid rgba(216, 227, 239, .92);
+        border-radius: 18px;
+        background: rgba(255,255,255,.78);
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
+    }
+
+    .report-summary-item span {
+        grid-area: icon;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: #062b2f;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8);
+        font-weight: 900;
+    }
+
+    .report-summary-item span img {
+        width: 42px;
+        height: 42px;
+        display: block;
+        object-fit: contain;
+        border-radius: 14px;
+    }
+
+    .report-summary-item strong {
+        grid-area: title;
+        color: #10233f;
+        font-size: .98rem;
+        font-weight: 900;
+    }
+
+    .report-summary-item small {
+        grid-area: meta;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .featured-report {
+        min-height: 180px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 18px;
+        padding: 24px;
+        border: 1px solid rgba(148, 219, 225, .22);
+        border-radius: 24px;
+        color: #fff;
+        background:
+            radial-gradient(circle at 90% 12%, rgba(141, 241, 228, .28), transparent 32%),
+            linear-gradient(135deg, #10233f, #1f3b63);
+        box-shadow: 0 20px 44px rgba(15, 35, 64, .18);
+    }
+
+    .featured-report__icon {
+        width: 76px;
+        height: 76px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 22px;
+        background: rgba(255,255,255,.12);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+        font-size: 2.15rem;
+    }
+
+    .featured-report__icon img {
+        width: 64px;
+        height: 64px;
+        display: block;
+        object-fit: contain;
+        border-radius: 18px;
+    }
+
+    .featured-report__body {
+        min-width: 0;
+    }
+
+    .featured-report__body span {
+        display: block;
+        margin-bottom: 8px;
+        padding: 0;
+        color: #8df1e4;
+        background: transparent;
+        font-size: .9rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+    }
+
+    .featured-report__body h3 {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(24px, 2.6vw, 36px);
+        font-weight: 900;
+        line-height: 1.18;
+    }
+
+    .featured-report__body p {
+        max-width: 760px;
+        margin: 8px 0 0;
+        color: #d8e6f7;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.55;
+    }
+
+    .featured-report__action {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        border-radius: 999px;
+        color: #062b2f;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8);
+        box-shadow: 0 12px 24px rgba(20, 184, 166, .22);
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .featured-report__action:hover {
+        color: #062b2f;
+        transform: translateY(-1px);
+    }
+
+    .report-group {
+        margin-bottom: 18px;
+        padding: 18px;
+        border: 1px solid rgba(216, 227, 239, .92);
+        border-radius: 24px;
+        background: rgba(255,255,255,.72);
+        box-shadow: 0 14px 32px rgba(15, 35, 64, .08);
+    }
+
+    .report-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .report-group-title {
+        display: inline-grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .report-group-title > span {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .13);
+        font-weight: 900;
+    }
+
+    .report-group-title > span img {
+        width: 42px;
+        height: 42px;
+        display: block;
+        object-fit: contain;
+        border-radius: 14px;
+    }
+
+    .report-group-head h3 {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.18rem;
+        font-weight: 900;
+    }
+
+    .report-group-head small {
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .report-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+    }
+
+    .report-card {
+        min-height: 128px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
+        border: 1px solid #d8e3ef;
+        border-left: 4px solid #14b8a6;
+        border-radius: 16px;
+        color: #10233f;
+        background: #fff;
+        box-shadow: 0 10px 22px rgba(15, 35, 64, .07);
+        text-decoration: none;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+
+    .report-card:hover {
+        color: #10233f;
+        transform: translateY(-2px);
+        box-shadow: 0 18px 34px rgba(15, 35, 64, .12);
+    }
+
+    .report-card-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        background: rgba(20, 184, 166, .16);
+        font-size: 1.65rem;
+    }
+
+    .report-card-icon img {
+        width: 50px;
+        height: 50px;
+        display: block;
+        object-fit: contain;
+        border-radius: 16px;
+    }
+
+    .report-card-body {
+        min-width: 0;
+        display: grid;
+        gap: 6px;
+    }
+
+    .report-card-body strong {
+        color: #10233f;
+        font-size: 1.12rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .report-card-body small {
+        color: #64748b;
+        font-size: .93rem;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .report-card-arrow {
+        color: #14b8a6;
+        font-size: 2rem;
+        font-weight: 900;
+    }
+
+    .report-card.tone-teal,
+    .featured-report.tone-teal { border-left-color: #14b8a6; }
+    .report-card.tone-blue { border-left-color: #258cfb; }
+    .report-card.tone-green { border-left-color: #22c55e; }
+    .report-card.tone-orange { border-left-color: #f59e0b; }
+    .report-card.tone-pink { border-left-color: #f43f5e; }
+    .report-card.tone-cyan { border-left-color: #22d3ee; }
+    .report-card.tone-purple { border-left-color: #8b5cf6; }
+
+    .report-empty {
+        padding: 34px 20px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 18px;
+        background: rgba(255,255,255,.72);
+        color: #64748b;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 575.98px) {
+        .report-card {
+            grid-template-columns: 1fr;
+            align-items: start;
+        }
+
+        .report-card-arrow {
+            display: none;
+        }
+
+        .featured-report {
+            grid-template-columns: 1fr;
+            align-items: start;
+        }
+
+        .report-hero-stats {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>

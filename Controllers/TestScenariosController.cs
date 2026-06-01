@@ -234,17 +234,68 @@ namespace ProjectTracking.Controllers
 
         [HttpGet("TestScenarios/PrintReport")]
         [RequireMenu("TestScenarios.Export")]
-        public async Task<IActionResult> PrintReport(int? projectId)
+        public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority)
         {
-            if (!projectId.HasValue)
-                return RedirectToAction("Index");
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderBy(x => x.ProjectName)
+                .ToListAsync();
 
-            var scenarios = await _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .OrderBy(x => x.group_id)
+            var groups = await _context.TestTemplateGroups
+                .AsNoTracking()
+                .OrderBy(x => x.sort_order)
+                .ThenBy(x => x.group_name)
+                .ToListAsync();
+
+            var allScenarios = await _context.TestScenarios
+                .AsNoTracking()
+                .Include(x => x.Group)
+                .ToListAsync();
+
+            var statusList = allScenarios
+                .Select(x => x.status)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+            var priorityList = allScenarios
+                .Select(x => x.priority)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToList();
+
+            var result = allScenarios.AsEnumerable();
+
+            if (projectId.HasValue)
+                result = result.Where(x => x.project_id == projectId.Value);
+
+            if (groupId.HasValue)
+                result = result.Where(x => x.group_id == groupId.Value);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                result = result.Where(x => string.Equals(x.status, status, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(priority))
+                result = result.Where(x => string.Equals(x.priority, priority, StringComparison.OrdinalIgnoreCase));
+
+            ViewBag.Projects = projects;
+            ViewBag.Groups = groups;
+            ViewBag.StatusList = statusList;
+            ViewBag.PriorityList = priorityList;
+            ViewBag.SelectedProject = projectId;
+            ViewBag.SelectedGroup = groupId;
+            ViewBag.SelectedStatus = status;
+            ViewBag.SelectedPriority = priority;
+            ViewBag.ProjectNames = projects.ToDictionary(x => x.ProjectId, x => x.ProjectName);
+
+            var scenarios = result
+                .OrderBy(x => projects.FindIndex(p => p.ProjectId == x.project_id) < 0 ? int.MaxValue : projects.FindIndex(p => p.ProjectId == x.project_id))
+                .ThenBy(x => x.Group?.sort_order ?? int.MaxValue)
                 .ThenBy(x => x.sort_order)
                 .ThenBy(x => x.scenario_id)
-                .ToListAsync();
+                .ToList();
 
             return View("Print", scenarios);
         }

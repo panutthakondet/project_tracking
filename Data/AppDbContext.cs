@@ -56,6 +56,8 @@ namespace ProjectTracking.Data
         public DbSet<PhaseAssignLog> PhaseAssignLogs { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<SystemConfig> SystemConfigs { get; set; }
+        public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
+        public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -199,6 +201,81 @@ namespace ProjectTracking.Data
                     .IsRequired();
 
                 entity.HasIndex(x => new { x.Username, x.MenuKey }).IsUnique();
+            });
+
+            // =========================
+            // SYSTEM UPDATE ANNOUNCEMENTS
+            // =========================
+            modelBuilder.Entity<SystemUpdateAnnouncement>(entity =>
+            {
+                entity.ToTable("system_update_announcements");
+                entity.HasKey(x => x.UpdateId);
+
+                entity.Property(x => x.UpdateId)
+                    .HasColumnName("update_id");
+
+                entity.Property(x => x.Version)
+                    .HasColumnName("version")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Title)
+                    .HasColumnName("title")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.Summary)
+                    .HasColumnName("summary")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Details)
+                    .HasColumnName("details")
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
+                entity.Property(x => x.PublishedAt)
+                    .HasColumnName("published_at")
+                    .HasColumnType("datetime");
+
+                entity.Property(x => x.IsActive)
+                    .HasColumnName("is_active")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true);
+
+                entity.HasIndex(x => new { x.IsActive, x.PublishedAt });
+            });
+
+            modelBuilder.Entity<SystemUpdateRead>(entity =>
+            {
+                entity.ToTable("system_update_reads");
+                entity.HasKey(x => x.ReadId);
+
+                entity.Property(x => x.ReadId)
+                    .HasColumnName("read_id");
+
+                entity.Property(x => x.UpdateId)
+                    .HasColumnName("update_id")
+                    .IsRequired();
+
+                entity.Property(x => x.UserId)
+                    .HasColumnName("user_id")
+                    .IsRequired();
+
+                entity.Property(x => x.ReadAt)
+                    .HasColumnName("read_at")
+                    .HasColumnType("datetime");
+
+                entity.HasIndex(x => new { x.UpdateId, x.UserId })
+                    .IsUnique()
+                    .HasDatabaseName("uq_system_update_reads_update_user");
+
+                entity.HasIndex(x => x.UserId);
+
+                entity.HasOne(x => x.Update)
+                    .WithMany(x => x.Reads)
+                    .HasForeignKey(x => x.UpdateId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // =========================

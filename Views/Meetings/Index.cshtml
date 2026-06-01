@@ -22,6 +22,7 @@
 <style>
     /* Page layout */
     .meeting-page { padding: 8px 0; }
+    #antiForgeryForm { display: none !important; }
     .meeting-header {
         display: flex;
         align-items: flex-start;
@@ -186,21 +187,35 @@
     }
 
     .fc .fc-day-today {
-        background: linear-gradient(180deg, rgba(20,184,166,.28), rgba(20,184,166,.16)) !important;
-        box-shadow: inset 0 0 0 2px rgba(15,118,110,.30);
+        background: #d8f8f3 !important;
+        box-shadow: inset 0 0 0 3px #0f766e;
+    }
+
+    .fc .fc-day-today .fc-daygrid-day-frame {
+        min-height: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, #e2fbf7 0%, #c5f3ed 100%) !important;
+        box-shadow: inset 0 0 0 2px rgba(15,118,110,.55);
+    }
+
+    .fc .fc-day-today .fc-daygrid-day-top,
+    .fc .fc-day-today .fc-daygrid-day-events,
+    .fc .fc-day-today .fc-daygrid-day-bg {
+        background: transparent !important;
     }
 
     /* Circle highlight around today's date number */
     .fc .fc-day-today .fc-daygrid-day-number {
-        background: linear-gradient(135deg, #14b8a6, #0f766e);
-        color: #062b2f !important;
+        background: linear-gradient(135deg, #0f766e, #0b4f4a);
+        color: #ffffff !important;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: 34px;
+        height: 34px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(15, 118, 110, .30);
     }
 
     .fc .fc-event {
@@ -506,6 +521,9 @@
         </div>
 
         <div class="toolbar-right index-actions">
+            <a class="btn btn-outline-light btn-pill" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
+                Dashboard
+            </a>
             <span class="hint-chip index-chip">คลิกวันที่เพื่อสร้างนัด</span>
             @if (CanMenu("Meetings.Create"))
             {

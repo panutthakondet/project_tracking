@@ -1,4 +1,3 @@
-using ProjectTracking.Reports;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -228,57 +227,5 @@ namespace ProjectTracking.Controllers
             return View(data);
         }
 
-        [RequireMenu("Attendance.Map")]
-        public async Task<IActionResult> ExportPdf(string fromDate, string toDate)
-        {
-            DateTime start;
-            DateTime end;
-
-            if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParseExact(fromDate, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var f))
-                start = f.AddYears(-543);
-            else
-                start = DateTime.Today;
-
-            if (!string.IsNullOrEmpty(toDate) && DateTime.TryParseExact(toDate, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var t))
-                end = t.AddYears(-543);
-            else
-                end = DateTime.Today;
-
-            var employees = await _context.Employees
-                .Where(x => x.Status == "ACTIVE")
-                .ToListAsync();
-
-            var attendances = await _context.Attendances
-                .Where(x => x.WorkDate >= start && x.WorkDate <= end)
-                .ToListAsync();
-
-            var dates = Enumerable.Range(0, (end - start).Days + 1)
-                .Select(i => start.AddDays(i))
-                .ToList();
-
-            var data = (from emp in employees
-                        from date in dates
-                        join att in attendances
-                            on new { emp.EmpId, WorkDate = date.Date }
-                            equals new { att.EmpId, WorkDate = att.WorkDate.Date }
-                            into gj
-                        from a in gj.DefaultIfEmpty()
-                        orderby date, emp.EmpName
-                        select new
-                        {
-                            EmpName = emp.EmpName,
-                            Position = emp.Position,
-                            WorkDate = date,
-                            CheckinTime = a?.CheckinTime,
-                            CheckoutTime = a?.CheckoutTime,
-                            DistanceKm = a?.DistanceKm
-                        })
-                        .ToList();
-
-            var pdf = AttendanceReport.Generate(data.Cast<dynamic>().ToList());
-
-            Response.Headers["Content-Disposition"] = "inline; filename=attendance-report.pdf";
-            return File(pdf, "application/pdf");
-        }
     }
 }

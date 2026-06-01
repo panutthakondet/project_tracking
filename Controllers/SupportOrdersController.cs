@@ -57,6 +57,66 @@ namespace ProjectTracking.Controllers
             return View(orders);
         }
 
+        [RequireMenu("SupportOrders.Index")]
+        public async Task<IActionResult> ViewOnly(int? projectId, string? status, string? priority, string? devStatus)
+        {
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var query = _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Include(o => o.Project)
+                .Include(o => o.Employee)
+                .Include(o => o.FixImages)
+                .AsQueryable();
+
+            if (projectId.HasValue && projectId.Value > 0)
+                query = query.Where(o => o.ProjectId == projectId.Value);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(o => o.Status == status);
+
+            if (!string.IsNullOrWhiteSpace(priority))
+                query = query.Where(o => o.Priority == priority);
+
+            if (!string.IsNullOrWhiteSpace(devStatus))
+                query = query.Where(o => o.DevStatus == devStatus);
+
+            var orders = await query
+                .OrderBy(o => o.DueDate ?? DateTime.MaxValue)
+                .ThenByDescending(o =>
+                    o.Priority == "URGENT" ? 4 :
+                    o.Priority == "HIGH" ? 3 :
+                    o.Priority == "MEDIUM" ? 2 :
+                    o.Priority == "LOW" ? 1 : 0)
+                .ThenByDescending(o => o.CreatedAt)
+                .ThenBy(o => o.OrderId)
+                .ToListAsync();
+
+            var orderIds = orders.Select(o => o.OrderId).ToList();
+            var imageCounts = orderIds.Any()
+                ? await _context.ProjectSupportImages
+                    .AsNoTracking()
+                    .Where(x => orderIds.Contains(x.OrderId))
+                    .GroupBy(x => x.OrderId)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count())
+                : new Dictionary<int, int>();
+
+            ViewBag.Projects = projects;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedStatus = status ?? "";
+            ViewBag.SelectedPriority = priority ?? "";
+            ViewBag.SelectedDevStatus = devStatus ?? "";
+            ViewBag.ImageCounts = imageCounts;
+            ViewBag.StatusList = new[] { "OPEN", "IN_PROGRESS", "WAIT_TEST", "DONE", "CLOSE" };
+            ViewBag.PriorityList = new[] { "URGENT", "HIGH", "MEDIUM", "LOW" };
+            ViewBag.DevStatusList = new[] { "IN_PROGRESS", "FIXED" };
+
+            return View(orders);
+        }
+
         // =========================
         // DETAIL
         // =========================

@@ -1,60 +1,74 @@
-@model IEnumerable<ProjectTracking.Models.ProjectIssue>
+@model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
 @using System.Globalization
 
 @{
     Layout = null;
     var th = new CultureInfo("th-TH");
-    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
-    var selectedEmp = ViewBag.SelectedEmp as string;
-    var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
-    var issues = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
+    var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    var selectedPriority = ViewBag.SelectedPriority as string ?? "";
+    var selectedDevStatus = ViewBag.SelectedDevStatus as string ?? "";
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var priorityList = ViewBag.PriorityList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var imageCounts = ViewBag.ImageCounts as IDictionary<int, int> ?? new Dictionary<int, int>();
+    var today = DateTime.Today;
 
-    var totalIssues = issues.Count;
-    var openCount = issues.Count(x => string.Equals(x.IssueStatus, "OPEN", StringComparison.OrdinalIgnoreCase));
-    var wipCount = issues.Count(x => string.Equals(x.IssueStatus, "WIP", StringComparison.OrdinalIgnoreCase));
-    var fixedCount = issues.Count(x =>
-        string.Equals(x.IssueStatus, "FIXED", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
-    var urgentCount = issues.Count(x => string.Equals(x.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase));
-    var totalReopen = issues.Sum(x => x.ReopenCount);
+    string SelectedProjectName() => selectedProjectId.HasValue
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        : "All Projects";
+
+    bool IsClosed(string? status, string? devStatus)
+    {
+        var s = (status ?? "").Trim().ToUpperInvariant();
+        var d = (devStatus ?? "").Trim().ToUpperInvariant();
+        return s is "DONE" or "CLOSE" || d == "FIXED";
+    }
 
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "warning",
-        "WIP" => "info",
-        "FIXED" => "success",
-        "PASS" => "success",
-        "FAIL" => "danger",
-        "REJECT" => "muted",
+        "IN_PROGRESS" => "info",
+        "WAIT_TEST" => "info",
+        "DONE" => "success",
+        "CLOSE" => "muted",
         _ => "muted"
     };
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "TODO" => "muted",
-        "DOING" => "info",
+        "IN_PROGRESS" => "warning",
         "FIXED" => "success",
-        "BLOCK" => "danger",
         _ => "muted"
     };
 
-    string PriorityClass(string? priority) => string.Equals(priority, "URGENT", StringComparison.OrdinalIgnoreCase)
-        ? "danger"
-        : "muted";
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        _ => "muted"
+    };
 
-    string PriorityText(string? priority) => string.Equals(priority, "URGENT", StringComparison.OrdinalIgnoreCase)
-        ? "URGENT"
-        : "NORMAL";
-    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    var openCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus));
+    var fixedCount = orders.Count(x => IsClosed(x.Status, x.DevStatus));
+    var overdueCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus) && x.DueDate?.Date < today);
+    var urgentCount = orders.Count(x =>
+        string.Equals(x.Priority, "URGENT", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(x.Priority, "HIGH", StringComparison.OrdinalIgnoreCase));
 }
 
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>Project Issues Report</title>
+    <title>Support Report</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -70,6 +84,7 @@
             justify-content: flex-end;
             gap: 8px;
             margin-bottom: 12px;
+            flex-wrap: wrap;
         }
         .report-btn {
             min-height: 34px;
@@ -106,7 +121,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1fr) minmax(220px, 360px) auto;
+            grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(150px, .7fr)) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -163,10 +178,6 @@
             border-color: #14b8a6;
             box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
         }
-        .pt-search-select__input:disabled {
-            color: #94a3b8;
-            background: #f1f5f9;
-        }
         .pt-search-select__clear {
             position: absolute;
             top: 50%;
@@ -194,17 +205,12 @@
             color: #fff;
             background: #102443;
         }
-        .pt-search-select__clear:disabled,
-        .pt-search-select.is-disabled .pt-search-select__clear {
-            opacity: .35;
-            pointer-events: none;
-        }
         .pt-search-select__dropdown {
             position: absolute;
             left: 0;
             right: 0;
             top: calc(100% + 4px);
-            z-index: 10;
+            z-index: 20;
             width: 100%;
             max-height: 240px;
             overflow-y: auto;
@@ -247,7 +253,7 @@
         }
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 8px;
             margin-bottom: 12px;
         }
@@ -284,12 +290,11 @@
             table-layout: fixed;
             margin-bottom: 12px;
         }
-        .issue-report-table col.col-seq { width: 5%; }
-        .issue-report-table col.col-issue { width: 27%; }
-        .issue-report-table col.col-detail { width: 24%; }
-        .issue-report-table col.col-owner { width: 14%; }
-        .issue-report-table col.col-state { width: 15%; }
-        .issue-report-table col.col-date { width: 15%; }
+        .support-report-table col.col-seq { width: 5%; }
+        .support-report-table col.col-support { width: 43%; }
+        .support-report-table col.col-owner { width: 18%; }
+        .support-report-table col.col-state { width: 16%; }
+        .support-report-table col.col-date { width: 18%; }
         th {
             padding: 7px 6px;
             color: #fff;
@@ -303,10 +308,12 @@
             border: 1px solid #d8e3ef;
             line-height: 1.45;
             vertical-align: top;
-            overflow-wrap: anywhere;
+            overflow-wrap: break-word;
+            word-break: normal;
         }
         tr:nth-child(even) td { background: #f8fbff; }
         .text-center { text-align: center; }
+        .long-text { white-space: pre-line; }
         .project-group-row td {
             padding: 8px 10px;
             color: #fff;
@@ -352,6 +359,7 @@
             display: flex;
             justify-content: space-between;
             gap: 8px;
+            align-items: baseline;
         }
         .meta-label {
             color: #64748b;
@@ -359,7 +367,7 @@
         }
         .meta-value {
             color: #10233f;
-            font-weight: 800;
+            font-weight: 900;
             text-align: right;
         }
         .status-text {
@@ -383,13 +391,23 @@
             margin: 8mm;
         }
         @@media print {
-            body { padding: 0; }
+            body {
+                padding: 0;
+                font-size: 10px;
+            }
             .report-actions,
             .filter-panel { display: none !important; }
+            .print-header { padding: 10px 12px; }
+            .print-header h1 { font-size: 18px; }
+            .kpi-grid { gap: 6px; }
+            .kpi { padding: 7px; }
+            .kpi strong { font-size: 16px; }
+            th,
+            td { padding: 5px 5px; }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
         }
-        @@media (max-width: 900px) {
+        @@media (max-width: 1100px) {
             .filter-panel,
             .kpi-grid {
                 grid-template-columns: 1fr;
@@ -405,89 +423,101 @@
     </div>
 
     <header class="print-header">
-        <h1>Project Issues Report</h1>
+        <h1>Support Report</h1>
         <div>
-            Project: @(selectedProject?.ProjectName ?? "All Projects")<br />
-            Employee: @(string.IsNullOrWhiteSpace(selectedEmp) ? "All Employees" : selectedEmp)<br />
+            Project: @SelectedProjectName()<br />
+            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
+            Dev: @(string.IsNullOrWhiteSpace(selectedDevStatus) ? "All Dev Statuses" : selectedDevStatus)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
     </header>
 
-    <form method="get" id="filterForm" class="filter-panel">
+    <form method="get" class="filter-panel">
         <div class="field">
-            <label for="projectSelect">Project</label>
-            <select id="projectSelect" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project...">
+            <label for="projectId">Project</label>
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
-                @foreach (var p in projects)
+                @foreach (var project in projects)
                 {
-                    <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId ? "selected" : null)">
-                        @p.ProjectName
+                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
+                        @project.ProjectName
                     </option>
                 }
             </select>
         </div>
-
         <div class="field">
-            <label for="empSelect">Employee</label>
-            <select id="empSelect" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee...">
-                <option value="">-- All Employees --</option>
-                @foreach (var emp in empList)
+            <label for="status">Status</label>
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                @foreach (var item in statusList)
                 {
-                    <option value="@emp" selected="@(emp == selectedEmp ? "selected" : null)">
-                        @emp
-                    </option>
+                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
                 }
             </select>
         </div>
-
+        <div class="field">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
+                <option value="">-- All Priorities --</option>
+                @foreach (var item in priorityList)
+                {
+                    <option value="@item" selected="@(selectedPriority == item ? "selected" : null)">@item</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="devStatus">Dev Status</label>
+            <select id="devStatus" name="devStatus" data-placeholder="🔍 พิมพ์ค้นหา Dev Status..." onchange="this.form.submit()">
+                <option value="">-- All Dev Statuses --</option>
+                @foreach (var item in devStatusList)
+                {
+                    <option value="@item" selected="@(selectedDevStatus == item ? "selected" : null)">@item</option>
+                }
+            </select>
+        </div>
         <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
     </form>
 
     <section class="kpi-grid">
         <article class="kpi info">
-            <span>Total Issues</span>
-            <strong>@totalIssues</strong>
+            <span>Total Support</span>
+            <strong>@orders.Count</strong>
             <small>รายการทั้งหมด</small>
         </article>
         <article class="kpi warning">
             <span>Open</span>
             <strong>@openCount</strong>
-            <small>Issue ที่ยังเปิด</small>
-        </article>
-        <article class="kpi info">
-            <span>WIP</span>
-            <strong>@wipCount</strong>
-            <small>กำลังดำเนินการ</small>
+            <small>ยังไม่ปิดงาน</small>
         </article>
         <article class="kpi">
-            <span>Fixed / Pass</span>
+            <span>Fixed / Closed</span>
             <strong>@fixedCount</strong>
-            <small>แก้ไขแล้วหรือผ่าน</small>
+            <small>แก้ไขหรือปิดแล้ว</small>
         </article>
         <article class="kpi danger">
-            <span>Urgent</span>
-            <strong>@urgentCount</strong>
-            <small>ความสำคัญเร่งด่วน</small>
+            <span>Overdue</span>
+            <strong>@overdueCount</strong>
+            <small>เลยกำหนดส่ง</small>
         </article>
-        <article class="kpi warning">
-            <span>Reopen</span>
-            <strong>@totalReopen</strong>
-            <small>จำนวน reopen รวม</small>
+        <article class="kpi danger">
+            <span>High Priority</span>
+            <strong>@urgentCount</strong>
+            <small>HIGH / URGENT</small>
         </article>
     </section>
 
-    <h2>Issue List By Project</h2>
-    @if (!issues.Any())
+    <h2>Support List</h2>
+    @if (!orders.Any())
     {
-        <div class="empty">ไม่พบรายการ Issue ตามเงื่อนไขที่เลือก</div>
+        <div class="empty">ไม่พบรายการ Support ตามเงื่อนไขที่เลือก</div>
     }
     else
     {
-        <table class="issue-report-table">
+        <table class="support-report-table">
             <colgroup>
                 <col class="col-seq" />
-                <col class="col-issue" />
-                <col class="col-detail" />
+                <col class="col-support" />
                 <col class="col-owner" />
                 <col class="col-state" />
                 <col class="col-date" />
@@ -495,29 +525,28 @@
             <thead>
                 <tr>
                     <th>Seq</th>
-                    <th>Issue</th>
-                    <th>Detail</th>
+                    <th>Support / Detail</th>
                     <th>Owner</th>
-                    <th>Status / Priority</th>
+                    <th>Priority / Status</th>
                     <th>Dates / Images</th>
                 </tr>
             </thead>
             <tbody>
                 @{
-                    var projectGroups = issues
-                        .GroupBy(issue => new
+                    var projectGroups = orders
+                        .GroupBy(order => new
                         {
-                            issue.ProjectId,
-                            ProjectName = TextOrDash(issue.Project?.ProjectName)
+                            order.ProjectId,
+                            ProjectName = TextOrDash(order.Project?.ProjectName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();
                 }
                 @foreach (var projectGroup in projectGroups)
                 {
-                    var row = 1;
+                    var seq = 1;
                     <tr class="project-group-row">
-                        <td colspan="6">
+                        <td colspan="5">
                             <div class="project-group-name">
                                 <div>
                                     <span class="project-group-label">Project</span>
@@ -528,49 +557,44 @@
                         </td>
                     </tr>
 
-                    @foreach (var issue in projectGroup)
+                    @foreach (var order in projectGroup)
                     {
-                        var beforeCount = issue.Images?.Count ?? 0;
-                        var afterCount = issue.FixImages?.Count ?? 0;
+                        var beforeCount = imageCounts.TryGetValue(order.OrderId, out var count) ? count : 0;
+                        var afterCount = order.FixImages?.Count ?? 0;
                         <tr>
-                            <td class="text-center">@row</td>
+                            <td class="text-center">@seq</td>
                             <td>
-                                <div class="cell-title">@TextOrDash(issue.IssueName)</div>
-                                <div class="cell-sub">#@issue.IssueId</div>
+                                <div class="cell-title">@TextOrDash(order.OrderTitle)</div>
+                                <div class="cell-sub long-text">@TextOrDash(order.OrderDetail)</div>
                             </td>
-                            <td>@TextOrDash(issue.IssueDetail)</td>
-                            <td>@TextOrDash(issue.Employee?.EmpName)</td>
+                            <td>@TextOrDash(order.Employee?.EmpName)</td>
                             <td>
                                 <div class="meta-stack">
                                     <div class="meta-line">
-                                        <span class="meta-label">Issue</span>
-                                        <span class="status-text @StatusClass(issue.IssueStatus)">@TextOrDash(issue.IssueStatus)</span>
+                                        <span class="meta-label">Priority</span>
+                                        <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
+                                    </div>
+                                    <div class="meta-line">
+                                        <span class="meta-label">Status</span>
+                                        <span class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</span>
                                     </div>
                                     <div class="meta-line">
                                         <span class="meta-label">Dev</span>
-                                        <span class="status-text @DevStatusClass(issue.DevStatus)">@TextOrDash(issue.DevStatus)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Priority</span>
-                                        <span class="status-text @PriorityClass(issue.IssuePriority)">@PriorityText(issue.IssuePriority)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Reopen</span>
-                                        <span class="status-text @(issue.ReopenCount > 0 ? "warning" : "success")">
-                                            @(issue.ReopenCount > 0 ? issue.ReopenCount.ToString() : "-")
-                                        </span>
+                                        <span class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="meta-stack">
                                     <div class="meta-line">
-                                        <span class="meta-label">Created</span>
-                                        <span class="meta-value">@DateText(issue.CreatedAt)</span>
+                                        <span class="meta-label">Due</span>
+                                        <span class="status-text @(order.DueDate?.Date < today && !IsClosed(order.Status, order.DevStatus) ? "danger" : "muted")">
+                                            @DateText(order.DueDate)
+                                        </span>
                                     </div>
                                     <div class="meta-line">
-                                        <span class="meta-label">Last Fix</span>
-                                        <span class="meta-value">@DateText(issue.LastFixedAt)</span>
+                                        <span class="meta-label">Created</span>
+                                        <span class="meta-value">@DateText(order.CreatedAt)</span>
                                     </div>
                                     <div class="meta-line">
                                         <span class="meta-label">Images</span>
@@ -579,13 +603,12 @@
                                 </div>
                             </td>
                         </tr>
-                        row++;
+                        seq++;
                     }
                 }
             </tbody>
         </table>
     }
-
     <script>
         (function () {
             function normalize(value) {
@@ -594,10 +617,6 @@
 
             function getSelectedOption(select) {
                 return select.options[select.selectedIndex] || null;
-            }
-
-            function hasEmptyOption(select) {
-                return Array.from(select.options).some(option => option.value === "");
             }
 
             function dispatchSelectChange(select) {
@@ -610,7 +629,6 @@
 
                 const wrapper = document.createElement("div");
                 wrapper.className = "pt-search-select";
-                if (select.disabled) wrapper.classList.add("is-disabled");
 
                 const field = document.createElement("div");
                 field.className = "pt-search-select__field";
@@ -619,7 +637,6 @@
                 input.type = "text";
                 input.className = "pt-search-select__input";
                 input.autocomplete = "off";
-                input.disabled = select.disabled;
                 input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
 
                 const clearButton = document.createElement("button");
@@ -628,7 +645,6 @@
                 clearButton.title = "เลือกใหม่";
                 clearButton.setAttribute("aria-label", "เลือกใหม่");
                 clearButton.textContent = "×";
-                clearButton.disabled = select.disabled;
 
                 const dropdown = document.createElement("div");
                 dropdown.className = "pt-search-select__dropdown";
@@ -637,35 +653,28 @@
                 field.appendChild(clearButton);
                 wrapper.appendChild(field);
                 wrapper.appendChild(dropdown);
-                select.insertAdjacentElement("afterend", wrapper);
-                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
-                select.tabIndex = -1;
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                select.classList.add("pt-native-select-hidden", "pt-dropdown-enhanced");
 
-                function allowClear() {
-                    return hasEmptyOption(select);
-                }
+                const options = Array.from(select.options).map(option => ({
+                    value: option.value,
+                    text: option.text.trim(),
+                    option
+                }));
 
-                function syncInputFromSelect() {
+                function syncInput() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value !== "" ? selected.text : "";
-                    clearButton.classList.toggle("is-visible", Boolean(select.value) && allowClear());
+                    input.value = selected && selected.value ? selected.text.trim() : "";
+                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
                 }
 
-                function closeDropdown() {
-                    wrapper.classList.remove("is-open");
-                }
-
-                function renderOptions(filter = "") {
+                function renderOptions() {
+                    const term = normalize(input.value);
                     dropdown.innerHTML = "";
-                    const keyword = normalize(filter);
-                    const options = Array.from(select.options)
-                        .filter(option => !option.disabled && option.value !== "")
-                        .filter(option => {
-                            const haystack = normalize(`${option.text} ${option.value}`);
-                            return !keyword || haystack.includes(keyword);
-                        });
 
-                    if (options.length === 0) {
+                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
+                    if (!matches.length) {
                         const empty = document.createElement("div");
                         empty.className = "pt-search-select__empty";
                         empty.textContent = "ไม่พบข้อมูล";
@@ -673,65 +682,48 @@
                         return;
                     }
 
-                    options.forEach(option => {
-                        const item = document.createElement("button");
-                        item.type = "button";
-                        item.className = "pt-search-select__option";
-                        if (option.value === select.value) item.classList.add("is-selected");
-                        item.textContent = option.text;
-                        item.addEventListener("click", function () {
-                            select.value = option.value;
-                            input.value = option.text;
-                            closeDropdown();
-                            syncInputFromSelect();
+                    matches.forEach(item => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (item.option.selected) button.classList.add("is-selected");
+                        button.textContent = item.text || "--";
+                        button.addEventListener("click", () => {
+                            select.value = item.value;
+                            syncInput();
+                            wrapper.classList.remove("is-open");
                             dispatchSelectChange(select);
                         });
-                        dropdown.appendChild(item);
+                        dropdown.appendChild(button);
                     });
                 }
 
-                function openDropdown() {
-                    if (select.disabled) return;
-                    renderOptions(input.value);
+                input.addEventListener("focus", () => {
+                    renderOptions();
                     wrapper.classList.add("is-open");
-                }
+                });
 
-                function clearValue() {
-                    if (!allowClear()) return;
+                input.addEventListener("input", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                clearButton.addEventListener("click", () => {
                     select.value = "";
-                    input.value = "";
-                    closeDropdown();
-                    syncInputFromSelect();
+                    syncInput();
                     dispatchSelectChange(select);
-                }
-
-                input.addEventListener("focus", openDropdown);
-                input.addEventListener("click", openDropdown);
-                input.addEventListener("input", function () {
-                    renderOptions(input.value);
-                    wrapper.classList.add("is-open");
-                });
-                input.addEventListener("keydown", function (event) {
-                    if (event.key === "Escape") {
-                        closeDropdown();
-                        syncInputFromSelect();
-                    }
-                });
-                clearButton.addEventListener("click", clearValue);
-                select.addEventListener("change", syncInputFromSelect);
-                document.addEventListener("click", function (event) {
-                    if (!wrapper.contains(event.target)) {
-                        closeDropdown();
-                        syncInputFromSelect();
-                    }
                 });
 
-                syncInputFromSelect();
+                document.addEventListener("click", event => {
+                    if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
+                });
+
+                syncInput();
+                renderOptions();
             }
 
-            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+            document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
         })();
-
     </script>
 </body>
 </html>

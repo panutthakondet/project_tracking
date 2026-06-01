@@ -50,35 +50,51 @@ namespace ProjectTracking.Controllers
             return View(projects);
         }
 
-        // ===========================
-        // VIEW ONLY (Standalone page)
-        // ===========================
-        [HttpGet]
-        [RequireMenu("Projects.ViewOnly")]
-        public async Task<IActionResult> ViewOnly(int? baEmpId)
+        [RequireMenu("Projects.Index")]
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status)
         {
-            // Load Business Analyst list for dropdown filter
-            ViewBag.Employees = _context.Employees
-                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
-                .OrderBy(e => e.EmpName)
-                .ToList();
-
-            var query = _context.Projects
+            var allProjects = await _context.Projects
                 .Include(p => p.BA)
                 .AsNoTracking()
-                .AsQueryable();
-
-            if (baEmpId.HasValue)
-            {
-                query = query.Where(p => p.BaEmpId == baEmpId.Value);
-            }
-
-            var projects = await query
-                .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
-                .ThenByDescending(p => p.ProjectId)
+                .OrderBy(p => p.ProjectName)
                 .ToListAsync();
 
-            return View("ViewOnly", projects);
+            var query = allProjects.AsEnumerable();
+
+            if (projectId.HasValue)
+                query = query.Where(p => p.ProjectId == projectId.Value);
+
+            if (baEmpId.HasValue)
+                query = query.Where(p => p.BaEmpId == baEmpId.Value);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase));
+
+            ViewBag.Projects = allProjects;
+            ViewBag.BaList = allProjects
+                .Where(p => p.BA != null)
+                .Select(p => p.BA!)
+                .GroupBy(e => e.EmpId)
+                .Select(g => g.First())
+                .OrderBy(e => e.EmpName)
+                .ToList();
+            ViewBag.StatusList = allProjects
+                .Select(p => p.Status)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s)
+                .ToList();
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedBaEmpId = baEmpId;
+            ViewBag.SelectedStatus = status ?? "";
+
+            var result = query
+                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : 3)
+                .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
+                .ThenBy(p => p.ProjectName)
+                .ToList();
+
+            return View(result);
         }
 
         // ===========================

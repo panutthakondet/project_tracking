@@ -141,10 +141,11 @@
     .support-dev-side {
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
+        align-items: flex-end;
         gap: 14px;
-        background: #f8fafc;
-        border-left: 1px solid #e2e8f0;
+        background: transparent;
+        border-left: 0;
     }
 
     .support-dev-head {
@@ -262,7 +263,9 @@
 
         .support-dev-side {
             border-left: 0;
-            border-top: 1px solid #e2e8f0;
+            border-top: 0;
+            align-items: stretch;
+            padding-top: 0;
         }
 
         .support-dev-actions {
@@ -355,26 +358,26 @@
                         <div class="support-dev-actions">
                             @if (CanMenu("SupportOrdersDev.Details"))
                             {
-                                <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-info text-white fw-bold" title="ดูรายละเอียด">
+                                <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-secondary" title="ดูรายละเอียด">
                                     View
                                 </a>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
                                     View
                                 </button>
                             }
 
                             @if (CanMenu("SupportOrdersDev.Edit"))
                             {
-                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-warning fw-bold" title="แก้ไข/แก้บั๊ก">
+                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-primary" title="แก้ไข/แก้บั๊ก">
                                     Fix
                                 </a>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
                                     Fix
                                 </button>
                             }

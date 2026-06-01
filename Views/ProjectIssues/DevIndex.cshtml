@@ -100,11 +100,12 @@
     }
 
     .dev-issue-side {
-        border-left: 1px solid #e2e8f0;
-        background: #f8fafc;
+        border-left: 0;
+        background: transparent;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
+        align-items: flex-end;
         gap: 14px;
     }
 
@@ -203,7 +204,9 @@
 
         .dev-issue-side {
             border-left: 0;
-            border-top: 1px solid #e2e8f0;
+            border-top: 0;
+            align-items: stretch;
+            padding-top: 0;
         }
     }
 </style>
@@ -312,7 +315,7 @@
                             <a asp-action="DevEdit"
                                asp-route-id="@i.IssueId"
                                asp-route-projectId="@selectedProject.ProjectId"
-                               class="btn btn-sm btn-primary">
+                               class="btn btn-sm btn-outline-primary">
                                 Edit Dev
                             </a>
                         </div>

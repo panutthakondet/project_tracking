@@ -21,14 +21,26 @@ namespace ProjectTracking.Controllers
         // ============================
         // List documents by project
         // ============================
-        public async Task<IActionResult> Index(int projectId)
+        public async Task<IActionResult> Index(int? projectId)
         {
-            var docs = await _context.ProjectDocuments
-                .Where(x => x.ProjectId == projectId)
-                .OrderByDescending(x => x.UploadedAt)
+            var projects = await _context.Projects
+                .OrderBy(x => x.ProjectName)
                 .ToListAsync();
 
-            ViewBag.ProjectId = projectId;
+            var selectedProject = projectId.HasValue
+                ? projects.FirstOrDefault(x => x.ProjectId == projectId.Value)
+                : null;
+
+            var docs = selectedProject == null
+                ? new List<ProjectDocument>()
+                : await _context.ProjectDocuments
+                    .Where(x => x.ProjectId == selectedProject.ProjectId)
+                    .OrderByDescending(x => x.UploadedAt)
+                    .ToListAsync();
+
+            ViewBag.ProjectId = selectedProject?.ProjectId;
+            ViewBag.SelectedProject = selectedProject;
+            ViewBag.Projects = projects;
             return View(docs);
         }
 
@@ -42,6 +54,12 @@ namespace ProjectTracking.Controllers
         [RequestSizeLimit(209715200)]
         public async Task<IActionResult> Upload(int projectId, string documentType, IFormFile file)
         {
+            if (projectId <= 0 || !await _context.Projects.AnyAsync(x => x.ProjectId == projectId))
+            {
+                TempData["Error"] = "กรุณาเลือกโครงการก่อนอัปโหลดเอกสาร";
+                return RedirectToAction("Index");
+            }
+
             if (file == null || file.Length == 0)
                 return RedirectToAction("Index", new { projectId });
 

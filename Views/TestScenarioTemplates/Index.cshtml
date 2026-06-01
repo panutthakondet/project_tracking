@@ -17,6 +17,27 @@
     {
         selectedGroupId = (int)ViewBag.SelectedGroupId;
     }
+
+    string StatusTextClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "READY" => "is-primary",
+            "DRAFT" => "is-muted",
+            _ => "is-muted"
+        };
+    }
+
+    string PriorityTextClass(string? priority)
+    {
+        return (priority ?? "").Trim().ToUpperInvariant() switch
+        {
+            "HIGH" => "is-danger",
+            "MEDIUM" => "is-warning",
+            "LOW" => "is-success",
+            _ => "is-muted"
+        };
+    }
 }
 
 @{
@@ -59,7 +80,17 @@
     /* Make dropdown wider */
     #templateFilter {
         width: 100%;
-        min-width: 400px;
+        min-width: 0;
+    }
+
+    .page-header-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .page-header-card .card-body {
+        padding: 16px;
     }
 
     .template-card-groups {
@@ -103,8 +134,8 @@
 
     .template-card-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-        gap: 14px;
+        grid-template-columns: 1fr;
+        gap: 12px;
         padding: 16px;
     }
 
@@ -115,7 +146,6 @@
         border-radius: 18px;
         padding: 16px;
         box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
-        min-width: 0;
     }
 
     .template-card-head {
@@ -126,9 +156,13 @@
         margin-bottom: 12px;
     }
 
+    .template-card-title {
+        min-width: 0;
+    }
+
     .template-title {
         color: #10233f;
-        font-size: 1.02rem;
+        font-size: 1.05rem;
         font-weight: 900;
         line-height: 1.35;
         overflow-wrap: anywhere;
@@ -158,12 +192,91 @@
         font-weight: 800;
     }
 
+    .template-status-text,
+    .template-priority-text {
+        display: inline;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        font-weight: 900;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    .template-status-text {
+        flex: 0 0 auto;
+        font-size: .96rem;
+        text-align: right;
+    }
+
+    .template-status-text.is-success,
+    .template-priority-text.is-success {
+        color: #16a34a;
+    }
+
+    .template-status-text.is-danger,
+    .template-priority-text.is-danger {
+        color: #ef4444;
+    }
+
+    .template-status-text.is-primary,
+    .template-priority-text.is-primary {
+        color: #2563eb;
+    }
+
+    .template-status-text.is-warning,
+    .template-priority-text.is-warning {
+        color: #b7790b;
+    }
+
+    .template-status-text.is-muted,
+    .template-priority-text.is-muted {
+        color: #64748b;
+    }
+
+    .template-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
     .template-detail-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
         padding: 12px;
-        margin-bottom: 10px;
+        min-width: 0;
+    }
+
+    .template-detail-box--precondition {
+        background: linear-gradient(180deg, rgba(20, 184, 166, .13), rgba(240, 253, 250, .92));
+        border-color: rgba(20, 184, 166, .28);
+    }
+
+    .template-detail-box--steps {
+        background: linear-gradient(180deg, rgba(37, 99, 235, .11), rgba(239, 246, 255, .92));
+        border-color: rgba(37, 99, 235, .24);
+    }
+
+    .template-detail-box--expected {
+        background: linear-gradient(180deg, rgba(245, 158, 11, .13), rgba(255, 251, 235, .92));
+        border-color: rgba(245, 158, 11, .28);
+    }
+
+    .template-detail-box--precondition .template-detail-label {
+        color: #0f766e;
+    }
+
+    .template-detail-box--steps .template-detail-label {
+        color: #2563eb;
+    }
+
+    .template-detail-box--expected .template-detail-label {
+        color: #b45309;
     }
 
     .template-detail-label {
@@ -190,14 +303,23 @@
         border-top: 1px solid #e2e8f0;
     }
 
-    @@media (max-width: 575.98px) {
-        #templateFilter {
-            min-width: 0;
-        }
-
-        .template-card-list {
+    @@media (max-width: 992px) {
+        .template-detail-grid {
             grid-template-columns: 1fr;
         }
+    }
+
+    @@media (max-width: 575.98px) {
+        .template-card-head,
+        .template-group-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .template-actions {
+            justify-content: stretch;
+        }
+
     }
 </style>
 
@@ -224,23 +346,29 @@
     </div>
 </div>
 
-<div class="row mb-3">
-<div class="col-md-8">
-        <label class="form-label">Filter by Group</label>
-        <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()">
-            <option value="">-- Show All --</option>
-            @foreach (var g in groups)
-            {
-                if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
-                {
-                    <option value="@g.group_id" selected>@g.group_name</option>
-                }
-                else
-                {
-                    <option value="@g.group_id">@g.group_name</option>
-                }
-            }
-        </select>
+<div class="page-header-card mb-4">
+    <div class="card-body">
+        <form method="get">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Filter by Group</label>
+                    <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()">
+                        <option value="">-- Show All --</option>
+                        @foreach (var g in groups)
+                        {
+                            if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
+                            {
+                                <option value="@g.group_id" selected>@g.group_name</option>
+                            }
+                            else
+                            {
+                                <option value="@g.group_id">@g.group_name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -255,7 +383,7 @@ else
         {
             <section class="template-group-card">
                 <div class="template-group-header">
-                    <h3 class="template-group-title">@grp.Key</h3>
+                    <h3 class="template-group-title">Group : @grp.Key</h3>
                     <span class="template-group-count">@grp.Count() รายการ</span>
                 </div>
 
@@ -266,31 +394,43 @@ else
                         groupRowNo++;
                         <article class="template-card" data-gid="@(item.group_id ?? 0)">
                             <div class="template-card-head">
-                                <div>
+                                <div class="template-card-title">
                                     <div class="template-code">#@groupRowNo · Template</div>
                                     <div class="template-title">@item.title</div>
                                 </div>
-                                <span class="badge @(item.is_active ? "bg-success" : "bg-secondary")">
+                                <span class="template-status-text @(item.is_active ? "is-success" : "is-muted")">
                                     @(item.is_active ? "Active" : "Inactive")
                                 </span>
                             </div>
 
                             <div class="template-meta">
-                                <span class="template-pill">Priority: @item.priority_default</span>
-                                <span class="template-pill">Status: @item.status_default</span>
+                                <span class="template-pill">
+                                    Priority:
+                                    <span class="template-priority-text @PriorityTextClass(item.priority_default)">
+                                        @item.priority_default
+                                    </span>
+                                </span>
+                                <span class="template-pill">
+                                    Status:
+                                    <span class="template-status-text @StatusTextClass(item.status_default)">
+                                        @item.status_default
+                                    </span>
+                                </span>
                             </div>
 
-                            <div class="template-detail-box">
-                                <div class="template-detail-label">Precondition</div>
-                                <div class="template-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
-                            </div>
-                            <div class="template-detail-box">
-                                <div class="template-detail-label">Steps</div>
-                                <div class="template-detail-text">@item.steps</div>
-                            </div>
-                            <div class="template-detail-box">
-                                <div class="template-detail-label">Expected Result</div>
-                                <div class="template-detail-text">@item.expected_result</div>
+                            <div class="template-detail-grid">
+                                <div class="template-detail-box template-detail-box--precondition">
+                                    <div class="template-detail-label">Precondition</div>
+                                    <div class="template-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
+                                </div>
+                                <div class="template-detail-box template-detail-box--steps">
+                                    <div class="template-detail-label">Steps</div>
+                                    <div class="template-detail-text">@item.steps</div>
+                                </div>
+                                <div class="template-detail-box template-detail-box--expected">
+                                    <div class="template-detail-label">Expected Result</div>
+                                    <div class="template-detail-text">@item.expected_result</div>
+                                </div>
                             </div>
 
                             <div class="template-actions">

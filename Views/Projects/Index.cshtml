@@ -421,10 +421,10 @@
                         <span>@(p.BA?.EmpName ?? "-")</span>
                     </div>
 
-                    <div class="project-info-row">
+                    <div class="project-info-row project-system-row">
                         <span class="project-label">System</span>
 
-                        <span class="text-break text-end">
+                        <span class="project-system-value">
                             @if (!string.IsNullOrEmpty(p.LinkName))
                             {
                                 var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -438,7 +438,7 @@
                                            rel="noopener noreferrer">
                                             @part
                                         </a>
-                                        <br />
+                                        <text> </text>
                                     }
                                     else
                                     {
@@ -476,14 +476,15 @@
                         </span>
                     </div>
 
-                    <div class="project-info-row">
-                        <span class="project-label">Start</span>
-                        <span>@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
-                    </div>
-
-                    <div class="project-info-row">
-                        <span class="project-label">End</span>
-                        <span>@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                    <div class="project-info-row project-date-row">
+                        <div class="project-date-item">
+                            <span class="project-date-label">Start</span>
+                            <span class="project-date-value">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                        </div>
+                        <div class="project-date-item">
+                            <span class="project-date-label">End</span>
+                            <span class="project-date-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                        </div>
                     </div>
                 </div>
 
@@ -727,6 +728,32 @@ thead .sticky-col-2{
     width: 100%;
 }
 
+.project-date-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 28px;
+}
+
+.project-date-item {
+    min-width: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.project-date-label {
+    color: #64748b;
+    font-size: .9rem;
+    font-weight: 800;
+}
+
+.project-date-value {
+    color: #0f172a;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
 @@media (max-width: 768px) {
 
     .project-card-header {
@@ -785,6 +812,50 @@ thead .sticky-col-2{
         word-break: break-word;
     }
 
+    .project-system-row {
+        align-items: flex-start;
+    }
+
+    .project-system-value {
+        flex: 1 1 auto;
+        min-width: 0;
+        color: #0f172a;
+        text-align: left;
+        line-height: 1.55;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
+    .project-system-value a {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .project-date-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .project-date-item {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+
+    .project-date-label {
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .project-date-value {
+        color: #0f172a;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
     .project-label {
         color: #64748b;
         min-width: 80px;
@@ -792,57 +863,63 @@ thead .sticky-col-2{
         font-size: .82rem;
     }
 
-    .project-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 18px;
-    }
-
-    .project-actions .btn {
-        flex: 1;
-        border-radius: 14px;
-        min-height: 44px;
-        font-weight: 600;
+    .project-mobile-cards .project-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-.project-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 6px;
+.project-mobile-cards .project-actions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    gap: 8px !important;
+    width: 100%;
+    max-width: 100%;
     margin-top: 18px;
+    overflow: hidden;
 }
 
-.project-actions .btn {
-    flex: 0 0 90px;
-    width: 90px;
-    min-height: 38px;
-    padding: .4rem .55rem;
-    border-radius: 999px;
+.project-mobile-cards .project-actions .btn {
+    flex: initial !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 40px !important;
+    padding: .45rem .55rem !important;
+    border-radius: 999px !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: .8rem;
-    font-weight: 800;
-    line-height: 1.15;
-    white-space: nowrap;
+    font-size: .8rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: center;
 }
 
 @@media (max-width: 575.98px) {
-    .project-actions {
-        flex-wrap: wrap;
+    .project-mobile-cards .project-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .project-actions .btn {
-        flex: 1 1 calc(50% - 6px);
-        width: auto;
+    .project-mobile-cards .project-actions .btn {
+        min-height: 42px !important;
+    }
+}
+
+@@media (max-width: 360px) {
+    .project-mobile-cards .project-actions {
+        grid-template-columns: 1fr;
     }
 }
 
 .project-card {
     transition: .2s ease;
     width: 100%;
+    min-width: 0;
+    overflow: hidden;
 
     background: #fff;
     border: 2px solid #94a3b8;

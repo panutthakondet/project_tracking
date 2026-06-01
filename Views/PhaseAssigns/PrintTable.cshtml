@@ -1,0 +1,261 @@
+@model IEnumerable<ProjectTracking.Models.PhaseAssign>
+@using System.Globalization
+@using System.Linq
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.PhaseAssign>())
+        .OrderBy(a => a.PhaseOrder ?? int.MaxValue)
+        .ThenBy(a => a.PhaseSort ?? int.MaxValue)
+        .ThenBy(a => a.AssignId)
+        .ToList();
+
+    string FormatDate(DateTime? value)
+    {
+        return value?.ToString("dd MMM yyyy", th) ?? "-";
+    }
+
+    string FormatRange(DateTime? start, DateTime? end)
+    {
+        return $"{FormatDate(start)} - {FormatDate(end)}";
+    }
+
+    string WorkStatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "เสร็จสิ้น",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
+
+    string WorkStatusClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "status-text is-done",
+            "IN_PROGRESS" => "status-text is-progress",
+            _ => "status-text is-muted"
+        };
+    }
+
+    string LogStatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "ผ่าน",
+            "FAIL" => "แก้ไข",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
+
+    string PhaseName(ProjectTracking.Models.PhaseAssign assign)
+    {
+        return string.IsNullOrWhiteSpace(assign.Phase?.PhaseName) ? "-" : assign.Phase.PhaseName;
+    }
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Assign Report</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 18px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        .print-header {
+            margin-bottom: 14px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            color: #fff;
+            background: linear-gradient(135deg, #102443 0%, #1f5f72 100%);
+        }
+
+        .print-header h2 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .print-meta {
+            color: rgba(255,255,255,.84);
+            line-height: 1.65;
+            font-weight: 700;
+        }
+
+        .table-wrap {
+            overflow: visible;
+            border: 1px solid #d8e3ef;
+            border-radius: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            background: #fff;
+        }
+
+        thead th {
+            padding: 10px 8px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-size: 11px;
+            font-weight: 900;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        tbody td {
+            padding: 9px 8px;
+            border: 1px solid #d8e3ef;
+            color: #10233f;
+            font-size: 11px;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #f8fbff;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .status-text {
+            font-weight: 900;
+        }
+
+        .status-text.is-done {
+            color: #138a4c;
+        }
+
+        .status-text.is-progress {
+            color: #d97706;
+        }
+
+        .status-text.is-muted {
+            color: #64748b;
+        }
+
+        .empty-state {
+            padding: 30px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        @@page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        @@media print {
+            body {
+                padding: 0;
+            }
+
+            .print-header {
+                border-radius: 0;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <header class="print-header">
+        <h2>รายงานการมอบหมายงาน</h2>
+        <div class="print-meta">
+            <b>Project:</b> @(ViewBag.SelectedProject?.ProjectName ?? "All") <br />
+            <b>Print Date:</b> @((ViewBag.PrintDate as DateTime?)?.ToString("dd MMM yyyy HH:mm", th) ?? DateTime.Now.ToString("dd MMM yyyy HH:mm", th))
+        </div>
+    </header>
+
+    @if (!rows.Any())
+    {
+        <div class="empty-state">ไม่พบข้อมูลสำหรับการพิมพ์</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:52px;">Seq</th>
+                        <th style="width:190px;">Employee / Status</th>
+                        <th style="width:220px;">Phase</th>
+                        <th style="width:260px;">Role</th>
+                        <th style="width:170px;">Plan Date</th>
+                        <th style="width:170px;">Period Date</th>
+                        <th>Assign / Log</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var seq = 1;
+                    }
+
+                    @foreach (var row in rows)
+                    {
+                        var lastLog = row.Logs?
+                            .OrderByDescending(l => l.RoundNo)
+                            .FirstOrDefault();
+
+                        <tr>
+                            <td class="text-center">@seq</td>
+                            <td>
+                                <strong>@(row.Employee?.EmpName ?? "-")</strong><br />
+                                <span class="@WorkStatusClass(row.WorkStatus)">
+                                    @WorkStatusText(row.WorkStatus)
+                                </span>
+                            </td>
+                            <td>@PhaseName(row)</td>
+                            <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
+                            <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
+                            <td class="text-center">@FormatRange(row.Phase?.PeriodStartDate, row.Phase?.PeriodEndDate)</td>
+                            <td>
+                                <b>Assign:</b> @(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)<br />
+                                <b>Log:</b>
+                                @if (lastLog == null)
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    <span>@LogStatusText(lastLog.Status) - @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</span>
+                                }
+                            </td>
+                        </tr>
+
+                        seq++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</body>
+</html>

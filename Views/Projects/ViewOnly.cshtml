@@ -1,397 +1,685 @@
-@using System.Globalization
 @model IEnumerable<ProjectTracking.Models.Project>
+@using System.Globalization
 
 @{
-    ViewData["Title"] = "รายงานข้อมูลโครงการ";
-    Layout = "_Layout"; // ✅ ใช้เมนูบาร์ด้านบนแบบเดียวกับระบบหลัก
+    Layout = null;
     var th = new CultureInfo("th-TH");
-}
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
+    var projectList = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var baList = ViewBag.BaList as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var selectedBaEmpId = ViewBag.SelectedBaEmpId is int baEmpId ? baEmpId : (int?)null;
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
 
-@section Styles {
-<style>
-    /* ซ่อนบางส่วนเฉพาะตอนสั่งพิมพ์ */
-    @@media print {
-        header, .navbar, footer, .no-print { display: none !important; }
-        body { background: #fff !important; }
-        .container, .container-fluid { padding: 0 !important; margin: 0 !important; }
-    }
-
-    .report-toolbar{
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:12px;
-        flex-wrap:wrap;
-        margin-bottom:12px;
-    }
-
-    .project-table-wrapper{ overflow-x:auto; border:1px solid #ddd; border-radius:10px; display:none; }
-
-    .col-id{ width:70px; min-width:70px; }
-    .col-name{ width:320px; min-width:320px; }
-    .col-system{ width:180px; min-width:180px; }
-    .col-db{ width:180px; min-width:180px; }
-    .col-url{ width:280px; min-width:280px; }
-    .col-account{ width:220px; min-width:220px; }
-    .col-date{ width:120px; min-width:120px; }
-    .col-status{ width:120px; min-width:120px; }
-    .col-mini{ width:90px; min-width:90px; }
-
-    .sticky-col-1{
-        position:sticky;
-        left:0;
-        background:#fff;
-        z-index:3;
-    }
-
-    .sticky-col-2{
-        position:sticky;
-        left:70px;
-        background:#fff;
-        z-index:3;
-    }
-
-    thead .sticky-col-1,
-    thead .sticky-col-2{
-        background:#212529 !important;
-        color:#fff;
-        z-index:4;
-    }
-
-    #tbl th, #tbl td{ vertical-align:middle; word-break:break-word; }
-
-    /* สีอ่อนแยกตาม Project */
-    .project-row-even td {
-        background:#f8fafc;
-    }
-
-    .project-row-odd td {
-        background:#eaf4ff;
-    }
-
-    /* sticky column ให้สีตามแถวด้วย */
-    .project-row-even .sticky-col-1,
-    .project-row-even .sticky-col-2 {
-        background:#f8fafc !important;
-    }
-
-    .project-row-odd .sticky-col-1,
-    .project-row-odd .sticky-col-2 {
-        background:#eaf4ff !important;
-    }
-
-    .project-row-even:hover td,
-    .project-row-odd:hover td,
-    .project-row-even:hover .sticky-col-1,
-    .project-row-even:hover .sticky-col-2,
-    .project-row-odd:hover .sticky-col-1,
-    .project-row-odd:hover .sticky-col-2 {
-        background:#eef6ff !important;
-    }
-
-    .project-report-cards {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
-
-    .project-report-card {
-        background: #fff;
-        border: 2px solid #cbd5e1;
-        border-radius: 26px;
-        padding: 22px 24px;
-        transition: .2s ease;
-        box-shadow: 0 4px 14px rgba(15,23,42,.05);
-    }
-
-    .project-report-card:hover {
-        border-color: #93c5fd;
-        background: #f8fbff;
-    }
-
-    .project-report-header {
-        display: block;
-        border: 0;
-        width: 100%;
-        min-width: unset;
-        padding: 0;
-    }
-
-    .project-report-avatar {
-        display: none;
-    }
-
-    .project-report-grid {
-        display: block;
-        margin-top: 8px;
-    }
-
-    .project-report-box {
-        background: transparent;
-        border: 0;
-        border-radius: 0;
-        padding: 0;
-        margin-bottom: 6px;
-    }
-
-    .project-label {
-        display: inline;
-        font-size: 1rem;
-        font-weight: 500;
-        color: #111827;
-        margin-right: 4px;
-    }
-
-    .project-value {
-        display: inline;
-        font-weight: 500;
-        color: #1f2937;
-    }
-</style>
-}
-
-<div class="container-fluid py-4">
-
-    <div class="report-toolbar no-print">
-        <div>
-            <h2 class="fw-bold mb-0">📁 รายงานข้อมูลโครงการ</h2>
-            <div class="text-muted">แสดงรายการโครงการ (สำหรับดู/พิมพ์)</div>
-        </div>
-
-        <div></div>
-    </div>
-
-    <div class="row mb-3 no-print">
-        <div class="col-md-5">
-            <label class="form-label fw-bold">🔍 ค้นหา Project</label>
-            <input type="text" id="search" class="form-control" placeholder="ค้นหาโครงการ..." autocomplete="off" />
-        </div>
-    </div>
-
-    <div class="table-responsive project-table-wrapper" style="display:none;">
-        <table class="table table-bordered table-hover align-middle" id="tbl">
-            <thead class="table-dark text-center">
-                <tr>
-                    <th class="sticky-col-1 col-id">#</th>
-                    <th class="sticky-col-2 col-name">Project</th>
-                    <th class="col-system">System</th>
-                    <th class="col-db">Database</th>
-                    <th class="col-url">Remote URL</th>
-                    <th class="col-account">Test Account</th>
-                    <th class="col-date">Start</th>
-                    <th class="col-date">End</th>
-                    <th class="col-status">Status</th>
-                    <th class="col-mini">Figma</th>
-                </tr>
-            </thead>
-            <tbody>
-            @if (Model == null || !Model.Any())
-            {
-                <tr>
-                    <td colspan="10" class="text-center text-muted">— No project data —</td>
-                </tr>
-            }
-            else
-            {
-                var i = 1;
-                foreach (var p in Model
-                    .OrderBy(x => x.Status == "IN_PROGRESS" ? 0 : x.Status == "PLAN" ? 1 : 2)
-                    .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
-                {
-                    <tr class="@(i % 2 == 0 ? "project-row-even" : "project-row-odd")">
-                        <td class="sticky-col-1 col-id text-center">@i</td>
-                        <td class="sticky-col-2 col-name fw-semibold">@p.ProjectName</td>
-                        <td class="col-system small">
-                            @if (!string.IsNullOrWhiteSpace(p.LinkName))
-                            {
-                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                                foreach (var part in parts)
-                                {
-                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        <a href="@part" target="_blank" rel="noopener noreferrer">@part</a>
-                                        <br />
-                                    }
-                                    else
-                                    {
-                                        <span>@part </span>
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
-                        </td>
-                        <td class="col-db">@p.DatabaseName</td>
-                        <td class="col-url">
-                            @(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)
-                        </td>
-
-                        <td class="col-account">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</td>
-                        <td class="text-center col-date">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
-                        <td class="text-center col-date">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</td>
-                        <td class="text-center col-status">@p.Status</td>
-                        <td class="text-center col-mini">
-                            @if (!string.IsNullOrEmpty(p.FigmaLink))
-                            { <a href="@p.FigmaLink" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">🎨</a> }
-                            else { <span class="text-muted">-</span> }
-                        </td>
-                    </tr>
-                    i++;
-                }
-            }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="project-report-cards">
-
-    @if (Model == null || !Model.Any())
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string SelectedProjectName() => selectedProjectId.HasValue
+        ? projectList.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        : "All Projects";
+    string SelectedBaName() => selectedBaEmpId.HasValue
+        ? baList.FirstOrDefault(x => x.EmpId == selectedBaEmpId.Value)?.EmpName ?? "-"
+        : "All BA";
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        <div class="text-center text-muted py-5">
-            — No project data —
+        "DONE" => "success",
+        "IN_PROGRESS" => "info",
+        "PLAN" => "warning",
+        _ => "muted"
+    };
+    IEnumerable<string> SplitParts(string? value) => (value ?? "")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim())
+        .Where(x => !string.IsNullOrWhiteSpace(x));
+
+    var total = rows.Count;
+    var planCount = rows.Count(x => string.Equals(x.Status, "PLAN", StringComparison.OrdinalIgnoreCase));
+    var progressCount = rows.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+    var doneCount = rows.Count(x => string.Equals(x.Status, "DONE", StringComparison.OrdinalIgnoreCase));
+    var figmaCount = rows.Count(x => !string.IsNullOrWhiteSpace(x.FigmaLink));
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Projects Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 11px;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.3fr) minmax(220px, .8fr) minmax(180px, .6fr) auto;
+            align-items: end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
+        }
+        .pt-search-select { position: relative; width: 100%; }
+        .pt-search-select__field { position: relative; }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__clear {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            background: #e2e8f0;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .pt-search-select__clear.is-visible { display: inline-flex; }
+        .pt-search-select__clear:hover,
+        .pt-search-select__clear:focus { color: #fff; background: #102443; }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
+        }
+        .pt-search-select__empty {
+            padding: 10px;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+        .filter-submit {
+            min-width: 88px;
+            justify-self: start;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.success { border-left-color: #22c55e; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        .projects-report-table col.col-seq { width: 5%; }
+        .projects-report-table col.col-system { width: 30%; }
+        .projects-report-table col.col-ba { width: 15%; }
+        .projects-report-table col.col-env { width: 21%; }
+        .projects-report-table col.col-url { width: 17%; }
+        .projects-report-table col.col-period { width: 12%; }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: break-word;
+            word-break: normal;
+        }
+        tr:nth-child(even) td { background: #f8fbff; }
+        .project-group-row td {
+            padding: 8px 10px;
+            color: #fff;
+            background: #18365e !important;
+            border-color: #18365e;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .project-group-name {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .project-group-label {
+            color: #8df1e4;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .project-group-count {
+            flex: 0 0 auto;
+            color: rgba(255, 255, 255, .78);
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .text-center { text-align: center; }
+        .cell-title {
+            color: #10233f;
+            font-weight: 900;
+        }
+        .cell-sub {
+            margin-top: 4px;
+            color: #465a73;
+            font-weight: 700;
+        }
+        .label {
+            color: #64748b;
+            font-weight: 900;
+        }
+        .link-list {
+            display: grid;
+            gap: 2px;
+        }
+        .link-list a {
+            color: #0f6fa8;
+            font-weight: 800;
+            text-decoration: underline;
+        }
+        .status-text {
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.info { color: #0f6fa8; }
+        .status-text.muted { color: #64748b; }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body {
+                padding: 0;
+                font-size: 10px;
+            }
+            .report-actions,
+            .filter-panel { display: none !important; }
+            .print-header { padding: 10px 12px; }
+            .print-header h1 { font-size: 18px; }
+            .kpi-grid { gap: 6px; }
+            .kpi { padding: 7px; }
+            .kpi strong { font-size: 16px; }
+            th,
+            td { padding: 5px 5px; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 1100px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+    </div>
+
+    <header class="print-header">
+        <h1>Projects Report</h1>
+        <div>
+            Project: @SelectedProjectName()<br />
+            BA: @SelectedBaName()<br />
+            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
+    </header>
+
+    <form method="get" class="filter-panel">
+        <div class="field">
+            <label for="projectId">Project</label>
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+                <option value="">-- All Projects --</option>
+                @foreach (var project in projectList)
+                {
+                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
+                        @project.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="baEmpId">BA</label>
+            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="this.form.submit()">
+                <option value="">-- All BA --</option>
+                @foreach (var ba in baList)
+                {
+                    <option value="@ba.EmpId" selected="@(selectedBaEmpId == ba.EmpId ? "selected" : null)">
+                        @ba.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                @foreach (var item in statusList)
+                {
+                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi info">
+            <span>Total Projects</span>
+            <strong>@total</strong>
+            <small>โครงการทั้งหมด</small>
+        </article>
+        <article class="kpi warning">
+            <span>Plan</span>
+            <strong>@planCount</strong>
+            <small>วางแผน</small>
+        </article>
+        <article class="kpi info">
+            <span>In Progress</span>
+            <strong>@progressCount</strong>
+            <small>กำลังดำเนินการ</small>
+        </article>
+        <article class="kpi success">
+            <span>Done</span>
+            <strong>@doneCount</strong>
+            <small>เสร็จสิ้น</small>
+        </article>
+        <article class="kpi">
+            <span>Figma</span>
+            <strong>@figmaCount</strong>
+            <small>มีลิงก์ออกแบบ</small>
+        </article>
+    </section>
+
+    <h2>Project List By Project</h2>
+    @if (!rows.Any())
+    {
+        <div class="empty">ไม่พบข้อมูลโครงการตามเงื่อนไขที่เลือก</div>
     }
     else
     {
-        var i = 1;
+        <table class="projects-report-table">
+            <colgroup>
+                <col class="col-seq" />
+                <col class="col-system" />
+                <col class="col-ba" />
+                <col class="col-env" />
+                <col class="col-url" />
+                <col class="col-period" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Seq</th>
+                    <th>System</th>
+                    <th>BA</th>
+                    <th>Database / Test</th>
+                    <th>Remote / Figma</th>
+                    <th>Period / Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var projectGroups = rows
+                        .GroupBy(project => new
+                        {
+                            project.ProjectId,
+                            ProjectName = TextOrDash(project.ProjectName)
+                        })
+                        .OrderBy(group => group.Key.ProjectName)
+                        .ToList();
+                }
+                @foreach (var projectGroup in projectGroups)
+                {
+                    var seq = 1;
+                    <tr class="project-group-row">
+                        <td colspan="6">
+                            <div class="project-group-name">
+                                <div>
+                                    <span class="project-group-label">Project</span>
+                                    @projectGroup.Key.ProjectName
+                                </div>
+                                <span class="project-group-count">@projectGroup.Count() รายการ</span>
+                            </div>
+                        </td>
+                    </tr>
 
-        foreach (var p in Model
-            .OrderBy(x => x.Status == "IN_PROGRESS" ? 0 : x.Status == "PLAN" ? 1 : 2)
-            .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
-        {
-            <div class="project-report-card"
-                 data-search="@($"{p.ProjectName} {p.LinkName} {p.DatabaseName} {p.RemoteUrl} {p.TestAccount} {p.Status}".ToLower())">
-
-                <div class="project-report-header">
-
-                    <div class="project-report-title mb-2">
-                        @i. @p.ProjectName
-                    </div>
-
-                    <span class="badge @(p.Status == "IN_PROGRESS" ? "bg-info" : p.Status == "DONE" ? "bg-success" : "bg-secondary") rounded-pill px-3 py-2 mb-2">
-                        @p.Status
-                    </span>
-
-                </div>
-
-                <div class="project-report-grid">
-
-                    <div class="project-report-box">
-                        <span class="project-label">BA</span>
-                        <span class="project-value">@(string.IsNullOrWhiteSpace(p.LinkName) ? "-" : p.LinkName)</span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">System</span>
-
-                        <span class="project-value text-break">
-                            @if (!string.IsNullOrWhiteSpace(p.LinkName))
-                            {
-                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                                foreach (var part in parts)
+                    @foreach (var project in projectGroup)
+                    {
+                        <tr>
+                            <td class="text-center">@seq</td>
+                            <td>
+                                @if (SplitParts(project.LinkName).Any())
                                 {
-                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                                    <div class="link-list">
+                                        @foreach (var part in SplitParts(project.LinkName))
+                                        {
+                                            if (part.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <a href="@part" target="_blank" rel="noopener noreferrer">@part</a>
+                                            }
+                                            else
+                                            {
+                                                <span>@part</span>
+                                            }
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td>@TextOrDash(project.BA?.EmpName)</td>
+                            <td>
+                                <div><span class="label">Database:</span> @TextOrDash(project.DatabaseName)</div>
+                                <div class="cell-sub"><span class="label">Test:</span> @TextOrDash(project.TestAccount)</div>
+                            </td>
+                            <td>
+                                <div><span class="label">Remote:</span> @TextOrDash(project.RemoteUrl)</div>
+                                <div class="cell-sub">
+                                    <span class="label">Figma:</span>
+                                    @if (!string.IsNullOrWhiteSpace(project.FigmaLink))
                                     {
-                                        <a href="@part"
-                                           target="_blank"
-                                           rel="noopener noreferrer">
-                                            @part
-                                        </a>
-                                        <br />
+                                        <a href="@project.FigmaLink" target="_blank" rel="noopener noreferrer">Open Figma</a>
                                     }
                                     else
                                     {
-                                        <span>@part </span>
+                                        <span>-</span>
                                     }
-                                }
-                            }
-                            else
-                            {
-                                <span>-</span>
-                            }
-                        </span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">Database</span>
-                        <span class="project-value">
-                            @(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)
-                        </span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">Remote URL</span>
-
-                        <span class="project-value text-break">
-                            @(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)
-                        </span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">Test Account</span>
-                        <span class="project-value text-break">
-                            @(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)
-                        </span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">Start</span>
-                        <span class="project-value">
-                            @(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                        </span>
-                    </div>
-
-                    <div class="project-report-box">
-                        <span class="project-label">End</span>
-                        <span class="project-value">
-                            @(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")
-                        </span>
-                    </div>
-
-                    <div class="d-flex gap-2 mt-3 flex-wrap">
-                        @if (!string.IsNullOrEmpty(p.FigmaLink))
-                        {
-                            <a href="@p.FigmaLink"
-                               target="_blank"
-                               class="btn btn-outline-primary btn-sm rounded-pill">
-                                🎨 Figma
-                            </a>
-                        }
-                    </div>
-
-                </div>
-            </div>
-
-            i++;
-        }
+                                </div>
+                            </td>
+                            <td>
+                                <div><span class="label">Start:</span> @DateText(project.StartDate)</div>
+                                <div><span class="label">End:</span> @DateText(project.EndDate)</div>
+                                <div class="cell-sub">
+                                    <span class="status-text @StatusClass(project.Status)">@TextOrDash(project.Status)</span>
+                                </div>
+                            </td>
+                        </tr>
+                        seq++;
+                    }
+                }
+            </tbody>
+        </table>
     }
 
-    </div>
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
 
-</div>
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
 
-@section Scripts {
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('search');
-    if (!input) return;
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
 
-    input.addEventListener('keyup', () => {
-        const k = input.value.toLowerCase().trim();
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
 
-        document.querySelectorAll('#tbl tbody tr').forEach(r => {
-            r.style.display = r.innerText.toLowerCase().includes(k) ? '' : 'none';
-        });
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
 
-        document.querySelectorAll('.project-report-card').forEach(card => {
-            const text = (card.dataset.search || '').toLowerCase();
-            card.style.display = text.includes(k) ? '' : 'none';
-        });
-    });
-});
-</script>
-}
+                const field = document.createElement("div");
+                field.className = "pt-search-select__field";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+
+                const clearButton = document.createElement("button");
+                clearButton.type = "button";
+                clearButton.className = "pt-search-select__clear";
+                clearButton.title = "เลือกใหม่";
+                clearButton.setAttribute("aria-label", "เลือกใหม่");
+                clearButton.textContent = "×";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                field.appendChild(input);
+                field.appendChild(clearButton);
+                wrapper.appendChild(field);
+                wrapper.appendChild(dropdown);
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                select.classList.add("pt-native-select-hidden", "pt-dropdown-enhanced");
+
+                const options = Array.from(select.options).map(option => ({
+                    value: option.value,
+                    text: option.text.trim(),
+                    option
+                }));
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value ? selected.text.trim() : "";
+                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
+                }
+
+                function renderOptions() {
+                    const term = normalize(input.value);
+                    dropdown.innerHTML = "";
+
+                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
+                    if (!matches.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    matches.forEach(item => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (item.option.selected) button.classList.add("is-selected");
+                        button.textContent = item.text || "--";
+                        button.addEventListener("click", () => {
+                            select.value = item.value;
+                            syncInput();
+                            wrapper.classList.remove("is-open");
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                input.addEventListener("focus", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                input.addEventListener("input", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                clearButton.addEventListener("click", () => {
+                    select.value = "";
+                    syncInput();
+                    dispatchSelectChange(select);
+                });
+
+                document.addEventListener("click", event => {
+                    if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
+                });
+
+                syncInput();
+                renderOptions();
+            }
+
+            document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+        })();
+    </script>
+</body>
+</html>

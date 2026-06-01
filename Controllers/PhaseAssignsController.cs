@@ -503,16 +503,34 @@ namespace ProjectTracking.Controllers
         [HttpGet]
         public async Task<IActionResult> Print(int? projectId, int? empId, string? role)
         {
-            ViewBag.Projects = await _context.Projects.OrderBy(p => p.ProjectName).ToListAsync();
+            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role);
+            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole));
+        }
+
+        [RequireMenu("PhaseAssigns.Print")]
+        [HttpGet]
+        public async Task<IActionResult> PrintTable(int? projectId, int? empId, string? role)
+        {
+            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role);
+            ViewBag.PrintDate = DateTime.Now;
+            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole));
+        }
+
+        private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role)
+        {
+            ViewBag.Projects = await _context.Projects
+                .OrderBy(p => p.ProjectName)
+                .ToListAsync();
+
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedEmpId = empId;
-            ViewBag.SelectedRole = role;
+            ViewBag.SelectedRole = null;
 
             ViewBag.EmployeeList = new List<Employee>();
             ViewBag.RoleList = new List<string>();
 
             if (projectId == null)
-                return View(new List<PhaseAssign>());
+                return null;
 
             ViewBag.SelectedProject = await _context.Projects.FindAsync(projectId);
 
@@ -531,21 +549,45 @@ namespace ProjectTracking.Controllers
                 }
             ).ToListAsync();
 
-            // Role dropdown
-            ViewBag.RoleList = await (
+            var roleQuery =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
-                where ph.ProjectId == projectId && a.Role != null
-                group a.Role by a.Role into g
-                orderby g.Key
-                select g.Key!
-            ).ToListAsync();
+                where ph.ProjectId == projectId && a.Role != null && a.Role != ""
+                select new
+                {
+                    a.EmpId,
+                    a.Role
+                };
+
+            if (empId.HasValue)
+                roleQuery = roleQuery.Where(x => x.EmpId == empId.Value);
+
+            var roleList = await roleQuery
+                .Select(x => x.Role!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var selectedRole = !string.IsNullOrWhiteSpace(role) && roleList.Contains(role)
+                ? role
+                : null;
+
+            ViewBag.RoleList = roleList;
+            ViewBag.SelectedRole = selectedRole;
+
+            return selectedRole;
+        }
+
+        private async Task<List<PhaseAssign>> BuildPrintReportRowsAsync(int? projectId, int? empId, string? role)
+        {
+            if (projectId == null)
+                return new List<PhaseAssign>();
 
             var query =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                 join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
-                where ph.ProjectId == projectId
+                where ph.ProjectId == projectId.Value
                 select new PhaseAssign
                 {
                     AssignId = a.AssignId,
@@ -574,11 +616,11 @@ namespace ProjectTracking.Controllers
             if (!string.IsNullOrEmpty(role))
                 query = query.Where(x => x.Role == role);
 
-            return View(await query
+            return await query
                 .OrderBy(a => a.PhaseOrder ?? int.MaxValue)
                 .ThenBy(a => a.PhaseSort ?? int.MaxValue)
                 .ThenBy(a => a.AssignId)
-                .ToListAsync());
+                .ToListAsync();
         }
 
         // =====================================================

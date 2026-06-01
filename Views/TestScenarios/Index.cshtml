@@ -3,15 +3,15 @@
 @using Microsoft.AspNetCore.Http
 
 @{
-    string StatusBadge(string status)
+    string StatusTextClass(string status)
     {
         return status switch
         {
-            "PASSED" => "bg-success",
-            "FAILED" => "bg-danger",
-            "READY"  => "bg-primary",
-            "DRAFT"  => "bg-secondary",
-            _        => "bg-dark"
+            "PASSED" => "is-success",
+            "FAILED" => "is-danger",
+            "READY"  => "is-primary",
+            "DRAFT"  => "is-muted",
+            _        => "is-muted"
         };
     }
 
@@ -252,6 +252,50 @@
         font-weight: 800;
     }
 
+    .scenario-status-text,
+    .scenario-status-summary {
+        display: inline;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        font-weight: 900;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    .scenario-status-text {
+        flex: 0 0 auto;
+        font-size: .96rem;
+        text-align: right;
+    }
+
+    .scenario-status-summary {
+        font-size: .92rem;
+    }
+
+    .scenario-status-text.is-success,
+    .scenario-status-summary.is-success {
+        color: #16a34a;
+    }
+
+    .scenario-status-text.is-danger,
+    .scenario-status-summary.is-danger {
+        color: #ef4444;
+    }
+
+    .scenario-status-text.is-primary,
+    .scenario-status-summary.is-primary {
+        color: #2563eb;
+    }
+
+    .scenario-status-text.is-muted,
+    .scenario-status-summary.is-muted {
+        color: #64748b;
+    }
+
     .scenario-detail-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -265,6 +309,33 @@
         border-radius: 14px;
         padding: 12px;
         min-width: 0;
+    }
+
+    .scenario-detail-box--precondition {
+        background: linear-gradient(180deg, rgba(20, 184, 166, .13), rgba(240, 253, 250, .92));
+        border-color: rgba(20, 184, 166, .28);
+    }
+
+    .scenario-detail-box--steps {
+        background: linear-gradient(180deg, rgba(37, 99, 235, .11), rgba(239, 246, 255, .92));
+        border-color: rgba(37, 99, 235, .24);
+    }
+
+    .scenario-detail-box--expected {
+        background: linear-gradient(180deg, rgba(245, 158, 11, .13), rgba(255, 251, 235, .92));
+        border-color: rgba(245, 158, 11, .28);
+    }
+
+    .scenario-detail-box--precondition .scenario-detail-label {
+        color: #0f766e;
+    }
+
+    .scenario-detail-box--steps .scenario-detail-label {
+        color: #2563eb;
+    }
+
+    .scenario-detail-box--expected .scenario-detail-label {
+        color: #b45309;
     }
 
     .scenario-detail-label {
@@ -475,12 +546,12 @@
 
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
-            <span class="badge bg-dark">Total: @list.Count</span>
-            <span class="badge bg-success">Passed: @list.Count(x => x.status == "PASSED")</span>
-            <span class="badge bg-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
-            <span class="badge bg-primary">Ready: @list.Count(x => x.status == "READY")</span>
-            <span class="badge bg-secondary">Draft: @list.Count(x => x.status == "DRAFT")</span>
+        <div class="d-flex flex-wrap gap-3">
+            <span class="scenario-status-summary is-muted">Total: @list.Count</span>
+            <span class="scenario-status-summary is-success">Passed: @list.Count(x => x.status == "PASSED")</span>
+            <span class="scenario-status-summary is-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
+            <span class="scenario-status-summary is-primary">Ready: @list.Count(x => x.status == "READY")</span>
+            <span class="scenario-status-summary is-muted">Draft: @list.Count(x => x.status == "DRAFT")</span>
         </div>
     </div>
 
@@ -509,7 +580,7 @@
                                         <div class="scenario-title">@item.title</div>
                                     </div>
                                 </div>
-                                <span class="badge @StatusBadge(item.status)">@item.status</span>
+                                <span class="scenario-status-text @StatusTextClass(item.status)">@item.status</span>
                             </div>
 
                             <div class="scenario-meta">
@@ -519,15 +590,15 @@
                             </div>
 
                             <div class="scenario-detail-grid">
-                                <div class="scenario-detail-box">
+                                <div class="scenario-detail-box scenario-detail-box--precondition">
                                     <div class="scenario-detail-label">Precondition</div>
                                     <div class="scenario-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
                                 </div>
-                                <div class="scenario-detail-box">
+                                <div class="scenario-detail-box scenario-detail-box--steps">
                                     <div class="scenario-detail-label">Steps</div>
                                     <div class="scenario-detail-text">@item.steps</div>
                                 </div>
-                                <div class="scenario-detail-box">
+                                <div class="scenario-detail-box scenario-detail-box--expected">
                                     <div class="scenario-detail-label">Expected Result</div>
                                     <div class="scenario-detail-text">@item.expected_result</div>
                                 </div>

@@ -2,250 +2,630 @@
 @using System.Globalization
 
 @{
-    ViewData["Title"] = "รายงานการมอบหมายงาน";
+    Layout = null;
     var th = new CultureInfo("th-TH");
+    var assignments = Model?.ToList() ?? new List<ProjectTracking.Models.PhaseAssign>();
 
-    // =========================================
-    // 🎨 สีประจำ Employee (คงที่จาก EmpId)
-    // =========================================
-    string GetColorByEmpId(int empId)
+    var doneCount = assignments.Count(a => string.Equals(a.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase));
+    var progressCount = assignments.Count(a => string.Equals(a.WorkStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+    var roleCount = assignments
+        .Select(a => a.Role)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .Count();
+
+    string FormatDate(DateTime? value)
     {
-        var r = (empId * 70) % 256;
-        var g = (empId * 130) % 256;
-        var b = (empId * 200) % 256;
+        return value?.ToString("dd MMM yyyy", th) ?? "-";
+    }
 
-        // 🎨 ทำให้สีอ่อน (pastel)
-        r = (r + 255 + 255) / 3;
-        g = (g + 255 + 255) / 3;
-        b = (b + 255 + 255) / 3;
+    string WorkStatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "เสร็จสิ้น",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
 
-        return $"rgb({r},{g},{b})";
+    string WorkStatusClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "status-text success",
+            "IN_PROGRESS" => "status-text warning",
+            _ => "status-text muted"
+        };
+    }
+
+    string LogStatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "ผ่าน",
+            "FAIL" => "แก้ไข",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
+
+    string LogStatusClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "status-text success",
+            "FAIL" => "status-text danger",
+            _ => "status-text muted"
+        };
+    }
+
+    string PhaseName(ProjectTracking.Models.PhaseAssign a)
+    {
+        return string.IsNullOrWhiteSpace(a.Phase?.PhaseName) ? "-" : a.Phase.PhaseName;
     }
 }
 
-<!-- ================= FILTER (NO PRINT) ================= -->
-<form method="get" class="row g-3 mb-4 no-print">
-
-    <!-- PROJECT -->
-    <div class="col-md-3">
-        <label class="form-label fw-bold">📁 Project</label>
-        <select name="projectId"
-                class="form-select"
-                onchange="this.form.submit()">
-            <option value="">-- Select Project --</option>
-            @foreach (var p in ViewBag.Projects)
-            {
-                <option value="@p.ProjectId"
-                        selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
-                    @p.ProjectName
-                </option>
-            }
-        </select>
-    </div>
-
-    <!-- EMPLOYEE -->
-    <div class="col-md-3">
-        <label class="form-label fw-bold">👤 Employee</label>
-        <select name="empId"
-                class="form-select"
-                onchange="this.form.submit()">
-            <option value="">-- All Employees --</option>
-            @foreach (var e in ViewBag.EmployeeList)
-            {
-                <option value="@e.EmpId"
-                        selected="@(ViewBag.SelectedEmpId == e.EmpId)">
-                    @e.EmpName
-                </option>
-            }
-        </select>
-    </div>
-
-    <!-- ROLE -->
-    <div class="col-md-3">
-        <label class="form-label fw-bold">🧩 Role</label>
-        <select name="role"
-                class="form-select"
-                onchange="this.form.submit()">
-            <option value="">-- All Roles --</option>
-            @foreach (var r in ViewBag.RoleList ?? new List<string>())
-            {
-                <option value="@r"
-                        selected="@(ViewBag.SelectedRole == r)">
-                    @r
-                </option>
-            }
-        </select>
-    </div>
-
-    <!-- PRINT BUTTONS -->
-    <div class="col-md-3 align-self-end text-end">
-        <div class="d-flex justify-content-end gap-2">
-
-            <!-- 🖨 พิมพ์รายงาน (ของเดิม) -->
-            <button type="button"
-                    class="btn btn-dark"
-                    onclick="window.print()">
-                🖨 พิมพ์รายงาน
-            </button>
-
-            <!-- 📄 พิมพ์ฟอร์ม (เพิ่มใหม่ / ไม่กระทบของเดิม) -->
-            @if (Model.Any())
-            {
-                <a asp-action="Form"
-                   asp-route-id="@Model.First().AssignId"
-                   target="_blank"
-                   class="btn btn-outline-primary">
-                    📄 พิมพ์ฟอร์ม
-                </a>
-            }
-
-        </div>
-    </div>
-</form>
-
-<!-- ================= REPORT HEADER ================= -->
-<div class="text-center mb-4">
-    <h2 class="fw-bold">👥 รายงานการมอบหมายงาน</h2>
-    <div class="text-muted">
-        <b>Project:</b> @(ViewBag.SelectedProject?.ProjectName ?? "All") <br />
-        <b>Print Date:</b> @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
-    </div>
-</div>
-
-@if (Model == null)
-{
-    <div class="text-center text-muted">ไม่พบข้อมูล</div>
-    return;
-}
-
-<!-- ================= TABLE ================= -->
-<div class="table-responsive">
-    <table class="table table-bordered table-sm align-middle" style="background-color:#fafafa;">
-        <thead class="text-center" style="background-color:#f1f3f5;">
-            <tr>
-                <th style="width:220px;">Employee</th>
-                <th>Role</th>
-                <th style="width:220px;">Plan Period</th>
-                <th style="width:180px;">Status</th>
-                <th style="width:260px;">Remark</th>
-            </tr>
-        </thead>
-
-        <tbody>
-        @if (!Model.Any())
-        {
-            <tr>
-                <td colspan="5"
-                    class="text-center text-muted py-4">
-                    — No assignment —
-                </td>
-            </tr>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Assignment Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
         }
-        else
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
+        }
+        .pt-search-select {
+            position: relative;
+            width: 100%;
+        }
+        .pt-search-select__field {
+            position: relative;
+        }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__clear {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            background: #e2e8f0;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .pt-search-select__clear.is-visible {
+            display: inline-flex;
+        }
+        .pt-search-select__clear:hover,
+        .pt-search-select__clear:focus {
+            color: #fff;
+            background: #102443;
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown {
+            display: block;
+        }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
+        }
+        .pt-search-select__empty {
+            padding: 10px;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+        tr:nth-child(even) td {
+            background: #f8fbff;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .status-text {
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.danger { color: #d6294f; }
+        .status-text.muted { color: #64748b; }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body { padding: 0; }
+            .no-print,
+            .report-actions,
+            .filter-panel { display: none !important; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 900px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+        @if (assignments.Any())
         {
-            foreach (var a in Model)
+            <a asp-action="Form"
+               asp-route-id="@assignments.First().AssignId"
+               target="_blank"
+               class="report-btn">
+                Print Form
+            </a>
+        }
+    </div>
+
+    <header class="print-header">
+        <h1>Assignment Report</h1>
+        <div>
+            Project: @(ViewBag.SelectedProject?.ProjectName ?? "All Projects")<br />
+            Employee: @(ViewBag.SelectedEmpId == null ? "All Employees" : (ViewBag.EmployeeList as IEnumerable<ProjectTracking.Models.Employee>)?.FirstOrDefault(e => e.EmpId == ViewBag.SelectedEmpId)?.EmpName ?? "-")<br />
+            Role: @(string.IsNullOrWhiteSpace(ViewBag.SelectedRole as string) ? "All Roles" : ViewBag.SelectedRole)<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+        </div>
+    </header>
+
+    <form method="get" class="filter-panel no-print">
+        <div class="field">
+            <label for="projectId">Project</label>
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+                <option value="">-- Select Project --</option>
+                @foreach (var p in ViewBag.Projects)
+                {
+                    <option value="@p.ProjectId" selected="@(ViewBag.SelectedProjectId == p.ProjectId ? "selected" : null)">
+                        @p.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="empId">Employee</label>
+            <select id="empId" name="empId" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+                <option value="">-- All Employees --</option>
+                @foreach (var e in ViewBag.EmployeeList)
+                {
+                    <option value="@e.EmpId" selected="@(ViewBag.SelectedEmpId == e.EmpId ? "selected" : null)">
+                        @e.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="role">Role</label>
+            <select id="role" name="role" data-placeholder="🔍 พิมพ์ค้นหา Role..." onchange="this.form.submit()">
+                <option value="">-- All Roles --</option>
+                @foreach (var r in ViewBag.RoleList ?? new List<string>())
+                {
+                    <option value="@r" selected="@(ViewBag.SelectedRole == r ? "selected" : null)">
+                        @r
+                    </option>
+                }
+            </select>
+        </div>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi info">
+            <span>Total Assignments</span>
+            <strong>@assignments.Count</strong>
+            <small>รายการมอบหมายทั้งหมด</small>
+        </article>
+        <article class="kpi">
+            <span>Done</span>
+            <strong>@doneCount</strong>
+            <small>เสร็จสิ้น</small>
+        </article>
+        <article class="kpi warning">
+            <span>In Progress</span>
+            <strong>@progressCount</strong>
+            <small>กำลังดำเนินการ</small>
+        </article>
+        <article class="kpi">
+            <span>Roles</span>
+            <strong>@roleCount</strong>
+            <small>บทบาทที่เกี่ยวข้อง</small>
+        </article>
+    </section>
+
+    <h2>Assignment List</h2>
+    @if (!assignments.Any())
+    {
+        <div class="empty">— No assignment —</div>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:42px;">Seq</th>
+                    <th style="width:170px;">Employee</th>
+                    <th>Phase</th>
+                    <th style="width:170px;">Role</th>
+                    <th style="width:92px;">Status</th>
+                    <th style="width:150px;">Plan Date</th>
+                    <th style="width:150px;">Period Date</th>
+                    <th>Assign / Log</th>
+                </tr>
+            </thead>
+            <tbody>
+            @{
+                var seq = 1;
+            }
+            @foreach (var assignment in assignments)
             {
-                var bg = GetColorByEmpId(a.EmpId);
+                var lastLog = assignment.Logs?
+                    .OrderByDescending(l => l.RoundNo)
+                    .FirstOrDefault();
 
                 <tr>
-                    <td style="background-color:@bg !important;">
-                        @(a.Employee != null ? a.Employee.EmpName : "-")
+                    <td class="text-center">@seq</td>
+                    <td>@(assignment.Employee != null ? assignment.Employee.EmpName : "-")</td>
+                    <td>@PhaseName(assignment)</td>
+                    <td>@(string.IsNullOrWhiteSpace(assignment.Role) ? "-" : assignment.Role)</td>
+                    <td class="text-center">
+                        <span class="@WorkStatusClass(assignment.WorkStatus)">
+                            @WorkStatusText(assignment.WorkStatus)
+                        </span>
                     </td>
-
-                    <td style="background-color:@bg !important; white-space:normal;">
-                        @a.Role
-                    </td>
-
-                    <td style="background-color:@bg !important;" class="text-center">
-                        @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
-                        –
-                        @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
-                    </td>
-
-                    <td style="background-color:@bg !important;" class="text-center">
-                        @if (a.WorkStatus == "DONE")
+                    <td class="text-center">@FormatDate(assignment.PlanStart) - @FormatDate(assignment.PlanEnd)</td>
+                    <td class="text-center">@FormatDate(assignment.Phase?.PeriodStartDate) - @FormatDate(assignment.Phase?.PeriodEndDate)</td>
+                    <td>
+                        <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(assignment.Remark) ? "-" : assignment.Remark)</div>
+                        @if (lastLog != null)
                         {
-                            <span class="badge bg-success px-3 py-2">
-                                ✅ เสร็จสิ้น
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark px-3 py-2">
-                                🟡 กำลังดำเนินการ
-                            </span>
-                        }
-                    </td>
-
-                    <td style="background-color:@bg !important;">
-                        @{
-                            var lastLog = a.Logs?
-                                .OrderByDescending(l => l.RoundNo)
-                                .FirstOrDefault();
-                        }
-
-                        <div style="font-size:15px; line-height:1.3;">
-
-                            @if (lastLog != null)
-                            {
-                                @if (lastLog.Status == "PASS")
-                                {
-                                    <span class="badge bg-success" style="font-size:13px; padding:4px 10px; border-radius:12px;">
-                                        ผ่าน
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span style="background-color:#f4c542; color:#000; font-size:13px; padding:4px 10px; border-radius:12px; display:inline-block;">
-                                        แก้ไข
-                                    </span>
-                                }
-
-                                <div style="margin-top:2px;">
-                                    <b>Log :</b>
-                                    @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)
-                                </div>
-                            }
-
-                            <div style="margin-top:2px; color:#555;">
-                                <b>Assign :</b>
-                                @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)
+                            <div>
+                                <b>Log:</b>
+                                <span class="@LogStatusClass(lastLog.Status)">@LogStatusText(lastLog.Status)</span>
+                                @(string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)
                             </div>
-
-                        </div>
+                        }
                     </td>
                 </tr>
+
+                seq++;
             }
-        }
-        </tbody>
-    </table>
-</div>
-
-<!-- ================= PRINT STYLE ================= -->
-<style>
-td {
-    word-break: break-word;
-}
-
-@@media print {
-    .no-print {
-        display: none !important;
+            </tbody>
+        </table>
     }
 
-    body {
-        font-size: 12px;
-    }
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
 
-    table {
-        page-break-inside: auto;
-    }
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
 
-    tr {
-        page-break-inside: avoid;
-    }
+            function hasEmptyOption(select) {
+                return Array.from(select.options).some(option => option.value === "");
+            }
 
-    thead {
-        display: table-header-group;
-    }
-}
-</style>
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const field = document.createElement("div");
+                field.className = "pt-search-select__field";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+
+                const clearButton = document.createElement("button");
+                clearButton.type = "button";
+                clearButton.className = "pt-search-select__clear";
+                clearButton.title = "เลือกใหม่";
+                clearButton.setAttribute("aria-label", "เลือกใหม่");
+                clearButton.textContent = "×";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                field.appendChild(input);
+                field.appendChild(clearButton);
+                wrapper.appendChild(field);
+                wrapper.appendChild(dropdown);
+                select.insertAdjacentElement("afterend", wrapper);
+                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
+                select.tabIndex = -1;
+
+                function syncInputFromSelect() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    clearButton.classList.toggle("is-visible", Boolean(select.value) && hasEmptyOption(select));
+                }
+
+                function closeDropdown() {
+                    wrapper.classList.remove("is-open");
+                }
+
+                function renderOptions(filter = "") {
+                    dropdown.innerHTML = "";
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options)
+                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => {
+                            const haystack = normalize(`${option.text} ${option.value}`);
+                            return !keyword || haystack.includes(keyword);
+                        });
+
+                    if (options.length === 0) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    options.forEach(option => {
+                        const item = document.createElement("button");
+                        item.type = "button";
+                        item.className = "pt-search-select__option";
+                        if (option.value === select.value) item.classList.add("is-selected");
+                        item.textContent = option.text;
+                        item.addEventListener("click", function () {
+                            select.value = option.value;
+                            input.value = option.text;
+                            closeDropdown();
+                            syncInputFromSelect();
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(item);
+                    });
+                }
+
+                function openDropdown() {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                }
+
+                clearButton.addEventListener("click", function () {
+                    select.value = "";
+                    input.value = "";
+                    closeDropdown();
+                    syncInputFromSelect();
+                    dispatchSelectChange(select);
+                });
+                input.addEventListener("focus", openDropdown);
+                input.addEventListener("click", openDropdown);
+                input.addEventListener("input", function () {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                });
+                input.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
+                });
+                select.addEventListener("change", syncInputFromSelect);
+                document.addEventListener("click", function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
+                });
+
+                syncInputFromSelect();
+            }
+
+            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+        })();
+
+    </script>
+</body>
+</html>

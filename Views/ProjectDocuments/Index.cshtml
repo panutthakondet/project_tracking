@@ -2,7 +2,9 @@
 
 @{
     ViewData["Title"] = "Project Documents";
-    var projectId = ViewBag.ProjectId;
+    var selectedProjectId = ViewBag.ProjectId is int id ? id : 0;
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
 }
 
 @using Microsoft.AspNetCore.Http
@@ -16,9 +18,98 @@
         return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
+
+    string DocumentTypeClass(string? documentType)
+    {
+        return (documentType ?? "").Trim().ToUpperInvariant() switch
+        {
+            "BRD" => "doc-type-brd",
+            "TOR" => "doc-type-tor",
+            "DESIGN" => "doc-type-design",
+            "OTHER" => "doc-type-other",
+            _ => "doc-type-default"
+        };
+    }
 }
 
-<div class="container mt-4">
+<style>
+    .project-doc-select-card {
+        position: relative;
+        z-index: 10;
+        overflow: visible;
+        margin-bottom: 28px !important;
+    }
+
+    .project-doc-upload-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .project-doc-select-card .form-select {
+        min-height: 54px;
+    }
+
+    .project-doc-upload-card select[name="documentType"] {
+        position: relative;
+        z-index: 5;
+        min-height: 48px;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    .project-doc-upload-card select[name="documentType"] option {
+        color: #10233f;
+        background: #fff;
+        font-weight: 800;
+    }
+
+    .project-doc-type {
+        display: inline;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        font-weight: 900;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    .project-doc-type.doc-type-brd {
+        color: #2563eb;
+    }
+
+    .project-doc-type.doc-type-tor {
+        color: #0f766e;
+    }
+
+    .project-doc-type.doc-type-design {
+        color: #7c3aed;
+    }
+
+    .project-doc-type.doc-type-other,
+    .project-doc-type.doc-type-default {
+        color: #64748b;
+    }
+
+    .project-doc-file-name {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .project-doc-uploaded {
+        color: #64748b;
+        font-size: .86rem;
+        font-weight: 800;
+        line-height: 1.35;
+        margin-top: 4px;
+    }
+</style>
+
+<div class="container mt-4 project-documents-page">
 
     <div class="index-hero">
         <div class="index-hero__content">
@@ -28,22 +119,55 @@
         </div>
     </div>
 
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger fw-bold">@TempData["Error"]</div>
+    }
+
+    <div class="card project-doc-select-card">
+        <div class="card-body">
+            <form method="get" asp-action="Index">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">📁 Select Project</label>
+                        <select name="projectId" class="form-select form-select-lg" onchange="this.form.submit()">
+                            <option value="">-- เลือกโครงการ --</option>
+                            @foreach (var p in projects)
+                            {
+                                <option value="@p.ProjectId" selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
+                                    @p.ProjectName
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Upload Section -->
-    <div class="card mb-4">
+    <div class="card mb-4 project-doc-upload-card">
         <div class="card-header fw-bold">
             Upload Document
         </div>
         <div class="card-body">
-            @if (CanMenu("ProjectDocuments.Upload"))
+            @if (selectedProjectId <= 0)
+            {
+                <div class="alert alert-info mb-0 fw-bold">
+                    กรุณาเลือกโครงการก่อนอัปโหลดเอกสาร
+                </div>
+            }
+            else if (CanMenu("ProjectDocuments.Upload"))
             {
                 <form asp-action="Upload" method="post" enctype="multipart/form-data" onsubmit="return confirm('อัปโหลดไฟล์นี้หรือไม่?');">
-                    <input type="hidden" name="projectId" value="@projectId" />
+                    <input type="hidden" name="projectId" value="@selectedProjectId" />
 
                     <div class="row g-3">
 
                         <div class="col-md-3">
                             <label class="form-label">Document Type</label>
                             <select name="documentType" class="form-select" required>
+                                <option value="" selected disabled>-- เลือกประเภทเอกสาร --</option>
                                 <option value="BRD">BRD</option>
                                 <option value="TOR">TOR</option>
                                 <option value="DESIGN">Design</option>
@@ -88,53 +212,58 @@
 
                 <thead class="table-dark">
                     <tr>
-                        <th style="width:80px">ID</th>
+                        <th style="width:80px">Seq</th>
                         <th style="width:120px">Type</th>
                         <th>File Name</th>
-                        <th style="width:160px">Uploaded</th>
                         <th style="width:300px" class="text-center">Actions</th>
                     </tr>
                 </thead>
 
                 <tbody>
 
-                    @if (!Model.Any())
+                    @if (selectedProjectId <= 0)
                     {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
+                            <td colspan="4" class="text-center text-muted py-4">
+                                กรุณาเลือกโครงการเพื่อดูเอกสาร
+                            </td>
+                        </tr>
+                    }
+                    else if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
                                 No documents uploaded
                             </td>
                         </tr>
                     }
                     else
                     {
+                        var seq = 1;
                         foreach (var doc in Model)
                         {
                             <tr>
-                                <td>@doc.DocumentId</td>
+                                <td class="fw-bold text-center">@seq</td>
 
                                 <td>
-                                    <span class="badge bg-secondary">
+                                    <span class="project-doc-type @DocumentTypeClass(doc.DocumentType)">
                                         @doc.DocumentType
                                     </span>
                                 </td>
 
                                 <td>
-                                    @doc.FileName
+                                    <div class="project-doc-file-name">@doc.FileName</div>
+                                    <div class="project-doc-uploaded">Uploaded: @doc.UploadedAt.ToString("yyyy-MM-dd HH:mm")</div>
                                 </td>
 
                                 <td>
-                                    @doc.UploadedAt.ToString("yyyy-MM-dd HH:mm")
-                                </td>
-
-                                <td>
-                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <div class="project-doc-actions">
                                         @if (CanMenu("ProjectDocuments.Preview"))
                                         {
                                             <a asp-action="Preview"
                                                asp-route-id="@doc.DocumentId"
                                                target="_blank"
-                                               class="btn btn-sm btn-info"
+                                               class="btn btn-sm btn-outline-secondary"
                                                title="ดูไฟล์"
                                                onclick="return confirm('ต้องการเปิดดูไฟล์นี้หรือไม่?');">
                                                 👁 Preview
@@ -151,7 +280,7 @@
                                         {
                                             <a asp-action="Download"
                                                asp-route-id="@doc.DocumentId"
-                                               class="btn btn-sm btn-success"
+                                               class="btn btn-sm btn-outline-success"
                                                title="ดาวน์โหลดไฟล์">
                                                 ⬇ Download
                                             </a>
@@ -167,7 +296,7 @@
                                         {
                                             <a asp-action="Delete"
                                                asp-route-id="@doc.DocumentId"
-                                               class="btn btn-sm btn-danger"
+                                               class="btn btn-sm btn-outline-danger"
                                                title="ลบเอกสาร"
                                                onclick="return confirm('Delete this document?');">
                                                 🗑 Delete
@@ -182,6 +311,7 @@
                                     </div>
                                 </td>
                             </tr>
+                            seq++;
                         }
                     }
 

@@ -60,7 +60,10 @@
         <article class="glass-panel panel-wide">
             <div class="panel-head">
                 <h2>ภาพรวมโครงการ (Projects Overview)</h2>
-                <a asp-controller="Projects" asp-action="Index" class="panel-filter">ปีนี้ (This Year)</a>
+                <div class="panel-actions">
+                    <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter">ปีนี้ (This Year)</a>
+                    <a asp-controller="Reports" asp-action="Executive" class="panel-filter compact">รายละเอียด</a>
+                </div>
             </div>
             <div class="legend-row">
                 <span><i class="dot green"></i>Completed</span>
@@ -174,6 +177,7 @@
         <article class="glass-panel compact-panel panel-issues">
             <div class="panel-head">
                 <h2>Issues Overview</h2>
+                <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
             </div>
             <div class="donut-layout compact-donut-layout">
                 <div class="donut donut-small" style="--donut:@dashboard.IssueDonut;">
@@ -240,7 +244,10 @@
         <article class="glass-panel panel-watch">
             <div class="panel-head">
                 <h2>โครงการที่ต้องเฝ้าระวัง</h2>
-                <a asp-controller="ProjectPhases" asp-action="Index" class="panel-link">ดูงวดงาน</a>
+                <div class="panel-actions">
+                    <a asp-controller="PhaseWorkload" asp-action="Index" class="panel-link">ดูสถานะงาน</a>
+                    <a asp-controller="ProjectPhases" asp-action="Index" class="panel-link">ดูงวดงาน</a>
+                </div>
             </div>
             <div class="watch-list">
                 @if (dashboard.WatchProjects.Count == 0)
@@ -599,6 +606,14 @@
     line-height:1.15;
     font-weight:900;
     overflow-wrap:anywhere;
+}
+
+.panel-actions {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
 }
 
 .panel-filter,

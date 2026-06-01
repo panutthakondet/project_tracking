@@ -1,0 +1,304 @@
+@model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
+@using System.Globalization
+@using System.Linq
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
+        .OrderBy(x => x.ProjectName)
+        .ThenBy(x => x.PhaseOrder)
+        .ThenBy(x => x.PhaseId)
+        .ThenBy(x => x.EmpName)
+        .ToList();
+
+    string FormatDate(DateTime? value)
+    {
+        return value?.ToString("dd MMM yyyy", th) ?? "-";
+    }
+
+    string FormatRange(DateTime? start, DateTime? end)
+    {
+        return $"{FormatDate(start)} - {FormatDate(end)}";
+    }
+
+    string StatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "เสร็จสิ้น",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            "DELAY" => "ล่าช้า",
+            "PLAN" => "วางแผน",
+            "ALL STATUSES" => "ทั้งหมด",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
+
+    string StatusTextClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "status-text is-done",
+            "IN_PROGRESS" => "status-text is-progress",
+            "DELAY" => "status-text is-delay",
+            "PLAN" => "status-text is-plan",
+            _ => "status-text is-muted"
+        };
+    }
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Phase Owner Status Report</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 18px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        .print-header {
+            margin-bottom: 14px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            color: #fff;
+            background: linear-gradient(135deg, #102443 0%, #1f5f72 100%);
+        }
+
+        .print-header h2 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .print-meta {
+            color: rgba(255,255,255,.84);
+            line-height: 1.65;
+            font-weight: 700;
+        }
+
+        .table-wrap {
+            overflow: visible;
+            border: 1px solid #d8e3ef;
+            border-radius: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            background: #fff;
+        }
+
+        thead th {
+            padding: 10px 7px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-size: 10px;
+            font-weight: 900;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        tbody td {
+            padding: 8px 7px;
+            border: 1px solid #d8e3ef;
+            color: #10233f;
+            font-size: 10px;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #f8fbff;
+        }
+
+        .phase-project-row td {
+            padding: 8px 10px;
+            color: #fff;
+            background: #18365e !important;
+            border-color: #18365e;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .phase-project-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .phase-project-label {
+            color: #8df1e4;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .phase-project-count {
+            flex: 0 0 auto;
+            color: rgba(255,255,255,.78);
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .status-text {
+            font-weight: 900;
+        }
+
+        .status-text.is-done {
+            color: #138a4c;
+        }
+
+        .status-text.is-progress {
+            color: #d97706;
+        }
+
+        .status-text.is-delay {
+            color: #dc2626;
+        }
+
+        .status-text.is-plan {
+            color: #0284c7;
+        }
+
+        .status-text.is-muted {
+            color: #64748b;
+        }
+
+        .empty-state {
+            padding: 30px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+
+        @@media print {
+            body {
+                padding: 0;
+            }
+
+            .print-header {
+                border-radius: 0;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <header class="print-header">
+        <h2>รายงานสถานะงานตามพนักงาน</h2>
+        <div class="print-meta">
+            <b>Project:</b> @(ViewBag.ProjectName ?? "All") <br />
+            <b>Employee:</b> @(ViewBag.EmpName ?? "All") <br />
+            <b>Status:</b> @(StatusText(ViewBag.PhaseStatus as string)) <br />
+            <b>Printed:</b> @((ViewBag.PrintDate as DateTime?)?.ToString("dd MMM yyyy HH:mm", th) ?? DateTime.Now.ToString("dd MMM yyyy HH:mm", th))
+        </div>
+    </header>
+
+    @if (!rows.Any())
+    {
+        <div class="empty-state">ไม่พบข้อมูลสำหรับการพิมพ์</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:42px;">Seq</th>
+                        <th style="width:54px;">Order</th>
+                        <th style="width:150px;">Employee / Status</th>
+                        <th style="width:220px;">Role</th>
+                        <th style="width:150px;">Project Period</th>
+                        <th style="width:140px;">Plan</th>
+                        <th style="width:58px;">Plan Days</th>
+                        <th style="width:64px;">Period Days</th>
+                        <th style="width:64px;">Overdue</th>
+                        <th>Remark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var projectGroups = rows
+                            .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                            .OrderBy(group => group.Key)
+                            .ToList();
+                    }
+
+                    @foreach (var projectGroup in projectGroups)
+                    {
+                        var seq = 1;
+                        <tr class="phase-project-row">
+                            <td colspan="10">
+                                <div class="phase-project-group">
+                                    <div>
+                                        <span class="phase-project-label">Project</span>
+                                        @projectGroup.Key
+                                    </div>
+                                    <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                                </div>
+                            </td>
+                        </tr>
+
+                        @foreach (var row in projectGroup)
+                        {
+                            <tr>
+                                <td class="text-center">@seq</td>
+                                <td class="text-center">@row.PhaseOrder</td>
+                                <td>
+                                    <strong>@row.EmpName</strong><br />
+                                    <span class="@StatusTextClass(row.PhaseStatus)">
+                                        @StatusText(row.PhaseStatus)
+                                    </span>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
+                                <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
+                                <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
+                                <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
+                                <td class="text-center">@(row.ActualDays?.ToString() ?? "-")</td>
+                                <td class="text-center">@(row.OverdueDays ?? 0)</td>
+                                <td>@(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)</td>
+                            </tr>
+
+                            seq++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</body>
+</html>

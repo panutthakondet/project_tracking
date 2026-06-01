@@ -52,23 +52,21 @@
         <textarea asp-for="expected_result" class="form-control" rows="5" placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. ไม่มี error" required></textarea>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">ระดับความสำคัญ</label>
-            <select asp-for="priority_default" class="form-select">
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-            </select>
-        </div>
+    <div class="mb-3">
+        <label class="form-label">ระดับความสำคัญ</label>
+        <select asp-for="priority_default" class="form-select">
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+        </select>
+    </div>
 
-        <div class="col-md-6 mb-3">
-            <label class="form-label">สถานะ</label>
-            <select asp-for="status_default" class="form-select">
-                <option value="DRAFT">DRAFT</option>
-                <option value="READY">READY</option>
-            </select>
-        </div>
+    <div class="mb-3">
+        <label class="form-label">สถานะ</label>
+        <select asp-for="status_default" class="form-select">
+            <option value="DRAFT">DRAFT</option>
+            <option value="READY">READY</option>
+        </select>
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>

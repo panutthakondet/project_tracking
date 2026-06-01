@@ -99,35 +99,30 @@ namespace ProjectTracking.Controllers
                 .ToList());
         }
 
-        // =====================================================
-        // TIMELINE (Gantt)
-        // =====================================================
-        [RequireMenu("PhaseStatusReport.Timeline")]
-        public async Task<IActionResult> Timeline(string? projectName)
+        [RequireMenu("PhaseStatusReport.Print")]
+        public async Task<IActionResult> PrintTable(string? empName, string? projectName, string? phaseStatus)
         {
-            var allRows = await BuildPhaseOwnerStatusRowsAsync();
+            var result = (await BuildPhaseOwnerStatusRowsAsync()).AsEnumerable();
 
-            ViewBag.ProjectList = allRows
-                .Select(x => x.ProjectName)
-                .Distinct()
-                .OrderBy(x => x)
-                .ToList();
-
-            ViewBag.SelectedProject = projectName;
-
-            var result = allRows.AsEnumerable();
+            if (!string.IsNullOrEmpty(empName))
+                result = result.Where(x => x.EmpName == empName);
 
             if (!string.IsNullOrEmpty(projectName))
                 result = result.Where(x => x.ProjectName == projectName);
 
-            result = result
-                .Where(x => x.PlanStart != null && x.PlanEnd != null)
+            if (!string.IsNullOrEmpty(phaseStatus))
+                result = result.Where(x => x.PhaseStatus == phaseStatus);
+
+            ViewBag.EmpName = string.IsNullOrEmpty(empName) ? "All Employees" : empName;
+            ViewBag.ProjectName = string.IsNullOrEmpty(projectName) ? "All Projects" : projectName;
+            ViewBag.PhaseStatus = string.IsNullOrEmpty(phaseStatus) ? "All Statuses" : phaseStatus;
+            ViewBag.PrintDate = DateTime.Now;
+
+            return View(result
                 .OrderBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
                 .ThenBy(x => x.PhaseId)
-                .ToList();
-
-            return View(result);
+                .ToList());
         }
 
         // =====================================================

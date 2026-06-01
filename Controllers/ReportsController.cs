@@ -1,0 +1,621 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using ProjectTracking.Data;
+using ProjectTracking.Middleware;
+using ProjectTracking.Models;
+using ProjectTracking.ViewModels;
+
+namespace ProjectTracking.Controllers
+{
+    public class ReportsController : BaseController
+    {
+        private readonly AppDbContext _context;
+
+        public ReportsController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        [RequireMenu("Reports.Index")]
+        public IActionResult Index()
+        {
+            var model = new ReportCenterViewModel
+            {
+                GeneratedAt = DateTime.Now,
+                Reports = new List<ReportCardViewModel>
+                {
+                    new()
+                    {
+                        Group = "Executive",
+                        Title = "Executive Project Summary",
+                        Description = "ภาพรวมโครงการสำหรับผู้บริหาร รวมโครงการเสี่ยง งานล่าช้า Issue/Support ค้าง และภาระงานทีม",
+                        Controller = "Reports",
+                        Action = "Executive",
+                        Icon = "/images/menu-icons/reports.svg",
+                        Tone = "teal",
+                        IsPrimary = true
+                    },
+                    new()
+                    {
+                        Group = "Projects",
+                        Title = "Projects Report",
+                        Description = "รายงานข้อมูลโครงการ BA ระบบ ฐานข้อมูล บัญชีทดสอบ Remote/Figma และช่วงเวลาโครงการ",
+                        Controller = "Projects",
+                        Action = "ViewOnly",
+                        PermissionKey = "Projects.Index",
+                        Icon = "/images/menu-icons/projects.svg",
+                        Tone = "blue"
+                    },
+                    new()
+                    {
+                        Group = "Project Phases",
+                        Title = "Assignment Report",
+                        Description = "รายงานการมอบหมายงานตามโครงการ พนักงาน และบทบาท",
+                        Controller = "PhaseAssigns",
+                        Action = "Print",
+                        Icon = "/images/menu-icons/assign.svg",
+                        Tone = "green"
+                    },
+                    new()
+                    {
+                        Group = "Project Phases",
+                        Title = "Phase Status Report",
+                        Description = "รายงานสถานะงานค้าง งานล่าช้า และช่วงแผนงานตามผู้รับผิดชอบ",
+                        Controller = "PhaseStatusReport",
+                        Action = "Index",
+                        Icon = "/images/menu-icons/phases.svg",
+                        Tone = "orange"
+                    },
+                    new()
+                    {
+                        Group = "Test Scenario",
+                        Title = "Test Scenario Report",
+                        Description = "รายงาน Test Scenario ตามโครงการ กลุ่มทดสอบ สถานะ และระดับความสำคัญ",
+                        Controller = "TestScenarios",
+                        Action = "PrintReport",
+                        PermissionKey = "TestScenarios.Export",
+                        Icon = "/images/menu-icons/test-scenarios.svg",
+                        Tone = "purple"
+                    },
+                    new()
+                    {
+                        Group = "Issues",
+                        Title = "Issues Report",
+                        Description = "รายงานปัญหาโครงการ สถานะ Issue ลำดับความสำคัญ และการ Reopen",
+                        Controller = "ProjectIssues",
+                        Action = "ViewOnly",
+                        Icon = "/images/menu-icons/issues.svg",
+                        Tone = "pink"
+                    },
+                    new()
+                    {
+                        Group = "Support",
+                        Title = "Support Report",
+                        Description = "รายงานงานแก้ไขช่วงรับประกัน แยกตามโครงการ สถานะ ผู้รับผิดชอบ และกำหนดส่ง",
+                        Controller = "SupportOrders",
+                        Action = "ViewOnly",
+                        PermissionKey = "SupportOrders.Index",
+                        Icon = "/images/menu-icons/workload.svg",
+                        Tone = "orange"
+                    },
+                    new()
+                    {
+                        Group = "Attendance",
+                        Title = "Attendance Map",
+                        Description = "รายงาน Check-in/Check-out และตำแหน่งการลงเวลาของทีม",
+                        Controller = "Attendance",
+                        Action = "Map",
+                        Icon = "/images/menu-icons/attendance.svg",
+                        Tone = "cyan"
+                    }
+                }
+            };
+
+            return View(model);
+        }
+
+        [RequireMenu("Reports.Executive")]
+        public async Task<IActionResult> Executive()
+        {
+            return View(await BuildExecutiveReportAsync());
+        }
+
+        private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync()
+        {
+            var today = DateTime.Today;
+            var next14Days = today.AddDays(14);
+            var username = HttpContext.Session.GetString("Username") ?? "-";
+
+            var projects = await _context.Projects
+                .Include(p => p.BA)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .ToListAsync();
+
+            var assigns = await _context.PhaseAssigns
+                .Include(a => a.Employee)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var issues = await _context.ProjectIssues
+                .Include(i => i.Project)
+                .Include(i => i.Employee)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var supportOrders = await _context.ProjectSupportOrders
+                .Include(o => o.Project)
+                .Include(o => o.Employee)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var followups = await _context.ProjectFollowups
+                .Include(f => f.Project)
+                .Include(f => f.Owner)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .ToDictionaryAsync(e => e.EmpId, e => e.EmpName ?? "-");
+
+            var phasesByProject = phases
+                .GroupBy(p => p.ProjectId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var phaseProjectMap = phases
+                .GroupBy(p => p.PhaseId)
+                .ToDictionary(g => g.Key, g => g.First().ProjectId);
+
+            var assignsByProject = assigns
+                .Select(a => new
+                {
+                    Assign = a,
+                    ProjectId = phaseProjectMap.TryGetValue(a.PhaseId, out var projectId) ? projectId : 0
+                })
+                .Where(x => x.ProjectId > 0)
+                .GroupBy(x => x.ProjectId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Assign).ToList());
+
+            var issuesByProject = issues
+                .GroupBy(i => i.ProjectId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var supportByProject = supportOrders
+                .GroupBy(o => o.ProjectId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var followupsByProject = followups
+                .Where(f => f.ProjectId.HasValue)
+                .GroupBy(f => f.ProjectId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var openIssues = issues.Where(i => !IsIssueResolved(i)).ToList();
+            var urgentOpenIssues = openIssues.Where(i => IsHighPriority(i.IssuePriority)).ToList();
+            var openSupportOrders = supportOrders.Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus)).ToList();
+            var overdueSupportOrders = openSupportOrders.Where(o => o.DueDate?.Date < today).ToList();
+            var overdueFollowups = followups
+                .Where(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE")
+                .ToList();
+            var overduePhases = phases
+                .Where(p => p.PlanEnd?.Date < today && !IsPhaseDone(p.PhaseStatus))
+                .ToList();
+            var overdueAssigns = assigns
+                .Where(a => a.PlanEnd?.Date < today && Norm(a.WorkStatus) != "DONE")
+                .ToList();
+            var nearingPhases = phases
+                .Where(p => p.PlanEnd?.Date >= today && p.PlanEnd?.Date <= next14Days && !IsPhaseDone(p.PhaseStatus))
+                .ToList();
+
+            var riskProjects = projects
+                .Select(project =>
+                {
+                    phasesByProject.TryGetValue(project.ProjectId, out var projectPhases);
+                    assignsByProject.TryGetValue(project.ProjectId, out var projectAssigns);
+                    issuesByProject.TryGetValue(project.ProjectId, out var projectIssues);
+                    supportByProject.TryGetValue(project.ProjectId, out var projectSupportOrders);
+                    followupsByProject.TryGetValue(project.ProjectId, out var projectFollowups);
+
+                    projectPhases ??= new List<ProjectPhase>();
+                    projectAssigns ??= new List<PhaseAssign>();
+                    projectIssues ??= new List<ProjectIssue>();
+                    projectSupportOrders ??= new List<ProjectSupportOrder>();
+                    projectFollowups ??= new List<ProjectFollowup>();
+
+                    var projectOpenIssues = projectIssues.Count(i => !IsIssueResolved(i));
+                    var projectUrgentIssues = projectIssues.Count(i => !IsIssueResolved(i) && IsHighPriority(i.IssuePriority));
+                    var projectOverduePhases = projectPhases.Count(p => p.PlanEnd?.Date < today && !IsPhaseDone(p.PhaseStatus));
+                    var projectNearingPhases = projectPhases.Count(p => p.PlanEnd?.Date >= today && p.PlanEnd?.Date <= next14Days && !IsPhaseDone(p.PhaseStatus));
+                    var projectOverdueAssigns = projectAssigns.Count(a => a.PlanEnd?.Date < today && Norm(a.WorkStatus) != "DONE");
+                    var projectOpenSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus));
+                    var projectOverdueSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus) && o.DueDate?.Date < today);
+                    var projectOverdueFollowups = projectFollowups.Count(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE");
+                    var projectOverdue = project.EndDate?.Date < today && !IsProjectDone(project.Status);
+
+                    var score = 0;
+                    var reasons = new List<string>();
+
+                    if (projectOverdue)
+                    {
+                        score += 6;
+                        reasons.Add("โครงการเลยกำหนด");
+                    }
+
+                    if (projectOverduePhases > 0)
+                    {
+                        score += projectOverduePhases * 3;
+                        reasons.Add($"งวดล่าช้า {projectOverduePhases}");
+                    }
+
+                    if (projectOverdueAssigns > 0)
+                    {
+                        score += projectOverdueAssigns * 2;
+                        reasons.Add($"งานค้าง {projectOverdueAssigns}");
+                    }
+
+                    if (projectUrgentIssues > 0)
+                    {
+                        score += projectUrgentIssues * 4;
+                        reasons.Add($"Issue ด่วน {projectUrgentIssues}");
+                    }
+
+                    if (projectOpenIssues > 0)
+                    {
+                        score += projectOpenIssues;
+                        reasons.Add($"Issue เปิด {projectOpenIssues}");
+                    }
+
+                    if (projectOverdueSupport > 0)
+                    {
+                        score += projectOverdueSupport * 3;
+                        reasons.Add($"Support เลยกำหนด {projectOverdueSupport}");
+                    }
+
+                    if (projectOpenSupport > 0)
+                    {
+                        score += projectOpenSupport;
+                        reasons.Add($"Support ค้าง {projectOpenSupport}");
+                    }
+
+                    if (projectOverdueFollowups > 0)
+                    {
+                        score += projectOverdueFollowups * 2;
+                        reasons.Add($"Followup เลยกำหนด {projectOverdueFollowups}");
+                    }
+
+                    if (projectNearingPhases > 0)
+                    {
+                        score += projectNearingPhases;
+                        reasons.Add($"ใกล้ครบกำหนด {projectNearingPhases}");
+                    }
+
+                    if (score == 0)
+                    {
+                        return null;
+                    }
+
+                    var progress = CalculateProjectProgress(project.Status, projectPhases, projectAssigns);
+                    var riskLevel = score >= 12 ? "สูง" : score >= 6 ? "กลาง" : "เฝ้าระวัง";
+                    var riskTone = score >= 12 ? "danger" : score >= 6 ? "warning" : "info";
+                    var ownerName = project.BA?.EmpName
+                        ?? projectAssigns
+                            .GroupBy(a => a.EmpId)
+                            .OrderByDescending(g => g.Count())
+                            .Select(g => EmployeeName(employees, g.Key))
+                            .FirstOrDefault()
+                        ?? "-";
+
+                    return new ExecutiveRiskProjectViewModel
+                    {
+                        ProjectId = project.ProjectId,
+                        ProjectName = project.ProjectName,
+                        OwnerName = ownerName,
+                        Progress = progress,
+                        RiskLevel = riskLevel,
+                        RiskTone = riskTone,
+                        RiskScore = score,
+                        DueText = BuildDueText(project, projectPhases, projectAssigns, projectFollowups, projectSupportOrders, today),
+                        OpenIssues = projectOpenIssues,
+                        UrgentIssues = projectUrgentIssues,
+                        OverduePhases = projectOverduePhases,
+                        OverdueAssigns = projectOverdueAssigns,
+                        OpenSupportOrders = projectOpenSupport,
+                        OverdueFollowups = projectOverdueFollowups,
+                        Reasons = reasons.Distinct().Take(5).ToList()
+                    };
+                })
+                .Where(x => x != null)
+                .OrderByDescending(x => x!.RiskScore)
+                .ThenBy(x => x!.Progress)
+                .ThenBy(x => x!.ProjectName)
+                .Take(8)
+                .Select(x => x!)
+                .ToList();
+
+            var dueItems = BuildDueItems(today, overduePhases, overdueAssigns, overdueFollowups, overdueSupportOrders, phaseProjectMap, projects, employees)
+                .Take(12)
+                .ToList();
+
+            var agingItems = BuildAgingItems(today, openIssues, openSupportOrders)
+                .Take(12)
+                .ToList();
+
+            var teamWorkload = BuildTeamWorkload(assigns, openIssues, openSupportOrders, followups, employees);
+
+            return new ExecutiveReportViewModel
+            {
+                GeneratedAt = DateTime.Now,
+                GeneratedBy = username,
+                Kpis = new List<ExecutiveKpiViewModel>
+                {
+                    new() { Label = "Projects", Value = projects.Count.ToString("N0"), Note = $"กำลังทำ {projects.Count(p => Norm(p.Status) == "IN_PROGRESS"):N0} / เสร็จ {projects.Count(p => IsProjectDone(p.Status)):N0}", Tone = "blue" },
+                    new() { Label = "Risk Projects", Value = riskProjects.Count.ToString("N0"), Note = "โครงการที่มีงานค้างหรือความเสี่ยง", Tone = "pink" },
+                    new() { Label = "Overdue Work", Value = (overduePhases.Count + overdueAssigns.Count + overdueFollowups.Count + overdueSupportOrders.Count).ToString("N0"), Note = "งวด งาน Followup และ Support เลยกำหนด", Tone = "orange" },
+                    new() { Label = "Open Issues", Value = openIssues.Count.ToString("N0"), Note = $"ด่วน {urgentOpenIssues.Count:N0} รายการ", Tone = "red" },
+                    new() { Label = "Open Support", Value = openSupportOrders.Count.ToString("N0"), Note = $"เลยกำหนด {overdueSupportOrders.Count:N0} รายการ", Tone = "green" },
+                    new() { Label = "Due Soon", Value = nearingPhases.Count.ToString("N0"), Note = "งวดใกล้ครบกำหนดใน 14 วัน", Tone = "cyan" }
+                },
+                RiskProjects = riskProjects,
+                DueItems = dueItems,
+                AgingItems = agingItems,
+                TeamWorkload = teamWorkload
+            };
+        }
+
+        private static List<ExecutiveDueItemViewModel> BuildDueItems(
+            DateTime today,
+            IReadOnlyList<ProjectPhase> overduePhases,
+            IReadOnlyList<PhaseAssign> overdueAssigns,
+            IReadOnlyList<ProjectFollowup> overdueFollowups,
+            IReadOnlyList<ProjectSupportOrder> overdueSupportOrders,
+            IReadOnlyDictionary<int, int> phaseProjectMap,
+            IReadOnlyList<Project> projects,
+            IReadOnlyDictionary<int, string> employees)
+        {
+            var projectMap = projects.ToDictionary(p => p.ProjectId, p => p.ProjectName);
+
+            var phaseItems = overduePhases.Select(p => new ExecutiveDueItemViewModel
+            {
+                Type = "Phase",
+                ProjectName = projectMap.TryGetValue(p.ProjectId, out var projectName) ? projectName : "-",
+                Title = p.PhaseName,
+                OwnerName = "-",
+                DueDate = p.PlanEnd,
+                OverdueDays = DaysOverdue(today, p.PlanEnd),
+                Status = p.PhaseStatus ?? "-",
+                Tone = "orange"
+            });
+
+            var assignItems = overdueAssigns.Select(a =>
+            {
+                var projectId = phaseProjectMap.TryGetValue(a.PhaseId, out var pid) ? pid : 0;
+                return new ExecutiveDueItemViewModel
+                {
+                    Type = "Assign",
+                    ProjectName = projectMap.TryGetValue(projectId, out var projectName) ? projectName : "-",
+                    Title = string.IsNullOrWhiteSpace(a.Role) ? $"Assign #{a.AssignId}" : a.Role!,
+                    OwnerName = a.Employee?.EmpName ?? EmployeeName(employees, a.EmpId),
+                    DueDate = a.PlanEnd,
+                    OverdueDays = DaysOverdue(today, a.PlanEnd),
+                    Status = a.WorkStatus ?? "-",
+                    Tone = "blue"
+                };
+            });
+
+            var followupItems = overdueFollowups.Select(f => new ExecutiveDueItemViewModel
+            {
+                Type = "Followup",
+                ProjectName = f.Project?.ProjectName ?? "-",
+                Title = f.TaskTitle,
+                OwnerName = f.Owner?.EmpName ?? "-",
+                DueDate = f.NextFollowupDate,
+                OverdueDays = DaysOverdue(today, f.NextFollowupDate),
+                Status = f.Status,
+                Tone = "pink"
+            });
+
+            var supportItems = overdueSupportOrders.Select(o => new ExecutiveDueItemViewModel
+            {
+                Type = "Support",
+                ProjectName = o.Project?.ProjectName ?? "-",
+                Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle!,
+                OwnerName = o.Employee?.EmpName ?? "-",
+                DueDate = o.DueDate,
+                OverdueDays = DaysOverdue(today, o.DueDate),
+                Status = o.Status ?? "-",
+                Tone = "green"
+            });
+
+            return phaseItems
+                .Concat(assignItems)
+                .Concat(followupItems)
+                .Concat(supportItems)
+                .OrderByDescending(x => x.OverdueDays)
+                .ThenBy(x => x.DueDate ?? DateTime.MaxValue)
+                .ToList();
+        }
+
+        private static List<ExecutiveAgingItemViewModel> BuildAgingItems(
+            DateTime today,
+            IReadOnlyList<ProjectIssue> openIssues,
+            IReadOnlyList<ProjectSupportOrder> openSupportOrders)
+        {
+            var issueItems = openIssues.Select(i => new ExecutiveAgingItemViewModel
+            {
+                Type = "Issue",
+                ProjectName = i.Project?.ProjectName ?? "-",
+                Title = i.IssueName,
+                OwnerName = i.Employee?.EmpName ?? "-",
+                Priority = i.IssuePriority,
+                Status = i.IssueStatus,
+                AgeDays = Math.Max(0, (today - i.CreatedAt.Date).Days),
+                Tone = IsHighPriority(i.IssuePriority) ? "danger" : "orange"
+            });
+
+            var supportItems = openSupportOrders.Select(o => new ExecutiveAgingItemViewModel
+            {
+                Type = "Support",
+                ProjectName = o.Project?.ProjectName ?? "-",
+                Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle!,
+                OwnerName = o.Employee?.EmpName ?? "-",
+                Priority = o.Priority ?? "-",
+                Status = o.Status ?? "-",
+                AgeDays = Math.Max(0, (today - (o.CreatedAt?.Date ?? today)).Days),
+                Tone = IsHighPriority(o.Priority) ? "danger" : "green"
+            });
+
+            return issueItems
+                .Concat(supportItems)
+                .OrderByDescending(x => x.AgeDays)
+                .ThenBy(x => x.ProjectName)
+                .ToList();
+        }
+
+        private static List<ExecutiveWorkloadRowViewModel> BuildTeamWorkload(
+            IReadOnlyList<PhaseAssign> assigns,
+            IReadOnlyList<ProjectIssue> openIssues,
+            IReadOnlyList<ProjectSupportOrder> openSupportOrders,
+            IReadOnlyList<ProjectFollowup> followups,
+            IReadOnlyDictionary<int, string> employees)
+        {
+            var ids = assigns.Where(a => Norm(a.WorkStatus) != "DONE").Select(a => a.EmpId)
+                .Concat(openIssues.Select(i => i.EmpId))
+                .Concat(openSupportOrders.Where(o => o.AssignTo.HasValue).Select(o => o.AssignTo!.Value))
+                .Concat(followups.Where(f => f.OwnerEmpId.HasValue && Norm(f.Status) != "DONE").Select(f => f.OwnerEmpId!.Value))
+                .Distinct()
+                .ToList();
+
+            var rows = ids.Select(empId =>
+            {
+                var assignmentCount = assigns.Count(a => a.EmpId == empId && Norm(a.WorkStatus) != "DONE");
+                var issueCount = openIssues.Count(i => i.EmpId == empId);
+                var supportCount = openSupportOrders.Count(o => o.AssignTo == empId);
+                var followupCount = followups.Count(f => f.OwnerEmpId == empId && Norm(f.Status) != "DONE");
+                var total = assignmentCount + issueCount + supportCount + followupCount;
+
+                return new ExecutiveWorkloadRowViewModel
+                {
+                    EmployeeName = EmployeeName(employees, empId),
+                    Assignments = assignmentCount,
+                    Issues = issueCount,
+                    SupportOrders = supportCount,
+                    Followups = followupCount,
+                    Total = total
+                };
+            })
+            .Where(x => x.Total > 0)
+            .OrderByDescending(x => x.Total)
+            .ThenBy(x => x.EmployeeName)
+            .Take(10)
+            .ToList();
+
+            var max = rows.Select(x => x.Total).DefaultIfEmpty(0).Max();
+            foreach (var row in rows)
+            {
+                row.Percent = max <= 0 ? 0 : Math.Max(8, (int)Math.Round(row.Total * 100m / max));
+            }
+
+            return rows;
+        }
+
+        private static int CalculateProjectProgress(string? projectStatus, IReadOnlyList<ProjectPhase> phases, IReadOnlyList<PhaseAssign> assigns)
+        {
+            if (assigns.Count > 0)
+            {
+                return (int)Math.Round(assigns.Count(a => Norm(a.WorkStatus) == "DONE") * 100m / assigns.Count);
+            }
+
+            if (phases.Count > 0)
+            {
+                return (int)Math.Round(phases.Count(p => IsPhaseDone(p.PhaseStatus)) * 100m / phases.Count);
+            }
+
+            return Norm(projectStatus) switch
+            {
+                "DONE" => 100,
+                "IN_PROGRESS" => 50,
+                _ => 10
+            };
+        }
+
+        private static string BuildDueText(
+            Project project,
+            IReadOnlyList<ProjectPhase> phases,
+            IReadOnlyList<PhaseAssign> assigns,
+            IReadOnlyList<ProjectFollowup> followups,
+            IReadOnlyList<ProjectSupportOrder> supportOrders,
+            DateTime today)
+        {
+            if (project.EndDate?.Date < today && !IsProjectDone(project.Status))
+            {
+                return $"โครงการเลยกำหนด {project.EndDate.Value:dd/MM/yyyy}";
+            }
+
+            var nearest = new List<DateTime?> { project.EndDate }
+                .Concat(phases.Select(p => p.PlanEnd))
+                .Concat(assigns.Select(a => a.PlanEnd))
+                .Concat(followups.Select(f => f.NextFollowupDate))
+                .Concat(supportOrders.Select(o => o.DueDate))
+                .Where(d => d?.Date >= today)
+                .Select(d => d!.Value.Date)
+                .OrderBy(d => d)
+                .FirstOrDefault();
+
+            return nearest == default
+                ? "ยังไม่มีกำหนดใกล้ถึง"
+                : $"ครบกำหนดถัดไป {nearest:dd/MM/yyyy}";
+        }
+
+        private static string EmployeeName(IReadOnlyDictionary<int, string> employees, int? empId)
+        {
+            return empId.HasValue && employees.TryGetValue(empId.Value, out var name) && !string.IsNullOrWhiteSpace(name)
+                ? name
+                : "-";
+        }
+
+        private static int DaysOverdue(DateTime today, DateTime? dueDate)
+        {
+            return dueDate.HasValue && dueDate.Value.Date < today
+                ? (today - dueDate.Value.Date).Days
+                : 0;
+        }
+
+        private static bool IsProjectDone(string? status)
+        {
+            return Norm(status) == "DONE";
+        }
+
+        private static bool IsPhaseDone(string? status)
+        {
+            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+        }
+
+        private static bool IsIssueResolved(ProjectIssue issue)
+        {
+            var issueStatus = Norm(issue.IssueStatus);
+            var devStatus = Norm(issue.DevStatus);
+            return issueStatus is "FIXED" or "PASS" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED"
+                || devStatus is "FIXED" or "DONE" or "RESOLVED";
+        }
+
+        private static bool IsSupportOrderClosed(string? status, string? devStatus)
+        {
+            return Norm(status) is "DONE" or "CLOSE" or "CLOSED"
+                || Norm(devStatus) == "FIXED";
+        }
+
+        private static bool IsHighPriority(string? priority)
+        {
+            return Norm(priority) is "HIGH" or "URGENT" or "CRITICAL";
+        }
+
+        private static string Norm(string? value)
+        {
+            return (value ?? "").Trim().ToUpperInvariant();
+        }
+    }
+}

@@ -1,7 +1,11 @@
 @using System.Linq
 @using System.Globalization
 @using Microsoft.AspNetCore.Http
+@model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
+
 @{
+    Layout = null;
+
     bool CanMenu(string key)
     {
         var role = (Context.Session.GetString("Role") ?? "").Trim();
@@ -11,346 +15,687 @@
         return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
-}
-@model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
 
-@{
-    ViewData["Title"] = "รายงานสถานะงานตามพนักงาน";
     var th = new CultureInfo("th-TH");
 
-    var sortedModel = Model
-        .OrderByDescending(x => x.ProjectId)
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
+        .OrderBy(x => x.ProjectName)
+        .ThenBy(x => x.PhaseOrder)
         .ThenBy(x => x.PhaseId)
+        .ThenBy(x => x.EmpName)
         .ToList();
 
-    var total = sortedModel.Count();
-    var done = sortedModel.Count(x => x.PhaseStatus == "DONE");
-    var inProgress = sortedModel.Count(x => x.PhaseStatus == "IN_PROGRESS");
-    var delay = sortedModel.Count(x => x.PhaseStatus == "DELAY");
-    var overdueDays = sortedModel.Sum(x => x.OverdueDays);
+    var total = rows.Count;
+    var done = rows.Count(x => x.PhaseStatus == "DONE");
+    var inProgress = rows.Count(x => x.PhaseStatus == "IN_PROGRESS");
+    var delay = rows.Count(x => x.PhaseStatus == "DELAY");
+    var overdueDays = rows.Sum(x => x.OverdueDays ?? 0);
+
+    string FormatDate(DateTime? value)
+    {
+        return value?.ToString("dd MMM yyyy", th) ?? "-";
+    }
+
+    string FormatRange(DateTime? start, DateTime? end)
+    {
+        return $"{FormatDate(start)} - {FormatDate(end)}";
+    }
+
+    string StatusText(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "เสร็จสิ้น",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            "DELAY" => "ล่าช้า",
+            "PLAN" => "วางแผน",
+            "ALL STATUSES" => "ทั้งหมด",
+            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+        };
+    }
+
+    string StatusTextClass(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "status-text success",
+            "IN_PROGRESS" => "status-text warning",
+            "DELAY" => "status-text danger",
+            "PLAN" => "status-text info",
+            _ => "status-text muted"
+        };
+    }
+
 }
 
-<div class="phase-report-page">
-<div class="index-hero">
-    <div class="index-hero__content">
-        <span class="index-eyebrow">ProjectTracking</span>
-        <h2 class="index-title">รายงานสถานะงานตามพนักงาน</h2>
-        <p class="index-subtitle">สรุปสถานะ Phase และงานที่ล่าช้าของผู้รับผิดชอบ</p>
-    </div>
-</div>
-
-<!-- ================= SUMMARY ================= -->
-<div class="row g-3 mb-4 no-print phase-summary-row">
-    <div class="col-md-2">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <div class="text-muted">Total Phase</div>
-                <h4 class="fw-bold">@total</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-2">
-        <div class="card text-center shadow-sm border-success">
-            <div class="card-body">
-                <div class="text-muted">Done</div>
-                <h4 class="fw-bold text-success">@done</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-2">
-        <div class="card text-center shadow-sm border-info">
-            <div class="card-body">
-                <div class="text-muted">In Progress</div>
-                <h4 class="fw-bold text-info">@inProgress</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-2">
-        <div class="card text-center shadow-sm border-danger">
-            <div class="card-body">
-                <div class="text-muted">Delay</div>
-                <h4 class="fw-bold text-danger">@delay</h4>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="card text-center shadow-sm border-warning">
-            <div class="card-body">
-                <div class="text-muted">Total Overdue (Days)</div>
-                <h4 class="fw-bold text-warning">@overdueDays</h4>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ================= FILTER ================= -->
-<form method="get" class="row g-3 mb-3 no-print phase-filter-row">
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">👤 Employee</label>
-        <select name="empName" class="form-select" onchange="this.form.submit()">
-            <option value="">-- All Employees --</option>
-            @foreach (var e in ViewBag.EmpList)
-            {
-                <option value="@e" selected="@(ViewBag.SelectedEmp == e)">
-                    @e
-                </option>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Phase Status Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .report-btn.warning {
+            border-color: #f59e0b;
+            color: #7c4a03;
+        }
+        .report-btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
+        }
+        .pt-search-select {
+            position: relative;
+            width: 100%;
+        }
+        .pt-search-select__field {
+            position: relative;
+        }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__clear {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            background: #e2e8f0;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .pt-search-select__clear.is-visible {
+            display: inline-flex;
+        }
+        .pt-search-select__clear:hover,
+        .pt-search-select__clear:focus {
+            color: #fff;
+            background: #102443;
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown {
+            display: block;
+        }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
+        }
+        .pt-search-select__empty {
+            padding: 10px;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+        tr:nth-child(even) td {
+            background: #f8fbff;
+        }
+        .phase-project-row td {
+            padding: 8px 10px;
+            color: #fff;
+            background: #18365e !important;
+            border-color: #18365e;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .phase-project-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .phase-project-label {
+            color: #8df1e4;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .phase-project-count {
+            flex: 0 0 auto;
+            color: rgba(255, 255, 255, .78);
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .status-text {
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.info { color: #0f6fa8; }
+        .status-text.danger { color: #d6294f; }
+        .status-text.muted { color: #64748b; }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body { padding: 0; }
+            .no-print,
+            .report-actions,
+            .filter-panel { display: none !important; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 900px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
             }
-        </select>
-    </div>
-
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">📁 Project</label>
-        <select name="projectName" class="form-select" onchange="this.form.submit()">
-            <option value="">-- All Projects --</option>
-            @foreach (var p in ViewBag.ProjectList)
-            {
-                <option value="@p" selected="@(ViewBag.SelectedProject == p)">
-                    @p
-                </option>
-            }
-        </select>
-    </div>
-
-    <div class="col-md-4">
-        <label class="form-label fw-semibold">📌 Status</label>
-        <select name="phaseStatus" class="form-select" onchange="this.form.submit()">
-            <option value="">-- All Statuses --</option>
-            @foreach (var status in ViewBag.StatusList)
-            {
-                <option value="@status" selected="@(ViewBag.SelectedStatus == status)">
-                    @status
-                </option>
-            }
-        </select>
-    </div>
-</form>
-
-<!-- ================= ACTION BUTTONS ================= -->
-<div class="row mb-4 no-print">
-    <div class="col-md-12 text-end">
-
-        <!-- ✅ SEND MAIL (POST FORM แยกเดี่ยว) -->
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        @if (CanMenu("PhaseStatusReport.Print"))
+        {
+            <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        }
+        else
+        {
+            <button type="button" class="report-btn primary" disabled>Print</button>
+        }
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
         @if (CanMenu("PhaseStatusReport.SendMail"))
         {
-            <form asp-action="SendOverdueMail"
-                  method="post"
-                  class="d-inline">
-
+            <form asp-action="SendOverdueMail" method="post" class="no-print" style="display:inline;">
                 @Html.AntiForgeryToken()
-
                 <button type="submit"
-                        class="btn btn-warning me-2"
-                        title="ส่งอีเมลแจ้ง Phase ที่ Overdue"
+                        class="report-btn warning"
                         onclick="return confirm('ต้องการส่ง Email แจ้ง Phase Overdue หรือไม่?');">
-                    📧 ส่งเมลแจ้ง Overdue
+                    Send Overdue Mail
                 </button>
             </form>
         }
-        else
-        {
-            <button class="btn btn-warning me-2" disabled title="ไม่มีสิทธิ์ส่งเมลแจ้ง Overdue">
-                📧 ส่งเมลแจ้ง Overdue
-            </button>
-        }
-
-        @if (CanMenu("PhaseStatusReport.Print"))
-        {
-            <a class="btn btn-outline-secondary"
-               target="_blank"
-               title="พิมพ์รายงาน"
-               asp-action="Print"
-               asp-route-empName="@ViewBag.SelectedEmp"
-               asp-route-projectName="@ViewBag.SelectedProject"
-               asp-route-phaseStatus="@ViewBag.SelectedStatus">
-                🖨 พิมพ์รายงาน
-            </a>
-        }
-        else
-        {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์พิมพ์รายงาน">
-                🖨 พิมพ์รายงาน
-            </button>
-        }
     </div>
-</div>
 
-<!-- ================= TABLE ================= -->
-<div class="table-responsive phase-report-table-wrap">
-    <table class="table table-bordered table-striped table-sm align-middle phase-report-table"
-           style="min-width:2200px;">
-        <thead>
-            <tr>
-                <th style="min-width:260px;">Project</th>
-                <th style="min-width:80px;">Order</th>
-                <th style="min-width:200px;">Employee</th>
-                <th style="min-width:500px;">Role</th>
-                <th style="min-width:320px;">Project Period</th>
-                <th style="min-width:260px;">Plan</th>
-                <th style="min-width:260px;">Actual</th>
-                <th style="min-width:100px;">Plan Days</th>
-                <th style="min-width:110px;">Actual Days</th>
-                <th style="min-width:100px;">Overdue</th>
-                <th style="min-width:120px;">Status</th>
-                <th style="min-width:360px;">Remark</th>
-            </tr>
-        </thead>
+    <header class="print-header">
+        <h1>Phase Status Report</h1>
+        <div>
+            Employee: @(string.IsNullOrWhiteSpace(ViewBag.SelectedEmp as string) ? "All Employees" : ViewBag.SelectedEmp)<br />
+            Project: @(string.IsNullOrWhiteSpace(ViewBag.SelectedProject as string) ? "All Projects" : ViewBag.SelectedProject)<br />
+            Status: @(string.IsNullOrWhiteSpace(ViewBag.SelectedStatus as string) ? "All Statuses" : StatusText(ViewBag.SelectedStatus as string))<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+        </div>
+    </header>
 
-        <tbody>
-        @foreach (var r in sortedModel)
-        {
-            <tr class="@(r.PhaseStatus == "DELAY" ? "table-danger" : "")">
-                <td>@r.ProjectName</td>
-                <td class="text-center">@r.PhaseOrder</td>
-                <td>@r.EmpName</td>
-                <td>@r.Role</td>
-                <td class="text-center">
-                    @r.StartDate?.ToString("dd MMM yyyy", th)
-                    –
-                    @r.EndDate?.ToString("dd MMM yyyy", th)
-                </td>
-                <td class="text-center">
-                    @r.PlanStart?.ToString("dd MMM yyyy", th)
-                    –
-                    @r.PlanEnd?.ToString("dd MMM yyyy", th)
-                </td>
-                <td class="text-center">
-                    @r.ActualStart?.ToString("dd MMM yyyy", th)
-                    –
-                    @r.ActualEnd?.ToString("dd MMM yyyy", th)
-                </td>
-                <td class="text-center">@r.PlanDays</td>
-                <td class="text-center">@r.ActualDays</td>
-                <td class="text-center">@r.OverdueDays</td>
-                <td class="text-center">@r.PhaseStatus</td>
-                <td>@r.Remark</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-</div>
+    <form method="get" class="filter-panel no-print">
+        <div class="field">
+            <label for="projectName">Project</label>
+            <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+                <option value="">-- All Projects --</option>
+                @foreach (var p in ViewBag.ProjectList)
+                {
+                    <option value="@p" selected="@(ViewBag.SelectedProject == p ? "selected" : null)">
+                        @p
+                    </option>
+                }
+            </select>
+        </div>
 
-<style>
-.phase-report-page {
-    color: #111827;
-}
+        <div class="field">
+            <label for="empName">Employee</label>
+            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+                <option value="">-- All Employees --</option>
+                @foreach (var e in ViewBag.EmpList)
+                {
+                    <option value="@e" selected="@(ViewBag.SelectedEmp == e ? "selected" : null)">
+                        @e
+                    </option>
+                }
+            </select>
+        </div>
 
-.phase-report-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 16px;
-}
+        <div class="field">
+            <label for="phaseStatus">Status</label>
+            <select id="phaseStatus" name="phaseStatus" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                @foreach (var status in ViewBag.StatusList)
+                {
+                    <option value="@status" selected="@(ViewBag.SelectedStatus == status ? "selected" : null)">
+                        @StatusText(status)
+                    </option>
+                }
+            </select>
+        </div>
+    </form>
 
-.phase-report-title h2 {
-    margin: 0;
-    color: #172033;
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: 0;
-}
+    <section class="kpi-grid">
+        <article class="kpi info">
+            <span>Total Phase</span>
+            <strong>@total</strong>
+            <small>รายการทั้งหมด</small>
+        </article>
+        <article class="kpi">
+            <span>Done</span>
+            <strong>@done</strong>
+            <small>เสร็จสิ้น</small>
+        </article>
+        <article class="kpi warning">
+            <span>In Progress</span>
+            <strong>@inProgress</strong>
+            <small>กำลังดำเนินการ</small>
+        </article>
+        <article class="kpi danger">
+            <span>Delay</span>
+            <strong>@delay</strong>
+            <small>ล่าช้า</small>
+        </article>
+        <article class="kpi warning">
+            <span>Total Overdue</span>
+            <strong>@overdueDays</strong>
+            <small>days</small>
+        </article>
+    </section>
 
-.title-mark {
-    display: inline-flex;
-    align-items: flex-end;
-    height: 34px;
-    color: transparent;
-    font-size: 0;
-}
-
-.title-mark::before {
-    content: "";
-    width: 34px;
-    height: 28px;
-    display: block;
-    border-radius: 7px;
-    background:
-        linear-gradient(90deg, #22c55e 0 27%, transparent 27% 36%, #2563eb 36% 63%, transparent 63% 72%, #ef4444 72% 100%);
-    box-shadow: 0 8px 18px rgba(37,99,235,.16);
-}
-
-.phase-summary-row .card {
-    border: 0 !important;
-    border-radius: 18px;
-    box-shadow: 0 12px 28px rgba(15,23,42,.08) !important;
-}
-
-.phase-summary-row .card-body {
-    padding: 18px 16px;
-}
-
-.phase-filter-row {
-    margin-bottom: 22px !important;
-}
-
-.phase-filter-row .form-label {
-    color: #1f2937;
-}
-
-.phase-filter-row .form-select {
-    min-height: 42px;
-    border-radius: 10px;
-}
-
-.phase-report-table-wrap {
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 14px 36px rgba(15,23,42,.08);
-    border: 1px solid rgba(148,163,184,.28);
-}
-
-.phase-report-table {
-    margin-bottom: 0;
-    border-color: #e2e8f0;
-}
-
-.phase-report-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    padding: 16px 18px;
-    color: #f8fbff;
-    background: linear-gradient(180deg, #18345d 0%, #102443 100%);
-    border-color: rgba(255,255,255,.08) !important;
-    font-size: 14px;
-    font-weight: 900;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: middle;
-    box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
-}
-
-.phase-report-table thead th:first-child {
-    border-top-left-radius: 14px;
-}
-
-.phase-report-table thead th:last-child {
-    border-top-right-radius: 14px;
-}
-
-.phase-report-table tbody td {
-    padding: 16px 18px;
-    border-color: #dbe4ef;
-    font-size: 14px;
-    line-height: 1.5;
-    vertical-align: middle;
-}
-
-.phase-report-table tbody tr:nth-child(odd) td {
-    background: #fbfdff;
-}
-
-.phase-report-table tbody tr:hover td {
-    background: #eef7ff;
-}
-
-@@media print {
-    .no-print {
-        display: none !important;
+    <h2>Phase Status List</h2>
+    @if (!rows.Any())
+    {
+        <div class="empty">— ไม่พบข้อมูล —</div>
     }
-}
-</style>
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:42px;">Seq</th>
+                    <th style="width:150px;">Employee</th>
+                    <th>Role</th>
+                    <th style="width:92px;">Status</th>
+                    <th style="width:72px;">Order</th>
+                    <th style="width:150px;">Project Period</th>
+                    <th style="width:150px;">Plan</th>
+                    <th style="width:74px;">Plan Days</th>
+                    <th style="width:82px;">Period Days</th>
+                    <th style="width:78px;">Overdue</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+            @{
+                var projectGroups = rows
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                    .OrderBy(group => group.Key)
+                    .ToList();
+            }
+            @foreach (var projectGroup in projectGroups)
+            {
+                var seq = 1;
+                <tr class="phase-project-row">
+                    <td colspan="11">
+                        <div class="phase-project-group">
+                            <div>
+                                <span class="phase-project-label">Project</span>
+                                @projectGroup.Key
+                            </div>
+                            <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                        </div>
+                    </td>
+                </tr>
+
+                @foreach (var row in projectGroup)
+                {
+                    <tr>
+                        <td class="text-center">@seq</td>
+                        <td>@row.EmpName</td>
+                        <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
+                        <td class="text-center">
+                            <span class="@StatusTextClass(row.PhaseStatus)">
+                                @StatusText(row.PhaseStatus)
+                            </span>
+                        </td>
+                        <td class="text-center">@row.PhaseOrder</td>
+                        <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
+                        <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
+                        <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
+                        <td class="text-center">@(row.ActualDays?.ToString() ?? "-")</td>
+                        <td class="text-center">
+                            <span class="status-text @((row.OverdueDays ?? 0) > 0 ? "danger" : "success")">
+                                @(row.OverdueDays ?? 0)
+                            </span>
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)</td>
+                    </tr>
+
+                    seq++;
+                }
+            }
+            </tbody>
+        </table>
+    }
+
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function hasEmptyOption(select) {
+                return Array.from(select.options).some(option => option.value === "");
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const field = document.createElement("div");
+                field.className = "pt-search-select__field";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+
+                const clearButton = document.createElement("button");
+                clearButton.type = "button";
+                clearButton.className = "pt-search-select__clear";
+                clearButton.title = "เลือกใหม่";
+                clearButton.setAttribute("aria-label", "เลือกใหม่");
+                clearButton.textContent = "×";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                field.appendChild(input);
+                field.appendChild(clearButton);
+                wrapper.appendChild(field);
+                wrapper.appendChild(dropdown);
+                select.insertAdjacentElement("afterend", wrapper);
+                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
+                select.tabIndex = -1;
+
+                function syncInputFromSelect() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    clearButton.classList.toggle("is-visible", Boolean(select.value) && hasEmptyOption(select));
+                }
+
+                function closeDropdown() {
+                    wrapper.classList.remove("is-open");
+                }
+
+                function renderOptions(filter = "") {
+                    dropdown.innerHTML = "";
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options)
+                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => {
+                            const haystack = normalize(`${option.text} ${option.value}`);
+                            return !keyword || haystack.includes(keyword);
+                        });
+
+                    if (options.length === 0) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    options.forEach(option => {
+                        const item = document.createElement("button");
+                        item.type = "button";
+                        item.className = "pt-search-select__option";
+                        if (option.value === select.value) item.classList.add("is-selected");
+                        item.textContent = option.text;
+                        item.addEventListener("click", function () {
+                            select.value = option.value;
+                            input.value = option.text;
+                            closeDropdown();
+                            syncInputFromSelect();
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(item);
+                    });
+                }
+
+                function openDropdown() {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                }
+
+                clearButton.addEventListener("click", function () {
+                    select.value = "";
+                    input.value = "";
+                    closeDropdown();
+                    syncInputFromSelect();
+                    dispatchSelectChange(select);
+                });
+                input.addEventListener("focus", openDropdown);
+                input.addEventListener("click", openDropdown);
+                input.addEventListener("input", function () {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                });
+                input.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
+                });
+                select.addEventListener("change", syncInputFromSelect);
+                document.addEventListener("click", function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
+                });
+
+                syncInputFromSelect();
+            }
+
+            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+        })();
+
+    </script>
+</body>
+</html>

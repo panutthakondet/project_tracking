@@ -16,10 +16,6 @@
             <h2 class="meeting-hero__title">@ViewData["Title"]</h2>
             <p class="meeting-hero__subtitle">ปรับรายละเอียด วันเวลา และผู้เข้าร่วมประชุม</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-outline-light btn-pill" href="/Meetings/Show/@Model.Id">กลับรายละเอียด</a>
-            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
-        </div>
     </div>
 
     <div class="meeting-card">
@@ -112,16 +108,29 @@
 
                     <div class="col-12">
                         <label class="form-label">ผู้เข้าร่วมประชุม</label>
-                        <select class="form-select" name="users" multiple size="8">
-                            @foreach (var e in employees)
-                            {
-                                var isSelected = selectedSet.Contains((int)e.EmpId);
-                                <option value="@e.EmpId" selected="@(isSelected ? "selected" : null)">
-                                    @e.EmpName @(e.Position != null ? $"({e.Position})" : "")
-                                </option>
-                            }
-                        </select>
-                        <div class="form-hint">กด Ctrl (Windows) / Cmd (Mac) เพื่อเลือกหลายคน</div>
+                        <div class="meeting-attendee-picker" data-attendee-picker>
+                            <div class="meeting-attendee-picker__controls">
+                                <select class="form-select" data-attendee-select>
+                                    <option value="">-- เลือกผู้เข้าร่วม --</option>
+                                    @foreach (var e in employees)
+                                    {
+                                        var isSelected = selectedSet.Contains((int)e.EmpId);
+                                        var label = $"{e.EmpName} {(e.Position != null ? $"({e.Position})" : "")}".Trim();
+                                        <option value="@e.EmpId"
+                                                data-label="@label"
+                                                data-selected="@(isSelected ? "true" : "false")">
+                                            @label
+                                        </option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary btn-pill" data-attendee-add>
+                                    เพิ่ม
+                                </button>
+                            </div>
+                            <div class="meeting-selected-attendees" data-attendee-list></div>
+                            <div data-attendee-inputs></div>
+                        </div>
+                        <div class="form-hint">เลือกทีละคน กดเพิ่ม แล้วสามารถลบรายชื่อออกเพื่อเลือกใหม่ได้</div>
                     </div>
                 </div>
 
@@ -142,6 +151,111 @@
     const form = document.getElementById('meetingForm');
     const displayDate = document.getElementById('MeetingDateDisplay');
     const hiddenDate = document.getElementById('MeetingDate');
+
+    initMeetingAttendeePicker(form);
+
+    function initMeetingAttendeePicker(formElement) {
+        const picker = formElement?.querySelector('[data-attendee-picker]');
+        if (!picker) return;
+
+        const select = picker.querySelector('[data-attendee-select]');
+        const addButton = picker.querySelector('[data-attendee-add]');
+        const list = picker.querySelector('[data-attendee-list]');
+        const inputs = picker.querySelector('[data-attendee-inputs]');
+        const selected = new Map();
+
+        function findOption(value) {
+            return Array.from(select.options).find(option => option.value === value);
+        }
+
+        function syncInputs() {
+            inputs.innerHTML = '';
+            selected.forEach((label, id) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'users';
+                input.value = id;
+                inputs.appendChild(input);
+            });
+        }
+
+        function render() {
+            list.innerHTML = '';
+
+            if (selected.size === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'meeting-attendee-empty';
+                empty.textContent = 'ยังไม่ได้เลือกผู้เข้าร่วม';
+                list.appendChild(empty);
+                syncInputs();
+                return;
+            }
+
+            selected.forEach((label, id) => {
+                const chip = document.createElement('span');
+                chip.className = 'meeting-selected-attendee';
+
+                const text = document.createElement('span');
+                text.textContent = label;
+
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'meeting-attendee-remove';
+                remove.setAttribute('aria-label', `ลบ ${label}`);
+                remove.dataset.removeAttendee = id;
+                remove.textContent = '×';
+
+                chip.appendChild(text);
+                chip.appendChild(remove);
+                list.appendChild(chip);
+            });
+
+            syncInputs();
+        }
+
+        function addAttendee(value) {
+            if (!value || selected.has(value)) return;
+
+            const option = findOption(value);
+            if (!option) return;
+
+            const label = option.dataset.label || option.textContent.trim();
+            selected.set(value, label);
+            option.disabled = true;
+            select.value = '';
+            render();
+        }
+
+        addButton?.addEventListener('click', function () {
+            addAttendee(select.value);
+        });
+
+        select?.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addAttendee(select.value);
+            }
+        });
+
+        list?.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-remove-attendee]');
+            if (!button) return;
+
+            const id = button.dataset.removeAttendee;
+            selected.delete(id);
+
+            const option = findOption(id);
+            if (option) option.disabled = false;
+
+            render();
+        });
+
+        Array.from(select.options)
+            .filter(option => option.dataset.selected === 'true')
+            .forEach(option => addAttendee(option.value));
+
+        render();
+    }
 
     function formatDateInput(value) {
         const digits = value.replace(/\D/g, '').slice(0, 8);

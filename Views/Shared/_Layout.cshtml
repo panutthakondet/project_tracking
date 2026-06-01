@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.EntityFrameworkCore
+@inject ProjectTracking.Data.AppDbContext LayoutDb
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
@@ -172,6 +174,24 @@
             font-weight: 600;
         }
 
+        .dropdown-group-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px 5px;
+            color: #8df1e4;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            opacity: .92;
+        }
+
+        .dropdown-group-title:not(:first-child) {
+            margin-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+        }
+
         .navbar-text {
             background: rgba(255,255,255,.08);
             padding: 6px 12px;
@@ -227,6 +247,174 @@
             border-radius: 999px;
             font-size: 12px;
             color: #e5e7eb;
+        }
+
+        .system-update-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background: rgba(2, 12, 32, .68);
+            backdrop-filter: blur(10px);
+            z-index: 22000;
+        }
+
+        .system-update-backdrop.is-open {
+            display: flex;
+        }
+
+        .system-update-dialog {
+            width: min(760px, 100%);
+            max-height: min(82vh, 780px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 30px;
+            background: #eef5fb;
+            color: #0f1d35;
+            box-shadow: 0 28px 70px rgba(0, 0, 0, .38);
+            border: 1px solid rgba(255, 255, 255, .55);
+        }
+
+        .system-update-head {
+            padding: 28px 30px 24px;
+            background: linear-gradient(135deg, #102847 0%, #1f4668 52%, #0f766e 100%);
+            color: #fff;
+        }
+
+        .system-update-eyebrow {
+            color: #9bf4e6;
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .system-update-head h2 {
+            margin: 6px 0 6px;
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .system-update-head p {
+            margin: 0;
+            max-width: 640px;
+            color: rgba(255, 255, 255, .82);
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .system-update-list {
+            padding: 22px;
+            overflow: auto;
+            display: grid;
+            gap: 14px;
+        }
+
+        .system-update-item {
+            background: #fff;
+            border: 1px solid rgba(123, 151, 184, .28);
+            border-radius: 20px;
+            padding: 18px 20px;
+            box-shadow: 0 16px 32px rgba(15, 32, 55, .08);
+        }
+
+        .system-update-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .system-update-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(20, 184, 166, .14);
+            color: #0f766e;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .system-update-chip.muted {
+            background: rgba(100, 116, 139, .12);
+            color: #64748b;
+        }
+
+        .system-update-item h3 {
+            margin: 0 0 6px;
+            color: #0f1d35;
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1.25;
+        }
+
+        .system-update-summary {
+            margin: 0 0 10px;
+            color: #51637a;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .system-update-details {
+            margin: 10px 0 0;
+            padding-left: 22px;
+            color: #22324a;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.55;
+        }
+
+        .system-update-details li + li {
+            margin-top: 5px;
+        }
+
+        .system-update-actions {
+            padding: 0 22px 22px;
+        }
+
+        .system-update-ack {
+            width: 100%;
+            min-height: 58px;
+            border: 0;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+            color: #fff;
+            font-size: 20px;
+            font-weight: 900;
+            box-shadow: 0 18px 34px rgba(20, 184, 166, .24);
+        }
+
+        .system-update-ack:hover {
+            filter: brightness(1.03);
+        }
+
+        @@media (max-width: 640px) {
+            .system-update-backdrop {
+                padding: 12px;
+            }
+
+            .system-update-dialog {
+                border-radius: 24px;
+                max-height: 90vh;
+            }
+
+            .system-update-head,
+            .system-update-list,
+            .system-update-actions {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .system-update-item h3 {
+                font-size: 19px;
+            }
         }
 
         @@media (max-width:768px){
@@ -431,6 +619,7 @@
 
 .dropdown-menu{
     position:relative !important;
+    z-index:3;
     inset:auto !important;
     transform:none !important;
     width:100%;
@@ -479,6 +668,8 @@
     box-shadow:10px 0 34px rgba(3,18,42,.24);
     scrollbar-width: thin;
     scrollbar-color: var(--pt-accent-dark) rgba(3,25,52,.9);
+    isolation:isolate;
+    z-index:5000;
 }
 
 .v2-sidebar::-webkit-scrollbar {
@@ -745,6 +936,8 @@
     max-width:calc(100vw - 286px);
     min-width:0;
     padding:18px 22px 28px;
+    position:relative;
+    z-index:1;
 }
 
 .v2-page > .container{
@@ -756,6 +949,30 @@
 .v2-page main{
     min-width:0;
     max-width:100%;
+}
+
+.v2-shell-standalone{
+    display:block;
+}
+
+.v2-shell-standalone .v2-sidebar{
+    display:none !important;
+}
+
+.v2-shell-standalone .v2-page{
+    margin-left:0 !important;
+    width:100% !important;
+    max-width:100vw !important;
+    padding:16px 24px 28px !important;
+}
+
+.v2-shell-standalone .v2-page > .container,
+.v2-shell-standalone main > .container,
+.v2-shell-standalone main > .container-fluid,
+.v2-shell-standalone .meeting-page,
+.v2-shell-standalone .phase-calendar-page{
+    width:100% !important;
+    max-width:100% !important;
 }
 
 .v2-page .table-responsive{
@@ -773,7 +990,7 @@
 
 .navbar-nav{
     position:relative;
-    z-index:1;
+    z-index:2;
     gap:3px;
     min-height:calc(100vh - 306px);
     padding:0 0 18px !important;
@@ -936,6 +1153,7 @@
 
     .v2-sidebar.sidebar-expanded{
         width:280px;
+        z-index:25000;
         box-shadow:16px 0 44px rgba(0,0,0,.35);
     }
 
@@ -1031,7 +1249,15 @@
     </style>
 </head>
 <body>
-<div class="v2-shell">
+@{
+    var layoutController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var layoutAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isStandaloneCalendarPage =
+        (string.Equals(layoutController, "Meetings", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
+        (string.Equals(layoutController, "PhaseCalendar", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
+        (string.Equals(layoutController, "PhaseWorkload", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase));
+}
+<div class="v2-shell @(isStandaloneCalendarPage ? "v2-shell-standalone" : "")">
 
 @{
     var userId = Context.Session.GetInt32("UserId");
@@ -1044,6 +1270,28 @@
     var currentReturnUrl = Context.Request.Path + Context.Request.QueryString;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var systemUpdateAnnouncements = new List<ProjectTracking.Models.SystemUpdateAnnouncement>();
+
+    if (userId != null)
+    {
+        try
+        {
+            systemUpdateAnnouncements = await LayoutDb.SystemUpdateAnnouncements
+                .AsNoTracking()
+                .Where(update => update.IsActive
+                    && !LayoutDb.SystemUpdateReads.Any(read =>
+                        read.UpdateId == update.UpdateId &&
+                        read.UserId == userId.Value))
+                .OrderByDescending(update => update.PublishedAt)
+                .ThenByDescending(update => update.UpdateId)
+                .Take(5)
+                .ToListAsync();
+        }
+        catch
+        {
+            systemUpdateAnnouncements = new List<ProjectTracking.Models.SystemUpdateAnnouncement>();
+        }
+    }
 
     // ✅ หน้า Print: ซ่อนเมนูเฉพาะตอนสั่งพิมพ์จริง (ใช้ @media print) ไม่ซ่อนตอนดูบนหน้าจอ
     var isPrint = (controller == "PhaseAssigns" && action == "Print");
@@ -1059,7 +1307,8 @@
         StringComparer.OrdinalIgnoreCase
     );
 
-    bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
+	    bool CanMenu(string key) => isAdmin || allowedMenus.Contains(key);
+	    var canProjectStatus = CanMenu("Home.Index");
 
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
     var canManagement = CanMenu("Employees.Index")
@@ -1073,20 +1322,19 @@
                      || CanMenu("ProjectDocuments.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
-                 || CanMenu("ProjectIssues.ViewOnly")
-                 || CanMenu("ProjectIssues.DevIndex")
-                 || CanMenu("SupportOrders.Index")
-                 || CanMenu("SupportOrdersDev.Index");
+                 || CanMenu("ProjectIssues.DevIndex");
 
-    var canTestScenarios = CanMenu("TestScenarios.Index")
-                         || CanMenu("TestScenarioTemplates.Index")
-                         || CanMenu("TestTemplateGroups.Index");
+    var canSupport = CanMenu("SupportOrders.Index")
+                  || CanMenu("SupportOrdersDev.Index");
 
-    var canReports = CanMenu("PhaseAssigns.Print")
-                  || CanMenu("PhaseStatusReport.Index")
-                  || CanMenu("PhaseStatusReport.Timeline")
-                  || CanMenu("Projects.ViewOnly")
-                  || CanMenu("PhaseWorkload.Index");
+	    var canTestScenarios = CanMenu("TestScenarios.Index")
+	                         || CanMenu("TestScenarioTemplates.Index")
+	                         || CanMenu("TestTemplateGroups.Index");
+
+	    var canAssignPhase = CanMenu("PhaseAssigns.Index")
+	                        || CanMenu("PhaseWorkload.Index");
+
+	    var canReports = CanMenu("Reports.Index");
 
     var canFollowups = CanMenu("Followups.Dashboard")
                     || CanMenu("Followups.DashboardDone")
@@ -1158,7 +1406,7 @@
                         @if (CanMenu("Home.Index"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
+                                <a class="nav-link @(controller=="Home" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
                                     <span class="nav-label">Dashboard</span>
                                 </a>
@@ -1175,10 +1423,10 @@
                             </li>
                         }
 
-                        @if (CanMenu("Projects.Index") || CanMenu("Projects.ViewOnly") || CanMenu("ProjectDocuments.Index"))
+                        @if (CanMenu("Projects.Index") || CanMenu("ProjectDocuments.Index") || canProjectStatus)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Projects" || controller=="ProjectDocuments" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Projects" || controller=="ProjectDocuments" || controller=="ProjectStatus" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/projects.svg" alt="" /></span>
                                     <span class="nav-label">Projects</span>
@@ -1188,24 +1436,23 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">บันทึกข้อมูลโครงการ</a></li>
                                     }
-                                    @if (CanMenu("Projects.ViewOnly"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">รายงานข้อมูลโครงการ</a></li>
-                                    }
                                     @if (CanMenu("ProjectDocuments.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectDocuments" asp-action="Index">เอกสารโครงการ (BRD / TOR)</a></li>
+                                    }
+                                    @if (canProjectStatus)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="ProjectStatus" asp-action="Index">สถานะโครงการ</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                        @if (CanMenu("ProjectPhases.Index") || CanMenu("PhaseStatusReport.Index") || CanMenu("PhaseStatusReport.Timeline") || CanMenu("PhaseCalendar.Index"))
+                        @if (CanMenu("ProjectPhases.Index") || CanMenu("PhaseCalendar.Index"))
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(
                                     controller=="ProjectPhases" 
-                                    || controller=="PhaseStatusReport"
                                     || controller=="PhaseCalendar"
                                     ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
@@ -1217,14 +1464,6 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">บันทึกข้อมูลงวดงาน</a></li>
                                     }
-                                    @if (CanMenu("PhaseStatusReport.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">รายงานสถานะงานค้าง</a></li>
-                                    }
-                                    @if (CanMenu("PhaseStatusReport.Timeline"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">Timeline / Gantt</a></li>
-                                    }
                                     @if (CanMenu("PhaseCalendar.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseCalendar" asp-action="Index">ปฏิทินกำหนดส่งงาน</a></li>
@@ -1233,13 +1472,24 @@
                             </li>
                         }
 
-                        @if (CanMenu("PhaseAssigns.Index"))
+                        @if (canAssignPhase)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="PhaseAssigns" && action!="Print" ? "active-menu" : "")" asp-controller="PhaseAssigns" asp-action="Index">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @((controller=="PhaseAssigns" && action!="Print") || controller=="PhaseWorkload" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/assign.svg" alt="" /></span>
                                     <span class="nav-label">Assign Phase</span>
                                 </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("PhaseAssigns.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">มอบหมายงวดงาน</a></li>
+                                    }
+                                    @if (CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
 
@@ -1256,11 +1506,12 @@
                         @if (canTestScenarios)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(
-                                    controller=="TestScenarios"
-                                    || controller=="TestScenarioTemplates"
-                                    || controller=="TestTemplateGroups"
-                                    ? "active-menu" : "")"
+	                                <a class="nav-link dropdown-toggle @(
+	                                    controller=="TestScenarios"
+	                                    && action!="PrintReport"
+	                                    || controller=="TestScenarioTemplates"
+	                                    || controller=="TestTemplateGroups"
+	                                    ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/test-scenarios.svg" alt="" /></span>
                                     <span class="nav-label">Test Scenario</span>
@@ -1285,7 +1536,7 @@
                         @if (canIssues)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" && action!="ViewOnly" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/issues.svg" alt="" /></span>
                                     <span class="nav-label">Issues</span>
@@ -1295,30 +1546,39 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">บันทึกข้อมูลปัญหาโครงการ</a></li>
                                     }
-                                    @if (CanMenu("ProjectIssues.ViewOnly"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="ViewOnly">รายงานปัญหาและสถานะโครงการ</a></li>
-                                    }
                                     @if (CanMenu("ProjectIssues.DevIndex"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">แก้ไขสถานะปัญหาโครงการ</a></li>
-                                    }
-                                    @if (CanMenu("SupportOrders.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">งานแก้ไขช่วงรับประกัน</a></li>
-                                    }
-                                    @if (CanMenu("SupportOrdersDev.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="SupportOrdersDev" asp-action="Index">งานแก้ไขช่วงรับประกัน (Dev)</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">ตรวจสอบปัญหาโครงการ</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                        @if (CanMenu("Attendance.Index") || CanMenu("Attendance.Map"))
+                        @if (canSupport)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Attendance" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="SupportOrders" || controller=="SupportOrdersDev" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/workload.svg" alt="" /></span>
+                                    <span class="nav-label">Support</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("SupportOrders.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">บันทึกงานรับประกัน</a></li>
+                                    }
+                                    @if (CanMenu("SupportOrdersDev.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SupportOrdersDev" asp-action="Index">ตรวจสอบงานรับประกัน</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        @if (CanMenu("Attendance.Index"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Attendance" && action!="Map" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
                                     <span class="nav-label">Attendance</span>
@@ -1327,10 +1587,6 @@
                                     @if (CanMenu("Attendance.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Index">เช็คเข้าออกงาน</a></li>
-                                    }
-                                    @if (CanMenu("Attendance.Map"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Map">รายงาน Check-in/Check-out</a></li>
                                     }
                                 </ul>
                             </li>
@@ -1387,36 +1643,15 @@
 
                         @if (canReports)
                         {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(
-                                    ((controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport" || controller=="PhaseWorkload")
+                            <li class="nav-item">
+                                <a class="nav-link @(
+                                    (controller=="Reports" || (controller=="Projects" && action=="ViewOnly") || (controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport" || (controller=="TestScenarios" && action=="PrintReport") || (controller=="ProjectIssues" && action=="ViewOnly") || (controller=="Attendance" && action=="Map"))
                                         ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
+                                   asp-controller="Reports"
+                                   asp-action="Index">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/reports.svg" alt="" /></span>
-                                    <span class="nav-label">Reports</span>
+                                    <span class="nav-label">Reports Center</span>
                                 </a>
-                                <ul class="dropdown-menu">
-                                    @if (CanMenu("PhaseAssigns.Print"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Print">รายงานการมอบหมายงาน</a></li>
-                                    }
-                                    @if (CanMenu("PhaseStatusReport.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Index">รายงานสถานะงานค้าง</a></li>
-                                    }
-                                    @if (CanMenu("PhaseStatusReport.Timeline"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseStatusReport" asp-action="Timeline">Timeline / Gantt</a></li>
-                                    }
-                                    @if (CanMenu("Projects.ViewOnly"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Projects" asp-action="ViewOnly">รายงานข้อมูลโครงการ</a></li>
-                                    }
-                                    @if (CanMenu("PhaseWorkload.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
-                                    }
-                                </ul>
                             </li>
                         }
 
@@ -1445,7 +1680,7 @@
                 {
                     <ul class="navbar-nav mb-2 mb-lg-0" style="width:100%;">
                         <li class="nav-item">
-                            <a class="nav-link @(controller=="Home" || controller=="ProjectStatus" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
+                            <a class="nav-link @(controller=="Home" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
                                 <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
                                 <span class="nav-label">Dashboard</span>
                             </a>
@@ -1486,6 +1721,64 @@
         </div>
     </div>
 </div>
+
+@if (systemUpdateAnnouncements.Count > 0)
+{
+    <div id="systemUpdateModal" class="system-update-backdrop is-open" role="dialog" aria-modal="true" aria-labelledby="systemUpdateTitle">
+        <div class="system-update-dialog">
+            <div class="system-update-head">
+                <div class="system-update-eyebrow">ProjectTracking Update</div>
+                <h2 id="systemUpdateTitle">มีอะไรใหม่</h2>
+                <p>ระบบได้รับการอัปเดตให้ใช้งานดีขึ้น ดูว่ามีอะไรใหม่ กดรับทราบเพื่อไม่ให้ประกาศนี้แสดงซ้ำ</p>
+            </div>
+
+            <div class="system-update-list">
+                @foreach (var update in systemUpdateAnnouncements)
+                {
+                    var detailLines = (update.Details ?? "")
+                        .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(line => line.Trim())
+                        .Where(line => !string.IsNullOrWhiteSpace(line))
+                        .ToList();
+
+                    <article class="system-update-item">
+                        <div class="system-update-meta">
+                            @if (!string.IsNullOrWhiteSpace(update.Version))
+                            {
+                                <span class="system-update-chip">@update.Version</span>
+                            }
+                            <span class="system-update-chip muted">@update.PublishedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <h3>@update.Title</h3>
+                        @if (!string.IsNullOrWhiteSpace(update.Summary))
+                        {
+                            <p class="system-update-summary">@update.Summary</p>
+                        }
+                        @if (detailLines.Count > 0)
+                        {
+                            <ul class="system-update-details">
+                                @foreach (var line in detailLines)
+                                {
+                                    <li>@line.TrimStart('-', '•', ' ')</li>
+                                }
+                            </ul>
+                        }
+                    </article>
+                }
+            </div>
+
+            <form class="system-update-actions" asp-controller="SystemUpdates" asp-action="Acknowledge" method="post">
+                @Html.AntiForgeryToken()
+                @foreach (var update in systemUpdateAnnouncements)
+                {
+                    <input type="hidden" name="updateIds" value="@update.UpdateId" />
+                }
+                <input type="hidden" name="returnUrl" value="@currentReturnUrl" />
+                <button type="submit" class="system-update-ack">รับทราบแล้ว</button>
+            </form>
+        </div>
+    </div>
+}
 
 @{
     var routeController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "unknown").ToLowerInvariant();
