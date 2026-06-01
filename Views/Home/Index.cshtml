@@ -38,14 +38,6 @@
                 <small>@dashboard.OpenIssuesNote</small>
             </div>
         </article>
-        <article class="kpi-card kpi-green">
-            <span class="kpi-icon" aria-hidden="true">◉</span>
-            <div>
-                <p>Active Members</p>
-                <strong>@dashboard.ActiveMemberCount</strong>
-                <small>@dashboard.ActiveMembersNote</small>
-            </div>
-        </article>
         <article class="kpi-card kpi-pink">
             <span class="kpi-icon" aria-hidden="true">⏱</span>
             <div>
@@ -61,8 +53,7 @@
             <div class="panel-head">
                 <h2>ภาพรวมโครงการ (Projects Overview)</h2>
                 <div class="panel-actions">
-                    <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter">ปีนี้ (This Year)</a>
-                    <a asp-controller="Reports" asp-action="Executive" class="panel-filter compact">รายละเอียด</a>
+                    <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
                 </div>
             </div>
             <div class="legend-row">
@@ -246,7 +237,7 @@
                 <h2>โครงการที่ต้องเฝ้าระวัง</h2>
                 <div class="panel-actions">
                     <a asp-controller="PhaseWorkload" asp-action="Index" class="panel-link">ดูสถานะงาน</a>
-                    <a asp-controller="ProjectPhases" asp-action="Index" class="panel-link">ดูงวดงาน</a>
+                    <a asp-controller="Reports" asp-action="Executive" class="panel-link">รายละเอียด</a>
                 </div>
             </div>
             <div class="watch-list">
@@ -328,7 +319,7 @@
         <article class="glass-panel side-panel panel-team">
             <div class="panel-head">
                 <h2>ทีมงานที่ทำงานหนักที่สุด</h2>
-                <a asp-controller="PhaseWorkload" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
+                <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
             </div>
             <div class="workload-list">
                 @if (dashboard.TeamWorkload.Count == 0)
@@ -339,12 +330,16 @@
                 {
                     foreach (var member in dashboard.TeamWorkload)
                     {
-                        <div class="workload-row">
+                        <a class="workload-row"
+                           asp-controller="PhaseStatusReport"
+                           asp-action="Index"
+                           asp-route-empName="@member.Name"
+                           title="ดูรายงานสถานะงานของ @member.Name">
                             <img src="@member.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                             <span>@member.Name</span>
                             <div class="progress-track"><i class="@member.Color" style="width:@member.Value%"></i></div>
                             <b>@member.Value%</b>
-                        </div>
+                        </a>
                     }
                 }
             </div>
@@ -457,7 +452,7 @@
 
 .kpi-grid {
     display:grid;
-    grid-template-columns:repeat(5, minmax(178px, 1fr));
+    grid-template-columns:repeat(4, minmax(190px, 1fr));
     gap:16px;
     margin-bottom:16px;
 }
@@ -490,7 +485,6 @@
 .kpi-blue { background:linear-gradient(135deg,#2d90ff,#005fe8); }
 .kpi-purple { background:linear-gradient(135deg,#9c44ff,#5512ca); }
 .kpi-orange { background:linear-gradient(135deg,#ff9b22,#ff4d0d); }
-.kpi-green { background:linear-gradient(135deg,#15cd8e,#009b91); }
 .kpi-pink { background:linear-gradient(135deg,#ff487a,#d90962); }
 
 .kpi-icon {
@@ -1116,6 +1110,14 @@
     font-size:12px;
     font-weight:900;
     min-width:0;
+    text-decoration:none;
+    transition:background .18s ease, transform .18s ease;
+}
+
+.workload-row:hover {
+    color:#fff;
+    background:rgba(255,255,255,.06);
+    transform:translateX(2px);
 }
 
 .progress-row span,
