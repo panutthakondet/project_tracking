@@ -228,10 +228,18 @@
             else
                 rowClass = "table-success";
         }
+        var ownerAvatar = item.Owner?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(ownerAvatar))
+        {
+            ownerAvatar = "/images/Profile/profile.png";
+        }
     <div class="followup-card @rowClass">
 
         <div class="followup-card-header">
-            <div class="followup-avatar">📌</div>
+            <img class="followup-avatar"
+                 src="@ownerAvatar"
+                 alt="@item.Owner?.EmpName"
+                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
 
             <div class="followup-header-content">
                 <div class="followup-title">@item.TaskTitle</div>
@@ -410,13 +418,12 @@
 .followup-avatar {
     width: 56px;
     height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(135deg,#2563eb,#1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: #fff;
+    border: 3px solid #14b8a6;
+    box-shadow: 0 10px 22px rgba(15,23,42,.16);
     flex-shrink: 0;
 }
 

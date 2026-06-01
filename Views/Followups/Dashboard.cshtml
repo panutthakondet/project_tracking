@@ -17,7 +17,7 @@
 
 @if (!HasMenu("Followups.Dashboard"))
 {
-    <div class="container mt-4">
+    <div class="container">
         <div class="alert alert-danger fw-bold">
             ❌ ไม่มีสิทธิ์เข้าหน้านี้
         </div>
@@ -26,15 +26,18 @@
     return;
 }
 
-<div class="container-fluid mt-4">
+<div class="container-fluid">
 
     <h3 class="mb-3">
         📌 งานติดตาม (Follow-up Dashboard)
     </h3>
 
-    <div class="mb-3" style="max-width:300px;">
+    <div class="followup-dashboard-filter mb-3">
         <label class="form-label fw-bold">Filter Owner</label>
-        <select id="ownerFilter" class="form-select" onchange="filterOwner()">
+        <select id="ownerFilter"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Owner..."
+                onchange="filterOwner()">
             <option value="">-- All Owner --</option>
             @foreach (var o in owners)
             {
@@ -148,6 +151,11 @@
     {
         rowClass = "future";
     }
+    string ownerAvatar = Convert.ToString(item.OwnerAvatar);
+    if (string.IsNullOrWhiteSpace(ownerAvatar))
+    {
+        ownerAvatar = "/images/Profile/profile.png";
+    }
 
     <div class="followup-dashboard-card @rowClass"
          data-owner="@item.Owner"
@@ -155,7 +163,10 @@
          onclick="@(targetUrl != null && HasMenu("Followups.Index") ? $"window.location.href='{targetUrl}'" : "")">
 
         <div class="followup-dashboard-header">
-            <div class="followup-dashboard-avatar">📌</div>
+            <img class="followup-dashboard-avatar"
+                 src="@ownerAvatar"
+                 alt="@item.Owner"
+                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
 
             <div class="followup-dashboard-header-content">
                 <div class="followup-dashboard-project">
@@ -200,8 +211,33 @@
 <style>
 .followup-dashboard-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: 1fr;
     gap: 18px;
+}
+
+.followup-dashboard-filter {
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #d8e3ef;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+}
+
+.followup-dashboard-filter .form-label {
+    color: #10233f;
+    margin-bottom: 8px;
+}
+
+.followup-dashboard-filter .pt-search-select,
+.followup-dashboard-filter .form-select {
+    width: 100%;
+}
+
+.followup-dashboard-filter .pt-search-select__input {
+    min-height: 54px;
+    font-size: 1rem !important;
+    font-weight: 800;
 }
 
 .followup-dashboard-card {
@@ -243,13 +279,12 @@
 .followup-dashboard-avatar {
     width: 56px;
     height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(135deg,#2563eb,#1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: #fff;
+    border: 3px solid #14b8a6;
+    box-shadow: 0 10px 22px rgba(15,23,42,.16);
     flex-shrink: 0;
 }
 

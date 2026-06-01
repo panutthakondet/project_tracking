@@ -517,14 +517,13 @@
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
             <h2 class="meeting-title index-title">@ViewData["Title"]</h2>
-            <p class="meeting-subtitle index-subtitle">คลิกวันที่เพื่อสร้างนัดประชุม และคลิกนัดเพื่อดูรายละเอียด</p>
+            <p class="meeting-subtitle index-subtitle">คลิกนัดเพื่อดูรายละเอียด</p>
         </div>
 
         <div class="toolbar-right index-actions">
             <a class="btn btn-outline-light btn-pill" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
                 Dashboard
             </a>
-            <span class="hint-chip index-chip">คลิกวันที่เพื่อสร้างนัด</span>
             @if (CanMenu("Meetings.Create"))
             {
                 <a class="btn btn-primary" href="/Meetings/Create" title="สร้างนัดประชุม">

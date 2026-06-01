@@ -355,7 +355,7 @@
 .dashboard-view {
     --panel:#111f3c;
     min-height:100vh;
-    padding:18px 24px 26px 10px;
+    padding:8px 24px 26px 10px;
     background:
         radial-gradient(circle at 18% 16%, rgba(34,211,238,.18), transparent 26%),
         radial-gradient(circle at 78% 24%, rgba(244,63,94,.12), transparent 24%),
@@ -887,6 +887,28 @@
     z-index:1;
     display:grid;
     gap:10px;
+    min-width:0;
+    max-width:100%;
+}
+
+.progress-list,
+.workload-list {
+    overflow-x:auto;
+    overflow-y:visible;
+    padding-bottom:4px;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(20,184,166,.6) transparent;
+}
+
+.progress-list::-webkit-scrollbar,
+.workload-list::-webkit-scrollbar {
+    height:7px;
+}
+
+.progress-list::-webkit-scrollbar-thumb,
+.workload-list::-webkit-scrollbar-thumb {
+    border-radius:999px;
+    background:rgba(20,184,166,.62);
 }
 
 .panel-team .workload-list {
@@ -1110,6 +1132,9 @@
     font-size:12px;
     font-weight:900;
     min-width:0;
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
     text-decoration:none;
     transition:background .18s ease, transform .18s ease;
 }
@@ -1132,7 +1157,7 @@
 
 .panel-top-projects .progress-row {
     align-items:start;
-    grid-template-columns:minmax(220px, 1.45fr) minmax(180px, 1fr) 48px;
+    grid-template-columns:minmax(0, 1.45fr) minmax(96px, 1fr) 48px;
 }
 
 .panel-top-projects .progress-row span {
@@ -1157,6 +1182,9 @@
 }
 
 .progress-track {
+    width:100%;
+    min-width:0;
+    max-width:100%;
     height:10px;
     overflow:hidden;
     border-radius:999px;
@@ -1411,7 +1439,7 @@
 }
 
 .workload-row {
-    grid-template-columns:32px minmax(180px, .9fr) minmax(180px, 1.2fr) 52px;
+    grid-template-columns:32px minmax(0, .9fr) minmax(96px, 1.2fr) 52px;
     gap:10px;
     padding:7px 8px;
     border-radius:10px;
@@ -1424,11 +1452,11 @@
 }
 
 @@media (max-width:1440px) {
-    .dashboard-view { padding:16px 16px 16px 8px; }
+    .dashboard-view { padding:8px 16px 16px 8px; }
     .brand-cluster { gap:14px; min-width:430px; }
     .brand-cluster img { height:66px; max-width:270px; }
     .brand-cluster strong { font-size:22px; }
-    .kpi-grid { grid-template-columns:repeat(3, minmax(190px, 1fr)); }
+    .kpi-grid { grid-template-columns:repeat(4, minmax(170px, 1fr)); }
     .panel-wide,
     .panel-project-status,
     .panel-watch,
@@ -1464,22 +1492,24 @@
 }
 
 @@media (max-width:640px) {
-    .dashboard-view { padding:12px 12px 12px 8px; }
+    .dashboard-view { padding:8px 12px 12px 8px; }
     .brand-cluster img { height:52px; }
     .brand-cluster strong { font-size:22px; }
     .dashboard-actions { gap:10px; flex-wrap:wrap; }
     .top-icon-button { width:48px; height:48px; }
-    .kpi-grid { grid-template-columns:1fr; }
+    .kpi-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
     .kpi-card {
-        min-height:122px;
-        padding:16px;
-        grid-template-columns:64px minmax(0, 1fr);
+        min-height:118px;
+        padding:14px;
+        grid-template-columns:54px minmax(0, 1fr);
+        gap:10px;
     }
     .kpi-icon {
         left:auto;
         top:auto;
-        width:58px;
-        height:58px;
+        width:50px;
+        height:50px;
+        font-size:28px;
     }
     .donut-layout,
     .compact-donut-layout,
@@ -1495,8 +1525,11 @@
     .panel-team .workload-list { grid-template-columns:1fr; }
     .panel-top-projects .progress-row,
     .progress-row { grid-template-columns:1fr; gap:6px; }
-    .workload-row { grid-template-columns:28px minmax(80px, 1fr) 38px; }
-    .workload-row .progress-track { grid-column:2 / -1; }
+    .workload-row { grid-template-columns:28px minmax(0, 1fr) 42px; }
+    .workload-row .progress-track {
+        grid-column:1 / -1;
+        grid-row:2;
+    }
     .chart-tooltip {
         left:0;
         flex-wrap:wrap;

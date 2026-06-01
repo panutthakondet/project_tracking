@@ -25,6 +25,7 @@ namespace ProjectTracking.Controllers
             var data = await _context.ProjectFollowups
                 .Include(x => x.Project)
                 .Include(x => x.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
                 .Where(x => x.Status == "OPEN"|| x.Status == "IN_PROGRESS")
                 .OrderBy(x => x.NextFollowupDate)
                 .Select(x => new
@@ -35,6 +36,9 @@ namespace ProjectTracking.Controllers
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
+                    OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
+                        ? x.Owner.LoginUser.ProfileImagePath
+                        : null,
                     NextFollowupDate = x.NextFollowupDate ?? today,
                     Status =
                         x.NextFollowupDate == null ? "Done" :
@@ -124,10 +128,63 @@ namespace ProjectTracking.Controllers
             var data = await query
                 .Include(x => x.Project)
                 .Include(x => x.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
                 .OrderBy(x => x.NextFollowupDate)
                 .ToListAsync();
 
             return View(data);
+        }
+
+        [RequireMenu("Followups.Index")]
+        public async Task<IActionResult> ViewOnly(int? projectId, string? owner, string? status)
+        {
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var ownerList = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Include(f => f.Owner)
+                .Where(f => f.Owner != null)
+                .Select(f => f.Owner!.EmpName)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+
+            var query = _context.ProjectFollowups
+                .AsNoTracking()
+                .Include(f => f.Project)
+                .Include(f => f.Owner)
+                .AsQueryable();
+
+            if (projectId.HasValue && projectId.Value > 0)
+                query = query.Where(f => f.ProjectId == projectId.Value);
+
+            if (!string.IsNullOrWhiteSpace(owner))
+                query = query.Where(f => f.Owner != null && f.Owner.EmpName == owner);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(f => f.Status == status);
+
+            var followups = await query
+                .OrderBy(f => f.NextFollowupDate ?? DateTime.MaxValue)
+                .ThenByDescending(f => f.CreatedAt)
+                .ThenBy(f => f.FollowupId)
+                .ToListAsync();
+
+            ViewBag.Projects = projects;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.OwnerList = ownerList;
+            ViewBag.SelectedOwner = owner ?? "";
+            ViewBag.StatusList = new[] { "OPEN", "IN_PROGRESS", "DONE", "ACK" };
+            ViewBag.SelectedStatus = status ?? "";
+
+            return View(followups
+                .OrderBy(f => f.Project?.ProjectName ?? "ไม่ระบุโครงการ")
+                .ThenBy(f => f.NextFollowupDate ?? DateTime.MaxValue)
+                .ThenByDescending(f => f.CreatedAt)
+                .ToList());
         }
 
         [RequireMenu("Followups.Create")]

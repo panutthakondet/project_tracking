@@ -103,15 +103,12 @@
 }
 </style>
 
-<div class="page-head">
-    <div class="page-title">
-        <div style="font-size:22px;">➕</div>
-        <div>
-            <h3>Create User</h3>
-            <div class="page-sub">สร้างผู้ใช้ใหม่ (แนะนำให้ Admin เป็นผู้สร้าง)</div>
-        </div>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Create User</h2>
+        <p class="index-subtitle">สร้างผู้ใช้ใหม่และผูกกับพนักงานเพื่อใช้งานระบบ</p>
     </div>
-
 </div>
 
 @if (!string.IsNullOrWhiteSpace(error))
@@ -124,7 +121,7 @@
     <div class="alert alert-success alert-soft">@success</div>
 }
 
-<div class="card card-soft">
+<div class="card pt-form-card">
     <div class="card-body">
         <form asp-controller="UserManagement" asp-action="Create" method="post" autocomplete="off">
             @Html.AntiForgeryToken()
@@ -236,7 +233,7 @@
             <div class="divider"></div>
 
             <!-- ROLE / STATUS -->
-            <div class="row g-2">
+            <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Role</label>
                     <select name="role" class="form-select rounded-12">
@@ -254,7 +251,7 @@
             </div>
 
             <!-- BUTTON -->
-            <div class="d-flex flex-wrap gap-2 mt-4">
+            <div class="pt-form-actions">
                 <button class="btn btn-primary btn-cta" type="submit">💾 Save</button>
                 <a asp-controller="UserManagement" asp-action="Index" class="btn btn-outline-secondary btn-cta">Cancel</a>
             </div>

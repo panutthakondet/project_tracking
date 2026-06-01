@@ -13,6 +13,12 @@
         margin: 0 auto;
     }
 
+    .permission-hero {
+        max-width: 1180px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
     .permission-header {
         display: flex;
         align-items: flex-start;
@@ -39,12 +45,11 @@
         grid-template-columns: minmax(220px, 1fr) auto auto auto;
         gap: 10px;
         align-items: center;
-        background: #fff;
+        background: #f8fafc;
         border: 1px solid #d8e3ef;
         border-radius: 16px;
         padding: 12px;
-        margin-bottom: 14px;
-        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+        margin-bottom: 18px;
     }
 
     .permission-search {
@@ -85,8 +90,8 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        background: #edf7f6;
-        border-bottom: 1px solid #d6eeeb;
+        background: linear-gradient(135deg, rgba(20, 184, 166, .13), rgba(31, 59, 99, .08));
+        border-bottom: 1px solid #c8ebe7;
         padding: 12px 14px;
         font-weight: 900;
         color: #0f3440;
@@ -148,7 +153,7 @@
 
     .permission-btn {
         border: 0;
-        border-radius: 12px;
+        border-radius: 999px;
         padding: 10px 16px;
         font-weight: 900;
         text-decoration: none;
@@ -156,11 +161,12 @@
         align-items: center;
         justify-content: center;
         min-height: 42px;
+        min-width: 126px;
     }
 
     .permission-btn.primary {
         color: #fff;
-        background: #0f766e;
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
     }
 
     .permission-btn.muted {
@@ -210,12 +216,12 @@
 </style>
 
 <div class="permission-page">
-    <div class="permission-header">
-        <div>
-            <h2 class="permission-title">กำหนดสิทธิ์ผู้ใช้</h2>
-            <div class="permission-subtitle">@username</div>
+    <div class="index-hero pt-form-hero permission-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">กำหนดสิทธิ์ผู้ใช้</h2>
+            <p class="index-subtitle">@username</p>
         </div>
-        <a asp-controller="UserManagement" asp-action="Index" class="permission-btn muted">ย้อนกลับ</a>
     </div>
 
     @if (TempData["Success"] != null)
@@ -223,7 +229,8 @@
         <div class="permission-alert success">@TempData["Success"]</div>
     }
 
-    <form method="post" id="permissionForm">
+    <form method="post" id="permissionForm" class="card pt-form-card">
+        <div class="card-body">
         @Html.AntiForgeryToken()
         <input type="hidden" name="username" value="@username" />
 
@@ -291,6 +298,7 @@
         <div class="permission-actions">
             <button type="submit" class="permission-btn primary">บันทึกสิทธิ์</button>
             <a asp-controller="UserManagement" asp-action="Index" class="permission-btn muted">ยกเลิก</a>
+        </div>
         </div>
     </form>
 </div>

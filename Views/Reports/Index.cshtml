@@ -1,10 +1,8 @@
 @using Microsoft.AspNetCore.Http
-@using System.Globalization
 @model ProjectTracking.ViewModels.ReportCenterViewModel
 
 @{
     ViewData["Title"] = "Report Center";
-    var th = new CultureInfo("th-TH");
 
     bool CanMenu(string key)
     {
@@ -20,10 +18,7 @@
         .Where(x => CanMenu(x.PermissionKey ?? $"{x.Controller}.{x.Action}"))
         .ToList();
 
-    var featured = reports.FirstOrDefault(x => x.IsPrimary) ?? reports.FirstOrDefault();
-    var featuredKey = featured == null ? "" : $"{featured.Controller}.{featured.Action}.{featured.Title}";
     var groupedReports = reports
-        .Where(x => $"{x.Controller}.{x.Action}.{x.Title}" != featuredKey)
         .GroupBy(x => x.Group)
         .OrderBy(g => g.Key)
         .ToList();
@@ -36,6 +31,7 @@
             "Projects" => "/images/menu-icons/projects.svg",
             "Issues" => "/images/menu-icons/issues.svg",
             "Support" => "/images/menu-icons/workload.svg",
+            "Followups" => "/images/menu-icons/followups.svg",
             "Test Scenario" => "/images/menu-icons/test-scenarios.svg",
             "Attendance" => "/images/menu-icons/attendance.svg",
             "Executive" => "/images/menu-icons/reports.svg",
@@ -67,7 +63,6 @@
                 <strong>@reports.Select(x => x.Group).Distinct().Count()</strong>
                 หมวด
             </span>
-            <small>อัปเดต @((Model?.GeneratedAt ?? DateTime.Now).ToString("dd MMM yyyy HH:mm", th))</small>
         </div>
     </div>
 
@@ -89,25 +84,6 @@
                 </div>
             }
         </section>
-
-        @if (featured != null)
-        {
-            <section class="featured-report tone-@featured.Tone">
-                <div class="featured-report__icon">
-                    <img src="@ReportIconPath(featured)" alt="" />
-                </div>
-                <div class="featured-report__body">
-                    <span>รายงานหลัก</span>
-                    <h3>@featured.Title</h3>
-                    <p>@featured.Description</p>
-                </div>
-                <a class="featured-report__action"
-                   asp-controller="@featured.Controller"
-                   asp-action="@featured.Action">
-                    เปิดรายงาน
-                </a>
-            </section>
-        }
 
         foreach (var group in groupedReports)
         {
@@ -161,8 +137,7 @@
         align-content: center;
     }
 
-    .report-hero-stats span,
-    .report-hero-stats small {
+    .report-hero-stats span {
         border: 1px solid rgba(255,255,255,.16);
         border-radius: 16px;
         padding: 10px 12px;
@@ -177,11 +152,6 @@
         color: #fff;
         font-size: 1.45rem;
         font-weight: 900;
-    }
-
-    .report-hero-stats small {
-        grid-column: 1 / -1;
-        font-size: .85rem;
     }
 
     .report-summary-strip {
@@ -239,95 +209,6 @@
         grid-area: meta;
         color: #64748b;
         font-weight: 800;
-    }
-
-    .featured-report {
-        min-height: 180px;
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 18px;
-        margin-bottom: 18px;
-        padding: 24px;
-        border: 1px solid rgba(148, 219, 225, .22);
-        border-radius: 24px;
-        color: #fff;
-        background:
-            radial-gradient(circle at 90% 12%, rgba(141, 241, 228, .28), transparent 32%),
-            linear-gradient(135deg, #10233f, #1f3b63);
-        box-shadow: 0 20px 44px rgba(15, 35, 64, .18);
-    }
-
-    .featured-report__icon {
-        width: 76px;
-        height: 76px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 22px;
-        background: rgba(255,255,255,.12);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-        font-size: 2.15rem;
-    }
-
-    .featured-report__icon img {
-        width: 64px;
-        height: 64px;
-        display: block;
-        object-fit: contain;
-        border-radius: 18px;
-    }
-
-    .featured-report__body {
-        min-width: 0;
-    }
-
-    .featured-report__body span {
-        display: block;
-        margin-bottom: 8px;
-        padding: 0;
-        color: #8df1e4;
-        background: transparent;
-        font-size: .9rem;
-        font-weight: 900;
-        letter-spacing: .02em;
-    }
-
-    .featured-report__body h3 {
-        margin: 0;
-        color: #fff;
-        font-size: clamp(24px, 2.6vw, 36px);
-        font-weight: 900;
-        line-height: 1.18;
-    }
-
-    .featured-report__body p {
-        max-width: 760px;
-        margin: 8px 0 0;
-        color: #d8e6f7;
-        font-size: 1rem;
-        font-weight: 700;
-        line-height: 1.55;
-    }
-
-    .featured-report__action {
-        min-height: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 18px;
-        border-radius: 999px;
-        color: #062b2f;
-        background: linear-gradient(135deg, #8df1e4, #23c7c8);
-        box-shadow: 0 12px 24px rgba(20, 184, 166, .22);
-        font-weight: 900;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-
-    .featured-report__action:hover {
-        color: #062b2f;
-        transform: translateY(-1px);
     }
 
     .report-group {
@@ -461,8 +342,7 @@
         font-weight: 900;
     }
 
-    .report-card.tone-teal,
-    .featured-report.tone-teal { border-left-color: #14b8a6; }
+    .report-card.tone-teal { border-left-color: #14b8a6; }
     .report-card.tone-blue { border-left-color: #258cfb; }
     .report-card.tone-green { border-left-color: #22c55e; }
     .report-card.tone-orange { border-left-color: #f59e0b; }
@@ -488,11 +368,6 @@
 
         .report-card-arrow {
             display: none;
-        }
-
-        .featured-report {
-            grid-template-columns: 1fr;
-            align-items: start;
         }
 
         .report-hero-stats {

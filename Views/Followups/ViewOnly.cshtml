@@ -1,0 +1,683 @@
+@model IEnumerable<ProjectTracking.Models.ProjectFollowup>
+@using System.Globalization
+
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var followups = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectFollowup>()).ToList();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var ownerList = ViewBag.OwnerList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var selectedOwner = ViewBag.SelectedOwner as string ?? "";
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    var today = DateTime.Today;
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
+    string DateTimeText(DateTime? value) => value?.ToString("dd/MM/yyyy HH:mm", th) ?? "-";
+    string SelectedProjectName() => selectedProjectId.HasValue
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        : "All Projects";
+
+    bool IsClosed(string? status)
+    {
+        var s = (status ?? "").Trim().ToUpperInvariant();
+        return s is "DONE" or "ACK";
+    }
+
+    string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "OPEN",
+        "IN_PROGRESS" => "IN_PROGRESS",
+        "DONE" => "DONE",
+        "ACK" => "ACK",
+        _ => TextOrDash(status)
+    };
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "warning",
+        "IN_PROGRESS" => "info",
+        "DONE" => "success",
+        "ACK" => "muted",
+        _ => "muted"
+    };
+
+    var openCount = followups.Count(x => string.Equals(x.Status, "OPEN", StringComparison.OrdinalIgnoreCase));
+    var progressCount = followups.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+    var doneCount = followups.Count(x => string.Equals(x.Status, "DONE", StringComparison.OrdinalIgnoreCase));
+    var ackCount = followups.Count(x => string.Equals(x.Status, "ACK", StringComparison.OrdinalIgnoreCase));
+    var overdueCount = followups.Count(x => !IsClosed(x.Status) && x.NextFollowupDate?.Date < today);
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Followups Report</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 11px;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.82);
+            font-weight: 700;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.35fr) minmax(220px, .9fr) minmax(160px, .55fr) auto;
+            align-items: end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-weight: 900;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            min-height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            clip-path: inset(50%) !important;
+        }
+        .pt-search-select { position: relative; width: 100%; }
+        .pt-search-select__field { position: relative; }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 38px 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            outline: none;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__clear {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: 0;
+            border-radius: 999px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            background: #e2e8f0;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .pt-search-select__clear.is-visible { display: inline-flex; }
+        .pt-search-select__clear:hover,
+        .pt-search-select__clear:focus {
+            color: #fff;
+            background: #102443;
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e2ef;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
+        .pt-search-select__option {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Sarabun', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: left;
+            cursor: pointer;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            color: #062b2f;
+            background: rgba(20, 184, 166, .14);
+        }
+        .pt-search-select__empty {
+            padding: 10px;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+        .filter-submit {
+            width: auto;
+            min-width: 88px;
+            justify-self: start;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+        }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi.muted { border-left-color: #64748b; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        h2 {
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 12px;
+        }
+        .followup-report-table col.col-seq { width: 5%; }
+        .followup-report-table col.col-task { width: 36%; }
+        .followup-report-table col.col-partner { width: 14%; }
+        .followup-report-table col.col-owner { width: 16%; }
+        .followup-report-table col.col-status { width: 11%; }
+        .followup-report-table col.col-date { width: 18%; }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 900;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: break-word;
+            word-break: normal;
+        }
+        tr:nth-child(even) td { background: #f8fbff; }
+        .text-center { text-align: center; }
+        .project-group-row td {
+            padding: 8px 10px;
+            color: #fff;
+            background: #18365e !important;
+            border-color: #18365e;
+            font-size: 12px;
+            font-weight: 900;
+        }
+        .project-group-name {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .project-group-label {
+            color: #8df1e4;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .project-group-count {
+            flex: 0 0 auto;
+            color: rgba(255, 255, 255, .78);
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .cell-title {
+            color: #10233f;
+            font-weight: 900;
+        }
+        .cell-sub {
+            margin-top: 4px;
+            color: #465a73;
+            font-weight: 700;
+        }
+        .meta-stack {
+            display: grid;
+            gap: 5px;
+        }
+        .meta-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: baseline;
+        }
+        .meta-label {
+            color: #64748b;
+            font-weight: 900;
+        }
+        .meta-value {
+            color: #10233f;
+            font-weight: 900;
+            text-align: right;
+        }
+        .status-text {
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .status-text.success { color: #0f8f5f; }
+        .status-text.warning { color: #b7790b; }
+        .status-text.info { color: #0f6fa8; }
+        .status-text.danger { color: #d6294f; }
+        .status-text.muted { color: #64748b; }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 800;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media print {
+            body {
+                padding: 0;
+                font-size: 10px;
+            }
+            .report-actions,
+            .filter-panel { display: none !important; }
+            .print-header { padding: 10px 12px; }
+            .print-header h1 { font-size: 18px; }
+            .kpi-grid { gap: 6px; }
+            .kpi { padding: 7px; }
+            .kpi strong { font-size: 16px; }
+            th,
+            td { padding: 5px 5px; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+        }
+        @@media (max-width: 1100px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+    </div>
+
+    <header class="print-header">
+        <h1>Followups Report</h1>
+        <div>
+            Project: @SelectedProjectName()<br />
+            Owner: @(string.IsNullOrWhiteSpace(selectedOwner) ? "All Owners" : selectedOwner)<br />
+            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+        </div>
+    </header>
+
+    <form method="get" class="filter-panel">
+        <div class="field">
+            <label for="projectId">Project</label>
+            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+                <option value="">-- All Projects --</option>
+                @foreach (var project in projects)
+                {
+                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
+                        @project.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="owner">Owner</label>
+            <select id="owner" name="owner" data-placeholder="🔍 พิมพ์ค้นหา Owner..." onchange="this.form.submit()">
+                <option value="">-- All Owners --</option>
+                @foreach (var item in ownerList)
+                {
+                    <option value="@item" selected="@(selectedOwner == item ? "selected" : null)">@item</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+                <option value="">-- All Statuses --</option>
+                @foreach (var item in statusList)
+                {
+                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi warning">
+            <span>Open</span>
+            <strong>@openCount</strong>
+            <small>รอติดตาม</small>
+        </article>
+        <article class="kpi info">
+            <span>In Progress</span>
+            <strong>@progressCount</strong>
+            <small>กำลังติดตาม</small>
+        </article>
+        <article class="kpi">
+            <span>Done</span>
+            <strong>@doneCount</strong>
+            <small>ดำเนินการแล้ว</small>
+        </article>
+        <article class="kpi muted">
+            <span>ACK</span>
+            <strong>@ackCount</strong>
+            <small>รับทราบแล้ว</small>
+        </article>
+        <article class="kpi danger">
+            <span>Overdue</span>
+            <strong>@overdueCount</strong>
+            <small>เลยกำหนดติดตาม</small>
+        </article>
+    </section>
+
+    <h2>Followups List</h2>
+    @if (!followups.Any())
+    {
+        <div class="empty">ไม่พบรายการ Followups ตามเงื่อนไขที่เลือก</div>
+    }
+    else
+    {
+        <table class="followup-report-table">
+            <colgroup>
+                <col class="col-seq" />
+                <col class="col-task" />
+                <col class="col-partner" />
+                <col class="col-owner" />
+                <col class="col-status" />
+                <col class="col-date" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Seq</th>
+                    <th>Follow-up</th>
+                    <th>Partner</th>
+                    <th>Owner</th>
+                    <th>Status</th>
+                    <th>Dates / Contact</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var projectGroups = followups
+                        .GroupBy(item => new
+                        {
+                            ProjectId = item.ProjectId ?? 0,
+                            ProjectName = TextOrDash(item.Project?.ProjectName)
+                        })
+                        .OrderBy(group => group.Key.ProjectName)
+                        .ToList();
+                }
+                @foreach (var projectGroup in projectGroups)
+                {
+                    var seq = 1;
+                    <tr class="project-group-row">
+                        <td colspan="6">
+                            <div class="project-group-name">
+                                <div>
+                                    <span class="project-group-label">Project</span>
+                                    @projectGroup.Key.ProjectName
+                                </div>
+                                <span class="project-group-count">@projectGroup.Count() รายการ</span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    @foreach (var followup in projectGroup)
+                    {
+                        var isOverdue = !IsClosed(followup.Status) && followup.NextFollowupDate?.Date < today;
+                        <tr>
+                            <td class="text-center">@seq</td>
+                            <td>
+                                <div class="cell-title">@TextOrDash(followup.TaskTitle)</div>
+                                <div class="cell-sub">Created: @DateTimeText(followup.CreatedAt)</div>
+                            </td>
+                            <td>@TextOrDash(followup.PartnerName)</td>
+                            <td>@TextOrDash(followup.Owner?.EmpName)</td>
+                            <td class="text-center">
+                                <span class="status-text @StatusClass(followup.Status)">@StatusText(followup.Status)</span>
+                            </td>
+                            <td>
+                                <div class="meta-stack">
+                                    <div class="meta-line">
+                                        <span class="meta-label">Next</span>
+                                        <span class="status-text @(isOverdue ? "danger" : "muted")">@DateText(followup.NextFollowupDate)</span>
+                                    </div>
+                                    <div class="meta-line">
+                                        <span class="meta-label">Last</span>
+                                        <span class="meta-value">@DateTimeText(followup.LastContactDate)</span>
+                                    </div>
+                                    <div class="meta-line">
+                                        <span class="meta-label">Type</span>
+                                        <span class="meta-value">@TextOrDash(followup.LastContactType)</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        seq++;
+                    }
+                }
+            </tbody>
+        </table>
+    }
+
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const field = document.createElement("div");
+                field.className = "pt-search-select__field";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+
+                const clearButton = document.createElement("button");
+                clearButton.type = "button";
+                clearButton.className = "pt-search-select__clear";
+                clearButton.title = "เลือกใหม่";
+                clearButton.setAttribute("aria-label", "เลือกใหม่");
+                clearButton.textContent = "×";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                field.appendChild(input);
+                field.appendChild(clearButton);
+                wrapper.appendChild(field);
+                wrapper.appendChild(dropdown);
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
+                select.classList.add("pt-native-select-hidden", "pt-dropdown-enhanced");
+
+                const options = Array.from(select.options).map(option => ({
+                    value: option.value,
+                    text: option.text.trim(),
+                    option
+                }));
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value ? selected.text.trim() : "";
+                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
+                }
+
+                function renderOptions() {
+                    const term = normalize(input.value);
+                    dropdown.innerHTML = "";
+
+                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
+                    if (!matches.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    matches.forEach(item => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (item.option.selected) button.classList.add("is-selected");
+                        button.textContent = item.text || "--";
+                        button.addEventListener("click", () => {
+                            select.value = item.value;
+                            syncInput();
+                            wrapper.classList.remove("is-open");
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                input.addEventListener("focus", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                input.addEventListener("input", () => {
+                    renderOptions();
+                    wrapper.classList.add("is-open");
+                });
+
+                clearButton.addEventListener("click", () => {
+                    select.value = "";
+                    syncInput();
+                    dispatchSelectChange(select);
+                });
+
+                document.addEventListener("click", event => {
+                    if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
+                });
+
+                syncInput();
+                renderOptions();
+            }
+
+            document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+        })();
+    </script>
+</body>
+</html>

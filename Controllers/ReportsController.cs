@@ -101,6 +101,17 @@ namespace ProjectTracking.Controllers
                     },
                     new()
                     {
+                        Group = "Followups",
+                        Title = "Followups Report",
+                        Description = "รายงานงานติดตามตามโครงการ ผู้รับผิดชอบ สถานะ วันที่ติดตามครั้งถัดไป และการติดต่อครั้งล่าสุด",
+                        Controller = "Followups",
+                        Action = "ViewOnly",
+                        PermissionKey = "Followups.Index",
+                        Icon = "/images/menu-icons/followups.svg",
+                        Tone = "green"
+                    },
+                    new()
+                    {
                         Group = "Attendance",
                         Title = "Attendance Map",
                         Description = "รายงาน Check-in/Check-out และตำแหน่งการลงเวลาของทีม",
