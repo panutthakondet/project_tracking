@@ -718,10 +718,21 @@ namespace ProjectTracking.Controllers
         // SAVE LOG (PASS / REWORK)
         // =====================================================
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("PhaseAssigns.Edit")]
         public async Task<IActionResult> SaveLog(int assignId, string status, string? remark)
         {
             try
             {
+                status = (status ?? "").Trim().ToUpperInvariant();
+                if (status != "PASS" && status != "REWORK")
+                    return BadRequest(new { success = false, message = "Invalid status" });
+
+                var assign = await _context.PhaseAssigns
+                    .FirstOrDefaultAsync(x => x.AssignId == assignId);
+                if (assign == null)
+                    return NotFound(new { success = false, message = "Assign not found" });
+
                 // 🔍 หา round ล่าสุด
                 var lastRound = await _context.PhaseAssignLogs
                     .Where(x => x.AssignId == assignId)
@@ -736,7 +747,7 @@ namespace ProjectTracking.Controllers
                 var log = new PhaseAssignLog
                 {
                     AssignId = assignId,
-                    Status = status?.Trim().ToUpper() ?? "REWORK",
+                    Status = status,
                     Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(),
                     RoundNo = nextRound,
                     CreatedBy = userId,
@@ -745,17 +756,18 @@ namespace ProjectTracking.Controllers
 
                 _context.PhaseAssignLogs.Add(log);
 
-                var assign = await _context.PhaseAssigns
-                    .FirstOrDefaultAsync(x => x.AssignId == assignId);
-                if (assign != null)
-                {
-                    assign.CreatedAt = DateTime.Now;
-                    assign.EntryId = await GetCurrentEntryIdAsync();
-                }
+                assign.WorkStatus = status == "PASS" ? "DONE" : "IN_PROGRESS";
+                assign.CreatedAt = DateTime.Now;
+                assign.EntryId = await GetCurrentEntryIdAsync();
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { success = true, round = nextRound });
+                return Ok(new
+                {
+                    success = true,
+                    round = nextRound,
+                    workStatus = assign.WorkStatus
+                });
             }
             catch (Exception ex)
             {

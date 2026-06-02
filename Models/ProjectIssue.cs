@@ -59,6 +59,15 @@ namespace ProjectTracking.Models
         [Column("IssuePriority", TypeName = "varchar(10)")]
         public string IssuePriority { get; set; } = "NORMAL";
 
+        // ===== Issue Period =====
+        [Column("StartDate", TypeName = "date")]
+        [DataType(DataType.Date)]
+        public DateTime? StartDate { get; set; }
+
+        [Column("EndDate", TypeName = "date")]
+        [DataType(DataType.Date)]
+        public DateTime? EndDate { get; set; }
+
         // MySQL datetime mapping
         [Column(TypeName = "datetime")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;

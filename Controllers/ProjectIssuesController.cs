@@ -150,6 +150,8 @@ namespace ProjectTracking.Controllers
         [RequireMenu("ProjectIssues.Create")]
         public async Task<IActionResult> Create(ProjectIssue model, List<IFormFile>? images)
         {
+            ValidateIssueDateRange(model);
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
@@ -274,6 +276,8 @@ namespace ProjectTracking.Controllers
 
             if (issue == null) return NotFound();
 
+            ValidateIssueDateRange(model);
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
@@ -296,6 +300,8 @@ namespace ProjectTracking.Controllers
             issue.EmpId = model.EmpId;
             issue.IssueStatus = newStatus;
             issue.IssuePriority = (model.IssuePriority ?? issue.IssuePriority ?? "NORMAL").Trim().ToUpperInvariant();
+            issue.StartDate = model.StartDate;
+            issue.EndDate = model.EndDate;
 
             bool wasFixed = oldStatus == "FIXED" || oldStatus == "PASS";
             bool reopened = newStatus == "OPEN" || newStatus == "WIP";
@@ -649,6 +655,16 @@ namespace ProjectTracking.Controllers
                 new[] { "TODO", "DOING", "FIXED", "BLOCK" },
                 selected
             );
+        }
+
+        private void ValidateIssueDateRange(ProjectIssue model)
+        {
+            if (model.StartDate.HasValue
+                && model.EndDate.HasValue
+                && model.EndDate.Value.Date < model.StartDate.Value.Date)
+            {
+                ModelState.AddModelError(nameof(ProjectIssue.EndDate), "วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม");
+            }
         }
 
     }

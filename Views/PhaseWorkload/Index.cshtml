@@ -23,6 +23,18 @@
         })
         .OrderBy(x => x.Key.EmpName)
         .ToList();
+
+    string NormalizeStatus(string? status) => (status ?? "").Trim().ToUpperInvariant();
+
+    string WorkStatusColor(string? status)
+    {
+        return NormalizeStatus(status) switch
+        {
+            "DONE" => "#A3E4B5",
+            "IN_PROGRESS" => "#FFE69C",
+            _ => "#FFE69C"
+        };
+    }
 }
 
 <div class="container-fluid px-2 px-md-3 d-flex justify-content-center workload-page-wrap">
@@ -257,9 +269,7 @@
                                             && currentDate >= phase.PlanStart.Value
                                             && currentDate <= phase.PlanEnd.Value;
 
-                                        string bgColor = phase.WorkStatus == "DONE"
-                                            ? "#A3E4B5"
-                                            : "#FFE69C";
+                                        string bgColor = WorkStatusColor(phase.WorkStatus);
 
                                         <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")">
                                             @if (isWorking)

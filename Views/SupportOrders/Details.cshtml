@@ -494,11 +494,41 @@
 </div>
 
 <script>
+function prepareSupportImagePreviewModal(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return null;
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    modalEl.style.zIndex = '26010';
+    return modalEl;
+}
+
 function previewSupportImage(src) {
     const img = document.getElementById("supportPreviewImage");
     img.src = src;
 
-    const modal = new bootstrap.Modal(document.getElementById("supportImagePreviewModal"));
+    const modalEl = prepareSupportImagePreviewModal("supportImagePreviewModal");
+    if (!modalEl) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: true,
+        keyboard: true
+    });
     modal.show();
+
+    window.setTimeout(function () {
+        modalEl.style.zIndex = '26010';
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            backdrop.style.zIndex = '26000';
+        });
+    }, 0);
 }
 </script>

@@ -60,7 +60,8 @@ namespace ProjectTracking.Controllers
                     Phase = x.Phase,
                     Role = x.Role,
                     PlanStart = x.PlanStart,
-                    PlanEnd = x.PlanEnd
+                    PlanEnd = x.PlanEnd,
+                    WorkStatus = x.WorkStatus
                 })
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.PlanStart)

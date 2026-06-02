@@ -9,6 +9,7 @@
     var afterImages = issue.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
 
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
@@ -444,6 +445,14 @@
                     <div class="dev-info-value">@TextOrDash(issue.Employee?.EmpName)</div>
                 </div>
                 <div class="dev-info-row">
+                    <div class="dev-info-label">Start Date</div>
+                    <div class="dev-info-value">@DateOrDash(issue.StartDate)</div>
+                </div>
+                <div class="dev-info-row">
+                    <div class="dev-info-label">End Date</div>
+                    <div class="dev-info-value">@DateOrDash(issue.EndDate)</div>
+                </div>
+                <div class="dev-info-row">
                     <div class="dev-info-label">Priority</div>
                     <div class="dev-info-value">
                         <span class="status-text @PriorityClass(issue.IssuePriority)">@TextOrDash(issue.IssuePriority)</span>
@@ -479,11 +488,41 @@
 </div>
 
 <script>
+function prepareDevImagePreviewModal(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return null;
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    modalEl.style.zIndex = '26010';
+    return modalEl;
+}
+
 function previewDevImage(src) {
     const img = document.getElementById("devPreviewImage");
     img.src = src;
 
-    const modal = new bootstrap.Modal(document.getElementById("devImagePreviewModal"));
+    const modalEl = prepareDevImagePreviewModal("devImagePreviewModal");
+    if (!modalEl) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: true,
+        keyboard: true
+    });
     modal.show();
+
+    window.setTimeout(function () {
+        modalEl.style.zIndex = '26010';
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            backdrop.style.zIndex = '26000';
+        });
+    }, 0);
 }
 </script>

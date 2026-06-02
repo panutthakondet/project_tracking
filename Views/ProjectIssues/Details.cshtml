@@ -20,6 +20,7 @@
     }
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
 }
 
 <style>
@@ -411,6 +412,14 @@
                     <div class="issue-info-label">Owner</div>
                     <div class="issue-info-value">@TextOrDash(issue?.Employee?.EmpName)</div>
                 </div>
+                <div class="issue-info-row">
+                    <div class="issue-info-label">Start Date</div>
+                    <div class="issue-info-value">@DateOrDash(issue?.StartDate)</div>
+                </div>
+                <div class="issue-info-row">
+                    <div class="issue-info-label">End Date</div>
+                    <div class="issue-info-value">@DateOrDash(issue?.EndDate)</div>
+                </div>
             </div>
         </article>
 
@@ -437,11 +446,41 @@
 </div>
 
 <script>
+function prepareImagePreviewModal(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return null;
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    modalEl.style.zIndex = '26010';
+    return modalEl;
+}
+
 function previewImage(src){
     const img = document.getElementById("previewImage");
     img.src = src;
 
-    const modal = new bootstrap.Modal(document.getElementById("imagePreviewModal"));
+    const modalEl = prepareImagePreviewModal("imagePreviewModal");
+    if (!modalEl) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: true,
+        keyboard: true
+    });
     modal.show();
+
+    window.setTimeout(function () {
+        modalEl.style.zIndex = '26010';
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            backdrop.style.zIndex = '26000';
+        });
+    }, 0);
 }
 </script>

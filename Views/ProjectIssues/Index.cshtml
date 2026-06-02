@@ -5,6 +5,13 @@
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var selectedEmp = ViewBag.SelectedEmp as string;
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+
+    string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
+    string PeriodText(ProjectTracking.Models.ProjectIssue issue)
+    {
+        if (!issue.StartDate.HasValue && !issue.EndDate.HasValue) return "-";
+        return $"{DateOrDash(issue.StartDate)} - {DateOrDash(issue.EndDate)}";
+    }
 }
 
 @using Microsoft.AspNetCore.Http
@@ -324,6 +331,7 @@ else
 
                     <div class="issue-meta">
                         <span>📅 สร้างเมื่อ @i.CreatedAt.ToString("dd/MM/yyyy")</span>
+                        <span>🗓 ช่วงวันที่: @PeriodText(i)</span>
                         <span>👤 Owner: @(i.Employee?.EmpName ?? "-")</span>
                         <span>🛠 Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                     </div>

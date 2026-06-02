@@ -8,6 +8,13 @@
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var issueList = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
 
+    string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
+    string PeriodText(ProjectTracking.Models.ProjectIssue issue)
+    {
+        if (!issue.StartDate.HasValue && !issue.EndDate.HasValue) return "-";
+        return $"{DateOrDash(issue.StartDate)} - {DateOrDash(issue.EndDate)}";
+    }
+
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "bg-warning text-dark",
@@ -282,6 +289,7 @@
 
                         <div class="dev-issue-meta">
                             <span>สร้างเมื่อ @i.CreatedAt.ToString("dd/MM/yyyy")</span>
+                            <span>ช่วงวันที่: @PeriodText(i)</span>
                             <span>Owner: @(i.Employee?.EmpName ?? "-")</span>
                             <span>Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                         </div>

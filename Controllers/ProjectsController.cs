@@ -121,58 +121,10 @@ namespace ProjectTracking.Controllers
             Project project
         )
         {
-            // รองรับวันที่แบบ วัน/เดือน/พ.ศ. และ yyyy-MM-dd
-            if (!string.IsNullOrWhiteSpace(Request.Form["StartDate"]))
-            {
-                var raw = Request.Form["StartDate"].ToString().Trim();
-
-                if (DateTime.TryParseExact(
-                        raw,
-                        "yyyy-MM-dd",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out var dt)
-                    || DateTime.TryParseExact(
-                        raw,
-                        "dd/MM/yyyy",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out dt))
-                {
-                    if (dt.Year > 2400)
-                    {
-                        dt = dt.AddYears(-543);
-                    }
-
-                    project.StartDate = dt;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(Request.Form["EndDate"]))
-            {
-                var raw = Request.Form["EndDate"].ToString().Trim();
-
-                if (DateTime.TryParseExact(
-                        raw,
-                        "yyyy-MM-dd",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out var dt)
-                    || DateTime.TryParseExact(
-                        raw,
-                        "dd/MM/yyyy",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.None,
-                        out dt))
-                {
-                    if (dt.Year > 2400)
-                    {
-                        dt = dt.AddYears(-543);
-                    }
-
-                    project.EndDate = dt;
-                }
-            }
+            ModelState.Remove(nameof(Project.StartDate));
+            ModelState.Remove(nameof(Project.EndDate));
+            project.StartDate = ParseProjectDate(Request.Form["StartDate"]);
+            project.EndDate = ParseProjectDate(Request.Form["EndDate"]);
 
             if (!ModelState.IsValid)
             {

@@ -12,6 +12,7 @@
     var projectName = Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
 
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
@@ -166,6 +167,16 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">👤 เจ้าของงาน</label>
                     <div class="pt-readonly-field">@TextOrDash(Model.Employee?.EmpName)</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📅 วันที่เริ่ม</label>
+                    <div class="pt-readonly-field">@DateOrDash(Model.StartDate)</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🏁 วันที่สิ้นสุด</label>
+                    <div class="pt-readonly-field">@DateOrDash(Model.EndDate)</div>
                 </div>
 
                 <div class="col-md-3">

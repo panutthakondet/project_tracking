@@ -649,6 +649,32 @@ thead .sticky-col { z-index: 5; }
             width: auto;
         }
     }
+
+    #logModal {
+        z-index: 26010;
+    }
+
+    .modal-backdrop.show {
+        z-index: 26000;
+        opacity: .58;
+    }
+
+    .phase-log-modal .modal-content {
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 24px 70px rgba(15, 35, 64, .28);
+        overflow: hidden;
+    }
+
+    .phase-log-modal .modal-header,
+    .phase-log-modal .modal-footer {
+        background: #f8fafc;
+    }
+
+    .phase-log-modal .modal-title {
+        color: #10233f;
+        font-weight: 900;
+    }
     </style>
 
     @* Card layout for assign records *@
@@ -809,12 +835,12 @@ else
 
 <form id="antiForgeryForm" method="post" style="display:none;">@Html.AntiForgeryToken()</form>
 
-<div class="modal fade" id="logModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+<div class="modal fade phase-log-modal" id="logModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">บันทึกผล (PASS / REWORK)</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title" id="logModalTitle">บันทึกผล (PASS / REWORK)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
       </div>
       <div class="modal-body">
         <label class="form-label fw-bold">Remark</label>
@@ -829,8 +855,8 @@ else
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-        <button class="btn btn-primary" onclick="submitLog()">บันทึก</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" id="logSubmitBtn" class="btn btn-primary" onclick="submitLog()">บันทึก</button>
       </div>
     </div>
   </div>
@@ -1064,17 +1090,58 @@ document.addEventListener("DOMContentLoaded", function () {
 let __logAssignId = null;
 let __logStatus = null;
 
+function prepareLogModalElement() {
+    const modalEl = document.getElementById('logModal');
+    if (!modalEl) return null;
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    modalEl.style.zIndex = '26010';
+    return modalEl;
+}
+
 function openLogModal(assignId, status) {
     __logAssignId = assignId;
-    __logStatus = status;
+    __logStatus = (status || '').toUpperCase();
+
+    const modalEl = prepareLogModalElement();
+    if (!modalEl) return;
 
     const ta = document.getElementById('logRemark');
     const counter = document.getElementById('logCounter');
+    const title = document.getElementById('logModalTitle');
+    const submitButton = document.getElementById('logSubmitBtn');
     ta.value = '';
     counter.textContent = '0 / 1000';
 
-    const modal = new bootstrap.Modal(document.getElementById('logModal'));
+    const isPass = __logStatus === 'PASS';
+    title.textContent = isPass ? 'บันทึกผล PASS - ผ่านงาน' : 'บันทึกผล REWORK - แก้ไขใหม่';
+
+    submitButton.disabled = false;
+    submitButton.textContent = 'บันทึก';
+    submitButton.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'text-dark');
+    submitButton.classList.add(isPass ? 'btn-success' : 'btn-warning');
+    if (!isPass) submitButton.classList.add('text-dark');
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: true,
+        keyboard: true
+    });
     modal.show();
+
+    window.setTimeout(function () {
+        modalEl.style.zIndex = '26010';
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            backdrop.style.zIndex = '26000';
+        });
+    }, 0);
 }
 
 function onRemarkInput() {
@@ -1087,24 +1154,60 @@ function onRemarkInput() {
 function submitLog() {
     const ta = document.getElementById('logRemark');
     const remark = ta.value || '';
+    const submitButton = document.getElementById('logSubmitBtn');
+    const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value;
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    const body = new URLSearchParams();
 
-    fetch('/PhaseAssigns/SaveLog', {
+    body.append('assignId', __logAssignId);
+    body.append('status', __logStatus);
+    body.append('remark', remark);
+
+    if (token) {
+        headers['RequestVerificationToken'] = token;
+    }
+
+    submitButton.disabled = true;
+    submitButton.textContent = 'กำลังบันทึก...';
+
+    fetch('@Url.Action("SaveLog", "PhaseAssigns")', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: `assignId=${__logAssignId}&status=${__logStatus}&remark=${encodeURIComponent(remark)}`
+        headers,
+        body
     })
-    .then(res => res.json())
+    .then(async res => {
+        const text = await res.text();
+        let data = null;
+
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch {
+            data = { message: text };
+        }
+
+        if (!res.ok) {
+            throw new Error(data?.message || 'บันทึกไม่สำเร็จ');
+        }
+
+        return data;
+    })
     .then(data => {
         if (data && data.success) {
             alert('บันทึกสำเร็จ (รอบ ' + data.round + ')');
             location.reload();
         } else {
-            alert('บันทึกไม่สำเร็จ');
+            submitButton.disabled = false;
+            submitButton.textContent = 'บันทึก';
+            alert(data?.message || 'บันทึกไม่สำเร็จ');
         }
     })
-    .catch(() => alert('เกิดข้อผิดพลาด'));
+    .catch((error) => {
+        submitButton.disabled = false;
+        submitButton.textContent = 'บันทึก';
+        alert(error?.message || 'เกิดข้อผิดพลาด');
+    });
 }
 </script>
 }
