@@ -1,88 +1,222 @@
 @model ProjectTracking.Models.ProjectIssue
+@using System.Linq
 
 @{
     ViewData["Title"] = "รายละเอียด Issue (Dev)";
-    var beforeImages = Model.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
-    var afterImages = Model.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
 
-    string BadgeClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    var issue = Model;
+    var beforeImages = issue.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
+    var afterImages = issue.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "OPEN" => "bg-warning text-dark",
-        "WIP" => "bg-info text-dark",
-        "FIXED" => "bg-success",
-        "PASS" => "bg-primary",
-        "FAIL" => "bg-danger",
-        "REJECT" => "bg-dark",
-        "TODO" => "bg-secondary",
-        "DOING" => "bg-info text-dark",
-        "BLOCK" => "bg-danger",
-        _ => "bg-secondary"
+        "OPEN" => "warning",
+        "WIP" => "info",
+        "FIXED" => "success",
+        "PASS" => "success",
+        "FAIL" => "danger",
+        "REJECT" => "danger",
+        "TODO" => "muted",
+        "DOING" => "info",
+        "BLOCK" => "danger",
+        _ => "muted"
+    };
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "NORMAL" => "info",
+        "LOW" => "success",
+        _ => "muted"
     };
 }
 
 <style>
     .dev-detail-page {
-        max-width: 1180px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
     }
 
-    .dev-detail-hero {
+    .dev-issue-hero {
+        color: #fff;
+        background: linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .22);
+        margin-bottom: 18px;
+    }
+
+    .dev-hero-top {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 18px;
-        color: #fff;
-        background:
-            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
-            linear-gradient(135deg, #10233f, #1f3b63);
-        border-radius: 22px;
-        padding: 22px 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+        gap: 20px;
     }
 
-    .dev-detail-title {
+    .dev-hero-main {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .dev-eyebrow {
+        color: rgba(216, 230, 247, .86);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .dev-title {
         margin: 0;
+        color: #fff;
         font-size: clamp(24px, 3vw, 34px);
         font-weight: 900;
-        line-height: 1.25;
-        word-break: break-word;
+        line-height: 1.22;
     }
 
-    .dev-detail-subtitle {
+    .dev-subtitle {
+        max-width: 820px;
+        margin: 8px 0 0;
         color: #d8e6f7;
         font-weight: 700;
-        margin: 8px 0 0;
+        line-height: 1.5;
     }
 
-    .dev-detail-grid {
+    .dev-hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+    }
+
+    .dev-hero-actions .btn {
+        min-width: 136px;
+        min-height: 42px;
+        border-radius: 999px !important;
+        font-size: .95rem;
+        font-weight: 900;
+        padding: .58rem 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
+    }
+
+    .dev-issue-hero .btn-primary {
+        color: #062b2f !important;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+        border-color: transparent !important;
+    }
+
+    .dev-issue-hero .btn-outline-light {
+        color: #fff !important;
+        background: rgba(255,255,255,.08);
+        border-color: rgba(255,255,255,.55) !important;
+    }
+
+    .dev-issue-hero .btn-outline-light:hover {
+        background: rgba(255,255,255,.18) !important;
+    }
+
+    .dev-summary-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 340px;
-        gap: 16px;
-        align-items: start;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
     }
 
+    .dev-summary-card,
     .dev-panel {
         background: #fff;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
         box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .dev-summary-card {
+        min-height: 92px;
+        padding: 14px 16px;
+    }
+
+    .dev-summary-card small {
+        display: block;
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .dev-summary-card b {
+        color: #10233f;
+        font-size: 16px;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .dev-content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .dev-bottom-stack {
+        display: grid;
+        gap: 16px;
+    }
+
+    .dev-panel {
         padding: 18px;
     }
 
-    .dev-panel + .dev-panel {
-        margin-top: 16px;
-    }
-
     .dev-panel h3 {
+        margin: 0 0 12px;
         color: #10233f;
         font-size: 18px;
         font-weight: 900;
-        margin: 0 0 12px;
+    }
+
+    .dev-info-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .dev-info-row {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .dev-info-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .dev-info-value {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.45;
+        word-break: break-word;
     }
 
     .dev-text-box {
-        min-height: 130px;
+        min-height: 150px;
         color: #24364d;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -93,43 +227,57 @@
         word-break: break-word;
     }
 
-    .dev-meta-grid {
-        display: grid;
-        gap: 10px;
-    }
-
-    .dev-meta-row {
-        display: grid;
-        grid-template-columns: 92px minmax(0, 1fr);
-        gap: 10px;
+    .dev-gallery-head {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
-    .dev-meta-row small {
-        color: #64748b;
-        font-size: 12px;
+    .dev-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
         font-weight: 900;
-        text-transform: uppercase;
-    }
-
-    .dev-meta-row b {
-        color: #10233f;
-        word-break: break-word;
+        white-space: nowrap;
     }
 
     .dev-gallery-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 12px;
     }
 
-    .dev-gallery-grid img {
+    .dev-image-card {
+        display: block;
+        width: 100%;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        padding: 8px;
+        background: #f8fafc;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .dev-image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .14);
+    }
+
+    .dev-image-card img {
+        display: block;
         width: 100%;
         aspect-ratio: 1 / 1;
         object-fit: cover;
-        border-radius: 12px;
-        border: 1px solid #d8e3ef;
-        background: #f8fafc;
+        border-radius: 10px;
     }
 
     .dev-empty {
@@ -142,104 +290,200 @@
         font-weight: 800;
     }
 
+    .status-text {
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-text.success { color: #0f8f5f; }
+    .status-text.warning { color: #b7790b; }
+    .status-text.info { color: #0f6fa8; }
+    .status-text.danger { color: #d6294f; }
+    .status-text.muted { color: #64748b; }
+
     @@media (max-width: 991.98px) {
-        .dev-detail-hero,
-        .dev-detail-grid {
+        .dev-hero-top,
+        .dev-content-grid {
             grid-template-columns: 1fr;
             display: grid;
+        }
+
+        .dev-hero-actions {
+            justify-content: flex-start;
+        }
+
+        .dev-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .dev-summary-grid,
+        .dev-info-row {
+            grid-template-columns: 1fr;
+        }
+
+        .dev-hero-actions .btn {
+            width: 100%;
         }
     }
 </style>
 
 <div class="dev-detail-page">
-    <div class="dev-detail-hero">
-        <div>
-            <h2 class="dev-detail-title">@Model.IssueName</h2>
-            <p class="dev-detail-subtitle">Project: @(Model.Project?.ProjectName ?? "-")</p>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a asp-action="DevEdit" asp-route-id="@Model.IssueId" asp-route-projectId="@Model.ProjectId" class="btn btn-primary">Edit Dev</a>
-            <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-light">Back</a>
-        </div>
-    </div>
-
-    <div class="dev-detail-grid">
-        <div>
-            <div class="dev-panel">
-                <h3>รายละเอียด Issue</h3>
-                <div class="dev-text-box">@(Model.IssueDetail ?? "-")</div>
+    <section class="dev-issue-hero">
+        <div class="dev-hero-top">
+            <div class="dev-hero-main">
+                <div class="dev-eyebrow">Project Issue Dev #@issue.IssueId</div>
+                <h1 class="dev-title">รายละเอียดการแก้ไข Issue</h1>
+                <p class="dev-subtitle">ตรวจรายละเอียดปัญหา รูปประกอบ และสถานะการแก้ไขของทีมพัฒนา</p>
             </div>
 
-            <div class="dev-panel">
-                <h3>รายละเอียดการแก้ไข</h3>
-                <div class="dev-text-box">@(Model.DevDetail ?? "-")</div>
-            </div>
-
-            <div class="dev-panel">
-                <h3>รูปก่อนแก้ (@beforeImages.Count)</h3>
-                @if (beforeImages.Any())
-                {
-                    <div class="dev-gallery-grid">
-                        @foreach (var img in beforeImages)
-                        {
-                            <a href="@img.FilePath" target="_blank" rel="noopener">
-                                <img src="@img.FilePath" alt="@img.FileName" />
-                            </a>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="dev-empty">ยังไม่มีรูปก่อนแก้</div>
-                }
-            </div>
-
-            <div class="dev-panel">
-                <h3>รูปหลังแก้ (@afterImages.Count)</h3>
-                @if (afterImages.Any())
-                {
-                    <div class="dev-gallery-grid">
-                        @foreach (var img in afterImages)
-                        {
-                            <a href="@img.FilePath" target="_blank" rel="noopener">
-                                <img src="@img.FilePath" alt="@img.FileName" />
-                            </a>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="dev-empty">ยังไม่มีรูปหลังแก้</div>
-                }
+            <div class="dev-hero-actions">
+                <a asp-action="DevIndex"
+                   asp-route-projectId="@issue.ProjectId"
+                   class="btn btn-outline-light">
+                    กลับรายการ Dev
+                </a>
+                <a asp-action="DevEdit"
+                   asp-route-id="@issue.IssueId"
+                   asp-route-projectId="@issue.ProjectId"
+                   class="btn btn-primary">
+                    อัปเดต Dev
+                </a>
             </div>
         </div>
+    </section>
 
-        <div>
-            <div class="dev-panel">
-                <h3>สถานะ</h3>
-                <div class="dev-meta-grid">
-                    <div class="dev-meta-row">
-                        <small>Priority</small>
-                        <span class="badge @(Model.IssuePriority == "URGENT" ? "bg-danger" : "bg-secondary")">@Model.IssuePriority</span>
-                    </div>
-                    <div class="dev-meta-row">
-                        <small>Issue</small>
-                        <span class="badge @BadgeClass(Model.IssueStatus)">@Model.IssueStatus</span>
-                    </div>
-                    <div class="dev-meta-row">
-                        <small>Dev</small>
-                        <span class="badge @BadgeClass(Model.DevStatus)">@Model.DevStatus</span>
-                    </div>
-                    <div class="dev-meta-row">
-                        <small>Last Fix</small>
-                        <b>@(Model.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
-                    </div>
-                    <div class="dev-meta-row">
-                        <small>Owner</small>
-                        <b>@(Model.Employee?.EmpName ?? "-")</b>
+    <section class="dev-summary-grid">
+        <div class="dev-summary-card">
+            <small>Issue Status</small>
+            <b class="status-text @StatusClass(issue.IssueStatus)">@TextOrDash(issue.IssueStatus)</b>
+        </div>
+        <div class="dev-summary-card">
+            <small>Dev Status</small>
+            <b class="status-text @StatusClass(issue.DevStatus)">@TextOrDash(issue.DevStatus)</b>
+        </div>
+        <div class="dev-summary-card">
+            <small>Last Fix</small>
+            <b>@(issue.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
+        </div>
+        <div class="dev-summary-card">
+            <small>Images</small>
+            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+        </div>
+    </section>
+
+    <section class="dev-content-grid">
+        <article class="dev-panel">
+            <div class="dev-gallery-head">
+                <h3>รูปก่อนแก้</h3>
+                <span class="dev-count">@beforeImages.Count รูป</span>
+            </div>
+
+            @if (beforeImages.Count > 0)
+            {
+                <div class="dev-gallery-grid">
+                    @foreach (var img in beforeImages)
+                    {
+                        <button type="button"
+                                class="dev-image-card"
+                                onclick="previewDevImage('@img.FilePath')"
+                                aria-label="ดูรูปก่อนแก้">
+                            <img src="@img.FilePath" alt="Issue image before fix" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="dev-empty">ไม่มีรูปก่อนแก้</div>
+            }
+        </article>
+
+        <article class="dev-panel">
+            <div class="dev-gallery-head">
+                <h3>รูปหลังแก้</h3>
+                <span class="dev-count">@afterImages.Count รูป</span>
+            </div>
+
+            @if (afterImages.Count > 0)
+            {
+                <div class="dev-gallery-grid">
+                    @foreach (var img in afterImages)
+                    {
+                        <button type="button"
+                                class="dev-image-card"
+                                onclick="previewDevImage('@img.FilePath')"
+                                aria-label="ดูรูปหลังแก้">
+                            <img src="@img.FilePath" alt="Issue image after fix" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="dev-empty">ไม่มีรูปหลังแก้</div>
+            }
+        </article>
+    </section>
+
+    <section class="dev-bottom-stack">
+        <article class="dev-panel">
+            <h3>ข้อมูล Issue</h3>
+            <div class="dev-info-grid">
+                <div class="dev-info-row">
+                    <div class="dev-info-label">Issue</div>
+                    <div class="dev-info-value">@TextOrDash(issue.IssueName)</div>
+                </div>
+                <div class="dev-info-row">
+                    <div class="dev-info-label">Project</div>
+                    <div class="dev-info-value">@TextOrDash(issue.Project?.ProjectName)</div>
+                </div>
+                <div class="dev-info-row">
+                    <div class="dev-info-label">Owner</div>
+                    <div class="dev-info-value">@TextOrDash(issue.Employee?.EmpName)</div>
+                </div>
+                <div class="dev-info-row">
+                    <div class="dev-info-label">Priority</div>
+                    <div class="dev-info-value">
+                        <span class="status-text @PriorityClass(issue.IssuePriority)">@TextOrDash(issue.IssuePriority)</span>
                     </div>
                 </div>
+                <div class="dev-info-row">
+                    <div class="dev-info-label">Created</div>
+                    <div class="dev-info-value">@issue.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="dev-panel">
+            <h3>รายละเอียดปัญหา</h3>
+            <div class="dev-text-box">@(string.IsNullOrWhiteSpace(issue.IssueDetail) ? "-" : issue.IssueDetail)</div>
+        </article>
+
+        <article class="dev-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="dev-text-box">@(string.IsNullOrWhiteSpace(issue.DevDetail) ? "-" : issue.DevDetail)</div>
+        </article>
+    </section>
+</div>
+
+<div class="modal fade" id="devImagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-body text-center p-2">
+                <img id="devPreviewImage" src="" class="img-fluid rounded" alt="preview" />
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function previewDevImage(src) {
+    const img = document.getElementById("devPreviewImage");
+    img.src = src;
+
+    const modal = new bootstrap.Modal(document.getElementById("devImagePreviewModal"));
+    modal.show();
+}
+</script>

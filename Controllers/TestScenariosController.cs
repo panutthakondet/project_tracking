@@ -241,16 +241,33 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.ProjectName)
                 .ToListAsync();
 
-            var groups = await _context.TestTemplateGroups
-                .AsNoTracking()
-                .OrderBy(x => x.sort_order)
-                .ThenBy(x => x.group_name)
-                .ToListAsync();
-
             var allScenarios = await _context.TestScenarios
                 .AsNoTracking()
                 .Include(x => x.Group)
                 .ToListAsync();
+
+            var groupQuery = _context.TestTemplateGroups
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (projectId.HasValue)
+            {
+                var projectGroupIds = allScenarios
+                    .Where(x => x.project_id == projectId.Value && x.group_id.HasValue)
+                    .Select(x => x.group_id!.Value)
+                    .Distinct()
+                    .ToList();
+
+                groupQuery = groupQuery.Where(x => projectGroupIds.Contains(x.group_id));
+            }
+
+            var groups = await groupQuery
+                .OrderBy(x => x.sort_order)
+                .ThenBy(x => x.group_name)
+                .ToListAsync();
+
+            if (groupId.HasValue && !groups.Any(x => x.group_id == groupId.Value))
+                groupId = null;
 
             var statusList = allScenarios
                 .Select(x => x.status)

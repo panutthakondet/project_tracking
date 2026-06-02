@@ -1,109 +1,93 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
+@using ProjectTracking.Models
 @using System.Collections.Generic
+@using System.Linq
 @model ProjectTracking.Models.ProjectIssue
 
 @{
     ViewData["Title"] = "Dev Update Issue";
+
     var devStatusItems = ViewBag.DevStatusList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
-    var fixImages = Model.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
+    var fixImages = Model.FixImages?.ToList() ?? new List<ProjectIssueFixImage>();
+    var projectName = Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "warning",
+        "WIP" => "info",
+        "FIXED" => "success",
+        "PASS" => "success",
+        "FAIL" => "danger",
+        "REJECT" => "danger",
+        "TODO" => "muted",
+        "DOING" => "info",
+        "BLOCK" => "danger",
+        _ => "muted"
+    };
 }
 
 <style>
-    .dev-edit-page {
-        max-width: 1180px;
-        margin: 0 auto;
-    }
-
-    .dev-edit-hero {
+    .dev-edit-gallery-head {
         display: flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        color: #fff;
-        background:
-            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
-            linear-gradient(135deg, #10233f, #1f3b63);
-        border-radius: 22px;
-        padding: 22px 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
-    .dev-edit-title {
+    .dev-edit-section-title {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
         margin: 0;
-        font-size: clamp(24px, 3vw, 34px);
+    }
+
+    .dev-edit-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
         font-weight: 900;
-        line-height: 1.25;
+        white-space: nowrap;
     }
 
-    .dev-edit-subtitle {
-        color: #d8e6f7;
-        font-weight: 700;
-        margin: 8px 0 0;
-        word-break: break-word;
-    }
-
-    .dev-edit-grid {
+    .dev-edit-gallery {
         display: grid;
-        grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
-        gap: 16px;
-        align-items: start;
-    }
-
-    .dev-edit-panel {
-        background: #fff;
-        border: 1px solid #d8e3ef;
-        border-radius: 18px;
-        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
-        padding: 18px;
-    }
-
-    .dev-edit-panel + .dev-edit-panel {
-        margin-top: 16px;
-    }
-
-    .dev-edit-panel h3 {
-        color: #10233f;
-        font-size: 18px;
-        font-weight: 900;
-        margin: 0 0 12px;
-    }
-
-    .dev-readonly {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 12px 14px;
-        color: #10233f;
-        font-weight: 800;
-        line-height: 1.45;
-        word-break: break-word;
-        min-height: 48px;
-    }
-
-    .dev-image-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
         margin-bottom: 14px;
     }
 
-    .dev-image-card {
+    .dev-edit-image-card {
         border: 1px solid #d8e3ef;
         background: #f8fafc;
         border-radius: 14px;
         padding: 8px;
+        overflow: hidden;
     }
 
-    .dev-image-card img {
+    .dev-edit-image-card img {
         width: 100%;
         aspect-ratio: 1 / 1;
         object-fit: cover;
         border-radius: 10px;
         display: block;
+        transition: transform .15s, box-shadow .15s;
     }
 
-    .dev-delete-check {
+    .dev-edit-image-card a:hover img {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(15, 35, 64, .15);
+    }
+
+    .dev-edit-delete-check {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -113,105 +97,134 @@
         font-weight: 900;
     }
 
-    .dev-empty {
+    .dev-edit-empty {
         border: 1px dashed #cbd5e1;
         border-radius: 14px;
         color: #64748b;
         background: #f8fafc;
         padding: 18px;
-        text-align: center;
         font-weight: 800;
+        text-align: center;
         margin-bottom: 14px;
     }
 
-    @@media (max-width: 991.98px) {
-        .dev-edit-hero,
-        .dev-edit-grid {
-            grid-template-columns: 1fr;
-            display: grid;
-        }
+    .dev-edit-note {
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        padding: 12px 14px;
+        font-weight: 700;
+        line-height: 1.55;
     }
+
+    .dev-status-text {
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .dev-status-text.success { color: #0f8f5f; }
+    .dev-status-text.warning { color: #b7790b; }
+    .dev-status-text.info { color: #0f6fa8; }
+    .dev-status-text.danger { color: #d6294f; }
+    .dev-status-text.muted { color: #64748b; }
 </style>
 
-<div class="dev-edit-page">
-    <div class="dev-edit-hero">
-        <div>
-            <h2 class="dev-edit-title">Dev Update Issue</h2>
-            <p class="dev-edit-subtitle">@Model.IssueName</p>
-        </div>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">Project Issue Dev #@Model.IssueId</span>
+        <h2 class="index-title">อัปเดตการแก้ไข Issue</h2>
+        <p class="index-subtitle">@projectName</p>
     </div>
+</div>
 
-    <div class="dev-edit-grid">
-        <div>
-            <div class="dev-edit-panel">
-                <h3>ข้อมูล Issue</h3>
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
+        <form asp-action="DevEdit"
+              asp-route-id="@Model.IssueId"
+              method="post"
+              enctype="multipart/form-data"
+              onsubmit="return confirm('บันทึกการอัปเดต Dev Issue นี้หรือไม่?');">
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Issue</label>
-                    <div class="dev-readonly">@Model.IssueName</div>
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="IssueId" />
+            <input type="hidden" asp-for="ProjectId" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">📁 Project</label>
+                    <div class="pt-readonly-field">@projectName</div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Project</label>
-                    <div class="dev-readonly">@(Model.Project?.ProjectName ?? "-")</div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">หัวข้อปัญหา</label>
+                    <div class="pt-readonly-field">@TextOrDash(Model.IssueName)</div>
                 </div>
 
-                <div>
-                    <label class="form-label fw-semibold">แจ้งโดย</label>
-                    <div class="dev-readonly">@(Model.Employee?.EmpName ?? "-")</div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">👤 เจ้าของงาน</label>
+                    <div class="pt-readonly-field">@TextOrDash(Model.Employee?.EmpName)</div>
                 </div>
-            </div>
 
-            <div class="dev-edit-panel">
-                <h3>สถานะล่าสุด</h3>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Issue Status</label>
-                        <div class="dev-readonly">@Model.IssueStatus</div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📌 สถานะ Issue</label>
+                    <div class="pt-readonly-field">
+                        <span class="dev-status-text @StatusClass(Model.IssueStatus)">@TextOrDash(Model.IssueStatus)</span>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Last Fixed At</label>
-                        <div class="dev-readonly">@(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">🛠 Last Fixed</label>
+                    <div class="pt-readonly-field">
+                        @(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "ยังไม่เคย Fix")
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="dev-edit-panel">
-            <h3>อัปเดตการแก้ไข</h3>
-
-            <form asp-action="DevEdit" asp-route-id="@Model.IssueId" method="post" enctype="multipart/form-data">
-                @Html.AntiForgeryToken()
-                <input type="hidden" asp-for="IssueId" />
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Dev Status</label>
-                    <select asp-for="DevStatus" class="form-select" asp-items="devStatusItems" required></select>
-                    <small class="text-muted">ระบบจะตั้ง Last Fixed At อัตโนมัติเมื่อเลือก FIXED</small>
+                <div class="col-md-4">
+                    <label asp-for="DevStatus" class="form-label fw-semibold">🧑‍💻 Dev Status</label>
+                    <select asp-for="DevStatus"
+                            asp-items="devStatusItems"
+                            class="form-select"
+                            required></select>
+                    <span asp-validation-for="DevStatus" class="text-danger"></span>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Dev Detail</label>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">ℹ️ หมายเหตุ</label>
+                    <div class="dev-edit-note">
+                        ระบบจะตั้ง Last Fixed ให้อัตโนมัติเมื่อเปลี่ยน Dev Status เป็น FIXED
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="DevDetail" class="form-label fw-semibold">รายละเอียดการแก้ไข</label>
                     <textarea asp-for="DevDetail"
                               class="form-control"
-                              rows="5"
+                              rows="6"
                               placeholder="อธิบายวิธีแก้ไข ผลลัพธ์ หรือสิ่งที่ต้องตรวจต่อ"></textarea>
-                    <small class="text-muted">รายละเอียดการแก้ไขของโปรแกรมเมอร์</small>
+                    <span asp-validation-for="DevDetail" class="text-danger"></span>
+                    <small class="text-muted d-block mt-2">รายละเอียดการแก้ไขของโปรแกรมเมอร์</small>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">รูปหลังแก้ (@fixImages.Count)</label>
+                <div class="col-12">
+                    <div class="dev-edit-gallery-head">
+                        <h3 class="dev-edit-section-title">รูปประกอบหลังแก้</h3>
+                        <span class="dev-edit-count">@fixImages.Count รูป</span>
+                    </div>
 
                     @if (fixImages.Any())
                     {
-                        <div class="dev-image-grid">
+                        <div class="dev-edit-gallery">
                             @foreach (var img in fixImages)
                             {
-                                <div class="dev-image-card">
+                                <div class="dev-edit-image-card">
                                     <a href="@img.FilePath" target="_blank" rel="noopener">
                                         <img src="@img.FilePath" alt="@img.FileName" />
                                     </a>
-                                    <div class="dev-delete-check">
+
+                                    <div class="dev-edit-delete-check">
                                         <input class="form-check-input"
                                                type="checkbox"
                                                name="deleteFixImageIds"
@@ -225,18 +238,45 @@
                     }
                     else
                     {
-                        <div class="dev-empty">ยังไม่มีรูปหลังแก้</div>
+                        <div class="dev-edit-empty">ยังไม่มีรูปประกอบหลังแก้</div>
                     }
-
-                    <input type="file" name="afterImages" class="form-control" multiple accept="image/*" />
-                    <small class="text-muted">อัปโหลดภาพผลลัพธ์หลังจากแก้ไข Issue ได้หลายรูป</small>
                 </div>
 
-                <div class="pt-form-actions dev-form-actions">
-                    <a asp-action="DevIndex" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-secondary">Back</a>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">📎 เพิ่มรูปหลังแก้</label>
+                    <input type="file"
+                           name="afterImages"
+                           class="form-control"
+                           multiple
+                           accept="image/*" />
+                    <small class="text-muted d-block mt-2">
+                        เลือกได้หลายรูป ระบบจะบันทึกเป็นรูปหลังแก้ของ Issue นี้
+                    </small>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="pt-form-actions">
+                <button type="submit"
+                        class="btn btn-primary">
+                    💾 Save Changes
+                </button>
+
+                <a asp-action="DevDetails"
+                   asp-route-id="@Model.IssueId"
+                   class="btn btn-outline-secondary">
+                    ดูรายละเอียด
+                </a>
+
+                <a asp-action="DevIndex"
+                   asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-secondary">
+                    ↩ Back
+                </a>
+            </div>
+        </form>
     </div>
 </div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

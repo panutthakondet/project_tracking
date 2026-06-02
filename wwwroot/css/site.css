@@ -648,7 +648,8 @@ main.route-action-create > h3:first-child,
 main.route-action-edit > h1:first-child,
 main.route-action-edit > h2:first-child,
 main.route-action-edit > h3:first-child {
-  max-width: 1180px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto 18px;
   color: #10233f;
   font-weight: 900;
@@ -661,7 +662,8 @@ main.route-action-create > h3:first-child + p,
 main.route-action-edit > h1:first-child + p,
 main.route-action-edit > h2:first-child + p,
 main.route-action-edit > h3:first-child + p {
-  max-width: 1180px;
+  width: 100%;
+  max-width: 100%;
   margin: -8px auto 18px;
   color: #64748b;
   font-weight: 700;
@@ -671,7 +673,8 @@ main.route-action-create > form,
 main.route-action-edit > form,
 main.route-action-create > .card,
 main.route-action-edit > .card {
-  max-width: 1180px;
+  width: 100%;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -743,9 +746,10 @@ main.route-action-edit img {
 
 .pt-form-hero,
 .pt-form-card {
-  max-width: 1180px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .pt-form-card {
@@ -1214,8 +1218,9 @@ main :is(label, .form-label) {
 
 /* ===== Shared Index Header Theme ===== */
 .index-page {
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 .index-hero {
@@ -1478,8 +1483,9 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 /* ===== Meetings Theme ===== */
 .route-controller-meetings .meeting-page,
 .route-controller-meetings .meeting-create-wrap {
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 .route-controller-meetings .meeting-header,

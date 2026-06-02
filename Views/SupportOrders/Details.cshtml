@@ -1,103 +1,504 @@
 @model ProjectTracking.Models.ProjectSupportOrder
-
-<h3 class="mb-3">@Model.OrderTitle</h3>
-
-<div class="mb-3">
-    <label class="fw-bold">Project</label>
-    <div>@(Model.Project != null ? Model.Project.ProjectName : "-")</div>
-</div>
-
-<div class="mb-3">
-    <label class="fw-bold">Detail</label>
-    <div>@Model.OrderDetail</div>
-</div>
-
-<div class="row mb-3">
-    <div class="col-md-3">
-        <label class="fw-bold">Priority</label>
-        <div>@Model.Priority</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Status</label>
-        <div>@Model.Status</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Dev Status</label>
-        <div>@(string.IsNullOrEmpty(Model.DevStatus) ? "-" : Model.DevStatus)</div>
-    </div>
-
-    <div class="col-md-3">
-        <label class="fw-bold">Due Date</label>
-        <div>@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) : "-")</div>
-    </div>
-</div>
-
-<div class="mb-3">
-    <label class="fw-bold">Assign To :</label>
-    @(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")
-</div>
-
-<h5>BA Images</h5>
-
-@if (Model.Images != null && Model.Images.Any())
-{
-    foreach (var img in Model.Images)
-    {
-        <img src="@Url.Content("~" + img.FilePath)"
-             style="width:200px; cursor:pointer"
-             class="me-2 mb-2 border"
-             onclick="previewImage('@Url.Content("~" + img.FilePath)')" />
-    }
-}
-else
-{
-    <p class="text-muted">No BA images.</p>
-}
-
-<hr />
-
-
-<h5 class="mt-4">After Fix Images</h5>
+@using Microsoft.AspNetCore.Http
+@using System.Globalization
+@using System.Linq
 
 @{
-    var afterImages = Model.FixImages?.Where(x => (x.ImageType ?? "").ToUpper() == "AFTER");
-}
+    ViewData["Title"] = "Support Details";
 
-@if (afterImages != null && afterImages.Any())
-{
-    foreach (var img in afterImages)
+    var th = new CultureInfo("th-TH");
+    var beforeImages = Model.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectSupportImage>();
+    var afterImages = Model.FixImages?
+        .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+
+    bool CanMenu(string key)
     {
-        <img src="@Url.Content("~" + img.FilePath)"
-             style="width:200px; cursor:pointer"
-             class="me-2 mb-2 border"
-             onclick="previewImage('@Url.Content("~" + img.FilePath)')" />
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
-}
-else
-{
-    <p class="text-muted">No after-fix images.</p>
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "muted",
+        "IN_PROGRESS" => "info",
+        "WAIT_TEST" => "warning",
+        "DONE" => "success",
+        "CLOSE" => "muted",
+        _ => "muted"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "IN_PROGRESS" => "warning",
+        "FIXED" => "success",
+        _ => "muted"
+    };
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        _ => "muted"
+    };
 }
 
-<div class="mt-3">
-    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">Back</a>
+<style>
+    .support-detail-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .support-detail-hero {
+        color: #fff;
+        background: linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .22);
+    }
+
+    .support-detail-hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .support-detail-main {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .support-eyebrow {
+        color: rgba(216, 230, 247, .86);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .support-detail-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.22;
+        overflow-wrap: anywhere;
+    }
+
+    .support-detail-subtitle {
+        max-width: 920px;
+        margin: 8px 0 0;
+        color: #d8e6f7;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .support-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        flex: 0 0 auto;
+    }
+
+    .support-detail-actions .btn {
+        min-width: 136px;
+        min-height: 42px;
+        border-radius: 999px !important;
+        font-size: .95rem;
+        font-weight: 900;
+        padding: .58rem 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
+    }
+
+    .support-detail-hero .btn-primary {
+        color: #062b2f !important;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+        border-color: transparent !important;
+    }
+
+    .support-detail-hero .btn-outline-light {
+        color: #fff !important;
+        background: rgba(255,255,255,.08);
+        border-color: rgba(255,255,255,.55) !important;
+    }
+
+    .support-detail-hero .btn-outline-light:hover {
+        background: rgba(255,255,255,.18) !important;
+    }
+
+    .support-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .support-summary-card,
+    .support-panel {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .support-summary-card {
+        min-height: 90px;
+        padding: 14px 16px;
+    }
+
+    .support-summary-card small {
+        display: block;
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-summary-card b {
+        color: #10233f;
+        font-size: 16px;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .support-content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .support-bottom-stack {
+        display: grid;
+        gap: 16px;
+    }
+
+    .support-panel {
+        padding: 18px;
+    }
+
+    .support-panel h3 {
+        margin: 0 0 12px;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .support-info-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .support-info-row {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .support-info-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-info-value {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .support-text-box {
+        min-height: 150px;
+        color: #24364d;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .support-gallery-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .support-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .support-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    .support-image-card {
+        display: block;
+        width: 100%;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        padding: 8px;
+        background: #f8fafc;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .support-image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .14);
+    }
+
+    .support-image-card img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .support-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    .status-text {
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-text.success { color: #0f8f5f; }
+    .status-text.warning { color: #b7790b; }
+    .status-text.info { color: #0f6fa8; }
+    .status-text.danger { color: #d6294f; }
+    .status-text.muted { color: #64748b; }
+
+    @@media (max-width: 991.98px) {
+        .support-detail-hero-top,
+        .support-content-grid {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .support-detail-actions {
+            justify-content: flex-start;
+        }
+
+        .support-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .support-summary-grid,
+        .support-info-row {
+            grid-template-columns: 1fr;
+        }
+
+        .support-detail-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="support-detail-page">
+    <section class="support-detail-hero">
+        <div class="support-detail-hero-top">
+            <div class="support-detail-main">
+                <div class="support-eyebrow">Support Order #@Model.OrderId</div>
+                <h1 class="support-detail-title">รายละเอียดงาน Support</h1>
+                <p class="support-detail-subtitle">@TextOrDash(Model.OrderTitle)</p>
+            </div>
+
+            <div class="support-detail-actions">
+                <a asp-action="Index"
+                   asp-route-projectId="@Model.ProjectId"
+                   class="btn btn-outline-light">
+                    กลับรายการ Support
+                </a>
+
+                @if (CanMenu("SupportOrders.Edit"))
+                {
+                    <a asp-action="Edit"
+                       asp-route-id="@Model.OrderId"
+                       class="btn btn-primary">
+                        แก้ไข Support
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="support-summary-grid">
+        <div class="support-summary-card">
+            <small>Priority</small>
+            <b class="status-text @PriorityClass(Model.Priority)">@TextOrDash(Model.Priority)</b>
+        </div>
+        <div class="support-summary-card">
+            <small>Status</small>
+            <b class="status-text @StatusClass(Model.Status)">@TextOrDash(Model.Status)</b>
+        </div>
+        <div class="support-summary-card">
+            <small>Dev Status</small>
+            <b class="status-text @DevStatusClass(Model.DevStatus)">@TextOrDash(Model.DevStatus)</b>
+        </div>
+        <div class="support-summary-card">
+            <small>Due Date</small>
+            <b>@DateText(Model.DueDate)</b>
+        </div>
+    </section>
+
+    <section class="support-content-grid">
+        <article class="support-panel">
+            <div class="support-gallery-head">
+                <h3>รูปจาก BA</h3>
+                <span class="support-count">@beforeImages.Count รูป</span>
+            </div>
+
+            @if (beforeImages.Count > 0)
+            {
+                <div class="support-gallery-grid">
+                    @foreach (var img in beforeImages)
+                    {
+                        var src = string.IsNullOrWhiteSpace(img.FilePath) ? "" : Url.Content("~/" + img.FilePath.TrimStart('/'));
+                        <button type="button"
+                                class="support-image-card"
+                                onclick="previewSupportImage('@src')"
+                                aria-label="ดูรูปจาก BA">
+                            <img src="@src" alt="@TextOrDash(img.FileName)" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="support-empty">ไม่มีรูปจาก BA</div>
+            }
+        </article>
+
+        <article class="support-panel">
+            <div class="support-gallery-head">
+                <h3>รูปหลังแก้</h3>
+                <span class="support-count">@afterImages.Count รูป</span>
+            </div>
+
+            @if (afterImages.Count > 0)
+            {
+                <div class="support-gallery-grid">
+                    @foreach (var img in afterImages)
+                    {
+                        var src = string.IsNullOrWhiteSpace(img.FilePath) ? "" : Url.Content("~/" + img.FilePath.TrimStart('/'));
+                        <button type="button"
+                                class="support-image-card"
+                                onclick="previewSupportImage('@src')"
+                                aria-label="ดูรูปหลังแก้">
+                            <img src="@src" alt="Support image after fix" />
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="support-empty">ไม่มีรูปหลังแก้</div>
+            }
+        </article>
+    </section>
+
+    <section class="support-bottom-stack">
+        <article class="support-panel">
+            <h3>ข้อมูล Support</h3>
+            <div class="support-info-grid">
+                <div class="support-info-row">
+                    <div class="support-info-label">Project</div>
+                    <div class="support-info-value">@TextOrDash(Model.Project?.ProjectName)</div>
+                </div>
+                <div class="support-info-row">
+                    <div class="support-info-label">Title</div>
+                    <div class="support-info-value">@TextOrDash(Model.OrderTitle)</div>
+                </div>
+                <div class="support-info-row">
+                    <div class="support-info-label">Assign To</div>
+                    <div class="support-info-value">
+                        @(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")
+                    </div>
+                </div>
+                <div class="support-info-row">
+                    <div class="support-info-label">Created</div>
+                    <div class="support-info-value">@DateText(Model.CreatedAt)</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="support-panel">
+            <h3>รายละเอียดงาน</h3>
+            <div class="support-text-box">@TextOrDash(Model.OrderDetail)</div>
+        </article>
+    </section>
 </div>
 
-<div class="modal fade" id="imagePreviewModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-body text-center">
-                <img id="previewImage" src="" style="max-width:100%" />
+<div class="modal fade" id="supportImagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-body text-center p-2">
+                <img id="supportPreviewImage" src="" class="img-fluid rounded" alt="preview" />
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function previewImage(src) {
-    document.getElementById('previewImage').src = src;
-    var modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+function previewSupportImage(src) {
+    const img = document.getElementById("supportPreviewImage");
+    img.src = src;
+
+    const modal = new bootstrap.Modal(document.getElementById("supportImagePreviewModal"));
     modal.show();
 }
 </script>

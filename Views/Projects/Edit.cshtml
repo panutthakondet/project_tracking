@@ -18,16 +18,15 @@
         : "";
 }
 
-<!-- ================= HEADER ================= -->
-<div class="mb-4">
-    <h2 class="fw-bold">✏️ Edit Project</h2>
-    <p class="text-muted mb-0">
-        แก้ไขข้อมูลโครงการ
-    </p>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">Edit Project</h2>
+        <p class="index-subtitle">แก้ไขข้อมูลโครงการ</p>
+    </div>
 </div>
 
-<!-- ================= FORM CARD ================= -->
-<div class="card shadow-sm">
+<div class="card shadow-sm pt-form-card">
     <div class="card-body">
 
         <form asp-action="Edit"
@@ -169,8 +168,7 @@
 
             </div>
 
-            <!-- ================= BUTTONS ================= -->
-            <div class="mt-4 d-flex gap-2">
+            <div class="pt-form-actions">
                 <button type="submit"
                         class="btn btn-primary">
                     💾 Save Changes
