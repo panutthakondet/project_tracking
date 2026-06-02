@@ -92,9 +92,10 @@ namespace ProjectTracking.Controllers
         // VIEW ONLY REPORT
         // =====================================================
         [RequireMenu("ProjectIssues.ViewOnly")]
-        public async Task<IActionResult> ViewOnly(int? projectId, string? empName)
+        public async Task<IActionResult> ViewOnly(int? projectId, string? empName, string? status)
         {
             await LoadDropdown(projectId, empName);
+            status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
 
             var query = _context.ProjectIssues
                 .AsNoTracking()
@@ -110,12 +111,18 @@ namespace ProjectTracking.Controllers
             if (!string.IsNullOrWhiteSpace(empName))
                 query = query.Where(i => i.Employee != null && i.Employee.EmpName == empName);
 
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(i => i.IssueStatus == status);
+
             var issues = await query
                 .OrderBy(i => i.Project != null ? i.Project.ProjectName : "")
                 .ThenByDescending(i => i.IsReopen)
                 .ThenByDescending(i => i.ReopenCount)
                 .ThenBy(i => i.IssueId)
                 .ToListAsync();
+
+            ViewBag.StatusList = new[] { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
+            ViewBag.SelectedStatus = status ?? "";
 
             return View(issues);
         }
@@ -135,6 +142,10 @@ namespace ProjectTracking.Controllers
             };
 
             ViewBag.ProjectId = projectId;
+            ViewBag.ProjectName = _context.Projects
+                .Where(p => p.ProjectId == projectId)
+                .Select(p => p.ProjectName)
+                .FirstOrDefault();
             ViewBag.Employees = GetEmployeeList();
             ViewBag.StatusList = GetStatusList("OPEN");
 
@@ -150,12 +161,17 @@ namespace ProjectTracking.Controllers
         [RequireMenu("ProjectIssues.Create")]
         public async Task<IActionResult> Create(ProjectIssue model, List<IFormFile>? images)
         {
-            ValidateIssueDateRange(model);
+            ApplyIssueDateInput(model);
+            ValidateIssueDateRange(model, requireDates: true);
 
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
-                ViewBag.Employees = GetEmployeeList(model.EmpId);
+                ViewBag.ProjectName = await _context.Projects
+                    .Where(p => p.ProjectId == model.ProjectId)
+                    .Select(p => p.ProjectName)
+                    .FirstOrDefaultAsync();
+                ViewBag.Employees = GetEmployeeList(model.AssignTo);
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
                 return View(model);
             }
@@ -174,7 +190,12 @@ namespace ProjectTracking.Controllers
             // ✅ ค่าเริ่มต้น
             model.IsReopen = false;
             model.ReopenCount = 0;
-            model.LastFixedAt = null;
+            var projectBaEmpId = await _context.Projects
+                .AsNoTracking()
+                .Where(p => p.ProjectId == model.ProjectId)
+                .Select(p => p.BaEmpId)
+                .FirstOrDefaultAsync();
+            model.CreatedBy = projectBaEmpId ?? await GetCurrentEntryIdAsync();
 
             _context.ProjectIssues.Add(model);
             await _context.SaveChangesAsync(); // ✅ ได้ IssueId แล้ว
@@ -191,7 +212,7 @@ namespace ProjectTracking.Controllers
                 IsReopen = model.IsReopen,
                 ReopenCount = model.ReopenCount,
                 ChangedAt = model.CreatedAt,     // ให้ตรงกับตอนสร้าง
-                ChangedByEmpId = model.EmpId     // ใช้ Owner เป็นคนเปลี่ยน (ถ้ามี user login ค่อยเปลี่ยนเป็นคนสร้างจริง)
+                ChangedByEmpId = model.CreatedBy ?? model.AssignTo
             });
 
             await _context.SaveChangesAsync();
@@ -255,7 +276,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.ProjectId = issue.ProjectId;
             ViewBag.ProjectName = issue.Project?.ProjectName;
-            ViewBag.Employees = GetEmployeeList(issue.EmpId);
+            ViewBag.Employees = GetEmployeeList(issue.AssignTo);
             ViewBag.StatusList = GetStatusList(issue.IssueStatus);
 
             return View(issue);
@@ -276,7 +297,8 @@ namespace ProjectTracking.Controllers
 
             if (issue == null) return NotFound();
 
-            ValidateIssueDateRange(model);
+            ApplyIssueDateInput(model);
+            ValidateIssueDateRange(model, requireDates: true);
 
             if (!ModelState.IsValid)
             {
@@ -285,8 +307,12 @@ namespace ProjectTracking.Controllers
                     .Where(p => p.ProjectId == model.ProjectId)
                     .Select(p => p.ProjectName)
                     .FirstOrDefaultAsync();
-                ViewBag.Employees = GetEmployeeList(model.EmpId);
+                ViewBag.Employees = GetEmployeeList(model.AssignTo);
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
+                model.Images = await _context.ProjectIssueImages
+                    .AsNoTracking()
+                    .Where(x => x.IssueId == model.IssueId)
+                    .ToListAsync();
                 return View(model);
             }
 
@@ -297,7 +323,7 @@ namespace ProjectTracking.Controllers
 
             issue.IssueName = model.IssueName;
             issue.IssueDetail = model.IssueDetail;   // BA detail
-            issue.EmpId = model.EmpId;
+            issue.AssignTo = model.AssignTo;
             issue.IssueStatus = newStatus;
             issue.IssuePriority = (model.IssuePriority ?? issue.IssuePriority ?? "NORMAL").Trim().ToUpperInvariant();
             issue.StartDate = model.StartDate;
@@ -315,15 +341,11 @@ namespace ProjectTracking.Controllers
                 _context.Entry(issue).Property(x => x.ReopenCount).IsModified = true;
             }
 
-            if (newStatus == "FIXED" || newStatus == "PASS")
-            {
-                issue.LastFixedAt = DateTime.Now;
-                _context.Entry(issue).Property(x => x.LastFixedAt).IsModified = true;
-            }
-
             // ✅ insert history เฉพาะตอน status เปลี่ยนจริง
             if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
             {
+                var changedByEmpId = await GetCurrentEntryIdAsync();
+
                 _context.ProjectIssueStatusHistories.Add(new ProjectIssueStatusHistory
                 {
                     IssueId = issue.IssueId,
@@ -332,7 +354,7 @@ namespace ProjectTracking.Controllers
                     IsReopen = issue.IsReopen,
                     ReopenCount = issue.ReopenCount,
                     ChangedAt = DateTime.Now,
-                    ChangedByEmpId = issue.EmpId
+                    ChangedByEmpId = changedByEmpId ?? issue.AssignTo
                 });
             }
 
@@ -418,20 +440,11 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
-            var oldDev = (issue.DevStatus ?? "TODO").Trim().ToUpperInvariant();
             var newDev = (model.DevStatus ?? "TODO").Trim().ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(newDev)) newDev = "TODO";
 
             issue.DevStatus = newDev;
             issue.DevDetail = model.DevDetail;   // developer fix detail
-
-            // ✅ set LastFixedAt when dev marks FIXED
-            if (!string.Equals(oldDev, "FIXED", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(newDev, "FIXED", StringComparison.OrdinalIgnoreCase))
-            {
-                issue.LastFixedAt = DateTime.Now;
-                _context.Entry(issue).Property(x => x.LastFixedAt).IsModified = true;
-            }
 
             _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
             _context.Entry(issue).Property(x => x.DevDetail).IsModified = true;
@@ -657,14 +670,107 @@ namespace ProjectTracking.Controllers
             );
         }
 
-        private void ValidateIssueDateRange(ProjectIssue model)
+        private void ApplyIssueDateInput(ProjectIssue model)
         {
+            ModelState.Remove(nameof(ProjectIssue.StartDate));
+            ModelState.Remove(nameof(ProjectIssue.EndDate));
+
+            var startRaw = Request.Form[nameof(ProjectIssue.StartDate)].ToString();
+            var endRaw = Request.Form[nameof(ProjectIssue.EndDate)].ToString();
+
+            model.StartDate = ParseIssueDate(startRaw);
+            model.EndDate = ParseIssueDate(endRaw);
+
+            if (!string.IsNullOrWhiteSpace(startRaw) && !model.StartDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(ProjectIssue.StartDate), "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(endRaw) && !model.EndDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(ProjectIssue.EndDate), "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+            }
+        }
+
+        private static DateTime? ParseIssueDate(string? value)
+        {
+            value = (value ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            if (DateTime.TryParseExact(
+                    value,
+                    "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var isoDate))
+            {
+                return isoDate.Date;
+            }
+
+            var parts = value.Split('/');
+            if (parts.Length == 3
+                && int.TryParse(parts[0], out var day)
+                && int.TryParse(parts[1], out var month)
+                && int.TryParse(parts[2], out var year))
+            {
+                if (year > 2400) year -= 543;
+
+                try
+                {
+                    return new DateTime(year, month, day);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        private void ValidateIssueDateRange(ProjectIssue model, bool requireDates = false)
+        {
+            if (requireDates && !model.StartDate.HasValue && !HasModelError(nameof(ProjectIssue.StartDate)))
+            {
+                ModelState.AddModelError(nameof(ProjectIssue.StartDate), "กรุณากรอกวันที่เริ่ม");
+            }
+
+            if (requireDates && !model.EndDate.HasValue && !HasModelError(nameof(ProjectIssue.EndDate)))
+            {
+                ModelState.AddModelError(nameof(ProjectIssue.EndDate), "กรุณากรอกวันที่สิ้นสุด");
+            }
+
             if (model.StartDate.HasValue
                 && model.EndDate.HasValue
                 && model.EndDate.Value.Date < model.StartDate.Value.Date)
             {
                 ModelState.AddModelError(nameof(ProjectIssue.EndDate), "วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม");
             }
+        }
+
+        private bool HasModelError(string key)
+        {
+            return ModelState.TryGetValue(key, out var state) && state.Errors.Count > 0;
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
         }
 
     }

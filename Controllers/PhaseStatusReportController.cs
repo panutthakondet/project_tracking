@@ -219,7 +219,7 @@ namespace ProjectTracking.Controllers
             var work = Norm(workStatus);
             var phase = Norm(phaseStatus);
             return work == "DONE"
-                || phase is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+                || phase is "DONE" or "ส่งงวดงานแล้ว";
         }
 
         private static string NormalizeReportStatus(string? workStatus, string? phaseStatus, int overdueDays)

@@ -1,72 +1,54 @@
-@model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
+@model IEnumerable<ProjectTracking.ViewModels.MeetingReportRowViewModel>
 @using System.Globalization
 
 @{
     Layout = null;
     var th = new CultureInfo("th-TH");
-    var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.ViewModels.MeetingReportRowViewModel>()).ToList();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
-    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
-    var selectedPriority = ViewBag.SelectedPriority as string ?? "";
-    var selectedDevStatus = ViewBag.SelectedDevStatus as string ?? "";
-    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
-    var priorityList = ViewBag.PriorityList as IEnumerable<string> ?? Enumerable.Empty<string>();
-    var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
-    var imageCounts = ViewBag.ImageCounts as IDictionary<int, int> ?? new Dictionary<int, int>();
+    var fromDate = ViewBag.FromDate as DateTime?;
+    var toDate = ViewBag.ToDate as DateTime?;
+    var audienceList = ViewBag.AudienceList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selectedAudience = ViewBag.SelectedAudience as string ?? "";
     var today = DateTime.Today;
 
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime value) => value.ToString("dd/MM/yyyy", th);
+    string DateTimeText(DateTime value) => value == default ? "-" : value.ToString("dd/MM/yyyy HH:mm", th);
+    string DateInput(DateTime? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "";
+    string TimeText(TimeSpan value) => $"{(int)value.TotalHours:00}:{value.Minutes:00}";
     string SelectedProjectName() => selectedProjectId.HasValue
         ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
         : "All Projects";
-
-    bool IsClosed(string? status, string? devStatus)
+    string DateRangeText()
     {
-        var s = (status ?? "").Trim().ToUpperInvariant();
-        var d = (devStatus ?? "").Trim().ToUpperInvariant();
-        return s == "DONE" || d == "FIXED";
+        if (fromDate.HasValue && toDate.HasValue) return $"{fromDate.Value.ToString("dd MMM yyyy", th)} - {toDate.Value.ToString("dd MMM yyyy", th)}";
+        if (fromDate.HasValue) return $"ตั้งแต่ {fromDate.Value.ToString("dd MMM yyyy", th)}";
+        if (toDate.HasValue) return $"ถึง {toDate.Value.ToString("dd MMM yyyy", th)}";
+        return "All Dates";
     }
-
-    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    string AttendeeStatusClass(string? status) => (status ?? "").Trim().ToLowerInvariant() switch
     {
-        "OPEN" => "warning",
-        "WAIT_TEST" => "info",
-        "DONE" => "success",
+        "accepted" => "success",
+        "rejected" => "danger",
+        "pending" => "warning",
         _ => "muted"
     };
+    string AttendeeStatusText(string? status) => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim();
 
-    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
-    {
-        "IN_PROGRESS" => "warning",
-        "FIXED" => "success",
-        _ => "muted"
-    };
-
-    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
-    {
-        "URGENT" => "danger",
-        "HIGH" => "danger",
-        "MEDIUM" => "warning",
-        "LOW" => "success",
-        _ => "muted"
-    };
-
-    string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
-    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-
-    var openCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus));
-    var fixedCount = orders.Count(x => IsClosed(x.Status, x.DevStatus));
-    var overdueCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus) && x.EndDate?.Date < today);
-    var urgentCount = orders.Count(x =>
-        string.Equals(x.Priority, "URGENT", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(x.Priority, "HIGH", StringComparison.OrdinalIgnoreCase));
+    var totalMeetings = rows.Count;
+    var todayMeetings = rows.Count(x => x.MeetingDate.Date == today);
+    var upcomingMeetings = rows.Count(x => x.MeetingDate.Date >= today);
+    var projectCount = rows.Where(x => x.ProjectId.HasValue).Select(x => x.ProjectId).Distinct().Count();
+    var attendeeTotal = rows.Sum(x => x.Attendees.Count);
 }
 
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>Support Report</title>
+    <title>Meetings Report</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -119,7 +101,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(150px, .7fr)) auto;
+            grid-template-columns: minmax(260px, 1.25fr) minmax(150px, .55fr) minmax(150px, .55fr) minmax(190px, .75fr) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -133,7 +115,8 @@
             color: #64748b;
             font-weight: 900;
         }
-        .field select {
+        .field select,
+        .field input[type="date"] {
             width: 100%;
             min-height: 34px;
             padding: 7px 10px;
@@ -153,13 +136,8 @@
             pointer-events: none !important;
             clip-path: inset(50%) !important;
         }
-        .pt-search-select {
-            position: relative;
-            width: 100%;
-        }
-        .pt-search-select__field {
-            position: relative;
-        }
+        .pt-search-select { position: relative; width: 100%; }
+        .pt-search-select__field { position: relative; }
         .pt-search-select__input {
             width: 100%;
             min-height: 34px;
@@ -192,12 +170,9 @@
             background: #e2e8f0;
             font-size: 16px;
             font-weight: 900;
-            line-height: 1;
             cursor: pointer;
         }
-        .pt-search-select__clear.is-visible {
-            display: inline-flex;
-        }
+        .pt-search-select__clear.is-visible { display: inline-flex; }
         .pt-search-select__clear:hover,
         .pt-search-select__clear:focus {
             color: #fff;
@@ -209,7 +184,6 @@
             right: 0;
             top: calc(100% + 4px);
             z-index: 20;
-            width: 100%;
             max-height: 240px;
             overflow-y: auto;
             display: none;
@@ -217,9 +191,7 @@
             background: #fff;
             box-shadow: 0 12px 26px rgba(15, 35, 64, .14);
         }
-        .pt-search-select.is-open .pt-search-select__dropdown {
-            display: block;
-        }
+        .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
         .pt-search-select__option {
             width: 100%;
             padding: 8px 10px;
@@ -262,7 +234,7 @@
         }
         .kpi.info { border-left-color: #258cfb; }
         .kpi.warning { border-left-color: #f59e0b; }
-        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi.cyan { border-left-color: #22d3ee; }
         .kpi span,
         .kpi small {
             display: block;
@@ -288,11 +260,12 @@
             table-layout: fixed;
             margin-bottom: 12px;
         }
-        .support-report-table col.col-seq { width: 5%; }
-        .support-report-table col.col-support { width: 43%; }
-        .support-report-table col.col-owner { width: 18%; }
-        .support-report-table col.col-state { width: 16%; }
-        .support-report-table col.col-date { width: 18%; }
+        .meeting-report-table col.col-seq { width: 5%; }
+        .meeting-report-table col.col-date { width: 14%; }
+        .meeting-report-table col.col-meeting { width: 26%; }
+        .meeting-report-table col.col-place { width: 19%; }
+        .meeting-report-table col.col-attendee { width: 24%; }
+        .meeting-report-table col.col-created { width: 12%; }
         th {
             padding: 7px 6px;
             color: #fff;
@@ -306,12 +279,10 @@
             border: 1px solid #d8e3ef;
             line-height: 1.45;
             vertical-align: top;
-            overflow-wrap: break-word;
-            word-break: normal;
+            overflow-wrap: anywhere;
         }
         tr:nth-child(even) td { background: #f8fbff; }
         .text-center { text-align: center; }
-        .long-text { white-space: pre-line; }
         .project-group-row td {
             padding: 8px 10px;
             color: #fff;
@@ -349,24 +320,18 @@
             color: #465a73;
             font-weight: 700;
         }
-        .meta-stack {
+        .attendee-list {
             display: grid;
-            gap: 5px;
+            gap: 4px;
         }
-        .meta-line {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            align-items: baseline;
-        }
-        .meta-label {
-            color: #64748b;
-            font-weight: 900;
-        }
-        .meta-value {
+        .attendee-name {
             color: #10233f;
             font-weight: 900;
-            text-align: right;
+        }
+        .attendee-meta {
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 800;
         }
         .status-text {
             font-weight: 900;
@@ -374,7 +339,6 @@
         }
         .status-text.success { color: #0f8f5f; }
         .status-text.warning { color: #b7790b; }
-        .status-text.info { color: #0f6fa8; }
         .status-text.danger { color: #d6294f; }
         .status-text.muted { color: #64748b; }
         .empty {
@@ -389,23 +353,13 @@
             margin: 8mm;
         }
         @@media print {
-            body {
-                padding: 0;
-                font-size: 10px;
-            }
+            body { padding: 0; }
             .report-actions,
             .filter-panel { display: none !important; }
-            .print-header { padding: 10px 12px; }
-            .print-header h1 { font-size: 18px; }
-            .kpi-grid { gap: 6px; }
-            .kpi { padding: 7px; }
-            .kpi strong { font-size: 16px; }
-            th,
-            td { padding: 5px 5px; }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
         }
-        @@media (max-width: 1100px) {
+        @@media (max-width: 900px) {
             .filter-panel,
             .kpi-grid {
                 grid-template-columns: 1fr;
@@ -421,130 +375,121 @@
     </div>
 
     <header class="print-header">
-        <h1>Support Report</h1>
+        <h1>Meetings Report</h1>
         <div>
             Project: @SelectedProjectName()<br />
-            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
-            Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
-            Dev: @(string.IsNullOrWhiteSpace(selectedDevStatus) ? "All Dev Statuses" : selectedDevStatus)<br />
+            Date: @DateRangeText()<br />
+            Audience: @(string.IsNullOrWhiteSpace(selectedAudience) ? "All Audiences" : selectedAudience)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
     </header>
 
-    <form method="get" class="filter-panel">
+    <form method="get" id="filterForm" class="filter-panel">
         <div class="field">
-            <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <label for="projectSelect">Project</label>
+            <select id="projectSelect" name="projectId" data-placeholder="พิมพ์ค้นหา Project...">
                 <option value="">-- All Projects --</option>
-                @foreach (var project in projects)
+                @foreach (var p in projects)
                 {
-                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
-                        @project.ProjectName
+                    <option value="@p.ProjectId" selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
+                        @p.ProjectName
                     </option>
                 }
             </select>
         </div>
+
         <div class="field">
-            <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
-                <option value="">-- All Statuses --</option>
-                @foreach (var item in statusList)
+            <label for="fromDate">From Date</label>
+            <input id="fromDate" name="fromDate" type="date" value="@DateInput(fromDate)" />
+        </div>
+
+        <div class="field">
+            <label for="toDate">To Date</label>
+            <input id="toDate" name="toDate" type="date" value="@DateInput(toDate)" />
+        </div>
+
+        <div class="field">
+            <label for="audienceSelect">Audience</label>
+            <select id="audienceSelect" name="audience" data-placeholder="พิมพ์ค้นหา Audience...">
+                <option value="">-- All Audiences --</option>
+                @foreach (var item in audienceList)
                 {
-                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
+                    <option value="@item" selected="@(item == selectedAudience ? "selected" : null)">
+                        @item
+                    </option>
                 }
             </select>
         </div>
-        <div class="field">
-            <label for="priority">Priority</label>
-            <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
-                <option value="">-- All Priorities --</option>
-                @foreach (var item in priorityList)
-                {
-                    <option value="@item" selected="@(selectedPriority == item ? "selected" : null)">@item</option>
-                }
-            </select>
-        </div>
-        <div class="field">
-            <label for="devStatus">Dev Status</label>
-            <select id="devStatus" name="devStatus" data-placeholder="🔍 พิมพ์ค้นหา Dev Status..." onchange="this.form.submit()">
-                <option value="">-- All Dev Statuses --</option>
-                @foreach (var item in devStatusList)
-                {
-                    <option value="@item" selected="@(selectedDevStatus == item ? "selected" : null)">@item</option>
-                }
-            </select>
-        </div>
+
         <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
     </form>
 
     <section class="kpi-grid">
-        <article class="kpi info">
-            <span>Total Support</span>
-            <strong>@orders.Count</strong>
-            <small>รายการทั้งหมด</small>
+        <article class="kpi">
+            <span>Total Meetings</span>
+            <strong>@totalMeetings</strong>
+            <small>รายการประชุมทั้งหมด</small>
         </article>
         <article class="kpi warning">
-            <span>Open</span>
-            <strong>@openCount</strong>
-            <small>ยังไม่ปิดงาน</small>
+            <span>Today</span>
+            <strong>@todayMeetings</strong>
+            <small>รายการประชุมวันนี้</small>
+        </article>
+        <article class="kpi info">
+            <span>Upcoming</span>
+            <strong>@upcomingMeetings</strong>
+            <small>ประชุมวันนี้เป็นต้นไป</small>
+        </article>
+        <article class="kpi cyan">
+            <span>Projects</span>
+            <strong>@projectCount</strong>
+            <small>โครงการที่มีประชุม</small>
         </article>
         <article class="kpi">
-            <span>Fixed / Closed</span>
-            <strong>@fixedCount</strong>
-            <small>แก้ไขหรือปิดแล้ว</small>
-        </article>
-        <article class="kpi danger">
-            <span>Overdue</span>
-            <strong>@overdueCount</strong>
-            <small>เลยวันที่สิ้นสุด</small>
-        </article>
-        <article class="kpi danger">
-            <span>High Priority</span>
-            <strong>@urgentCount</strong>
-            <small>HIGH / URGENT</small>
+            <span>Attendees</span>
+            <strong>@attendeeTotal</strong>
+            <small>จำนวนผู้เข้าร่วมรวม</small>
         </article>
     </section>
 
-    <h2>Support List</h2>
-    @if (!orders.Any())
+    <h2>Meeting List By Project</h2>
+    @if (!rows.Any())
     {
-        <div class="empty">ไม่พบรายการ Support ตามเงื่อนไขที่เลือก</div>
+        <div class="empty">ไม่พบรายการประชุมตามเงื่อนไขที่เลือก</div>
     }
     else
     {
-        <table class="support-report-table">
+        <table class="meeting-report-table">
             <colgroup>
                 <col class="col-seq" />
-                <col class="col-support" />
-                <col class="col-owner" />
-                <col class="col-state" />
                 <col class="col-date" />
+                <col class="col-meeting" />
+                <col class="col-place" />
+                <col class="col-attendee" />
+                <col class="col-created" />
             </colgroup>
             <thead>
                 <tr>
                     <th>Seq</th>
-                    <th>Support / Detail</th>
-                    <th>Owner</th>
-                    <th>Priority / Status</th>
-                    <th>วันที่ / รูป</th>
+                    <th>Date / Time</th>
+                    <th>Meeting</th>
+                    <th>Location / Audience</th>
+                    <th>Attendees</th>
+                    <th>Created</th>
                 </tr>
             </thead>
             <tbody>
                 @{
-                    var projectGroups = orders
-                        .GroupBy(order => new
-                        {
-                            order.ProjectId,
-                            ProjectName = TextOrDash(order.Project?.ProjectName)
-                        })
+                    var projectGroups = rows
+                        .GroupBy(item => new { item.ProjectId, item.ProjectName })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();
                 }
                 @foreach (var projectGroup in projectGroups)
                 {
-                    var seq = 1;
+                    var row = 1;
                     <tr class="project-group-row">
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="project-group-name">
                                 <div>
                                     <span class="project-group-label">Project</span>
@@ -555,62 +500,53 @@
                         </td>
                     </tr>
 
-                    @foreach (var order in projectGroup)
+                    @foreach (var item in projectGroup.OrderBy(x => x.MeetingDate).ThenBy(x => x.StartTime).ThenBy(x => x.Title))
                     {
-                        var beforeCount = imageCounts.TryGetValue(order.OrderId, out var count) ? count : 0;
-                        var afterCount = order.FixImages?.Count ?? 0;
                         <tr>
-                            <td class="text-center">@seq</td>
+                            <td class="text-center">@row</td>
                             <td>
-                                <div class="cell-title">@TextOrDash(order.OrderTitle)</div>
-                                <div class="cell-sub long-text">@TextOrDash(order.OrderDetail)</div>
-                            </td>
-                            <td>@TextOrDash(order.Employee?.EmpName)</td>
-                            <td>
-                                <div class="meta-stack">
-                                    <div class="meta-line">
-                                        <span class="meta-label">Priority</span>
-                                        <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Status</span>
-                                        <span class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Dev</span>
-                                        <span class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
-                                    </div>
-                                </div>
+                                <div class="cell-title">@DateText(item.MeetingDate)</div>
+                                <div class="cell-sub">@TimeText(item.StartTime) - @TimeText(item.EndTime)</div>
                             </td>
                             <td>
-                                <div class="meta-stack">
-                                    <div class="meta-line">
-                                        <span class="meta-label">เริ่ม</span>
-                                        <span class="meta-value">@DateText(order.StartDate)</span>
+                                <div class="cell-title">#@item.Id @TextOrDash(item.Title)</div>
+                                <div class="cell-sub">@TextOrDash(item.Description)</div>
+                            </td>
+                            <td>
+                                <div class="cell-title">@TextOrDash(item.Location)</div>
+                                <div class="cell-sub">Audience: @TextOrDash(item.Audience)</div>
+                            </td>
+                            <td>
+                                @if (!item.Attendees.Any())
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    <div class="attendee-list">
+                                        @foreach (var attendee in item.Attendees)
+                                        {
+                                            <div>
+                                                <span class="attendee-name">@attendee.EmpName</span>
+                                                <span class="status-text @AttendeeStatusClass(attendee.Status)">(@AttendeeStatusText(attendee.Status))</span>
+                                                <div class="attendee-meta">@TextOrDash(attendee.Position)</div>
+                                            </div>
+                                        }
                                     </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">สิ้นสุด</span>
-                                        <span class="status-text @(order.EndDate?.Date < today && !IsClosed(order.Status, order.DevStatus) ? "danger" : "muted")">
-                                            @DateText(order.EndDate)
-                                        </span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Created</span>
-                                        <span class="meta-value">@DateText(order.CreatedAt)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Images</span>
-                                        <span class="meta-value">@beforeCount / @afterCount</span>
-                                    </div>
-                                </div>
+                                }
+                            </td>
+                            <td>
+                                <div class="cell-title">@TextOrDash(item.CreatedByName)</div>
+                                <div class="cell-sub">@DateTimeText(item.CreatedAt)</div>
                             </td>
                         </tr>
-                        seq++;
+                        row++;
                     }
                 }
             </tbody>
         </table>
     }
+
     <script>
         (function () {
             function normalize(value) {
@@ -619,6 +555,10 @@
 
             function getSelectedOption(select) {
                 return select.options[select.selectedIndex] || null;
+            }
+
+            function hasEmptyOption(select) {
+                return Array.from(select.options).some(option => option.value === "");
             }
 
             function dispatchSelectChange(select) {
@@ -639,14 +579,14 @@
                 input.type = "text";
                 input.className = "pt-search-select__input";
                 input.autocomplete = "off";
-                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "พิมพ์ค้นหา...";
 
                 const clearButton = document.createElement("button");
                 clearButton.type = "button";
                 clearButton.className = "pt-search-select__clear";
                 clearButton.title = "เลือกใหม่";
                 clearButton.setAttribute("aria-label", "เลือกใหม่");
-                clearButton.textContent = "×";
+                clearButton.textContent = "x";
 
                 const dropdown = document.createElement("div");
                 dropdown.className = "pt-search-select__dropdown";
@@ -655,28 +595,35 @@
                 field.appendChild(clearButton);
                 wrapper.appendChild(field);
                 wrapper.appendChild(dropdown);
-                select.parentNode.insertBefore(wrapper, select);
-                wrapper.appendChild(select);
-                select.classList.add("pt-native-select-hidden", "pt-dropdown-enhanced");
+                select.insertAdjacentElement("afterend", wrapper);
+                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
+                select.tabIndex = -1;
 
-                const options = Array.from(select.options).map(option => ({
-                    value: option.value,
-                    text: option.text.trim(),
-                    option
-                }));
-
-                function syncInput() {
-                    const selected = getSelectedOption(select);
-                    input.value = selected && selected.value ? selected.text.trim() : "";
-                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
+                function allowClear() {
+                    return hasEmptyOption(select);
                 }
 
-                function renderOptions() {
-                    const term = normalize(input.value);
-                    dropdown.innerHTML = "";
+                function syncInputFromSelect() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    clearButton.classList.toggle("is-visible", Boolean(select.value) && allowClear());
+                }
 
-                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
-                    if (!matches.length) {
+                function closeDropdown() {
+                    wrapper.classList.remove("is-open");
+                }
+
+                function renderOptions(filter = "") {
+                    dropdown.innerHTML = "";
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options)
+                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => {
+                            const haystack = normalize(`${option.text} ${option.value}`);
+                            return !keyword || haystack.includes(keyword);
+                        });
+
+                    if (options.length === 0) {
                         const empty = document.createElement("div");
                         empty.className = "pt-search-select__empty";
                         empty.textContent = "ไม่พบข้อมูล";
@@ -684,47 +631,62 @@
                         return;
                     }
 
-                    matches.forEach(item => {
-                        const button = document.createElement("button");
-                        button.type = "button";
-                        button.className = "pt-search-select__option";
-                        if (item.option.selected) button.classList.add("is-selected");
-                        button.textContent = item.text || "--";
-                        button.addEventListener("click", () => {
-                            select.value = item.value;
-                            syncInput();
-                            wrapper.classList.remove("is-open");
+                    options.forEach(option => {
+                        const item = document.createElement("button");
+                        item.type = "button";
+                        item.className = "pt-search-select__option";
+                        if (option.value === select.value) item.classList.add("is-selected");
+                        item.textContent = option.text;
+                        item.addEventListener("click", function () {
+                            select.value = option.value;
+                            input.value = option.text;
+                            closeDropdown();
+                            syncInputFromSelect();
                             dispatchSelectChange(select);
                         });
-                        dropdown.appendChild(button);
+                        dropdown.appendChild(item);
                     });
                 }
 
-                input.addEventListener("focus", () => {
-                    renderOptions();
+                function openDropdown() {
+                    renderOptions(input.value);
                     wrapper.classList.add("is-open");
-                });
+                }
 
-                input.addEventListener("input", () => {
-                    renderOptions();
-                    wrapper.classList.add("is-open");
-                });
-
-                clearButton.addEventListener("click", () => {
+                function clearValue() {
+                    if (!allowClear()) return;
                     select.value = "";
-                    syncInput();
+                    input.value = "";
+                    closeDropdown();
+                    syncInputFromSelect();
                     dispatchSelectChange(select);
+                }
+
+                input.addEventListener("focus", openDropdown);
+                input.addEventListener("click", openDropdown);
+                input.addEventListener("input", function () {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                });
+                input.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
+                });
+                clearButton.addEventListener("click", clearValue);
+                select.addEventListener("change", syncInputFromSelect);
+                document.addEventListener("click", function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInputFromSelect();
+                    }
                 });
 
-                document.addEventListener("click", event => {
-                    if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
-                });
-
-                syncInput();
-                renderOptions();
+                syncInputFromSelect();
             }
 
-            document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
         })();
     </script>
 </body>

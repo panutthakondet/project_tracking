@@ -1,157 +1,227 @@
 @model ProjectTracking.Models.ProjectSupportOrder
+@using System.Globalization
+@using System.Linq
 
 @{
     ViewData["Title"] = "Fix Order";
+
+    var order = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
+    var th = new CultureInfo("th-TH");
+    var beforeImages = order.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectSupportImage>();
+    var afterImages = order.FixImages?
+        .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        _ => "muted"
+    };
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "muted",
+        "WAIT_TEST" => "warning",
+        "DONE" => "success",
+        _ => "muted"
+    };
+
 }
 
-<h3 class="mb-3">🛠 Fix Order</h3>
+<style>
+    .support-dev-edit-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
 
-<div class="card mb-3">
-    <div class="card-body">
+    .support-dev-readonly {
+        min-height: 46px;
+        padding: .72rem .9rem;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        color: #10233f;
+        background: #f8fbff;
+        font-weight: 800;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
 
-        <div class="row mb-2">
-            <div class="col-md-6">
-                <label class="fw-bold">Project</label>
-                <div>@(Model.Project?.ProjectName ?? "-")</div>
-            </div>
+    .support-dev-readonly.is-tall {
+        min-height: 110px;
+        white-space: pre-wrap;
+    }
 
-            <div class="col-md-6">
-                <label class="fw-bold">Priority</label>
-                <div>
-                    @if (Model.Priority == "HIGH")
+    .support-dev-edit-page .form-select {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 800;
+    }
+
+    .status-text {
+        font-weight: 900;
+        letter-spacing: .01em;
+    }
+
+    .status-text.success { color: #0f8f5f; }
+    .status-text.warning { color: #b7790b; }
+    .status-text.info { color: #0f6fa8; }
+    .status-text.danger { color: #d6294f; }
+    .status-text.muted { color: #64748b; }
+
+    .support-dev-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .support-dev-image-card {
+        width: 150px;
+        padding: 8px;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        background: #fff;
+        text-align: center;
+    }
+
+    .support-dev-image-card img {
+        width: 100%;
+        height: 110px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 6px;
+    }
+</style>
+
+<div class="support-dev-edit-page">
+    <h3>Edit Support Order</h3>
+
+    <form asp-action="Edit" asp-route-id="@order.OrderId" asp-route-projectId="@order.ProjectId" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="OrderId" />
+        <input type="hidden" asp-for="ProjectId" />
+
+        <div class="card shadow-sm pt-form-card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label>Project</label>
+                    <div class="support-dev-readonly">@TextOrDash(order.Project?.ProjectName)</div>
+                </div>
+
+                <div class="mb-3">
+                    <label>Title</label>
+                    <div class="support-dev-readonly">@TextOrDash(order.OrderTitle)</div>
+                </div>
+
+                <div class="mb-3">
+                    <label>Detail</label>
+                    <div class="support-dev-readonly is-tall">@TextOrDash(order.OrderDetail)</div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label>Priority</label>
+                        <div class="support-dev-readonly">
+                            <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>Status</label>
+                        <div class="support-dev-readonly">
+                            <span class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>Dev Status</label>
+                        <select asp-for="DevStatus" class="form-select">
+                            <option value="">-- Select Status --</option>
+                            <option value="IN_PROGRESS">IN_PROGRESS</option>
+                            <option value="FIXED">FIXED</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label>วันที่เริ่ม</label>
+                        <div class="support-dev-readonly">@DateText(order.StartDate)</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label>วันที่สิ้นสุด</label>
+                        <div class="support-dev-readonly">@DateText(order.EndDate)</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label>BA Images</label>
+                    @if (beforeImages.Any())
                     {
-                        <span class="badge bg-danger">HIGH</span>
-                    }
-                    else if (Model.Priority == "MEDIUM")
-                    {
-                        <span class="badge bg-warning text-dark">MEDIUM</span>
+                        <div class="support-dev-gallery">
+                            @foreach (var img in beforeImages)
+                            {
+                                <div class="support-dev-image-card">
+                                    <img src="@Url.Content("~" + img.FilePath)" alt="@TextOrDash(img.FileName)" />
+                                </div>
+                            }
+                        </div>
                     }
                     else
                     {
-                        <span class="badge bg-secondary">@Model.Priority</span>
+                        <p class="text-muted">No BA images.</p>
                     }
+                </div>
+
+                <div class="mb-3">
+                    <label>Upload After Fix Images</label>
+                    <input type="file" name="afterFiles" class="form-control" multiple />
+                </div>
+
+                <div class="mb-3">
+                    <label>Existing After Fix Images</label>
+                    @if (afterImages.Any())
+                    {
+                        <div class="support-dev-gallery">
+                            @foreach (var img in afterImages)
+                            {
+                                <div class="support-dev-image-card">
+                                    <img src="@img.FilePath" alt="After fix image" />
+                                    <div class="form-check text-start">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="deleteImageIds"
+                                               value="@img.ImageId"
+                                               id="del_@img.ImageId" />
+                                        <label class="form-check-label text-danger" for="del_@img.ImageId">
+                                            Delete
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No after fix images.</p>
+                    }
+                </div>
+
+                <div class="pt-form-actions">
+                    <button type="submit" class="btn btn-primary">Save Fix</button>
+                    <a asp-action="Index" asp-route-projectId="@order.ProjectId" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </div>
         </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Title</label>
-            <div>@Model.OrderTitle</div>
-        </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Detail</label>
-            <div>@Model.OrderDetail</div>
-        </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Due Date</label>
-            <div>
-                @(Model.DueDate.HasValue 
-                    ? Model.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH")) 
-                    : "-")
-            </div>
-        </div>
-
-
-    </div>
+    </form>
 </div>
-
-
-<!-- BA Images -->
-<div class="card mb-3">
-    <div class="card-header">
-        📷 BA Images
-    </div>
-
-    <div class="card-body">
-        @if (Model.Images != null && Model.Images.Any())
-        {
-            foreach (var img in Model.Images)
-            {
-                <img src="@img.FilePath"
-                     style="width:200px"
-                     class="me-2 mb-2 border rounded" />
-            }
-        }
-        else
-        {
-            <p class="text-muted">No BA images.</p>
-        }
-    </div>
-</div>
-
-
-<form asp-action="Edit" asp-route-id="@Model.OrderId" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
-@Html.AntiForgeryToken()
-
-<input type="hidden" asp-for="OrderId" />
-<input type="hidden" asp-for="ProjectId" />
-
-<div class="mb-3">
-    <label class="fw-bold">Dev Status</label>
-    <select asp-for="DevStatus" class="form-select">
-        <option value="">-- Select Status --</option>
-        <option value="IN_PROGRESS">IN_PROGRESS</option>
-        <option value="FIXED">FIXED</option>
-    </select>
-</div>
-
-<!-- After Fix Images -->
-<div class="card mb-3">
-    <div class="card-header">
-        ✅ Upload After Fix Images
-    </div>
-
-    <div class="card-body">
-
-        <div class="mb-3">
-            <input type="file"
-                   name="afterFiles"
-                   class="form-control"
-                   multiple />
-        </div>
-
-        @if (Model.FixImages != null && Model.FixImages.Any())
-        {
-            <div class="mb-2 fw-bold">Existing After Fix Images</div>
-
-            foreach (var img in Model.FixImages)
-            {
-                if ((img.ImageType ?? "").ToUpper() == "AFTER")
-                {
-                    <div class="d-inline-block text-center me-2 mb-2">
-                        <img src="@img.FilePath"
-                             style="width:200px"
-                             class="border rounded d-block mb-1" />
-
-                        <div class="form-check text-start">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   name="deleteImageIds"
-                                   value="@img.ImageId"
-                                   id="del_@img.ImageId" />
-                            <label class="form-check-label text-danger" for="del_@img.ImageId">
-                                Delete
-                            </label>
-                        </div>
-                    </div>
-                }
-            }
-        }
-
-    </div>
-</div>
-
-
-<div class="mt-3">
-    <button type="submit" class="btn btn-success">
-        Save Fix
-    </button>
-
-    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
-        Back
-    </a>
-</div>
-
-</form>

@@ -1,3 +1,13 @@
+@{
+    var hasCheckIn = ViewBag.HasCheckIn is bool inValue && inValue;
+    var hasCheckOut = ViewBag.HasCheckOut is bool outValue && outValue;
+    var checkInTime = ViewBag.CheckInTime as string ?? "-";
+    var checkOutTime = ViewBag.CheckOutTime as string ?? "-";
+    var distanceKm = ViewBag.DistanceKm as string ?? "-";
+    var employeeName = ViewBag.EmployeeName as string ?? "-";
+    var workDate = ViewBag.WorkDate as string ?? DateTime.Today.ToString("dd/MM/yyyy");
+}
+
 <form id="antiForgeryForm" method="post" class="d-none" aria-hidden="true">
     @Html.AntiForgeryToken()
 </form>
@@ -10,22 +20,224 @@
     </div>
 
     <div class="index-actions">
-        <button id="btnCheckIn" onclick="check('checkin')" class="btn btn-primary">
+        <button id="btnCheckIn" onclick="check('checkin')" class="btn btn-primary" @(hasCheckIn ? "disabled" : "")>
             เช็คเข้างาน
         </button>
 
-        <button id="btnCheckOut" onclick="check('checkout')" class="btn btn-outline-danger">
+        <button id="btnCheckOut" onclick="check('checkout')" class="btn btn-outline-danger" @(hasCheckOut ? "disabled" : "")>
             เช็คออกงาน
         </button>
     </div>
 </div>
 
-<div id="distanceBox" style="margin-top:10px;font-weight:bold;color:#333;"></div>
-<div id="map" style="height:350px;margin-top:15px;border-radius:10px;overflow:hidden;border:2px solid #ddd;">
+<section class="attendance-today-card">
+    <div class="attendance-today-head">
+        <div>
+            <span class="attendance-eyebrow">Today Attendance</span>
+            <h3>เวลาทำงานวันนี้</h3>
+            <p>@employeeName · @workDate</p>
+        </div>
+        <span id="attendanceStatus" class="attendance-status @(hasCheckOut ? "done" : hasCheckIn ? "working" : "pending")">
+            @(hasCheckOut ? "เช็คครบแล้ว" : hasCheckIn ? "อยู่ระหว่างทำงาน" : "ยังไม่เช็คเข้า")
+        </span>
+    </div>
+
+    <div class="attendance-time-grid">
+        <div class="attendance-time-box">
+            <span>เช็คเข้างาน</span>
+            <strong id="checkInTimeText">@checkInTime</strong>
+            <small id="checkInHint">@(hasCheckIn ? "บันทึกเวลาเข้างานแล้ว" : "ยังไม่มีเวลาเข้างาน")</small>
+        </div>
+
+        <div class="attendance-time-box">
+            <span>เช็คออกงาน</span>
+            <strong id="checkOutTimeText">@checkOutTime</strong>
+            <small id="checkOutHint">@(hasCheckOut ? "บันทึกเวลาออกงานแล้ว" : "ยังไม่มีเวลาออกงาน")</small>
+        </div>
+
+        <div class="attendance-time-box">
+            <span>ระยะจากจุดเข้างาน</span>
+            <strong id="distanceText">@(distanceKm == "-" ? "-" : $"{distanceKm} km")</strong>
+            <small>คำนวณเมื่อตอนเช็คออกงาน</small>
+        </div>
+    </div>
+</section>
+
+<div id="distanceBox" class="attendance-message"></div>
+<div id="map" class="attendance-map">
     <iframe id="mapFrame" width="100%" height="100%" style="border:0;" loading="lazy"></iframe>
 </div>
 
+<style>
+    .attendance-today-card {
+        margin-bottom: 16px;
+        padding: 22px;
+        border: 1px solid rgba(216, 227, 239, .92);
+        border-radius: 24px;
+        color: #10233f;
+        background: rgba(255,255,255,.78);
+        box-shadow: 0 14px 32px rgba(15, 35, 64, .08);
+    }
+
+    .attendance-today-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .attendance-eyebrow {
+        color: #0f766e;
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .attendance-today-head h3 {
+        margin: 4px 0 0;
+        color: #10233f;
+        font-size: 1.45rem;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .attendance-today-head p {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .attendance-status {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 0 14px;
+        color: #64748b;
+        background: #eef4fb;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .attendance-status.working {
+        color: #b45309;
+        background: #fff3d7;
+    }
+
+    .attendance-status.done {
+        color: #0f766e;
+        background: #d9fbf5;
+    }
+
+    .attendance-time-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .attendance-time-box {
+        min-height: 128px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        padding: 18px;
+        border: 1px solid #d7e2f2;
+        border-radius: 20px;
+        background: #f8fbff;
+    }
+
+    .attendance-time-box span {
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .attendance-time-box strong {
+        color: #10233f;
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .attendance-time-box small {
+        color: #7c8da5;
+        font-weight: 700;
+    }
+
+    .attendance-message {
+        margin: 10px 0;
+        color: #10233f;
+        font-weight: 900;
+    }
+
+    .attendance-map {
+        height: 350px;
+        margin-top: 15px;
+        border: 1px solid #d7e2f2;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
+    }
+
+    @@media (max-width: 768px) {
+        .attendance-today-head {
+            flex-direction: column;
+        }
+
+        .attendance-time-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <script>
+function setButtonDisabled(buttonId, isDisabled) {
+    let btn = document.getElementById(buttonId);
+    if (!btn) return;
+
+    btn.disabled = isDisabled;
+    btn.style.opacity = isDisabled ? "0.5" : "1";
+    btn.style.cursor = isDisabled ? "not-allowed" : "pointer";
+}
+
+function updateAttendanceStatus(status) {
+    let badge = document.getElementById("attendanceStatus");
+    if (!badge) return;
+
+    badge.classList.remove("pending", "working", "done");
+    badge.classList.add(status);
+
+    if (status === "done") {
+        badge.textContent = "เช็คครบแล้ว";
+    } else if (status === "working") {
+        badge.textContent = "อยู่ระหว่างทำงาน";
+    } else {
+        badge.textContent = "ยังไม่เช็คเข้า";
+    }
+}
+
+function updateAttendanceTimes(res) {
+    if (res.checkinTime) {
+        document.getElementById("checkInTimeText").textContent = res.checkinTime;
+        document.getElementById("checkInHint").textContent = "บันทึกเวลาเข้างานแล้ว";
+    }
+
+    if (res.checkoutTime) {
+        document.getElementById("checkOutTimeText").textContent = res.checkoutTime;
+        document.getElementById("checkOutHint").textContent = "บันทึกเวลาออกงานแล้ว";
+    }
+
+    if (res.distanceKm !== undefined && res.distanceKm !== null) {
+        let distance = Number(res.distanceKm);
+        if (!Number.isNaN(distance)) {
+            document.getElementById("distanceText").textContent = distance.toFixed(2) + " km";
+        }
+    }
+}
 
 function loadCurrentLocation() {
     if (!navigator.geolocation) return;
@@ -71,9 +283,10 @@ function check(type) {
             .then(r => r.json())
             .then(res => {
                 if (res.success) {
+                    updateAttendanceTimes(res);
 
                     if (res.distanceKm !== undefined && res.distanceKm !== null) {
-                        let distance = res.distanceKm;
+                        let distance = Number(res.distanceKm);
                         let color = "green";
 
                         if (distance > 8) {
@@ -89,19 +302,13 @@ function check(type) {
 
                     if (res.type === "checkin") {
                         alert("✅ เข้างานเรียบร้อย");
-
-                        let btn = document.getElementById("btnCheckIn");
-                        btn.disabled = true;
-                        btn.style.opacity = "0.5";
-                        btn.style.cursor = "not-allowed";
+                        setButtonDisabled("btnCheckIn", true);
+                        updateAttendanceStatus("working");
 
                     } else if (res.type === "checkout") {
                         alert("✅ ออกงานเรียบร้อย");
-
-                        let btn = document.getElementById("btnCheckOut");
-                        btn.disabled = true;
-                        btn.style.opacity = "0.5";
-                        btn.style.cursor = "not-allowed";
+                        setButtonDisabled("btnCheckOut", true);
+                        updateAttendanceStatus("done");
                     }
 
                     // location.reload();
@@ -155,5 +362,7 @@ function check(type) {
 <script>
 window.onload = function () {
     loadCurrentLocation();
+    setButtonDisabled("btnCheckIn", @hasCheckIn.ToString().ToLowerInvariant());
+    setButtonDisabled("btnCheckOut", @hasCheckOut.ToString().ToLowerInvariant());
 };
 </script>

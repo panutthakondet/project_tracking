@@ -40,10 +40,8 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "bg-secondary",
-        "IN_PROGRESS" => "bg-primary",
         "WAIT_TEST" => "bg-info text-dark",
         "DONE" => "bg-success",
-        "CLOSE" => "bg-dark",
         _ => "bg-secondary"
     };
 
@@ -56,6 +54,8 @@
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
+    string PeriodText(DateTime? start, DateTime? end) =>
+        !start.HasValue && !end.HasValue ? "-" : $"{DateText(start)} - {DateText(end)}";
 }
 
 <style>
@@ -101,6 +101,13 @@
     .support-dev-filter {
         padding: 18px;
         margin-bottom: 16px;
+    }
+
+    .support-dev-filter .form-select {
+        width: 100%;
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 800;
     }
 
     .support-dev-list {
@@ -286,7 +293,7 @@
 
     <form method="get" class="support-dev-filter">
         <div class="row g-3 align-items-end">
-            <div class="col-lg-6">
+            <div class="col-12">
                 <label class="form-label fw-semibold">Project</label>
                 <select name="projectId" class="form-select" onchange="this.form.submit()">
                     <option value="">-- Select Project --</option>
@@ -335,7 +342,7 @@
                         <div class="support-dev-detail">@TextOrDash(item.OrderDetail)</div>
 
                         <div class="support-dev-meta">
-                            <span class="support-dev-pill">กำหนดส่ง: @DateText(item.DueDate)</span>
+                            <span class="support-dev-pill">วันที่กำหนด: @PeriodText(item.StartDate, item.EndDate)</span>
                             <span class="support-dev-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
                         </div>
 

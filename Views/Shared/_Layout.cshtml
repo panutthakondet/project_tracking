@@ -395,25 +395,286 @@
             filter: brightness(1.03);
         }
 
+        .login-followup-backdrop {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background: rgba(2, 12, 32, .58);
+            backdrop-filter: blur(8px);
+            z-index: 21000;
+        }
+
+        .login-followup-dialog {
+            width: min(860px, 100%);
+            max-height: min(84vh, 780px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 30px;
+            background: #eef5fb;
+            color: #0f1d35;
+            box-shadow: 0 28px 70px rgba(0, 0, 0, .34);
+            border: 1px solid rgba(255, 255, 255, .55);
+        }
+
+        .login-followup-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 26px 30px 22px;
+            background: linear-gradient(135deg, #102847 0%, #1f4668 52%, #0f766e 100%);
+            color: #fff;
+        }
+
+        .login-followup-eyebrow {
+            color: #9bf4e6;
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .login-followup-head h2 {
+            margin: 6px 0 6px;
+            font-size: clamp(26px, 4vw, 38px);
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .login-followup-head p {
+            margin: 0;
+            color: rgba(255, 255, 255, .82);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .login-followup-close {
+            flex: 0 0 auto;
+            width: 46px;
+            height: 46px;
+            border: 1px solid rgba(255,255,255,.36);
+            border-radius: 999px;
+            color: #fff;
+            background: rgba(255,255,255,.12);
+            font-size: 26px;
+            line-height: 1;
+        }
+
+        .login-followup-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            padding: 16px 22px 0;
+        }
+
+        .login-followup-summary span {
+            min-height: 66px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border-radius: 18px;
+            padding: 10px 14px;
+            background: #fff;
+            border: 1px solid rgba(123, 151, 184, .24);
+            box-shadow: 0 10px 22px rgba(15, 32, 55, .06);
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .login-followup-summary strong {
+            color: #10233f;
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .login-followup-list {
+            padding: 16px 22px 22px;
+            overflow: auto;
+            display: grid;
+            gap: 12px;
+        }
+
+        .login-followup-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: #fff;
+            border: 1px solid rgba(123, 151, 184, .28);
+            border-left: 6px solid #14b8a6;
+            box-shadow: 0 16px 32px rgba(15, 32, 55, .08);
+            color: #0f1d35;
+            text-decoration: none;
+        }
+
+        .login-followup-item:hover {
+            color: #0f1d35;
+            transform: translateY(-1px);
+            box-shadow: 0 20px 38px rgba(15, 32, 55, .12);
+        }
+
+        .login-followup-item.is-overdue {
+            border-left-color: #f43f5e;
+        }
+
+        .login-followup-item.is-today {
+            border-left-color: #f59e0b;
+        }
+
+        .login-followup-content {
+            min-width: 0;
+        }
+
+        .login-followup-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+
+        .login-followup-meta {
+            display: grid;
+            gap: 3px;
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .login-followup-meta > span {
+            display: block;
+            overflow-wrap: anywhere;
+        }
+
+        .login-followup-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 104px;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #0f766e;
+            font-size: 15px;
+            font-weight: 900;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .login-followup-chip.danger {
+            background: transparent;
+            color: #be123c;
+        }
+
+        .login-followup-chip.warning {
+            background: transparent;
+            color: #b45309;
+        }
+
+        .login-followup-empty {
+            margin: 16px 22px 22px;
+            padding: 28px 18px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 20px;
+            background: #fff;
+            color: #64748b;
+            text-align: center;
+            font-weight: 900;
+        }
+
+        .login-followup-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 22px 22px;
+            border-top: 1px solid rgba(123, 151, 184, .16);
+            background: rgba(238, 245, 251, .92);
+        }
+
+        .login-followup-actions .btn {
+            min-height: 44px;
+            min-width: 138px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            padding: 0 20px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .login-followup-actions .btn-outline-secondary {
+            border-color: #94a3b8;
+            color: #10233f;
+            background: rgba(255,255,255,.72);
+        }
+
+        .login-followup-actions .btn-primary {
+            min-width: 164px;
+            border: 0;
+            color: #fff;
+            background: linear-gradient(135deg, #14b8a6, #0f766e);
+            box-shadow: 0 12px 22px rgba(20, 184, 166, .2);
+        }
+
         @@media (max-width: 640px) {
             .system-update-backdrop {
                 padding: 12px;
             }
 
-            .system-update-dialog {
+            .system-update-dialog,
+            .login-followup-dialog {
                 border-radius: 24px;
                 max-height: 90vh;
             }
 
             .system-update-head,
             .system-update-list,
-            .system-update-actions {
+            .system-update-actions,
+            .login-followup-head,
+            .login-followup-list,
+            .login-followup-actions {
                 padding-left: 16px;
                 padding-right: 16px;
             }
 
-            .system-update-item h3 {
+            .system-update-item h3,
+            .login-followup-title {
                 font-size: 19px;
+            }
+
+            .login-followup-backdrop {
+                padding: 12px;
+            }
+
+            .login-followup-summary {
+                grid-template-columns: 1fr;
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .login-followup-item {
+                grid-template-columns: 1fr;
+            }
+
+            .login-followup-actions {
+                flex-direction: column-reverse;
+            }
+
+            .login-followup-actions .btn {
+                width: 100%;
             }
         }
 
@@ -1271,6 +1532,9 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var systemUpdateAnnouncements = new List<ProjectTracking.Models.SystemUpdateAnnouncement>();
+    var showLoginFollowupPopup = Context.Session.GetString("ShowLoginFollowupPopup") == "1";
+    var loginFollowups = new List<ProjectTracking.Models.ProjectFollowup>();
+    var loginFollowupOwnerName = "";
 
     if (userId != null)
     {
@@ -1290,6 +1554,40 @@
         catch
         {
             systemUpdateAnnouncements = new List<ProjectTracking.Models.SystemUpdateAnnouncement>();
+        }
+
+        if (showLoginFollowupPopup && systemUpdateAnnouncements.Count == 0)
+        {
+            try
+            {
+                var loginEmployee = await LayoutDb.Employees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(emp => emp.LoginUserId == userId.Value);
+
+                if (loginEmployee != null)
+                {
+                    loginFollowupOwnerName = loginEmployee.EmpName ?? "";
+                    loginFollowups = await LayoutDb.ProjectFollowups
+                        .AsNoTracking()
+                        .Include(followup => followup.Project)
+                        .Where(followup => followup.OwnerEmpId == loginEmployee.EmpId
+                            && (followup.Status == null ||
+                                (followup.Status.ToUpper() != "DONE" && followup.Status.ToUpper() != "ACK")))
+                        .OrderBy(followup => followup.NextFollowupDate == null)
+                        .ThenBy(followup => followup.NextFollowupDate)
+                        .ThenByDescending(followup => followup.CreatedAt)
+                        .Take(12)
+                        .ToListAsync();
+                }
+            }
+            catch
+            {
+                loginFollowups = new List<ProjectTracking.Models.ProjectFollowup>();
+            }
+            finally
+            {
+                Context.Session.Remove("ShowLoginFollowupPopup");
+            }
         }
     }
 
@@ -1336,7 +1634,8 @@
 
 	    var canReports = CanMenu("Reports.Index");
 
-    var canFollowups = CanMenu("Followups.Dashboard")
+    var canFollowups = CanMenu("Followups.Index")
+                    || CanMenu("Followups.Dashboard")
                     || CanMenu("Followups.DashboardDone")
                     || CanMenu("Followups.DashboardACK");
 
@@ -1601,6 +1900,14 @@
                                     <span class="nav-label">Followups</span>
                                 </a>
                                 <ul class="dropdown-menu">
+                                    @if (CanMenu("Followups.Index"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Followups" asp-action="Index">
+                                                จัดการ Followups
+                                            </a>
+                                        </li>
+                                    }
                                     @if (CanMenu("Followups.Dashboard"))
                                     {
                                         <li>
@@ -1780,6 +2087,87 @@
     </div>
 }
 
+@if (loginFollowups.Count > 0)
+{
+    var today = DateTime.Today;
+    var overdueCount = loginFollowups.Count(followup => followup.NextFollowupDate?.Date < today);
+    var todayCount = loginFollowups.Count(followup => followup.NextFollowupDate?.Date == today);
+    var upcomingCount = loginFollowups.Count - overdueCount - todayCount;
+
+    string FollowupDateText(DateTime? date)
+    {
+        if (date == null) return "ยังไม่กำหนดวัน";
+        return date.Value.ToString("dd/MM/yyyy");
+    }
+
+    string FollowupItemClass(DateTime? date)
+    {
+        if (date?.Date < today) return "is-overdue";
+        if (date?.Date == today) return "is-today";
+        return "";
+    }
+
+    string FollowupChipClass(DateTime? date)
+    {
+        if (date?.Date < today) return "danger";
+        if (date?.Date == today) return "warning";
+        return "";
+    }
+
+    <div id="loginFollowupModal" class="login-followup-backdrop" role="dialog" aria-modal="true" aria-labelledby="loginFollowupTitle">
+        <div class="login-followup-dialog">
+            <div class="login-followup-head">
+                <div>
+                    <div class="login-followup-eyebrow">Followups Reminder</div>
+                    <h2 id="loginFollowupTitle">งาน Followup ของคุณ</h2>
+                    <p>
+                        @(string.IsNullOrWhiteSpace(loginFollowupOwnerName) ? "รายการงานติดตามที่ยังต้องดำเนินการ" : loginFollowupOwnerName)
+                    </p>
+                </div>
+                <button type="button" class="login-followup-close" onclick="closeLoginFollowupModal()" aria-label="ปิด">×</button>
+            </div>
+
+            <div class="login-followup-summary">
+                <span><strong>@overdueCount</strong>เลยกำหนด</span>
+                <span><strong>@todayCount</strong>วันนี้</span>
+                <span><strong>@upcomingCount</strong>รอติดตาม</span>
+            </div>
+
+            <div class="login-followup-list">
+                @foreach (var followup in loginFollowups)
+                {
+                    <a class="login-followup-item @FollowupItemClass(followup.NextFollowupDate)"
+                       asp-controller="Followups"
+                       asp-action="Details"
+                       asp-route-id="@followup.FollowupId">
+                        <span class="login-followup-content">
+                            <h3 class="login-followup-title">@followup.TaskTitle</h3>
+                            <span class="login-followup-meta">
+                                <span>@(followup.Project?.ProjectName ?? "ไม่ระบุโครงการ")</span>
+                                @if (!string.IsNullOrWhiteSpace(followup.PartnerName))
+                                {
+                                    <span>คู่ติดต่อ: @followup.PartnerName</span>
+                                }
+                            </span>
+                        </span>
+                        <span class="login-followup-chip @FollowupChipClass(followup.NextFollowupDate)">
+                            @FollowupDateText(followup.NextFollowupDate)
+                        </span>
+                    </a>
+                }
+            </div>
+
+            <div class="login-followup-actions">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeLoginFollowupModal()">ปิด</button>
+                <a class="btn btn-primary"
+                   asp-controller="Followups"
+                   asp-action="Dashboard"
+                   asp-route-owner="@loginFollowupOwnerName">ดู Followups</a>
+            </div>
+        </div>
+    </div>
+}
+
 @{
     var routeController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "unknown").ToLowerInvariant();
     var routeAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "unknown").ToLowerInvariant();
@@ -1829,6 +2217,26 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
 
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function closeLoginFollowupModal() {
+    const modal = document.getElementById('loginFollowupModal');
+    if (modal) modal.remove();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('loginFollowupModal');
+    if (!modal) return;
+
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeLoginFollowupModal();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closeLoginFollowupModal();
+    });
+});
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

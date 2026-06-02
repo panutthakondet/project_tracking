@@ -1,8 +1,25 @@
 @model ProjectTracking.Models.ProjectSupportOrder
 
+@{
+    DateTime? startDate = Model?.StartDate;
+    DateTime? endDate = Model?.EndDate;
+    var projectId = Model?.ProjectId ?? 0;
+
+    var sd = startDate.GetValueOrDefault();
+    var ed = endDate.GetValueOrDefault();
+
+    string startDateText = startDate.HasValue
+        ? $"{sd:dd/MM/}{sd.Year + 543}"
+        : "";
+
+    string endDateText = endDate.HasValue
+        ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
+}
+
 <h3>สร้าง Support Order</h3>
 
-<form asp-action="Create" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+<form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
 @Html.AntiForgeryToken()
 
 <div class="mb-3">
@@ -36,16 +53,33 @@
 <label>Status</label>
 <select asp-for="Status" class="form-select">
 <option value="OPEN">OPEN</option>
-<option value="IN_PROGRESS">IN PROGRESS</option>
 <option value="WAIT_TEST">WAIT TEST</option>
 <option value="DONE">DONE</option>
-<option value="CLOSE">CLOSE</option>
 </select>
 </div>
 
-<div class="mb-3">
-<label>Due Date</label>
-<input type="date" name="DueDate" class="form-control" />
+<div class="row g-3 mb-3">
+<div class="col-md-6">
+<label>วันที่เริ่ม</label>
+<input asp-for="StartDate"
+       type="text"
+       class="form-control thai-date"
+       value="@startDateText"
+       placeholder="วัน/เดือน/พ.ศ."
+       required />
+<span asp-validation-for="StartDate" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+<label>วันที่สิ้นสุด</label>
+<input asp-for="EndDate"
+       type="text"
+       class="form-control thai-date"
+       value="@endDateText"
+       placeholder="วัน/เดือน/พ.ศ."
+       required />
+<span asp-validation-for="EndDate" class="text-danger"></span>
+</div>
 </div>
 
 <div class="mb-3">
@@ -61,6 +95,58 @@
 </div>
 
 <button class="btn btn-primary">Save</button>
-<a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary ms-2">Back</a>
+<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary ms-2">Back</a>
 
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('StartDate'));
+        formatThaiDateInput(document.getElementById('EndDate'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
+        }, true);
+    </script>
+}

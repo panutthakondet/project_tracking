@@ -40,10 +40,8 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "bg-secondary",
-        "IN_PROGRESS" => "bg-primary",
         "WAIT_TEST" => "bg-info text-dark",
         "DONE" => "bg-success",
-        "CLOSE" => "bg-dark",
         _ => "bg-secondary"
     };
 
@@ -56,6 +54,8 @@
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
+    string PeriodText(DateTime? start, DateTime? end) =>
+        !start.HasValue && !end.HasValue ? "-" : $"{DateText(start)} - {DateText(end)}";
 }
 
 <style>
@@ -364,7 +364,7 @@
                         <div class="support-detail">@TextOrDash(item.OrderDetail)</div>
 
                         <div class="support-meta">
-                            <span class="support-meta-pill">กำหนดส่ง: @DateText(item.DueDate)</span>
+                            <span class="support-meta-pill">วันที่กำหนด: @PeriodText(item.StartDate, item.EndDate)</span>
                             <span class="support-meta-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
                         </div>
 

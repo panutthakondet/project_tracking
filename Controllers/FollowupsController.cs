@@ -18,15 +18,24 @@ namespace ProjectTracking.Controllers
 
         // ===== Follow-up Dashboard =====
         [RequireMenu("Followups.Dashboard")]
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Dashboard(string? owner)
         {
             var today = DateTime.Today;
+            owner = string.IsNullOrWhiteSpace(owner) ? null : owner.Trim();
 
-            var data = await _context.ProjectFollowups
+            var query = _context.ProjectFollowups
                 .Include(x => x.Project)
                 .Include(x => x.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .Where(x => x.Status == "OPEN"|| x.Status == "IN_PROGRESS")
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(owner))
+            {
+                query = query.Where(x => x.Owner != null && x.Owner.EmpName == owner);
+            }
+
+            var data = await query
                 .OrderBy(x => x.NextFollowupDate)
                 .Select(x => new
                 {
@@ -35,6 +44,7 @@ namespace ProjectTracking.Controllers
                     Project = x.Project != null ? x.Project.ProjectName : "",
                     x.TaskTitle,
                     x.PartnerName,
+                    x.OwnerEmpId,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
                     OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
                         ? x.Owner.LoginUser.ProfileImagePath
@@ -48,6 +58,7 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
+            ViewBag.SelectedOwner = owner ?? "";
             return View(data);
         }
 
@@ -110,12 +121,28 @@ namespace ProjectTracking.Controllers
             return View(data);
         }
 
-        public async Task<IActionResult> Index(int? projectId)
+        public async Task<IActionResult> Index(int? projectId, int? ownerEmpId)
         {
             // send project list to dropdown
             ViewBag.Projects = await _context.Projects
                 .OrderBy(p => p.ProjectName)
                 .ToListAsync();
+
+            var ownerIds = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Where(x => x.OwnerEmpId.HasValue)
+                .Select(x => x.OwnerEmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.OwnerEmployees = await _context.Employees
+                .AsNoTracking()
+                .Where(e => ownerIds.Contains(e.EmpId))
+                .OrderBy(e => e.EmpName)
+                .ToListAsync();
+
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedOwnerEmpId = ownerEmpId;
 
             var query = _context.ProjectFollowups.AsQueryable();
 
@@ -123,6 +150,11 @@ namespace ProjectTracking.Controllers
             if (projectId != null)
             {
                 query = query.Where(x => x.ProjectId == projectId);
+            }
+
+            if (ownerEmpId != null)
+            {
+                query = query.Where(x => x.OwnerEmpId == ownerEmpId);
             }
 
             var data = await query

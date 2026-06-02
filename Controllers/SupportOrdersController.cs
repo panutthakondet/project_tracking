@@ -12,6 +12,7 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private static readonly string[] SupportOrderStatuses = { "OPEN", "WAIT_TEST", "DONE" };
 
         public SupportOrdersController(AppDbContext context, IWebHostEnvironment env)
         {
@@ -85,7 +86,7 @@ namespace ProjectTracking.Controllers
                 query = query.Where(o => o.DevStatus == devStatus);
 
             var orders = await query
-                .OrderBy(o => o.DueDate ?? DateTime.MaxValue)
+                .OrderBy(o => o.EndDate ?? DateTime.MaxValue)
                 .ThenByDescending(o =>
                     o.Priority == "URGENT" ? 4 :
                     o.Priority == "HIGH" ? 3 :
@@ -110,7 +111,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedPriority = priority ?? "";
             ViewBag.SelectedDevStatus = devStatus ?? "";
             ViewBag.ImageCounts = imageCounts;
-            ViewBag.StatusList = new[] { "OPEN", "IN_PROGRESS", "WAIT_TEST", "DONE", "CLOSE" };
+            ViewBag.StatusList = SupportOrderStatuses;
             ViewBag.PriorityList = new[] { "URGENT", "HIGH", "MEDIUM", "LOW" };
             ViewBag.DevStatusList = new[] { "IN_PROGRESS", "FIXED" };
 
@@ -170,10 +171,13 @@ namespace ProjectTracking.Controllers
         // CREATE (POST)
         // =========================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrders.Create")]
         public async Task<IActionResult> Create(ProjectSupportOrder order, List<IFormFile> files)
         {
-            ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
+            ApplySupportDateInput(order);
+            ValidateSupportDateRange(order, requireDates: true);
+            await PopulateSupportOrderFormAsync(order);
 
             if (!ModelState.IsValid)
                 return View(order);
@@ -185,6 +189,12 @@ namespace ProjectTracking.Controllers
                 return View(order);
             }
 
+            var projectBaEmpId = await _context.Projects
+                .AsNoTracking()
+                .Where(p => p.ProjectId == order.ProjectId)
+                .Select(p => p.BaEmpId)
+                .FirstOrDefaultAsync();
+
             var projectExists = await _context.Projects.AnyAsync(p => p.ProjectId == order.ProjectId);
             if (!projectExists)
             {
@@ -192,17 +202,10 @@ namespace ProjectTracking.Controllers
                 return View(order);
             }
 
-            var loginUserId = HttpContext.Session.GetInt32("UserId");
-            if (loginUserId.HasValue)
-            {
-                order.CreatedBy = await _context.Employees
-                    .AsNoTracking()
-                    .Where(e => e.LoginUserId == loginUserId.Value)
-                    .Select(e => (int?)e.EmpId)
-                    .FirstOrDefaultAsync();
-            }
+            order.CreatedBy = projectBaEmpId ?? await GetCurrentEntryIdAsync();
 
             order.CreatedAt = DateTime.Now;
+            order.Status = NormalizeSupportStatus(order.Status);
 
             _context.ProjectSupportOrders.Add(order);
             await _context.SaveChangesAsync();
@@ -272,14 +275,21 @@ namespace ProjectTracking.Controllers
         // EDIT (POST)
         // =========================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrders.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> files, List<IFormFile> afterFiles, List<int> deleteImageIds)
         {
             if (id != order.OrderId)
                 return NotFound();
 
+            ApplySupportDateInput(order);
+            ValidateSupportDateRange(order);
+
             if (!ModelState.IsValid)
+            {
+                await PopulateSupportOrderFormAsync(order);
                 return View(order);
+            }
 
             // โหลดข้อมูลเดิมก่อน เพื่อกันค่า DevStatus หาย
             var existingOrder = await _context.ProjectSupportOrders
@@ -303,6 +313,11 @@ namespace ProjectTracking.Controllers
 
             order.CreatedBy = existingOrder.CreatedBy;
             order.CreatedAt = DateTime.Now;
+            order.Status = NormalizeSupportStatus(order.Status);
+            if (IsDevStatusChangedToFixed(existingOrder.DevStatus, order.DevStatus))
+            {
+                order.Status = "WAIT_TEST";
+            }
 
             _context.ProjectSupportOrders.Update(order);
             await _context.SaveChangesAsync();
@@ -406,6 +421,150 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
+        }
+
+        private void ApplySupportDateInput(ProjectSupportOrder order)
+        {
+            ModelState.Remove(nameof(ProjectSupportOrder.StartDate));
+            ModelState.Remove(nameof(ProjectSupportOrder.EndDate));
+
+            var startRaw = Request.Form[nameof(ProjectSupportOrder.StartDate)].ToString();
+            var endRaw = Request.Form[nameof(ProjectSupportOrder.EndDate)].ToString();
+
+            order.StartDate = ParseSupportDate(startRaw);
+            order.EndDate = ParseSupportDate(endRaw);
+
+            if (!string.IsNullOrWhiteSpace(startRaw) && !order.StartDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(ProjectSupportOrder.StartDate), "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(endRaw) && !order.EndDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(ProjectSupportOrder.EndDate), "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+            }
+        }
+
+        private static DateTime? ParseSupportDate(string? value)
+        {
+            value = (value ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            if (DateTime.TryParseExact(
+                    value,
+                    "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var isoDate))
+            {
+                return isoDate.Date;
+            }
+
+            var parts = value.Split('/');
+            if (parts.Length == 3
+                && int.TryParse(parts[0], out var day)
+                && int.TryParse(parts[1], out var month)
+                && int.TryParse(parts[2], out var year))
+            {
+                if (year > 2400) year -= 543;
+
+                try
+                {
+                    return new DateTime(year, month, day);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        private void ValidateSupportDateRange(ProjectSupportOrder order, bool requireDates = false)
+        {
+            if (requireDates && !order.StartDate.HasValue && !HasModelError(nameof(ProjectSupportOrder.StartDate)))
+            {
+                ModelState.AddModelError(nameof(ProjectSupportOrder.StartDate), "กรุณากรอกวันที่เริ่ม");
+            }
+
+            if (requireDates && !order.EndDate.HasValue && !HasModelError(nameof(ProjectSupportOrder.EndDate)))
+            {
+                ModelState.AddModelError(nameof(ProjectSupportOrder.EndDate), "กรุณากรอกวันที่สิ้นสุด");
+            }
+
+            if (order.StartDate.HasValue
+                && order.EndDate.HasValue
+                && order.EndDate.Value.Date < order.StartDate.Value.Date)
+            {
+                ModelState.AddModelError(nameof(ProjectSupportOrder.EndDate), "วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม");
+            }
+        }
+
+        private bool HasModelError(string key)
+        {
+            return ModelState.TryGetValue(key, out var state) && state.Errors.Count > 0;
+        }
+
+        private async Task PopulateSupportOrderFormAsync(ProjectSupportOrder order)
+        {
+            ViewBag.EmployeeList = new SelectList(
+                await _context.Employees
+                    .AsNoTracking()
+                    .OrderBy(e => e.EmpName)
+                    .ToListAsync(),
+                "EmpId",
+                "EmpName",
+                order.AssignTo);
+
+            if (order.ProjectId > 0)
+            {
+                ViewBag.SelectedProjectName = await _context.Projects
+                    .AsNoTracking()
+                    .Where(p => p.ProjectId == order.ProjectId)
+                    .Select(p => p.ProjectName)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (order.OrderId > 0)
+            {
+                order.Images = await _context.ProjectSupportImages
+                    .AsNoTracking()
+                    .Where(x => x.OrderId == order.OrderId)
+                    .ToListAsync();
+            }
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
+        }
+
+        private static string NormalizeSupportStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return SupportOrderStatuses.Contains(normalized) ? normalized : "OPEN";
+        }
+
+        private static bool IsDevStatusChangedToFixed(string? previousStatus, string? nextStatus)
+        {
+            return !string.Equals((previousStatus ?? "").Trim(), "FIXED", StringComparison.OrdinalIgnoreCase)
+                && string.Equals((nextStatus ?? "").Trim(), "FIXED", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

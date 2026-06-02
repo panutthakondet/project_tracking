@@ -16,8 +16,46 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Attendance.Index")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var today = DateTime.Today;
+
+            ViewBag.WorkDate = today.ToString("dd/MM/yyyy");
+            ViewBag.EmployeeName = "-";
+            ViewBag.CheckInTime = "-";
+            ViewBag.CheckOutTime = "-";
+            ViewBag.DistanceKm = "-";
+            ViewBag.HasCheckIn = false;
+            ViewBag.HasCheckOut = false;
+
+            if (userId != null)
+            {
+                var emp = await _context.Employees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.LoginUserId == userId);
+
+                if (emp != null)
+                {
+                    ViewBag.EmployeeName = emp.EmpName ?? "-";
+
+                    var record = await _context.Attendances
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.EmpId == emp.EmpId && x.WorkDate == today);
+
+                    if (record != null)
+                    {
+                        ViewBag.HasCheckIn = record.CheckinTime.HasValue;
+                        ViewBag.HasCheckOut = record.CheckoutTime.HasValue;
+                        ViewBag.CheckInTime = record.CheckinTime?.ToString("HH:mm") ?? "-";
+                        ViewBag.CheckOutTime = record.CheckoutTime?.ToString("HH:mm") ?? "-";
+                        ViewBag.DistanceKm = record.DistanceKm.HasValue
+                            ? record.DistanceKm.Value.ToString("0.00")
+                            : "-";
+                    }
+                }
+            }
+
             return View();
         }
 

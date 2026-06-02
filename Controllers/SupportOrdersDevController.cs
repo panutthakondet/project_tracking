@@ -103,7 +103,13 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             // Use status selected by programmer
+            var previousDevStatus = (dbOrder.DevStatus ?? "").Trim().ToUpperInvariant();
+            var nextDevStatus = (order.DevStatus ?? "").Trim().ToUpperInvariant();
             dbOrder.DevStatus = order.DevStatus;
+            if (previousDevStatus != "FIXED" && nextDevStatus == "FIXED")
+            {
+                dbOrder.Status = "WAIT_TEST";
+            }
 
             var folder = Path.Combine(
                 Directory.GetCurrentDirectory(),

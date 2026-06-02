@@ -10,6 +10,9 @@
 @{
     var menus = Context.Session.GetString("Menus") ?? "";
     var allowedMenus = menus.Split(',').Select(x => x.Trim()).ToList();
+    var selectedProjectId = Context.Request.Query["projectId"].ToString();
+    var selectedOwnerEmpId = Context.Request.Query["ownerEmpId"].ToString();
+    var ownerEmployees = ViewBag.OwnerEmployees as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
 
     bool HasMenu(string key)
     {
@@ -42,24 +45,44 @@
     </div>
 </div>
 
-<form method="get" action="/Followups/Index" class="mb-2">
-    <select name="projectId"
-            class="form-select"
-            style="max-width:300px;"
-            onchange="this.form.submit()"
-            asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectName", Context.Request.Query["projectId"]))">
-        <option value="">-- เลือก Project --</option>
-    </select>
+<form method="get" action="/Followups/Index" class="followup-filter mb-2">
+    <div class="followup-filter__field">
+        <label for="projectId">📁 Select Project</label>
+        <select id="projectId"
+                name="projectId"
+                class="form-select"
+                onchange="this.form.submit()"
+                asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectName", selectedProjectId))">
+            <option value="">-- ทุก Project --</option>
+        </select>
+    </div>
+
+    <div class="followup-filter__field">
+        <label for="ownerEmpId">👤 ผู้รับผิดชอบ</label>
+        <select id="ownerEmpId"
+                name="ownerEmpId"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="">-- ทุกคน --</option>
+            @foreach (var owner in ownerEmployees)
+            {
+                var value = owner.EmpId.ToString();
+                <option value="@value" selected="@(selectedOwnerEmpId == value ? "selected" : null)">
+                    @owner.EmpName
+                </option>
+            }
+        </select>
+    </div>
 </form>
 
-@if (string.IsNullOrEmpty(Context.Request.Query["projectId"]))
+@if (string.IsNullOrEmpty(selectedProjectId) && string.IsNullOrEmpty(selectedOwnerEmpId))
 {
     <div class="alert alert-secondary mt-3 p-3">
-        ⬆ กรุณาเลือก Project ก่อน
+        ⬆ กรุณาเลือก Project หรือผู้รับผิดชอบก่อน
     </div>
 }
 
-@if (!string.IsNullOrEmpty(Context.Request.Query["projectId"]))
+@if (!string.IsNullOrEmpty(selectedProjectId) || !string.IsNullOrEmpty(selectedOwnerEmpId))
 {
     int no = 1;
     <div class="mb-2">
@@ -379,9 +402,45 @@
 }
 
 <style>
+.followup-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    padding: 18px;
+    margin-top: 16px;
+    background: #fff;
+    border: 1px solid #dbeafe;
+    border-radius: 22px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
+}
+
+.followup-filter__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.followup-filter__field label {
+    margin: 0;
+    color: #0f2748;
+    font-weight: 800;
+}
+
+.followup-filter .form-select {
+    width: 100%;
+    min-height: 54px;
+    border: 1px solid #d7e2f2;
+    border-radius: 16px;
+    color: #10233f;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    background-color: #f8fbff;
+}
+
 .followup-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: 1fr;
     gap: 18px;
 }
 
@@ -477,90 +536,280 @@
     min-width: 90px;
 }
 
+.followup-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(4, 18, 39, .62);
+    backdrop-filter: blur(4px);
+    z-index: 26000;
+}
+
+.followup-modal__panel {
+    width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 24px;
+    box-shadow: 0 28px 70px rgba(15, 23, 42, .34);
+}
+
+.followup-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 24px 28px;
+    color: #fff;
+    background: linear-gradient(135deg, #0f2748 0%, #123b5c 64%, #0f766e 100%);
+}
+
+.followup-modal__eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: rgba(255, 255, 255, .72);
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.followup-modal__title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.followup-modal__subtitle {
+    margin: 8px 0 0;
+    color: rgba(255, 255, 255, .78);
+    font-size: .98rem;
+}
+
+.followup-modal__close {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, .4);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.followup-modal__body {
+    padding: 26px 28px 28px;
+}
+
+.followup-modal__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.followup-modal__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.followup-modal__field--full {
+    grid-column: 1 / -1;
+}
+
+.followup-modal__field label {
+    margin: 0;
+    color: #0f2748;
+    font-weight: 800;
+}
+
+.followup-modal .form-control,
+.followup-modal .form-select {
+    min-height: 54px;
+    border: 1px solid #d7e2f2;
+    border-radius: 16px;
+    color: #10233f;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    background-color: #f8fbff;
+}
+
+.followup-modal textarea.form-control {
+    min-height: 160px;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.followup-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5edf7;
+}
+
+.followup-modal__actions .btn {
+    min-width: 150px;
+    min-height: 48px;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.followup-modal-open {
+    overflow: hidden;
+}
+
 @@media (max-width:768px){
+    .followup-filter {
+        grid-template-columns: 1fr;
+        padding: 14px;
+    }
+
     .followup-cards {
         grid-template-columns: 1fr;
+    }
+
+    .followup-modal {
+        padding: 14px;
+    }
+
+    .followup-modal__header,
+    .followup-modal__body {
+        padding: 20px;
+    }
+
+    .followup-modal__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .followup-modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .followup-modal__actions .btn {
+        width: 100%;
     }
 }
 </style>
 
 <!-- Quick Log Modal -->
-<div id="quickLogModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-     background:#fff; padding:24px; width:420px; border-radius:10px;
-     border:1px solid #e0e0e0; box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:1000;">
-
-    <h5 style="margin-bottom:18px; font-weight:600;">Quick Follow‑up Log</h5>
-
-    <form method="post" action="/Followups/AddLog">
-        <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
-        <input type="hidden" name="FollowupId" id="quickFollowupId" />
-
-        <div class="mb-2">
-            <label>Contact Type</label>
-            <select name="ContactType" class="form-select">
-                <option value="Call">Call</option>
-                <option value="Email">Email</option>
-                <option value="Meeting">Meeting</option>
-            </select>
+<div id="quickLogModal" class="followup-modal" onclick="if (event.target === this) closeQuickLog()">
+    <div class="followup-modal__panel" role="dialog" aria-modal="true" aria-labelledby="quickLogTitle">
+        <div class="followup-modal__header">
+            <div>
+                <span class="followup-modal__eyebrow">Follow-up Log</span>
+                <h5 id="quickLogTitle" class="followup-modal__title">บันทึกการติดตาม</h5>
+                <p class="followup-modal__subtitle">เพิ่มประวัติการติดต่อและกำหนดวันติดตามครั้งถัดไป</p>
+            </div>
+            <button type="button" class="followup-modal__close" onclick="closeQuickLog()" aria-label="ปิด">×</button>
         </div>
 
-        <div class="mb-2">
-            <label>Note</label>
-            <textarea name="Note" class="form-control" rows="3" placeholder="บันทึกการติดต่อ..."></textarea>
-        </div>
+        <form method="post" action="/Followups/AddLog" class="followup-modal__body">
+            <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
+            <input type="hidden" name="FollowupId" id="quickFollowupId" />
 
-        <div class="mb-2">
-            <label>Next Follow-up</label>
-            <input type="date" name="NextFollowupDate" class="form-control" />
-        </div>
+            <div class="followup-modal__grid">
+                <div class="followup-modal__field">
+                    <label for="quickContactType">Contact Type</label>
+                    <select id="quickContactType" name="ContactType" class="form-select">
+                        <option value="Call">Call</option>
+                        <option value="Email">Email</option>
+                        <option value="Meeting">Meeting</option>
+                    </select>
+                </div>
 
-        <div style="margin-top:16px; text-align:right;">
-            <button type="button" class="btn btn-secondary" onclick="closeQuickLog()">Cancel</button>
-            <button class="btn btn-primary">Save</button>
-        </div>
-    </form>
+                <div class="followup-modal__field">
+                    <label for="quickNextDate">Next Follow-up</label>
+                    <input id="quickNextDate" type="date" name="NextFollowupDate" class="form-control" />
+                </div>
+
+                <div class="followup-modal__field followup-modal__field--full">
+                    <label for="quickNote">Note</label>
+                    <textarea id="quickNote" name="Note" class="form-control" rows="5" placeholder="บันทึกการติดต่อ..."></textarea>
+                </div>
+            </div>
+
+            <div class="followup-modal__actions">
+                <button type="button" class="btn btn-secondary" onclick="closeQuickLog()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Done Popup -->
-<div id="doneModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-     background:#fff; padding:24px; width:420px; border-radius:10px;
-     border:1px solid #e0e0e0; box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:1000;">
-
-    <h5 style="margin-bottom:18px; font-weight:600;">Mark Follow‑up Done</h5>
-
-    <form method="post" action="/Followups/MarkDone">
-        <input type="hidden" name="followupId" id="doneFollowupId" />
-        <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
-
-        <div class="mb-2">
-            <label>Note</label>
-            <textarea name="Note" class="form-control" rows="3"
-                      placeholder="บันทึกผลการดำเนินการ..."></textarea>
+<div id="doneModal" class="followup-modal" onclick="if (event.target === this) closeDonePopup()">
+    <div class="followup-modal__panel" role="dialog" aria-modal="true" aria-labelledby="doneModalTitle">
+        <div class="followup-modal__header">
+            <div>
+                <span class="followup-modal__eyebrow">Follow-up Done</span>
+                <h5 id="doneModalTitle" class="followup-modal__title">ปิดงานติดตาม</h5>
+                <p class="followup-modal__subtitle">บันทึกผลก่อนเปลี่ยนสถานะงานติดตามเป็น Done</p>
+            </div>
+            <button type="button" class="followup-modal__close" onclick="closeDonePopup()" aria-label="ปิด">×</button>
         </div>
 
-        <div style="margin-top:16px; text-align:right;">
-            <button type="button" class="btn btn-secondary" onclick="closeDonePopup()">Cancel</button>
-            <button class="btn btn-success">Done</button>
-        </div>
-    </form>
+        <form method="post" action="/Followups/MarkDone" class="followup-modal__body">
+            <input type="hidden" name="followupId" id="doneFollowupId" />
+            <input type="hidden" name="projectId" value="@Context.Request.Query["projectId"]" />
+
+            <div class="followup-modal__field">
+                <label for="doneNote">Note</label>
+                <textarea id="doneNote" name="Note" class="form-control" rows="5"
+                          placeholder="บันทึกผลการดำเนินการ..."></textarea>
+            </div>
+
+            <div class="followup-modal__actions">
+                <button type="button" class="btn btn-secondary" onclick="closeDonePopup()">Cancel</button>
+                <button type="submit" class="btn btn-success">Done</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
+function setFollowupModalOpen(isOpen){
+    document.body.classList.toggle("followup-modal-open", isOpen);
+}
+
 function openQuickLog(id){
     document.getElementById("quickFollowupId").value = id;
-    document.getElementById("quickLogModal").style.display = "block";
+    document.getElementById("quickLogModal").style.display = "flex";
+    setFollowupModalOpen(true);
+    setTimeout(function(){
+        document.getElementById("quickNote")?.focus();
+    }, 50);
 }
 
 function closeQuickLog(){
     document.getElementById("quickLogModal").style.display = "none";
+    setFollowupModalOpen(false);
 }
 
 function openDonePopup(id){
     document.getElementById("doneFollowupId").value = id;
-    document.getElementById("doneModal").style.display = "block";
+    document.getElementById("doneModal").style.display = "flex";
+    setFollowupModalOpen(true);
+    setTimeout(function(){
+        document.getElementById("doneNote")?.focus();
+    }, 50);
 }
 
 function closeDonePopup(){
     document.getElementById("doneModal").style.display = "none";
+    setFollowupModalOpen(false);
 }
+
+document.addEventListener("keydown", function(event){
+    if (event.key !== "Escape") return;
+    closeQuickLog();
+    closeDonePopup();
+});
 </script>

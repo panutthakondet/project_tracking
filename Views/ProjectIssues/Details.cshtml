@@ -325,14 +325,6 @@
 
     <section class="issue-summary-grid">
         <div class="issue-summary-card">
-            <small>Created</small>
-            <b>@(issue?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
-        </div>
-        <div class="issue-summary-card">
-            <small>Last Fix</small>
-            <b>@(issue?.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
-        </div>
-        <div class="issue-summary-card">
             <small>Reopen</small>
             <b>@(issue?.IsReopen == true ? $"{issue.ReopenCount} ครั้ง" : "ไม่เคย Reopen")</b>
         </div>

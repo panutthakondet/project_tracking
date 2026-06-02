@@ -120,6 +120,7 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             HttpContext.Session.SetString("Menus", string.Join(",", menus));
+            HttpContext.Session.SetString("ShowLoginFollowupPopup", "1");
 
             // ✅ กัน open redirect
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && !IsVerifyEmailReturnUrl(returnUrl))

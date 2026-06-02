@@ -6,6 +6,7 @@
     var th = new System.Globalization.CultureInfo("th-TH");
     int i = 1;
     var owners = Model.Select(x => (string)x.Owner).Distinct().OrderBy(x => x).ToList();
+    var selectedOwner = ViewBag.SelectedOwner as string ?? "";
 
     Func<string, bool> HasMenu = key =>
     {
@@ -41,7 +42,7 @@
             <option value="">-- All Owner --</option>
             @foreach (var o in owners)
             {
-                <option value="@o">@o</option>
+                <option value="@o" selected="@(string.Equals(selectedOwner, o, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@o</option>
             }
         </select>
     </div>
@@ -67,7 +68,10 @@
                 {
 
                     var projectId = item.ProjectId;
-                    var targetUrl = projectId != null ? Url.Action("Index", "Followups", new { projectId = projectId }) : null;
+                    var ownerEmpId = item.OwnerEmpId;
+                    var targetUrl = projectId != null
+                        ? Url.Action("Index", "Followups", new { projectId = projectId, ownerEmpId = ownerEmpId })
+                        : Url.Action("Index", "Followups", new { ownerEmpId = ownerEmpId });
 
                     string rowClass = "";
 
@@ -133,9 +137,10 @@
 @foreach (var item in Model)
 {
     var projectId = item.ProjectId;
+    var ownerEmpId = item.OwnerEmpId;
     var targetUrl = projectId != null
-        ? Url.Action("Index", "Followups", new { projectId = projectId })
-        : null;
+        ? Url.Action("Index", "Followups", new { projectId = projectId, ownerEmpId = ownerEmpId })
+        : Url.Action("Index", "Followups", new { ownerEmpId = ownerEmpId });
 
     string rowClass = "";
 

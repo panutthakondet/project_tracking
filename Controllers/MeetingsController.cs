@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
 using ProjectTracking.Middleware;
+using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
 {
@@ -69,6 +70,125 @@ namespace ProjectTracking.Controllers
             }).ToList();
 
             return Json(meetings);
+        }
+
+        [RequireMenu("Meetings.Index")]
+        [HttpGet]
+        public async Task<IActionResult> ViewOnly(int? projectId, DateTime? fromDate, DateTime? toDate, string? audience)
+        {
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var audienceList = await _context.Meetings
+                .AsNoTracking()
+                .Where(m => m.MeetingAudience != null && m.MeetingAudience != "")
+                .Select(m => m.MeetingAudience!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var query = _context.Meetings
+                .AsNoTracking()
+                .Include(m => m.Project)
+                .AsQueryable();
+
+            if (projectId.HasValue && projectId.Value > 0)
+                query = query.Where(m => m.ProjectId == projectId.Value);
+
+            if (fromDate.HasValue)
+                query = query.Where(m => m.MeetingDate.Date >= fromDate.Value.Date);
+
+            if (toDate.HasValue)
+                query = query.Where(m => m.MeetingDate.Date <= toDate.Value.Date);
+
+            if (!string.IsNullOrWhiteSpace(audience))
+                query = query.Where(m => m.MeetingAudience == audience);
+
+            var meetings = await query
+                .OrderBy(m => m.MeetingDate)
+                .ThenBy(m => m.StartTime)
+                .ThenBy(m => m.Title)
+                .ToListAsync();
+
+            var meetingIds = meetings.Select(m => m.Id).ToList();
+            var attendeeMap = new Dictionary<int, List<MeetingReportAttendeeViewModel>>();
+
+            if (meetingIds.Count > 0)
+            {
+                var attendees = await (
+                    from a in _context.MeetingAttendees.AsNoTracking()
+                    join e in _context.Employees.AsNoTracking()
+                        on a.UserId equals e.EmpId into ej
+                    from e in ej.DefaultIfEmpty()
+                    where meetingIds.Contains(a.MeetingId)
+                    orderby a.MeetingId, e != null ? e.EmpName : ""
+                    select new
+                    {
+                        a.MeetingId,
+                        EmpId = a.UserId,
+                        EmpName = e != null ? e.EmpName : "",
+                        Position = e != null ? e.Position : "",
+                        a.Status
+                    }
+                ).ToListAsync();
+
+                attendeeMap = attendees
+                    .GroupBy(a => a.MeetingId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(a => new MeetingReportAttendeeViewModel
+                        {
+                            EmpId = a.EmpId,
+                            EmpName = string.IsNullOrWhiteSpace(a.EmpName) ? $"Employee #{a.EmpId}" : a.EmpName,
+                            Position = a.Position ?? "",
+                            Status = a.Status ?? ""
+                        }).ToList());
+            }
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .Select(e => new { e.EmpId, e.EmpName, e.LoginUserId })
+                .ToListAsync();
+
+            var employeeNameByKey = new Dictionary<int, string>();
+            foreach (var employee in employees)
+            {
+                employeeNameByKey[employee.EmpId] = employee.EmpName;
+                if (employee.LoginUserId.HasValue && !employeeNameByKey.ContainsKey(employee.LoginUserId.Value))
+                    employeeNameByKey[employee.LoginUserId.Value] = employee.EmpName;
+            }
+
+            var reportRows = meetings.Select(m => new MeetingReportRowViewModel
+            {
+                Id = m.Id,
+                ProjectId = m.ProjectId,
+                ProjectName = m.Project?.ProjectName ?? "ไม่ระบุโครงการ",
+                Title = m.Title,
+                Description = m.Description ?? "",
+                MeetingDate = m.MeetingDate,
+                StartTime = m.StartTime,
+                EndTime = m.EndTime,
+                Location = m.Location ?? "",
+                Audience = m.MeetingAudience ?? "",
+                CreatedAt = m.CreatedAt,
+                CreatedByName = m.CreatedBy.HasValue && employeeNameByKey.TryGetValue(m.CreatedBy.Value, out var name)
+                    ? name
+                    : "-",
+                Attendees = attendeeMap.TryGetValue(m.Id, out var attendees)
+                    ? attendees
+                    : new List<MeetingReportAttendeeViewModel>()
+            }).ToList();
+
+            ViewBag.Projects = projects;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.FromDate = fromDate;
+            ViewBag.ToDate = toDate;
+            ViewBag.AudienceList = audienceList;
+            ViewBag.SelectedAudience = audience ?? "";
+
+            return View(reportRows);
         }
 
         [RequireMenu("Meetings.Create")]

@@ -232,7 +232,8 @@ namespace ProjectTracking.Controllers
                     IsReopen = i.IsReopen,
                     ReopenCount = i.ReopenCount,
                     CreatedAt = i.CreatedAt,
-                    EmpId = i.EmpId
+                    CreatedBy = i.CreatedBy,
+                    EmpId = i.AssignTo
                 })
                 .ToListAsync();
 
@@ -262,7 +263,8 @@ namespace ProjectTracking.Controllers
                     Priority = o.Priority,
                     CreatedBy = o.CreatedBy,
                     AssignTo = o.AssignTo,
-                    DueDate = o.DueDate,
+                    StartDate = o.StartDate,
+                    EndDate = o.EndDate,
                     CreatedAt = o.CreatedAt
                 })
                 .ToListAsync();
@@ -526,7 +528,8 @@ namespace ProjectTracking.Controllers
                     IssueStatus = i.IssueStatus,
                     DevStatus = i.DevStatus,
                     CreatedAt = i.CreatedAt,
-                    EmpId = i.EmpId
+                    CreatedBy = i.CreatedBy,
+                    EmpId = i.AssignTo
                 })
                 .ToListAsync();
 
@@ -878,12 +881,12 @@ namespace ProjectTracking.Controllers
                     i.CreatedAt,
                     new HomeDashboardActivity
                     {
-                        Actor = employeeName(i.EmpId),
+                        Actor = employeeName(i.CreatedBy ?? i.EmpId),
                         Detail = $"แจ้ง Issue: {i.IssueName}",
                         OwnerText = $"เจ้าของงาน: {employeeName(i.EmpId)}",
                         TimeText = RelativeTimeThai(i.CreatedAt, now),
                         Color = IsIssueResolved(i) ? "green" : IsIssueInProgress(i) ? "orange" : "pink",
-                        AvatarPath = employeeAvatar(i.EmpId),
+                        AvatarPath = employeeAvatar(i.CreatedBy ?? i.EmpId),
                         Url = $"/ProjectIssues/Details/{i.IssueId}"
                     })));
 
@@ -1070,7 +1073,7 @@ namespace ProjectTracking.Controllers
                         IsHighPriority(o.Priority));
                     var overdueSupportOrders = projectSupportOrders.Count(o =>
                         !IsSupportOrderClosed(o.Status, o.DevStatus) &&
-                        o.DueDate?.Date < today);
+                        o.EndDate?.Date < today);
                     var projectOverdue = project.EndDate?.Date < today && Norm(project.Status) != "DONE";
 
                     var score = 0;
@@ -1197,7 +1200,7 @@ namespace ProjectTracking.Controllers
                 .Concat(phases.Select(p => p.PlanEnd))
                 .Concat(assigns.Select(a => a.PlanEnd))
                 .Concat(followups.Select(f => f.NextFollowupDate))
-                .Concat(supportOrders.Select(o => o.DueDate))
+                .Concat(supportOrders.Select(o => o.EndDate))
                 .Where(d => d?.Date >= today)
                 .Select(d => d!.Value.Date)
                 .OrderBy(d => d)
@@ -1398,7 +1401,7 @@ namespace ProjectTracking.Controllers
         private static bool IsPhaseDone(string? status)
         {
             var normalized = Norm(status);
-            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
+            return normalized is "ส่งงวดงานแล้ว" or "DONE";
         }
 
         private static bool IsIssueResolved(DashboardIssueRow issue)
@@ -1424,7 +1427,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) is "DONE" or "CLOSE" or "CLOSED"
+            return Norm(status) == "DONE"
                 || Norm(devStatus) == "FIXED";
         }
 
@@ -1433,12 +1436,12 @@ namespace ProjectTracking.Controllers
             var normalizedStatus = Norm(status);
             var normalizedDevStatus = Norm(devStatus);
 
-            if (normalizedStatus is "DONE" or "CLOSE" || normalizedDevStatus == "FIXED")
+            if (normalizedStatus == "DONE" || normalizedDevStatus == "FIXED")
             {
                 return "green";
             }
 
-            if (normalizedStatus is "IN_PROGRESS" or "WAIT_TEST" || normalizedDevStatus == "IN_PROGRESS")
+            if (normalizedStatus == "WAIT_TEST" || normalizedDevStatus == "IN_PROGRESS")
             {
                 return "orange";
             }
@@ -1576,6 +1579,7 @@ namespace ProjectTracking.Controllers
             public bool IsReopen { get; set; }
             public int ReopenCount { get; set; }
             public DateTime CreatedAt { get; set; }
+            public int? CreatedBy { get; set; }
             public int EmpId { get; set; }
         }
 
@@ -1600,7 +1604,8 @@ namespace ProjectTracking.Controllers
             public string? Priority { get; set; }
             public int? CreatedBy { get; set; }
             public int? AssignTo { get; set; }
-            public DateTime? DueDate { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
             public DateTime? CreatedAt { get; set; }
         }
 

@@ -36,8 +36,13 @@ namespace ProjectTracking.Models
         [Column("created_by")]
         public int? CreatedBy { get; set; }
 
-        [Column("due_date")]
-        public DateTime? DueDate { get; set; }
+        [Column("start_date", TypeName = "date")]
+        [DataType(DataType.Date)]
+        public DateTime? StartDate { get; set; }
+
+        [Column("end_date", TypeName = "date")]
+        [DataType(DataType.Date)]
+        public DateTime? EndDate { get; set; }
 
         [Column("assign_to")]
         public int? AssignTo { get; set; }

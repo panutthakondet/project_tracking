@@ -123,6 +123,20 @@
         white-space: nowrap;
     }
 
+    .dev-edit-status-field {
+        min-height: 52px;
+        padding: .72rem .9rem;
+        align-items: center;
+        line-height: 1.35;
+    }
+
+    .pt-search-select__input {
+        height: 52px;
+        padding-top: .72rem !important;
+        padding-bottom: .72rem !important;
+        line-height: 1.35;
+    }
+
     .dev-status-text.success { color: #0f8f5f; }
     .dev-status-text.warning { color: #b7790b; }
     .dev-status-text.info { color: #0f6fa8; }
@@ -181,15 +195,8 @@
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">📌 สถานะ Issue</label>
-                    <div class="pt-readonly-field">
+                    <div class="pt-readonly-field dev-edit-status-field">
                         <span class="dev-status-text @StatusClass(Model.IssueStatus)">@TextOrDash(Model.IssueStatus)</span>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">🛠 Last Fixed</label>
-                    <div class="pt-readonly-field">
-                        @(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "ยังไม่เคย Fix")
                     </div>
                 </div>
 
@@ -198,14 +205,16 @@
                     <select asp-for="DevStatus"
                             asp-items="devStatusItems"
                             class="form-select"
-                            required></select>
+                            data-placeholder="🔍 พิมพ์ค้นหา Dev Status...">
+                        <option value="">-- เคลียร์ค่า / เลือกใหม่ --</option>
+                    </select>
                     <span asp-validation-for="DevStatus" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-8">
                     <label class="form-label fw-semibold">ℹ️ หมายเหตุ</label>
                     <div class="dev-edit-note">
-                        ระบบจะตั้ง Last Fixed ให้อัตโนมัติเมื่อเปลี่ยน Dev Status เป็น FIXED
+                        ระบบจะอัปเดตเวลาล่าสุดให้อัตโนมัติเมื่อบันทึกการแก้ไข Issue นี้
                     </div>
                 </div>
 

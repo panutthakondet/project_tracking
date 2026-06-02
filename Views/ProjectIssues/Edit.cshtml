@@ -5,8 +5,22 @@
 @{
     ViewData["Title"] = "แก้ไข Issue";
 
-    var beforeImages = Model.Images?.ToList() ?? new List<ProjectIssueImage>();
-    var projectName = (ViewBag.ProjectName as string) ?? Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
+    var issue = Model ?? new ProjectIssue();
+    var beforeImages = issue.Images?.ToList() ?? new List<ProjectIssueImage>();
+    var projectName = (ViewBag.ProjectName as string) ?? issue.Project?.ProjectName ?? $"Project #{issue.ProjectId}";
+    DateTime? startDate = Model?.StartDate;
+    DateTime? endDate = Model?.EndDate;
+
+    var sd = startDate.GetValueOrDefault();
+    var ed = endDate.GetValueOrDefault();
+
+    string startDateText = startDate.HasValue
+        ? $"{sd:dd/MM/}{sd.Year + 543}"
+        : "";
+
+    string endDateText = endDate.HasValue
+        ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
 }
 
 <style>
@@ -101,7 +115,7 @@
 
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
-        <span class="index-eyebrow">Project Issue #@Model.IssueId</span>
+        <span class="index-eyebrow">Project Issue #@issue.IssueId</span>
         <h2 class="index-title">แก้ไขปัญหาโครงการ</h2>
         <p class="index-subtitle">@projectName</p>
     </div>
@@ -111,7 +125,7 @@
 <div class="card shadow-sm pt-form-card">
     <div class="card-body">
         <form asp-action="Edit"
-              asp-route-id="@Model.IssueId"
+              asp-route-id="@issue.IssueId"
               method="post"
               enctype="multipart/form-data"
               onsubmit="return confirm('บันทึกการแก้ไข Issue นี้หรือไม่?');">
@@ -123,7 +137,6 @@
             <input type="hidden" asp-for="DevStatus" />
             <input type="hidden" asp-for="IsReopen" />
             <input type="hidden" asp-for="ReopenCount" />
-            <input type="hidden" asp-for="LastFixedAt" />
 
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -151,13 +164,13 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="EmpId" class="form-label fw-semibold">👤 เจ้าของงาน</label>
-                    <select asp-for="EmpId"
+                    <label asp-for="AssignTo" class="form-label fw-semibold">👤 เจ้าของงาน</label>
+                    <select asp-for="AssignTo"
                             asp-items="ViewBag.Employees"
                             class="form-select">
                         <option value="">-- เลือกเจ้าของงาน --</option>
                     </select>
-                    <span asp-validation-for="EmpId" class="text-danger"></span>
+                    <span asp-validation-for="AssignTo" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
@@ -181,43 +194,33 @@
                 <div class="col-md-4">
                     <label asp-for="StartDate" class="form-label fw-semibold">📅 วันที่เริ่ม</label>
                     <input asp-for="StartDate"
-                           type="date"
-                           class="form-control" />
+                           type="text"
+                           class="form-control thai-date"
+                           value="@startDateText"
+                           placeholder="วัน/เดือน/พ.ศ."
+                           required />
                     <span asp-validation-for="StartDate" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
                     <label asp-for="EndDate" class="form-label fw-semibold">🏁 วันที่สิ้นสุด</label>
                     <input asp-for="EndDate"
-                           type="date"
-                           class="form-control" />
+                           type="text"
+                           class="form-control thai-date"
+                           value="@endDateText"
+                           placeholder="วัน/เดือน/พ.ศ."
+                           required />
                     <span asp-validation-for="EndDate" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="CreatedAt" class="form-label fw-semibold">📅 วันที่สร้าง</label>
-                    <input asp-for="CreatedAt"
-                           type="datetime-local"
-                           class="form-control"
-                           readonly />
-                    <span asp-validation-for="CreatedAt" class="text-danger"></span>
-                </div>
-
-                <div class="col-md-4">
                     <label class="form-label fw-semibold">🔁 Reopen Status</label>
-                    <div class="pt-readonly-field">@(Model.IsReopen ? "REOPEN" : "NORMAL")</div>
+                    <div class="pt-readonly-field">@(issue.IsReopen ? "REOPEN" : "NORMAL")</div>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">🔢 Reopen Count</label>
-                    <div class="pt-readonly-field">@Model.ReopenCount ครั้ง</div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">🛠 Last Fixed</label>
-                    <div class="pt-readonly-field">
-                        @(Model.LastFixedAt.HasValue ? Model.LastFixedAt.Value.ToString("dd/MM/yyyy HH:mm") : "ยังไม่เคย Fix")
-                    </div>
+                    <div class="pt-readonly-field">@issue.ReopenCount ครั้ง</div>
                 </div>
 
                 <div class="col-md-8">
@@ -281,13 +284,13 @@
                 </button>
 
                 <a asp-action="Details"
-                   asp-route-id="@Model.IssueId"
+                   asp-route-id="@issue.IssueId"
                    class="btn btn-outline-secondary">
                     ดูรายละเอียด
                 </a>
 
                 <a asp-action="Index"
-                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-projectId="@issue.ProjectId"
                    class="btn btn-outline-secondary">
                     ↩ Back
                 </a>
@@ -298,4 +301,52 @@
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('StartDate'));
+        formatThaiDateInput(document.getElementById('EndDate'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
+        }, true);
+    </script>
 }

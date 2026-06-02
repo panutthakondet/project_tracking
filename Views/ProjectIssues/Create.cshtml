@@ -2,209 +2,174 @@
 
 @{
     ViewData["Title"] = "Add Issue";
+
+    DateTime? startDate = Model?.StartDate;
+    DateTime? endDate = Model?.EndDate;
+    var projectId = Model?.ProjectId ?? 0;
+    var projectName = (ViewBag.ProjectName as string) ?? (projectId > 0 ? $"Project #{projectId}" : "-");
+
+    var sd = startDate.GetValueOrDefault();
+    var ed = endDate.GetValueOrDefault();
+
+    string startDateText = startDate.HasValue
+        ? $"{sd:dd/MM/}{sd.Year + 543}"
+        : "";
+
+    string endDateText = endDate.HasValue
+        ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
 }
 
-<style>
-    .issue-create-page {
-        width: 100%;
-        max-width: 100%;
-        margin: 0;
-    }
+<h3>สร้าง Project Issue</h3>
 
-    .issue-create-hero {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-        color: #fff;
-        background:
-            radial-gradient(circle at 88% 10%, rgba(20, 184, 166, .28), transparent 28%),
-            linear-gradient(135deg, #10233f, #1f3b63);
-        border-radius: 22px;
-        padding: 22px 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 40px rgba(15, 35, 64, .18);
-    }
+<form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
+@Html.AntiForgeryToken()
 
-    .issue-create-title {
-        margin: 0;
-        font-size: clamp(24px, 3vw, 34px);
-        font-weight: 900;
-        line-height: 1.25;
-    }
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-    .issue-create-subtitle {
-        color: #d8e6f7;
-        font-weight: 700;
-        margin: 8px 0 0;
-    }
-
-    .issue-create-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 340px;
-        gap: 16px;
-        align-items: start;
-    }
-
-    .issue-create-panel {
-        background: #fff;
-        border: 1px solid #d8e3ef;
-        border-radius: 18px;
-        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
-        padding: 20px;
-    }
-
-    .issue-create-panel h3 {
-        color: #10233f;
-        font-size: 18px;
-        font-weight: 900;
-        margin: 0 0 14px;
-    }
-
-    .issue-create-page .form-label {
-        color: #24364d;
-        font-weight: 900;
-        margin-bottom: 6px;
-    }
-
-    .issue-create-page textarea.form-control {
-        min-height: 160px;
-        line-height: 1.6;
-    }
-
-    .issue-help-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 14px;
-        color: #475569;
-        font-weight: 700;
-        line-height: 1.55;
-    }
-
-    @@media (max-width: 991.98px) {
-        .issue-create-hero,
-        .issue-create-grid {
-            grid-template-columns: 1fr;
-            display: grid;
-        }
-    }
-</style>
-
-<div class="issue-create-page">
-    <div class="issue-create-hero">
-        <div>
-            <h2 class="issue-create-title">Add Project Issue</h2>
-            <p class="issue-create-subtitle">บันทึก Issue / Bug / ปัญหาที่พบในโครงการ</p>
-        </div>
-    </div>
-
-    <form asp-action="Create" method="post" enctype="multipart/form-data">
-        @Html.AntiForgeryToken()
-
-        <input type="hidden" asp-for="ProjectId" />
-        <input type="hidden" asp-for="DevStatus" value="TODO" />
-        <input type="hidden" asp-for="IsReopen" value="false" />
-        <input type="hidden" asp-for="ReopenCount" value="0" />
-
-        <div class="issue-create-grid">
-            <div class="issue-create-panel">
-                <h3>ข้อมูล Issue</h3>
-
-                <div class="mb-3">
-                    <label class="form-label">Issue Name</label>
-                    <input asp-for="IssueName"
-                           class="form-control"
-                           placeholder="ระบุหัวข้อปัญหา" />
-                    <span asp-validation-for="IssueName" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Issue Detail</label>
-                    <textarea asp-for="IssueDetail"
-                              class="form-control"
-                              rows="6"
-                              placeholder="อธิบายปัญหา เงื่อนไขที่พบ หรือขั้นตอนที่ทำให้เกิดปัญหา"></textarea>
-                    <span asp-validation-for="IssueDetail" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Issue Images (Before Fix)</label>
-                    <input type="file"
-                           name="images"
-                           class="form-control"
-                           multiple
-                           accept="image/*" />
-                    <small class="text-muted">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label asp-for="StartDate" class="form-label">วันที่เริ่ม</label>
-                        <input asp-for="StartDate"
-                               type="date"
-                               class="form-control" />
-                        <span asp-validation-for="StartDate" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label asp-for="EndDate" class="form-label">วันที่สิ้นสุด</label>
-                        <input asp-for="EndDate"
-                               type="date"
-                               class="form-control" />
-                        <span asp-validation-for="EndDate" class="text-danger"></span>
-                    </div>
-                </div>
-
-                <div class="pt-form-actions issue-create-actions">
-                    <a asp-action="Index"
-                       asp-route-projectId="@Model.ProjectId"
-                       class="btn btn-outline-secondary">
-                        Back
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        Save Issue
-                    </button>
-                </div>
-            </div>
-
-            <div class="issue-create-panel">
-                <h3>ผู้รับผิดชอบและสถานะ</h3>
-
-                <div class="mb-3">
-                    <label class="form-label">Owner (Employee)</label>
-                    <select asp-for="EmpId"
-                            asp-items="ViewBag.Employees"
-                            class="form-select">
-                        <option value="">-- Select Employee --</option>
-                    </select>
-                    <span asp-validation-for="EmpId" class="text-danger"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select asp-for="IssueStatus"
-                            asp-items="ViewBag.StatusList"
-                            class="form-select">
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Priority</label>
-                    <select asp-for="IssuePriority" class="form-select">
-                        <option value="NORMAL">Normal</option>
-                        <option value="URGENT">Urgent</option>
-                    </select>
-                </div>
-
-                <div class="issue-help-box">
-                    เมื่อบันทึกแล้วระบบจะตั้ง Dev Status เริ่มต้นเป็น TODO และสร้างประวัติสถานะเริ่มต้นให้อัตโนมัติ
-                </div>
-            </div>
-        </div>
-    </form>
+<div class="mb-3">
+<label>Project</label>
+<input asp-for="ProjectId" type="hidden" />
+<input type="text" class="form-control" value="@projectName" readonly />
+<span asp-validation-for="ProjectId" class="text-danger"></span>
 </div>
+
+<input type="hidden" asp-for="DevStatus" value="TODO" />
+<input type="hidden" asp-for="IsReopen" value="false" />
+<input type="hidden" asp-for="ReopenCount" value="0" />
+
+<div class="mb-3">
+<label>Issue Name</label>
+<input asp-for="IssueName"
+       class="form-control"
+       placeholder="ระบุหัวข้อปัญหา" />
+<span asp-validation-for="IssueName" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+<label>Issue Detail</label>
+<textarea asp-for="IssueDetail"
+          class="form-control"
+          rows="6"
+          placeholder="อธิบายปัญหา เงื่อนไขที่พบ หรือขั้นตอนที่ทำให้เกิดปัญหา"></textarea>
+<span asp-validation-for="IssueDetail" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+<label>Owner (Employee)</label>
+<select asp-for="AssignTo"
+        asp-items="ViewBag.Employees"
+        class="form-select">
+<option value="">-- Select Employee --</option>
+</select>
+<span asp-validation-for="AssignTo" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+<label>Status</label>
+<select asp-for="IssueStatus"
+        asp-items="ViewBag.StatusList"
+        class="form-select">
+</select>
+<span asp-validation-for="IssueStatus" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+<label>Priority</label>
+<select asp-for="IssuePriority" class="form-select">
+<option value="NORMAL">Normal</option>
+<option value="URGENT">Urgent</option>
+</select>
+<span asp-validation-for="IssuePriority" class="text-danger"></span>
+</div>
+
+<div class="row g-3 mb-3">
+<div class="col-md-6">
+<label>วันที่เริ่ม</label>
+<input asp-for="StartDate"
+       type="text"
+       class="form-control thai-date"
+       value="@startDateText"
+       placeholder="วัน/เดือน/พ.ศ."
+       required />
+<span asp-validation-for="StartDate" class="text-danger"></span>
+</div>
+
+<div class="col-md-6">
+<label>วันที่สิ้นสุด</label>
+<input asp-for="EndDate"
+       type="text"
+       class="form-control thai-date"
+       value="@endDateText"
+       placeholder="วัน/เดือน/พ.ศ."
+       required />
+<span asp-validation-for="EndDate" class="text-danger"></span>
+</div>
+</div>
+
+<div class="mb-3">
+<label>Issue Images (Before Fix)</label>
+<input type="file"
+       name="images"
+       class="form-control"
+       multiple
+       accept="image/*" />
+<small class="text-muted">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
+</div>
+
+<button class="btn btn-primary">Save</button>
+<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary ms-2">Back</a>
+
+</form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('StartDate'));
+        formatThaiDateInput(document.getElementById('EndDate'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
+        }, true);
+    </script>
 }

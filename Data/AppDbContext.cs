@@ -717,8 +717,18 @@ namespace ProjectTracking.Data
 
                 entity.HasOne(i => i.Employee)
                     .WithMany(e => e.ProjectIssues)
-                    .HasForeignKey(i => i.EmpId)
+                    .HasForeignKey(i => i.AssignTo)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(i => i.AssignTo)
+                    .HasColumnName("assign_to")
+                    .HasColumnType("int")
+                    .IsRequired();
+
+                entity.Property(i => i.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasColumnType("int")
+                    .IsRequired(false);
 
                 // 🔁 REOPEN FIELD MAPPING (สำคัญมากสำหรับ MySQL)
                 entity.Property(i => i.IsReopen)
@@ -728,8 +738,11 @@ namespace ProjectTracking.Data
                 entity.Property(i => i.ReopenCount)
                     .HasDefaultValue(0);
 
-                entity.Property(i => i.LastFixedAt)
-                    .IsRequired(false);
+                entity.Property(i => i.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .ValueGeneratedOnAddOrUpdate();
 
                 // ✅ DevStatus (Programmer status)
                 entity.Property(i => i.DevStatus)

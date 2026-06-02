@@ -18,20 +18,68 @@
         .Where(x => CanMenu(x.PermissionKey ?? $"{x.Controller}.{x.Action}"))
         .ToList();
 
+    string SectionName(string group)
+    {
+        return group switch
+        {
+            "Executive" => "รายงานหลัก",
+            "Project Phases" => "Projects",
+            "Projects" => "Projects",
+            "Issues" => "Issues / Support",
+            "Support" => "Issues / Support",
+            "Test Scenario" => "QA / Test",
+            "Followups" => "People / Operation",
+            "Meetings" => "People / Operation",
+            "Attendance" => "People / Operation",
+            _ => group
+        };
+    }
+
+    int SectionOrder(string section)
+    {
+        return section switch
+        {
+            "รายงานหลัก" => 0,
+            "Projects" => 10,
+            "Issues / Support" => 20,
+            "QA / Test" => 30,
+            "People / Operation" => 40,
+            _ => 99
+        };
+    }
+
+    string SectionSubtitle(string section)
+    {
+        return section switch
+        {
+            "รายงานหลัก" => "รายงานภาพรวมสำหรับผู้บริหารและการติดตามสถานะสำคัญ",
+            "Projects" => "รายงานข้อมูลโครงการ งวดงาน การมอบหมาย และสถานะงาน",
+            "Issues / Support" => "รายงานปัญหาและงาน Support ที่ต้องติดตาม",
+            "QA / Test" => "รายงาน Test Scenario และผลการตรวจสอบ",
+            "People / Operation" => "รายงานการติดตามงานและข้อมูลการลงเวลาของทีม",
+            _ => "รายงานในหมวดนี้"
+        };
+    }
+
     var groupedReports = reports
-        .GroupBy(x => x.Group)
-        .OrderBy(g => g.Key)
+        .GroupBy(x => SectionName(x.Group))
+        .OrderBy(g => SectionOrder(g.Key))
+        .ThenBy(g => g.Key)
         .ToList();
 
     string GroupIconPath(string group)
     {
         return group switch
         {
+            "People / Operation" => "/images/menu-icons/attendance.svg",
+            "Issues / Support" => "/images/menu-icons/issues.svg",
+            "QA / Test" => "/images/menu-icons/test-scenarios.svg",
             "Project Phases" => "/images/menu-icons/phases.svg",
             "Projects" => "/images/menu-icons/projects.svg",
             "Issues" => "/images/menu-icons/issues.svg",
             "Support" => "/images/menu-icons/workload.svg",
             "Followups" => "/images/menu-icons/followups.svg",
+            "Meetings" => "/images/menu-icons/meetings.svg",
             "Test Scenario" => "/images/menu-icons/test-scenarios.svg",
             "Attendance" => "/images/menu-icons/attendance.svg",
             "Executive" => "/images/menu-icons/reports.svg",
@@ -39,11 +87,9 @@
         };
     }
 
-    string ReportIconPath(ProjectTracking.ViewModels.ReportCardViewModel report)
+    string ReportLabel(ProjectTracking.ViewModels.ReportCardViewModel report)
     {
-        return string.IsNullOrWhiteSpace(report.Icon)
-            ? GroupIconPath(report.Group)
-            : report.Icon;
+        return report.IsPrimary ? "ผู้บริหาร" : report.Group;
     }
 }
 
@@ -74,48 +120,53 @@
     }
     else
     {
-        <section class="report-summary-strip">
-            @foreach (var group in reports.GroupBy(x => x.Group).OrderBy(g => g.Key))
-            {
-                <div class="report-summary-item">
-                    <span><img src="@GroupIconPath(group.Key)" alt="" /></span>
-                    <strong>@group.Key</strong>
-                    <small>@group.Count() รายงาน</small>
-                </div>
-            }
+        <section class="report-toolbar" aria-label="Report filters">
+            <div class="report-filter-pills">
+                <button type="button" class="report-filter-pill is-active" data-report-filter="all">ทั้งหมด</button>
+                @foreach (var group in groupedReports)
+                {
+                    <button type="button" class="report-filter-pill" data-report-filter="@group.Key">@group.Key</button>
+                }
+            </div>
         </section>
 
         foreach (var group in groupedReports)
         {
-            <section class="report-group">
+            <section class="report-group" data-report-section-wrap="@group.Key">
                 <div class="report-group-head">
                     <div class="report-group-title">
                         <span><img src="@GroupIconPath(group.Key)" alt="" /></span>
                         <div>
                             <h3>@group.Key</h3>
-                            <small>@group.Count() รายงาน</small>
+                            <small>@SectionSubtitle(group.Key)</small>
                         </div>
                     </div>
+                    <span class="report-group-count">@group.Count() รายงาน</span>
                 </div>
                 <div class="report-card-grid">
                     @foreach (var report in group)
                     {
                         <a class="report-card tone-@report.Tone"
                            asp-controller="@report.Controller"
-                           asp-action="@report.Action">
-                            <span class="report-card-icon">
-                                <img src="@ReportIconPath(report)" alt="" />
-                            </span>
+                           asp-action="@report.Action"
+                           data-report-card
+                           data-report-section="@group.Key"
+                           data-report-text="@($"{report.Title} {report.Description} {report.Group} {group.Key}")">
                             <span class="report-card-body">
+                                <span class="report-card-label">@ReportLabel(report)</span>
                                 <strong>@report.Title</strong>
                                 <small>@report.Description</small>
                             </span>
-                            <span class="report-card-arrow">›</span>
+                            <span class="report-card-action">เปิดรายงาน</span>
                         </a>
                     }
                 </div>
             </section>
         }
+
+        <div id="reportNoResult" class="report-empty" style="display:none;">
+            ไม่พบรายงานที่ค้นหา
+        </div>
     }
 </div>
 
@@ -154,61 +205,42 @@
         font-weight: 900;
     }
 
-    .report-summary-strip {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .report-summary-item {
-        min-height: 76px;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-areas:
-            "icon title"
-            "icon meta";
+    .report-toolbar {
+        display: flex;
         align-items: center;
-        column-gap: 12px;
-        padding: 14px 16px;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+        padding: 14px;
         border: 1px solid rgba(216, 227, 239, .92);
-        border-radius: 18px;
+        border-radius: 22px;
         background: rgba(255,255,255,.78);
         box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
     }
 
-    .report-summary-item span {
-        grid-area: icon;
-        width: 42px;
-        height: 42px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        color: #062b2f;
-        background: linear-gradient(135deg, #8df1e4, #23c7c8);
-        font-weight: 900;
+    .report-filter-pills {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        width: 100%;
     }
 
-    .report-summary-item span img {
-        width: 42px;
-        height: 42px;
-        display: block;
-        object-fit: contain;
-        border-radius: 14px;
-    }
-
-    .report-summary-item strong {
-        grid-area: title;
-        color: #10233f;
-        font-size: .98rem;
-        font-weight: 900;
-    }
-
-    .report-summary-item small {
-        grid-area: meta;
-        color: #64748b;
+    .report-filter-pill {
+        min-height: 42px;
+        border: 1px solid #c7d6e8;
+        border-radius: 999px;
+        padding: 0 16px;
+        color: #0f2748;
+        background: #fff;
+        font-family: 'Sarabun', sans-serif;
         font-weight: 800;
+    }
+
+    .report-filter-pill.is-active {
+        border-color: #14b8a6;
+        color: #063b3a;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8);
+        box-shadow: 0 10px 22px rgba(20, 184, 166, .2);
     }
 
     .report-group {
@@ -268,24 +300,42 @@
         font-weight: 800;
     }
 
+    .report-group-count {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .12);
+        font-size: .88rem;
+        font-weight: 900;
+    }
+
     .report-card-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: 1fr;
         gap: 12px;
     }
 
     .report-card {
-        min-height: 128px;
+        --report-tone: #14b8a6;
+        --report-tone-dark: #0f766e;
+        --report-tone-soft: #e0f7f4;
+        --report-tone-border: #9ee8df;
+        min-height: 112px;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 14px;
-        padding: 16px;
-        border: 1px solid #d8e3ef;
-        border-left: 4px solid #14b8a6;
+        gap: 18px;
+        padding: 18px 20px;
+        border: 1px solid var(--report-tone-border);
+        border-left: 6px solid var(--report-tone);
         border-radius: 16px;
         color: #10233f;
-        background: #fff;
+        background:
+            linear-gradient(135deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.88) 58%, var(--report-tone-soft) 100%);
         box-shadow: 0 10px 22px rgba(15, 35, 64, .07);
         text-decoration: none;
         transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
@@ -297,29 +347,24 @@
         box-shadow: 0 18px 34px rgba(15, 35, 64, .12);
     }
 
-    .report-card-icon {
-        width: 50px;
-        height: 50px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 16px;
-        background: rgba(20, 184, 166, .16);
-        font-size: 1.65rem;
-    }
-
-    .report-card-icon img {
-        width: 50px;
-        height: 50px;
-        display: block;
-        object-fit: contain;
-        border-radius: 16px;
-    }
-
     .report-card-body {
         min-width: 0;
         display: grid;
-        gap: 6px;
+        gap: 5px;
+    }
+
+    .report-card-label {
+        width: max-content;
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 9px;
+        border-radius: 999px;
+        color: var(--report-tone-dark);
+        background: var(--report-tone-soft);
+        font-size: .75rem;
+        font-weight: 900;
     }
 
     .report-card-body strong {
@@ -336,19 +381,68 @@
         line-height: 1.45;
     }
 
-    .report-card-arrow {
-        color: #14b8a6;
-        font-size: 2rem;
+    .report-card-action {
+        min-width: 104px;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        color: #fff;
+        background: var(--report-tone);
+        font-size: .9rem;
         font-weight: 900;
+        white-space: nowrap;
     }
 
-    .report-card.tone-teal { border-left-color: #14b8a6; }
-    .report-card.tone-blue { border-left-color: #258cfb; }
-    .report-card.tone-green { border-left-color: #22c55e; }
-    .report-card.tone-orange { border-left-color: #f59e0b; }
-    .report-card.tone-pink { border-left-color: #f43f5e; }
-    .report-card.tone-cyan { border-left-color: #22d3ee; }
-    .report-card.tone-purple { border-left-color: #8b5cf6; }
+    .report-card.tone-teal {
+        --report-tone: #14b8a6;
+        --report-tone-dark: #0f766e;
+        --report-tone-soft: #d9fbf5;
+        --report-tone-border: #8ce7dd;
+    }
+
+    .report-card.tone-blue {
+        --report-tone: #258cfb;
+        --report-tone-dark: #155cc8;
+        --report-tone-soft: #dcebff;
+        --report-tone-border: #9bc7ff;
+    }
+
+    .report-card.tone-green {
+        --report-tone: #22c55e;
+        --report-tone-dark: #15803d;
+        --report-tone-soft: #dcfce7;
+        --report-tone-border: #9ae6b4;
+    }
+
+    .report-card.tone-orange {
+        --report-tone: #f59e0b;
+        --report-tone-dark: #b45309;
+        --report-tone-soft: #fff3d7;
+        --report-tone-border: #f8c76d;
+    }
+
+    .report-card.tone-pink {
+        --report-tone: #f43f5e;
+        --report-tone-dark: #be123c;
+        --report-tone-soft: #ffe4ec;
+        --report-tone-border: #f9a8bc;
+    }
+
+    .report-card.tone-cyan {
+        --report-tone: #22d3ee;
+        --report-tone-dark: #0891b2;
+        --report-tone-soft: #cffafe;
+        --report-tone-border: #8be7f5;
+    }
+
+    .report-card.tone-purple {
+        --report-tone: #8b5cf6;
+        --report-tone-dark: #6d28d9;
+        --report-tone-soft: #ede9fe;
+        --report-tone-border: #c4b5fd;
+    }
 
     .report-empty {
         padding: 34px 20px;
@@ -361,13 +455,17 @@
     }
 
     @@media (max-width: 575.98px) {
+        .report-filter-pills {
+            justify-content: flex-start;
+        }
+
         .report-card {
             grid-template-columns: 1fr;
             align-items: start;
         }
 
-        .report-card-arrow {
-            display: none;
+        .report-card-action {
+            width: 100%;
         }
 
         .report-hero-stats {
@@ -376,3 +474,46 @@
         }
     }
 </style>
+
+<script>
+(() => {
+    const filterButtons = Array.from(document.querySelectorAll('[data-report-filter]'));
+    const cards = Array.from(document.querySelectorAll('[data-report-card]'));
+    const sections = Array.from(document.querySelectorAll('[data-report-section-wrap]'));
+    const noResult = document.getElementById('reportNoResult');
+    let activeFilter = 'all';
+
+    function applyReportFilters() {
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const section = card.dataset.reportSection || '';
+            const matchesSection = activeFilter === 'all' || section === activeFilter;
+            const visible = matchesSection;
+
+            card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        sections.forEach(section => {
+            const sectionName = section.dataset.reportSectionWrap || '';
+            const hasVisibleCard = cards.some(card =>
+                card.dataset.reportSection === sectionName && card.style.display !== 'none'
+            );
+            section.style.display = hasVisibleCard ? '' : 'none';
+        });
+
+        if (noResult) {
+            noResult.style.display = visibleCount > 0 ? 'none' : '';
+        }
+    }
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            activeFilter = button.dataset.reportFilter || 'all';
+            filterButtons.forEach(item => item.classList.toggle('is-active', item === button));
+            applyReportFilters();
+        });
+    });
+})();
+</script>

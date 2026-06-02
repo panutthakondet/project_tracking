@@ -6,7 +6,9 @@
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var selectedEmp = ViewBag.SelectedEmp as string;
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var issues = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
 
@@ -106,7 +108,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1fr) minmax(220px, 360px) auto;
+            grid-template-columns: minmax(260px, 1fr) minmax(220px, 320px) minmax(160px, 220px) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -409,6 +411,7 @@
         <div>
             Project: @(selectedProject?.ProjectName ?? "All Projects")<br />
             Employee: @(string.IsNullOrWhiteSpace(selectedEmp) ? "All Employees" : selectedEmp)<br />
+            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Status" : selectedStatus)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
     </header>
@@ -435,6 +438,19 @@
                 {
                     <option value="@emp" selected="@(emp == selectedEmp ? "selected" : null)">
                         @emp
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="statusSelect">Status</label>
+            <select id="statusSelect" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status...">
+                <option value="">-- All Status --</option>
+                @foreach (var status in statusList)
+                {
+                    <option value="@status" selected="@(string.Equals(status, selectedStatus, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @status
                     </option>
                 }
             </select>
@@ -565,20 +581,12 @@
                             <td>
                                 <div class="meta-stack">
                                     <div class="meta-line">
-                                        <span class="meta-label">Created</span>
-                                        <span class="meta-value">@DateText(issue.CreatedAt)</span>
-                                    </div>
-                                    <div class="meta-line">
                                         <span class="meta-label">Start</span>
                                         <span class="meta-value">@DateText(issue.StartDate)</span>
                                     </div>
                                     <div class="meta-line">
                                         <span class="meta-label">End</span>
                                         <span class="meta-value">@DateText(issue.EndDate)</span>
-                                    </div>
-                                    <div class="meta-line">
-                                        <span class="meta-label">Last Fix</span>
-                                        <span class="meta-value">@DateText(issue.LastFixedAt)</span>
                                     </div>
                                     <div class="meta-line">
                                         <span class="meta-label">Images</span>

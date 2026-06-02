@@ -1,7 +1,8 @@
-@model List<ProjectTracking.Models.PhaseAssign>
+@model ProjectTracking.ViewModels.PhaseWorkloadViewModel
 
 @{
     ViewData["Title"] = "ปริมาณงานทีม";
+    var items = Model?.Items ?? new List<ProjectTracking.ViewModels.PhaseWorkloadItemViewModel>();
 
     int year = ViewBag.Year;
     int yearTo = ViewBag.YearTo ?? year;
@@ -14,27 +15,33 @@
 
     string selectedEmpId = Context.Request.Query["empId"].ToString();
 
-    var employees = Model
-        .Where(x => x.Employee != null)
+    var employees = items
         .GroupBy(x => new
         {
             x.EmpId,
-            EmpName = x.Employee!.EmpName ?? ""
+            x.EmpName
         })
         .OrderBy(x => x.Key.EmpName)
         .ToList();
 
     string NormalizeStatus(string? status) => (status ?? "").Trim().ToUpperInvariant();
 
-    string WorkStatusColor(string? status)
+    string WorkStatusColor(string? state)
     {
-        return NormalizeStatus(status) switch
+        return NormalizeStatus(state) switch
         {
             "DONE" => "#A3E4B5",
             "IN_PROGRESS" => "#FFE69C",
             _ => "#FFE69C"
         };
     }
+
+    string TypeLabel(string? type) => NormalizeStatus(type) switch
+    {
+        "ISSUE" => "Issue",
+        "SUPPORT" => "Support",
+        _ => "Assigns"
+    };
 }
 
 <div class="container-fluid px-2 px-md-3 d-flex justify-content-center workload-page-wrap">
@@ -54,19 +61,21 @@
                         <a class="btn btn-outline-light btn-pill" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
                             Dashboard
                         </a>
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="legend-dot legend-done"></span>
-                            <span>DONE</span>
-                        </div>
-
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="legend-dot legend-progress"></span>
-                            <span>IN_PROGRESS</span>
-                        </div>
                     </div>
                 </div>
 
                 <div class="filter-toolbar d-flex align-items-center mt-3">
+                    <div class="workload-status-row">
+                        <span class="workload-status-row-title">สถานะ</span>
+                        <span class="workload-status-label done">DONE</span>
+                        <span class="workload-status-label progress">IN_PROGRESS</span>
+                        <span class="workload-status-divider"></span>
+                        <span class="workload-status-row-title">ประเภท</span>
+                        <span class="workload-type-chip phase">Assigns</span>
+                        <span class="workload-type-chip issue">Issue</span>
+                        <span class="workload-type-chip support">Support</span>
+                    </div>
+
                     <form id="filterForm"
                           method="get"
                           class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
@@ -212,47 +221,60 @@
                             .Where(e => string.IsNullOrEmpty(selectedEmpId)
                                 || e.Key.EmpId.ToString() == selectedEmpId))
                         {
-                            var empWorks = Model
+                            var empWorks = items
                                 .Where(x => x.EmpId == emp.Key.EmpId)
-                                .OrderBy(x => x.Phase!.ProjectId)
-                                .ThenBy(x => x.Phase!.PhaseSort)
+                                .OrderBy(x => x.ProjectName)
+                                .ThenBy(x => x.StartDate)
+                                .ThenBy(x => x.SortOrder)
                                 .ToList();
 
-                            var phaseRows = empWorks
-                                .GroupBy(x => x.AssignId)
+                            var workRows = empWorks
+                                .GroupBy(x => $"{x.WorkType}-{x.ItemId}")
                                 .Select(g => g.First())
                                 .ToList();
 
-                            foreach (var phase in phaseRows)
+                            foreach (var work in workRows)
                             {
                                 <tr>
 
-                                    <td class="text-start bg-light phase-project-cell">
-                                        @if (phase == phaseRows.First())
+                                    <td class="text-start bg-light phase-project-cell work-type-@work.WorkTypeClass">
+                                        @if (work == workRows.First())
                                         {
                                             <div class="fw-bold mb-2">👤 @emp.Key.EmpName</div>
                                         }
 
+                                        <div class="mb-1">
+                                            <span class="workload-type-chip @work.WorkTypeClass">@TypeLabel(work.WorkType)</span>
+                                            <span class="workload-status-text status-@NormalizeStatus(work.WorkState).ToLowerInvariant().Replace("_", "-")">@work.Status</span>
+                                        </div>
+
                                         <div class="fw-bold" style="font-size:13px;color:#1f2937;line-height:1.2;">
-                                            @phase.Phase?.Project?.ProjectName
+                                            @work.ProjectName
                                         </div>
 
                                         <div style="font-size:12px;color:#6b7280;line-height:1.2;">
-                                            🏷️ @phase.Role
+                                            🏷️ @work.Title
                                         </div>
 
+                                        @if (!string.IsNullOrWhiteSpace(work.Detail) && work.Detail != work.Title)
+                                        {
+                                            <div style="font-size:11px;color:#64748b;line-height:1.25; margin-top:3px;">
+                                                @work.Detail
+                                            </div>
+                                        }
+
                                         <div style="font-size:11px;color:#6b7280;line-height:1.3; margin-top:4px;">
-                                            📅 @(phase.PlanStart?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")))
+                                            📅 @(work.StartDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")))
                                             -
-                                            @(phase.PlanEnd?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")))
+                                            @(work.EndDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")))
                                         </div>
-                                        @if (phase.Phase?.PeriodStartDate.HasValue == true || phase.Phase?.PeriodEndDate.HasValue == true)
+                                        @if (work.PeriodStartDate.HasValue || work.PeriodEndDate.HasValue)
                                         {
                                             <div style="font-size:11px;color:#7c3aed;line-height:1.3; margin-top:3px;">
                                                 🗓️ งวดงาน:
-                                                @(phase.Phase?.PeriodStartDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
+                                                @(work.PeriodStartDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
                                                 -
-                                                @(phase.Phase?.PeriodEndDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
+                                                @(work.PeriodEndDate?.ToString("dd MMM yy", new System.Globalization.CultureInfo("th-TH")) ?? "-")
                                             </div>
                                         }
                                     </td>
@@ -264,20 +286,20 @@
                                         bool isWeekend = currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday;
                                         bool isNewYear = currentDate.Month == 1 && currentDate.Day == 1;
 
-                                        bool isWorking = phase.PlanStart.HasValue
-                                            && phase.PlanEnd.HasValue
-                                            && currentDate >= phase.PlanStart.Value
-                                            && currentDate <= phase.PlanEnd.Value;
+                                        bool isWorking = work.StartDate.HasValue
+                                            && work.EndDate.HasValue
+                                            && currentDate >= work.StartDate.Value
+                                            && currentDate <= work.EndDate.Value;
 
-                                        string bgColor = WorkStatusColor(phase.WorkStatus);
+                                        string bgColor = WorkStatusColor(work.WorkState);
 
                                         <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")">
                                             @if (isWorking)
                                             {
-                                                <a href="/PhaseAssigns?projectId=@phase.Phase?.ProjectId&phaseId=@phase.Phase?.PhaseId"
+                                                <a href="@work.Url"
                                                    class="text-decoration-none d-block h-100">
 
-                                                    <div class="work-item connected-work"
+                                                    <div class="work-item connected-work @work.WorkTypeClass"
                                                          style="background:@bgColor">
                                                     </div>
                                                 </a>
@@ -367,6 +389,14 @@
         z-index: 2;
     }
 
+    .connected-work.issue {
+        box-shadow: inset 0 0 0 2px rgba(244, 63, 94, .18);
+    }
+
+    .connected-work.support {
+        box-shadow: inset 0 0 0 2px rgba(245, 158, 11, .2);
+    }
+
     .phase-project-cell {
         min-width: 320px;
         width: 320px;
@@ -379,6 +409,62 @@
         left: 0;
         z-index: 5;
         box-shadow: 4px 0 8px rgba(0,0,0,.04);
+    }
+
+    .phase-project-cell.work-type-phase {
+        border-left: 4px solid #14b8a6 !important;
+    }
+
+    .phase-project-cell.work-type-issue {
+        border-left: 4px solid #f43f5e !important;
+    }
+
+    .phase-project-cell.work-type-support {
+        border-left: 4px solid #f59e0b !important;
+    }
+
+    .workload-type-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .workload-type-chip.phase {
+        color: #0f766e;
+        background: rgba(20, 184, 166, .16);
+    }
+
+    .workload-type-chip.issue {
+        color: #be123c;
+        background: rgba(244, 63, 94, .14);
+    }
+
+    .workload-type-chip.support {
+        color: #b45309;
+        background: rgba(245, 158, 11, .17);
+    }
+
+    .workload-status-text {
+        display: inline-flex;
+        margin-left: 5px;
+        font-size: 11px;
+        font-weight: 900;
+        vertical-align: middle;
+    }
+
+    .workload-status-text.status-done {
+        color: #0f8f5f;
+    }
+
+    .workload-status-text.status-in-progress {
+        color: #b7790b;
     }
 
     .weekend-column {
@@ -405,21 +491,45 @@
         margin-top: -2px;
     }
 
-    .legend-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 999px;
-        display: inline-block;
+    .filter-toolbar {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 8px;
     }
 
-    .legend-done {
-        background: #A3E4B5;
-        border: 1px solid #65b87d;
+    .workload-status-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        min-height: 26px;
+        padding: 0 2px;
     }
 
-    .legend-progress {
-        background: #FFE69C;
-        border: 1px solid #d4b85f;
+    .workload-status-row-title {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .workload-status-divider {
+        width: 1px;
+        height: 18px;
+        background: #cbd5e1;
+    }
+
+    .workload-status-label {
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .workload-status-label.done {
+        color: #0f8f5f;
+    }
+
+    .workload-status-label.progress {
+        color: #b7790b;
     }
 </style>
 

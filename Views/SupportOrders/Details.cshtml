@@ -28,10 +28,8 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "muted",
-        "IN_PROGRESS" => "info",
         "WAIT_TEST" => "warning",
         "DONE" => "success",
-        "CLOSE" => "muted",
         _ => "muted"
     };
 
@@ -147,7 +145,7 @@
 
     .support-summary-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
         gap: 12px;
         margin-bottom: 18px;
     }
@@ -390,8 +388,12 @@
             <b class="status-text @DevStatusClass(Model.DevStatus)">@TextOrDash(Model.DevStatus)</b>
         </div>
         <div class="support-summary-card">
-            <small>Due Date</small>
-            <b>@DateText(Model.DueDate)</b>
+            <small>วันที่เริ่ม</small>
+            <b>@DateText(Model.StartDate)</b>
+        </div>
+        <div class="support-summary-card">
+            <small>วันที่สิ้นสุด</small>
+            <b>@DateText(Model.EndDate)</b>
         </div>
     </section>
 

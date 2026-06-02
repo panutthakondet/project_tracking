@@ -1,139 +1,189 @@
 @model ProjectTracking.Models.ProjectSupportOrder
+@using System.Globalization
+@using System.Linq
 
 @{
     ViewData["Title"] = "Order Details";
+
+    var order = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
+    var th = new CultureInfo("th-TH");
+    var beforeImages = order.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectSupportImage>();
+    var afterImages = order.FixImages?
+        .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+
+    string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
+    {
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        _ => "muted"
+    };
+
+    string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "IN_PROGRESS" => "warning",
+        "FIXED" => "success",
+        _ => "muted"
+    };
 }
 
-<h3 class="mb-3">📄 Order Details</h3>
+<style>
+    .support-dev-details-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
 
-<div class="card mb-3">
-    <div class="card-body">
+    .support-dev-info {
+        min-height: 46px;
+        padding: .72rem .9rem;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        color: #10233f;
+        background: #f8fbff;
+        font-weight: 800;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
 
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="fw-bold">Project</label>
-                <div>@(Model.Project?.ProjectName ?? "-")</div>
+    .support-dev-info.is-tall {
+        min-height: 110px;
+        white-space: pre-wrap;
+    }
+
+    .status-text {
+        font-weight: 900;
+        letter-spacing: .01em;
+    }
+
+    .status-text.success { color: #0f8f5f; }
+    .status-text.warning { color: #b7790b; }
+    .status-text.info { color: #0f6fa8; }
+    .status-text.danger { color: #d6294f; }
+    .status-text.muted { color: #64748b; }
+
+    .support-dev-gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .support-dev-image-card {
+        width: 170px;
+        padding: 8px;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .support-dev-image-card img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+</style>
+
+<div class="support-dev-details-page">
+    <h3 class="mb-3">Order Details</h3>
+
+    <div class="card shadow-sm pt-form-card mb-3">
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <label class="fw-bold">Project</label>
+                    <div class="support-dev-info">@TextOrDash(order.Project?.ProjectName)</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="fw-bold">Priority</label>
+                    <div class="support-dev-info">
+                        <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-6">
-                <label class="fw-bold">Priority</label>
-                <div>
-                    @if (Model.Priority == "HIGH")
-                    {
-                        <span class="badge bg-danger">HIGH</span>
-                    }
-                    else if (Model.Priority == "MEDIUM")
-                    {
-                        <span class="badge bg-warning text-dark">MEDIUM</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">@Model.Priority</span>
-                    }
+            <div class="mb-3">
+                <label class="fw-bold">Title</label>
+                <div class="support-dev-info">@TextOrDash(order.OrderTitle)</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold">Detail</label>
+                <div class="support-dev-info is-tall">@TextOrDash(order.OrderDetail)</div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="fw-bold">Dev Status</label>
+                    <div class="support-dev-info">
+                        <span class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="fw-bold">วันที่เริ่ม</label>
+                    <div class="support-dev-info">@DateText(order.StartDate)</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="fw-bold">วันที่สิ้นสุด</label>
+                    <div class="support-dev-info">@DateText(order.EndDate)</div>
                 </div>
             </div>
         </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Title</label>
-            <div>@Model.OrderTitle</div>
-        </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Detail</label>
-            <div>@Model.OrderDetail</div>
-        </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Dev Status</label>
-            <div>
-                @if (string.IsNullOrEmpty(Model.DevStatus))
-                {
-                    <span class="badge bg-secondary">-</span>
-                }
-                else if (Model.DevStatus == "IN_PROGRESS")
-                {
-                    <span class="badge bg-warning text-dark">IN_PROGRESS</span>
-                }
-                else if (Model.DevStatus == "FIXED")
-                {
-                    <span class="badge bg-success">FIXED</span>
-                }
-            </div>
-        </div>
-
-        <div class="mb-2">
-            <label class="fw-bold">Due Date</label>
-            <div>
-                @(Model.DueDate.HasValue
-                    ? Model.DueDate.Value.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("th-TH"))
-                    : "-")
-            </div>
-        </div>
-
-    </div>
-</div>
-
-
-<!-- BA Images -->
-<div class="card mb-3">
-    <div class="card-header">
-        📷 BA Images
     </div>
 
-    <div class="card-body">
-        @if (Model.Images != null && Model.Images.Any())
-        {
-            foreach (var img in Model.Images)
+    <div class="card shadow-sm pt-form-card mb-3">
+        <div class="card-body">
+            <label class="fw-bold mb-2">BA Images</label>
+            @if (beforeImages.Any())
             {
-                <img src="@img.FilePath"
-                     style="width:200px"
-                     class="me-2 mb-2 border rounded" />
+                <div class="support-dev-gallery">
+                    @foreach (var img in beforeImages)
+                    {
+                        <div class="support-dev-image-card">
+                            <img src="@Url.Content("~" + img.FilePath)" alt="@TextOrDash(img.FileName)" />
+                        </div>
+                    }
+                </div>
             }
-        }
-        else
-        {
-            <p class="text-muted">No BA images.</p>
-        }
-    </div>
-</div>
-
-
-<!-- After Fix Images -->
-<div class="card mb-3">
-    <div class="card-header">
-        ✅ After Fix Images
-    </div>
-
-    <div class="card-body">
-
-        @if (Model.FixImages != null && Model.FixImages.Any())
-        {
-            foreach (var img in Model.FixImages)
+            else
             {
-                if ((img.ImageType ?? "").ToUpper() == "AFTER")
-                {
-                    <img src="@img.FilePath"
-                         style="width:200px"
-                         class="me-2 mb-2 border rounded" />
-                }
+                <p class="text-muted mb-0">No BA images.</p>
             }
-        }
-        else
-        {
-            <p class="text-muted">No fix images.</p>
-        }
-
+        </div>
     </div>
-</div>
 
+    <div class="card shadow-sm pt-form-card mb-3">
+        <div class="card-body">
+            <label class="fw-bold mb-2">After Fix Images</label>
+            @if (afterImages.Any())
+            {
+                <div class="support-dev-gallery">
+                    @foreach (var img in afterImages)
+                    {
+                        <div class="support-dev-image-card">
+                            <img src="@img.FilePath" alt="After fix image" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No fix images.</p>
+            }
+        </div>
+    </div>
 
-<div class="mt-3">
-    <a asp-action="Edit" asp-route-id="@Model.OrderId" class="btn btn-warning">
-        Fix Order
-    </a>
-
-    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
-        Back
-    </a>
+    <div class="pt-form-actions">
+        <a asp-action="Edit" asp-route-id="@order.OrderId" class="btn btn-primary">Fix Order</a>
+        <a asp-action="Index" asp-route-projectId="@order.ProjectId" class="btn btn-outline-secondary">Back</a>
+    </div>
 </div>

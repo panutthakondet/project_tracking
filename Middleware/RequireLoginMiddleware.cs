@@ -39,7 +39,7 @@ namespace ProjectTracking.Middleware
         private static readonly Dictionary<(string Controller, string Action), string> ProtectedActionsToMenuKey =
             new Dictionary<(string, string), string>(new ControllerActionComparer())
             {
-                { ("Projects", "ViewOnly"), "Projects.ViewOnly" },
+                { ("Projects", "ViewOnly"), "Projects.Index" },
                 { ("ProjectIssues", "Details"), "ProjectIssues.View" },
                 { ("ProjectIssues", "DevDetails"), "ProjectIssues.DevIndex" },
                 { ("Followups", "Index"), "Followups.Index" },
@@ -63,6 +63,7 @@ namespace ProjectTracking.Middleware
                 // Meetings permissions
                 { ("Meetings", "Index"), "Meetings.Index" },
                 { ("Meetings", "Show"), "Meetings.Show" },
+                { ("Meetings", "ViewOnly"), "Meetings.Index" },
                 { ("Meetings", "Create"), "Meetings.Create" },
                 { ("Meetings", "Edit"), "Meetings.Edit" },
                 { ("Meetings", "Cancel"), "Meetings.Delete" },

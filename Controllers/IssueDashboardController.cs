@@ -190,14 +190,14 @@ namespace ProjectTracking.Controllers
 
             // ================= OPEN BY OWNER (จาก ProjectIssues) =================
             // ✅ ปรับ field เจ้าของงานให้ตรงของคุณ:
-            // - ถ้าเป็น OwnerEmpId ให้เปลี่ยน i.EmpId -> i.OwnerEmpId
-            // - ถ้าเป็น AssignedEmpId ให้เปลี่ยน i.EmpId -> i.AssignedEmpId
+            // - ถ้าเป็น OwnerEmpId ให้เปลี่ยน i.AssignTo -> i.OwnerEmpId
+            // - ถ้าเป็น AssignedEmpId ให้เปลี่ยน i.AssignTo -> i.AssignedEmpId
             var openIssues = issues.Where(i => Norm(i.IssueStatus) == "OPEN").ToList();
 
             // IMPORTANT:
-            // - GroupBy ด้วย EmpId (ไม่ใช่ชื่อ) เพื่อกันชื่อซ้ำ
+            // - GroupBy ด้วย AssignTo (ไม่ใช่ชื่อ) เพื่อกันชื่อซ้ำ
             var openByOwner = openIssues
-                .GroupBy(i => (int?)i.EmpId)
+                .GroupBy(i => (int?)i.AssignTo)
                 .Select(g => new
                 {
                     EmpId = g.Key,
@@ -452,12 +452,12 @@ namespace ProjectTracking.Controllers
             sb.AppendLine($"Phase,Total,{phasesInYear.Count}");
             sb.AppendLine($"Phase,Planned,{phasesInYear.Count(x => x.PlanStart != null && x.PlanStart.Value.Date > today)}");
             sb.AppendLine($"Phase,Doing,{phasesInYear.Count(x => x.PlanStart != null && x.PlanEnd != null && x.PlanStart.Value.Date <= today && x.PlanEnd.Value.Date >= today)}");
-            sb.AppendLine($"Phase,Done,{phasesInYear.Count(x => Norm(x.PhaseStatus) == "DONE" || Norm(x.PhaseStatus) == "อนุมัติจ่ายเงินแล้ว")}");
-            sb.AppendLine($"Phase,Overdue,{phasesInYear.Count(x => x.PlanEnd != null && x.PlanEnd.Value.Date < today && Norm(x.PhaseStatus) != "DONE" && Norm(x.PhaseStatus) != "อนุมัติจ่ายเงินแล้ว")}");
+            sb.AppendLine($"Phase,Done,{phasesInYear.Count(x => Norm(x.PhaseStatus) == "DONE" || Norm(x.PhaseStatus) == "ส่งงวดงานแล้ว")}");
+            sb.AppendLine($"Phase,Overdue,{phasesInYear.Count(x => x.PlanEnd != null && x.PlanEnd.Value.Date < today && Norm(x.PhaseStatus) != "DONE" && Norm(x.PhaseStatus) != "ส่งงวดงานแล้ว")}");
 
             var openByOwner = issues
                 .Where(x => Norm(x.IssueStatus) == "OPEN")
-                .GroupBy(x => x.EmpId)
+                .GroupBy(x => x.AssignTo)
                 .Select(g => new { EmpId = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
                 .Take(20)

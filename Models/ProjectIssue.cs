@@ -29,12 +29,16 @@ namespace ProjectTracking.Models
         [Column(TypeName = "text")]
         public string? DevDetail { get; set; }
 
-        // ===== Employee FK =====
+        // ===== Assigned Employee FK =====
         [Required]
-        public int EmpId { get; set; }
+        [Column("assign_to")]
+        public int AssignTo { get; set; }
 
-        [ForeignKey(nameof(EmpId))]
+        [ForeignKey(nameof(AssignTo))]
         public virtual Employee? Employee { get; set; }
+
+        [Column("created_by")]
+        public int? CreatedBy { get; set; }
 
         // ⭐ ใช้แสดงผลในหน้า View เท่านั้น (ไม่เก็บ DB)
         [NotMapped]
@@ -83,8 +87,8 @@ namespace ProjectTracking.Models
         [Column(TypeName = "int")]
         public int ReopenCount { get; set; } = 0;
 
-        [Column(TypeName = "datetime")]
-        public DateTime? LastFixedAt { get; set; }
+        [Column("updated_at", TypeName = "datetime")]
+        public DateTime? UpdatedAt { get; set; }
 
         // =====================================================
         // 📷 IMAGES (ก่อนแก้)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
+using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
 {
@@ -32,7 +33,11 @@ namespace ProjectTracking.Controllers
                 DateTime.DaysInMonth(selectedYearTo, selectedMonthTo)
             );
 
-            var data = await _context.PhaseAssigns
+            var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
+                ? parsedEmpId
+                : (int?)null;
+
+            var phaseAssigns = await _context.PhaseAssigns
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(p => p.Project)
@@ -47,25 +52,114 @@ namespace ProjectTracking.Controllers
                         x.Phase.PhaseStatus == "กำลังดำเนินการ"
                     ) &&
                     (
-                        string.IsNullOrEmpty(empId)
-                        || x.EmpId.ToString() == empId
+                        !selectedEmpId.HasValue
+                        || x.EmpId == selectedEmpId.Value
                     )
                 )
-                .Select(x => new Models.PhaseAssign
-                {
-                    AssignId = x.AssignId,
-                    EmpId = x.EmpId,
-                    Employee = x.Employee,
-                    PhaseId = x.PhaseId,
-                    Phase = x.Phase,
-                    Role = x.Role,
-                    PlanStart = x.PlanStart,
-                    PlanEnd = x.PlanEnd,
-                    WorkStatus = x.WorkStatus
-                })
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.PlanStart)
                 .ToListAsync();
+
+            var issues = await _context.ProjectIssues
+                .Include(x => x.Employee)
+                .Include(x => x.Project)
+                .Where(x =>
+                    x.StartDate.HasValue &&
+                    x.EndDate.HasValue &&
+                    x.StartDate.Value <= monthEnd &&
+                    x.EndDate.Value >= monthStart &&
+                    (
+                        !selectedEmpId.HasValue
+                        || x.AssignTo == selectedEmpId.Value
+                    )
+                )
+                .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
+                .ThenBy(x => x.StartDate)
+                .ToListAsync();
+
+            var supportOrders = await _context.ProjectSupportOrders
+                .Include(x => x.Employee)
+                .Include(x => x.Project)
+                .Where(x =>
+                    x.AssignTo.HasValue &&
+                    x.StartDate.HasValue &&
+                    x.EndDate.HasValue &&
+                    x.StartDate.Value <= monthEnd &&
+                    x.EndDate.Value >= monthStart &&
+                    (
+                        !selectedEmpId.HasValue
+                        || x.AssignTo == selectedEmpId.Value
+                    )
+                )
+                .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
+                .ThenBy(x => x.StartDate)
+                .ToListAsync();
+
+            var items = phaseAssigns.Select(x => new PhaseWorkloadItemViewModel
+                {
+                    WorkType = "PHASE",
+                    WorkTypeLabel = "Assigns",
+                    WorkTypeClass = "phase",
+                    ItemId = x.AssignId,
+                    EmpId = x.EmpId,
+                    EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
+                    ProjectId = x.Phase?.ProjectId ?? 0,
+                    ProjectName = x.Phase?.Project?.ProjectName ?? "-",
+                    Title = x.Role ?? x.Phase?.PhaseName ?? "-",
+                    Detail = x.Phase?.PhaseName ?? "-",
+                    StartDate = x.PlanStart,
+                    EndDate = x.PlanEnd,
+                    PeriodStartDate = x.Phase?.PeriodStartDate,
+                    PeriodEndDate = x.Phase?.PeriodEndDate,
+                    Status = x.WorkStatus ?? "",
+                    WorkState = NormalizePhaseAssignState(x.WorkStatus),
+                    Url = $"/PhaseAssigns?projectId={x.Phase?.ProjectId}&phaseId={x.Phase?.PhaseId}",
+                    SortOrder = 10
+                })
+                .Concat(issues.Select(x => new PhaseWorkloadItemViewModel
+                {
+                    WorkType = "ISSUE",
+                    WorkTypeLabel = "Issue",
+                    WorkTypeClass = "issue",
+                    ItemId = x.IssueId,
+                    EmpId = x.AssignTo,
+                    EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
+                    ProjectId = x.ProjectId,
+                    ProjectName = x.Project?.ProjectName ?? "-",
+                    Title = x.IssueName,
+                    Detail = x.IssueDetail ?? "",
+                    StartDate = x.StartDate,
+                    EndDate = x.EndDate,
+                    Status = x.IssueStatus ?? "",
+                    WorkState = NormalizeIssueState(x.IssueStatus, x.DevStatus),
+                    Url = $"/ProjectIssues/Details/{x.IssueId}",
+                    SortOrder = 20
+                }))
+                .Concat(supportOrders.Select(x => new PhaseWorkloadItemViewModel
+                {
+                    WorkType = "SUPPORT",
+                    WorkTypeLabel = "Support",
+                    WorkTypeClass = "support",
+                    ItemId = x.OrderId,
+                    EmpId = x.AssignTo!.Value,
+                    EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
+                    ProjectId = x.ProjectId,
+                    ProjectName = x.Project?.ProjectName ?? "-",
+                    Title = string.IsNullOrWhiteSpace(x.OrderTitle) ? $"Support #{x.OrderId}" : x.OrderTitle!,
+                    Detail = x.OrderDetail ?? "",
+                    StartDate = x.StartDate,
+                    EndDate = x.EndDate,
+                    Status = x.Status ?? "",
+                    WorkState = NormalizeSupportState(x.Status, x.DevStatus),
+                    Url = $"/SupportOrders/Details/{x.OrderId}",
+                    SortOrder = 30
+                }))
+                .OrderBy(x => x.EmpName)
+                .ThenBy(x => x.ProjectName)
+                .ThenBy(x => x.StartDate)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.Title)
+                .ToList();
 
             ViewBag.Year = selectedYear;
             ViewBag.YearTo = selectedYearTo;
@@ -75,7 +169,37 @@ namespace ProjectTracking.Controllers
             ViewBag.MonthStart = monthStart;
             ViewBag.MonthEnd = monthEnd;
 
-            return View(data);
+            return View(new PhaseWorkloadViewModel
+            {
+                Items = items
+            });
+        }
+
+        private static string NormalizePhaseAssignState(string? status)
+        {
+            return string.Equals(status, "DONE", StringComparison.OrdinalIgnoreCase)
+                ? "DONE"
+                : "IN_PROGRESS";
+        }
+
+        private static string NormalizeIssueState(string? issueStatus, string? devStatus)
+        {
+            var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
+            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
+
+            return issue is "FIXED" or "PASS" || dev == "FIXED"
+                ? "DONE"
+                : "IN_PROGRESS";
+        }
+
+        private static string NormalizeSupportState(string? status, string? devStatus)
+        {
+            var orderStatus = (status ?? "").Trim().ToUpperInvariant();
+            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
+
+            return orderStatus == "DONE" || dev == "FIXED"
+                ? "DONE"
+                : "IN_PROGRESS";
         }
     }
 }

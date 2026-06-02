@@ -2,9 +2,26 @@
 
 @model ProjectTracking.Models.ProjectSupportOrder
 
+@{
+    DateTime? startDate = Model?.StartDate;
+    DateTime? endDate = Model?.EndDate;
+    var supportOrder = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
+
+    var sd = startDate.GetValueOrDefault();
+    var ed = endDate.GetValueOrDefault();
+
+    string startDateText = startDate.HasValue
+        ? $"{sd:dd/MM/}{sd.Year + 543}"
+        : "";
+
+    string endDateText = endDate.HasValue
+        ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
+}
+
 <h3>Edit Support Order</h3>
 
-<form asp-action="Edit" asp-route-id="@Model.OrderId" asp-route-projectId="@Model.ProjectId" method="post" enctype="multipart/form-data">
+<form asp-action="Edit" asp-route-id="@supportOrder.OrderId" asp-route-projectId="@supportOrder.ProjectId" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
 
     <input asp-for="OrderId" type="hidden" />
@@ -13,7 +30,7 @@
 
     <div class="mb-3">
         <label>Project</label>
-        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? Model.Project?.ProjectName : ViewBag.SelectedProjectName)" readonly />
+        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectName : ViewBag.SelectedProjectName)" readonly />
     </div>
 
     <div class="mb-3">
@@ -42,16 +59,31 @@
         <label>Status</label>
         <select asp-for="Status" class="form-select">
             <option value="OPEN">OPEN</option>
-            <option value="IN_PROGRESS">IN PROGRESS</option>
             <option value="WAIT_TEST">WAIT TEST</option>
             <option value="DONE">DONE</option>
-            <option value="CLOSE">CLOSE</option>
         </select>
     </div>
 
-    <div class="mb-3">
-        <label>Due Date</label>
-        <input asp-for="DueDate" type="date" class="form-control" />
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label>วันที่เริ่ม</label>
+            <input asp-for="StartDate"
+                   type="text"
+                   class="form-control thai-date"
+                   value="@startDateText"
+                   placeholder="01/01/2569" />
+            <span asp-validation-for="StartDate" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label>วันที่สิ้นสุด</label>
+            <input asp-for="EndDate"
+                   type="text"
+                   class="form-control thai-date"
+                   value="@endDateText"
+                   placeholder="01/01/2569" />
+            <span asp-validation-for="EndDate" class="text-danger"></span>
+        </div>
     </div>
 
     <div class="mb-3">
@@ -64,9 +96,9 @@
     <div class="mb-3">
         <label>Current Images</label>
         <div>
-            @if (Model.Images != null && Model.Images.Any())
+            @if (supportOrder.Images != null && supportOrder.Images.Any())
             {
-                foreach (var img in Model.Images)
+                foreach (var img in supportOrder.Images)
                 {
                     <div class="d-inline-block text-center me-2 mb-2">
                         <img src="@Url.Content("~" + img.FilePath)" style="width:150px" class="border mb-1" />
@@ -92,7 +124,59 @@
 
     <div class="pt-form-actions">
         <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-outline-secondary">Cancel</a>
+        <a asp-action="Index" asp-route-projectId="@supportOrder.ProjectId" class="btn btn-outline-secondary">Cancel</a>
     </div>
 
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function convertThaiDateToIso(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('/');
+            if (parts.length !== 3) return value;
+
+            let [d, m, y] = parts;
+            d = d.padStart(2, '0');
+            m = m.padStart(2, '0');
+            y = parseInt(y, 10);
+
+            if (y > 2400) {
+                y -= 543;
+            }
+
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatThaiDateInput(input) {
+            if (!input) return;
+
+            input.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                if (value.length > 8) {
+                    value = value.substring(0, 8);
+                }
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                e.target.value = value;
+            });
+        }
+
+        formatThaiDateInput(document.getElementById('StartDate'));
+        formatThaiDateInput(document.getElementById('EndDate'));
+
+        document.querySelector('form').addEventListener('submit', function () {
+            document.querySelectorAll('.thai-date').forEach(input => {
+                input.value = convertThaiDateToIso(input.value);
+            });
+        }, true);
+    </script>
+}

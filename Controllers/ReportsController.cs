@@ -92,7 +92,7 @@ namespace ProjectTracking.Controllers
                     {
                         Group = "Support",
                         Title = "Support Report",
-                        Description = "รายงานงานแก้ไขช่วงรับประกัน แยกตามโครงการ สถานะ ผู้รับผิดชอบ และกำหนดส่ง",
+                        Description = "รายงานงานแก้ไขช่วงรับประกัน แยกตามโครงการ สถานะ ผู้รับผิดชอบ และวันที่สิ้นสุด",
                         Controller = "SupportOrders",
                         Action = "ViewOnly",
                         PermissionKey = "SupportOrders.Index",
@@ -109,6 +109,17 @@ namespace ProjectTracking.Controllers
                         PermissionKey = "Followups.Index",
                         Icon = "/images/menu-icons/followups.svg",
                         Tone = "green"
+                    },
+                    new()
+                    {
+                        Group = "Meetings",
+                        Title = "Meetings Report",
+                        Description = "รายงานการประชุมตามโครงการ วันที่ เวลา สถานที่ กลุ่มผู้ประชุม และผู้เข้าร่วมประชุม",
+                        Controller = "Meetings",
+                        Action = "ViewOnly",
+                        PermissionKey = "Meetings.Index",
+                        Icon = "/images/menu-icons/meetings.svg",
+                        Tone = "purple"
                     },
                     new()
                     {
@@ -208,7 +219,7 @@ namespace ProjectTracking.Controllers
             var openIssues = issues.Where(i => !IsIssueResolved(i)).ToList();
             var urgentOpenIssues = openIssues.Where(i => IsHighPriority(i.IssuePriority)).ToList();
             var openSupportOrders = supportOrders.Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus)).ToList();
-            var overdueSupportOrders = openSupportOrders.Where(o => o.DueDate?.Date < today).ToList();
+            var overdueSupportOrders = openSupportOrders.Where(o => o.EndDate?.Date < today).ToList();
             var overdueFollowups = followups
                 .Where(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE")
                 .ToList();
@@ -243,7 +254,7 @@ namespace ProjectTracking.Controllers
                     var projectNearingPhases = projectPhases.Count(p => p.PlanEnd?.Date >= today && p.PlanEnd?.Date <= next14Days && !IsPhaseDone(p.PhaseStatus));
                     var projectOverdueAssigns = projectAssigns.Count(a => a.PlanEnd?.Date < today && Norm(a.WorkStatus) != "DONE");
                     var projectOpenSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus));
-                    var projectOverdueSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus) && o.DueDate?.Date < today);
+                    var projectOverdueSupport = projectSupportOrders.Count(o => !IsSupportOrderClosed(o.Status, o.DevStatus) && o.EndDate?.Date < today);
                     var projectOverdueFollowups = projectFollowups.Count(f => f.NextFollowupDate?.Date < today && Norm(f.Status) != "DONE");
                     var projectOverdue = project.EndDate?.Date < today && !IsProjectDone(project.Status);
 
@@ -435,8 +446,8 @@ namespace ProjectTracking.Controllers
                 ProjectName = o.Project?.ProjectName ?? "-",
                 Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle!,
                 OwnerName = o.Employee?.EmpName ?? "-",
-                DueDate = o.DueDate,
-                OverdueDays = DaysOverdue(today, o.DueDate),
+                DueDate = o.EndDate,
+                OverdueDays = DaysOverdue(today, o.EndDate),
                 Status = o.Status ?? "-",
                 Tone = "green"
             });
@@ -494,7 +505,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyDictionary<int, string> employees)
         {
             var ids = assigns.Where(a => Norm(a.WorkStatus) != "DONE").Select(a => a.EmpId)
-                .Concat(openIssues.Select(i => i.EmpId))
+                .Concat(openIssues.Select(i => i.AssignTo))
                 .Concat(openSupportOrders.Where(o => o.AssignTo.HasValue).Select(o => o.AssignTo!.Value))
                 .Concat(followups.Where(f => f.OwnerEmpId.HasValue && Norm(f.Status) != "DONE").Select(f => f.OwnerEmpId!.Value))
                 .Distinct()
@@ -503,7 +514,7 @@ namespace ProjectTracking.Controllers
             var rows = ids.Select(empId =>
             {
                 var assignmentCount = assigns.Count(a => a.EmpId == empId && Norm(a.WorkStatus) != "DONE");
-                var issueCount = openIssues.Count(i => i.EmpId == empId);
+                var issueCount = openIssues.Count(i => i.AssignTo == empId);
                 var supportCount = openSupportOrders.Count(o => o.AssignTo == empId);
                 var followupCount = followups.Count(f => f.OwnerEmpId == empId && Norm(f.Status) != "DONE");
                 var total = assignmentCount + issueCount + supportCount + followupCount;
@@ -570,7 +581,7 @@ namespace ProjectTracking.Controllers
                 .Concat(phases.Select(p => p.PlanEnd))
                 .Concat(assigns.Select(a => a.PlanEnd))
                 .Concat(followups.Select(f => f.NextFollowupDate))
-                .Concat(supportOrders.Select(o => o.DueDate))
+                .Concat(supportOrders.Select(o => o.EndDate))
                 .Where(d => d?.Date >= today)
                 .Select(d => d!.Value.Date)
                 .OrderBy(d => d)
@@ -602,7 +613,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsPhaseDone(string? status)
         {
-            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว";
         }
 
         private static bool IsIssueResolved(ProjectIssue issue)
@@ -615,7 +626,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) is "DONE" or "CLOSE" or "CLOSED"
+            return Norm(status) == "DONE"
                 || Norm(devStatus) == "FIXED";
         }
 

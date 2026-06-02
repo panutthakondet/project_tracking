@@ -15,6 +15,8 @@ namespace ProjectTracking.Controllers
     public class ProjectPhasesController : BaseController
     {
         private readonly AppDbContext _context;
+        private const string SubmittedStatus = "ส่งงวดงานแล้ว";
+        private const string ApprovedPaymentStatus = "อนุมัติจ่ายเงินแล้ว";
 
         public ProjectPhasesController(AppDbContext context)
         {
@@ -201,6 +203,7 @@ namespace ProjectTracking.Controllers
             phase.PhaseSort = lastSort + 1;
             phase.CreatedAt = DateTime.Now;
             phase.EntryId = await GetCurrentEntryIdAsync();
+            phase.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
 
             _context.ProjectPhases.Add(phase);
             await _context.SaveChangesAsync();
@@ -220,6 +223,8 @@ namespace ProjectTracking.Controllers
 
             if (phase == null)
                 return NotFound();
+
+            phase.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
 
             // 🔥 หา Phase ก่อนหน้าตาม phase_id
             var previousPhase = await _context.ProjectPhases
@@ -279,7 +284,7 @@ namespace ProjectTracking.Controllers
             existing.PlanEnd = phase.PlanEnd;
             existing.ActualStart = phase.ActualStart;
             existing.ActualEnd = phase.ActualEnd;
-            existing.PhaseStatus = phase.PhaseStatus;
+            existing.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
             existing.CreatedAt = DateTime.Now;
             existing.EntryId = await GetCurrentEntryIdAsync();
 
@@ -469,6 +474,13 @@ namespace ProjectTracking.Controllers
                 .Where(u => u.UserId == userId.Value)
                 .Select(u => u.EmpId)
                 .FirstOrDefaultAsync();
+        }
+
+        private static string? NormalizePhaseStatus(string? status)
+        {
+            return string.Equals((status ?? "").Trim(), ApprovedPaymentStatus, StringComparison.OrdinalIgnoreCase)
+                ? SubmittedStatus
+                : status;
         }
     }
 }

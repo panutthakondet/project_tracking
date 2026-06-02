@@ -41,7 +41,7 @@ namespace ProjectTracking.Controllers
                     backgroundColor =
                         x.PhaseStatus == "วางแผน" ? "#9ca3af" :
                         x.PhaseStatus == "กำลังดำเนินการ" ? "#facc15" :
-                        x.PhaseStatus == "ส่งงวดงานแล้ว" ? "#38bdf8" :
+                        x.PhaseStatus == "ส่งงวดงานแล้ว" ? "#22c55e" :
                         x.PhaseStatus == "อนุมัติแล้ว" ? "#22c55e" :
                         x.PhaseStatus == "ตีกลับ" ? "#ef4444" :
                         "#6b7280",
@@ -49,7 +49,7 @@ namespace ProjectTracking.Controllers
                     borderColor =
                         x.PhaseStatus == "วางแผน" ? "#9ca3af" :
                         x.PhaseStatus == "กำลังดำเนินการ" ? "#facc15" :
-                        x.PhaseStatus == "ส่งงวดงานแล้ว" ? "#38bdf8" :
+                        x.PhaseStatus == "ส่งงวดงานแล้ว" ? "#22c55e" :
                         x.PhaseStatus == "อนุมัติแล้ว" ? "#22c55e" :
                         x.PhaseStatus == "ตีกลับ" ? "#ef4444" :
                         "#6b7280",

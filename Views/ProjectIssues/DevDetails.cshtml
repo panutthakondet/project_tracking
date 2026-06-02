@@ -365,10 +365,6 @@
             <b class="status-text @StatusClass(issue.DevStatus)">@TextOrDash(issue.DevStatus)</b>
         </div>
         <div class="dev-summary-card">
-            <small>Last Fix</small>
-            <b>@(issue.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</b>
-        </div>
-        <div class="dev-summary-card">
             <small>Images</small>
             <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
         </div>
@@ -457,10 +453,6 @@
                     <div class="dev-info-value">
                         <span class="status-text @PriorityClass(issue.IssuePriority)">@TextOrDash(issue.IssuePriority)</span>
                     </div>
-                </div>
-                <div class="dev-info-row">
-                    <div class="dev-info-label">Created</div>
-                    <div class="dev-info-value">@issue.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
                 </div>
             </div>
         </article>

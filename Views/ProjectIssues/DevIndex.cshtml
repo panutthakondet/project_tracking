@@ -288,10 +288,8 @@
                         </div>
 
                         <div class="dev-issue-meta">
-                            <span>สร้างเมื่อ @i.CreatedAt.ToString("dd/MM/yyyy")</span>
                             <span>ช่วงวันที่: @PeriodText(i)</span>
                             <span>Owner: @(i.Employee?.EmpName ?? "-")</span>
-                            <span>Last Fix: @(i.LastFixedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                         </div>
 
                         <div class="dev-status-grid">

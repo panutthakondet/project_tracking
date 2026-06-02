@@ -94,4 +94,29 @@ namespace ProjectTracking.ViewModels
         public int Total { get; set; }
         public int Percent { get; set; }
     }
+
+    public class MeetingReportRowViewModel
+    {
+        public int Id { get; set; }
+        public int? ProjectId { get; set; }
+        public string ProjectName { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime MeetingDate { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public string Location { get; set; } = "";
+        public string Audience { get; set; } = "";
+        public string CreatedByName { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public List<MeetingReportAttendeeViewModel> Attendees { get; set; } = new();
+    }
+
+    public class MeetingReportAttendeeViewModel
+    {
+        public int EmpId { get; set; }
+        public string EmpName { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
 }
