@@ -5,16 +5,16 @@
     DateTime? endDate = Model?.EndDate;
     var projectId = Model?.ProjectId ?? 0;
 
-    var sd = startDate.GetValueOrDefault();
-    var ed = endDate.GetValueOrDefault();
+    string ThaiDateText(DateTime? value)
+    {
+        if (!value.HasValue) return "";
+        var year = value.Value.Year;
+        while (year > 2200) year -= 543;
+        return $"{value.Value:dd/MM/}{year + 543}";
+    }
 
-    string startDateText = startDate.HasValue
-        ? $"{sd:dd/MM/}{sd.Year + 543}"
-        : "";
-
-    string endDateText = endDate.HasValue
-        ? $"{ed:dd/MM/}{ed.Year + 543}"
-        : "";
+    string startDateText = ThaiDateText(startDate);
+    string endDateText = ThaiDateText(endDate);
 }
 
 <h3>สร้าง Support Order</h3>
@@ -113,7 +113,7 @@
             m = m.padStart(2, '0');
             y = parseInt(y, 10);
 
-            if (y > 2400) {
+            while (y > 2200) {
                 y -= 543;
             }
 

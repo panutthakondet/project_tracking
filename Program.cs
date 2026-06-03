@@ -179,7 +179,10 @@ builder.Services.Configure<EmailSettings>(options =>
 
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<OverdueMailService>();
-builder.Services.AddHostedService<OverdueMailBackgroundService>();
+builder.Services.AddScoped<OverdueNotificationService>();
+// Overdue email automation is disabled. We will replace it with in-app bell notifications.
+// Keep OverdueMailService registered for existing manual flows and future reference.
+builder.Services.AddHostedService<OverdueNotificationBackgroundService>();
 builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 
 QuestPDF.Settings.License = LicenseType.Community;
@@ -187,6 +190,7 @@ var app = builder.Build();
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
+await EnsureUserNotificationTableAsync(app.Services);
 
 // allow large upload requests
 app.Use(async (context, next) =>
@@ -349,5 +353,51 @@ static async Task EnsureEntryIdColumnAsync(System.Data.Common.DbConnection conne
     {
         command.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN entry_id INT NULL;";
         await command.ExecuteNonQueryAsync();
+    }
+}
+
+static async Task EnsureUserNotificationTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `user_notifications` (
+              `notification_id` int(11) NOT NULL AUTO_INCREMENT,
+              `recipient_user_id` int(11) DEFAULT NULL,
+              `recipient_emp_id` int(11) DEFAULT NULL,
+              `source_type` varchar(50) NOT NULL,
+              `source_id` int(11) NOT NULL,
+              `title` varchar(255) NOT NULL,
+              `message` text DEFAULT NULL,
+              `target_url` varchar(500) DEFAULT NULL,
+              `severity` varchar(20) NOT NULL DEFAULT 'WARNING',
+              `is_read` tinyint(1) NOT NULL DEFAULT 0,
+              `read_at` datetime DEFAULT NULL,
+              `is_resolved` tinyint(1) NOT NULL DEFAULT 0,
+              `resolved_at` datetime DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`notification_id`),
+              UNIQUE KEY `uq_user_notifications_source_emp` (`source_type`,`source_id`,`recipient_emp_id`),
+              KEY `idx_user_notifications_recipient` (`recipient_user_id`,`is_read`,`is_resolved`,`created_at`),
+              KEY `idx_user_notifications_emp` (`recipient_emp_id`),
+              KEY `idx_user_notifications_source` (`source_type`,`source_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
     }
 }

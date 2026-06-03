@@ -20,6 +20,17 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
 
 <style>
+    :root {
+        --meeting-navy: #10233f;
+        --meeting-teal: #14b8a6;
+        --meeting-teal-dark: #0f766e;
+        --meeting-blue: #238cf6;
+        --meeting-purple: #8b5cf6;
+        --meeting-orange: #f59e0b;
+        --meeting-pink: #f43f5e;
+        --meeting-border: #d8e3ef;
+    }
+
     /* Page layout */
     .meeting-page { padding: 8px 0; }
     #antiForgeryForm { display: none !important; }
@@ -44,10 +55,10 @@
 
     /* Card-like container */
     .calendar-card {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.08);
-        border-radius: 14px;
-        box-shadow: 0 8px 24px rgba(0,0,0,.06);
+        background: #ffffff;
+        border: 1px solid rgba(15, 118, 110, .18);
+        border-radius: 22px;
+        box-shadow: 0 16px 38px rgba(15, 35, 64, .12);
         overflow: hidden;
     }
 
@@ -56,13 +67,19 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 14px 16px;
-        background: linear-gradient(180deg, #f8fafc, #eef6fb);
-        border-bottom: 1px solid #d8e3ef;
+        padding: 16px 18px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #10233f 0%, #123b5c 58%, #0f766e 100%);
+        border-bottom: 1px solid rgba(20, 184, 166, .36);
     }
 
     .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .calendar-card__toolbar .text-muted {
+        color: rgba(255, 255, 255, .72) !important;
+        font-weight: 700;
+    }
 
     .hint-chip {
         display: inline-flex;
@@ -77,12 +94,13 @@
         white-space: nowrap;
     }
 
-    .calendar-card__body { padding: 12px 12px 14px 12px; }
+    .calendar-card__body { padding: 16px; background: #eef5fb; }
 
     /* FullCalendar polish */
     .fc .fc-toolbar-title {
+        color: var(--meeting-navy);
         font-size: 1.15rem;
-        font-weight: 700;
+        font-weight: 900;
         flex-grow: 1;
         text-align: center;
     }
@@ -93,10 +111,22 @@
         padding: .35rem .65rem;
     }
     .fc .fc-button-primary {
-        background: linear-gradient(135deg, #14b8a6, #0f766e) !important;
+        background: linear-gradient(135deg, var(--meeting-teal), var(--meeting-teal-dark)) !important;
         border-color: transparent !important;
         color: #062b2f !important;
         font-weight: 800;
+    }
+    .fc .fc-button-primary:not(:disabled):hover,
+    .fc .fc-button-primary:not(:disabled):focus {
+        color: #ffffff !important;
+        filter: brightness(1.03);
+    }
+
+    .fc .fc-scrollgrid {
+        overflow: hidden;
+        border-radius: 16px;
+        border-color: var(--meeting-border) !important;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
     }
     .fc .fc-button-primary:disabled { opacity: .55; }
 
@@ -114,7 +144,7 @@
 
     /* Header background color */
     .fc .fc-col-header-cell {
-        background: #10233f !important;
+        background: var(--meeting-navy) !important;
         color: #fff !important;
         border-color: rgba(255,255,255,.12) !important;
     }
@@ -126,11 +156,10 @@
     .fc .fc-col-header-cell:nth-child(5),
     .fc .fc-col-header-cell:nth-child(6),
     .fc .fc-col-header-cell:nth-child(7) {
-        background: #10233f !important;
+        background: var(--meeting-navy) !important;
         color: #fff !important;
     }
 
-    /* Keep calendar surface neutral to match dashboard theme */
     .fc .fc-daygrid-day,
     .fc .fc-daygrid-day.fc-day-sun,
     .fc .fc-daygrid-day.fc-day-mon,
@@ -139,11 +168,12 @@
     .fc .fc-daygrid-day.fc-day-thu,
     .fc .fc-daygrid-day.fc-day-fri,
     .fc .fc-daygrid-day.fc-day-sat {
-        background: #ffffff !important;
+        background: #eef8f7 !important;
     }
 
     .fc .fc-daygrid-day.fc-day-other {
-        background: #f8fafc !important;
+        background: #f7fbfc !important;
+        opacity: .78;
     }
 
     /* Make header text readable */
@@ -159,7 +189,7 @@
 
     /* Day number colors only (do not override header text) */
     .fc-day-sun .fc-daygrid-day-number {
-        color: #10233f !important;
+        color: var(--meeting-navy) !important;
     }
 
     .fc-day-mon .fc-daygrid-day-number {
@@ -187,14 +217,14 @@
     }
 
     .fc .fc-day-today {
-        background: #d8f8f3 !important;
-        box-shadow: inset 0 0 0 3px #0f766e;
+        background: #c8f8ef !important;
+        box-shadow: inset 0 0 0 3px var(--meeting-teal-dark);
     }
 
     .fc .fc-day-today .fc-daygrid-day-frame {
         min-height: 100% !important;
         height: 100% !important;
-        background: linear-gradient(180deg, #e2fbf7 0%, #c5f3ed 100%) !important;
+        background: linear-gradient(180deg, #d9fbf6 0%, #b9f2e8 100%) !important;
         box-shadow: inset 0 0 0 2px rgba(15,118,110,.55);
     }
 
@@ -206,7 +236,7 @@
 
     /* Circle highlight around today's date number */
     .fc .fc-day-today .fc-daygrid-day-number {
-        background: linear-gradient(135deg, #0f766e, #0b4f4a);
+        background: linear-gradient(135deg, var(--meeting-teal-dark), #0b4f4a);
         color: #ffffff !important;
         border-radius: 50%;
         width: 34px;
@@ -218,11 +248,35 @@
         box-shadow: 0 10px 20px rgba(15, 118, 110, .30);
     }
 
+    .fc .fc-list {
+        overflow: hidden;
+        border: 1px solid var(--meeting-border) !important;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .fc .fc-list-day-cushion {
+        background: linear-gradient(135deg, var(--meeting-navy), #0f766e) !important;
+        color: #ffffff !important;
+        font-weight: 900;
+    }
+
+    .fc .fc-list-event td {
+        border-color: #e5edf7 !important;
+        color: var(--meeting-navy);
+        font-weight: 800;
+    }
+
+    .fc .fc-list-event:hover td {
+        background: #ecfeff !important;
+    }
+
     .fc .fc-event {
         background: #f8fafc !important;
-        border-radius: 10px !important;
-        border: 1px solid #d8e3ef !important;
-        border-left: 5px solid #14b8a6 !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--meeting-border) !important;
+        border-left: 6px solid var(--meeting-teal) !important;
         padding: 8px 10px !important;
         font-size: 0.80rem;
         line-height: 1.4;
@@ -230,12 +284,13 @@
         word-break: break-word;
         overflow: hidden;
         margin-bottom: 8px !important;
-        box-shadow: none !important;
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .12) !important;
         transition: all .15s ease;
     }
 
     .fc .fc-event:hover {
         transform: translateY(-1px);
+        box-shadow: 0 14px 24px rgba(15, 35, 64, .18) !important;
     }
 
     .fc .fc-event-title {
@@ -243,44 +298,101 @@
         font-size: 0.78rem;
         white-space: normal !important;
         word-break: break-word;
-        color: #10233f !important;
+        color: var(--meeting-navy) !important;
         line-height: 1.4;
     }
 
+    .meeting-event-content {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        color: var(--meeting-navy);
+        white-space: normal;
+        overflow: hidden;
+    }
+
+    .meeting-event-icon {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: rgba(255, 255, 255, .72);
+        box-shadow: inset 0 0 0 1px rgba(15, 35, 64, .08);
+        font-size: .95rem;
+        line-height: 1;
+    }
+
+    .meeting-event-text {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .meeting-event-title {
+        color: var(--meeting-navy);
+        font-size: .78rem;
+        line-height: 1.35;
+        font-weight: 900;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+    }
+
+    .meeting-event-subtitle,
+    .meeting-event-meta {
+        margin-top: 3px;
+        color: #465b78;
+        font-size: .72rem;
+        line-height: 1.3;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .meeting-event-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
     .fc-event.customer-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #ecfeff, #dffbf7) !important;
+        border-color: #99f6e4 !important;
+        border-left-color: var(--meeting-teal-dark) !important;
     }
 
     .fc-event.team-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
+        border-color: #bfdbfe !important;
+        border-left-color: var(--meeting-blue) !important;
     }
 
     .fc-event.executive-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
+        border-color: #fed7aa !important;
+        border-left-color: var(--meeting-orange) !important;
     }
 
     .fc-event.manager-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #f5f3ff, #ede9fe) !important;
+        border-color: #ddd6fe !important;
+        border-left-color: var(--meeting-purple) !important;
     }
 
     .fc-event.vendor-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+        border-color: #fde68a !important;
+        border-left-color: #d97706 !important;
     }
 
     .fc-event.other-event {
-        background: #f8fafc !important;
-        border-color: #d8e3ef !important;
-        border-left-color: #14b8a6 !important;
+        background: linear-gradient(135deg, #f8fafc, #eef2ff) !important;
+        border-color: #cbd5e1 !important;
+        border-left-color: #64748b !important;
     }
 
     .fc-tooltip {
@@ -303,32 +415,67 @@
         gap: 14px;
     }
 
+    .meeting-list-card {
+        border: 1px solid rgba(15, 118, 110, .18) !important;
+        border-radius: 18px !important;
+        overflow: hidden;
+        box-shadow: 0 14px 28px rgba(15, 35, 64, .09);
+    }
+
+    .meeting-list-card .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #10233f, #0f766e) !important;
+        border: 0;
+        font-weight: 900;
+    }
+
+    .meeting-list-card .card-header span {
+        color: rgba(255, 255, 255, .72);
+        font-size: .86rem;
+        font-weight: 700;
+    }
+
+    .meeting-list-card .card-body {
+        background: #eef5fb;
+    }
+
     .meeting-row {
         display: flex;
         gap: 18px;
-        background: #f8f9fb;
-        border-radius: 14px;
+        background: #ffffff;
+        border-radius: 16px;
         padding: 16px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #d8e3ef;
+        border-left: 7px solid var(--meeting-teal);
         align-items: stretch;
         height: 100%;
+        box-shadow: 0 10px 22px rgba(15, 35, 64, .08);
+        transition: transform .16s ease, box-shadow .16s ease;
     }
 
-    .meeting-row.sun,
-    .meeting-row.mon,
-    .meeting-row.tue,
-    .meeting-row.wed,
-    .meeting-row.thu,
-    .meeting-row.fri,
-    .meeting-row.sat {
-        background: #f8fafc;
+    .meeting-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 30px rgba(15, 35, 64, .14);
     }
+
+    .meeting-row.sun { border-left-color: var(--meeting-pink); background: linear-gradient(90deg, #fff1f2 0, #ffffff 30%); }
+    .meeting-row.mon { border-left-color: var(--meeting-teal-dark); background: linear-gradient(90deg, #ecfeff 0, #ffffff 30%); }
+    .meeting-row.tue { border-left-color: #d946ef; background: linear-gradient(90deg, #fdf2f8 0, #ffffff 30%); }
+    .meeting-row.wed { border-left-color: #22c55e; background: linear-gradient(90deg, #ecfdf5 0, #ffffff 30%); }
+    .meeting-row.thu { border-left-color: var(--meeting-orange); background: linear-gradient(90deg, #fff7ed 0, #ffffff 30%); }
+    .meeting-row.fri { border-left-color: var(--meeting-blue); background: linear-gradient(90deg, #eff6ff 0, #ffffff 30%); }
+    .meeting-row.sat { border-left-color: var(--meeting-purple); background: linear-gradient(90deg, #f5f3ff 0, #ffffff 30%); }
 
     .meeting-col {
-        background: #ffffff;
-        border-radius: 12px;
+        background: rgba(255, 255, 255, .82);
+        border-radius: 14px;
         padding: 18px;
-        border: 1px solid #e9ecef;
+        border: 1px solid rgba(216, 227, 239, .92);
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -343,9 +490,9 @@
     .meeting-icon {
         width: 36px;
         height: 36px;
-        border-radius: 10px;
-        background: rgba(20,184,166,.14);
-        color: #062b2f;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--meeting-teal), var(--meeting-teal-dark));
+        color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -366,8 +513,8 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: rgba(20,184,166,.14);
-        color: #062b2f;
+        background: linear-gradient(135deg, #238cf6, #14b8a6);
+        color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -382,7 +529,8 @@
     }
 
     .meeting-desc {
-        font-weight: 700;
+        color: var(--meeting-navy);
+        font-weight: 900;
         font-size: .95rem;
         margin-bottom: 8px;
         line-height: 1.3;
@@ -565,11 +713,12 @@
         <!-- Monthly Meeting List (moved below) -->
         <div class="row mt-3">
             <div class="col-12">
-                <div class="card w-100" style="border-radius:12px;border:1px solid rgba(0,0,0,.08);">
-                    <div class="card-header" style="background:#f8f9fa;font-weight:600;">
-                        รายการประชุม
+                <div class="card w-100 meeting-list-card">
+                    <div class="card-header">
+                        <strong>รายการประชุม</strong>
+                        <span>นัดหมายที่กำลังจะมาถึง</span>
                     </div>
-                    <div class="card-body" style="padding:10px;overflow:auto;">
+                    <div class="card-body" style="padding:12px;overflow:auto;">
                         <div id="meetingListTable" class="meeting-list"></div>
                     </div>
                 </div>
@@ -691,8 +840,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 return text.length > max ? text.substring(0, max) + '...' : text;
             }
 
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text || '';
+                return div.innerHTML;
+            }
+
+            function formatTime(value) {
+                return value ? value.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            }
+
             const shortProject = eventCounter + '. ' + truncate(project, 30);
             const shortMeeting = truncate(meetingTitle || '', 28);
+            const startText = formatTime(arg.event.start);
+            const endText = formatTime(arg.event.end);
+            const timeText = startText ? `${startText}${endText ? ' - ' + endText : ''}` : '';
 
             // Add meetingWith extraction
             const meetingWith = (
@@ -750,20 +912,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             container.innerHTML = `
-                <div style="display:flex;gap:8px;align-items:flex-start;">
-                    <div style="font-size:1rem;line-height:1;margin-top:2px;">${icon}</div>
-                    <div style="flex:1;overflow:hidden;">
-                        <div style="font-weight:700;font-size:.78rem;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
-                            ${shortProject}
-                        </div>
-                        ${shortMeeting ? `
-    <div style="font-size:.73rem;line-height:1.3;margin-top:2px;opacity:.85;">
-        ${shortMeeting}
-    </div>
-` : ''}
-
-                        <div style="font-size:.72rem;margin-top:4px;font-weight:600;color:#374151;">
-                            👥 ${meetingWith}
+                <div class="meeting-event-content">
+                    <div class="meeting-event-icon">${icon}</div>
+                    <div class="meeting-event-text">
+                        <div class="meeting-event-title">${escapeHtml(shortProject)}</div>
+                        ${shortMeeting ? `<div class="meeting-event-subtitle">${escapeHtml(shortMeeting)}</div>` : ''}
+                        <div class="meeting-event-meta">
+                            ${timeText ? `<span>⏰ ${escapeHtml(timeText)}</span>` : ''}
+                            <span>👥 ${escapeHtml(meetingWith)}</span>
                         </div>
                     </div>
                 </div>

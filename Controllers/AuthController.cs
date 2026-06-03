@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Helpers;
+using ProjectTracking.Services;
 
 namespace ProjectTracking.Controllers
 {
@@ -12,11 +13,16 @@ namespace ProjectTracking.Controllers
 
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly OverdueNotificationService _notificationService;
 
-        public AuthController(AppDbContext context, IWebHostEnvironment env)
+        public AuthController(
+            AppDbContext context,
+            IWebHostEnvironment env,
+            OverdueNotificationService notificationService)
         {
             _context = context;
             _env = env;
+            _notificationService = notificationService;
         }
 
         // =====================
@@ -121,6 +127,8 @@ namespace ProjectTracking.Controllers
 
             HttpContext.Session.SetString("Menus", string.Join(",", menus));
             HttpContext.Session.SetString("ShowLoginFollowupPopup", "1");
+
+            await SyncNotificationsSafelyAsync();
 
             // ✅ กัน open redirect
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && !IsVerifyEmailReturnUrl(returnUrl))
@@ -279,6 +287,18 @@ namespace ProjectTracking.Controllers
             if (returnUrl.StartsWith("/Auth/UpdateProfileImage", StringComparison.OrdinalIgnoreCase)) return "/";
 
             return returnUrl;
+        }
+
+        private async Task SyncNotificationsSafelyAsync()
+        {
+            try
+            {
+                await _notificationService.SyncAsync(HttpContext.RequestAborted);
+            }
+            catch
+            {
+                // Notification sync should not block login.
+            }
         }
 
         private static string ResolveProfileImagePath(string? profileImagePath)

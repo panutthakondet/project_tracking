@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
 
 namespace ProjectTracking.Controllers
 {
@@ -11,11 +12,16 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly OverdueNotificationService _notificationService;
 
-        public ProjectIssuesController(AppDbContext context, IWebHostEnvironment env)
+        public ProjectIssuesController(
+            AppDbContext context,
+            IWebHostEnvironment env,
+            OverdueNotificationService notificationService)
         {
             _context = context;
             _env = env;
+            _notificationService = notificationService;
         }
 
         // =====================================================
@@ -257,6 +263,8 @@ namespace ProjectTracking.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            await SyncNotificationsSafelyAsync();
+
             return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
         }
 
@@ -406,6 +414,8 @@ namespace ProjectTracking.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            await SyncNotificationsSafelyAsync();
+
             return RedirectToAction(nameof(Index), new { projectId = issue.ProjectId });
         }
 
@@ -473,6 +483,8 @@ namespace ProjectTracking.Controllers
             // ✅ save After images to FixImages
             await SaveFixImages(issue.IssueId, afterImages);
 
+            await SyncNotificationsSafelyAsync();
+
             return RedirectToAction(nameof(DevIndex), new { projectId = issue.ProjectId });
         }
 
@@ -512,6 +524,8 @@ namespace ProjectTracking.Controllers
 
             // ✅ remove physical image folders
             DeleteIssueFiles(id);
+
+            await SyncNotificationsSafelyAsync();
 
             return RedirectToAction(nameof(Index), new { projectId = projectId });
         }
@@ -697,14 +711,22 @@ namespace ProjectTracking.Controllers
             value = (value ?? "").Trim();
             if (string.IsNullOrWhiteSpace(value)) return null;
 
-            if (DateTime.TryParseExact(
-                    value,
-                    "yyyy-MM-dd",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None,
-                    out var isoDate))
+            var isoParts = value.Split('-');
+            if (isoParts.Length == 3
+                && int.TryParse(isoParts[0], out var isoYear)
+                && int.TryParse(isoParts[1], out var isoMonth)
+                && int.TryParse(isoParts[2], out var isoDay))
             {
-                return isoDate.Date;
+                isoYear = NormalizeThaiCalendarYear(isoYear);
+
+                try
+                {
+                    return new DateTime(isoYear, isoMonth, isoDay);
+                }
+                catch
+                {
+                    return null;
+                }
             }
 
             var parts = value.Split('/');
@@ -713,7 +735,7 @@ namespace ProjectTracking.Controllers
                 && int.TryParse(parts[1], out var month)
                 && int.TryParse(parts[2], out var year))
             {
-                if (year > 2400) year -= 543;
+                year = NormalizeThaiCalendarYear(year);
 
                 try
                 {
@@ -726,6 +748,16 @@ namespace ProjectTracking.Controllers
             }
 
             return null;
+        }
+
+        private static int NormalizeThaiCalendarYear(int year)
+        {
+            while (year > 2200)
+            {
+                year -= 543;
+            }
+
+            return year;
         }
 
         private void ValidateIssueDateRange(ProjectIssue model, bool requireDates = false)
@@ -751,6 +783,18 @@ namespace ProjectTracking.Controllers
         private bool HasModelError(string key)
         {
             return ModelState.TryGetValue(key, out var state) && state.Errors.Count > 0;
+        }
+
+        private async Task SyncNotificationsSafelyAsync()
+        {
+            try
+            {
+                await _notificationService.SyncAsync(HttpContext.RequestAborted);
+            }
+            catch
+            {
+                // Notification sync should not block the main save flow.
+            }
         }
 
         private async Task<int?> GetCurrentEntryIdAsync()

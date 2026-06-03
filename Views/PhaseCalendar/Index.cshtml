@@ -8,6 +8,15 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
 <style>
+    :root {
+        --phase-navy: #10233f;
+        --phase-teal: #14b8a6;
+        --phase-teal-dark: #0f766e;
+        --phase-border: #d8e3ef;
+        --phase-soft: #eef8f7;
+        --phase-soft-other: #f7fbfc;
+    }
+
     .phase-calendar-page {
         max-width: 100%;
         margin: 0 auto;
@@ -16,9 +25,9 @@
 
     .calendar-card {
         background: #fff;
-        border: 1px solid #d8e3ef;
+        border: 1px solid rgba(15, 118, 110, .18);
         border-radius: 22px;
-        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        box-shadow: 0 16px 38px rgba(15, 35, 64, .12);
         overflow: hidden;
         margin-bottom: 18px;
     }
@@ -28,9 +37,9 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        color: #10233f;
-        background: linear-gradient(180deg, #f8fafc, #eef6fb);
-        border-bottom: 1px solid #d8e3ef;
+        color: #ffffff;
+        background: linear-gradient(135deg, #10233f 0%, #123b5c 58%, #0f766e 100%);
+        border-bottom: 1px solid rgba(20, 184, 166, .36);
         padding: 16px 18px;
     }
 
@@ -43,20 +52,21 @@
     }
 
     .calendar-section-title {
-        color: #10233f;
+        color: #ffffff;
         font-size: 18px;
         font-weight: 900;
         margin: 0;
     }
 
     .calendar-section-subtitle {
-        color: #64748b;
+        color: rgba(255, 255, 255, .72);
         font-size: .92rem;
         font-weight: 700;
     }
 
     .calendar-card__body {
         padding: 20px;
+        background: #eef5fb;
     }
 
     #calendar {
@@ -64,11 +74,11 @@
     }
 
     .fc {
-        color: #10233f;
+        color: var(--phase-navy);
     }
 
     .fc .fc-toolbar-title {
-        color: #10233f;
+        color: var(--phase-navy);
         font-size: 1.15rem !important;
         font-weight: 900;
         text-align: center;
@@ -82,7 +92,7 @@
     }
 
     .fc .fc-button-primary {
-        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+        background: linear-gradient(135deg, var(--phase-teal), var(--phase-teal-dark)) !important;
         border-color: transparent !important;
         color: #062b2f !important;
         font-weight: 900 !important;
@@ -98,12 +108,19 @@
         min-height: 130px;
     }
 
+    .fc .fc-scrollgrid {
+        overflow: hidden;
+        border-color: var(--phase-border) !important;
+        border-radius: 16px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
     .fc .fc-event {
         background: #f8fafc !important;
-        border: 1px solid #d8e3ef !important;
-        border-left: 5px solid var(--pt-accent) !important;
-        color: #10233f !important;
-        border-radius: 8px !important;
+        border: 1px solid var(--phase-border) !important;
+        border-left: 6px solid var(--phase-teal) !important;
+        color: var(--phase-navy) !important;
+        border-radius: 12px !important;
         padding: 8px 10px !important;
         font-size: 0.82rem;
         line-height: 1.4;
@@ -112,26 +129,46 @@
         overflow: hidden;
         margin-bottom: 8px !important;
         cursor: pointer;
-        box-shadow: 0 6px 16px rgba(15, 35, 64, .08) !important;
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .12) !important;
         transition: all .15s ease;
     }
 
     .fc .fc-event:hover {
         transform: translateY(-1px);
+        box-shadow: 0 14px 24px rgba(15, 35, 64, .18) !important;
     }
 
     .fc .fc-event-title {
-        color: #10233f !important;
+        color: var(--phase-navy) !important;
     }
 
-    .fc-event.status-plan { border-left-color: #94a3b8 !important; }
-    .fc-event.status-progress { border-left-color: #f59e0b !important; }
-    .fc-event.status-submitted { border-left-color: #22c55e !important; }
-    .fc-event.status-approved { border-left-color: #22c55e !important; }
-    .fc-event.status-rejected { border-left-color: #ef4444 !important; }
+    .fc-event.status-plan {
+        background: linear-gradient(135deg, #f8fafc, #eef2ff) !important;
+        border-color: #cbd5e1 !important;
+        border-left-color: #64748b !important;
+    }
+
+    .fc-event.status-progress {
+        background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
+        border-color: #fed7aa !important;
+        border-left-color: #f59e0b !important;
+    }
+
+    .fc-event.status-submitted,
+    .fc-event.status-approved {
+        background: linear-gradient(135deg, #ecfdf5, #dcfce7) !important;
+        border-color: #bbf7d0 !important;
+        border-left-color: #22c55e !important;
+    }
+
+    .fc-event.status-rejected {
+        background: linear-gradient(135deg, #fff1f2, #ffe4e6) !important;
+        border-color: #fecdd3 !important;
+        border-left-color: #ef4444 !important;
+    }
 
     .fc .fc-col-header-cell {
-        background: #10233f !important;
+        background: var(--phase-navy) !important;
         color: #fff !important;
         border-color: rgba(255,255,255,.12) !important;
     }
@@ -144,15 +181,16 @@
     }
 
     .fc .fc-daygrid-day {
-        background: #ffffff !important;
+        background: var(--phase-soft) !important;
     }
 
     .fc .fc-daygrid-day.fc-day-other {
-        background: #f8fafc !important;
+        background: var(--phase-soft-other) !important;
+        opacity: .78;
     }
 
     .fc .fc-daygrid-day-number {
-        color: #10233f !important;
+        color: var(--phase-navy) !important;
         font-weight: 700;
         font-size: .95rem;
     }
@@ -164,20 +202,106 @@
     }
 
     .fc .fc-day-today {
-        background: linear-gradient(180deg, rgba(20,184,166,.28), rgba(20,184,166,.16)) !important;
-        box-shadow: inset 0 0 0 2px rgba(15,118,110,.30);
+        background: #c8f8ef !important;
+        box-shadow: inset 0 0 0 3px var(--phase-teal-dark);
+    }
+
+    .fc .fc-day-today .fc-daygrid-day-frame {
+        min-height: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, #d9fbf6 0%, #b9f2e8 100%) !important;
+        box-shadow: inset 0 0 0 2px rgba(15,118,110,.55);
     }
 
     .fc .fc-day-today .fc-daygrid-day-number {
-        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
-        color: #062b2f !important;
-        width: 28px;
-        height: 28px;
+        background: linear-gradient(135deg, var(--phase-teal-dark), #0b4f4a);
+        color: #ffffff !important;
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 8px 18px rgba(20,184,166,.28);
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(15, 118, 110, .30);
+    }
+
+    .fc .fc-list {
+        overflow: hidden;
+        border: 1px solid var(--phase-border) !important;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .fc .fc-list-day-cushion {
+        background: linear-gradient(135deg, var(--phase-navy), #0f766e) !important;
+        color: #ffffff !important;
+        font-weight: 900;
+    }
+
+    .fc .fc-list-event td {
+        border-color: #e5edf7 !important;
+        color: var(--phase-navy);
+        font-weight: 800;
+    }
+
+    .fc .fc-list-event:hover td {
+        background: #ecfeff !important;
+    }
+
+    .phase-event-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        color: var(--phase-navy);
+        font-size: 12px;
+        line-height: 1.3;
+        font-weight: 800;
+        padding: 2px 0;
+        overflow: hidden;
+    }
+
+    .phase-event-dot {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 9px;
+        margin-top: 4px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 0 4px rgba(255,255,255,.7);
+    }
+
+    .phase-event-text {
+        min-width: 0;
+        overflow: hidden;
+        flex: 1;
+    }
+
+    .phase-event-title {
+        color: var(--phase-navy);
+        font-weight: 900;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+    }
+
+    .phase-event-subtitle {
+        color: #475569;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+    }
+
+    .phase-event-status {
+        margin-top: 3px;
+        color: #0f766e;
+        font-size: 11px;
+        font-weight: 900;
     }
 
     .phase-list {
@@ -187,12 +311,18 @@
     }
 
     .phase-card {
-        background: #f8fafc;
-        border-radius: 14px;
+        background: linear-gradient(90deg, #ecfeff 0, #ffffff 28%);
+        border-radius: 16px;
         padding: 16px;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--phase-border);
         border-left: 5px solid #d1d5db;
-        box-shadow: 0 6px 16px rgba(15, 35, 64, .06);
+        box-shadow: 0 10px 22px rgba(15, 35, 64, .08);
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+
+    .phase-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 30px rgba(15, 35, 64, .14);
     }
 
     .phase-title {
@@ -367,20 +497,27 @@
 
             eventContent: function (arg) {
                 const props = arg.event.extendedProps;
+                const statusColor =
+                    props.phaseStatus === 'วางแผน' ? '#64748b' :
+                    props.phaseStatus === 'กำลังดำเนินการ' ? '#f59e0b' :
+                    props.phaseStatus === 'ส่งงวดงานแล้ว' ? '#22c55e' :
+                    props.phaseStatus === 'อนุมัติแล้ว' ? '#22c55e' :
+                    props.phaseStatus === 'ตีกลับ' ? '#ef4444' : '#64748b';
 
                 return {
                     html: `
-                        <div style="display:flex;align-items:flex-start;gap:6px;font-size:12px;line-height:1.3;color:#10233f;font-weight:700;padding:2px 0;overflow:hidden;">
-                            <div style="min-width:0;overflow:hidden;flex:1;">
-                                <div style="font-weight:900;color:#10233f;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;">
+                        <div class="phase-event-content" style="color:${statusColor}">
+                            <span class="phase-event-dot"></span>
+                            <div class="phase-event-text">
+                                <div class="phase-event-title">
                                     ${props.projectName ?? '-'}
                                 </div>
 
-                                <div style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;color:#475569;">
+                                <div class="phase-event-subtitle">
                                     ${props.phaseName ?? '-'}
                                 </div>
 
-                                <div style="margin-top:3px;font-size:11px;color:#0f766e;font-weight:900;">
+                                <div class="phase-event-status" style="color:${statusColor}">
                                     ${props.phaseStatus ?? '-'}
                                 </div>
                             </div>

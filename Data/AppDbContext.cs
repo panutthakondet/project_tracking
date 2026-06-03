@@ -58,6 +58,7 @@ namespace ProjectTracking.Data
         public DbSet<SystemConfig> SystemConfigs { get; set; }
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
+        public DbSet<UserNotification> UserNotifications { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -276,6 +277,107 @@ namespace ProjectTracking.Data
                     .WithMany(x => x.Reads)
                     .HasForeignKey(x => x.UpdateId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // USER NOTIFICATIONS
+            // =========================
+            modelBuilder.Entity<UserNotification>(entity =>
+            {
+                entity.ToTable("user_notifications");
+                entity.HasKey(x => x.NotificationId);
+
+                entity.Property(x => x.NotificationId)
+                    .HasColumnName("notification_id");
+
+                entity.Property(x => x.RecipientUserId)
+                    .HasColumnName("recipient_user_id")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RecipientEmpId)
+                    .HasColumnName("recipient_emp_id")
+                    .IsRequired(false);
+
+                entity.Property(x => x.SourceType)
+                    .HasColumnName("source_type")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired();
+
+                entity.Property(x => x.SourceId)
+                    .HasColumnName("source_id")
+                    .IsRequired();
+
+                entity.Property(x => x.Title)
+                    .HasColumnName("title")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.Message)
+                    .HasColumnName("message")
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
+                entity.Property(x => x.TargetUrl)
+                    .HasColumnName("target_url")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Severity)
+                    .HasColumnName("severity")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("WARNING")
+                    .IsRequired();
+
+                entity.Property(x => x.IsRead)
+                    .HasColumnName("is_read")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.ReadAt)
+                    .HasColumnName("read_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsResolved)
+                    .HasColumnName("is_resolved")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.ResolvedAt)
+                    .HasColumnName("resolved_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasIndex(x => new { x.SourceType, x.SourceId, x.RecipientEmpId })
+                    .IsUnique()
+                    .HasDatabaseName("uq_user_notifications_source_emp");
+
+                entity.HasIndex(x => new { x.RecipientUserId, x.IsRead, x.IsResolved, x.CreatedAt })
+                    .HasDatabaseName("idx_user_notifications_recipient");
+
+                entity.HasIndex(x => x.RecipientEmpId)
+                    .HasDatabaseName("idx_user_notifications_emp");
+
+                entity.HasOne(x => x.RecipientUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RecipientUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(x => x.RecipientEmployee)
+                    .WithMany()
+                    .HasForeignKey(x => x.RecipientEmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // =========================

@@ -1,0 +1,235 @@
+@model IEnumerable<ProjectTracking.Models.UserNotification>
+@{
+    ViewData["Title"] = "Notifications";
+    var items = Model?.ToList() ?? new List<ProjectTracking.Models.UserNotification>();
+    var isAdmin = Convert.ToBoolean(ViewBag.IsAdmin ?? false);
+
+    string SeverityText(string? severity) => (severity ?? "").Trim().ToUpperInvariant() switch
+    {
+        "DANGER" => "ล่าช้า",
+        "WARNING" => "เสี่ยงล่าช้า",
+        _ => string.IsNullOrWhiteSpace(severity) ? "-" : severity
+    };
+
+    string SeverityClass(string? severity) => (severity ?? "").Trim().ToUpperInvariant() == "DANGER"
+        ? "danger"
+        : "warning";
+}
+
+<style>
+    .notification-page {
+        padding: 4px 0 28px;
+    }
+
+    .notification-hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        background: linear-gradient(135deg, #10284a, #174c5b);
+        color: #fff;
+        border-radius: 24px;
+        padding: 28px 32px;
+        box-shadow: 0 18px 36px rgba(15, 40, 74, .18);
+        margin-bottom: 18px;
+    }
+
+    .notification-eyebrow {
+        color: #9ff8ef;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .notification-hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        font-weight: 900;
+        letter-spacing: 0;
+        line-height: 1.05;
+    }
+
+    .notification-hero p {
+        margin: 10px 0 0;
+        color: #cfe0f2;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .notification-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .notification-actions .btn {
+        min-width: 150px;
+        border-radius: 999px;
+        font-weight: 900;
+        padding: 10px 18px;
+    }
+
+    .notification-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .notification-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        background: #fff;
+        border: 1px solid #dbe6f3;
+        border-left: 6px solid #f59e0b;
+        border-radius: 20px;
+        padding: 18px 20px;
+        color: #10223e;
+        text-decoration: none;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
+    }
+
+    .notification-card.danger {
+        border-left-color: #f43f5e;
+    }
+
+    .notification-card.is-read {
+        opacity: .68;
+    }
+
+    .notification-card:hover {
+        color: #10223e;
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px rgba(15, 40, 74, .12);
+    }
+
+    .notification-title {
+        margin: 0;
+        font-size: 1.18rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .notification-message {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+
+    .notification-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        color: #718096;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .notification-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        min-width: 104px;
+        padding: 8px 14px;
+        font-weight: 900;
+        color: #92400e;
+        background: #fef3c7;
+    }
+
+    .notification-pill.danger {
+        color: #be123c;
+        background: #ffe4e6;
+    }
+
+    .notification-empty {
+        background: #fff;
+        border: 1px dashed #c9d7e8;
+        border-radius: 20px;
+        padding: 40px 22px;
+        text-align: center;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 720px) {
+        .notification-hero,
+        .notification-card {
+            grid-template-columns: 1fr;
+        }
+
+        .notification-hero {
+            display: block;
+            padding: 24px 20px;
+        }
+
+        .notification-actions {
+            justify-content: flex-start;
+            margin-top: 18px;
+        }
+
+        .notification-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="notification-page">
+    <section class="notification-hero">
+        <div>
+            <div class="notification-eyebrow">ProjectTracking</div>
+            <h1>แจ้งเตือนงาน</h1>
+            <p>งานเสี่ยงล่าช้าและงานล่าช้า @(isAdmin ? "ของทุกคนในระบบ" : "ของคุณ")</p>
+        </div>
+        <div class="notification-actions">
+            <form asp-controller="Notifications" asp-action="ReadAll" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-light">อ่านทั้งหมด</button>
+            </form>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
+        </div>
+    </section>
+
+    @if (items.Count == 0)
+    {
+        <div class="notification-empty">ยังไม่มีงานเสี่ยงล่าช้าหรืองานล่าช้าในตอนนี้</div>
+    }
+    else
+    {
+        <div class="notification-list">
+            @foreach (var item in items)
+            {
+                var severityClass = SeverityClass(item.Severity);
+                <a class="notification-card @severityClass @(item.IsRead ? "is-read" : "")"
+                   asp-controller="Notifications"
+                   asp-action="Open"
+                   asp-route-id="@item.NotificationId">
+                    <div>
+                        <h2 class="notification-title">@item.Title</h2>
+                        @if (!string.IsNullOrWhiteSpace(item.Message))
+                        {
+                            <p class="notification-message">@item.Message</p>
+                        }
+                        <div class="notification-meta">
+                            @if (isAdmin && item.RecipientEmployee != null)
+                            {
+                                <span>ผู้รับผิดชอบ: @(item.RecipientEmployee?.EmpName ?? "-")</span>
+                            }
+                            <span>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            @if (item.IsRead)
+                            {
+                                <span>อ่านแล้ว</span>
+                            }
+                        </div>
+                    </div>
+                    <span class="notification-pill @severityClass">@SeverityText(item.Severity)</span>
+                </a>
+            }
+        </div>
+    }
+</div>
