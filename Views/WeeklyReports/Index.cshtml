@@ -1,0 +1,152 @@
+@model IEnumerable<ProjectTracking.Models.WeeklyReport>
+
+@{
+    ViewData["Title"] = "Weekly Reports";
+    var selectedStatus = (ViewBag.SelectedStatus as string ?? "").Trim().ToUpperInvariant();
+    var titleText = selectedStatus == "DRAFT" ? "Draft Weekly Reports" : "Weekly Summary Reports";
+    var subtitleText = selectedStatus == "DRAFT"
+        ? "แบบร่างรายงานประจำสัปดาห์ที่ยังไม่ได้ส่งตรวจ"
+        : "บันทึกร่าง ส่งตรวจ และติดตามรายงานสรุปประจำสัปดาห์";
+}
+
+@functions {
+    string StatusLabel(string? status) => (status ?? "").ToUpperInvariant() switch
+    {
+        "DRAFT" => "แบบร่าง",
+        "SENT_TO_PM" => "ส่งให้ PM แล้ว",
+        "SENT_TO_BDM" => "ส่งให้ BDM แล้ว",
+        _ => status ?? "-"
+    };
+
+    string StatusClass(string? status) => (status ?? "").ToUpperInvariant() switch
+    {
+        "DRAFT" => "text-warning",
+        "SENT_TO_PM" => "text-info",
+        "SENT_TO_BDM" => "text-success",
+        _ => "text-muted"
+    };
+
+    string DateRange(ProjectTracking.Models.WeeklyReport report)
+        => $"{report.WeekStart:dd/MM/yyyy} - {report.WeekEnd:dd/MM/yyyy}";
+}
+
+<style>
+    .weekly-page { padding-top: 0; }
+    .weekly-hero {
+        border-radius: 24px;
+        padding: 28px 32px;
+        margin-bottom: 22px;
+        color: #fff;
+        background: linear-gradient(135deg, #10233f 0%, #113c58 58%, #0f8f84 100%);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .18);
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+    }
+    .weekly-eyebrow { color: #9ff4e6; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .weekly-title { font-size: clamp(2rem, 3vw, 3.1rem); font-weight: 1000; margin: 6px 0 0; }
+    .weekly-subtitle { color: rgba(255,255,255,.78); font-weight: 800; margin: 6px 0 0; }
+    .weekly-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .weekly-btn {
+        min-height: 46px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.42);
+        padding: 10px 18px;
+        font-weight: 1000;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .weekly-btn.primary { background: linear-gradient(135deg, #28d6c5, #108a7c); color: #fff; border-color: transparent; }
+    .weekly-btn.ghost { color: #fff; background: rgba(255,255,255,.08); }
+    .weekly-list { display: grid; gap: 14px; }
+    .weekly-card {
+        background: #fff;
+        border: 1px solid #d9e4f2;
+        border-radius: 20px;
+        padding: 20px 22px;
+        box-shadow: 0 12px 28px rgba(16, 35, 63, .08);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: center;
+    }
+    .weekly-card h3 { font-weight: 1000; color: #10233f; margin: 0 0 8px; overflow-wrap: anywhere; }
+    .weekly-meta { color: #64748b; font-weight: 800; display: flex; flex-wrap: wrap; gap: 12px; }
+    .weekly-status { font-weight: 1000; }
+    .weekly-empty {
+        background: #fff;
+        border: 1px dashed #cbd8e8;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        color: #64748b;
+        font-weight: 900;
+    }
+    @@media (max-width: 760px) {
+        .weekly-hero, .weekly-card { grid-template-columns: 1fr; display: grid; }
+        .weekly-actions { justify-content: stretch; }
+        .weekly-btn { width: 100%; }
+    }
+</style>
+
+<div class="container weekly-page">
+    <section class="weekly-hero">
+        <div>
+            <div class="weekly-eyebrow">ProjectTracking</div>
+            <h1 class="weekly-title">@titleText</h1>
+            <p class="weekly-subtitle">@subtitleText</p>
+        </div>
+        <div class="weekly-actions">
+            <a class="weekly-btn ghost" asp-controller="Mailbox" asp-action="Index">กล่องจดหมาย</a>
+            @if (selectedStatus == "DRAFT")
+            {
+                <a class="weekly-btn ghost" asp-action="Index">รายงานทั้งหมด</a>
+            }
+            else
+            {
+                <a class="weekly-btn ghost" asp-action="Index" asp-route-status="DRAFT">แบบร่าง</a>
+            }
+            <a class="weekly-btn primary" asp-action="Create">สร้างรายงานใหม่</a>
+        </div>
+    </section>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+    }
+
+    <div class="weekly-list">
+        @if (!Model.Any())
+        {
+            <div class="weekly-empty">@(selectedStatus == "DRAFT" ? "ยังไม่มีแบบร่างรายงาน" : "ยังไม่มีรายงานสรุปประจำสัปดาห์")</div>
+        }
+        else
+        {
+            foreach (var report in Model)
+            {
+                <article class="weekly-card">
+                    <div>
+                        <h3>@report.Subject</h3>
+                        <div class="weekly-meta">
+                            <span>@DateRange(report)</span>
+                            <span class="weekly-status @StatusClass(report.Status)">@StatusLabel(report.Status)</span>
+                            <span>ไฟล์แนบ @report.Attachments.Count ไฟล์</span>
+                            <span>แก้ไขล่าสุด @report.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                    </div>
+                    <div class="weekly-actions">
+                        @if (string.Equals(report.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a class="weekly-btn ghost" style="color:#10233f;border-color:#cbd8e8;" asp-action="Edit" asp-route-id="@report.ReportId">แก้ไข</a>
+                        }
+                        <a class="weekly-btn primary" asp-action="Details" asp-route-id="@report.ReportId">รายละเอียด</a>
+                    </div>
+                </article>
+            }
+        }
+    </div>
+</div>

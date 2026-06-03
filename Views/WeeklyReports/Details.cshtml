@@ -1,0 +1,196 @@
+@model ProjectTracking.Models.WeeklyReportDetailsViewModel
+
+@{
+    ViewData["Title"] = "Weekly Report Details";
+}
+
+@functions {
+    string StatusLabel(string? status) => (status ?? "").ToUpperInvariant() switch
+    {
+        "DRAFT" => "แบบร่าง",
+        "SENT_TO_PM" => "ส่งให้ PM แล้ว",
+        "SENT_TO_BDM" => "ส่งให้ BDM แล้ว",
+        _ => status ?? "-"
+    };
+    string StatusClass(string? status) => (status ?? "").ToUpperInvariant() switch
+    {
+        "DRAFT" => "text-warning",
+        "SENT_TO_PM" => "text-info",
+        "SENT_TO_BDM" => "text-success",
+        _ => "text-muted"
+    };
+}
+
+<style>
+    .report-detail { padding-top: 0; }
+    .report-hero {
+        border-radius: 24px;
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        color: #fff;
+        background: linear-gradient(135deg, #10233f 0%, #113c58 58%, #0f8f84 100%);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .18);
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+    }
+    .report-hero h1 { font-weight: 1000; font-size: clamp(2rem, 3vw, 3rem); margin: 6px 0 12px; overflow-wrap: anywhere; }
+    .report-eyebrow { color: #9ff4e6; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .report-meta { display: flex; flex-wrap: wrap; gap: 12px; color: rgba(255,255,255,.78); font-weight: 850; }
+    .report-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+    .report-btn {
+        min-height: 46px;
+        min-width: 150px;
+        border-radius: 999px;
+        border: 1px solid #cbd8e8;
+        padding: 10px 18px;
+        font-weight: 1000;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        text-decoration:none;
+        background:#fff;
+        color:#10233f;
+    }
+    .report-btn.primary { background: linear-gradient(135deg, #28d6c5, #108a7c); color:#fff; border-color:transparent; }
+    .report-btn.ghost { background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.42); }
+    .report-panel {
+        background:#fff;
+        border:1px solid #d9e4f2;
+        border-radius:22px;
+        padding:24px;
+        box-shadow:0 14px 34px rgba(16,35,63,.08);
+        margin-bottom:18px;
+    }
+    .report-panel h3 { color:#10233f; font-weight:1000; margin-bottom:14px; }
+    .summary-box {
+        min-height:160px;
+        white-space:pre-wrap;
+        color:#10233f;
+        font-weight:850;
+        line-height:1.55;
+        background:#f8fbff;
+        border:1px solid #d9e4f2;
+        border-radius:18px;
+        padding:18px;
+    }
+    .attachment-list { display:grid; gap:10px; }
+    .attachment-row {
+        border:1px solid #d9e4f2;
+        border-radius:16px;
+        padding:12px 14px;
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:center;
+        color:#10233f;
+        font-weight:900;
+    }
+    .forward-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:10px; }
+    .recipient-option {
+        display:flex;
+        gap:12px;
+        border:1px solid #d9e4f2;
+        border-radius:16px;
+        padding:12px 14px;
+        background:#fbfdff;
+        cursor:pointer;
+    }
+    .recipient-name { color:#10233f; font-weight:1000; }
+    .recipient-position { color:#64748b; font-weight:800; font-size:.86rem; display:block; }
+    .forward-textarea {
+        width:100%;
+        min-height:110px;
+        border:1px solid #cbd8e8;
+        border-radius:16px;
+        padding:13px 16px;
+        color:#10233f;
+        font-weight:800;
+        margin:12px 0;
+    }
+    @@media (max-width: 780px) {
+        .report-hero { display:grid; }
+        .report-actions, .report-btn { width:100%; }
+    }
+</style>
+
+<div class="container report-detail">
+    <section class="report-hero">
+        <div>
+            <div class="report-eyebrow">Weekly Report #@Model.Report.ReportId</div>
+            <h1>@Model.Report.Subject</h1>
+            <div class="report-meta">
+                <span>@Model.Report.WeekStart?.ToString("dd/MM/yyyy") - @Model.Report.WeekEnd?.ToString("dd/MM/yyyy")</span>
+                <span class="@StatusClass(Model.Report.Status)">@StatusLabel(Model.Report.Status)</span>
+                <span>ผู้จัดทำ: @(Model.Report.CreatedByEmployee?.EmpName ?? "-")</span>
+            </div>
+        </div>
+        <div class="report-actions">
+            <a class="report-btn ghost" asp-controller="Mailbox" asp-action="Index">กล่องจดหมาย</a>
+            <a class="report-btn ghost" asp-action="Index">รายการรายงาน</a>
+            @if (Model.CanEditDraft)
+            {
+                <a class="report-btn primary" asp-action="Edit" asp-route-id="@Model.Report.ReportId">แก้ไขร่าง</a>
+            }
+        </div>
+    </section>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger fw-bold">@TempData["Error"]</div>
+    }
+
+    <section class="report-panel">
+        <h3>สรุปรายงาน</h3>
+        <div class="summary-box">@(string.IsNullOrWhiteSpace(Model.Report.Summary) ? "-" : Model.Report.Summary)</div>
+    </section>
+
+    <section class="report-panel">
+        <h3>ไฟล์แนบ</h3>
+        <div class="attachment-list">
+            @if (!Model.Report.Attachments.Any())
+            {
+                <div class="text-muted fw-bold">ไม่มีไฟล์แนบ</div>
+            }
+            else
+            {
+                @foreach (var attachment in Model.Report.Attachments.OrderByDescending(x => x.UploadedAt))
+                {
+                    <div class="attachment-row">
+                        <span>@attachment.FileName</span>
+                        <a class="report-btn primary" style="min-width:120px;" asp-action="DownloadAttachment" asp-route-id="@attachment.AttachmentId">ดาวน์โหลด</a>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+
+    <section class="report-panel">
+        <h3>ส่งต่อรายงานที่ตรวจแล้ว</h3>
+        <form asp-action="Forward" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="reportId" value="@Model.Report.ReportId" />
+            <div class="forward-grid">
+                @foreach (var user in Model.Users)
+                {
+                    <label class="recipient-option">
+                        <input type="checkbox" name="selectedUserIds" value="@user.UserId" />
+                        <span>
+                            <span class="recipient-name">@user.DisplayName</span>
+                            <span class="recipient-position">@user.Position (@user.Username)</span>
+                        </span>
+                    </label>
+                }
+            </div>
+            <textarea class="forward-textarea" name="messageBody" placeholder="ข้อความถึงผู้รับ เช่น ตรวจรายงานแล้ว ขอส่งต่อให้ Business Development Manager รับทราบ"></textarea>
+            <div class="report-actions">
+                <button class="report-btn primary" type="submit">ส่งต่อรายงาน</button>
+            </div>
+        </form>
+    </section>
+</div>

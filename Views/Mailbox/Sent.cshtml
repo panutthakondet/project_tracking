@@ -1,0 +1,96 @@
+@model IEnumerable<ProjectTracking.Models.MailboxMessage>
+
+@{
+    ViewData["Title"] = "Sent Mail";
+}
+
+<style>
+    .sent-page { padding-top: 0; }
+    .sent-hero {
+        border-radius: 24px;
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        color: #fff;
+        background: linear-gradient(135deg, #10233f 0%, #113c58 58%, #0f8f84 100%);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .18);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:16px;
+    }
+    .sent-title { font-weight:1000; font-size:clamp(2rem, 3vw, 3rem); margin:0; }
+    .sent-btn {
+        min-height:46px;
+        min-width:150px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.42);
+        padding:10px 18px;
+        font-weight:1000;
+        color:#fff;
+        text-decoration:none;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        background:rgba(255,255,255,.08);
+    }
+    .sent-list { display:grid; gap:12px; }
+    .sent-card {
+        background:#fff;
+        border:1px solid #d9e4f2;
+        border-radius:20px;
+        padding:18px 20px;
+        box-shadow:0 12px 28px rgba(16,35,63,.08);
+        display:grid;
+        grid-template-columns:1fr auto;
+        gap:16px;
+        align-items:center;
+    }
+    .sent-card h3 { color:#10233f; font-weight:1000; margin:0 0 8px; overflow-wrap:anywhere; }
+    .sent-meta { color:#64748b; font-weight:850; display:flex; flex-wrap:wrap; gap:12px; }
+    .sent-open {
+        min-height:42px;
+        border-radius:999px;
+        padding:8px 16px;
+        background:linear-gradient(135deg, #28d6c5, #108a7c);
+        color:#fff;
+        font-weight:1000;
+        text-decoration:none;
+        display:inline-flex;
+        align-items:center;
+    }
+    .sent-empty { background:#fff; border:1px dashed #cbd8e8; border-radius:20px; padding:34px; text-align:center; color:#64748b; font-weight:900; }
+</style>
+
+<div class="container sent-page">
+    <section class="sent-hero">
+        <h1 class="sent-title">จดหมายที่ส่ง</h1>
+        <a class="sent-btn" asp-action="Index">กล่องจดหมาย</a>
+    </section>
+
+    <div class="sent-list">
+        @if (!Model.Any())
+        {
+            <div class="sent-empty">ยังไม่มีจดหมายที่ส่ง</div>
+        }
+        else
+        {
+            foreach (var message in Model)
+            {
+                <article class="sent-card">
+                    <div>
+                        <h3>@message.Subject</h3>
+                        <div class="sent-meta">
+                            <span>@message.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span>ผู้รับ @message.Recipients.Count คน</span>
+                            @if (message.Report != null)
+                            {
+                                <span>Report #@message.Report.ReportId</span>
+                            }
+                        </div>
+                    </div>
+                    <a class="sent-open" asp-action="Details" asp-route-id="@message.MessageId">รายละเอียด</a>
+                </article>
+            }
+        }
+    </div>
+</div>

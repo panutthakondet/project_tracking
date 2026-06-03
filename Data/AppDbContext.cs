@@ -59,6 +59,10 @@ namespace ProjectTracking.Data
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
+        public DbSet<WeeklyReport> WeeklyReports { get; set; }
+        public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
+        public DbSet<MailboxMessage> MailboxMessages { get; set; }
+        public DbSet<MailboxRecipient> MailboxRecipients { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -378,6 +382,96 @@ namespace ProjectTracking.Data
                     .WithMany()
                     .HasForeignKey(x => x.RecipientEmpId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // =========================
+            // WEEKLY REPORTS + MAILBOX
+            // =========================
+            modelBuilder.Entity<WeeklyReport>(entity =>
+            {
+                entity.ToTable("weekly_reports");
+                entity.HasKey(x => x.ReportId);
+
+                entity.Property(x => x.ReportId).HasColumnName("report_id");
+                entity.Property(x => x.WeekStart).HasColumnName("week_start").HasColumnType("date").IsRequired(false);
+                entity.Property(x => x.WeekEnd).HasColumnName("week_end").HasColumnType("date").IsRequired(false);
+                entity.Property(x => x.Subject).HasColumnName("subject").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.Summary).HasColumnName("summary").HasColumnType("text").IsRequired(false);
+                entity.Property(x => x.Status).HasColumnName("status").HasColumnType("varchar(30)").HasDefaultValue("DRAFT").IsRequired();
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id").IsRequired(false);
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id").IsRequired(false);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAddOrUpdate();
+                entity.Property(x => x.SentToPmAt).HasColumnName("sent_to_pm_at").HasColumnType("datetime").IsRequired(false);
+                entity.Property(x => x.SentToBdmAt).HasColumnName("sent_to_bdm_at").HasColumnType("datetime").IsRequired(false);
+
+                entity.HasIndex(x => new { x.CreatedByUserId, x.Status, x.CreatedAt })
+                    .HasDatabaseName("idx_weekly_reports_creator");
+
+                entity.HasMany(x => x.Attachments)
+                    .WithOne(x => x.Report)
+                    .HasForeignKey(x => x.ReportId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<WeeklyReportAttachment>(entity =>
+            {
+                entity.ToTable("weekly_report_attachments");
+                entity.HasKey(x => x.AttachmentId);
+
+                entity.Property(x => x.AttachmentId).HasColumnName("attachment_id");
+                entity.Property(x => x.ReportId).HasColumnName("report_id").IsRequired();
+                entity.Property(x => x.FileName).HasColumnName("file_name").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.FilePath).HasColumnName("file_path").HasColumnType("varchar(500)").IsRequired();
+                entity.Property(x => x.ContentType).HasColumnName("content_type").HasColumnType("varchar(150)").IsRequired(false);
+                entity.Property(x => x.FileSize).HasColumnName("file_size").HasColumnType("bigint").HasDefaultValue(0);
+                entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id").IsRequired(false);
+                entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(x => x.ReportId).HasDatabaseName("idx_weekly_report_attachments_report");
+            });
+
+            modelBuilder.Entity<MailboxMessage>(entity =>
+            {
+                entity.ToTable("mailbox_messages");
+                entity.HasKey(x => x.MessageId);
+
+                entity.Property(x => x.MessageId).HasColumnName("message_id");
+                entity.Property(x => x.ReportId).HasColumnName("report_id").IsRequired(false);
+                entity.Property(x => x.Subject).HasColumnName("subject").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.Body).HasColumnName("body").HasColumnType("text").IsRequired(false);
+                entity.Property(x => x.MessageType).HasColumnName("message_type").HasColumnType("varchar(50)").HasDefaultValue("GENERAL").IsRequired();
+                entity.Property(x => x.SenderUserId).HasColumnName("sender_user_id").IsRequired(false);
+                entity.Property(x => x.SenderEmpId).HasColumnName("sender_emp_id").IsRequired(false);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(x => new { x.SenderUserId, x.CreatedAt }).HasDatabaseName("idx_mailbox_messages_sender");
+                entity.HasIndex(x => x.ReportId).HasDatabaseName("idx_mailbox_messages_report");
+
+                entity.HasMany(x => x.Recipients)
+                    .WithOne(x => x.Message)
+                    .HasForeignKey(x => x.MessageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MailboxRecipient>(entity =>
+            {
+                entity.ToTable("mailbox_recipients");
+                entity.HasKey(x => x.RecipientId);
+
+                entity.Property(x => x.RecipientId).HasColumnName("recipient_id");
+                entity.Property(x => x.MessageId).HasColumnName("message_id").IsRequired();
+                entity.Property(x => x.RecipientUserId).HasColumnName("recipient_user_id").IsRequired();
+                entity.Property(x => x.RecipientEmpId).HasColumnName("recipient_emp_id").IsRequired(false);
+                entity.Property(x => x.IsRead).HasColumnName("is_read").HasColumnType("tinyint(1)").HasDefaultValue(false);
+                entity.Property(x => x.ReadAt).HasColumnName("read_at").HasColumnType("datetime").IsRequired(false);
+                entity.Property(x => x.IsDeleted).HasColumnName("is_deleted").HasColumnType("tinyint(1)").HasDefaultValue(false);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(x => new { x.RecipientUserId, x.IsRead, x.IsDeleted, x.CreatedAt })
+                    .HasDatabaseName("idx_mailbox_recipients_user");
+                entity.HasIndex(x => x.MessageId)
+                    .HasDatabaseName("idx_mailbox_recipients_message");
             });
 
             // =========================

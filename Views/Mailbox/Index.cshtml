@@ -1,0 +1,136 @@
+@model IEnumerable<ProjectTracking.Models.MailboxIndexItemViewModel>
+
+@{
+    ViewData["Title"] = "Mailbox";
+}
+
+@functions {
+    string DateText(DateTime date) => date.ToString("dd/MM/yyyy HH:mm");
+    string Preview(string? text)
+    {
+        text = (text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(text)) return "-";
+        return text.Length <= 160 ? text : text[..160] + "...";
+    }
+    string StatusLabel(string? status) => (status ?? "").ToUpperInvariant() switch
+    {
+        "DRAFT" => "แบบร่าง",
+        "SENT_TO_PM" => "รอตรวจ",
+        "SENT_TO_BDM" => "ส่งต่อแล้ว",
+        _ => status ?? "-"
+    };
+}
+
+<style>
+    .mail-page { padding-top: 0; }
+    .mail-hero {
+        border-radius: 24px;
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        color: #fff;
+        background: linear-gradient(135deg, #10233f 0%, #113c58 58%, #0f8f84 100%);
+        box-shadow: 0 16px 34px rgba(15, 35, 64, .18);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:16px;
+    }
+    .mail-eyebrow { color:#9ff4e6; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .mail-title { font-weight:1000; font-size:clamp(2rem, 3vw, 3.1rem); margin:6px 0 0; }
+    .mail-subtitle { color:rgba(255,255,255,.78); font-weight:800; margin:6px 0 0; }
+    .mail-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .mail-btn {
+        min-height:46px;
+        min-width:150px;
+        border-radius:999px;
+        border:1px solid #cbd8e8;
+        padding:10px 18px;
+        font-weight:1000;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        text-decoration:none;
+        background:#fff;
+        color:#10233f;
+    }
+    .mail-btn.primary { background:linear-gradient(135deg, #28d6c5, #108a7c); color:#fff; border-color:transparent; }
+    .mail-btn.ghost { background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.42); }
+    .mail-list { display:grid; gap:12px; }
+    .mail-card {
+        background:#fff;
+        border:1px solid #d9e4f2;
+        border-radius:20px;
+        padding:18px 20px;
+        box-shadow:0 12px 28px rgba(16,35,63,.08);
+        display:grid;
+        grid-template-columns: 1fr auto;
+        gap:16px;
+        align-items:center;
+        text-decoration:none;
+        color:inherit;
+    }
+    .mail-card.unread { border-left:6px solid #25c6b8; background:#fbfffe; }
+    .mail-card h3 { color:#10233f; font-weight:1000; margin:0 0 6px; overflow-wrap:anywhere; }
+    .mail-preview { color:#64748b; font-weight:800; margin:0 0 8px; overflow-wrap:anywhere; }
+    .mail-meta { color:#64748b; font-weight:850; display:flex; flex-wrap:wrap; gap:12px; }
+    .mail-status { color:#0f8f84; font-weight:1000; }
+    .mail-empty {
+        background:#fff;
+        border:1px dashed #cbd8e8;
+        border-radius:20px;
+        padding:34px;
+        text-align:center;
+        color:#64748b;
+        font-weight:900;
+    }
+    @@media (max-width:760px) {
+        .mail-hero, .mail-card { display:grid; grid-template-columns:1fr; }
+        .mail-actions, .mail-btn { width:100%; }
+    }
+</style>
+
+<div class="container mail-page">
+    <section class="mail-hero">
+        <div>
+            <div class="mail-eyebrow">ProjectTracking</div>
+            <h1 class="mail-title">Mailbox</h1>
+            <p class="mail-subtitle">กล่องจดหมายสำหรับรับรายงานและไฟล์แนบจากทีม</p>
+        </div>
+        <div class="mail-actions">
+            <a class="mail-btn ghost" asp-controller="Home" asp-action="Index">Dashboard</a>
+            <a class="mail-btn ghost" asp-controller="WeeklyReports" asp-action="Index" asp-route-status="DRAFT">แบบร่าง</a>
+            <a class="mail-btn ghost" asp-action="Sent">จดหมายที่ส่ง</a>
+            <a class="mail-btn primary" asp-controller="WeeklyReports" asp-action="Create">สร้างรายงาน</a>
+        </div>
+    </section>
+
+    <div class="mail-list">
+        @if (!Model.Any())
+        {
+            <div class="mail-empty">ยังไม่มีจดหมายเข้า</div>
+        }
+        else
+        {
+            foreach (var item in Model)
+            {
+                <a class="mail-card @(item.IsRead ? "" : "unread")" asp-action="Details" asp-route-id="@item.MessageId">
+                    <div>
+                        <h3>@item.Subject</h3>
+                        <p class="mail-preview">@Preview(item.Body)</p>
+                        <div class="mail-meta">
+                            <span>จาก: @item.SenderName</span>
+                            <span>@DateText(item.CreatedAt)</span>
+                            @if (!string.IsNullOrWhiteSpace(item.ReportStatus))
+                            {
+                                <span class="mail-status">@StatusLabel(item.ReportStatus)</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="mail-actions">
+                        <span class="mail-btn primary" style="min-width:120px;">เปิดอ่าน</span>
+                    </div>
+                </a>
+            }
+        }
+    </div>
+</div>

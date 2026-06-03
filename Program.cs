@@ -191,6 +191,7 @@ var app = builder.Build();
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
+await EnsureMailboxTablesAsync(app.Services);
 
 // allow large upload requests
 app.Use(async (context, next) =>
@@ -393,6 +394,100 @@ static async Task EnsureUserNotificationTableAsync(IServiceProvider services)
               KEY `idx_user_notifications_source` (`source_type`,`source_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureMailboxTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `weekly_reports` (
+              `report_id` int(11) NOT NULL AUTO_INCREMENT,
+              `week_start` date DEFAULT NULL,
+              `week_end` date DEFAULT NULL,
+              `subject` varchar(255) NOT NULL,
+              `summary` text DEFAULT NULL,
+              `status` varchar(30) NOT NULL DEFAULT 'DRAFT',
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              `sent_to_pm_at` datetime DEFAULT NULL,
+              `sent_to_bdm_at` datetime DEFAULT NULL,
+              PRIMARY KEY (`report_id`),
+              KEY `idx_weekly_reports_creator` (`created_by_user_id`,`status`,`created_at`),
+              KEY `idx_weekly_reports_emp` (`created_by_emp_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `weekly_report_attachments` (
+              `attachment_id` int(11) NOT NULL AUTO_INCREMENT,
+              `report_id` int(11) NOT NULL,
+              `file_name` varchar(255) NOT NULL,
+              `file_path` varchar(500) NOT NULL,
+              `content_type` varchar(150) DEFAULT NULL,
+              `file_size` bigint NOT NULL DEFAULT 0,
+              `uploaded_by_user_id` int(11) DEFAULT NULL,
+              `uploaded_at` datetime NOT NULL DEFAULT current_timestamp(),
+              PRIMARY KEY (`attachment_id`),
+              KEY `idx_weekly_report_attachments_report` (`report_id`),
+              CONSTRAINT `fk_weekly_report_attachments_report`
+                FOREIGN KEY (`report_id`) REFERENCES `weekly_reports` (`report_id`)
+                ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `mailbox_messages` (
+              `message_id` int(11) NOT NULL AUTO_INCREMENT,
+              `report_id` int(11) DEFAULT NULL,
+              `subject` varchar(255) NOT NULL,
+              `body` text DEFAULT NULL,
+              `message_type` varchar(50) NOT NULL DEFAULT 'GENERAL',
+              `sender_user_id` int(11) DEFAULT NULL,
+              `sender_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              PRIMARY KEY (`message_id`),
+              KEY `idx_mailbox_messages_sender` (`sender_user_id`,`created_at`),
+              KEY `idx_mailbox_messages_report` (`report_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `mailbox_recipients` (
+              `recipient_id` int(11) NOT NULL AUTO_INCREMENT,
+              `message_id` int(11) NOT NULL,
+              `recipient_user_id` int(11) NOT NULL,
+              `recipient_emp_id` int(11) DEFAULT NULL,
+              `is_read` tinyint(1) NOT NULL DEFAULT 0,
+              `read_at` datetime DEFAULT NULL,
+              `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              PRIMARY KEY (`recipient_id`),
+              KEY `idx_mailbox_recipients_user` (`recipient_user_id`,`is_read`,`is_deleted`,`created_at`),
+              KEY `idx_mailbox_recipients_message` (`message_id`),
+              CONSTRAINT `fk_mailbox_recipients_message`
+                FOREIGN KEY (`message_id`) REFERENCES `mailbox_messages` (`message_id`)
+                ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
         await command.ExecuteNonQueryAsync();
     }
     finally

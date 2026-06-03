@@ -1065,6 +1065,15 @@
     box-shadow:0 14px 26px rgba(20,184,166,.32);
 }
 
+.v2-profile-bell.mailbox{
+    background:linear-gradient(135deg,#60a5fa,#7c3aed);
+    box-shadow:0 10px 22px rgba(96,165,250,.24);
+}
+
+.v2-profile-bell.mailbox:hover{
+    box-shadow:0 14px 26px rgba(124,58,237,.28);
+}
+
 .v2-profile-bell svg{
     width:18px;
     height:18px;
@@ -1609,6 +1618,7 @@
     var loginFollowups = new List<ProjectTracking.Models.ProjectFollowup>();
     var loginFollowupOwnerName = "";
     var unreadNotificationCount = 0;
+    var unreadMailboxCount = 0;
 
     if (userId != null)
     {
@@ -1690,6 +1700,18 @@
         catch
         {
             unreadNotificationCount = 0;
+        }
+
+        try
+        {
+            unreadMailboxCount = await LayoutDb.MailboxRecipients
+                .AsNoTracking()
+                .Where(mail => mail.RecipientUserId == userId.Value && !mail.IsRead && !mail.IsDeleted)
+                .CountAsync();
+        }
+        catch
+        {
+            unreadMailboxCount = 0;
         }
     }
 
@@ -1786,6 +1808,19 @@
                     </svg>
                     <span class="v2-profile-bell-count @(unreadNotificationCount == 0 ? "is-empty" : "")">
                         @unreadNotificationCount
+                    </span>
+                </a>
+                <a class="v2-profile-bell mailbox"
+                   asp-controller="Mailbox"
+                   asp-action="Index"
+                   title="กล่องจดหมาย"
+                   aria-label="กล่องจดหมาย">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 6h16v12H4z" />
+                        <path d="m4 7 8 6 8-6" />
+                    </svg>
+                    <span class="v2-profile-bell-count @(unreadMailboxCount == 0 ? "is-empty" : "")">
+                        @unreadMailboxCount
                     </span>
                 </a>
             }
