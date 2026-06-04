@@ -21,6 +21,15 @@ namespace ProjectTracking.Controllers
 
         public async Task<IActionResult> Index(string? severity = null, bool includeResolved = false)
         {
+            try
+            {
+                await _notificationService.SyncAsync(HttpContext.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.SyncError = ex.Message;
+            }
+
             var query = ApplyVisibility(_context.UserNotifications
                 .AsNoTracking()
                 .Include(x => x.RecipientEmployee)

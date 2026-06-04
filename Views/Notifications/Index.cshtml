@@ -197,10 +197,22 @@
 
     @if (items.Count == 0)
     {
+        @if (ViewBag.SyncError != null)
+        {
+            <div class="alert alert-danger fw-bold mb-3">
+                Sync แจ้งเตือนไม่สำเร็จ: @ViewBag.SyncError
+            </div>
+        }
         <div class="notification-empty">ยังไม่มีงานเสี่ยงล่าช้าหรืองานล่าช้าในตอนนี้</div>
     }
     else
     {
+        @if (ViewBag.SyncError != null)
+        {
+            <div class="alert alert-danger fw-bold mb-3">
+                Sync แจ้งเตือนไม่สำเร็จ: @ViewBag.SyncError
+            </div>
+        }
         <div class="notification-list">
             @foreach (var item in items)
             {

@@ -36,13 +36,30 @@ namespace ProjectTracking.Services
             var riskUntil = today.AddDays(_riskDays);
             var now = DateTime.Now;
 
-            var employees = await db.Employees
+            var userEmpLinks = await db.LoginUsers
+                .AsNoTracking()
+                .Where(x => x.EmpId.HasValue && x.Status == "ACTIVE")
+                .Select(x => new { x.UserId, EmpId = x.EmpId!.Value })
+                .ToListAsync(cancellationToken);
+
+            var loginUserIdByEmpId = userEmpLinks
+                .GroupBy(x => x.EmpId)
+                .ToDictionary(x => x.Key, x => (int?)x.OrderBy(u => u.UserId).First().UserId);
+
+            var employeeRows = await db.Employees
                 .AsNoTracking()
                 .Select(x => new EmployeeRecipient(
                     x.EmpId,
                     x.EmpName ?? $"Employee #{x.EmpId}",
                     x.LoginUserId))
-                .ToDictionaryAsync(x => x.EmpId, cancellationToken);
+                .ToListAsync(cancellationToken);
+
+            var employees = employeeRows.ToDictionary(
+                x => x.EmpId,
+                x => new EmployeeRecipient(
+                    x.EmpId,
+                    x.EmpName,
+                    x.LoginUserId ?? loginUserIdByEmpId.GetValueOrDefault(x.EmpId)));
 
             var existingNotifications = await db.UserNotifications
                 .Where(x => ManagedSourceTypes.Contains(x.SourceType))
@@ -95,15 +112,14 @@ namespace ProjectTracking.Services
                     .ThenInclude(x => x.Project)
                 .Where(x => x.PlanEnd.HasValue
                     && x.PlanEnd.Value <= riskUntil
-                    && (x.WorkStatus == null || x.WorkStatus.ToUpper() != "DONE")
-                    && x.Phase != null
-                    && (x.Phase.PhaseStatus == null
-                        || (x.Phase.PhaseStatus != "ส่งงวดงานแล้ว"
-                            && x.Phase.PhaseStatus != "อนุมัติจ่ายเงินแล้ว")))
+                    && x.Phase != null)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
             {
+                if (IsDone(row.WorkStatus) || IsClosedPhase(row.Phase?.PhaseStatus))
+                    continue;
+
                 if (!TryBuildDueState(row.PlanEnd, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
@@ -141,12 +157,14 @@ namespace ProjectTracking.Services
                 .AsNoTracking()
                 .Include(x => x.Project)
                 .Where(x => x.EndDate.HasValue
-                    && x.EndDate.Value <= riskUntil
-                    && !IsIssueDone(x.IssueStatus, x.DevStatus))
+                    && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
             {
+                if (IsIssueDone(row.IssueStatus, row.DevStatus))
+                    continue;
+
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
@@ -184,13 +202,15 @@ namespace ProjectTracking.Services
                 .Include(x => x.Project)
                 .Where(x => x.AssignTo.HasValue
                     && x.EndDate.HasValue
-                    && x.EndDate.Value <= riskUntil
-                    && !IsSupportDone(x.Status))
+                    && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
             {
                 if (!row.AssignTo.HasValue)
+                    continue;
+
+                if (IsSupportDone(row.Status))
                     continue;
 
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
@@ -231,13 +251,15 @@ namespace ProjectTracking.Services
                 .Include(x => x.Project)
                 .Where(x => x.OwnerEmpId.HasValue
                     && x.NextFollowupDate.HasValue
-                    && x.NextFollowupDate.Value <= riskUntil
-                    && !IsFollowupDone(x.Status))
+                    && x.NextFollowupDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
             {
                 if (!row.OwnerEmpId.HasValue)
+                    continue;
+
+                if (IsFollowupDone(row.Status))
                     continue;
 
                 if (!TryBuildDueState(row.NextFollowupDate, today, riskUntil, out var severity, out var dueText, out var stateText))
@@ -388,6 +410,12 @@ namespace ProjectTracking.Services
             return issue is "FIXED" or "PASS" || dev == "FIXED";
         }
 
+        private static bool IsDone(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized == "DONE";
+        }
+
         private static bool IsSupportDone(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
@@ -398,6 +426,12 @@ namespace ProjectTracking.Services
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
             return normalized is "DONE" or "ACK";
+        }
+
+        private static bool IsClosedPhase(string? phaseStatus)
+        {
+            var normalized = (phaseStatus ?? "").Trim();
+            return normalized == "ส่งงวดงานแล้ว" || normalized == "อนุมัติจ่ายเงินแล้ว";
         }
 
         private sealed record EmployeeRecipient(int EmpId, string EmpName, int? LoginUserId);
