@@ -187,10 +187,6 @@
             <p>งานเสี่ยงล่าช้าและงานล่าช้า @(isAdmin ? "ของทุกคนในระบบ" : "ของคุณ")</p>
         </div>
         <div class="notification-actions">
-            <form asp-controller="Notifications" asp-action="ReadAll" method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-light">อ่านทั้งหมด</button>
-            </form>
             <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
         </div>
     </section>
@@ -233,10 +229,9 @@
                                 <span>ผู้รับผิดชอบ: @(item.RecipientEmployee?.EmpName ?? "-")</span>
                             }
                             <span>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                            @if (item.IsRead)
-                            {
-                                <span>อ่านแล้ว</span>
-                            }
+                            <span class="@(item.IsRead ? "text-success" : "text-danger")">
+                                @(item.IsRead ? "อ่านแล้ว" : "ยังไม่อ่าน")
+                            </span>
                         </div>
                     </div>
                     <span class="notification-pill @severityClass">@SeverityText(item.Severity)</span>
