@@ -287,6 +287,25 @@ namespace ProjectTracking.Controllers
             return PhysicalFile(fullPath, contentType, attachment.FileName);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> PreviewAttachment(int id)
+        {
+            var attachment = await _context.RequirementCardAttachments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.AttachmentId == id);
+            if (attachment == null) return NotFound();
+
+            var fullPath = ToFullPath(attachment.FilePath);
+            if (!System.IO.File.Exists(fullPath)) return NotFound();
+
+            var contentType = string.IsNullOrWhiteSpace(attachment.ContentType)
+                ? "application/octet-stream"
+                : attachment.ContentType;
+
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{attachment.FileName}\"";
+            return PhysicalFile(fullPath, contentType);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MoveCard([FromBody] MoveRequirementCardRequest request)

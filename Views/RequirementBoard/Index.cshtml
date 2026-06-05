@@ -282,18 +282,20 @@
         .rb-board-wrap {
             overflow-x: auto;
             padding-bottom: 18px;
+            --rb-column-gap: 14px;
+            --rb-column-width: clamp(280px, calc((100% - 56px) / 4.45), 360px);
         }
 
         .rb-board {
             display: flex;
             align-items: flex-start;
-            gap: 16px;
+            gap: var(--rb-column-gap);
             min-height: calc(100vh - 270px);
         }
 
         .rb-column {
-            flex: 0 0 372px;
-            max-width: 372px;
+            flex: 0 0 var(--rb-column-width);
+            max-width: var(--rb-column-width);
             border-radius: 15px;
             background: rgba(255, 255, 255, .94);
             box-shadow: 0 8px 18px rgba(15, 39, 70, .14);
@@ -301,8 +303,8 @@
         }
 
         .rb-add-list-column {
-            flex: 0 0 372px;
-            max-width: 372px;
+            flex: 0 0 var(--rb-column-width);
+            max-width: var(--rb-column-width);
             border-radius: 15px;
             background: rgba(255, 255, 255, .34);
             border: 1px solid rgba(255, 255, 255, .38);
@@ -364,8 +366,8 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            min-height: 66px;
-            padding: 14px 16px 12px;
+            min-height: 58px;
+            padding: 12px 14px 10px;
             border-bottom: 1px solid #e4edf6;
         }
 
@@ -396,7 +398,7 @@
 
         .rb-card-list {
             min-height: 160px;
-            padding: 10px;
+            padding: 9px;
             transition: background .18s ease;
         }
 
@@ -434,7 +436,7 @@
             position: fixed;
             top: -1000px;
             left: -1000px;
-            width: 340px;
+            width: 300px;
             pointer-events: none;
             transform: rotate(2deg);
             box-shadow: 0 18px 36px rgba(15, 39, 70, .28);
@@ -446,26 +448,26 @@
 
         .rb-card-cover {
             width: 100%;
-            height: 108px;
+            height: 90px;
             object-fit: fill;
             background: #dbe8f5;
         }
 
         .rb-card-body {
-            padding: 11px 12px 10px;
+            padding: 9px 10px 9px;
         }
 
         .rb-card-title {
             margin: 0;
             color: #10213a;
-            font-size: 1rem;
+            font-size: .92rem;
             font-weight: 900;
             line-height: 1.32;
             word-break: break-word;
         }
 
         .rb-add-card {
-            padding: 0 12px 12px;
+            padding: 0 10px 10px;
         }
 
         .rb-add-card details {
@@ -494,9 +496,11 @@
 
         .rb-modal .modal-header {
             align-items: flex-start;
+            justify-content: space-between;
             padding: 26px 28px;
             background: linear-gradient(135deg, #102746, #0b4e59);
             background-position: center;
+            background-repeat: no-repeat;
             background-size: cover;
             color: #fff;
             min-height: 190px;
@@ -504,7 +508,42 @@
 
         .rb-modal .modal-header.has-cover {
             position: relative;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, .42);
+            min-height: 270px;
+            padding: 18px 22px;
+            background-color: #719187;
+            background-size: contain;
+            text-shadow: none;
+        }
+
+        .rb-modal .modal-header.has-cover::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(4, 15, 32, .22), rgba(4, 15, 32, 0) 42%, rgba(4, 15, 32, .16));
+            pointer-events: none;
+        }
+
+        .rb-modal-header-info {
+            position: relative;
+            z-index: 1;
+        }
+
+        .rb-modal .modal-header.has-cover .rb-modal-header-info {
+            padding: 8px 12px;
+            border-radius: 18px;
+            background: rgba(8, 22, 41, .62);
+            backdrop-filter: blur(10px);
+        }
+
+        .rb-modal .modal-header .btn-close {
+            position: relative;
+            z-index: 1;
+            width: 44px;
+            height: 44px;
+            margin: 0;
+            border-radius: 999px;
+            background-color: rgba(8, 22, 41, .34);
+            opacity: 1;
         }
 
         .rb-modal .modal-title {
@@ -558,6 +597,18 @@
             justify-content: center;
             color: #0f766e;
             font-weight: 900;
+        }
+
+        .rb-file-thumb-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 46px;
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            background: #e8f1fa;
         }
 
         .rb-file-name {
@@ -720,16 +771,15 @@
 @foreach (var card in allCards)
 {
     var modalHeaderStyle = !string.IsNullOrWhiteSpace(card.CoverImagePath)
-        ? $"background-image: linear-gradient(135deg, rgba(16,39,70,.72), rgba(11,78,89,.72)), url('{card.CoverImagePath}');"
+        ? $"background-image: url('{card.CoverImagePath}');"
         : "";
 
     <div class="modal fade rb-modal" id="requirementCardModal-@card.CardId" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header @(string.IsNullOrWhiteSpace(card.CoverImagePath) ? "" : "has-cover")" style="@modalHeaderStyle">
-                    <div>
+                    <div class="rb-modal-header-info">
                         <div class="rb-eyebrow">Project Card #@card.CardId</div>
-                        <h2 class="modal-title">@card.Title</h2>
                         <div class="rb-modal-meta">
                             สร้างโดย @PersonName(card) · อัปเดต @card.UpdatedAt.ToString("dd/MM/yyyy HH:mm")
                         </div>
@@ -782,17 +832,32 @@
                                     <div class="rb-file-row">
                                         @if (IsImage(file))
                                         {
-                                            <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
+                                            <a class="rb-file-thumb-link"
+                                               asp-action="PreviewAttachment"
+                                               asp-route-id="@file.AttachmentId"
+                                               target="_blank"
+                                               rel="noopener">
+                                                <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
+                                            </a>
                                         }
                                         else
                                         {
-                                            <div class="rb-file-thumb">FILE</div>
+                                            <a class="rb-file-thumb-link rb-file-thumb"
+                                               asp-action="PreviewAttachment"
+                                               asp-route-id="@file.AttachmentId"
+                                               target="_blank"
+                                               rel="noopener">FILE</a>
                                         }
                                         <div>
                                             <div class="rb-file-name">@file.FileName</div>
                                             <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
                                         </div>
                                         <div class="rb-file-actions">
+                                            <a class="rb-btn secondary"
+                                               asp-action="PreviewAttachment"
+                                               asp-route-id="@file.AttachmentId"
+                                               target="_blank"
+                                               rel="noopener">Preview</a>
                                             <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
                                             <form asp-action="DeleteAttachment" method="post" onsubmit="return confirm('ลบไฟล์แนบนี้หรือไม่?');">
                                                 @Html.AntiForgeryToken()
