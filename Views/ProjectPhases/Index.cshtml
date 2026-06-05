@@ -251,8 +251,8 @@
     }
 
     .phase-card-actions .btn {
-        flex: 0 0 90px;
-        width: 90px;
+        flex: 0 0 108px;
+        width: 108px;
         min-height: 38px;
         padding: .4rem .55rem;
         border-radius: 999px;
@@ -682,6 +682,24 @@ else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
                             Edit
+                        </button>
+                    }
+
+                    @if (CanMenu("PhaseAssigns.Create"))
+                    {
+                        <a asp-controller="PhaseAssigns"
+                           asp-action="Create"
+                           asp-route-projectId="@selectedProject.ProjectId"
+                           asp-route-phaseId="@phase.PhaseId"
+                           class="btn btn-outline-success btn-sm"
+                           title="เพิ่ม Assign ให้ส่วนงานนี้">
+                            Add Assigns
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled title="ไม่มีสิทธิ์เพิ่ม Assign">
+                            Add Assigns
                         </button>
                     }
 

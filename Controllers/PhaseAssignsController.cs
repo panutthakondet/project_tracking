@@ -152,7 +152,7 @@ namespace ProjectTracking.Controllers
         // CREATE (GET)
         // =====================================================
         [RequireMenu("PhaseAssigns.Create")]
-        public async Task<IActionResult> Create(int projectId)
+        public async Task<IActionResult> Create(int projectId, int? phaseId)
         {
             var project = await _context.Projects.FindAsync(projectId);
             if (project == null) return NotFound();
@@ -169,24 +169,26 @@ namespace ProjectTracking.Controllers
                 .ThenBy(p => p.PhaseId)
                 .ToListAsync();
 
+            var selectedPhase = phases.FirstOrDefault(p => phaseId.HasValue && p.PhaseId == phaseId.Value)
+                ?? phases.FirstOrDefault();
+
             // ✅ ใช้ได้ 2 แบบ:
             // 1) View เดิมที่ใช้ SelectList
-            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName");
+            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName", selectedPhase?.PhaseId);
             // 2) View ใหม่ที่ต้องการ data-* หรือทำ map ใน JS
             ViewBag.PhaseItems = phases;
 
             // ✅ เติมค่าเริ่มต้นให้แสดงทันที (กรณีมี phase อย่างน้อย 1)
-            var firstPhase = phases.FirstOrDefault();
             var defaultModel = new PhaseAssign
             {
                 WorkStatus = "IN_PROGRESS"
             };
-            if (firstPhase != null)
+            if (selectedPhase != null)
             {
-                defaultModel.PhaseId = firstPhase.PhaseId;
-                defaultModel.Role = firstPhase.PhaseName;
-                defaultModel.PlanStart = firstPhase.PlanStart;
-                defaultModel.PlanEnd = firstPhase.PlanEnd;
+                defaultModel.PhaseId = selectedPhase.PhaseId;
+                defaultModel.Role = selectedPhase.PhaseName;
+                defaultModel.PlanStart = selectedPhase.PlanStart;
+                defaultModel.PlanEnd = selectedPhase.PlanEnd;
             }
 
             ViewBag.Employees = new SelectList(

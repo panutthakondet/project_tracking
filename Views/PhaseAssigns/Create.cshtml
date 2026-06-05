@@ -58,8 +58,9 @@
                     <select asp-for="PhaseId"
                             class="form-select"
                             required
-                            id="phaseSelect">
-                        <option value="" selected>-- Select Section / Period --</option>
+                            id="phaseSelect"
+                            data-initial-phase-id="@Model?.PhaseId">
+                        <option value="">-- Select Section / Period --</option>
 
                         @* ใช้ PhaseItems (ส่งมาจาก Controller) เพื่อใส่ data-* ให้ JS ดึงค่าได้ทันที *@
                         @if (ViewBag.PhaseItems != null)
@@ -259,13 +260,6 @@
 
         if (!phaseSelect) return;
 
-        // force default empty selection
-        phaseSelect.selectedIndex = 0;
-        clearTimeout(window.__phaseInit);
-        window.__phaseInit = setTimeout(() => {
-            phaseSelect.value = "";
-        }, 0);
-
         function clearAll() {
             if (planStart) planStart.value = "";
             if (planEnd) planEnd.value = "";
@@ -338,6 +332,10 @@
         }
 
         // โหลดค่าเริ่มต้น (กรณีมี PhaseId ติดมา)
+        const initialPhaseId = (phaseSelect.dataset.initialPhaseId || "").trim();
+        if (initialPhaseId && findOptionByValue(phaseSelect, initialPhaseId)) {
+            phaseSelect.value = initialPhaseId;
+        }
         applyFromSelectedOption();
         if (roleDisplay && roleDisplay.value) lastAutoRole = roleDisplay.value.trim();
 
