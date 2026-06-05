@@ -19,11 +19,10 @@
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject;
 
-    // ✅ เรียงตาม phase_sort เป็นหลัก (0 หรือ null ให้ไปท้าย) เพื่อให้การลากสลับแถว "ถาวร" ตามค่า PhaseSort
-    //    แล้วค่อย tie-break ด้วย PlanEnd (null ไปท้าย) และ PhaseId
     var orderedPhases = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>())
-        .OrderBy(p => (p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort))
-        .ThenBy(p => p.PlanEnd ?? DateTime.MaxValue)
+        .OrderBy(p => p.PhaseOrder)
+        .ThenBy(p => p.PeriodOrder)
+        .ThenBy(p => (p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort))
         .ThenBy(p => p.PhaseId);
 
     string PhaseStatusClass(string? status) => (status ?? "").Trim() switch
@@ -43,8 +42,8 @@
 
     string PhaseTypeText(string? phaseType) => (phaseType ?? "").Trim().ToUpperInvariant() switch
     {
-        "SUPPORT" => "Support Phase",
-        "MAIN" => "Main Phase",
+        "SUPPORT" => "Support",
+        "MAIN" => "Main",
         _ => "-"
     };
 
@@ -360,7 +359,7 @@
     <div class="index-hero__content">
         <span class="index-eyebrow">ProjectTracking</span>
         <h2 class="index-title">บันทึกข้อมูลแผนงานและงวดงาน</h2>
-        <p class="index-subtitle">เลือกโครงการเพื่อจัดการ Phase ของแต่ละ Project</p>
+        <p class="index-subtitle">เลือกโครงการเพื่อจัดการส่วนงานและงวดงานของแต่ละ Project</p>
     </div>
 
     @if (selectedProject != null)
@@ -378,14 +377,14 @@
                 <a asp-action="Create"
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-primary"
-                   title="เพิ่ม Phase">
-                    Add Phase
+                   title="เพิ่มส่วนงาน">
+                    Add Section
                 </a>
             }
             else
             {
-                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่ม Phase">
-                    Add Phase
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มส่วนงาน">
+                    Add Section
                 </button>
             }
 
@@ -464,8 +463,9 @@
             <thead class="table-dark text-center">
                 <tr>
                     <th style="width:70px;">No.</th>
-                    <th style="width:90px;">Period</th>
-                    <th style="min-width:260px;">Phase Name</th>
+                    <th style="width:90px;">ส่วนที่</th>
+                    <th style="width:90px;">งวดที่</th>
+                    <th style="min-width:260px;">ชื่อส่วนงาน</th>
                     <th style="width:280px;">Plan Date</th>
                     <th style="width:280px;">Period Date</th>
                     <th style="width:160px;">Status</th>
@@ -476,8 +476,8 @@
             @if (!orderedPhases.Any())
             {
                 <tr>
-                    <td colspan="7" class="text-center text-muted">
-                        — No Phase —
+                    <td colspan="8" class="text-center text-muted">
+                        — No Section —
                     </td>
                 </tr>
             }
@@ -503,6 +503,10 @@
 
                         <td class="text-center fw-bold">
                             @phase.PhaseOrder
+                        </td>
+
+                        <td class="text-center fw-bold">
+                            @phase.PeriodOrder
                         </td>
 
                         <td>
@@ -541,7 +545,7 @@
                                 <a asp-action="Edit"
                                    asp-route-id="@phase.PhaseId"
                                    class="btn btn-sm btn-outline-primary me-1"
-                                   title="แก้ไข Phase">
+                                   title="แก้ไขส่วนงาน">
                                     ✏️ Edit
                                 </a>
                             }
@@ -582,8 +586,8 @@
 
                                     <button type="submit"
                                             class="btn btn-sm btn-outline-danger"
-                                            title="ลบ Phase"
-                                            onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                            title="ลบส่วนงาน"
+                                            onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
                                         🗑 Delete
                                     </button>
                                 </form>
@@ -607,7 +611,7 @@
 @if (!orderedPhases.Any())
 {
     <div class="text-center text-muted py-5">
-        — No Phase —
+        — No Section —
     </div>
 }
 else
@@ -633,7 +637,8 @@ else
                     <div class="min-w-0 flex-grow-1">
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                             <span class="phase-no">#@displayNo</span>
-                            <span class="phase-period">งวด @phase.PhaseOrder</span>
+                            <span class="phase-period">ส่วนที่ @phase.PhaseOrder</span>
+                            <span class="phase-period">งวดที่ @phase.PeriodOrder</span>
                         </div>
 
                         <div class="phase-name-row">@phase.PhaseName</div>
@@ -641,7 +646,7 @@ else
                 </div>
 
                 <div class="phase-detail">
-                    แผนงานและงวดงานของโครงการที่เลือก
+                    แผนงาน ส่วนงาน และงวดงานของโครงการที่เลือก
                 </div>
 
                 <div class="phase-meta">
@@ -692,7 +697,7 @@ else
 
                             <button type="submit"
                                     class="btn btn-outline-danger btn-sm"
-                                    onclick="return confirm('ยืนยันการลบ Phase นี้?');">
+                                    onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
                                 Delete
                             </button>
                         </form>

@@ -22,7 +22,7 @@
     <div class="index-hero__content">
         <span class="index-eyebrow">ProjectTracking</span>
         <h2 class="index-title">Assign Employee</h2>
-        <p class="index-subtitle">มอบหมายพนักงานให้กับงวดงานของโครงการ พร้อมกำหนดแผนและสถานะงาน</p>
+        <p class="index-subtitle">มอบหมายพนักงานให้กับส่วนงาน/งวดงานของโครงการ พร้อมกำหนดแผนและสถานะงาน</p>
     </div>
 
 </div>
@@ -38,7 +38,7 @@
 
             <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />
 
-            <!-- ส่งค่า phase_order กลับ Controller: ดึงจาก 🧩 Phase ที่เลือก (มาจาก project_phase) -->
+            <!-- ส่งค่า phase_order กลับ Controller: ดึงจากส่วนงานที่เลือก (มาจาก project_phase) -->
             <input asp-for="PhaseOrder" type="hidden" id="phaseOrderHidden" />
 
             <div class="row g-3">
@@ -52,14 +52,14 @@
                     <span asp-validation-for="EmpId" class="text-danger"></span>
                 </div>
 
-                <!-- PHASE -->
+                <!-- SECTION / PERIOD -->
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">🧩 Phase</label>
+                    <label class="form-label fw-semibold">🧩 ส่วนงาน / งวดงาน</label>
                     <select asp-for="PhaseId"
                             class="form-select"
                             required
                             id="phaseSelect">
-                        <option value="" selected>-- Select Phase --</option>
+                        <option value="" selected>-- Select Section / Period --</option>
 
                         @* ใช้ PhaseItems (ส่งมาจาก Controller) เพื่อใส่ data-* ให้ JS ดึงค่าได้ทันที *@
                         @if (ViewBag.PhaseItems != null)
@@ -72,8 +72,9 @@
                                         data-role="@ph.PhaseName"
                                         data-plan-start="@ps"
                                         data-plan-end="@pe"
-                                        data-phase-order="@(ph.PhaseOrder == null ? "" : ph.PhaseOrder.ToString())">
-                                    @ph.PhaseName
+                                        data-phase-order="@ph.PhaseOrder"
+                                        data-period-order="@ph.PeriodOrder">
+                                    @ph.PhaseDisplayName
                                 </option>
                             }
                         }
@@ -280,10 +281,10 @@
                 return;
             }
 
-            // role (default) = phase name
+            // role (default) = ชื่อส่วนงานจริง ไม่รวม prefix ส่วน/งวด
             const roleDefault = (opt.dataset.role || opt.text || "").toString().trim();
 
-            // phase_order (from project_phase) stored in option data attribute
+            // phase_order (ส่วนงาน from project_phase) stored in option data attribute
             const phaseOrder = (opt.dataset.phaseOrder || "").toString().trim();
 
             // ค่าที่ส่งมาควรเป็น yyyy-MM-dd เพื่อใส่ input[type=date]

@@ -57,16 +57,16 @@
                           class="text-danger"></span>
                 </div>
 
-                <!-- ================= PHASE ================= -->
+                <!-- ================= SECTION / PERIOD ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        🧩 Phase
+                        🧩 ส่วนงาน / งวดงาน
                     </label>
                     <select asp-for="PhaseId"
                             asp-items="ViewBag.Phases"
                             class="form-select"
                             required>
-                        <option value="">-- Select Phase --</option>
+                        <option value="">-- Select Section / Period --</option>
                     </select>
                     <span asp-validation-for="PhaseId" class="text-danger"></span>
                 </div>
@@ -82,7 +82,7 @@
                            placeholder="Role / หน้าที่" />
                     <span asp-validation-for="Role" class="text-danger"></span>
                     <small class="text-muted">
-                        * Role จะเปลี่ยนตาม Phase อัตโนมัติ (ถ้ายังไม่ได้แก้เอง) และสามารถแก้ไขเองได้
+                        * Role จะเปลี่ยนตามชื่อส่วนงานอัตโนมัติ (ถ้ายังไม่ได้แก้เอง) และสามารถแก้ไขเองได้
                     </small>
                 </div>
 
@@ -182,7 +182,8 @@
                 const text = (opt.textContent || opt.innerText || '').trim();
                 // Ignore placeholder option
                 if (!text || text.startsWith('--')) return '';
-                return text;
+                const separatorIndex = text.indexOf(' - ');
+                return separatorIndex >= 0 ? text.substring(separatorIndex + 3).trim() : text;
             }
 
             // Initialize lastAutoRole: if current Role equals current PhaseName, treat it as auto.

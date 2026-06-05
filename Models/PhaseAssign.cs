@@ -15,7 +15,7 @@ namespace ProjectTracking.Models
         [Column("phase_id")]
         public int PhaseId { get; set; }
 
-        // ❗ ห้ามยุ่งกับ phase_order: ใช้สำหรับเรียงตามลำดับ phase จาก project_phase
+        // สำเนาเลขส่วนงานจาก project_phase.phase_order ใช้ช่วยจัดเรียงรายการมอบหมาย
         [Column("phase_order")]
         public int? PhaseOrder { get; set; }
 

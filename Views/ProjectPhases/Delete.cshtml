@@ -1,12 +1,12 @@
 @model ProjectTracking.Models.ProjectPhase
 
 @{
-    ViewData["Title"] = "Delete Project Phase";
+    ViewData["Title"] = "Delete Project Section";
 }
 
 <div class="container py-3">
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <h2 class="fw-bold mb-0">🗑️ Delete Project Phase</h2>
+        <h2 class="fw-bold mb-0">🗑️ Delete Project Section</h2>
         <a class="btn btn-outline-secondary" asp-action="Index" asp-route-projectId="@Model.ProjectId">⬅️ Back</a>
     </div>
 
@@ -25,20 +25,23 @@
     }
 
     <div class="alert alert-warning" role="alert">
-        <div class="fw-bold">คุณแน่ใจหรือไม่ว่าต้องการลบ Phase นี้?</div>
+        <div class="fw-bold">คุณแน่ใจหรือไม่ว่าต้องการลบส่วนงานนี้?</div>
         <div class="small text-muted mt-1">
-            หมายเหตุ: ถ้า Phase นี้ถูกนำไป Assign ให้พนักงานแล้ว ระบบจะไม่อนุญาตให้ลบ (เพื่อป้องกันข้อมูลเสียหาย)
+            หมายเหตุ: ถ้าส่วนงานนี้ถูกนำไป Assign ให้พนักงานแล้ว ระบบจะไม่อนุญาตให้ลบ (เพื่อป้องกันข้อมูลเสียหาย)
         </div>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
             <dl class="row mb-0">
-                <dt class="col-sm-3">Phase</dt>
+                <dt class="col-sm-3">ส่วนงาน</dt>
                 <dd class="col-sm-9">@Model.PhaseName</dd>
 
-                <dt class="col-sm-3">Order</dt>
+                <dt class="col-sm-3">ส่วนที่</dt>
                 <dd class="col-sm-9">@Model.PhaseOrder</dd>
+
+                <dt class="col-sm-3">งวดที่</dt>
+                <dd class="col-sm-9">@Model.PeriodOrder</dd>
             </dl>
         </div>
     </div>
@@ -49,7 +52,7 @@
         <input type="hidden" name="id" value="@Model.PhaseId" />
         <input type="hidden" name="projectId" value="@Model.ProjectId" />
 
-        <button type="submit" class="btn btn-danger" onclick="return confirm('ยืนยันลบ Phase นี้ใช่ไหม?');">✅ Confirm Delete</button>
+        <button type="submit" class="btn btn-danger" onclick="return confirm('ยืนยันลบส่วนงานนี้ใช่ไหม?');">✅ Confirm Delete</button>
         <a class="btn btn-secondary" asp-action="Index" asp-route-projectId="@Model.ProjectId">Cancel</a>
     </form>
 </div>

@@ -66,6 +66,7 @@ namespace ProjectTracking.Controllers
             return View(result
                 .OrderBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
                 .ToList());
         }
@@ -95,6 +96,7 @@ namespace ProjectTracking.Controllers
             return View(result
                 .OrderBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
                 .ToList());
         }
@@ -121,6 +123,7 @@ namespace ProjectTracking.Controllers
             return View(result
                 .OrderBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
                 .ToList());
         }
@@ -159,6 +162,7 @@ namespace ProjectTracking.Controllers
                     project.EndDate,
                     phase.PhaseId,
                     phase.PhaseOrder,
+                    phase.PeriodOrder,
                     phase.PhaseStatus,
                     PhasePlanStart = phase.PlanStart,
                     PhasePlanEnd = phase.PlanEnd,
@@ -191,6 +195,7 @@ namespace ProjectTracking.Controllers
                     EndDate = row.EndDate,
                     PhaseId = row.PhaseId,
                     PhaseOrder = row.PhaseOrder,
+                    PeriodOrder = row.PeriodOrder,
                     EmpId = row.EmpId,
                     EmpName = row.EmpName,
                     Role = row.Role ?? "",

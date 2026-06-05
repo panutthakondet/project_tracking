@@ -295,17 +295,22 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Meetings.Create")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Store(Meeting model, List<int>? users)
+        public async Task<IActionResult> Store(Meeting model, List<int>? users)
         {
+            var now = DateTime.Now;
+
             // กัน CreatedAt เป็นค่า 0001-01-01 ที่อาจทำให้ insert เพี้ยน
             if (model.CreatedAt == default)
-                model.CreatedAt = DateTime.Now;
+                model.CreatedAt = now;
 
-            using var tx = _context.Database.BeginTransaction();
+            model.UpdatedAt = model.CreatedAt;
+            model.CreatedBy = await GetCurrentEntryIdAsync();
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
                 _context.Meetings.Add(model);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 if (users != null && users.Count > 0)
                 {
@@ -318,15 +323,15 @@ namespace ProjectTracking.Controllers
                         });
                     }
 
-                    _context.SaveChanges();
+                    await _context.SaveChangesAsync();
                 }
 
-                tx.Commit();
+                await tx.CommitAsync();
                 return RedirectToAction("Index");
             }
             catch
             {
-                tx.Rollback();
+                await tx.RollbackAsync();
                 throw;
             }
         }
@@ -348,6 +353,10 @@ namespace ProjectTracking.Controllers
             meeting.Location = model.Location;
             meeting.MeetingAudience = model.MeetingAudience;
             meeting.ProjectId = model.ProjectId;
+            meeting.UpdatedAt = DateTime.Now;
+
+            if (!meeting.CreatedBy.HasValue)
+                meeting.CreatedBy = await GetCurrentEntryIdAsync();
 
             // อัปเดตรายชื่อผู้เข้าร่วม
             var existing = _context.MeetingAttendees.Where(a => a.MeetingId == meeting.Id);
@@ -395,6 +404,9 @@ namespace ProjectTracking.Controllers
             if (duration <= TimeSpan.Zero)
                 duration = TimeSpan.FromHours(1);
 
+            if (!meeting.CreatedBy.HasValue)
+                meeting.CreatedBy = await GetCurrentEntryIdAsync();
+
             DateTimeOffset endDto = default;
             var hasEnd = !string.IsNullOrWhiteSpace(req.end) &&
                          DateTimeOffset.TryParse(req.end, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out endDto);
@@ -415,6 +427,8 @@ namespace ProjectTracking.Controllers
             {
                 meeting.EndTime = (startDto.Add(duration)).TimeOfDay;
             }
+
+            meeting.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });
@@ -437,6 +451,26 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
         }
     }
 }

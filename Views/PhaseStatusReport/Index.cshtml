@@ -21,6 +21,7 @@
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
         .OrderBy(x => x.ProjectName)
         .ThenBy(x => x.PhaseOrder)
+        .ThenBy(x => x.PeriodOrder)
         .ThenBy(x => x.PhaseId)
         .ThenBy(x => x.EmpName)
         .ToList();
@@ -72,7 +73,7 @@
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>Phase Status Report</title>
+    <title>Section Status Report</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -370,6 +371,31 @@
             .no-print,
             .report-actions,
             .filter-panel { display: none !important; }
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
         }
@@ -407,7 +433,7 @@
     </div>
 
     <header class="print-header">
-        <h1>Phase Status Report</h1>
+        <h1>รายงานสถานะส่วนงานตามพนักงาน</h1>
         <div>
             Employee: @(string.IsNullOrWhiteSpace(ViewBag.SelectedEmp as string) ? "All Employees" : ViewBag.SelectedEmp)<br />
             Project: @(string.IsNullOrWhiteSpace(ViewBag.SelectedProject as string) ? "All Projects" : ViewBag.SelectedProject)<br />
@@ -459,7 +485,7 @@
 
     <section class="kpi-grid">
         <article class="kpi info">
-            <span>Total Phase</span>
+            <span>Total Section</span>
             <strong>@total</strong>
             <small>รายการทั้งหมด</small>
         </article>
@@ -485,7 +511,7 @@
         </article>
     </section>
 
-    <h2>Phase Status List</h2>
+    <h2>รายการสถานะส่วนงาน</h2>
     @if (!rows.Any())
     {
         <div class="empty">— ไม่พบข้อมูล —</div>
@@ -499,7 +525,7 @@
                     <th style="width:150px;">Employee</th>
                     <th>Role</th>
                     <th style="width:92px;">Status</th>
-                    <th style="width:72px;">Order</th>
+                    <th style="width:96px;">ส่วน / งวด</th>
                     <th style="width:150px;">Project Period</th>
                     <th style="width:150px;">Plan</th>
                     <th style="width:74px;">Plan Days</th>
@@ -541,7 +567,7 @@
                                 @StatusText(row.PhaseStatus)
                             </span>
                         </td>
-                        <td class="text-center">@row.PhaseOrder</td>
+                        <td class="text-center">ส่วนที่ @row.PhaseOrder / งวดที่ @row.PeriodOrder</td>
                         <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
                         <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
                         <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>

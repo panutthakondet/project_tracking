@@ -55,6 +55,21 @@
 
         return string.IsNullOrWhiteSpace(v) ? "-" : v!;
     }
+
+    private static string GetPhasePeriodSafe(object a)
+    {
+        var phaseOrder = ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
+                      ?? ReadNestedInt(a, "Phase", "PhaseOrder")
+                      ?? ReadNestedInt(a, "PhaseOrder");
+
+        var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
+                       ?? ReadNestedInt(a, "Phase", "PeriodOrder");
+
+        if (!phaseOrder.HasValue && !periodOrder.HasValue) return "-";
+        if (!periodOrder.HasValue) return $"ส่วนที่ {phaseOrder}";
+        if (!phaseOrder.HasValue) return $"งวดที่ {periodOrder}";
+        return $"ส่วนที่ {phaseOrder} / งวดที่ {periodOrder}";
+    }
 }
 
 <style>
@@ -680,11 +695,14 @@ thead .sticky-col { z-index: 5; }
     @* Card layout for assign records *@
     var row = 1;
     var ordered = Model
-        .OrderBy(a => a.PhaseSort ?? int.MaxValue)
-        .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
-                  ?? ReadNestedInt(a, "Phase", "PhaseOrder")
-                  ?? ReadNestedInt(a, "PhaseOrder")
+        .OrderBy(a => ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
+                   ?? ReadNestedInt(a, "Phase", "PhaseOrder")
+                   ?? ReadNestedInt(a, "PhaseOrder")
+                   ?? int.MaxValue)
+        .ThenBy(a => ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
+                  ?? ReadNestedInt(a, "Phase", "PeriodOrder")
                   ?? int.MaxValue)
+        .ThenBy(a => a.PhaseSort ?? int.MaxValue)
         .ThenBy(a => a.AssignId)
         .ToList();
     @if (!Model.Any())
@@ -706,7 +724,7 @@ thead .sticky-col { z-index: 5; }
                         <span class="assign-card-index">#@row</span>
                         <div class="min-w-0">
                             <span class="assign-card-emp">@a.Employee?.EmpName</span>
-                            <div class="assign-card-phase">@GetPhaseNameSafe(a)</div>
+                            <div class="assign-card-phase">@GetPhasePeriodSafe(a) · @GetPhaseNameSafe(a)</div>
                         </div>
                     </div>
 

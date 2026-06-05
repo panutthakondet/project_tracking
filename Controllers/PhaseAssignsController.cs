@@ -139,7 +139,8 @@ namespace ProjectTracking.Controllers
 
             var assigns = await assignsQuery
                 // เรียงตาม phase_order (ห้ามแก้ค่า แค่ใช้จัดเรียง), แล้วตาม phase_sort (สำหรับสลับแถว), แล้วค่อย fallback ด้วย assign_id
-                .OrderBy(a => a.PhaseOrder ?? int.MaxValue)
+                .OrderBy(a => a.Phase == null ? (a.PhaseOrder ?? int.MaxValue) : a.Phase.PhaseOrder)
+                .ThenBy(a => a.Phase == null ? int.MaxValue : a.Phase.PeriodOrder)
                 .ThenBy(a => a.PhaseSort ?? int.MaxValue)
                 .ThenBy(a => a.AssignId)
                 .ToListAsync();
@@ -162,12 +163,15 @@ namespace ProjectTracking.Controllers
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
                 .Where(p => p.ProjectId == projectId)
-                .OrderBy(p => p.PhaseId)
+                .OrderBy(p => p.PhaseOrder)
+                .ThenBy(p => p.PeriodOrder)
+                .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                .ThenBy(p => p.PhaseId)
                 .ToListAsync();
 
             // ✅ ใช้ได้ 2 แบบ:
             // 1) View เดิมที่ใช้ SelectList
-            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName");
+            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName");
             // 2) View ใหม่ที่ต้องการ data-* หรือทำ map ใน JS
             ViewBag.PhaseItems = phases;
 
@@ -215,7 +219,7 @@ namespace ProjectTracking.Controllers
 
             if (phase == null)
             {
-                ModelState.AddModelError("", "Phase not found");
+                ModelState.AddModelError("", "ไม่พบส่วนงานที่เลือก");
             }
             else
             {
@@ -232,7 +236,7 @@ namespace ProjectTracking.Controllers
                 if (string.IsNullOrWhiteSpace(roleAuto))
                     roleAuto = (model.Role ?? "").Trim();
 
-                // ถ้ายังว่างอยู่ ค่อย fallback เป็นชื่อ Phase
+                // ถ้ายังว่างอยู่ ค่อย fallback เป็นชื่อส่วนงาน
                 model.Role = !string.IsNullOrWhiteSpace(roleAuto) ? roleAuto : phase.PhaseName;
 
                 // 2) ดึงวันจาก project_phase (ใช้เฉพาะตอน user ไม่ได้แก้)
@@ -242,7 +246,7 @@ namespace ProjectTracking.Controllers
                 if (model.PlanEnd == null)
                     model.PlanEnd = phase.PlanEnd;
 
-                // 3) สำคัญ: บันทึก phase_order จาก project_phase ลง phase_assign
+                // 3) สำคัญ: บันทึกเลขส่วนงานจาก project_phase ลง phase_assign
                 model.PhaseOrder = phase.PhaseOrder;
             }
 
@@ -311,10 +315,13 @@ namespace ProjectTracking.Controllers
                 var phases = await _context.ProjectPhases
                     .AsNoTracking()
                     .Where(p => p.ProjectId == projectId.Value)
-                    .OrderBy(p => p.PhaseId)
+                    .OrderBy(p => p.PhaseOrder)
+                    .ThenBy(p => p.PeriodOrder)
+                    .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                    .ThenBy(p => p.PhaseId)
                     .ToListAsync();
 
-                ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName", assign.PhaseId);
+                ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName", assign.PhaseId);
                 ViewBag.PhaseItems = phases;
             }
 
@@ -376,16 +383,16 @@ namespace ProjectTracking.Controllers
 
                 if (selectedPhase == null)
                 {
-                    ModelState.AddModelError(nameof(model.PhaseId), "Phase not found");
+                    ModelState.AddModelError(nameof(model.PhaseId), "ไม่พบส่วนงานที่เลือก");
                 }
                 else if (projectIdOfAssign != null && selectedPhase.ProjectId != projectIdOfAssign.Value)
                 {
-                    ModelState.AddModelError(nameof(model.PhaseId), "Selected phase is not in this project");
+                    ModelState.AddModelError(nameof(model.PhaseId), "ส่วนงานที่เลือกไม่ได้อยู่ในโครงการนี้");
                 }
             }
             else
             {
-                ModelState.AddModelError(nameof(model.PhaseId), "Phase is required");
+                ModelState.AddModelError(nameof(model.PhaseId), "กรุณาเลือกส่วนงาน");
             }
 
             // 🔒 Validate Remark length (server-side protection)
@@ -402,11 +409,14 @@ namespace ProjectTracking.Controllers
                     var phases = await _context.ProjectPhases
                         .AsNoTracking()
                         .Where(p => p.ProjectId == projectIdOfAssign.Value)
-                        .OrderBy(p => p.PhaseId)
+                        .OrderBy(p => p.PhaseOrder)
+                        .ThenBy(p => p.PeriodOrder)
+                        .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                        .ThenBy(p => p.PhaseId)
                         .ToListAsync();
 
                     ViewBag.ProjectId = projectIdOfAssign;
-                    ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName", model.PhaseId);
+                    ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName", model.PhaseId);
                     ViewBag.PhaseItems = phases;
                 }
 
@@ -479,7 +489,8 @@ namespace ProjectTracking.Controllers
                     role = p.PhaseName,
                     planStart = p.PlanStart,
                     planEnd = p.PlanEnd,
-                    phaseOrder = p.PhaseOrder
+                    phaseOrder = p.PhaseOrder,
+                    periodOrder = p.PeriodOrder
                 })
                 .FirstOrDefaultAsync();
 
@@ -492,7 +503,8 @@ namespace ProjectTracking.Controllers
                 role = phase.role,
                 planStart = phase.planStart.HasValue ? phase.planStart.Value.ToString("yyyy-MM-dd") : "",
                 planEnd = phase.planEnd.HasValue ? phase.planEnd.Value.ToString("yyyy-MM-dd") : "",
-                phaseOrder = phase.phaseOrder
+                phaseOrder = phase.phaseOrder,
+                periodOrder = phase.periodOrder
             });
         }
 
@@ -617,7 +629,8 @@ namespace ProjectTracking.Controllers
                 query = query.Where(x => x.Role == role);
 
             return await query
-                .OrderBy(a => a.PhaseOrder ?? int.MaxValue)
+                .OrderBy(a => a.Phase == null ? (a.PhaseOrder ?? int.MaxValue) : a.Phase.PhaseOrder)
+                .ThenBy(a => a.Phase == null ? int.MaxValue : a.Phase.PeriodOrder)
                 .ThenBy(a => a.PhaseSort ?? int.MaxValue)
                 .ThenBy(a => a.AssignId)
                 .ToListAsync();
@@ -1170,10 +1183,13 @@ namespace ProjectTracking.Controllers
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
                 .Where(p => p.ProjectId == projectId)
-                .OrderBy(p => p.PhaseId)
+                .OrderBy(p => p.PhaseOrder)
+                .ThenBy(p => p.PeriodOrder)
+                .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                .ThenBy(p => p.PhaseId)
                 .ToListAsync();
 
-            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseName", model.PhaseId);
+            ViewBag.Phases = new SelectList(phases, "PhaseId", "PhaseDisplayName", model.PhaseId);
             ViewBag.PhaseItems = phases;
 
             ViewBag.Employees = new SelectList(

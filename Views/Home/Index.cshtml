@@ -5,11 +5,11 @@
 @{
     ViewData["Title"] = "Dashboard";
 
-    var th = new CultureInfo("th-TH");
     var dashboard = Model ?? new HomeDashboardViewModel();
-    var projectTooltip = dashboard.ProjectOverviewTooltip ?? new HomeDashboardMonthPoint { Label = DateTime.Today.ToString("MMM", th) };
     var closedHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.ClosedWorkHours * 100m / dashboard.MonthWorkHours, 1);
     var openHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.OpenWorkHours * 100m / dashboard.MonthWorkHours, 1);
+    var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
+    var showYearlyPending = dashboard.YearlyTasks.Any(task => task.Pending > 0);
 }
 
 <div class="dashboard-view">
@@ -56,33 +56,52 @@
                     <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
                 </div>
             </div>
-            <div class="legend-row">
-                <span><i class="dot green"></i>Completed</span>
-                <span><i class="dot blue"></i>In Progress</span>
-                <span><i class="dot orange"></i>Pending</span>
-                <span><i class="dot pink"></i>Cancelled</span>
-            </div>
-            <div class="line-chart">
-                <svg viewBox="0 0 720 255" preserveAspectRatio="none" aria-hidden="true">
-                    <g class="grid-lines">
-                        <path d="M30 40h670M30 90h670M30 140h670M30 190h670M30 235h670" />
-                    </g>
-                    @foreach (var series in dashboard.ProjectOverviewSeries)
+            <div class="project-overview-table">
+                <div class="project-overview-summary" aria-label="สรุปจำนวนสถานะโครงการ">
+                    @foreach (var metric in dashboard.ProjectStatusMetrics)
                     {
-                        <polyline class="line @series.Color" points="@series.Points" />
+                        <span class="@metric.Color">
+                            <i class="dot @metric.Color"></i>
+                            <b>@metric.Label</b>
+                            <strong>@metric.Count</strong>
+                        </span>
                     }
-                </svg>
-                <div class="chart-tooltip">
-                    <b>@projectTooltip.Label</b>
-                    <span><i class="dot green"></i>Completed <strong>@projectTooltip.Completed</strong></span>
-                    <span><i class="dot blue"></i>In Progress <strong>@projectTooltip.InProgress</strong></span>
-                    <span><i class="dot orange"></i>Pending <strong>@projectTooltip.Pending</strong></span>
-                    <span><i class="dot pink"></i>Cancelled <strong>@projectTooltip.Cancelled</strong></span>
                 </div>
-                <div class="months-row">
-                    @foreach (var month in dashboard.ProjectOverviewMonths)
+                <label class="project-overview-search">
+                    <span>ค้นหาโครงการ</span>
+                    <input type="search"
+                           id="projectOverviewSearch"
+                           placeholder="พิมพ์ชื่อโครงการ..."
+                           autocomplete="off" />
+                </label>
+                <div class="project-overview-head" aria-hidden="true">
+                    <span>Project</span>
+                    <span>Status</span>
+                    <span>Start</span>
+                    <span>End</span>
+                </div>
+                <div class="project-overview-scroll">
+                    @if (dashboard.ProjectOverviewProjects.Count == 0)
                     {
-                        <span>@month.Label</span>
+                        <p class="empty-state">ยังไม่มีข้อมูลโครงการ</p>
+                    }
+                    else
+                    {
+                        foreach (var project in dashboard.ProjectOverviewProjects)
+                        {
+                            <a class="project-overview-row"
+                               asp-controller="ProjectPhases"
+                               asp-action="Index"
+                               asp-route-projectId="@project.ProjectId"
+                               data-project-search="@project.ProjectName"
+                               title="ดูงวดงานของ @project.ProjectName">
+                                <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
+                                <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
+                                <time>@project.StartText</time>
+                                <time>@project.EndText</time>
+                            </a>
+                        }
+                        <p class="empty-state project-overview-empty" hidden>ไม่พบโครงการที่ค้นหา</p>
                     }
                 </div>
             </div>
@@ -213,22 +232,70 @@
         <article class="glass-panel panel-task">
             <div class="panel-head">
                 <h2>Task Progress (รายปี)</h2>
-                <div class="legend-row compact">
-                    <span><i class="dot green"></i>Completed</span>
-                    <span><i class="dot blue"></i>In Progress</span>
-                    <span><i class="dot orange"></i>Pending</span>
+                <div class="panel-actions">
+                    <div class="legend-row compact">
+                        <span><i class="dot green"></i>Completed</span>
+                        <span><i class="dot blue"></i>In Progress</span>
+                        @if (showYearlyPending)
+                        {
+                            <span><i class="dot orange"></i>Pending</span>
+                        }
+                    </div>
+                    <a asp-controller="Reports" asp-action="TaskProgress" class="panel-link">รายละเอียด</a>
                 </div>
             </div>
-            <div class="bar-chart">
-                @foreach (var task in dashboard.YearlyTasks)
-                {
-                    <div class="bar-group">
-                        <span class="@(task.CompletedHeight == 0 ? "is-zero" : "")" style="height:@task.CompletedHeight%"></span>
-                        <span class="@(task.InProgressHeight == 0 ? "is-zero" : "")" style="height:@task.InProgressHeight%"></span>
-                        <span class="@(task.PendingHeight == 0 ? "is-zero" : "")" style="height:@task.PendingHeight%"></span>
-                        <b>@task.PeriodLabel</b>
+            <div class="yearly-chart">
+                <span class="yearly-y-title">จำนวนงาน</span>
+                <div class="yearly-y-axis" aria-hidden="true">
+                    @foreach (var tick in yearlyTaskAxisTicks)
+                    {
+                        var tickTop = (30 - tick) * 100m / 30m;
+                        <span style="top:@tickTop.ToString("0.###", CultureInfo.InvariantCulture)%">@tick</span>
+                    }
+                </div>
+                <div class="yearly-plot">
+                    <div class="bar-chart">
+                        @foreach (var task in dashboard.YearlyTasks)
+                        {
+                            <div class="bar-group">
+                                <span class="@(task.CompletedHeight == 0 ? "is-zero" : "")"
+                                      style="height:@task.CompletedHeight%"
+                                      title="Completed: @task.Completed">
+                                    @if (task.Completed > 0)
+                                    {
+                                        <i>@task.Completed</i>
+                                    }
+                                </span>
+                                <span class="@(task.InProgressHeight == 0 ? "is-zero" : "")"
+                                      style="height:@task.InProgressHeight%"
+                                      title="In Progress: @task.InProgress">
+                                    @if (task.InProgress > 0)
+                                    {
+                                        <i>@task.InProgress</i>
+                                    }
+                                </span>
+                                @if (showYearlyPending)
+                                {
+                                    <span class="@(task.PendingHeight == 0 ? "is-zero" : "")"
+                                          style="height:@task.PendingHeight%"
+                                          title="Pending: @task.Pending">
+                                        @if (task.Pending > 0)
+                                        {
+                                            <i>@task.Pending</i>
+                                        }
+                                    </span>
+                                }
+                            </div>
+                        }
                     </div>
-                }
+                    <div class="yearly-x-axis" aria-hidden="true">
+                        @foreach (var task in dashboard.YearlyTasks)
+                        {
+                            <span>@task.PeriodLabel</span>
+                        }
+                    </div>
+                </div>
+                <span class="yearly-x-title">เดือน</span>
             </div>
         </article>
 
@@ -571,7 +638,7 @@
 .panel-wide { order:1; grid-column:span 15; min-height:278px; }
 .compact-panel { min-height:198px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
-.panel-task { order:3; grid-column:span 24; min-height:218px; }
+.panel-task { order:3; grid-column:span 24; min-height:252px; }
 .panel-watch { order:4; grid-column:span 24; min-height:278px; }
 .panel-top-projects { order:5; grid-column:span 16; min-height:238px; }
 .panel-issues { order:6; grid-column:span 8; min-height:238px; }
@@ -743,6 +810,196 @@
     padding:0 4px 0 34px;
 }
 
+.project-overview-table {
+    position:relative;
+    z-index:1;
+    display:grid;
+    gap:8px;
+    min-width:0;
+    max-width:100%;
+}
+
+.project-overview-summary {
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:8px;
+    min-width:0;
+}
+
+.project-overview-summary span {
+    min-width:0;
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr) max-content;
+    align-items:center;
+    gap:6px;
+    padding:7px 9px;
+    border:1px solid rgba(217,228,251,.08);
+    border-radius:10px;
+    background:rgba(255,255,255,.04);
+}
+
+.project-overview-summary b {
+    min-width:0;
+    overflow:hidden;
+    color:#d9e4fb;
+    font-size:11px;
+    font-weight:900;
+    line-height:1.1;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.project-overview-summary strong {
+    color:#fff;
+    font-size:15px;
+    font-weight:900;
+    line-height:1;
+}
+
+.project-overview-summary span.green strong { color:#10d58f; }
+.project-overview-summary span.blue strong { color:#1688f5; }
+.project-overview-summary span.orange strong { color:#fb9a13; }
+.project-overview-summary span.purple strong { color:#b16cff; }
+.project-overview-summary span.pink strong { color:#ff4f7f; }
+
+.project-overview-search {
+    min-width:0;
+    display:grid;
+    gap:4px;
+    color:#8fa4c8;
+    font-size:11px;
+    font-weight:900;
+}
+
+.project-overview-search input {
+    width:100%;
+    min-width:0;
+    height:38px;
+    box-sizing:border-box;
+    border:1px solid rgba(217,228,251,.16);
+    border-radius:10px;
+    outline:none;
+    padding:0 13px;
+    background:rgba(255,255,255,.055);
+    color:#f4f8ff;
+    font-family:'Sarabun', sans-serif;
+    font-size:12px;
+    font-weight:900;
+}
+
+.project-overview-search input::placeholder {
+    color:rgba(217,228,251,.55);
+}
+
+.project-overview-search input:focus {
+    border-color:rgba(20,184,166,.65);
+    box-shadow:0 0 0 3px rgba(20,184,166,.13);
+}
+
+.project-overview-head,
+.project-overview-row {
+    display:grid;
+    grid-template-columns:minmax(0, 1.7fr) 112px 96px 96px;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.project-overview-head {
+    padding:0 10px 6px;
+    border-bottom:1px solid rgba(217,228,251,.16);
+    color:#8fa4c8;
+    font-size:11px;
+    font-weight:900;
+}
+
+.project-overview-head span:not(:first-child) {
+    text-align:center;
+}
+
+.project-overview-scroll {
+    display:grid;
+    gap:6px;
+    max-height:258px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(20,184,166,.72) rgba(15,35,64,.42);
+}
+
+.project-overview-scroll::-webkit-scrollbar {
+    width:8px;
+}
+
+.project-overview-scroll::-webkit-scrollbar-track {
+    border-radius:999px;
+    background:rgba(15,35,64,.42);
+}
+
+.project-overview-scroll::-webkit-scrollbar-thumb {
+    border-radius:999px;
+    background:linear-gradient(180deg,#14b8a6,#1688f5);
+}
+
+.project-overview-empty {
+    padding:12px 10px;
+    text-align:center;
+}
+
+.project-overview-row {
+    min-height:44px;
+    box-sizing:border-box;
+    padding:7px 10px;
+    border:1px solid rgba(217,228,251,.08);
+    border-radius:10px;
+    background:rgba(255,255,255,.035);
+    color:inherit;
+    text-decoration:none;
+    transition:background .18s ease, transform .18s ease, border-color .18s ease;
+}
+
+.project-overview-row:hover {
+    background:rgba(255,255,255,.06);
+    border-color:rgba(20,184,166,.24);
+    color:inherit;
+    transform:translateX(2px);
+}
+
+.project-overview-name {
+    min-width:0;
+    color:#f4f8ff;
+    font-size:12px;
+    font-weight:900;
+    line-height:1.2;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+
+.project-overview-status {
+    justify-self:center;
+    color:#1688f5;
+    font-size:11px;
+    font-weight:900;
+    text-align:center;
+    white-space:nowrap;
+}
+
+.project-overview-status.green { color:#10d58f; }
+.project-overview-status.orange { color:#fb9a13; }
+.project-overview-status.purple { color:#b16cff; }
+.project-overview-status.blue { color:#30a1ff; }
+.project-overview-status.pink { color:#ff4f7f; }
+
+.project-overview-row time {
+    color:#d9e4fb;
+    font-size:11px;
+    font-weight:900;
+    text-align:center;
+    white-space:nowrap;
+}
+
 .donut-layout {
     position:relative;
     z-index:1;
@@ -751,6 +1008,35 @@
     align-items:center;
     gap:12px;
     min-width:0;
+}
+
+.panel-project-status .donut-layout,
+.panel-issues .donut-layout {
+    min-height:calc(100% - 46px);
+    justify-content:center;
+    align-content:center;
+    margin-inline:auto;
+}
+
+.panel-project-status .donut-layout {
+    width:min(100%, 410px);
+    grid-template-columns:1fr;
+    justify-items:center;
+    gap:14px;
+}
+
+.panel-project-status .metric-list {
+    width:min(100%, 310px);
+    gap:10px;
+}
+
+.panel-project-status .metric-list > span {
+    grid-template-columns:auto minmax(0, 1fr) max-content;
+    padding:0 4px;
+}
+
+.panel-issues .donut-layout {
+    width:min(100%, 350px);
 }
 
 .compact-donut-layout {
@@ -1264,30 +1550,146 @@
     font-weight:900;
 }
 
-.bar-chart {
+.yearly-chart {
     position:relative;
     z-index:1;
-    height:142px;
+    display:grid;
+    grid-template-columns:40px minmax(0, 1fr);
+    grid-template-rows:minmax(202px, auto) 20px;
+    column-gap:10px;
+    min-width:0;
+    padding:0 2px 0 20px;
+}
+
+.yearly-y-title {
+    position:absolute;
+    left:-6px;
+    top:74px;
+    transform:rotate(-90deg);
+    transform-origin:left center;
+    color:rgba(217,228,251,.78);
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:.02em;
+    white-space:nowrap;
+}
+
+.yearly-y-axis {
+    grid-column:1;
+    grid-row:1;
+    position:relative;
+    height:150px;
+    margin-top:24px;
+    color:rgba(217,228,251,.8);
+    font-size:10px;
+    font-weight:900;
+    line-height:1;
+}
+
+.yearly-y-axis span {
+    position:absolute;
+    right:0;
+    transform:translateY(-50%);
+}
+
+.yearly-plot {
+    grid-column:2;
+    grid-row:1;
+    position:relative;
+    min-width:0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-color:rgba(20,184,166,.65) rgba(15,35,64,.45);
+    scrollbar-width:thin;
+}
+
+.yearly-plot::-webkit-scrollbar {
+    height:8px;
+}
+
+.yearly-plot::-webkit-scrollbar-track {
+    background:rgba(15,35,64,.45);
+    border-radius:999px;
+}
+
+.yearly-plot::-webkit-scrollbar-thumb {
+    background:linear-gradient(90deg,#14b8a6,#1688f5);
+    border-radius:999px;
+}
+
+.yearly-x-title {
+    grid-column:2;
+    grid-row:2;
+    justify-self:center;
+    align-self:end;
+    color:rgba(217,228,251,.78);
+    font-size:10px;
+    font-weight:900;
+}
+
+.bar-chart {
+    min-width:720px;
+    height:174px;
+    box-sizing:border-box;
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(58px, 1fr));
-    align-items:end;
+    align-items:start;
     gap:14px;
-    padding:14px 16px 0;
-    background:repeating-linear-gradient(to top, rgba(255,255,255,.1) 0 1px, transparent 1px 32px);
+    padding:0 16px;
+    position:relative;
+    background:none;
+}
+
+.bar-chart::before {
+    content:"";
+    position:absolute;
+    z-index:0;
+    left:0;
+    right:0;
+    top:24px;
+    height:150px;
+    border-left:1px solid rgba(217,228,251,.36);
+    border-bottom:1px solid rgba(217,228,251,.36);
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.1) 0 1px, transparent 1px 25px);
+    pointer-events:none;
+}
+
+.yearly-x-axis {
+    min-width:720px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(58px, 1fr));
+    gap:14px;
+    padding:6px 16px 0;
+    color:#d9e4fb;
+    font-size:11px;
+    font-weight:900;
+    text-align:center;
+}
+
+.yearly-x-axis span {
+    min-width:0;
+    line-height:1;
+    white-space:nowrap;
 }
 
 .bar-group {
-    height:116px;
+    height:150px;
+    margin-top:24px;
     display:grid;
     grid-template-columns:repeat(3, 1fr);
     align-items:end;
     gap:5px;
     position:relative;
+    z-index:1;
 }
 
 .bar-group span {
     min-height:8px;
     border-radius:5px 5px 0 0;
+    position:relative;
+    display:flex;
+    justify-content:center;
+    overflow:visible;
 }
 
 .bar-group span.is-zero {
@@ -1298,13 +1700,18 @@
 .bar-group span:nth-child(2) { background:linear-gradient(#12d8ff,#127be4); }
 .bar-group span:nth-child(3) { background:linear-gradient(#ffb01e,#ff8400); }
 
-.bar-group b {
+.bar-group span i {
     position:absolute;
+    top:-18px;
     left:50%;
-    bottom:-22px;
     transform:translateX(-50%);
-    color:#d9e4fb;
-    font-size:11px;
+    color:#fff;
+    font-size:10px;
+    font-style:normal;
+    font-weight:900;
+    line-height:1;
+    text-shadow:0 2px 6px rgba(0,0,0,.72);
+    pointer-events:none;
 }
 
 .time-layout {
@@ -1522,6 +1929,20 @@
     .watch-row { grid-template-columns:1fr; }
     .watch-status { justify-self:start; text-align:left; }
     .watch-reasons { justify-content:flex-start; }
+    .project-overview-table {
+        overflow-x:auto;
+        scrollbar-width:thin;
+        scrollbar-color:rgba(20,184,166,.72) rgba(15,35,64,.42);
+    }
+    .project-overview-summary {
+        min-width:540px;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+    .project-overview-head,
+    .project-overview-row {
+        min-width:540px;
+        grid-template-columns:minmax(190px, 1fr) 104px 92px 92px;
+    }
     .panel-team .workload-list { grid-template-columns:1fr; }
     .panel-top-projects .progress-row,
     .progress-row { grid-template-columns:1fr; gap:6px; }
@@ -1537,3 +1958,29 @@
     }
 }
 </style>
+
+<script>
+    (() => {
+        const searchInput = document.getElementById('projectOverviewSearch');
+        if (!searchInput) return;
+
+        const rows = Array.from(document.querySelectorAll('.project-overview-row[data-project-search]'));
+        const emptyMessage = document.querySelector('.project-overview-empty');
+
+        searchInput.addEventListener('input', () => {
+            const keyword = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = (row.dataset.projectSearch || '').toLowerCase();
+                const isVisible = !keyword || text.includes(keyword);
+                row.hidden = !isVisible;
+                if (isVisible) visibleCount++;
+            });
+
+            if (emptyMessage) {
+                emptyMessage.hidden = visibleCount > 0;
+            }
+        });
+    })();
+</script>

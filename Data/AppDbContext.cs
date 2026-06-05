@@ -106,9 +106,19 @@ namespace ProjectTracking.Data
                     .HasColumnType("int")
                     .IsRequired(false);
 
+                entity.Property(m => m.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
                 // created_at may be managed by DB default
                 entity.Property(m => m.CreatedAt)
                     .HasColumnType("timestamp");
+
+                entity.Property(m => m.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
 
                 entity.HasMany(m => m.Attendees)
                     .WithOne(a => a.Meeting!)
@@ -750,12 +760,25 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(50)")
                     .IsRequired(false);
 
+                entity.Property(p => p.PhaseOrder)
+                    .HasColumnName("phase_order")
+                    .HasColumnType("int");
+
+                entity.Property(p => p.PeriodOrder)
+                    .HasColumnName("period_order")
+                    .HasColumnType("int");
+
                 entity.Property(p => p.PlanStart)
                     .HasColumnName("plan_start")
                     .IsRequired(false);
 
                 entity.Property(p => p.PlanEnd)
                     .HasColumnName("plan_end")
+                    .IsRequired(false);
+
+                entity.Property(p => p.SubmittedDate)
+                    .HasColumnName("submitted_date")
+                    .HasColumnType("datetime")
                     .IsRequired(false);
 
                 entity.Property(p => p.CreatedAt)

@@ -42,10 +42,7 @@ namespace ProjectTracking.Controllers
                 query = query.Where(p => p.BaEmpId == baEmpId.Value);
             }
 
-            var projects = await query
-                .OrderByDescending(p => p.EndDate ?? DateTime.MinValue)
-                .ThenByDescending(p => p.ProjectId)
-                .ToListAsync();
+            var projects = OrderProjects(await query.ToListAsync()).ToList();
 
             return View(projects);
         }
@@ -89,7 +86,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedStatus = status ?? "";
 
             var result = query
-                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : 3)
+                .OrderBy(p => ProjectSortOrder(p.Status))
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.ProjectName)
                 .ToList();
@@ -312,6 +309,35 @@ namespace ProjectTracking.Controllers
                 .Where(u => u.UserId == userId.Value)
                 .Select(u => u.EmpId)
                 .FirstOrDefaultAsync();
+        }
+
+        private static IOrderedEnumerable<Project> OrderProjects(IEnumerable<Project> projects)
+        {
+            return projects
+                .OrderBy(p => ProjectSortOrder(p.Status))
+                .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
+                .ThenBy(p => p.ProjectName);
+        }
+
+        private static int ProjectSortOrder(string? status)
+        {
+            return NormalizeProjectStatus(status) switch
+            {
+                "IN_PROGRESS" => 1,
+                "PLAN" => 2,
+                "DONE" => 3,
+                "CANCELLED" => 4,
+                _ => 5
+            };
+        }
+
+        private static string NormalizeProjectStatus(string? status)
+        {
+            return (status ?? "")
+                .Trim()
+                .ToUpperInvariant()
+                .Replace(" ", "_")
+                .Replace("-", "_");
         }
     }
 }

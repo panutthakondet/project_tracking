@@ -96,6 +96,9 @@
             font-size: 16px;
             font-weight: 900;
         }
+        .report-section {
+            margin-bottom: 12px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -134,6 +137,33 @@
             body { padding: 0; }
             .report-actions { display: none; }
             thead { display: table-header-group; }
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            .report-section table,
+            .report-section .empty,
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
             tr { page-break-inside: avoid; }
         }
     </style>
@@ -164,125 +194,131 @@
         }
     </section>
 
-    <h2>โครงการที่ต้องเฝ้าระวัง</h2>
-    @if (!report.RiskProjects.Any())
-    {
-        <div class="empty">ยังไม่พบโครงการที่ต้องเฝ้าระวัง</div>
-    }
-    else
-    {
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:34px;">Seq</th>
-                    <th>Project</th>
-                    <th style="width:150px;">Owner</th>
-                    <th style="width:70px;">Risk</th>
-                    <th style="width:70px;">Progress</th>
-                    <th style="width:180px;">Due</th>
-                    <th style="width:240px;">Reasons</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    var riskSeq = 1;
-                }
-                @foreach (var item in report.RiskProjects)
-                {
+    <section class="report-section">
+        <h2>โครงการที่ต้องเฝ้าระวัง</h2>
+        @if (!report.RiskProjects.Any())
+        {
+            <div class="empty">ยังไม่พบโครงการที่ต้องเฝ้าระวัง</div>
+        }
+        else
+        {
+            <table>
+                <thead>
                     <tr>
-                        <td class="text-center">@riskSeq</td>
-                        <td>@item.ProjectName</td>
-                        <td>@item.OwnerName</td>
-                        <td class="text-center">@item.RiskLevel</td>
-                        <td class="text-center">@item.Progress%</td>
-                        <td>@item.DueText</td>
-                        <td>@string.Join(", ", item.Reasons)</td>
+                        <th style="width:34px;">Seq</th>
+                        <th>Project</th>
+                        <th style="width:150px;">Owner</th>
+                        <th style="width:70px;">Risk</th>
+                        <th style="width:70px;">Progress</th>
+                        <th style="width:180px;">Due</th>
+                        <th style="width:240px;">Reasons</th>
                     </tr>
-                    riskSeq++;
-                }
-            </tbody>
-        </table>
-    }
+                </thead>
+                <tbody>
+                    @{
+                        var riskSeq = 1;
+                    }
+                    @foreach (var item in report.RiskProjects)
+                    {
+                        <tr>
+                            <td class="text-center">@riskSeq</td>
+                            <td>@item.ProjectName</td>
+                            <td>@item.OwnerName</td>
+                            <td class="text-center">@item.RiskLevel</td>
+                            <td class="text-center">@item.Progress%</td>
+                            <td>@item.DueText</td>
+                            <td>@string.Join(", ", item.Reasons)</td>
+                        </tr>
+                        riskSeq++;
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
 
-    <h2>งานเลยกำหนดที่ต้องจัดการ</h2>
-    @if (!report.DueItems.Any())
-    {
-        <div class="empty">ไม่มีงานเลยกำหนด</div>
-    }
-    else
-    {
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:34px;">Seq</th>
-                    <th style="width:80px;">Type</th>
-                    <th>Title</th>
-                    <th>Project</th>
-                    <th style="width:150px;">Owner</th>
-                    <th style="width:95px;">Due</th>
-                    <th style="width:70px;">Days</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    var dueSeq = 1;
-                }
-                @foreach (var item in report.DueItems)
-                {
+    <section class="report-section">
+        <h2>งานเลยกำหนดที่ต้องจัดการ</h2>
+        @if (!report.DueItems.Any())
+        {
+            <div class="empty">ไม่มีงานเลยกำหนด</div>
+        }
+        else
+        {
+            <table>
+                <thead>
                     <tr>
-                        <td class="text-center">@dueSeq</td>
-                        <td>@item.Type</td>
-                        <td>@item.Title</td>
-                        <td>@item.ProjectName</td>
-                        <td>@item.OwnerName</td>
-                        <td class="text-center">@FormatDate(item.DueDate)</td>
-                        <td class="text-center">@item.OverdueDays</td>
+                        <th style="width:34px;">Seq</th>
+                        <th style="width:80px;">Type</th>
+                        <th>Title</th>
+                        <th>Project</th>
+                        <th style="width:150px;">Owner</th>
+                        <th style="width:95px;">Due</th>
+                        <th style="width:70px;">Days</th>
                     </tr>
-                    dueSeq++;
-                }
-            </tbody>
-        </table>
-    }
+                </thead>
+                <tbody>
+                    @{
+                        var dueSeq = 1;
+                    }
+                    @foreach (var item in report.DueItems)
+                    {
+                        <tr>
+                            <td class="text-center">@dueSeq</td>
+                            <td>@item.Type</td>
+                            <td>@item.Title</td>
+                            <td>@item.ProjectName</td>
+                            <td>@item.OwnerName</td>
+                            <td class="text-center">@FormatDate(item.DueDate)</td>
+                            <td class="text-center">@item.OverdueDays</td>
+                        </tr>
+                        dueSeq++;
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
 
-    <h2>Team Workload</h2>
-    @if (!report.TeamWorkload.Any())
-    {
-        <div class="empty">ยังไม่มีภาระงานค้างในทีม</div>
-    }
-    else
-    {
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:34px;">Seq</th>
-                    <th>Employee</th>
-                    <th style="width:70px;">Assign</th>
-                    <th style="width:70px;">Issue</th>
-                    <th style="width:70px;">Support</th>
-                    <th style="width:80px;">Followup</th>
-                    <th style="width:70px;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    var workloadSeq = 1;
-                }
-                @foreach (var row in report.TeamWorkload)
-                {
+    <section class="report-section">
+        <h2>Team Workload</h2>
+        @if (!report.TeamWorkload.Any())
+        {
+            <div class="empty">ยังไม่มีภาระงานค้างในทีม</div>
+        }
+        else
+        {
+            <table>
+                <thead>
                     <tr>
-                        <td class="text-center">@workloadSeq</td>
-                        <td>@row.EmployeeName</td>
-                        <td class="text-center">@row.Assignments</td>
-                        <td class="text-center">@row.Issues</td>
-                        <td class="text-center">@row.SupportOrders</td>
-                        <td class="text-center">@row.Followups</td>
-                        <td class="text-center">@row.Total</td>
+                        <th style="width:34px;">Seq</th>
+                        <th>Employee</th>
+                        <th style="width:70px;">Assign</th>
+                        <th style="width:70px;">Issue</th>
+                        <th style="width:70px;">Support</th>
+                        <th style="width:80px;">Followup</th>
+                        <th style="width:70px;">Total</th>
                     </tr>
-                    workloadSeq++;
-                }
-            </tbody>
-        </table>
-    }
+                </thead>
+                <tbody>
+                    @{
+                        var workloadSeq = 1;
+                    }
+                    @foreach (var row in report.TeamWorkload)
+                    {
+                        <tr>
+                            <td class="text-center">@workloadSeq</td>
+                            <td>@row.EmployeeName</td>
+                            <td class="text-center">@row.Assignments</td>
+                            <td class="text-center">@row.Issues</td>
+                            <td class="text-center">@row.SupportOrders</td>
+                            <td class="text-center">@row.Followups</td>
+                            <td class="text-center">@row.Total</td>
+                        </tr>
+                        workloadSeq++;
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
 
 </body>
 </html>

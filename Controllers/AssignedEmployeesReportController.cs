@@ -42,6 +42,7 @@ namespace ProjectTracking.Controllers
             var result = await query
                 .OrderBy(a => a.Employee!.EmpName)
                 .ThenBy(a => a.Phase!.PhaseOrder)
+                .ThenBy(a => a.Phase!.PeriodOrder)
                 .ToListAsync();
 
             ViewBag.SelectedProjectId = projectId;
@@ -75,6 +76,7 @@ namespace ProjectTracking.Controllers
             var result = await query
                 .OrderBy(a => a.Employee!.EmpName)
                 .ThenBy(a => a.Phase!.PhaseOrder)
+                .ThenBy(a => a.Phase!.PeriodOrder)
                 .ToListAsync();
 
             ViewBag.PrintDate = DateTime.Now;

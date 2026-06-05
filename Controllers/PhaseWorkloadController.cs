@@ -16,7 +16,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId, string? viewMode)
         {
             var currentDate = DateTime.Today;
 
@@ -36,6 +36,7 @@ namespace ProjectTracking.Controllers
             var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
                 ? parsedEmpId
                 : (int?)null;
+            var selectedViewMode = NormalizeViewMode(viewMode);
 
             var phaseAssigns = await _context.PhaseAssigns
                 .Include(x => x.Employee)
@@ -166,6 +167,7 @@ namespace ProjectTracking.Controllers
             ViewBag.Month = selectedMonth;
             ViewBag.MonthTo = selectedMonthTo;
             ViewBag.SelectedEmpId = empId;
+            ViewBag.ViewMode = selectedViewMode;
             ViewBag.MonthStart = monthStart;
             ViewBag.MonthEnd = monthEnd;
 
@@ -200,6 +202,13 @@ namespace ProjectTracking.Controllers
             return orderStatus == "DONE" || dev == "FIXED"
                 ? "DONE"
                 : "IN_PROGRESS";
+        }
+
+        private static string NormalizeViewMode(string? viewMode)
+        {
+            return string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase)
+                ? "week"
+                : "day";
         }
     }
 }

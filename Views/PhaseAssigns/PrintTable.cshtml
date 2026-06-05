@@ -5,7 +5,8 @@
     Layout = null;
     var th = new CultureInfo("th-TH");
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.PhaseAssign>())
-        .OrderBy(a => a.PhaseOrder ?? int.MaxValue)
+        .OrderBy(a => a.Phase?.PhaseOrder ?? a.PhaseOrder ?? int.MaxValue)
+        .ThenBy(a => a.Phase?.PeriodOrder ?? int.MaxValue)
         .ThenBy(a => a.PhaseSort ?? int.MaxValue)
         .ThenBy(a => a.AssignId)
         .ToList();
@@ -53,6 +54,11 @@
     string PhaseName(ProjectTracking.Models.PhaseAssign assign)
     {
         return string.IsNullOrWhiteSpace(assign.Phase?.PhaseName) ? "-" : assign.Phase.PhaseName;
+    }
+
+    string PhasePeriod(ProjectTracking.Models.PhaseAssign assign)
+    {
+        return assign.Phase == null ? "-" : $"ส่วนที่ {assign.Phase.PhaseOrder} / งวดที่ {assign.Phase.PeriodOrder}";
     }
 }
 
@@ -176,6 +182,34 @@
                 border-radius: 0;
             }
 
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+
             thead {
                 display: table-header-group;
             }
@@ -207,7 +241,8 @@
                     <tr>
                         <th style="width:52px;">Seq</th>
                         <th style="width:190px;">Employee / Status</th>
-                        <th style="width:220px;">Phase</th>
+                        <th style="width:90px;">ส่วน / งวด</th>
+                        <th style="width:220px;">ส่วนงาน</th>
                         <th style="width:260px;">Role</th>
                         <th style="width:170px;">Plan Date</th>
                         <th style="width:170px;">Period Date</th>
@@ -233,6 +268,7 @@
                                     @WorkStatusText(row.WorkStatus)
                                 </span>
                             </td>
+                            <td class="text-center">@PhasePeriod(row)</td>
                             <td>@PhaseName(row)</td>
                             <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
                             <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>

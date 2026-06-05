@@ -1588,6 +1588,33 @@
         /* ===== PRINT ONLY: ซ่อน navbar/footer ตอนสั่งพิมพ์จริง (ยังแสดงบนหน้าจอ) ===== */
         @@media print {
             header, .navbar, footer { display: none !important; }
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -1727,6 +1754,7 @@
 
     // ✅ Group visibility (show dropdown when there is at least 1 allowed item)
     var canManagement = CanMenu("Employees.Index")
+                     || CanMenu("PhaseWorkload.Index")
                      || CanMenu("Projects.Index")
                      || CanMenu("ProjectPhases.Index")
                      || CanMenu("PhaseAssigns.Index")
@@ -1746,8 +1774,10 @@
 	                         || CanMenu("TestScenarioTemplates.Index")
 	                         || CanMenu("TestTemplateGroups.Index");
 
-	    var canAssignPhase = CanMenu("PhaseAssigns.Index")
-	                        || CanMenu("PhaseWorkload.Index");
+	    var canEmployees = CanMenu("Employees.Index")
+	                      || CanMenu("PhaseWorkload.Index");
+
+	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
 	    var canReports = CanMenu("Reports.Index");
 
@@ -1860,13 +1890,24 @@
                             </li>
                         }
 
-                        @if (CanMenu("Employees.Index"))
+                        @if (canEmployees)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="Employees" ? "active-menu" : "")" asp-controller="Employees" asp-action="Index" title="จัดการพนักงาน">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown" title="Employees">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
                                     <span class="nav-label">Employees</span>
                                 </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("Employees.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
+                                    }
+                                    @if (CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
 
@@ -1922,7 +1963,7 @@
                         @if (canAssignPhase)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @((controller=="PhaseAssigns" && action!="Print") || controller=="PhaseWorkload" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="PhaseAssigns" && action!="Print" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/assign.svg" alt="" /></span>
                                     <span class="nav-label">Assign Phase</span>
@@ -1931,10 +1972,6 @@
                                     @if (CanMenu("PhaseAssigns.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">มอบหมายงวดงาน</a></li>
-                                    }
-                                    @if (CanMenu("PhaseWorkload.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
                                     }
                                 </ul>
                             </li>

@@ -25,8 +25,13 @@ namespace ProjectTracking.Models
         [StringLength(20)]
         public string PhaseType { get; set; } = "MAIN";
 
+        // ส่วนงาน เช่น ส่วนที่ 1, ส่วนที่ 2
         [Column("phase_order")]
         public int PhaseOrder { get; set; }
+
+        // งวดงานภายในแต่ละส่วน เช่น งวดที่ 1, งวดที่ 2
+        [Column("period_order")]
+        public int PeriodOrder { get; set; } = 1;
 
         // ✅ ใช้สำหรับจัดเรียงถาวร (Drag & Drop) — ไม่เกี่ยวกับ PhaseOrder ที่อนุญาตให้ซ้ำได้
         [Column("phase_sort")]
@@ -38,11 +43,20 @@ namespace ProjectTracking.Models
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
 
+        [Column("submitted_date")]
+        public DateTime? SubmittedDate { get; set; }
+
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
 
         [Column("entry_id")]
         public int? EntryId { get; set; }
+
+        [NotMapped]
+        public string PhasePeriodLabel => $"ส่วนที่ {PhaseOrder} งวดที่ {PeriodOrder}";
+
+        [NotMapped]
+        public string PhaseDisplayName => $"{PhasePeriodLabel} - {PhaseName}";
 
         // Period วันที่เริ่ม/สิ้นสุดงวดงาน
         [Column("period_start_date")]

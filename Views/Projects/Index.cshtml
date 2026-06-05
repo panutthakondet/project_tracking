@@ -17,6 +17,25 @@
 @{
     ViewData["Title"] = "Project List";
     var th = new CultureInfo("th-TH");
+    var projects = (Model ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
+    string NormalizeProjectStatus(string? status) => (status ?? "")
+        .Trim()
+        .ToUpperInvariant()
+        .Replace(" ", "_")
+        .Replace("-", "_");
+    int ProjectSortOrder(string? status) => NormalizeProjectStatus(status) switch
+    {
+        "IN_PROGRESS" => 1,
+        "PLAN" => 2,
+        "DONE" => 3,
+        "CANCELLED" => 4,
+        _ => 5
+    };
+    var orderedProjects = projects
+        .OrderBy(x => ProjectSortOrder(x.Status))
+        .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
+        .ThenBy(x => x.ProjectName)
+        .ToList();
 }
 
 <div class="index-hero">
@@ -123,7 +142,7 @@
                 </div>
                 <select id="projectFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
-                    @foreach (var p in Model.OrderBy(x => x.ProjectName))
+                    @foreach (var p in projects.OrderBy(x => x.ProjectName))
                     {
                         <option value="@p.ProjectName">@p.ProjectName</option>
                     }
@@ -152,7 +171,7 @@
                 </div>
                 <select id="baFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
-                    @foreach (var ba in Model
+                    @foreach (var ba in projects
                         .Select(x => x.BA?.EmpName)
                         .Where(x => !string.IsNullOrWhiteSpace(x))
                         .Distinct()
@@ -215,7 +234,7 @@
         </thead>
 
         <tbody>
-        @if (Model == null || !Model.Any())
+        @if (!orderedProjects.Any())
         {
             <tr>
                 <td colspan="12" class="text-center text-muted">— No project data —</td>
@@ -224,10 +243,7 @@
         else
         {
             var rowNo = 1;
-            foreach (var p in Model
-                .OrderBy(x => x.Status == "IN_PROGRESS" ? 1 :
-                              x.Status == "PLAN" ? 2 : 3)
-                .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
+            foreach (var p in orderedProjects)
             {
                 <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")"
                     data-project="@p.ProjectName.ToLower()"
@@ -379,14 +395,11 @@
 
 <!-- Mobile Card View -->
 <div class="project-mobile-cards">
-    @if (Model != null && Model.Any())
+    @if (orderedProjects.Any())
     {
         var mobileRow = 1;
 
-        foreach (var p in Model
-            .OrderBy(x => x.Status == "IN_PROGRESS" ? 1 :
-                          x.Status == "PLAN" ? 2 : 3)
-            .ThenBy(x => x.EndDate ?? DateTime.MaxValue))
+        foreach (var p in orderedProjects)
         {
             <div class="project-card"
                  data-project="@p.ProjectName.ToLower()"

@@ -7,6 +7,7 @@
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
         .OrderBy(x => x.ProjectName)
         .ThenBy(x => x.PhaseOrder)
+        .ThenBy(x => x.PeriodOrder)
         .ThenBy(x => x.PhaseId)
         .ThenBy(x => x.EmpName)
         .ToList();
@@ -63,7 +64,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Phase Owner Status Report</title>
+    <title>Section Owner Status Report</title>
     <style>
         * {
             box-sizing: border-box;
@@ -313,6 +314,34 @@
             .print-header {
                 box-shadow: none;
             }
+
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>
@@ -374,7 +403,7 @@
                                 </div>
 
                                 <div class="phase-status-meta-grid">
-                                    <span class="phase-status-meta-pill">Order: @r.PhaseOrder</span>
+                                    <span class="phase-status-meta-pill">ส่วนที่ @r.PhaseOrder / งวดที่ @r.PeriodOrder</span>
                                     <span class="phase-status-meta-pill">Project Period: @FormatRange(r.StartDate, r.EndDate)</span>
                                     <span class="phase-status-meta-pill">Plan: @FormatRange(r.PlanStart, r.PlanEnd)</span>
                                     <span class="phase-status-meta-pill">Plan Days: @(r.PlanDays?.ToString() ?? "-")</span>

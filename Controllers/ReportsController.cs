@@ -69,6 +69,17 @@ namespace ProjectTracking.Controllers
                     },
                     new()
                     {
+                        Group = "Project Phases",
+                        Title = "Task Progress Report",
+                        Description = "รายละเอียดงานรายปีจากรายการ Assign โดยอิงสถานะจากส่วนงานของโครงการ",
+                        Controller = "Reports",
+                        Action = "TaskProgress",
+                        PermissionKey = "Reports.Index",
+                        Icon = "/images/menu-icons/workload.svg",
+                        Tone = "cyan"
+                    },
+                    new()
+                    {
                         Group = "Test Scenario",
                         Title = "Test Scenario Report",
                         Description = "รายงาน Test Scenario ตามโครงการ กลุ่มทดสอบ สถานะ และระดับความสำคัญ",
@@ -141,6 +152,140 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Executive()
         {
             return View(await BuildExecutiveReportAsync());
+        }
+
+        [RequireMenu("Reports.Index")]
+        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, string? status)
+        {
+            var th = new System.Globalization.CultureInfo("th-TH");
+            var selectedYear = year ?? DateTime.Today.Year;
+            var selectedStatus = Norm(status);
+            var username = HttpContext.Session.GetString("Username") ?? "-";
+
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.ProjectName)
+                .Select(p => new ProjectReportOptionViewModel
+                {
+                    ProjectId = p.ProjectId,
+                    ProjectName = p.ProjectName
+                })
+                .ToListAsync();
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .OrderBy(e => e.EmpName)
+                .Select(e => new EmployeeReportOptionViewModel
+                {
+                    EmpId = e.EmpId,
+                    EmpName = e.EmpName ?? "-"
+                })
+                .ToListAsync();
+
+            var assigns = await _context.PhaseAssigns
+                .Include(a => a.Employee)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.Project)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var allRows = assigns
+                .Where(a => a.Phase != null)
+                .Select(a =>
+                {
+                    var phase = a.Phase!;
+                    var project = phase.Project;
+                    var bucketDate = AssignPhaseBucketDate(a, phase);
+                    var statusMeta = PhaseStatusMeta(phase.PhaseStatus);
+                    var month = bucketDate?.Month ?? 0;
+
+                    return new TaskProgressReportRowViewModel
+                    {
+                        AssignId = a.AssignId,
+                        ProjectId = phase.ProjectId,
+                        EmpId = a.EmpId,
+                        ProjectName = project?.ProjectName ?? "-",
+                        EmployeeName = a.Employee?.EmpName ?? "-",
+                        PhaseName = phase.PhaseName,
+                        PhasePeriodLabel = phase.PhasePeriodLabel,
+                        Role = string.IsNullOrWhiteSpace(a.Role) ? "-" : a.Role!,
+                        StatusCategory = statusMeta.Category,
+                        StatusText = statusMeta.Text,
+                        StatusTone = statusMeta.Tone,
+                        PlanStart = a.PlanStart ?? phase.PlanStart,
+                        PlanEnd = a.PlanEnd ?? phase.PlanEnd,
+                        PeriodStart = phase.PeriodStartDate,
+                        PeriodEnd = phase.PeriodEndDate,
+                        BucketDate = bucketDate,
+                        Month = month,
+                        MonthName = month > 0 ? new DateTime(selectedYear, month, 1).ToString("MMM", th) : "-"
+                    };
+                })
+                .Where(r => r.BucketDate.HasValue && r.BucketDate.Value.Year == selectedYear)
+                .ToList();
+
+            var rows = allRows
+                .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
+                .Where(r => !empId.HasValue || r.EmpId == empId.Value)
+                .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.StatusCategory == selectedStatus)
+                .OrderBy(r => r.ProjectName)
+                .ThenBy(r => r.Month)
+                .ThenBy(r => r.EmployeeName)
+                .ThenBy(r => r.PhasePeriodLabel)
+                .ThenBy(r => r.Role)
+                .ToList();
+
+            var seq = 1;
+            foreach (var row in rows)
+            {
+                row.Seq = seq++;
+            }
+
+            var months = Enumerable.Range(1, 12)
+                .Select(month => new TaskProgressMonthViewModel
+                {
+                    Month = month,
+                    MonthName = new DateTime(selectedYear, month, 1).ToString("MMM", th),
+                    Completed = rows.Count(r => r.Month == month && r.StatusCategory == "DONE"),
+                    InProgress = rows.Count(r => r.Month == month && r.StatusCategory == "IN_PROGRESS"),
+                    Pending = rows.Count(r => r.Month == month && r.StatusCategory == "PENDING")
+                })
+                .ToList();
+
+            var availableYears = allRows
+                .Where(r => r.BucketDate.HasValue)
+                .Select(r => r.BucketDate!.Value.Year)
+                .Concat(Enumerable.Range(DateTime.Today.Year - 2, 5))
+                .Append(selectedYear)
+                .Distinct()
+                .OrderByDescending(x => x)
+                .ToList();
+
+            var model = new TaskProgressReportViewModel
+            {
+                GeneratedAt = DateTime.Now,
+                GeneratedBy = username,
+                Year = selectedYear,
+                ProjectId = projectId,
+                EmpId = empId,
+                Status = selectedStatus,
+                YearOptions = availableYears,
+                ProjectOptions = projects,
+                EmployeeOptions = employees,
+                Summary = new TaskProgressSummaryViewModel
+                {
+                    Total = rows.Count,
+                    Completed = rows.Count(r => r.StatusCategory == "DONE"),
+                    InProgress = rows.Count(r => r.StatusCategory == "IN_PROGRESS"),
+                    Pending = rows.Count(r => r.StatusCategory == "PENDING"),
+                    Projects = rows.Select(r => r.ProjectId).Distinct().Count(),
+                    Employees = rows.Select(r => r.EmployeeName).Distinct().Count()
+                },
+                Months = months,
+                Rows = rows
+            };
+
+            return View(model);
         }
 
         private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync()
@@ -613,7 +758,55 @@ namespace ProjectTracking.Controllers
 
         private static bool IsPhaseDone(string? status)
         {
-            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว";
+            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+        }
+
+        private static DateTime? AssignPhaseBucketDate(PhaseAssign assign, ProjectPhase phase)
+        {
+            return assign.PlanEnd
+                ?? assign.PlanStart
+                ?? PhaseBucketDate(phase);
+        }
+
+        private static DateTime? PhaseBucketDate(ProjectPhase phase)
+        {
+            if (IsPhaseDone(phase.PhaseStatus))
+            {
+                return phase.SubmittedDate
+                    ?? phase.PlanEnd
+                    ?? phase.PlanStart
+                    ?? phase.PeriodEndDate
+                    ?? phase.PeriodStartDate
+                    ?? phase.CreatedAt;
+            }
+
+            return phase.PlanStart
+                ?? phase.PlanEnd
+                ?? phase.PeriodStartDate
+                ?? phase.PeriodEndDate
+                ?? phase.CreatedAt;
+        }
+
+        private static (string Category, string Text, string Tone) PhaseStatusMeta(string? status)
+        {
+            var normalized = Norm(status);
+
+            if (IsPhaseDone(status))
+            {
+                return ("DONE", "ส่งงวดงานแล้ว", "success");
+            }
+
+            if (normalized is "กำลังดำเนินการ" or "IN_PROGRESS")
+            {
+                return ("IN_PROGRESS", "กำลังดำเนินการ", "info");
+            }
+
+            if (normalized is "วางแผน" or "PLAN" or "PENDING")
+            {
+                return ("PENDING", "วางแผน", "warning");
+            }
+
+            return ("OTHER", string.IsNullOrWhiteSpace(status) ? "-" : status.Trim(), "muted");
         }
 
         private static bool IsIssueResolved(ProjectIssue issue)

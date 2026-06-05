@@ -1,7 +1,7 @@
 @model ProjectTracking.Models.ProjectPhase
 
 @{
-    ViewData["Title"] = "Edit Project Phase";
+    ViewData["Title"] = "Edit Project Section";
 
     DateTime? planStart = Model?.PlanStart;
     DateTime? planEnd = Model?.PlanEnd;
@@ -33,8 +33,8 @@
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
         <span class="index-eyebrow">ProjectTracking</span>
-        <h2 class="index-title">Edit Project Phase</h2>
-        <p class="index-subtitle">แก้ไขรายละเอียดงวดงาน แผนงาน และสถานะของโครงการ</p>
+        <h2 class="index-title">Edit Project Section</h2>
+        <p class="index-subtitle">แก้ไขรายละเอียดส่วนงาน งวดงาน แผนงาน และสถานะของโครงการ</p>
     </div>
 
 </div>
@@ -45,7 +45,7 @@
         <form asp-action="Edit"
               asp-route-id="@(Model?.PhaseId ?? 0)"
               method="post"
-              onsubmit="return confirm('บันทึกการแก้ไข Phase นี้หรือไม่?');">
+              onsubmit="return confirm('บันทึกการแก้ไขส่วนงานนี้หรือไม่?');">
 
             @Html.AntiForgeryToken()
 
@@ -56,17 +56,17 @@
 
                 <!-- Phase Name -->
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">🧩 Phase Name</label>
+                    <label class="form-label fw-semibold">🧩 ชื่อส่วนงาน</label>
                     <input asp-for="PhaseName"
                            class="form-control"
-                           placeholder="Enter phase name" />
+                           placeholder="ระบุชื่อส่วนงาน" />
                     <span asp-validation-for="PhaseName"
                           class="text-danger"></span>
                 </div>
 
                 <!-- Phase Order -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">🔢 Phase Order</label>
+                    <label class="form-label fw-semibold">🔢 ส่วนที่</label>
                     <input asp-for="PhaseOrder"
                            type="number"
                            class="form-control" />
@@ -74,9 +74,19 @@
                           class="text-danger"></span>
                 </div>
 
+                <!-- Period Order -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">📦 งวดที่</label>
+                    <input asp-for="PeriodOrder"
+                           type="number"
+                           class="form-control" />
+                    <span asp-validation-for="PeriodOrder"
+                          class="text-danger"></span>
+                </div>
+
                 <!-- Phase Type -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">🏷 Phase Type</label>
+                    <label class="form-label fw-semibold">🏷 ประเภทส่วนงาน</label>
                     <select asp-for="PhaseType"
                             asp-items="ViewBag.PhaseTypeList"
                             class="form-select"
@@ -101,7 +111,7 @@
                                type="checkbox"
                                id="copyPreviousDatesEdit" />
                         <label class="form-check-label fw-semibold">
-                            ใช้วันที่จาก Phase ก่อนหน้า
+                            ใช้วันที่จากส่วนงานก่อนหน้า
                         </label>
                     </div>
                 </div>

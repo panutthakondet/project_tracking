@@ -8,10 +8,73 @@
     int yearTo = ViewBag.YearTo ?? year;
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
+    string viewMode = ViewBag.ViewMode as string ?? "day";
+    bool isWeeklyMode = string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase);
 
+    var th = new System.Globalization.CultureInfo("th-TH");
     var firstDay = new DateTime(year, month, 1);
     var endDay = new DateTime(yearTo, monthTo, DateTime.DaysInMonth(yearTo, monthTo));
-    var totalDays = (endDay - firstDay).Days + 1;
+    var timelineColumns = new List<(DateTime Start, DateTime End, string YearText, string MonthText, string MainText, string SubText, bool IsToday, bool IsWeekend, bool IsNewYear)>();
+    var columnWidth = isWeeklyMode ? 44 : 40;
+
+    if (isWeeklyMode)
+    {
+        var cursorMonth = new DateTime(year, month, 1);
+        var lastMonth = new DateTime(yearTo, monthTo, 1);
+
+        while (cursorMonth <= lastMonth)
+        {
+            var monthEnd = new DateTime(cursorMonth.Year, cursorMonth.Month, DateTime.DaysInMonth(cursorMonth.Year, cursorMonth.Month));
+
+            for (int weekNo = 1; weekNo <= 4; weekNo++)
+            {
+                var weekStartDay = weekNo switch
+                {
+                    1 => 1,
+                    2 => 8,
+                    3 => 15,
+                    _ => 22
+                };
+                var weekStart = new DateTime(cursorMonth.Year, cursorMonth.Month, weekStartDay);
+                var weekEnd = weekNo < 4 ? weekStart.AddDays(6) : monthEnd;
+
+                timelineColumns.Add((
+                    weekStart,
+                    weekEnd,
+                    (weekStart.Year + 543).ToString(),
+                    weekStart.ToString("MMM", th),
+                    weekNo.ToString(),
+                    $"{weekStart:dd} - {weekEnd:dd}",
+                    DateTime.Today >= weekStart.Date && DateTime.Today <= weekEnd.Date,
+                    false,
+                    weekStart.Month == 1 && weekNo == 1
+                ));
+            }
+
+            cursorMonth = cursorMonth.AddMonths(1);
+        }
+    }
+    else
+    {
+        var totalDays = (endDay - firstDay).Days + 1;
+
+        for (int i = 0; i < totalDays; i++)
+        {
+            var date = firstDay.AddDays(i);
+
+            timelineColumns.Add((
+                date,
+                date,
+                (date.Year + 543).ToString(),
+                date.ToString("MMM", th),
+                date.Day.ToString(),
+                date.ToString("ddd", th),
+                date.Date == DateTime.Today,
+                date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday,
+                date.Month == 1 && date.Day == 1
+            ));
+        }
+    }
 
     string selectedEmpId = Context.Request.Query["empId"].ToString();
 
@@ -81,7 +144,7 @@
                           class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
                           style="width:auto; flex:none;">
 
-                        <input type="hidden" name="year" value="@year" />
+                        <input type="hidden" name="viewMode" value="@viewMode" />
 
                         <label class="fw-bold mb-0 text-nowrap">
                             ผู้รับผิดชอบ
@@ -130,7 +193,7 @@
                             @for (int m = 1; m <= 12; m++)
                             {
                                 <option value="@m" selected="@(month == m)">
-                                    @(new DateTime(year, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("th-TH")))
+                                    @(new DateTime(year, m, 1).ToString("MMMM", th))
                                 </option>
                             }
                             </select>
@@ -158,7 +221,7 @@
                             @for (int m = 1; m <= 12; m++)
                             {
                                 <option value="@m" selected="@(monthTo == m)">
-                                    @(new DateTime(year, m, 1).ToString("MMMM", new System.Globalization.CultureInfo("th-TH")))
+                                    @(new DateTime(year, m, 1).ToString("MMMM", th))
                                 </option>
                             }
                             </select>
@@ -177,39 +240,124 @@
 
             </div>
 
+            <div class="workload-table-topbar">
+                <div class="workload-view-tabs" aria-label="เลือกมุมมอง">
+                    <a class="workload-view-tab @(!isWeeklyMode ? "is-active" : "")"
+                       asp-action="Index"
+                       asp-route-empId="@selectedEmpId"
+                       asp-route-year="@year"
+                       asp-route-month="@month"
+                       asp-route-yearTo="@yearTo"
+                       asp-route-monthTo="@monthTo"
+                       asp-route-viewMode="day">
+                        รายวัน
+                    </a>
+
+                    <a class="workload-view-tab @(isWeeklyMode ? "is-active" : "")"
+                       asp-action="Index"
+                       asp-route-empId="@selectedEmpId"
+                       asp-route-year="@year"
+                       asp-route-month="@month"
+                       asp-route-yearTo="@yearTo"
+                       asp-route-monthTo="@monthTo"
+                       asp-route-viewMode="week">
+                        รายสัปดาห์
+                    </a>
+                </div>
+            </div>
+
             <div class="table-responsive workload-responsive-wrap">
 
                 <table class="table table-bordered align-middle text-center workload-table">
 
-                    <thead>
+                    <thead class="is-grouped @(isWeeklyMode ? "is-weekly" : "is-daily")">
+                        @{
+                            var yearHeaderTones = new[]
+                            {
+                                new { Start = "#e0f7f4", End = "#ccfbf1", Text = "#0f766e", Border = "#8ddfd2" },
+                                new { Start = "#dbeafe", End = "#eff6ff", Text = "#1d4ed8", Border = "#93c5fd" },
+                                new { Start = "#ede9fe", End = "#f5f3ff", Text = "#6d28d9", Border = "#c4b5fd" },
+                                new { Start = "#fef3c7", End = "#fffbeb", Text = "#b45309", Border = "#fcd34d" }
+                            };
+
+                            var monthHeaderTones = new[]
+                            {
+                                new { Head = "#d9f7ef", Body = "#f0fdfa", Text = "#0f766e", Border = "#8ddfd2" },
+                                new { Head = "#dbeafe", Body = "#eff6ff", Text = "#1d4ed8", Border = "#93c5fd" },
+                                new { Head = "#ede9fe", Body = "#f5f3ff", Text = "#6d28d9", Border = "#c4b5fd" },
+                                new { Head = "#fef3c7", Body = "#fffbeb", Text = "#b45309", Border = "#fcd34d" },
+                                new { Head = "#ffe4e6", Body = "#fff1f2", Text = "#be123c", Border = "#fda4af" },
+                                new { Head = "#cffafe", Body = "#ecfeff", Text = "#0e7490", Border = "#67e8f9" },
+                                new { Head = "#dcfce7", Body = "#f0fdf4", Text = "#15803d", Border = "#86efac" },
+                                new { Head = "#f1f5f9", Body = "#f8fafc", Text = "#334155", Border = "#cbd5e1" }
+                            };
+
+                            var timelineYearGroups = timelineColumns
+                                .GroupBy(column => column.Start.Year)
+                                .Select((group, index) => new
+                                {
+                                    YearText = (group.Key + 543).ToString(),
+                                    Count = group.Count(),
+                                    Tone = yearHeaderTones[index % yearHeaderTones.Length]
+                                })
+                                .ToList();
+
+                            var timelineMonthGroups = timelineColumns
+                                .GroupBy(column => new { column.Start.Year, column.Start.Month })
+                                .Select((group, index) => new
+                                {
+                                    group.Key.Year,
+                                    group.Key.Month,
+                                    MonthText = group.First().Start.ToString("MMM", th),
+                                    Count = group.Count(),
+                                    Tone = monthHeaderTones[index % monthHeaderTones.Length]
+                                })
+                                .ToList();
+
+                            var monthToneMap = timelineMonthGroups
+                                .ToDictionary(
+                                    group => $"{group.Year}-{group.Month}",
+                                    group => group.Tone);
+                        }
+
                         <tr>
-                            <th class="sticky-employee-col" style="min-width:320px; width:320px;">
+                            <th class="sticky-employee-col grouped-sticky-employee" rowspan="3" style="min-width:320px; width:320px;">
                                 ผู้รับผิดชอบ
                             </th>
 
-                            @for (int i = 0; i < totalDays; i++)
+                            @foreach (var yearGroup in timelineYearGroups)
                             {
-                                var date = firstDay.AddDays(i);
-                                bool isToday = date.Date == DateTime.Today;
-                                bool isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
-                                bool isNewYear = date.Month == 1 && date.Day == 1;
+                                <th class="workload-year-header"
+                                    colspan="@yearGroup.Count"
+                                    style="--year-start:@yearGroup.Tone.Start; --year-end:@yearGroup.Tone.End; --year-text:@yearGroup.Tone.Text; --year-border:@yearGroup.Tone.Border;">
+                                    @yearGroup.YearText
+                                </th>
+                            }
+                        </tr>
 
-                                <th class="@(isToday ? "today-column-header" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")"
-                                    style="min-width:40px; width:40px; position:relative;">
+                        <tr>
+                            @foreach (var monthGroup in timelineMonthGroups)
+                            {
+                                <th class="workload-month-header"
+                                    colspan="@monthGroup.Count"
+                                    style="--month-head:@monthGroup.Tone.Head; --month-body:@monthGroup.Tone.Body; --month-text:@monthGroup.Tone.Text; --month-border:@monthGroup.Tone.Border;">
+                                    @monthGroup.MonthText
+                                </th>
+                            }
+                        </tr>
 
-                                    <div style="font-size:9px;color:#64748b;line-height:1; margin-bottom:2px;">
-                                        @(date.Year + 543)
-                                    </div>
+                        <tr>
+                            @foreach (var column in timelineColumns)
+                            {
+                                var titleText = isWeeklyMode
+                                    ? $"{column.Start:dd/MM/yyyy} - {column.End:dd/MM/yyyy}"
+                                    : $"{column.Start:dd/MM/yyyy} {column.SubText}";
+                                var monthTone = monthToneMap[$"{column.Start.Year}-{column.Start.Month}"];
 
-                                    <div style="font-size:10px;font-weight:700;color:#2563eb;line-height:1; margin-bottom:2px; white-space:nowrap;">
-                                        @date.ToString("MMM", new System.Globalization.CultureInfo("th-TH"))
-                                    </div>
-
-                                    <div>@date.Day</div>
-
-                                    <small class="text-muted" style="font-size:10px;">
-                                        @date.ToString("ddd")
-                                    </small>
+                                <th class="timeline-header @(isWeeklyMode ? "week-column-header" : "day-column-header") @(column.IsToday ? "today-column-header" : "") @(column.IsWeekend ? "weekend-column" : "") @(column.IsNewYear ? "newyear-column" : "")"
+                                    title="@titleText"
+                                    style="min-width:@(columnWidth)px; width:@(columnWidth)px; position:relative; --month-head:@monthTone.Head; --month-body:@monthTone.Body; --month-text:@monthTone.Text; --month-border:@monthTone.Border;">
+                                    @column.MainText
                                 </th>
                             }
                         </tr>
@@ -279,21 +427,17 @@
                                         }
                                     </td>
 
-                                    @for (int i = 0; i < totalDays; i++)
+                                    @foreach (var column in timelineColumns)
                                     {
-                                        var currentDate = firstDay.AddDays(i);
-                                        bool isToday = currentDate.Date == DateTime.Today;
-                                        bool isWeekend = currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday;
-                                        bool isNewYear = currentDate.Month == 1 && currentDate.Day == 1;
-
                                         bool isWorking = work.StartDate.HasValue
                                             && work.EndDate.HasValue
-                                            && currentDate >= work.StartDate.Value
-                                            && currentDate <= work.EndDate.Value;
+                                            && work.StartDate.Value.Date <= column.End.Date
+                                            && work.EndDate.Value.Date >= column.Start.Date;
 
                                         string bgColor = WorkStatusColor(work.WorkState);
 
-                                        <td class="timeline-cell p-0 align-middle @(isToday ? "today-column" : "") @(isWeekend ? "weekend-column" : "") @(isNewYear ? "newyear-column" : "")">
+                                        <td class="timeline-cell p-0 align-middle @(isWeeklyMode ? "week-column-cell" : "") @(column.IsToday ? "today-column" : "") @(column.IsWeekend ? "weekend-column" : "") @(column.IsNewYear ? "newyear-column" : "")"
+                                            style="min-width:@(columnWidth)px; width:@(columnWidth)px;">
                                             @if (isWorking)
                                             {
                                                 <a href="@work.Url"
@@ -322,6 +466,7 @@
 
 </div>
 
+@section Styles {
 <style>
     .workload-table th {
         background: linear-gradient(180deg,#f8fafc,#eef2f7);
@@ -344,7 +489,11 @@
     }
 
     .workload-table {
+        width: max-content !important;
         min-width: max-content;
+        table-layout: fixed;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
     }
 
     .timeline-cell {
@@ -357,6 +506,96 @@
         position: relative;
         border-left: 1px solid #edf1f5 !important;
         border-right: 1px solid #edf1f5 !important;
+    }
+
+    .timeline-header.week-column-header {
+        min-width: 44px;
+        width: 44px;
+    }
+
+    .timeline-header.day-column-header {
+        min-width: 40px;
+        width: 40px;
+    }
+
+    .week-column-cell {
+        min-width: 44px;
+        width: 44px;
+    }
+
+    .workload-table thead.is-grouped th {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        color: #111827;
+        padding: 0 !important;
+        line-height: 1 !important;
+        min-height: 0 !important;
+        position: static !important;
+        text-align: center;
+        box-shadow: none;
+    }
+
+    .workload-table thead.is-grouped tr:nth-child(1) {
+        height: 26px;
+    }
+
+    .workload-table thead.is-grouped tr:nth-child(2) {
+        height: 30px;
+    }
+
+    .workload-table thead.is-grouped tr:nth-child(3) {
+        height: 28px;
+    }
+
+    .workload-table thead.is-grouped .workload-year-header {
+        height: 26px;
+        background: linear-gradient(180deg, var(--year-start, #e0f7f4) 0%, var(--year-end, #ccfbf1) 100%) !important;
+        border-color: var(--year-border, #8ddfd2) !important;
+        color: var(--year-text, #0f766e);
+        font-size: 15px;
+        font-weight: 900;
+        z-index: 12;
+    }
+
+    .workload-table thead.is-grouped .workload-month-header {
+        height: 30px;
+        background: var(--month-head, #e0f7f4) !important;
+        border-color: var(--month-border, #cbd5e1) !important;
+        color: var(--month-text, #0f766e);
+        font-size: 14px;
+        font-weight: 900;
+        z-index: 12;
+    }
+
+    .workload-table thead.is-grouped .week-column-header,
+    .workload-table thead.is-grouped .day-column-header {
+        height: 28px;
+        background: var(--month-body, #f7fbfc) !important;
+        border-color: var(--month-border, #cbd5e1) !important;
+        color: var(--month-text, #102443);
+        font-size: 13px;
+        font-weight: 900;
+        z-index: 12;
+    }
+
+    .workload-table thead.is-grouped .grouped-sticky-employee {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef6f8 100%) !important;
+        border-color: #cbd5e1 !important;
+        color: #102443;
+        vertical-align: middle !important;
+        position: sticky !important;
+        left: 0;
+        top: auto !important;
+        height: 84px;
+        font-size: 14px;
+        z-index: 24 !important;
+    }
+
+    .workload-table thead.is-grouped .today-column-header {
+        background: #d9f7ef !important;
+        color: #0f766e;
+        box-shadow: inset 0 0 0 2px #0f766e;
     }
 
     .workload-table tbody tr td {
@@ -497,6 +736,53 @@
         gap: 8px;
     }
 
+    .workload-table-topbar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        margin: 4px 0 8px;
+    }
+
+    .workload-view-tabs {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        margin: 0;
+        padding: 4px;
+        border: 1px solid #d8e3ef;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(15, 35, 64, .08);
+        white-space: nowrap;
+    }
+
+    .workload-view-tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 86px;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 999px;
+        color: #102443;
+        font-size: 13px;
+        font-weight: 900;
+        text-decoration: none;
+        transition: .15s ease;
+    }
+
+    .workload-view-tab:hover {
+        color: #0f766e;
+        background: rgba(20, 184, 166, .10);
+    }
+
+    .workload-view-tab.is-active {
+        color: #062b2f;
+        background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%);
+        box-shadow: 0 8px 16px rgba(15, 118, 110, .20);
+    }
+
     .workload-status-row {
         display: flex;
         align-items: center;
@@ -557,6 +843,12 @@
     width: 120px !important;
     min-width: 120px !important;
     flex-basis: 120px !important;
+}
+
+.workload-filter-control.is-mode {
+    width: 150px !important;
+    min-width: 150px !important;
+    flex-basis: 150px !important;
 }
 
 .workload-filter-control.is-employee {
@@ -656,6 +948,12 @@
     .filter-toolbar {
         overflow: visible !important;
         white-space: normal !important;
+    }
+
+    .workload-table-topbar {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 4px;
     }
 
     .employee-filter-wrap {
@@ -822,4 +1120,6 @@ main.route-controller-phaseworkload {
         min-width: 16px !important;
         width: 16px !important;
     }
+}
+</style>
 }

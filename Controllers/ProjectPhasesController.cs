@@ -55,8 +55,9 @@ namespace ProjectTracking.Controllers
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
                 .Where(p => p.ProjectId == projectId)
-                // ✅ เรียงตาม phase_sort (ถ้าเป็น 0 ให้ไปท้าย) แล้วค่อยตาม phase_id
-                .OrderBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                .OrderBy(p => p.PhaseOrder)
+                .ThenBy(p => p.PeriodOrder)
+                .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
                 .ThenBy(p => p.PhaseId)
                 .ToListAsync();
 
@@ -79,7 +80,7 @@ namespace ProjectTracking.Controllers
             if (project == null)
                 return RedirectToAction(nameof(Index));
 
-            // 🔥 หา Phase ล่าสุดด้วย PhaseId
+            // หา section/period ล่าสุดด้วย PhaseId
             var lastPhase = await _context.ProjectPhases
                 .AsNoTracking()
                 .Where(p => p.ProjectId == projectId)
@@ -98,7 +99,9 @@ namespace ProjectTracking.Controllers
             return View(new ProjectPhase
             {
                 ProjectId = project.ProjectId,
-                PhaseType = "MAIN"
+                PhaseType = "MAIN",
+                PhaseOrder = lastPhase?.PhaseOrder ?? 1,
+                PeriodOrder = (lastPhase?.PeriodOrder ?? 0) + 1
             });
         }
 
@@ -170,6 +173,12 @@ namespace ProjectTracking.Controllers
                 ModelState.AddModelError("ProjectId", "กรุณาเลือก Project");
             }
 
+            if (phase.PhaseOrder <= 0)
+                ModelState.AddModelError("PhaseOrder", "กรุณาระบุส่วนงาน");
+
+            if (phase.PeriodOrder <= 0)
+                ModelState.AddModelError("PeriodOrder", "กรุณาระบุงวดงาน");
+
             if (!ModelState.IsValid)
             {
                 var project = await _context.Projects
@@ -226,7 +235,7 @@ namespace ProjectTracking.Controllers
 
             phase.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
 
-            // 🔥 หา Phase ก่อนหน้าตาม phase_id
+            // หาส่วนงานก่อนหน้าตาม phase_id
             var previousPhase = await _context.ProjectPhases
                 .AsNoTracking()
                 .Where(p => p.ProjectId == phase.ProjectId &&
@@ -266,6 +275,12 @@ namespace ProjectTracking.Controllers
             ModelState.Remove("ActualStart");
             ModelState.Remove("ActualEnd");
 
+            if (phase.PhaseOrder <= 0)
+                ModelState.AddModelError("PhaseOrder", "กรุณาระบุส่วนงาน");
+
+            if (phase.PeriodOrder <= 0)
+                ModelState.AddModelError("PeriodOrder", "กรุณาระบุงวดงาน");
+
             if (!ModelState.IsValid)
             {
                 ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
@@ -280,6 +295,7 @@ namespace ProjectTracking.Controllers
             existing.PhaseName = phase.PhaseName;
             existing.PhaseType = phase.PhaseType;
             existing.PhaseOrder = phase.PhaseOrder;
+            existing.PeriodOrder = phase.PeriodOrder;
             existing.PlanStart = phase.PlanStart;
             existing.PlanEnd = phase.PlanEnd;
             existing.ActualStart = phase.ActualStart;
@@ -287,6 +303,15 @@ namespace ProjectTracking.Controllers
             existing.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
             existing.CreatedAt = DateTime.Now;
             existing.EntryId = await GetCurrentEntryIdAsync();
+
+            var linkedAssigns = await _context.PhaseAssigns
+                .Where(a => a.PhaseId == existing.PhaseId)
+                .ToListAsync();
+
+            foreach (var assign in linkedAssigns)
+            {
+                assign.PhaseOrder = existing.PhaseOrder;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -307,7 +332,7 @@ namespace ProjectTracking.Controllers
 
             if (phase == null)
             {
-                TempData["Error"] = "ไม่พบ Phase ที่ต้องการลบ";
+                TempData["Error"] = "ไม่พบส่วนงานที่ต้องการลบ";
                 // ถ้า projectId ไม่ถูกส่งมา ก็ยังกลับไปหน้า Index ได้ (จะเป็น list ว่าง)
                 return RedirectToAction(nameof(Index), new { projectId });
             }
@@ -352,14 +377,14 @@ namespace ProjectTracking.Controllers
                     TempData["Error"] = "ลบไม่สำเร็จ: ไม่พบแถวที่ถูกลบ (0 rows affected)";
                 else
                     TempData["Success"] = assigns.Count > 0
-                        ? $"ลบ Phase และลบ Assign ที่เกี่ยวข้อง {assigns.Count} รายการเรียบร้อยแล้ว"
-                        : "ลบ Phase เรียบร้อยแล้ว";
+                        ? $"ลบส่วนงานและลบ Assign ที่เกี่ยวข้อง {assigns.Count} รายการเรียบร้อยแล้ว"
+                        : "ลบส่วนงานเรียบร้อยแล้ว";
 
                 return RedirectToAction(nameof(Index), new { projectId = realProjectId });
             }
             catch (DbUpdateException)
             {
-                TempData["Error"] = "ลบไม่ได้: มีข้อมูลอื่นอ้างอิง Phase นี้อยู่ กรุณาตรวจสอบความสัมพันธ์ของข้อมูลก่อน";
+                TempData["Error"] = "ลบไม่ได้: มีข้อมูลอื่นอ้างอิงส่วนงานนี้อยู่ กรุณาตรวจสอบความสัมพันธ์ของข้อมูลก่อน";
                 return RedirectToAction(nameof(Index), new { projectId = realProjectId });
             }
         }

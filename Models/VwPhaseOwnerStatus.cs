@@ -21,6 +21,9 @@ namespace ProjectTracking.Models
         [Column("phase_order")]
         public int PhaseOrder { get; set; }
 
+        [NotMapped]
+        public int PeriodOrder { get; set; } = 1;
+
         // ================= Employee =================
         [Column("emp_id")]
         public int EmpId { get; set; }

@@ -95,6 +95,77 @@ namespace ProjectTracking.ViewModels
         public int Percent { get; set; }
     }
 
+    public class TaskProgressReportViewModel
+    {
+        public DateTime GeneratedAt { get; set; }
+        public string GeneratedBy { get; set; } = "";
+        public int Year { get; set; }
+        public int? ProjectId { get; set; }
+        public int? EmpId { get; set; }
+        public string Status { get; set; } = "";
+        public List<int> YearOptions { get; set; } = new();
+        public List<ProjectReportOptionViewModel> ProjectOptions { get; set; } = new();
+        public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public TaskProgressSummaryViewModel Summary { get; set; } = new();
+        public List<TaskProgressMonthViewModel> Months { get; set; } = new();
+        public List<TaskProgressReportRowViewModel> Rows { get; set; } = new();
+    }
+
+    public class TaskProgressSummaryViewModel
+    {
+        public int Total { get; set; }
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Pending { get; set; }
+        public int Projects { get; set; }
+        public int Employees { get; set; }
+    }
+
+    public class TaskProgressMonthViewModel
+    {
+        public int Month { get; set; }
+        public string MonthName { get; set; } = "";
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Pending { get; set; }
+        public int Total => Completed + InProgress + Pending;
+    }
+
+    public class TaskProgressReportRowViewModel
+    {
+        public int Seq { get; set; }
+        public int AssignId { get; set; }
+        public int ProjectId { get; set; }
+        public int EmpId { get; set; }
+        public string ProjectName { get; set; } = "";
+        public string EmployeeName { get; set; } = "";
+        public string PhaseName { get; set; } = "";
+        public string PhasePeriodLabel { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string StatusCategory { get; set; } = "";
+        public string StatusText { get; set; } = "";
+        public string StatusTone { get; set; } = "";
+        public DateTime? PlanStart { get; set; }
+        public DateTime? PlanEnd { get; set; }
+        public DateTime? PeriodStart { get; set; }
+        public DateTime? PeriodEnd { get; set; }
+        public DateTime? BucketDate { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; } = "";
+    }
+
+    public class ProjectReportOptionViewModel
+    {
+        public int ProjectId { get; set; }
+        public string ProjectName { get; set; } = "";
+    }
+
+    public class EmployeeReportOptionViewModel
+    {
+        public int EmpId { get; set; }
+        public string EmpName { get; set; } = "";
+    }
+
     public class MeetingReportRowViewModel
     {
         public int Id { get; set; }

@@ -4,7 +4,12 @@
 @{
     Layout = null;
     var th = new CultureInfo("th-TH");
-    var assignments = Model?.ToList() ?? new List<ProjectTracking.Models.PhaseAssign>();
+    var assignments = (Model ?? Enumerable.Empty<ProjectTracking.Models.PhaseAssign>())
+        .OrderBy(a => a.Phase?.PhaseOrder ?? a.PhaseOrder ?? int.MaxValue)
+        .ThenBy(a => a.Phase?.PeriodOrder ?? int.MaxValue)
+        .ThenBy(a => a.PhaseSort ?? int.MaxValue)
+        .ThenBy(a => a.AssignId)
+        .ToList();
 
     var doneCount = assignments.Count(a => string.Equals(a.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase));
     var progressCount = assignments.Count(a => string.Equals(a.WorkStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
@@ -62,6 +67,11 @@
     string PhaseName(ProjectTracking.Models.PhaseAssign a)
     {
         return string.IsNullOrWhiteSpace(a.Phase?.PhaseName) ? "-" : a.Phase.PhaseName;
+    }
+
+    string PhasePeriod(ProjectTracking.Models.PhaseAssign a)
+    {
+        return a.Phase == null ? "-" : $"ส่วนที่ {a.Phase.PhaseOrder} / งวดที่ {a.Phase.PeriodOrder}";
     }
 }
 
@@ -329,6 +339,31 @@
             .no-print,
             .report-actions,
             .filter-panel { display: none !important; }
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
         }
@@ -442,7 +477,8 @@
                 <tr>
                     <th style="width:42px;">Seq</th>
                     <th style="width:170px;">Employee</th>
-                    <th>Phase</th>
+                    <th style="width:100px;">ส่วน / งวด</th>
+                    <th>ส่วนงาน</th>
                     <th style="width:170px;">Role</th>
                     <th style="width:92px;">Status</th>
                     <th style="width:150px;">Plan Date</th>
@@ -463,6 +499,7 @@
                 <tr>
                     <td class="text-center">@seq</td>
                     <td>@(assignment.Employee != null ? assignment.Employee.EmpName : "-")</td>
+                    <td class="text-center">@PhasePeriod(assignment)</td>
                     <td>@PhaseName(assignment)</td>
                     <td>@(string.IsNullOrWhiteSpace(assignment.Role) ? "-" : assignment.Role)</td>
                     <td class="text-center">

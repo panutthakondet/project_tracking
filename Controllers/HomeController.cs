@@ -198,6 +198,9 @@ namespace ProjectTracking.Controllers
                     PhaseStatus = p.PhaseStatus,
                     PlanStart = p.PlanStart,
                     PlanEnd = p.PlanEnd,
+                    SubmittedDate = p.SubmittedDate,
+                    PeriodStartDate = p.PeriodStartDate,
+                    PeriodEndDate = p.PeriodEndDate,
                     CreatedAt = p.CreatedAt,
                     EntryId = p.EntryId
                 })
@@ -294,10 +297,32 @@ namespace ProjectTracking.Controllers
                     StartTime = m.StartTime,
                     Location = m.Location,
                     CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
                     CreatedBy = m.CreatedBy,
                     ProjectName = p != null ? p.ProjectName : null
                 }
             ).ToListAsync();
+
+            var recentMeetings = await (
+                from m in _context.Meetings.AsNoTracking()
+                join p in _context.Projects.AsNoTracking()
+                    on m.ProjectId equals p.ProjectId into projectJoin
+                from p in projectJoin.DefaultIfEmpty()
+                orderby m.CreatedAt descending
+                select new DashboardMeetingRow
+                {
+                    Id = m.Id,
+                    Title = m.Title,
+                    StartTime = m.StartTime,
+                    Location = m.Location,
+                    CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
+                    CreatedBy = m.CreatedBy,
+                    ProjectName = p != null ? p.ProjectName : null
+                }
+            )
+            .Take(50)
+            .ToListAsync();
 
             var currentAndPreviousMonthAttendance = await _context.Attendances
                 .AsNoTracking()
@@ -391,6 +416,21 @@ namespace ProjectTracking.Controllers
                 new() { Name = "Cancelled", Color = "pink", Points = BuildPolyline(monthlyPoints.Select(m => m.Cancelled).ToList(), maxMonthlyValue) }
             };
 
+            var projectOverviewProjects = projects
+                .OrderBy(p => ProjectOverviewSort(p.Status))
+                .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
+                .ThenBy(p => p.ProjectName)
+                .Select(p => new HomeDashboardProjectOverviewItem
+                {
+                    ProjectId = p.ProjectId,
+                    ProjectName = p.ProjectName,
+                    StatusText = ProjectStatusText(p.Status),
+                    StatusColor = ProjectActivityColor(p.Status),
+                    StartText = FormatDashboardDate(p.StartDate, th),
+                    EndText = FormatDashboardDate(p.EndDate, th)
+                })
+                .ToList();
+
             var topProjectProgress = projects
                 .Select((project, index) =>
                 {
@@ -461,8 +501,8 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
-            var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, todayMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
-            var yearlyTasks = BuildYearlyTasks(assigns, phases, today);
+            var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
+            var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, today);
             var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
             var teamWorkload = BuildTeamWorkload(assigns, issues, employees, EmployeeName, EmployeeAvatar);
@@ -489,10 +529,12 @@ namespace ProjectTracking.Controllers
                 ProjectOverviewSeries = overviewSeries,
                 ProjectOverviewMonths = monthlyPoints,
                 ProjectOverviewTooltip = monthlyPoints.ElementAtOrDefault(Math.Clamp(today.Month - 1, 0, 11)),
+                ProjectOverviewProjects = projectOverviewProjects,
                 TopProjectProgress = topProjectProgress,
                 RecentActivities = recentActivities,
                 TodayMeetings = meetingCards,
                 YearlyTasks = yearlyTasks,
+                YearlyTaskAxisMax = yearlyTaskAxisMax,
                 WatchProjects = watchProjects,
                 TeamWorkload = teamWorkload,
                 MonthWorkHours = timeSummary.MonthWorkHours,
@@ -575,6 +617,7 @@ namespace ProjectTracking.Controllers
                     StartTime = m.StartTime,
                     Location = m.Location,
                     CreatedAt = m.CreatedAt,
+                    UpdatedAt = m.UpdatedAt,
                     CreatedBy = m.CreatedBy,
                     ProjectName = p != null ? p.ProjectName : null
                 }
@@ -921,19 +964,25 @@ namespace ProjectTracking.Controllers
                     })));
 
             activities.AddRange(meetings
-                .Where(m => m.CreatedAt > DateTime.MinValue.AddYears(1))
-                .Select(m => (
-                    m.CreatedAt,
-                    new HomeDashboardActivity
-                    {
-                        Actor = employeeName(m.CreatedBy),
-                        Detail = $"สร้างการประชุม: {m.Title}",
-                        OwnerText = $"เจ้าของงาน: {employeeName(m.CreatedBy)}",
-                        TimeText = RelativeTimeThai(m.CreatedAt, now),
-                        Color = "blue",
-                        AvatarPath = employeeAvatar(m.CreatedBy),
-                        Url = $"/Meetings/Show/{m.Id}"
-                    })));
+                .Where(m => (m.UpdatedAt ?? m.CreatedAt) > DateTime.MinValue.AddYears(1))
+                .Select(m =>
+                {
+                    var activityAt = m.UpdatedAt ?? m.CreatedAt;
+                    var isUpdated = m.UpdatedAt.HasValue && m.UpdatedAt.Value > m.CreatedAt.AddSeconds(1);
+
+                    return (
+                        activityAt,
+                        new HomeDashboardActivity
+                        {
+                            Actor = employeeName(m.CreatedBy),
+                            Detail = $"{(isUpdated ? "อัปเดต" : "สร้าง")}การประชุม: {m.Title}",
+                            OwnerText = $"เจ้าของงาน: {employeeName(m.CreatedBy)}",
+                            TimeText = RelativeTimeThai(activityAt, now),
+                            Color = "blue",
+                            AvatarPath = employeeAvatar(m.CreatedBy),
+                            Url = $"/Meetings/Show/{m.Id}"
+                        });
+                }));
 
             return activities
                 .OrderByDescending(x => x.createdAt)
@@ -945,9 +994,13 @@ namespace ProjectTracking.Controllers
         private static List<HomeDashboardTaskPeriod> BuildYearlyTasks(
             IReadOnlyList<DashboardAssignRow> assigns,
             IReadOnlyList<DashboardPhaseRow> phases,
-            DateTime today)
+            DateTime today,
+            out int axisMax)
         {
             var th = new CultureInfo("th-TH");
+            var phaseById = phases
+                .GroupBy(p => p.PhaseId)
+                .ToDictionary(g => g.Key, g => g.First());
 
             var rows = Enumerable.Range(1, 12)
                 .Select(month =>
@@ -956,24 +1009,29 @@ namespace ProjectTracking.Controllers
                     var nextMonthStart = monthStart.AddMonths(1);
                     var completed = assigns.Count(a =>
                     {
-                        var date = AssignBucketDate(a)?.Date;
+                        if (!phaseById.TryGetValue(a.PhaseId, out var phase)) return false;
+                        var date = AssignPhaseBucketDate(a, phase)?.Date;
                         return date >= monthStart &&
                                date < nextMonthStart &&
-                               Norm(a.WorkStatus) == "DONE";
+                               IsPhaseDone(phase.PhaseStatus);
                     });
                     var inProgress = assigns.Count(a =>
                     {
-                        var date = AssignBucketDate(a)?.Date;
+                        if (!phaseById.TryGetValue(a.PhaseId, out var phase)) return false;
+                        var date = AssignPhaseBucketDate(a, phase)?.Date;
+                        var status = Norm(phase.PhaseStatus);
                         return date >= monthStart &&
                                date < nextMonthStart &&
-                               Norm(a.WorkStatus) != "DONE";
+                               (status == "กำลังดำเนินการ" || status == "IN_PROGRESS");
                     });
-                    var pending = phases.Count(p =>
+                    var pending = assigns.Count(a =>
                     {
-                        var date = (p.PlanStart?.Date ?? p.PlanEnd?.Date);
+                        if (!phaseById.TryGetValue(a.PhaseId, out var phase)) return false;
+                        var date = AssignPhaseBucketDate(a, phase)?.Date;
+                        var status = Norm(phase.PhaseStatus);
                         return date >= monthStart &&
                                date < nextMonthStart &&
-                               Norm(p.PhaseStatus) == "วางแผน";
+                               (status == "วางแผน" || status == "PENDING" || status == "PLAN");
                     });
 
                     return new HomeDashboardTaskPeriod
@@ -986,16 +1044,13 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
-            var maxValue = rows
-                .SelectMany(r => new[] { r.Completed, r.InProgress, r.Pending })
-                .DefaultIfEmpty(0)
-                .Max();
+            axisMax = 30;
 
             foreach (var row in rows)
             {
-                row.CompletedHeight = HeightFromValue(row.Completed, maxValue);
-                row.InProgressHeight = HeightFromValue(row.InProgress, maxValue);
-                row.PendingHeight = HeightFromValue(row.Pending, maxValue);
+                row.CompletedHeight = HeightFromValue(row.Completed, axisMax);
+                row.InProgressHeight = HeightFromValue(row.InProgress, axisMax);
+                row.PendingHeight = HeightFromValue(row.Pending, axisMax);
             }
 
             return rows;
@@ -1387,9 +1442,16 @@ namespace ProjectTracking.Controllers
             return (decimal)(checkout.Value - checkin.Value).TotalHours;
         }
 
-        private static DateTime? AssignBucketDate(DashboardAssignRow assign)
+        private static DateTime? PhaseBucketDate(DashboardPhaseRow phase)
         {
-            return assign.PlanEnd ?? assign.PlanStart;
+            return IsPhaseDone(phase.PhaseStatus)
+                ? phase.SubmittedDate ?? phase.PlanEnd ?? phase.PlanStart ?? phase.PeriodEndDate ?? phase.PeriodStartDate ?? phase.CreatedAt
+                : phase.PlanStart ?? phase.PlanEnd ?? phase.PeriodStartDate ?? phase.PeriodEndDate ?? phase.CreatedAt;
+        }
+
+        private static DateTime? AssignPhaseBucketDate(DashboardAssignRow assign, DashboardPhaseRow phase)
+        {
+            return assign.PlanEnd ?? assign.PlanStart ?? PhaseBucketDate(phase);
         }
 
         private static int HeightFromValue(int value, int maxValue)
@@ -1398,10 +1460,22 @@ namespace ProjectTracking.Controllers
             return Math.Clamp((int)Math.Round(value * 100m / maxValue), 12, 100);
         }
 
+        private static int NiceChartMax(int maxValue)
+        {
+            if (maxValue <= 0) return 4;
+            if (maxValue <= 4) return 4;
+            if (maxValue <= 10) return 10;
+            if (maxValue <= 20) return 20;
+            if (maxValue <= 50) return 50;
+            if (maxValue <= 100) return (int)Math.Ceiling(maxValue / 10m) * 10;
+            if (maxValue <= 500) return (int)Math.Ceiling(maxValue / 50m) * 50;
+            return (int)Math.Ceiling(maxValue / 100m) * 100;
+        }
+
         private static bool IsPhaseDone(string? status)
         {
             var normalized = Norm(status);
-            return normalized is "ส่งงวดงานแล้ว" or "DONE";
+            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
         }
 
         private static bool IsIssueResolved(DashboardIssueRow issue)
@@ -1530,6 +1604,35 @@ namespace ProjectTracking.Controllers
             return value.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
+        private static string FormatDashboardDate(DateTime? date, CultureInfo culture)
+        {
+            return date?.ToString("dd MMM yyyy", culture) ?? "-";
+        }
+
+        private static int ProjectOverviewSort(string? status)
+        {
+            return Norm(status).Replace(" ", "_").Replace("-", "_") switch
+            {
+                "IN_PROGRESS" => 1,
+                "PLAN" => 2,
+                "DONE" => 3,
+                "CANCELLED" => 4,
+                _ => 5
+            };
+        }
+
+        private static string ProjectStatusText(string? status)
+        {
+            return Norm(status) switch
+            {
+                "DONE" => "Completed",
+                "IN_PROGRESS" => "In Progress",
+                "PLAN" => "Pending",
+                "CANCELLED" => "Cancelled",
+                _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+            };
+        }
+
         private sealed class DashboardProjectRow
         {
             public int ProjectId { get; set; }
@@ -1551,6 +1654,9 @@ namespace ProjectTracking.Controllers
             public string? PhaseStatus { get; set; }
             public DateTime? PlanStart { get; set; }
             public DateTime? PlanEnd { get; set; }
+            public DateTime? SubmittedDate { get; set; }
+            public DateTime? PeriodStartDate { get; set; }
+            public DateTime? PeriodEndDate { get; set; }
             public DateTime? CreatedAt { get; set; }
             public int? EntryId { get; set; }
         }
@@ -1624,6 +1730,7 @@ namespace ProjectTracking.Controllers
             public TimeSpan StartTime { get; set; }
             public string? Location { get; set; }
             public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
             public int? CreatedBy { get; set; }
             public string? ProjectName { get; set; }
         }

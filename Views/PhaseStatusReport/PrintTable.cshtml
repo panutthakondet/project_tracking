@@ -7,6 +7,7 @@
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
         .OrderBy(x => x.ProjectName)
         .ThenBy(x => x.PhaseOrder)
+        .ThenBy(x => x.PeriodOrder)
         .ThenBy(x => x.PhaseId)
         .ThenBy(x => x.EmpName)
         .ToList();
@@ -51,7 +52,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Phase Owner Status Report</title>
+    <title>Section Owner Status Report</title>
     <style>
         * {
             box-sizing: border-box;
@@ -207,6 +208,34 @@
                 border-radius: 0;
             }
 
+            h2, h3,
+            .project-group-row,
+            .scenario-project__header,
+            .scenario-group__header,
+            .phase-project-group {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+
+            h2 + table,
+            h2 + .empty,
+            h2 + .report-table-scroll,
+            h3 + table,
+            h3 + .empty,
+            .project-group-row + tr {
+                break-before: avoid;
+                page-break-before: avoid;
+            }
+
+            .report-section,
+            .scenario-project,
+            .scenario-group,
+            .project-group-row,
+            .phase-project-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+
             thead {
                 display: table-header-group;
             }
@@ -239,7 +268,7 @@
                 <thead>
                     <tr>
                         <th style="width:42px;">Seq</th>
-                        <th style="width:54px;">Order</th>
+                        <th style="width:82px;">ส่วน / งวด</th>
                         <th style="width:150px;">Employee / Status</th>
                         <th style="width:220px;">Role</th>
                         <th style="width:150px;">Project Period</th>
@@ -277,7 +306,7 @@
                         {
                             <tr>
                                 <td class="text-center">@seq</td>
-                                <td class="text-center">@row.PhaseOrder</td>
+                                <td class="text-center">ส่วนที่ @row.PhaseOrder / งวดที่ @row.PeriodOrder</td>
                                 <td>
                                     <strong>@row.EmpName</strong><br />
                                     <span class="@StatusTextClass(row.PhaseStatus)">
