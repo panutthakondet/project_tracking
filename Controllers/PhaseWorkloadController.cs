@@ -106,6 +106,7 @@ namespace ProjectTracking.Controllers
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
                     ProjectId = x.Phase?.ProjectId ?? 0,
                     ProjectName = x.Phase?.Project?.ProjectName ?? "-",
+                    PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
                     Title = x.Role ?? x.Phase?.PhaseName ?? "-",
                     Detail = x.Phase?.PhaseName ?? "-",
                     StartDate = x.PlanStart,
