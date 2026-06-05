@@ -104,6 +104,9 @@ namespace ProjectTracking.Controllers
             }
 
             // ✅ สร้าง session หลังผ่านเงื่อนไขทั้งหมด
+            user.LastSeenAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
             HttpContext.Session.SetInt32("UserId", user.UserId);
             HttpContext.Session.SetString("Username", user.Username ?? "");
             HttpContext.Session.SetString("Role", user.Role ?? "");
@@ -141,10 +144,41 @@ namespace ProjectTracking.Controllers
         // LOGOUT
         // =====================
         [HttpGet]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId.HasValue)
+            {
+                var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.UserId == userId.Value);
+                if (user != null)
+                {
+                    user.LastSeenAt = null;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> KeepAlive()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return Unauthorized();
+
+            await TouchLastSeenAsync(userId.Value);
+            return Ok(new { ok = true });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckSession()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return Unauthorized();
+
+            await TouchLastSeenAsync(userId.Value);
+            return Ok(new { ok = true });
         }
 
         [HttpGet]
@@ -299,6 +333,15 @@ namespace ProjectTracking.Controllers
             {
                 // Notification sync should not block login.
             }
+        }
+
+        private async Task TouchLastSeenAsync(int userId)
+        {
+            var user = await _context.LoginUsers.FirstOrDefaultAsync(x => x.UserId == userId);
+            if (user == null) return;
+
+            user.LastSeenAt = DateTime.Now;
+            await _context.SaveChangesAsync();
         }
 
         private static string ResolveProfileImagePath(string? profileImagePath)

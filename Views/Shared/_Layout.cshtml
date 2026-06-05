@@ -1312,7 +1312,8 @@
 .v2-shell-standalone main > .container,
 .v2-shell-standalone main > .container-fluid,
 .v2-shell-standalone .meeting-page,
-.v2-shell-standalone .phase-calendar-page{
+.v2-shell-standalone .phase-calendar-page,
+.v2-shell-standalone .rb-page{
     width:100% !important;
     max-width:100% !important;
 }
@@ -1622,12 +1623,16 @@
 @{
     var layoutController = ViewContext.RouteData.Values["controller"]?.ToString();
     var layoutAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isRequirementBoardPage =
+        string.Equals(layoutController, "RequirementBoard", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase);
     var isStandaloneCalendarPage =
         (string.Equals(layoutController, "Meetings", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
         (string.Equals(layoutController, "PhaseCalendar", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
-        (string.Equals(layoutController, "PhaseWorkload", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase));
+        (string.Equals(layoutController, "PhaseWorkload", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
+        isRequirementBoardPage;
 }
-<div class="v2-shell @(isStandaloneCalendarPage ? "v2-shell-standalone" : "")">
+<div class="v2-shell @(isStandaloneCalendarPage ? "v2-shell-standalone" : "") @(isRequirementBoardPage ? "v2-shell-requirement-board" : "")">
 
 @{
     var userId = Context.Session.GetInt32("UserId");
@@ -1779,6 +1784,8 @@
 
 	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
+    var canRequirementBoard = CanMenu("RequirementBoard.Index");
+
 	    var canReports = CanMenu("Reports.Index");
 
     var canFollowups = CanMenu("Followups.Index")
@@ -1886,6 +1893,16 @@
                                 <a class="nav-link @(controller=="Home" ? "active-menu":"")" asp-controller="Home" asp-action="Index">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/dashboard.svg" alt="" /></span>
                                     <span class="nav-label">Dashboard</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (canRequirementBoard)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="RequirementBoard" ? "active-menu" : "")" asp-controller="RequirementBoard" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/requirement-board.svg" alt="" /></span>
+                                    <span class="nav-label">Project Board</span>
                                 </a>
                             </li>
                         }

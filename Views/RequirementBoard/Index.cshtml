@@ -1,0 +1,961 @@
+@model ProjectTracking.ViewModels.RequirementBoardViewModel
+
+@{
+    ViewData["Title"] = "Project Board";
+
+    string FileSize(long bytes)
+    {
+        if (bytes <= 0) return "-";
+        if (bytes >= 1048576) return $"{bytes / 1048576.0:N1} MB";
+        return $"{bytes / 1024.0:N0} KB";
+    }
+
+    string PersonName(ProjectTracking.Models.RequirementCard card)
+    {
+        if (!string.IsNullOrWhiteSpace(card.CreatedByEmployee?.EmpName)) return card.CreatedByEmployee.EmpName;
+        if (!string.IsNullOrWhiteSpace(card.CreatedByUser?.Username)) return card.CreatedByUser.Username;
+        return "ไม่ระบุผู้สร้าง";
+    }
+
+    bool IsImage(ProjectTracking.Models.RequirementCardAttachment file)
+    {
+        return (file.ContentType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    var allCards = Model.Columns.SelectMany(x => x.Cards).OrderByDescending(x => x.UpdatedAt).ToList();
+    var visibleOnlineUsers = Model.OnlineUsers.Take(5).ToList();
+    var hiddenOnlineCount = Math.Max(0, Model.OnlineUsers.Count - visibleOnlineUsers.Count);
+}
+
+@section Styles {
+    <style>
+        body {
+            background: #e8f1fa;
+        }
+
+        .v2-shell-requirement-board .v2-page {
+            z-index: auto !important;
+        }
+
+        .v2-shell-requirement-board .modal-backdrop {
+            z-index: 1040 !important;
+        }
+
+        .v2-shell-requirement-board .rb-modal {
+            z-index: 1060 !important;
+        }
+
+        .rb-page {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto 36px;
+            padding-top: 0;
+        }
+
+        .rb-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: flex-end;
+            padding: 30px 34px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, #102746, #0b4e59);
+            color: #fff;
+            box-shadow: 0 16px 38px rgba(15, 39, 70, .18);
+        }
+
+        .rb-eyebrow {
+            margin: 0 0 6px;
+            color: #99f6e4;
+            font-size: .82rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .rb-hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 3vw, 3.25rem);
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .rb-hero p {
+            margin: 8px 0 0;
+            color: rgba(226, 242, 255, .86);
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+
+        .rb-stats {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .rb-stat {
+            min-width: 130px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, .16);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .rb-stat strong {
+            display: block;
+            font-size: 1.8rem;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .rb-stat span {
+            display: block;
+            margin-top: 6px;
+            color: rgba(226, 242, 255, .8);
+            font-weight: 800;
+            font-size: .9rem;
+        }
+
+        .rb-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 14px;
+            align-items: center;
+            margin: 16px 0;
+            padding: 0;
+        }
+
+        .rb-board-strip {
+            min-height: 68px;
+            padding: 10px 18px;
+            border-radius: 22px;
+            background: linear-gradient(90deg, #76a8d2, #b1b9df);
+            box-shadow: 0 12px 28px rgba(44, 78, 124, .18);
+        }
+
+        .rb-online-users {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            margin-right: 2px;
+        }
+
+        .rb-online-avatar {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            margin-left: -7px;
+            border: 2px solid rgba(255, 255, 255, .78);
+            border-radius: 999px;
+            color: #10213a;
+            font-size: .96rem;
+            font-weight: 900;
+            overflow: hidden;
+            box-shadow: 0 5px 12px rgba(15, 39, 70, .2);
+        }
+
+        .rb-online-avatar:first-child {
+            margin-left: 0;
+        }
+
+        .rb-online-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .rb-online-avatar::after {
+            content: "";
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 10px;
+            height: 10px;
+            border: 2px solid #fff;
+            border-radius: 999px;
+            background: #22c55e;
+        }
+
+        .rb-online-avatar.c1 {
+            background: #f59e0b;
+        }
+
+        .rb-online-avatar.c2 {
+            background: #059669;
+            color: #fff;
+        }
+
+        .rb-online-avatar.c3 {
+            background: #ea580c;
+            color: #fff;
+        }
+
+        .rb-online-avatar.c4 {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .rb-online-avatar.c5 {
+            background: #111827;
+            color: #fff;
+        }
+
+        .rb-online-more {
+            display: inline-flex;
+            align-items: center;
+            min-height: 46px;
+            padding: 0 8px;
+            color: #20324c;
+            font-size: 1.05rem;
+            font-weight: 900;
+        }
+
+        .rb-input,
+        .rb-textarea {
+            width: 100%;
+            border: 1px solid #d8e3ef;
+            border-radius: 16px;
+            background: #fff;
+            color: #10213a;
+            font-weight: 700;
+            outline: none;
+        }
+
+        .rb-input {
+            min-height: 52px;
+            padding: 0 16px;
+        }
+
+        .rb-textarea {
+            min-height: 110px;
+            padding: 14px 16px;
+            resize: vertical;
+        }
+
+        .rb-modal .rb-textarea {
+            min-height: 300px;
+        }
+
+        .rb-input:focus,
+        .rb-textarea:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, .14);
+        }
+
+        .rb-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 48px;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #21d4c2, #0f8f80);
+            color: #fff;
+            font-weight: 900;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .rb-btn:hover {
+            color: #fff;
+            filter: brightness(.98);
+        }
+
+        .rb-btn.secondary {
+            border: 1px solid #b8c8dc;
+            background: #fff;
+            color: #20324c;
+        }
+
+        .rb-btn.danger {
+            background: #fff;
+            border: 1px solid #fb7185;
+            color: #be123c;
+        }
+
+        .rb-board-wrap {
+            overflow-x: auto;
+            padding-bottom: 18px;
+        }
+
+        .rb-board {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            min-height: calc(100vh - 270px);
+        }
+
+        .rb-column {
+            flex: 0 0 372px;
+            max-width: 372px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .94);
+            box-shadow: 0 8px 18px rgba(15, 39, 70, .14);
+            overflow: hidden;
+        }
+
+        .rb-add-list-column {
+            flex: 0 0 372px;
+            max-width: 372px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .34);
+            border: 1px solid rgba(255, 255, 255, .38);
+            box-shadow: 0 8px 18px rgba(15, 39, 70, .08);
+            overflow: hidden;
+        }
+
+        .rb-add-list-column details {
+            padding: 0;
+        }
+
+        .rb-add-list-column summary,
+        .rb-add-card summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            cursor: pointer;
+            list-style: none;
+            color: #20324c;
+            font-weight: 900;
+            user-select: none;
+        }
+
+        .rb-add-list-column summary::-webkit-details-marker,
+        .rb-add-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rb-add-list-column summary {
+            min-height: 58px;
+            padding: 0 18px;
+            font-size: 1.15rem;
+            background: rgba(255, 255, 255, .36);
+        }
+
+        .rb-add-list-column summary::before,
+        .rb-add-card summary::before {
+            content: "+";
+            font-size: 1.8rem;
+            line-height: 1;
+            font-weight: 500;
+        }
+
+        .rb-add-list-column summary span:first-of-type,
+        .rb-add-card summary span:first-of-type {
+            margin-right: auto;
+        }
+
+        .rb-add-list-column form {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            background: rgba(255, 255, 255, .78);
+        }
+
+        .rb-column-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 66px;
+            padding: 14px 16px 12px;
+            border-bottom: 1px solid #e4edf6;
+        }
+
+        .rb-column-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            margin: 0;
+            color: #10213a;
+            font-size: 1.08rem;
+            font-weight: 900;
+            line-height: 1.25;
+        }
+
+        .rb-column-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            background: transparent;
+            color: #64748b;
+            font-size: 1.02rem;
+            font-weight: 900;
+        }
+
+        .rb-card-list {
+            min-height: 160px;
+            padding: 10px;
+            transition: background .18s ease;
+        }
+
+        .rb-card-list.is-over {
+            background: rgba(20, 184, 166, .12);
+        }
+
+        .rb-card {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            border: 1px solid #d4dfeb;
+            border-radius: 10px;
+            background: #fff;
+            color: inherit;
+            text-align: left;
+            cursor: grab;
+            box-shadow: 0 3px 8px rgba(15, 39, 70, .16);
+            overflow: hidden;
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+
+        .rb-card:hover {
+            transform: translateY(-1px);
+            border-color: rgba(20, 184, 166, .55);
+            box-shadow: 0 7px 14px rgba(15, 39, 70, .18);
+        }
+
+        .rb-card.is-dragging {
+            opacity: .32;
+            cursor: grabbing;
+        }
+
+        .rb-drag-image {
+            position: fixed;
+            top: -1000px;
+            left: -1000px;
+            width: 340px;
+            pointer-events: none;
+            transform: rotate(2deg);
+            box-shadow: 0 18px 36px rgba(15, 39, 70, .28);
+        }
+
+        .rb-card-list.is-over .rb-card.is-dragging {
+            border-color: rgba(20, 184, 166, .72);
+        }
+
+        .rb-card-cover {
+            width: 100%;
+            height: 108px;
+            object-fit: fill;
+            background: #dbe8f5;
+        }
+
+        .rb-card-body {
+            padding: 11px 12px 10px;
+        }
+
+        .rb-card-title {
+            margin: 0;
+            color: #10213a;
+            font-size: 1rem;
+            font-weight: 900;
+            line-height: 1.32;
+            word-break: break-word;
+        }
+
+        .rb-add-card {
+            padding: 0 12px 12px;
+        }
+
+        .rb-add-card details {
+            border-top: 1px solid #e4edf6;
+            padding-top: 10px;
+        }
+
+        .rb-add-card summary {
+            color: #0f766e;
+            min-height: 40px;
+            padding: 0 4px;
+        }
+
+        .rb-add-card form {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .rb-modal .modal-content {
+            border: 0;
+            border-radius: 26px;
+            overflow: hidden;
+            box-shadow: 0 28px 70px rgba(2, 12, 32, .28);
+        }
+
+        .rb-modal .modal-header {
+            align-items: flex-start;
+            padding: 26px 28px;
+            background: linear-gradient(135deg, #102746, #0b4e59);
+            background-position: center;
+            background-size: cover;
+            color: #fff;
+            min-height: 190px;
+        }
+
+        .rb-modal .modal-header.has-cover {
+            position: relative;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, .42);
+        }
+
+        .rb-modal .modal-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            line-height: 1.25;
+        }
+
+        .rb-modal-meta {
+            margin-top: 6px;
+            color: rgba(226, 242, 255, .82);
+            font-weight: 700;
+        }
+
+        .rb-modal .modal-body {
+            background: #f5f9fd;
+            padding: 24px 28px;
+        }
+
+        .rb-field-label {
+            margin: 0 0 8px;
+            color: #10213a;
+            font-weight: 900;
+        }
+
+        .rb-file-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .rb-file-row {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-radius: 16px;
+            background: #fff;
+        }
+
+        .rb-file-thumb {
+            width: 58px;
+            height: 46px;
+            border-radius: 12px;
+            background: #e8f1fa;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f766e;
+            font-weight: 900;
+        }
+
+        .rb-file-name {
+            color: #10213a;
+            font-weight: 900;
+            word-break: break-word;
+        }
+
+        .rb-file-info {
+            color: #64748b;
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+        .rb-file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .rb-alert {
+            margin-bottom: 14px;
+            border-radius: 18px;
+            border: 0;
+            font-weight: 800;
+        }
+
+        @@media (max-width: 900px) {
+            .rb-page {
+                width: 100%;
+            }
+
+            .rb-hero,
+            .rb-toolbar {
+                grid-template-columns: 1fr;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .rb-stats {
+                justify-content: flex-start;
+            }
+
+        }
+    </style>
+}
+
+<div class="rb-page">
+    <section class="rb-hero">
+        <div>
+            <p class="rb-eyebrow">ProjectTracking</p>
+            <h1>Project Board</h1>
+        </div>
+        <div class="rb-stats" aria-label="Project board summary">
+            <div class="rb-stat">
+                <strong>@Model.Columns.Count</strong>
+                <span>หัวข้อทั้งหมด</span>
+            </div>
+            <div class="rb-stat">
+                <strong>@Model.TotalCards</strong>
+                <span>การ์ดทั้งหมด</span>
+            </div>
+            <div class="rb-stat">
+                <strong>@Model.TotalAttachments</strong>
+                <span>ไฟล์แนบ</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="rb-toolbar rb-board-strip">
+        @if (visibleOnlineUsers.Count > 0)
+        {
+            <div class="rb-online-users" aria-label="Online users">
+                @foreach (var user in visibleOnlineUsers)
+                {
+                    <span class="rb-online-avatar @user.ColorClass"
+                          title="@user.DisplayName">
+                        <img src="@user.AvatarPath"
+                             alt="@user.DisplayName"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    </span>
+                }
+                @if (hiddenOnlineCount > 0)
+                {
+                    <span class="rb-online-more">+@hiddenOnlineCount</span>
+                }
+            </div>
+        }
+        <a class="rb-btn secondary" asp-controller="Home" asp-action="Index">Dashboard</a>
+    </section>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger rb-alert">@TempData["Error"]</div>
+    }
+
+    <div class="rb-board-wrap">
+        <div class="rb-board">
+            @foreach (var column in Model.Columns)
+            {
+                <section class="rb-column" data-column-id="@column.ColumnId">
+                    <header class="rb-column-head">
+                        <h2 class="rb-column-title">@column.ColumnName</h2>
+                        <span class="rb-column-count">@column.Cards.Count</span>
+                    </header>
+
+                    <div class="rb-card-list" data-column-id="@column.ColumnId">
+                        @foreach (var card in column.Cards.OrderBy(x => x.SortOrder).ThenBy(x => x.CardId))
+                        {
+                            var coverPath = card.CoverImagePath;
+                            <article class="rb-card"
+                                     draggable="true"
+                                     data-card-id="@card.CardId"
+                                     data-bs-toggle="modal"
+                                     data-bs-target="#requirementCardModal-@card.CardId">
+                                @if (!string.IsNullOrWhiteSpace(coverPath))
+                                {
+                                    <img class="rb-card-cover" src="@coverPath" alt="@card.Title" />
+                                }
+                                <div class="rb-card-body">
+                                    <h3 class="rb-card-title">@card.Title</h3>
+                                </div>
+                            </article>
+                        }
+                    </div>
+
+                    <div class="rb-add-card">
+                        <details>
+                            <summary><span>เพิ่มการ์ด</span><span>⊞</span></summary>
+                            <form asp-action="CreateCard" method="post" enctype="multipart/form-data">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="columnId" value="@column.ColumnId" />
+                                <input class="rb-input" name="title" maxlength="255" placeholder="หัวข้อการ์ด" required />
+                                <textarea class="rb-textarea" name="detail" placeholder="รายละเอียดที่ BA ต้องนำไปคีย์"></textarea>
+                                <label class="rb-field-label mb-0">รูปหัวการ์ด</label>
+                                <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                                <input class="form-control" type="file" name="files" multiple />
+                                <button class="rb-btn" type="submit">บันทึกการ์ด</button>
+                            </form>
+                        </details>
+                    </div>
+                </section>
+            }
+
+            <section class="rb-add-list-column">
+                <details>
+                    <summary><span>เพิ่มลิสต์รายการอื่นอีก</span></summary>
+                    <form asp-action="CreateColumn" method="post">
+                        @Html.AntiForgeryToken()
+                        <input class="rb-input" name="columnName" maxlength="150" placeholder="ชื่อหัวข้อ เช่น Hardware, Complete" required />
+                        <button class="rb-btn" type="submit">เพิ่มหัวข้อ</button>
+                    </form>
+                </details>
+            </section>
+        </div>
+    </div>
+</div>
+
+@foreach (var card in allCards)
+{
+    var modalHeaderStyle = !string.IsNullOrWhiteSpace(card.CoverImagePath)
+        ? $"background-image: linear-gradient(135deg, rgba(16,39,70,.72), rgba(11,78,89,.72)), url('{card.CoverImagePath}');"
+        : "";
+
+    <div class="modal fade rb-modal" id="requirementCardModal-@card.CardId" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header @(string.IsNullOrWhiteSpace(card.CoverImagePath) ? "" : "has-cover")" style="@modalHeaderStyle">
+                    <div>
+                        <div class="rb-eyebrow">Project Card #@card.CardId</div>
+                        <h2 class="modal-title">@card.Title</h2>
+                        <div class="rb-modal-meta">
+                            สร้างโดย @PersonName(card) · อัปเดต @card.UpdatedAt.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="UpdateCard" method="post" enctype="multipart/form-data" class="row g-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="cardId" value="@card.CardId" />
+                        <div class="col-12">
+                            <label class="rb-field-label">หัวข้อ</label>
+                            <input class="rb-input" name="title" maxlength="255" value="@card.Title" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="rb-field-label">รายละเอียด</label>
+                            <textarea class="rb-textarea" name="detail">@card.Detail</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="rb-field-label">รูปพื้นหลังการ์ด</label>
+                            @if (!string.IsNullOrWhiteSpace(card.CoverImageName))
+                            {
+                                <div class="rb-file-info mb-2">รูปปัจจุบัน: @card.CoverImageName</div>
+                            }
+                            <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                        </div>
+                        <div class="col-12">
+                            <label class="rb-field-label">เพิ่มไฟล์แนบ</label>
+                            <input class="form-control" type="file" name="files" multiple />
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2">
+                            <button class="rb-btn" type="submit">บันทึก</button>
+                            <button class="rb-btn secondary" type="button" data-bs-dismiss="modal">ปิด</button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4" />
+
+                    <div>
+                        <h3 class="rb-field-label">ไฟล์แนบ (@card.Attachments.Count)</h3>
+                        @if (card.Attachments.Count == 0)
+                        {
+                            <div class="alert alert-light border mb-0">ยังไม่มีไฟล์แนบ</div>
+                        }
+                        else
+                        {
+                            <div class="rb-file-list">
+                                @foreach (var file in card.Attachments.OrderByDescending(x => x.UploadedAt))
+                                {
+                                    <div class="rb-file-row">
+                                        @if (IsImage(file))
+                                        {
+                                            <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rb-file-thumb">FILE</div>
+                                        }
+                                        <div>
+                                            <div class="rb-file-name">@file.FileName</div>
+                                            <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                        </div>
+                                        <div class="rb-file-actions">
+                                            <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
+                                            <form asp-action="DeleteAttachment" method="post" onsubmit="return confirm('ลบไฟล์แนบนี้หรือไม่?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="attachmentId" value="@file.AttachmentId" />
+                                                <button class="rb-btn danger" type="submit">ลบ</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <form asp-action="ArchiveCard" method="post" onsubmit="return confirm('เก็บการ์ดนี้ออกจากบอร์ดหรือไม่?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="cardId" value="@card.CardId" />
+                        <button class="rb-btn danger" type="submit">เก็บการ์ดออกจากบอร์ด</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            let draggedCard = null;
+            let dragImage = null;
+            let originalList = null;
+            let originalNextCard = null;
+            let didDrop = false;
+            let wasDragging = false;
+            let suppressClickUntil = 0;
+
+            function cleanupDragImage() {
+                if (dragImage) {
+                    dragImage.remove();
+                    dragImage = null;
+                }
+            }
+
+            function getDragAfterElement(list, y) {
+                const cards = [...list.querySelectorAll('.rb-card:not(.is-dragging)')];
+
+                return cards.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+            }
+
+            document.querySelectorAll('.rb-card').forEach(card => {
+                card.addEventListener('dragstart', event => {
+                    draggedCard = card;
+                    originalList = card.closest('.rb-card-list');
+                    originalNextCard = card.nextElementSibling;
+                    didDrop = false;
+                    wasDragging = true;
+                    card.classList.add('is-dragging');
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', card.dataset.cardId || '');
+
+                    dragImage = card.cloneNode(true);
+                    dragImage.classList.add('rb-drag-image');
+                    dragImage.style.width = `${card.offsetWidth}px`;
+                    document.body.appendChild(dragImage);
+
+                    const rect = card.getBoundingClientRect();
+                    event.dataTransfer.setDragImage(
+                        dragImage,
+                        event.clientX - rect.left,
+                        event.clientY - rect.top
+                    );
+                });
+
+                card.addEventListener('dragend', () => {
+                    if (!didDrop && originalList && draggedCard) {
+                        if (originalNextCard && originalNextCard.parentElement === originalList) {
+                            originalList.insertBefore(draggedCard, originalNextCard);
+                        } else {
+                            originalList.appendChild(draggedCard);
+                        }
+                    }
+
+                    card.classList.remove('is-dragging');
+                    document.querySelectorAll('.rb-card-list.is-over').forEach(item => item.classList.remove('is-over'));
+                    cleanupDragImage();
+                    suppressClickUntil = Date.now() + 250;
+                    setTimeout(() => {
+                        draggedCard = null;
+                        originalList = null;
+                        originalNextCard = null;
+                        didDrop = false;
+                        wasDragging = false;
+                    }, 0);
+                });
+
+                card.addEventListener('click', event => {
+                    if (wasDragging || Date.now() < suppressClickUntil) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.rb-card-list').forEach(list => {
+                list.addEventListener('dragover', event => {
+                    event.preventDefault();
+                    list.classList.add('is-over');
+
+                    if (!draggedCard) return;
+
+                    const afterElement = getDragAfterElement(list, event.clientY);
+                    if (afterElement == null) {
+                        list.appendChild(draggedCard);
+                    } else {
+                        list.insertBefore(draggedCard, afterElement);
+                    }
+                });
+
+                list.addEventListener('dragleave', () => {
+                    list.classList.remove('is-over');
+                });
+
+                list.addEventListener('drop', async event => {
+                    event.preventDefault();
+                    list.classList.remove('is-over');
+                    if (!draggedCard) return;
+
+                    didDrop = true;
+                    const cardId = Number(draggedCard.dataset.cardId || 0);
+                    const columnId = Number(list.dataset.columnId || 0);
+                    const orderedCardIds = Array.from(list.querySelectorAll('.rb-card'))
+                        .map(card => Number(card.dataset.cardId || 0))
+                        .filter(Boolean);
+
+                    try {
+                        const response = await fetch('@Url.Action("MoveCard", "RequirementBoard")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': token
+                            },
+                            body: JSON.stringify({ cardId, columnId, orderedCardIds })
+                        });
+
+                        if (!response.ok) {
+                            window.location.reload();
+                        }
+                    } catch {
+                        window.location.reload();
+                    }
+                });
+            });
+        })();
+    </script>
+}

@@ -48,5 +48,8 @@ namespace ProjectTracking.Models
         [Column("profile_image_path")]
         [StringLength(500)]
         public string? ProfileImagePath { get; set; }
+
+        [Column("last_seen_at")]
+        public DateTime? LastSeenAt { get; set; }
     }
 }

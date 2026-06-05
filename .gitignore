@@ -18,6 +18,7 @@ web.config
 
 # runtime uploads
 wwwroot/uploads/profiles/
+wwwroot/uploads/requirement-cards/
 
 keys/
 inetpub/

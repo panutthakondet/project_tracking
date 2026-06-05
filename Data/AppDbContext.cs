@@ -63,6 +63,9 @@ namespace ProjectTracking.Data
         public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
         public DbSet<MailboxMessage> MailboxMessages { get; set; }
         public DbSet<MailboxRecipient> MailboxRecipients { get; set; }
+        public DbSet<RequirementBoardColumn> RequirementBoardColumns { get; set; }
+        public DbSet<RequirementCard> RequirementCards { get; set; }
+        public DbSet<RequirementCardAttachment> RequirementCardAttachments { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -194,6 +197,11 @@ namespace ProjectTracking.Data
                 entity.Property(u => u.ProfileImagePath)
                     .HasColumnName("profile_image_path")
                     .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+
+                entity.Property(u => u.LastSeenAt)
+                    .HasColumnName("last_seen_at")
+                    .HasColumnType("datetime")
                     .IsRequired(false);
             });
 
@@ -1081,6 +1089,97 @@ namespace ProjectTracking.Data
                 entity.Property(e => e.FileSize).HasColumnName("file_size");
                 entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
                 entity.Property(e => e.UploadedAt).HasColumnName("uploaded_at");
+            });
+
+            // =========================
+            // REQUIREMENT BOARD
+            // =========================
+            modelBuilder.Entity<RequirementBoardColumn>(entity =>
+            {
+                entity.ToTable("requirement_board_columns");
+                entity.HasKey(x => x.ColumnId);
+
+                entity.Property(x => x.ColumnId).HasColumnName("column_id");
+                entity.Property(x => x.ColumnName).HasColumnName("column_name").HasColumnType("varchar(150)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.IsActive).HasColumnName("is_active");
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasMany(x => x.Cards)
+                    .WithOne(x => x.Column)
+                    .HasForeignKey(x => x.ColumnId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.SortOrder).HasDatabaseName("idx_requirement_columns_sort");
+            });
+
+            modelBuilder.Entity<RequirementCard>(entity =>
+            {
+                entity.ToTable("requirement_cards");
+                entity.HasKey(x => x.CardId);
+
+                entity.Property(x => x.CardId).HasColumnName("card_id");
+                entity.Property(x => x.ColumnId).HasColumnName("column_id");
+                entity.Property(x => x.Title).HasColumnName("title").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.Detail).HasColumnName("detail").HasColumnType("text");
+                entity.Property(x => x.CoverImagePath).HasColumnName("cover_image_path").HasColumnType("varchar(500)");
+                entity.Property(x => x.CoverImageName).HasColumnName("cover_image_name").HasColumnType("varchar(255)");
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.IsArchived).HasColumnName("is_archived");
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasMany(x => x.Attachments)
+                    .WithOne(x => x.Card)
+                    .HasForeignKey(x => x.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(x => x.CreatedByEmployee)
+                    .WithMany()
+                    .HasForeignKey(x => x.CreatedByEmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(x => new { x.ColumnId, x.SortOrder }).HasDatabaseName("idx_requirement_cards_column_sort");
+                entity.HasIndex(x => x.CreatedByUserId).HasDatabaseName("idx_requirement_cards_created_by_user");
+            });
+
+            modelBuilder.Entity<RequirementCardAttachment>(entity =>
+            {
+                entity.ToTable("requirement_card_attachments");
+                entity.HasKey(x => x.AttachmentId);
+
+                entity.Property(x => x.AttachmentId).HasColumnName("attachment_id");
+                entity.Property(x => x.CardId).HasColumnName("card_id");
+                entity.Property(x => x.FileName).HasColumnName("file_name").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.StoredFileName).HasColumnName("stored_file_name").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.FilePath).HasColumnName("file_path").HasColumnType("varchar(500)").IsRequired();
+                entity.Property(x => x.ContentType).HasColumnName("content_type").HasColumnType("varchar(150)");
+                entity.Property(x => x.FileSize).HasColumnName("file_size");
+                entity.Property(x => x.UploadedByUserId).HasColumnName("uploaded_by_user_id");
+                entity.Property(x => x.UploadedByEmpId).HasColumnName("uploaded_by_emp_id");
+                entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at").HasColumnType("datetime");
+
+                entity.HasOne(x => x.UploadedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.UploadedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(x => x.UploadedByEmployee)
+                    .WithMany()
+                    .HasForeignKey(x => x.UploadedByEmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(x => x.CardId).HasDatabaseName("idx_requirement_attachments_card");
             });
 
             // ============================
