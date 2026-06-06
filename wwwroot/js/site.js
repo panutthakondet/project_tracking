@@ -294,6 +294,33 @@
         return row;
     }
 
+    function renderPhaseItem(item) {
+        const row = document.createElement("div");
+        row.className = "requirement-card-popup__phase";
+
+        const head = document.createElement("div");
+        head.className = "requirement-card-popup__phase-head";
+
+        const title = document.createElement("div");
+        title.className = "requirement-card-popup__phase-title";
+        title.textContent = item.phaseName || "-";
+
+        const label = document.createElement("div");
+        label.className = "requirement-card-popup__phase-pill";
+        label.textContent = item.phasePeriodLabel || `ส่วนที่ ${item.phaseOrder || "-"} งวดที่ ${item.periodOrder || "-"}`;
+
+        head.appendChild(title);
+        head.appendChild(label);
+
+        const meta = document.createElement("div");
+        meta.className = "requirement-card-popup__phase-meta";
+        meta.textContent = `Plan ${item.planDate || "-"} · Period ${item.periodDate || "-"}`;
+
+        row.appendChild(head);
+        row.appendChild(meta);
+        return row;
+    }
+
     function renderRequirementCardPopup(card) {
         const header = document.getElementById("RequirementCardDetailHeader");
         if (header) {
@@ -313,6 +340,24 @@
         const detail = setText("RequirementCardDetailText", card.detail || "ไม่มีรายละเอียด");
         if (detail) {
             detail.classList.toggle("requirement-card-popup__empty", !card.detail);
+        }
+
+        const phaseItems = Array.isArray(card.phaseItems) ? card.phaseItems : [];
+        setText("RequirementCardPhaseCount", phaseItems.length.toString());
+
+        const phaseList = document.getElementById("RequirementCardPhaseList");
+        clearElement(phaseList);
+        if (phaseList) {
+            if (phaseItems.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "requirement-card-popup__detail requirement-card-popup__empty";
+                empty.textContent = "ยังไม่มีร่างส่วนงาน/งวดงาน";
+                phaseList.appendChild(empty);
+            } else {
+                phaseItems.forEach(item => {
+                    phaseList.appendChild(renderPhaseItem(item));
+                });
+            }
         }
 
         const attachments = Array.isArray(card.attachments) ? card.attachments : [];

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
@@ -38,6 +39,7 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Where(x => columnIds.Contains(x.ColumnId) && !x.IsArchived)
                 .Include(x => x.Attachments)
+                .Include(x => x.PhaseItems)
                 .Include(x => x.CreatedByUser)
                 .Include(x => x.CreatedByEmployee)
                 .OrderBy(x => x.SortOrder)
@@ -201,14 +203,26 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadSize)]
         [RequestSizeLimit(MaxUploadSize)]
-        public async Task<IActionResult> UpdateCard(int cardId, string title, string? detail, IFormFile? coverImage, List<IFormFile>? files)
+        public async Task<IActionResult> UpdateCard(
+            int cardId,
+            string title,
+            string? detail,
+            IFormFile? coverImage,
+            List<IFormFile>? files,
+            List<RequirementCardPhaseItemInput>? phaseItems)
         {
+            var isAjax = IsAjaxRequest();
             var card = await _context.RequirementCards.FirstOrDefaultAsync(x => x.CardId == cardId && !x.IsArchived);
-            if (card == null) return NotFound();
+            if (card == null)
+            {
+                if (isAjax) return NotFound(new { success = false, message = "ไม่พบการ์ดนี้ หรือการ์ดถูกลบแล้ว" });
+                return NotFound();
+            }
 
             title = (title ?? "").Trim();
             if (string.IsNullOrWhiteSpace(title))
             {
+                if (isAjax) return BadRequest(new { success = false, message = "กรุณากรอกหัวข้อการ์ด" });
                 TempData["Error"] = "กรุณากรอกหัวข้อการ์ด";
                 return RedirectToAction(nameof(Index));
             }
@@ -219,6 +233,7 @@ namespace ProjectTracking.Controllers
 
             if (!IsValidCoverImage(coverImage))
             {
+                if (isAjax) return BadRequest(new { success = false, message = "รูปพื้นหลังต้องเป็นไฟล์รูปภาพเท่านั้น" });
                 TempData["Error"] = "รูปพื้นหลังต้องเป็นไฟล์รูปภาพเท่านั้น";
                 return RedirectToAction(nameof(Index));
             }
@@ -231,8 +246,28 @@ namespace ProjectTracking.Controllers
                 card.UpdatedAt = DateTime.Now;
             }
 
+            await ReplacePhaseItemsAsync(card.CardId, phaseItems);
             await SaveAttachmentsAsync(card.CardId, files);
             await _context.SaveChangesAsync();
+
+            if (isAjax)
+            {
+                var attachmentCount = await _context.RequirementCardAttachments
+                    .CountAsync(x => x.CardId == card.CardId);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "บันทึกการ์ดเรียบร้อย",
+                    cardId = card.CardId,
+                    title = card.Title,
+                    detail = card.Detail ?? "",
+                    coverImagePath = card.CoverImagePath ?? "",
+                    coverImageName = card.CoverImageName ?? "",
+                    updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                    attachmentCount
+                });
+            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -315,6 +350,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.CreatedByUser)
                 .Include(x => x.CreatedByEmployee)
                 .Include(x => x.Attachments)
+                .Include(x => x.PhaseItems)
                 .FirstOrDefaultAsync(x => x.CardId == id && !x.IsArchived);
 
             if (card == null) return NotFound();
@@ -338,6 +374,25 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
+            var phaseItems = card.PhaseItems
+                .OrderBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
+                .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
+                .ThenBy(x => x.ItemId)
+                .Select(item => new
+                {
+                    itemId = item.ItemId,
+                    phaseName = item.PhaseName,
+                    phaseType = item.PhaseType,
+                    phaseOrder = item.PhaseOrder,
+                    periodOrder = item.PeriodOrder,
+                    phasePeriodLabel = item.PhasePeriodLabel,
+                    phaseStatus = item.PhaseStatus ?? "-",
+                    planDate = FormatDateRange(item.PlanStart, item.PlanEnd),
+                    periodDate = FormatDateRange(item.PeriodStartDate, item.PeriodEndDate)
+                })
+                .ToList();
+
             return Json(new
             {
                 cardId = card.CardId,
@@ -347,6 +402,7 @@ namespace ProjectTracking.Controllers
                 coverImagePath = card.CoverImagePath,
                 createdBy,
                 updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm"),
+                phaseItems,
                 attachments
             });
         }
@@ -458,6 +514,115 @@ namespace ProjectTracking.Controllers
             if (bytes <= 0) return "-";
             if (bytes >= 1048576) return $"{bytes / 1048576.0:N1} MB";
             return $"{bytes / 1024.0:N0} KB";
+        }
+
+        private static string FormatDateRange(DateTime? start, DateTime? end)
+        {
+            var th = CultureInfo.GetCultureInfo("th-TH");
+            var startText = start?.ToString("dd MMM yyyy", th) ?? "-";
+            var endText = end?.ToString("dd MMM yyyy", th) ?? "-";
+            return $"{startText} - {endText}";
+        }
+
+        private async Task ReplacePhaseItemsAsync(int cardId, List<RequirementCardPhaseItemInput>? inputs)
+        {
+            var existingItems = await _context.RequirementCardPhaseItems
+                .Where(x => x.CardId == cardId)
+                .ToListAsync();
+
+            if (existingItems.Count > 0)
+            {
+                _context.RequirementCardPhaseItems.RemoveRange(existingItems);
+            }
+
+            if (inputs == null || inputs.Count == 0) return;
+
+            var now = DateTime.Now;
+            var userId = CurrentUserId();
+            var empId = CurrentEmpId();
+            var sort = 1;
+
+            foreach (var input in inputs)
+            {
+                var phaseName = (input.PhaseName ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(phaseName)) continue;
+
+                _context.RequirementCardPhaseItems.Add(new RequirementCardPhaseItem
+                {
+                    CardId = cardId,
+                    PhaseName = phaseName,
+                    PhaseType = NormalizePhaseType(input.PhaseType),
+                    PhaseOrder = Math.Max(1, input.PhaseOrder),
+                    PeriodOrder = Math.Max(1, input.PeriodOrder),
+                    PhaseSort = sort++,
+                    PhaseStatus = NormalizePhaseStatus(input.PhaseStatus),
+                    PlanStart = ParseBoardDate(input.PlanStart),
+                    PlanEnd = ParseBoardDate(input.PlanEnd),
+                    PeriodStartDate = ParseBoardDate(input.PeriodStartDate),
+                    PeriodEndDate = ParseBoardDate(input.PeriodEndDate),
+                    CreatedByUserId = userId,
+                    CreatedByEmpId = empId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+        }
+
+        private static string NormalizePhaseType(string? value)
+        {
+            var text = (value ?? "").Trim().ToUpperInvariant();
+            return text == "SUPPORT" ? "SUPPORT" : "MAIN";
+        }
+
+        private static string NormalizePhaseStatus(string? value)
+        {
+            var text = (value ?? "").Trim();
+            return text switch
+            {
+                "กำลังดำเนินการ" => "กำลังดำเนินการ",
+                "ส่งงวดงานแล้ว" => "ส่งงวดงานแล้ว",
+                _ => "วางแผน"
+            };
+        }
+
+        private static DateTime? ParseBoardDate(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            value = value.Trim();
+            if (DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var isoDate))
+            {
+                return isoDate;
+            }
+
+            var parts = value.Split('/');
+            if (parts.Length != 3) return null;
+
+            if (!int.TryParse(parts[0], out var day) ||
+                !int.TryParse(parts[1], out var month) ||
+                !int.TryParse(parts[2], out var year))
+            {
+                return null;
+            }
+
+            if (year > 2400) year -= 543;
+
+            try
+            {
+                return new DateTime(year, month, day);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private bool IsAjaxRequest()
+        {
+            return string.Equals(
+                Request.Headers["X-Requested-With"].ToString(),
+                "XMLHttpRequest",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsImageContentType(string? contentType)

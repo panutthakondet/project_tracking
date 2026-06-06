@@ -57,5 +57,7 @@ namespace ProjectTracking.Models
         public Employee? CreatedByEmployee { get; set; }
 
         public ICollection<RequirementCardAttachment> Attachments { get; set; } = new List<RequirementCardAttachment>();
+
+        public ICollection<RequirementCardPhaseItem> PhaseItems { get; set; } = new List<RequirementCardPhaseItem>();
     }
 }

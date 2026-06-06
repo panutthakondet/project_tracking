@@ -22,6 +22,13 @@
         return (file.ContentType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase);
     }
 
+    string ThaiDateValue(DateTime? date)
+    {
+        if (!date.HasValue) return "";
+        var value = date.Value;
+        return $"{value:dd/MM/}{value.Year + 543}";
+    }
+
     var allCards = Model.Columns.SelectMany(x => x.Cards).OrderByDescending(x => x.UpdatedAt).ToList();
     var visibleOnlineUsers = Model.OnlineUsers.Take(5).ToList();
     var hiddenOnlineCount = Math.Max(0, Model.OnlineUsers.Count - visibleOnlineUsers.Count);
@@ -339,7 +346,15 @@
         }
 
         .rb-modal .rb-textarea {
-            min-height: 300px;
+            min-height: 150px;
+        }
+
+        .rb-input::placeholder,
+        .rb-textarea::placeholder,
+        .rb-phase-row .form-control::placeholder {
+            color: #94a3b8;
+            opacity: .58;
+            font-weight: 700;
         }
 
         .rb-input:focus,
@@ -661,7 +676,9 @@
         }
 
         .rb-modal .modal-body {
-            background: #f5f9fd;
+            background:
+                radial-gradient(circle at top left, rgba(20, 184, 166, .12), transparent 36%),
+                linear-gradient(180deg, #f6fbff, #eef6fb);
             padding: 24px 28px;
         }
 
@@ -669,6 +686,37 @@
             margin: 0 0 8px;
             color: #10213a;
             font-weight: 900;
+        }
+
+        .rb-edit-panel {
+            position: relative;
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid #d8e3ef;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, .94);
+            box-shadow: 0 12px 26px rgba(15, 39, 70, .08);
+            overflow: hidden;
+        }
+
+        .rb-edit-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 5px;
+            background: linear-gradient(180deg, #21d4c2, #0f8f80);
+        }
+
+        .rb-edit-panel-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #0f766e;
+            font-size: .85rem;
+            font-weight: 900;
+            letter-spacing: .02em;
+            text-transform: uppercase;
         }
 
         .rb-file-list {
@@ -730,6 +778,263 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+        }
+
+        .rb-file-upload-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .rb-file-upload-card {
+            display: grid;
+            gap: 8px;
+            padding: 14px;
+            border: 1px solid #d8e3ef;
+            border-radius: 16px;
+            background: #fff;
+        }
+
+        .rb-file-upload-card .form-control {
+            min-height: 46px;
+            border-radius: 12px;
+            font-weight: 800;
+        }
+
+        .rb-file-upload-card input[type="file"]::file-selector-button {
+            min-height: 36px;
+            margin-right: 12px;
+            border: 0;
+            border-radius: 10px;
+            background: #dff8f5;
+            color: #0f766e;
+            font-weight: 900;
+        }
+
+        .rb-modal-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding-top: 6px;
+        }
+
+        .rb-modal-actions .rb-btn {
+            min-width: 130px;
+        }
+
+        .rb-save-status {
+            display: inline-flex;
+            align-items: center;
+            min-height: 38px;
+            padding: 0 14px;
+            border-radius: 999px;
+            color: #64748b;
+            font-weight: 900;
+            opacity: 0;
+            transform: translateY(3px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .rb-save-status.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .rb-save-status.is-success {
+            background: #dff8f5;
+            color: #0f766e;
+        }
+
+        .rb-save-status.is-error {
+            background: #ffe4e6;
+            color: #be123c;
+        }
+
+        .rb-btn.is-loading {
+            opacity: .72;
+            pointer-events: none;
+        }
+
+        .rb-phase-draft {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border: 1px solid rgba(20, 184, 166, .24);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #f8fffd, #f3f8ff);
+        }
+
+        .rb-phase-draft-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .rb-phase-draft-title {
+            margin: 0;
+            color: #10213a;
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .rb-phase-draft-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .rb-phase-row {
+            position: relative;
+            display: grid;
+            grid-template-columns: 100px 100px minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+            padding: 14px 88px 14px 14px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 10px 22px rgba(15, 39, 70, .06);
+        }
+
+        .rb-phase-row label {
+            margin: 0 0 5px;
+            color: #64748b;
+            font-size: .78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .rb-phase-row input,
+        .rb-phase-row select,
+        .rb-phase-row textarea {
+            min-height: 42px;
+            border-radius: 12px;
+            font-weight: 800;
+        }
+
+        .rb-phase-row input[type="number"],
+        .rb-phase-row input[data-rb-date] {
+            text-align: center;
+        }
+
+        .rb-phase-name-field {
+            grid-column: 1 / -1;
+        }
+
+        .rb-phase-name-field textarea {
+            min-height: 64px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .rb-phase-add-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 2px;
+        }
+
+        .rb-phase-add-footer .rb-btn {
+            min-height: 42px;
+            min-width: 92px;
+            border-radius: 14px;
+            border: 0;
+            background: linear-gradient(135deg, #21d4c2, #0f8f80);
+            color: #fff;
+            box-shadow: 0 10px 22px rgba(15, 143, 128, .18);
+        }
+
+        .rb-phase-date-grid {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .rb-phase-remove {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 1px solid rgba(251, 113, 133, .35);
+            border-radius: 50%;
+            background: linear-gradient(180deg, #fff, #fff1f2);
+            color: #e11d48;
+            font-size: 0;
+            font-weight: 900;
+            line-height: 1;
+            box-shadow: 0 8px 18px rgba(190, 18, 60, .12);
+            transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+
+        .rb-phase-remove::before,
+        .rb-phase-remove::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 14px;
+            height: 2px;
+            border-radius: 999px;
+            background: currentColor;
+            transform-origin: center;
+        }
+
+        .rb-phase-remove::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .rb-phase-remove::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .rb-phase-remove:hover {
+            transform: translateY(-1px);
+            background: #ffe4e6;
+            box-shadow: 0 12px 22px rgba(190, 18, 60, .18);
+        }
+
+        @@media (max-width: 1200px) {
+            .rb-phase-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .rb-phase-name-field,
+            .rb-phase-date-grid {
+                grid-column: 1 / -1;
+            }
+
+            .rb-phase-date-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @@media (max-width: 700px) {
+            .rb-phase-row,
+            .rb-phase-date-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rb-phase-name-field,
+            .rb-phase-date-grid {
+                grid-column: 1 / -1;
+            }
+
+            .rb-phase-remove {
+                position: static;
+                width: 100%;
+            }
+
+            .rb-file-upload-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .rb-alert {
@@ -859,7 +1164,7 @@
                                     <img class="rb-card-cover" src="@coverPath" alt="@card.Title" />
                                 }
                                 <div class="rb-card-body">
-                                    <h3 class="rb-card-title">@card.Title</h3>
+                                    <h3 class="rb-card-title" data-card-title>@card.Title</h3>
                                 </div>
                             </article>
                         }
@@ -871,11 +1176,7 @@
                             <form asp-action="CreateCard" method="post" enctype="multipart/form-data">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="columnId" value="@column.ColumnId" />
-                                <input class="rb-input" name="title" maxlength="255" placeholder="หัวข้อการ์ด" required />
-                                <textarea class="rb-textarea" name="detail" placeholder="รายละเอียด"></textarea>
-                                <label class="rb-field-label mb-0">รูปหัวการ์ด</label>
-                                <input class="form-control" type="file" name="coverImage" accept="image/*" />
-                                <input class="form-control" type="file" name="files" multiple />
+                                <input class="rb-input" name="title" maxlength="255" placeholder="หัวข้อ" required />
                                 <button class="rb-btn" type="submit">บันทึกการ์ด</button>
                             </form>
                         </details>
@@ -909,46 +1210,119 @@
                 <div class="modal-header @(string.IsNullOrWhiteSpace(card.CoverImagePath) ? "" : "has-cover")" style="@modalHeaderStyle">
                     <div class="rb-modal-header-info">
                         <div class="rb-eyebrow">Project Card #@card.CardId</div>
-                        <div class="rb-modal-meta">
+                        <div class="rb-modal-meta" data-card-modal-meta>
                             สร้างโดย @PersonName(card) · อัปเดต @card.UpdatedAt.ToString("dd/MM/yyyy HH:mm")
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form asp-action="UpdateCard" method="post" enctype="multipart/form-data" class="row g-3">
+                    <form asp-action="UpdateCard" method="post" enctype="multipart/form-data" class="row g-3 rb-card-edit-form" data-card-update-form data-card-id="@card.CardId">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="cardId" value="@card.CardId" />
                         <div class="col-12">
-                            <label class="rb-field-label">หัวข้อ</label>
-                            <input class="rb-input" name="title" maxlength="255" value="@card.Title" required />
+                            <div class="rb-edit-panel">
+                                <div class="rb-edit-panel-head">ข้อมูลการ์ด</div>
+                                <div>
+                                    <label class="rb-field-label">หัวข้อ</label>
+                                    <input class="rb-input" name="title" maxlength="255" value="@card.Title" required />
+                                </div>
+                                <div>
+                                    <label class="rb-field-label">รายละเอียด</label>
+                                    <textarea class="rb-textarea" name="detail">@card.Detail</textarea>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-12">
-                            <label class="rb-field-label">รายละเอียด</label>
-                            <textarea class="rb-textarea" name="detail">@card.Detail</textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="rb-field-label">รูปพื้นหลังการ์ด</label>
-                            @if (!string.IsNullOrWhiteSpace(card.CoverImageName))
-                            {
-                                <div class="rb-file-info mb-2">รูปปัจจุบัน: @card.CoverImageName</div>
+                            @{
+                                var phaseDrafts = card.PhaseItems
+                                    .OrderBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
+                                    .ThenBy(x => x.PhaseOrder)
+                                    .ThenBy(x => x.PeriodOrder)
+                                    .ThenBy(x => x.ItemId)
+                                    .ToList();
+                                var phaseDraftRows = Math.Max(phaseDrafts.Count, 1);
                             }
-                            <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                            <div class="rb-phase-draft">
+                                <div class="rb-phase-draft-list" data-phase-list>
+                                    @for (var i = 0; i < phaseDraftRows; i++)
+                                    {
+                                        var phaseItem = i < phaseDrafts.Count ? phaseDrafts[i] : null;
+                                        <div class="rb-phase-row" data-phase-row>
+                                            <input type="hidden" name="phaseItems[@i].ItemId" value="@(phaseItem?.ItemId)" data-phase-field="ItemId" />
+                                            <div>
+                                                <label>ส่วนที่</label>
+                                                <input class="form-control" type="number" min="1" name="phaseItems[@i].PhaseOrder" value="@(phaseItem?.PhaseOrder ?? 1)" data-phase-field="PhaseOrder" />
+                                            </div>
+                                            <div>
+                                                <label>งวดที่</label>
+                                                <input class="form-control" type="number" min="1" name="phaseItems[@i].PeriodOrder" value="@(phaseItem?.PeriodOrder ?? 1)" data-phase-field="PeriodOrder" />
+                                            </div>
+                                            <input type="hidden" name="phaseItems[@i].PhaseType" value="@(phaseItem?.PhaseType ?? "MAIN")" data-phase-field="PhaseType" />
+                                            <input type="hidden" name="phaseItems[@i].PhaseStatus" value="@(phaseItem?.PhaseStatus ?? "วางแผน")" data-phase-field="PhaseStatus" />
+                                            <div class="rb-phase-name-field">
+                                                <label>รายละเอียดงาน</label>
+                                                <textarea class="form-control" maxlength="500" name="phaseItems[@i].PhaseName" data-phase-field="PhaseName" placeholder="เพิ่มรายละเอียดงาน">@(phaseItem?.PhaseName)</textarea>
+                                            </div>
+                                            <button class="rb-phase-remove" type="button" data-remove-phase-row title="ลบแถว" aria-label="ลบแถว">&times;</button>
+                                            <div class="rb-phase-date-grid">
+                                                <div>
+                                                    <label>Plan Start</label>
+                                                    <input class="form-control" type="text" name="phaseItems[@i].PlanStart" value="@ThaiDateValue(phaseItem?.PlanStart)" data-phase-field="PlanStart" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                </div>
+                                                <div>
+                                                    <label>Plan End</label>
+                                                    <input class="form-control" type="text" name="phaseItems[@i].PlanEnd" value="@ThaiDateValue(phaseItem?.PlanEnd)" data-phase-field="PlanEnd" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                </div>
+                                                <div>
+                                                    <label>Period Start</label>
+                                                    <input class="form-control" type="text" name="phaseItems[@i].PeriodStartDate" value="@ThaiDateValue(phaseItem?.PeriodStartDate)" data-phase-field="PeriodStartDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                </div>
+                                                <div>
+                                                    <label>Period End</label>
+                                                    <input class="form-control" type="text" name="phaseItems[@i].PeriodEndDate" value="@ThaiDateValue(phaseItem?.PeriodEndDate)" data-phase-field="PeriodEndDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="rb-phase-add-footer">
+                                    <button class="rb-btn"
+                                            type="button"
+                                            data-add-phase-row>
+                                        เพิ่ม
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-12">
-                            <label class="rb-field-label">เพิ่มไฟล์แนบ</label>
-                            <input class="form-control" type="file" name="files" multiple />
+                            <div class="rb-file-upload-grid">
+                                <div class="rb-file-upload-card">
+                                    <label class="rb-field-label mb-0">รูปพื้นหลังการ์ด</label>
+                                    @if (!string.IsNullOrWhiteSpace(card.CoverImageName))
+                                    {
+                                        <div class="rb-file-info">รูปปัจจุบัน: @card.CoverImageName</div>
+                                    }
+                                    <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                                </div>
+                                <div class="rb-file-upload-card">
+                                    <label class="rb-field-label mb-0">เพิ่มไฟล์แนบ</label>
+                                    <div class="rb-file-info">เลือกได้หลายไฟล์</div>
+                                    <input class="form-control" type="file" name="files" multiple />
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-12 d-flex flex-wrap gap-2">
+                        <div class="col-12 rb-modal-actions">
                             <button class="rb-btn" type="submit">บันทึก</button>
                             <button class="rb-btn secondary" type="button" data-bs-dismiss="modal">ปิด</button>
+                            <span class="rb-save-status" data-card-save-status aria-live="polite"></span>
                         </div>
                     </form>
 
                     <hr class="my-4" />
 
                     <div>
-                        <h3 class="rb-field-label">ไฟล์แนบ (@card.Attachments.Count)</h3>
+                        <h3 class="rb-field-label" data-attachment-heading data-attachment-count="@card.Attachments.Count">ไฟล์แนบ (@card.Attachments.Count)</h3>
                         @if (card.Attachments.Count == 0)
                         {
                             <div class="alert alert-light border mb-0">ยังไม่มีไฟล์แนบ</div>
@@ -1002,10 +1376,10 @@
 
                     <hr class="my-4" />
 
-                    <form asp-action="ArchiveCard" method="post" onsubmit="return confirm('เก็บการ์ดนี้ออกจากบอร์ดหรือไม่?');">
+                    <form asp-action="ArchiveCard" method="post" onsubmit="return confirm('ลบการ์ดนี้ออกจากบอร์ดหรือไม่?');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="cardId" value="@card.CardId" />
-                        <button class="rb-btn danger" type="submit">เก็บการ์ดออกจากบอร์ด</button>
+                        <button class="rb-btn danger" type="submit">ลบการ์ดออกจากบอร์ด</button>
                     </form>
                 </div>
             </div>
@@ -1060,6 +1434,209 @@
                 searchInput.value = '';
                 searchInput.focus();
                 filterCards();
+            });
+
+            function setSaveStatus(status, message, type) {
+                if (!status) return;
+
+                status.textContent = message;
+                status.classList.remove('is-success', 'is-error', 'is-visible');
+                status.classList.add(type === 'error' ? 'is-error' : 'is-success', 'is-visible');
+
+                window.clearTimeout(status.dataset.hideTimer);
+                status.dataset.hideTimer = window.setTimeout(() => {
+                    status.classList.remove('is-visible');
+                }, 3600);
+            }
+
+            function updateBoardCard(data, form) {
+                const cardId = data.cardId || form.dataset.cardId;
+                const card = document.querySelector(`.rb-card[data-card-id="${cardId}"]`);
+                const title = data.title || form.querySelector('[name="title"]')?.value || '';
+                const detail = data.detail || form.querySelector('[name="detail"]')?.value || '';
+
+                if (card) {
+                    const titleNode = card.querySelector('[data-card-title]');
+                    if (titleNode) titleNode.textContent = title;
+
+                    card.dataset.searchText = `${title} ${detail}`;
+
+                    if (data.coverImagePath) {
+                        let cover = card.querySelector('.rb-card-cover');
+                        if (!cover) {
+                            cover = document.createElement('img');
+                            cover.className = 'rb-card-cover';
+                            card.insertBefore(cover, card.firstElementChild);
+                        }
+                        cover.src = data.coverImagePath;
+                        cover.alt = title;
+                    }
+                }
+
+                const modal = form.closest('.rb-modal');
+                if (!modal) return;
+
+                const modalMeta = modal.querySelector('[data-card-modal-meta]');
+                if (modalMeta && data.updatedAt) {
+                    modalMeta.textContent = modalMeta.textContent.replace(/อัปเดต .*/, `อัปเดต ${data.updatedAt}`);
+                }
+
+                const modalHeader = modal.querySelector('.modal-header');
+                if (modalHeader && data.coverImagePath) {
+                    modalHeader.classList.add('has-cover');
+                    modalHeader.style.backgroundImage = `url('${data.coverImagePath}')`;
+                }
+
+                const attachmentHeading = modal.querySelector('[data-attachment-heading]');
+                if (attachmentHeading && Number.isFinite(Number(data.attachmentCount))) {
+                    attachmentHeading.dataset.attachmentCount = data.attachmentCount;
+                    attachmentHeading.textContent = `ไฟล์แนบ (${data.attachmentCount})`;
+                }
+            }
+
+            document.addEventListener('submit', async event => {
+                const form = event.target.closest('[data-card-update-form]');
+                if (!form) return;
+
+                event.preventDefault();
+                if (!window.confirm('ต้องการบันทึกการ์ดนี้หรือไม่?')) return;
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                const status = form.querySelector('[data-card-save-status]');
+
+                submitButton?.classList.add('is-loading');
+                if (submitButton) submitButton.disabled = true;
+                setSaveStatus(status, 'กำลังบันทึก...', 'success');
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const contentType = response.headers.get('content-type') || '';
+                    const result = contentType.includes('application/json')
+                        ? await response.json()
+                        : { success: false, message: 'บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
+
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'บันทึกไม่สำเร็จ');
+                    }
+
+                    updateBoardCard(result, form);
+                    form.querySelectorAll('input[type="file"]').forEach(input => {
+                        input.value = '';
+                    });
+                    setSaveStatus(status, result.message || 'บันทึกแล้ว', 'success');
+                } catch (error) {
+                    setSaveStatus(status, error.message || 'บันทึกไม่สำเร็จ', 'error');
+                } finally {
+                    submitButton?.classList.remove('is-loading');
+                    if (submitButton) submitButton.disabled = false;
+                }
+            });
+
+            function reindexPhaseRows(list) {
+                if (!list) return;
+
+                list.querySelectorAll('[data-phase-row]').forEach((row, index) => {
+                    row.querySelectorAll('[data-phase-field]').forEach(field => {
+                        const fieldName = field.dataset.phaseField;
+                        if (!fieldName) return;
+                        field.name = `phaseItems[${index}].${fieldName}`;
+                    });
+                });
+            }
+
+            function resetPhaseRow(row, sourceList) {
+                if (!row) return;
+
+                const rows = sourceList
+                    ? Array.from(sourceList.querySelectorAll('[data-phase-row]'))
+                    : [];
+                const lastRow = rows[rows.length - 1];
+                const lastPhaseOrder = sourceList ? Number(lastRow?.querySelector('[data-phase-field="PhaseOrder"]')?.value || 1) : 1;
+                const lastPeriodOrder = sourceList ? Number(lastRow?.querySelector('[data-phase-field="PeriodOrder"]')?.value || 0) : 0;
+
+                row.querySelectorAll('input, select, textarea').forEach(field => {
+                    const fieldName = field.dataset.phaseField;
+
+                    if (fieldName === 'ItemId' || fieldName === 'PhaseName' || field.matches('[data-rb-date]')) {
+                        field.value = '';
+                        return;
+                    }
+
+                    if (fieldName === 'PhaseOrder') {
+                        field.value = String(Number.isFinite(lastPhaseOrder) && lastPhaseOrder > 0 ? lastPhaseOrder : 1);
+                        return;
+                    }
+
+                    if (fieldName === 'PeriodOrder') {
+                        field.value = String(Number.isFinite(lastPeriodOrder) && lastPeriodOrder > 0 ? lastPeriodOrder + 1 : 1);
+                        return;
+                    }
+
+                    if (fieldName === 'PhaseType') {
+                        field.value = 'MAIN';
+                        return;
+                    }
+
+                    if (fieldName === 'PhaseStatus') {
+                        field.value = 'วางแผน';
+                    }
+                });
+            }
+
+            document.addEventListener('click', event => {
+                const addButton = event.target.closest('[data-add-phase-row]');
+                if (addButton) {
+                    const block = addButton.closest('.rb-phase-draft');
+                    const list = block?.querySelector('[data-phase-list]');
+                    const firstRow = list?.querySelector('[data-phase-row]');
+                    if (!list || !firstRow) return;
+
+                    const newRow = firstRow.cloneNode(true);
+                    resetPhaseRow(newRow, list);
+                    list.appendChild(newRow);
+                    reindexPhaseRows(list);
+                    newRow.querySelector('[data-phase-field="PhaseName"]')?.focus();
+                    return;
+                }
+
+                const removeButton = event.target.closest('[data-remove-phase-row]');
+                if (!removeButton) return;
+
+                const list = removeButton.closest('[data-phase-list]');
+                const row = removeButton.closest('[data-phase-row]');
+                if (!list || !row) return;
+
+                const rows = list.querySelectorAll('[data-phase-row]');
+                if (rows.length <= 1) {
+                    resetPhaseRow(row, null);
+                } else {
+                    row.remove();
+                }
+
+                reindexPhaseRows(list);
+            });
+
+            document.addEventListener('input', event => {
+                const input = event.target.closest('[data-rb-date]');
+                if (!input) return;
+
+                let value = input.value.replace(/\D/g, '');
+                if (value.length > 8) value = value.substring(0, 8);
+
+                if (value.length >= 5) {
+                    value = `${value.substring(0, 2)}/${value.substring(2, 4)}/${value.substring(4)}`;
+                } else if (value.length >= 3) {
+                    value = `${value.substring(0, 2)}/${value.substring(2)}`;
+                }
+
+                input.value = value;
             });
 
             function cleanupDragImage() {

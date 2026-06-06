@@ -66,6 +66,7 @@ namespace ProjectTracking.Data
         public DbSet<RequirementBoardColumn> RequirementBoardColumns { get; set; }
         public DbSet<RequirementCard> RequirementCards { get; set; }
         public DbSet<RequirementCardAttachment> RequirementCardAttachments { get; set; }
+        public DbSet<RequirementCardPhaseItem> RequirementCardPhaseItems { get; set; }
 
         // ======================
         // ===== VIEWS =====

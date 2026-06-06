@@ -380,6 +380,28 @@
                    title="เพิ่มส่วนงาน">
                     Add Section
                 </a>
+
+                @if (selectedProject.RequirementCardId != null)
+                {
+                    <form asp-action="ImportFromRequirementCard"
+                          method="post"
+                          class="d-inline"
+                          onsubmit="return confirm('Import ร่างส่วนงาน/งวดงานจาก Project Board เข้ามาใน Project นี้หรือไม่?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="projectId" value="@selectedProject.ProjectId" />
+                        <button type="submit"
+                                class="btn btn-outline-success"
+                                title="ดึงข้อมูลส่วนงาน/งวดงานจาก Project Board Card">
+                            Import Project Board
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary" disabled title="Project นี้ยังไม่ได้ผูก Project Board Card">
+                        Import Project Board
+                    </button>
+                }
             }
             else
             {
@@ -407,6 +429,16 @@
         </div>
     }
 </div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger fw-bold">@TempData["Error"]</div>
+}
 
 <form method="get" class="phase-filter-form mb-4">
     <div class="phase-filter-row">

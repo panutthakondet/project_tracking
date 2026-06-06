@@ -25,4 +25,18 @@ namespace ProjectTracking.ViewModels
         public int ColumnId { get; set; }
         public List<int> OrderedCardIds { get; set; } = new();
     }
+
+    public class RequirementCardPhaseItemInput
+    {
+        public int? ItemId { get; set; }
+        public string? PhaseName { get; set; }
+        public string? PhaseType { get; set; }
+        public int PhaseOrder { get; set; } = 1;
+        public int PeriodOrder { get; set; } = 1;
+        public string? PhaseStatus { get; set; }
+        public string? PlanStart { get; set; }
+        public string? PlanEnd { get; set; }
+        public string? PeriodStartDate { get; set; }
+        public string? PeriodEndDate { get; set; }
+    }
 }

@@ -1073,6 +1073,57 @@ main.route-action-edit img {
   gap: 10px;
 }
 
+.requirement-card-popup__phases {
+  display: grid;
+  gap: 10px;
+}
+
+.requirement-card-popup__phase {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d8efe9;
+  border-left: 4px solid #14b8a6;
+  border-radius: 14px;
+  background: #f8fffd;
+}
+
+.requirement-card-popup__phase-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.requirement-card-popup__phase-title {
+  color: #10213a;
+  font-size: .92rem;
+  font-weight: 900;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.requirement-card-popup__phase-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #d8faf4;
+  color: #0f766e;
+  font-size: .78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.requirement-card-popup__phase-meta {
+  color: #64748b;
+  font-size: .82rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .requirement-card-popup__file {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);

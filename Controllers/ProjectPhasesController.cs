@@ -389,6 +389,128 @@ namespace ProjectTracking.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("ProjectPhases.Create")]
+        public async Task<IActionResult> ImportFromRequirementCard(int projectId)
+        {
+            if (projectId <= 0)
+            {
+                TempData["Error"] = "กรุณาเลือก Project ก่อน Import";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var project = await _context.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId);
+
+            if (project == null)
+            {
+                TempData["Error"] = "ไม่พบ Project ที่ต้องการ Import";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!project.RequirementCardId.HasValue)
+            {
+                TempData["Error"] = "Project นี้ยังไม่ได้ผูก Project Board Card";
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
+
+            var draftItems = await _context.RequirementCardPhaseItems
+                .AsNoTracking()
+                .Where(x => x.CardId == project.RequirementCardId.Value)
+                .OrderBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
+                .ThenBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
+                .ThenBy(x => x.ItemId)
+                .ToListAsync();
+
+            if (draftItems.Count == 0)
+            {
+                TempData["Error"] = "Project Board Card นี้ยังไม่มีร่างส่วนงาน/งวดงาน";
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
+
+            var existingPhases = await _context.ProjectPhases
+                .AsNoTracking()
+                .Where(x => x.ProjectId == projectId)
+                .Select(x => new
+                {
+                    x.PhaseOrder,
+                    x.PeriodOrder,
+                    PhaseName = x.PhaseName.Trim()
+                })
+                .ToListAsync();
+
+            var existingKeys = existingPhases
+                .Select(x => $"{x.PhaseOrder}|{x.PeriodOrder}|{x.PhaseName}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var lastSort = await _context.ProjectPhases
+                .AsNoTracking()
+                .Where(p => p.ProjectId == projectId)
+                .MaxAsync(p => (int?)p.PhaseSort) ?? 0;
+
+            var entryId = await GetCurrentEntryIdAsync();
+            var now = DateTime.Now;
+            var imported = 0;
+            var skipped = 0;
+
+            foreach (var item in draftItems)
+            {
+                var phaseName = (item.PhaseName ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(phaseName))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var phaseOrder = Math.Max(1, item.PhaseOrder);
+                var periodOrder = Math.Max(1, item.PeriodOrder);
+                var key = $"{phaseOrder}|{periodOrder}|{phaseName}";
+                if (existingKeys.Contains(key))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                _context.ProjectPhases.Add(new ProjectPhase
+                {
+                    ProjectId = projectId,
+                    PhaseName = phaseName,
+                    PhaseType = string.Equals(item.PhaseType, "SUPPORT", StringComparison.OrdinalIgnoreCase) ? "SUPPORT" : "MAIN",
+                    PhaseOrder = phaseOrder,
+                    PeriodOrder = periodOrder,
+                    PhaseSort = ++lastSort,
+                    PhaseStatus = NormalizePhaseStatus(item.PhaseStatus),
+                    PlanStart = item.PlanStart,
+                    PlanEnd = item.PlanEnd,
+                    PeriodStartDate = item.PeriodStartDate,
+                    PeriodEndDate = item.PeriodEndDate,
+                    CreatedAt = now,
+                    EntryId = entryId
+                });
+
+                existingKeys.Add(key);
+                imported++;
+            }
+
+            if (imported == 0)
+            {
+                TempData["Error"] = skipped > 0
+                    ? "ไม่มีรายการใหม่ให้ Import เพราะข้อมูลซ้ำกับส่วนงานเดิมแล้ว"
+                    : "ไม่มีรายการที่พร้อม Import";
+                return RedirectToAction(nameof(Index), new { projectId });
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = skipped > 0
+                ? $"Import จาก Project Board แล้ว {imported} รายการ ข้ามรายการซ้ำ/ว่าง {skipped} รายการ"
+                : $"Import จาก Project Board แล้ว {imported} รายการ";
+
+            return RedirectToAction(nameof(Index), new { projectId });
+        }
+
         // ===========================
         // REORDER (AJAX)
         // ===========================
