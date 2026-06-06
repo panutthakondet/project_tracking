@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
@@ -98,12 +99,9 @@ namespace ProjectTracking.Controllers
         // CREATE (GET)
         // ===========================
         [RequireMenu("Projects.Create")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewBag.Employees = _context.Employees
-                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
-                .OrderBy(e => e.EmpName)
-                .ToList();
+            await LoadProjectFormLookupsAsync();
 
             return View(new Project());
         }
@@ -125,10 +123,7 @@ namespace ProjectTracking.Controllers
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Employees = _context.Employees
-                    .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
-                    .OrderBy(e => e.EmpName)
-                    .ToList();
+                await LoadProjectFormLookupsAsync(project.RequirementCardId);
 
                 return View(project);
             }
@@ -137,6 +132,7 @@ namespace ProjectTracking.Controllers
             project.CreatedAt = DateTime.Now;
             project.EntryId = await GetCurrentEntryIdAsync();
             _context.Projects.Add(project);
+            await SyncRequirementCardColumnForProjectStatusAsync(project.RequirementCardId, project.Status);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
@@ -154,10 +150,7 @@ namespace ProjectTracking.Controllers
                 return NotFound();
             }
 
-            ViewBag.Employees = _context.Employees
-                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
-                .OrderBy(e => e.EmpName)
-                .ToList();
+            await LoadProjectFormLookupsAsync(project.RequirementCardId);
 
             return View(project);
         }
@@ -196,10 +189,7 @@ namespace ProjectTracking.Controllers
 
             if (!ModelState.IsValid)
             {
-                ViewBag.Employees = _context.Employees
-                    .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
-                    .OrderBy(e => e.EmpName)
-                    .ToList();
+                await LoadProjectFormLookupsAsync(model.RequirementCardId);
 
                 return View(model);
             }
@@ -223,11 +213,100 @@ namespace ProjectTracking.Controllers
 
             // 🔹 BUSINESS ANALYST
             db.BaEmpId = model.BaEmpId;
+            db.RequirementCardId = model.RequirementCardId;
             db.CreatedAt = DateTime.Now;
             db.EntryId = await GetCurrentEntryIdAsync();
 
+            await SyncRequirementCardColumnForProjectStatusAsync(db.RequirementCardId, db.Status);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task SyncRequirementCardColumnForProjectStatusAsync(int? requirementCardId, string? projectStatus)
+        {
+            if (!requirementCardId.HasValue) return;
+
+            var card = await _context.RequirementCards
+                .FirstOrDefaultAsync(c => c.CardId == requirementCardId.Value && !c.IsArchived);
+            if (card == null) return;
+
+            var targetColumn = await FindRequirementBoardColumnForProjectStatusAsync(projectStatus);
+            if (targetColumn == null || targetColumn.ColumnId == card.ColumnId) return;
+
+            var cardsInTargetColumn = await _context.RequirementCards
+                .Where(c => c.ColumnId == targetColumn.ColumnId && !c.IsArchived)
+                .ToListAsync();
+
+            foreach (var item in cardsInTargetColumn)
+            {
+                item.SortOrder += 1;
+            }
+
+            card.ColumnId = targetColumn.ColumnId;
+            card.SortOrder = 1;
+            card.UpdatedAt = DateTime.Now;
+        }
+
+        private async Task<RequirementBoardColumn?> FindRequirementBoardColumnForProjectStatusAsync(string? projectStatus)
+        {
+            var candidates = NormalizeProjectStatus(projectStatus) switch
+            {
+                "DONE" => new[] { "Completed/Guaranteed", "Completed", "Complete", "Done", "DONE", "เสร็จสิ้น" },
+                "IN_PROGRESS" => new[] { "In Progress", "IN_PROGRESS", "Doing", "กำลังดำเนินการ" },
+                "PLAN" => new[] { "Pending", "To Do", "PLAN", "วางแผน" },
+                _ => Array.Empty<string>()
+            };
+
+            if (candidates.Length == 0) return null;
+
+            var columns = await _context.RequirementBoardColumns
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.SortOrder)
+                .ThenBy(c => c.ColumnId)
+                .ToListAsync();
+
+            foreach (var candidate in candidates)
+            {
+                var normalizedCandidate = NormalizeBoardColumnName(candidate);
+                var exactMatch = columns.FirstOrDefault(c =>
+                    NormalizeBoardColumnName(c.ColumnName) == normalizedCandidate);
+                if (exactMatch != null) return exactMatch;
+            }
+
+            foreach (var candidate in candidates)
+            {
+                var normalizedCandidate = NormalizeBoardColumnName(candidate);
+                var containsMatch = columns.FirstOrDefault(c =>
+                    NormalizeBoardColumnName(c.ColumnName).Contains(normalizedCandidate));
+                if (containsMatch != null) return containsMatch;
+            }
+
+            return null;
+        }
+
+        private async Task LoadProjectFormLookupsAsync(int? selectedRequirementCardId = null)
+        {
+            ViewBag.Employees = await _context.Employees
+                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToListAsync();
+
+            var cards = await _context.RequirementCards
+                .AsNoTracking()
+                .Include(c => c.Column)
+                .Where(c => !c.IsArchived)
+                .OrderByDescending(c => c.UpdatedAt)
+                .ThenBy(c => c.Title)
+                .ToListAsync();
+
+            ViewBag.RequirementCards = cards
+                .Select(c => new SelectListItem
+                {
+                    Value = c.CardId.ToString(CultureInfo.InvariantCulture),
+                    Text = $"{(c.Column?.ColumnName ?? "No List")} - {c.Title}",
+                    Selected = c.CardId == selectedRequirementCardId
+                })
+                .ToList();
         }
 
         private static DateTime? ParseProjectDate(string? value)
@@ -338,6 +417,17 @@ namespace ProjectTracking.Controllers
                 .ToUpperInvariant()
                 .Replace(" ", "_")
                 .Replace("-", "_");
+        }
+
+        private static string NormalizeBoardColumnName(string? value)
+        {
+            return (value ?? "")
+                .Trim()
+                .ToUpperInvariant()
+                .Replace(" ", "")
+                .Replace("_", "")
+                .Replace("-", "")
+                .Replace("/", "");
         }
     }
 }

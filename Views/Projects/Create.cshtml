@@ -16,6 +16,8 @@
     string endDateText = endDate.HasValue
         ? $"{ed:dd/MM/}{ed.Year + 543}"
         : "";
+
+    var requirementCardDetailUrlTemplate = Url.Action("CardDetails", "RequirementBoard", new { id = "__CARD_ID__" }) ?? "";
 }
 
 <div class="index-hero pt-form-hero">
@@ -63,6 +65,30 @@
                         <option value="IN_PROGRESS">IN PROGRESS</option>
                         <option value="DONE">DONE</option>
                     </select>
+                </div>
+
+                <!-- Project Board Card -->
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        🧾 Project Board Card
+                    </label>
+                    <div class="project-board-card-picker">
+                        <select asp-for="RequirementCardId"
+                                asp-items="ViewBag.RequirementCards"
+                                class="form-select"
+                                data-placeholder="🔍 ค้นหาการ์ดจาก Project Board">
+                            <option value="">-- ไม่ได้เลือกการ์ดต้นทาง --</option>
+                        </select>
+                        <button id="RequirementCardDetailButton"
+                                type="button"
+                                class="btn btn-outline-primary project-board-card-detail is-hidden"
+                                data-detail-url-template="@requirementCardDetailUrlTemplate">
+                            🔎 ดูรายละเอียด
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        เลือกการ์ดต้นทางจาก Project Board ถ้าโครงการนี้ถูกสร้างต่อจากการ์ด
+                    </div>
                 </div>
 
                 <!-- Business Analyst -->
@@ -180,6 +206,8 @@
         </form>
     </div>
 </div>
+
+<partial name="_RequirementCardDetailModal" />
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

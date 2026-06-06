@@ -306,6 +306,65 @@ namespace ProjectTracking.Controllers
             return PhysicalFile(fullPath, contentType);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CardDetails(int id)
+        {
+            var card = await _context.RequirementCards
+                .AsNoTracking()
+                .Include(x => x.Column)
+                .Include(x => x.CreatedByUser)
+                .Include(x => x.CreatedByEmployee)
+                .Include(x => x.Attachments)
+                .FirstOrDefaultAsync(x => x.CardId == id && !x.IsArchived);
+
+            if (card == null) return NotFound();
+
+            var createdBy = !string.IsNullOrWhiteSpace(card.CreatedByEmployee?.EmpName)
+                ? card.CreatedByEmployee.EmpName
+                : (!string.IsNullOrWhiteSpace(card.CreatedByUser?.Username) ? card.CreatedByUser.Username : "ไม่ระบุผู้สร้าง");
+
+            var attachments = card.Attachments
+                .OrderByDescending(x => x.UploadedAt)
+                .Select(file => new
+                {
+                    attachmentId = file.AttachmentId,
+                    fileName = file.FileName,
+                    fileSize = FormatFileSize(file.FileSize),
+                    uploadedAt = file.UploadedAt.ToString("dd/MM/yyyy HH:mm"),
+                    isImage = IsImageContentType(file.ContentType),
+                    filePath = file.FilePath,
+                    previewUrl = Url.Action(nameof(PreviewAttachment), new { id = file.AttachmentId }),
+                    downloadUrl = Url.Action(nameof(DownloadAttachment), new { id = file.AttachmentId })
+                })
+                .ToList();
+
+            return Json(new
+            {
+                cardId = card.CardId,
+                title = card.Title,
+                detail = card.Detail,
+                columnName = card.Column?.ColumnName ?? "-",
+                coverImagePath = card.CoverImagePath,
+                createdBy,
+                updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm"),
+                attachments
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ProjectCardDetails(int projectId)
+        {
+            var cardId = await _context.Projects
+                .AsNoTracking()
+                .Where(x => x.ProjectId == projectId)
+                .Select(x => x.RequirementCardId)
+                .FirstOrDefaultAsync();
+
+            if (!cardId.HasValue) return NotFound();
+
+            return await CardDetails(cardId.Value);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MoveCard([FromBody] MoveRequirementCardRequest request)
@@ -392,6 +451,18 @@ namespace ProjectTracking.Controllers
                 });
 
             await _context.SaveChangesAsync();
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            if (bytes <= 0) return "-";
+            if (bytes >= 1048576) return $"{bytes / 1048576.0:N1} MB";
+            return $"{bytes / 1024.0:N0} KB";
+        }
+
+        private static bool IsImageContentType(string? contentType)
+        {
+            return (contentType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task SaveAttachmentsAsync(int cardId, List<IFormFile>? files)

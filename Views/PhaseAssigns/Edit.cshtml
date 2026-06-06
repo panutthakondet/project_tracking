@@ -16,6 +16,8 @@
     string planEndText = planEnd.HasValue
         ? $"{pe:dd/MM/}{pe.Year + 543}"
         : "";
+
+    var requirementProjectCardDetailUrlTemplate = Url.Action("ProjectCardDetails", "RequirementBoard", new { projectId = "__PROJECT_ID__" }) ?? "";
 }
 
 <div class="index-hero pt-form-hero">
@@ -39,6 +41,17 @@
 
             <!-- ================= KEYS ================= -->
             <input type="hidden" asp-for="AssignId" />
+            <input type="hidden" name="projectId" id="ProjectId" value="@ViewBag.ProjectId" />
+
+            <div class="project-board-card-picker project-board-card-picker--button mb-3">
+                <button id="RequirementCardDetailButton"
+                        type="button"
+                        class="btn btn-outline-primary project-board-card-detail"
+                        data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
+                        data-project-field-id="ProjectId">
+                    🔎 ดูรายละเอียด Project Board
+                </button>
+            </div>
 
             <div class="row g-3">
 
@@ -160,6 +173,8 @@
 
     </div>
 </div>
+
+<partial name="_RequirementCardDetailModal" />
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

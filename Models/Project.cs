@@ -42,6 +42,12 @@ namespace ProjectTracking.Models
         [Column("entry_id")]
         public int? EntryId { get; set; }
 
+        [Column("requirement_card_id")]
+        public int? RequirementCardId { get; set; }
+
+        [ForeignKey(nameof(RequirementCardId))]
+        public RequirementCard? RequirementCard { get; set; }
+
         [Column("status")]
         public string Status { get; set; } = "PLAN";
 

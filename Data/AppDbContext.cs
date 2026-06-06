@@ -542,13 +542,24 @@ namespace ProjectTracking.Data
                     .HasColumnType("int")
                     .IsRequired(false);
 
+                entity.Property(p => p.RequirementCardId)
+                    .HasColumnName("requirement_card_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
                 // 👤 Business Analyst relationship
                 entity.HasOne(p => p.BA)
                     .WithMany()
                     .HasForeignKey(p => p.BaEmpId)
                     .OnDelete(DeleteBehavior.SetNull);
 
+                entity.HasOne(p => p.RequirementCard)
+                    .WithMany()
+                    .HasForeignKey(p => p.RequirementCardId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(p => p.ProjectName);
+                entity.HasIndex(p => p.RequirementCardId).HasDatabaseName("idx_project_requirement_card_id");
             });
 
             // =========================

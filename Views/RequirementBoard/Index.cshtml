@@ -119,7 +119,7 @@
 
         .rb-toolbar {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             gap: 14px;
             align-items: center;
             margin: 16px 0;
@@ -132,6 +132,108 @@
             border-radius: 22px;
             background: linear-gradient(90deg, #76a8d2, #b1b9df);
             box-shadow: 0 12px 28px rgba(44, 78, 124, .18);
+        }
+
+        .rb-search {
+            position: relative;
+            flex: 0 1 380px;
+            min-width: 220px;
+        }
+
+        .rb-search-icon {
+            position: absolute;
+            left: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #21d4c2, #0f8f80);
+            color: #fff;
+            box-shadow: 0 8px 18px rgba(15, 143, 128, .24);
+            pointer-events: none;
+        }
+
+        .rb-search-icon svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        .rb-search-input {
+            width: 100%;
+            min-height: 44px;
+            padding: 0 44px 0 48px;
+            border: 1px solid rgba(255, 255, 255, .72);
+            border-radius: 999px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(244, 250, 255, .9));
+            color: #10213a;
+            font-size: .95rem;
+            font-weight: 800;
+            outline: none;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .95),
+                0 14px 30px rgba(31, 65, 109, .16);
+            transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+
+        .rb-search-input::placeholder {
+            color: #64748b;
+            font-weight: 800;
+        }
+
+        .rb-search-input::-webkit-search-decoration,
+        .rb-search-input::-webkit-search-cancel-button,
+        .rb-search-input::-webkit-search-results-button,
+        .rb-search-input::-webkit-search-results-decoration {
+            display: none;
+        }
+
+        .rb-search-input:focus {
+            border-color: rgba(20, 184, 166, .78);
+            background: #fff;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .95),
+                0 0 0 4px rgba(20, 184, 166, .16),
+                0 16px 34px rgba(31, 65, 109, .18);
+        }
+
+        .rb-search-clear {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(15, 33, 58, .08);
+            color: #334155;
+            font-size: 1.1rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .rb-search.has-value .rb-search-clear {
+            display: inline-flex;
+        }
+
+        .rb-search-clear:hover {
+            background: rgba(15, 33, 58, .14);
+        }
+
+        .rb-toolbar-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 14px;
+            margin-left: auto;
         }
 
         .rb-online-users {
@@ -497,19 +599,19 @@
         .rb-modal .modal-header {
             align-items: flex-start;
             justify-content: space-between;
-            padding: 26px 28px;
+            padding: 20px 24px;
             background: linear-gradient(135deg, #102746, #0b4e59);
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
             color: #fff;
-            min-height: 190px;
+            min-height: 140px;
         }
 
         .rb-modal .modal-header.has-cover {
             position: relative;
-            min-height: 270px;
-            padding: 18px 22px;
+            min-height: 170px;
+            padding: 14px 18px;
             background-color: #719187;
             background-size: contain;
             text-shadow: none;
@@ -529,8 +631,8 @@
         }
 
         .rb-modal .modal-header.has-cover .rb-modal-header-info {
-            padding: 8px 12px;
-            border-radius: 18px;
+            padding: 7px 11px;
+            border-radius: 14px;
             background: rgba(8, 22, 41, .62);
             backdrop-filter: blur(10px);
         }
@@ -649,6 +751,16 @@
                 align-items: stretch;
             }
 
+            .rb-search {
+                flex-basis: auto;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .rb-toolbar-actions {
+                justify-content: flex-end;
+            }
+
             .rb-stats {
                 justify-content: flex-start;
             }
@@ -680,25 +792,41 @@
     </section>
 
     <section class="rb-toolbar rb-board-strip">
-        @if (visibleOnlineUsers.Count > 0)
-        {
-            <div class="rb-online-users" aria-label="Online users">
-                @foreach (var user in visibleOnlineUsers)
-                {
-                    <span class="rb-online-avatar @user.ColorClass"
-                          title="@user.DisplayName">
-                        <img src="@user.AvatarPath"
-                             alt="@user.DisplayName"
-                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                    </span>
-                }
-                @if (hiddenOnlineCount > 0)
-                {
-                    <span class="rb-online-more">+@hiddenOnlineCount</span>
-                }
-            </div>
-        }
-        <a class="rb-btn secondary" asp-controller="Home" asp-action="Index">Dashboard</a>
+        <div class="rb-search">
+            <span class="rb-search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Z" stroke="currentColor" stroke-width="2.4" />
+                    <path d="m16.2 16.2 4.1 4.1" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                </svg>
+            </span>
+            <input id="requirementBoardSearch"
+                   class="rb-search-input"
+                   type="search"
+                   placeholder="ค้นหาการ์ด..."
+                   autocomplete="off" />
+            <button class="rb-search-clear" type="button" aria-label="ล้างคำค้น">×</button>
+        </div>
+        <div class="rb-toolbar-actions">
+            @if (visibleOnlineUsers.Count > 0)
+            {
+                <div class="rb-online-users" aria-label="Online users">
+                    @foreach (var user in visibleOnlineUsers)
+                    {
+                        <span class="rb-online-avatar @user.ColorClass"
+                              title="@user.DisplayName">
+                            <img src="@user.AvatarPath"
+                                 alt="@user.DisplayName"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        </span>
+                    }
+                    @if (hiddenOnlineCount > 0)
+                    {
+                        <span class="rb-online-more">+@hiddenOnlineCount</span>
+                    }
+                </div>
+            }
+            <a class="rb-btn secondary" asp-controller="Home" asp-action="Index">Dashboard</a>
+        </div>
     </section>
 
     @if (TempData["Error"] != null)
@@ -723,6 +851,7 @@
                             <article class="rb-card"
                                      draggable="true"
                                      data-card-id="@card.CardId"
+                                     data-search-text="@($"{card.Title} {card.Detail}")"
                                      data-bs-toggle="modal"
                                      data-bs-target="#requirementCardModal-@card.CardId">
                                 @if (!string.IsNullOrWhiteSpace(coverPath))
@@ -743,7 +872,7 @@
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="columnId" value="@column.ColumnId" />
                                 <input class="rb-input" name="title" maxlength="255" placeholder="หัวข้อการ์ด" required />
-                                <textarea class="rb-textarea" name="detail" placeholder="รายละเอียดที่ BA ต้องนำไปคีย์"></textarea>
+                                <textarea class="rb-textarea" name="detail" placeholder="รายละเอียด"></textarea>
                                 <label class="rb-field-label mb-0">รูปหัวการ์ด</label>
                                 <input class="form-control" type="file" name="coverImage" accept="image/*" />
                                 <input class="form-control" type="file" name="files" multiple />
@@ -888,6 +1017,9 @@
     <script>
         (() => {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const searchInput = document.getElementById('requirementBoardSearch');
+            const searchBox = searchInput?.closest('.rb-search');
+            const clearSearchButton = searchBox?.querySelector('.rb-search-clear');
             let draggedCard = null;
             let dragImage = null;
             let originalList = null;
@@ -895,6 +1027,40 @@
             let didDrop = false;
             let wasDragging = false;
             let suppressClickUntil = 0;
+
+            function normalizeText(value) {
+                return (value || '').toString().trim().toLowerCase();
+            }
+
+            function updateColumnCounts() {
+                document.querySelectorAll('.rb-column').forEach(column => {
+                    const visibleCount = [...column.querySelectorAll('.rb-card')]
+                        .filter(card => card.style.display !== 'none')
+                        .length;
+                    const count = column.querySelector('.rb-column-count');
+                    if (count) count.textContent = visibleCount;
+                });
+            }
+
+            function filterCards() {
+                const keyword = normalizeText(searchInput?.value);
+                searchBox?.classList.toggle('has-value', Boolean(keyword));
+
+                document.querySelectorAll('.rb-card').forEach(card => {
+                    const text = normalizeText(card.dataset.searchText);
+                    card.style.display = !keyword || text.includes(keyword) ? '' : 'none';
+                });
+
+                updateColumnCounts();
+            }
+
+            searchInput?.addEventListener('input', filterCards);
+            clearSearchButton?.addEventListener('click', () => {
+                if (!searchInput) return;
+                searchInput.value = '';
+                searchInput.focus();
+                filterCards();
+            });
 
             function cleanupDragImage() {
                 if (dragImage) {

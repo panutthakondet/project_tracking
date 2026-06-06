@@ -221,3 +221,319 @@
         }, 0);
     });
 })();
+
+(function () {
+    const notePositionStorageKey = "projectTracking.requirementCardNote.position";
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value || "-";
+        return element;
+    }
+
+    function clearElement(element) {
+        if (!element) return;
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
+    function createActionLink(label, href, variant) {
+        const link = document.createElement("a");
+        link.className = `btn btn-outline-${variant || "secondary"}`;
+        link.href = href || "#";
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = label;
+        return link;
+    }
+
+    function renderAttachment(file) {
+        const row = document.createElement("div");
+        row.className = "requirement-card-popup__file";
+
+        const thumb = document.createElement("a");
+        thumb.className = "requirement-card-popup__thumb";
+        thumb.href = file.previewUrl || "#";
+        thumb.target = "_blank";
+        thumb.rel = "noopener";
+
+        if (file.isImage && file.filePath) {
+            const img = document.createElement("img");
+            img.src = file.filePath;
+            img.alt = file.fileName || "Attachment";
+            thumb.appendChild(img);
+        } else {
+            thumb.textContent = "FILE";
+        }
+
+        const info = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "requirement-card-popup__file-name";
+        name.textContent = file.fileName || "-";
+
+        const meta = document.createElement("div");
+        meta.className = "requirement-card-popup__file-info";
+        meta.textContent = `${file.fileSize || "-"} · ${file.uploadedAt || "-"}`;
+
+        info.appendChild(name);
+        info.appendChild(meta);
+
+        const actions = document.createElement("div");
+        actions.className = "requirement-card-popup__file-actions";
+        actions.appendChild(createActionLink("Preview", file.previewUrl, "primary"));
+        actions.appendChild(createActionLink("ดาวน์โหลด", file.downloadUrl, "secondary"));
+
+        row.appendChild(thumb);
+        row.appendChild(info);
+        row.appendChild(actions);
+        return row;
+    }
+
+    function renderRequirementCardPopup(card) {
+        const header = document.getElementById("RequirementCardDetailHeader");
+        if (header) {
+            header.classList.toggle("has-cover", Boolean(card.coverImagePath));
+            header.style.backgroundImage = card.coverImagePath
+                ? `linear-gradient(180deg, rgba(8, 22, 41, .22), rgba(8, 22, 41, .5)), url("${card.coverImagePath}")`
+                : "";
+        }
+
+        setText("RequirementCardDetailEyebrow", `Project Card #${card.cardId || "-"}`);
+        setText("RequirementCardDetailTitle", card.title || "-");
+        setText(
+            "RequirementCardDetailMeta",
+            `List: ${card.columnName || "-"} · สร้างโดย ${card.createdBy || "-"} · อัปเดต ${card.updatedAt || "-"}`
+        );
+
+        const detail = setText("RequirementCardDetailText", card.detail || "ไม่มีรายละเอียด");
+        if (detail) {
+            detail.classList.toggle("requirement-card-popup__empty", !card.detail);
+        }
+
+        const attachments = Array.isArray(card.attachments) ? card.attachments : [];
+        setText("RequirementCardAttachmentCount", attachments.length.toString());
+
+        const list = document.getElementById("RequirementCardAttachmentList");
+        clearElement(list);
+        if (!list) return;
+
+        if (attachments.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "requirement-card-popup__detail requirement-card-popup__empty";
+            empty.textContent = "ยังไม่มีไฟล์แนบ";
+            list.appendChild(empty);
+            return;
+        }
+
+        attachments.forEach(file => {
+            list.appendChild(renderAttachment(file));
+        });
+    }
+
+    function cleanupBootstrapModalState() {
+        document.querySelectorAll(".modal-backdrop").forEach(backdrop => backdrop.remove());
+        document.body.classList.remove("modal-open");
+        document.body.style.removeProperty("overflow");
+        document.body.style.removeProperty("padding-right");
+    }
+
+    function openRequirementCardNote() {
+        const note = document.getElementById("RequirementCardDetailModal");
+        if (!note) return;
+
+        if (note.parentElement !== document.body) {
+            document.body.appendChild(note);
+        }
+
+        applyStoredRequirementCardNotePosition(note);
+        cleanupBootstrapModalState();
+        note.classList.add("is-open");
+        note.setAttribute("aria-hidden", "false");
+    }
+
+    function closeRequirementCardNote() {
+        const note = document.getElementById("RequirementCardDetailModal");
+        if (!note) return;
+
+        note.classList.remove("is-open");
+        note.setAttribute("aria-hidden", "true");
+    }
+
+    function getRequirementCardNotePositionBounds(note) {
+        const rect = note.getBoundingClientRect();
+        const margin = 8;
+        return {
+            maxLeft: Math.max(margin, window.innerWidth - rect.width - margin),
+            maxTop: Math.max(margin, window.innerHeight - rect.height - margin),
+            margin
+        };
+    }
+
+    function setRequirementCardNotePosition(note, left, top) {
+        const bounds = getRequirementCardNotePositionBounds(note);
+        note.style.setProperty("--requirement-card-note-left", `${clamp(left, bounds.margin, bounds.maxLeft)}px`);
+        note.style.setProperty("--requirement-card-note-top", `${clamp(top, bounds.margin, bounds.maxTop)}px`);
+    }
+
+    function applyStoredRequirementCardNotePosition(note) {
+        if (window.matchMedia?.("(max-width: 575.98px)").matches) {
+            note.style.removeProperty("--requirement-card-note-left");
+            note.style.removeProperty("--requirement-card-note-top");
+            return;
+        }
+
+        let savedPosition = null;
+        try {
+            savedPosition = JSON.parse(window.localStorage?.getItem(notePositionStorageKey) || "null");
+        } catch {
+            savedPosition = null;
+        }
+
+        if (!savedPosition || !Number.isFinite(savedPosition.left) || !Number.isFinite(savedPosition.top)) return;
+        setRequirementCardNotePosition(note, savedPosition.left, savedPosition.top);
+    }
+
+    function initRequirementCardNoteDrag() {
+        const note = document.getElementById("RequirementCardDetailModal");
+        const header = document.getElementById("RequirementCardDetailHeader");
+        if (!note || !header || header.dataset.dragReady === "true") return;
+        header.dataset.dragReady = "true";
+
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        function stopDrag() {
+            note.classList.remove("is-dragging");
+            document.removeEventListener("pointermove", drag);
+            document.removeEventListener("pointerup", stopDrag);
+            document.removeEventListener("pointercancel", stopDrag);
+
+            const rect = note.getBoundingClientRect();
+            window.localStorage?.setItem(notePositionStorageKey, JSON.stringify({
+                left: Math.round(rect.left),
+                top: Math.round(rect.top)
+            }));
+        }
+
+        function drag(event) {
+            setRequirementCardNotePosition(
+                note,
+                startLeft + event.clientX - startX,
+                startTop + event.clientY - startY
+            );
+        }
+
+        header.addEventListener("pointerdown", function (event) {
+            if (window.matchMedia?.("(max-width: 575.98px)").matches) return;
+            if (event.target.closest("button, a, input, textarea, select")) return;
+
+            event.preventDefault();
+            startX = event.clientX;
+            startY = event.clientY;
+            const rect = note.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            note.classList.add("is-dragging");
+            header.setPointerCapture?.(event.pointerId);
+            document.addEventListener("pointermove", drag);
+            document.addEventListener("pointerup", stopDrag);
+            document.addEventListener("pointercancel", stopDrag);
+        });
+
+        window.addEventListener("resize", function () {
+            if (!note.classList.contains("is-open")) return;
+            applyStoredRequirementCardNotePosition(note);
+        });
+    }
+
+    function initRequirementCardDetailButton(root) {
+        const scope = root || document;
+        const select = scope.getElementById
+            ? scope.getElementById("RequirementCardId")
+            : document.getElementById("RequirementCardId");
+        const button = scope.getElementById
+            ? scope.getElementById("RequirementCardDetailButton")
+            : document.getElementById("RequirementCardDetailButton");
+        const projectFieldId = button?.dataset.projectFieldId || "ProjectId";
+        const projectField = scope.getElementById
+            ? scope.getElementById(projectFieldId)
+            : document.getElementById(projectFieldId);
+
+        if (!button || (!select && !projectField) || button.dataset.popupReady === "true") return;
+        button.dataset.popupReady = "true";
+
+        const cardTemplate = button.dataset.detailUrlTemplate || "";
+        const projectTemplate = button.dataset.detailProjectUrlTemplate || "";
+
+        function getDetailUrl() {
+            const cardId = select?.value || "";
+            if (cardId && cardTemplate) {
+                return cardTemplate.replace("__CARD_ID__", encodeURIComponent(cardId));
+            }
+
+            const projectId = projectField?.value || "";
+            if (projectId && projectTemplate) {
+                return projectTemplate.replace("__PROJECT_ID__", encodeURIComponent(projectId));
+            }
+
+            return "";
+        }
+
+        function syncButton() {
+            const hasUrl = Boolean(getDetailUrl());
+            button.classList.toggle("is-hidden", !hasUrl);
+            button.disabled = !hasUrl;
+        }
+
+        async function openDetailPopup() {
+            const url = getDetailUrl();
+            if (!url) return;
+
+            const originalText = button.dataset.originalText || button.textContent.trim() || "🔎 ดูรายละเอียด";
+            button.dataset.originalText = originalText;
+            button.disabled = true;
+            button.textContent = "กำลังโหลด...";
+
+            try {
+                const response = await fetch(url, { headers: { Accept: "application/json" } });
+                if (!response.ok) throw new Error("โหลดข้อมูลการ์ดไม่สำเร็จ");
+
+                const card = await response.json();
+                renderRequirementCardPopup(card);
+                openRequirementCardNote();
+            } catch (error) {
+                window.alert(error.message || "โหลดข้อมูลการ์ดไม่สำเร็จ");
+            } finally {
+                button.textContent = originalText;
+                syncButton();
+            }
+        }
+
+        select?.addEventListener("change", syncButton);
+        projectField?.addEventListener("change", syncButton);
+        button.addEventListener("click", openDetailPopup);
+        syncButton();
+    }
+
+    window.ProjectTrackingRequirementCardPopup = {
+        init: initRequirementCardDetailButton
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initRequirementCardDetailButton(document);
+        initRequirementCardNoteDrag();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (event.target.closest("[data-requirement-card-close]")) {
+            closeRequirementCardNote();
+        }
+    });
+})();
