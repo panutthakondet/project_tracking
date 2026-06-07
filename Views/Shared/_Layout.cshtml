@@ -1908,6 +1908,16 @@
                             </li>
                         }
 
+                        @if (CanMenu("Meetings.Index"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="Meetings" ? "active-menu" : "")" asp-controller="Meetings" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
+                                    <span class="nav-label">Meetings</span>
+                                </a>
+                            </li>
+                        }
+
                         @if (canEmployees)
                         {
                             <li class="nav-item dropdown">
@@ -1992,16 +2002,6 @@
                                         <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">มอบหมายงวดงาน</a></li>
                                     }
                                 </ul>
-                            </li>
-                        }
-
-                        @if (CanMenu("Meetings.Index"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="Meetings" ? "active-menu" : "")" asp-controller="Meetings" asp-action="Index">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
-                                    <span class="nav-label">Meetings</span>
-                                </a>
                             </li>
                         }
 
