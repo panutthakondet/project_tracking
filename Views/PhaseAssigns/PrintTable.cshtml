@@ -224,7 +224,7 @@
     <header class="print-header">
         <h2>รายงานการมอบหมายงาน</h2>
         <div class="print-meta">
-            <b>Project:</b> @(ViewBag.SelectedProject?.ProjectName ?? "All") <br />
+            <b>Project:</b> @(ViewBag.SelectedProject?.ProjectDisplayName ?? "All") <br />
             <b>Print Date:</b> @((ViewBag.PrintDate as DateTime?)?.ToString("dd MMM yyyy HH:mm", th) ?? DateTime.Now.ToString("dd MMM yyyy HH:mm", th))
         </div>
     </header>

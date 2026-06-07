@@ -3,9 +3,58 @@
 
 (function () {
     const enhancedClass = "pt-dropdown-enhanced";
+    const coopFilterClass = "pt-project-coop-filter";
 
     function normalize(value) {
         return (value || "").toString().trim().toLowerCase();
+    }
+
+    function extractCoopName(option) {
+        if (!option || option.value === "") return "";
+
+        const explicitName = (option.dataset.coopName || "").trim();
+        if (explicitName) return explicitName;
+
+        const text = (option.textContent || option.text || "").trim();
+        const separator = " - ";
+        const separatorIndex = text.indexOf(separator);
+        if (separatorIndex <= 0) return "";
+
+        const possibleCoop = text.substring(0, separatorIndex).trim();
+        return possibleCoop.startsWith("สหกรณ์") || possibleCoop.startsWith("สอ.")
+            ? possibleCoop
+            : "";
+    }
+
+    function extractProjectName(option) {
+        if (!option || option.value === "") return "";
+
+        const explicitName = (option.dataset.projectName || "").trim();
+        if (explicitName) return explicitName;
+
+        const text = (option.textContent || option.text || "").trim();
+        const coopName = extractCoopName(option);
+        const separator = " - ";
+        if (coopName && text.startsWith(`${coopName}${separator}`)) {
+            return text.substring(`${coopName}${separator}`.length).trim();
+        }
+
+        return text;
+    }
+
+    function prepareProjectOption(option) {
+        if (!option || option.value === "") return;
+
+        const coopName = extractCoopName(option);
+        if (coopName) {
+            option.dataset.coopName = coopName;
+        }
+
+        const projectName = extractProjectName(option);
+        if (projectName) {
+            option.dataset.projectName = projectName;
+            option.textContent = projectName;
+        }
     }
 
     function shouldEnhance(select) {
@@ -148,7 +197,7 @@
 
             const keyword = normalize(filter);
             const options = Array.from(select.options)
-                .filter(option => !option.disabled)
+                .filter(option => !option.disabled && !option.hidden && option.dataset.ptFilterHidden !== "true")
                 .filter(option => option.value !== "")
                 .filter(option => {
                     const haystack = normalize(`${option.text} ${option.value}`);
@@ -195,6 +244,10 @@
         clearButton.addEventListener("click", clearValue);
 
         select.addEventListener("change", syncInputFromSelect);
+        select.addEventListener("pt-dropdown-refresh", function () {
+            renderOptions(input.value);
+            syncInputFromSelect();
+        });
 
         document.addEventListener("click", function (event) {
             if (!wrapper.contains(event.target)) {
@@ -206,13 +259,138 @@
         syncInputFromSelect();
     }
 
+    function findProjectField(select) {
+        return select.closest(".field, [class*='col-'], .form-group, .mb-3") || select.parentElement;
+    }
+
+    function buildCoopField(projectField) {
+        const field = document.createElement("div");
+        const isGridColumn = projectField && /\bcol(?:-\d+|-sm-\d+|-md-\d+|-lg-\d+|-xl-\d+|-xxl-\d+)?\b/.test(projectField.className || "");
+        field.className = isGridColumn
+            ? `col-12 ${coopFilterClass}`
+            : projectField && projectField.className
+            ? `${projectField.className} ${coopFilterClass}`
+            : `field ${coopFilterClass}`;
+
+        const label = document.createElement("label");
+        label.className = "form-label fw-semibold";
+        label.textContent = "🏢 สหกรณ์";
+
+        const select = document.createElement("select");
+        select.className = "form-select";
+        select.dataset.placeholder = "🔍 พิมพ์ค้นหาสหกรณ์...";
+
+        field.appendChild(label);
+        field.appendChild(select);
+        return { field, select };
+    }
+
+    function normalizeProjectLabel(projectField) {
+        const label = projectField?.querySelector("label");
+        if (!label) return;
+
+        const text = (label.textContent || "").trim().toLowerCase();
+        if (text.includes("project") || text.includes("โครงการ")) {
+            label.textContent = "📁 โครงการ";
+        }
+    }
+
+    function updateProjectOptionVisibility(projectSelect, coopName) {
+        const normalizedCoop = normalize(coopName);
+        let selectedStillVisible = true;
+
+        Array.from(projectSelect.options).forEach(option => {
+            if (option.value === "") {
+                option.hidden = false;
+                option.disabled = false;
+                option.dataset.ptFilterHidden = "false";
+                return;
+            }
+
+            const optionCoop = extractCoopName(option);
+            const visible = !normalizedCoop || normalize(optionCoop) === normalizedCoop;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            option.dataset.ptFilterHidden = visible ? "false" : "true";
+
+            if (option.selected && !visible) {
+                selectedStillVisible = false;
+            }
+        });
+
+        if (!selectedStillVisible) {
+            projectSelect.value = "";
+        }
+
+        projectSelect.dispatchEvent(new Event("pt-dropdown-refresh"));
+    }
+
+    function initProjectCoopFilters(root) {
+        const scope = root || document;
+        const projectSelects = Array.from(scope.querySelectorAll("select[name='projectId'], select[name='ProjectId'], select[name='projectName'], select[name='ProjectName'], select[id='projectSelect'], select[id='projectId'], select[id='projectName'], select[id='ProjectName']"))
+            .filter(select => select.dataset.projectCoopFilter !== "off")
+            .filter(select => select.dataset.projectCoopFilterReady !== "true")
+            .filter(select => {
+                const style = window.getComputedStyle(select);
+                return style.display !== "none" && !select.hidden;
+            });
+
+        projectSelects.forEach(projectSelect => {
+            const options = Array.from(projectSelect.options);
+            options.forEach(prepareProjectOption);
+
+            const coopNames = Array.from(new Set(options.map(extractCoopName).filter(Boolean)))
+                .sort((a, b) => a.localeCompare(b, "th"));
+
+            if (coopNames.length === 0) return;
+
+            const projectField = findProjectField(projectSelect);
+            if (!projectField || !projectField.parentNode) return;
+            projectField.classList.add("pt-project-field-with-coop");
+            normalizeProjectLabel(projectField);
+
+            const existingField = projectField.previousElementSibling;
+            if (existingField && existingField.classList.contains(coopFilterClass)) return;
+
+            const { field, select: coopSelect } = buildCoopField(projectField);
+            coopSelect.innerHTML = "";
+
+            const allOption = document.createElement("option");
+            allOption.value = "";
+            allOption.textContent = "-- ทุกสหกรณ์ --";
+            coopSelect.appendChild(allOption);
+
+            coopNames.forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                coopSelect.appendChild(option);
+            });
+
+            const selectedProjectCoop = extractCoopName(projectSelect.options[projectSelect.selectedIndex]);
+            if (selectedProjectCoop) {
+                coopSelect.value = selectedProjectCoop;
+            }
+
+            projectField.parentNode.insertBefore(field, projectField);
+            projectSelect.dataset.projectCoopFilterReady = "true";
+            updateProjectOptionVisibility(projectSelect, coopSelect.value);
+
+            coopSelect.addEventListener("change", function () {
+                updateProjectOptionVisibility(projectSelect, coopSelect.value);
+            });
+        });
+    }
+
     function initProjectDropdowns(root) {
         const scope = root || document;
+        initProjectCoopFilters(scope);
         scope.querySelectorAll("select").forEach(enhanceSelect);
     }
 
     window.ProjectTrackingDropdowns = {
-        init: initProjectDropdowns
+        init: initProjectDropdowns,
+        initProjectCoopFilters
     };
 
     document.addEventListener("DOMContentLoaded", function () {

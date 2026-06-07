@@ -434,7 +434,7 @@
     <header class="print-header">
         <h1>Project Issues Report</h1>
         <div>
-            Project: @(selectedProject?.ProjectName ?? "All Projects")<br />
+            Project: @(selectedProject?.ProjectDisplayName ?? "All Projects")<br />
             Employee: @(string.IsNullOrWhiteSpace(selectedEmp) ? "All Employees" : selectedEmp)<br />
             Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Status" : selectedStatus)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
@@ -449,7 +449,7 @@
                 @foreach (var p in projects)
                 {
                     <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId ? "selected" : null)">
-                        @p.ProjectName
+                        @p.ProjectDisplayName
                     </option>
                 }
             </select>
@@ -549,7 +549,7 @@
                         .GroupBy(issue => new
                         {
                             issue.ProjectId,
-                            ProjectName = TextOrDash(issue.Project?.ProjectName)
+                            ProjectName = TextOrDash(issue.Project?.ProjectDisplayName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();

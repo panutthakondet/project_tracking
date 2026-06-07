@@ -63,6 +63,7 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues
                 .AsNoTracking()
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Employee)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
@@ -83,6 +84,7 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues
                 .AsNoTracking()
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Employee)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
@@ -106,6 +108,7 @@ namespace ProjectTracking.Controllers
             var query = _context.ProjectIssues
                 .AsNoTracking()
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
@@ -121,7 +124,8 @@ namespace ProjectTracking.Controllers
                 query = query.Where(i => i.IssueStatus == status);
 
             var issues = await query
-                .OrderBy(i => i.Project != null ? i.Project.ProjectName : "")
+                .OrderBy(i => i.Project != null && i.Project.Coop != null ? i.Project.Coop.CoopName : "")
+                .ThenBy(i => i.Project != null ? i.Project.ProjectName : "")
                 .ThenByDescending(i => i.IsReopen)
                 .ThenByDescending(i => i.ReopenCount)
                 .ThenBy(i => i.IssueId)
@@ -137,7 +141,7 @@ namespace ProjectTracking.Controllers
         // CREATE (GET)
         // =====================================================
         [RequireMenu("ProjectIssues.Create")]
-        public IActionResult Create(int projectId)
+        public async Task<IActionResult> Create(int projectId)
         {
             var model = new ProjectIssue
             {
@@ -148,10 +152,7 @@ namespace ProjectTracking.Controllers
             };
 
             ViewBag.ProjectId = projectId;
-            ViewBag.ProjectName = _context.Projects
-                .Where(p => p.ProjectId == projectId)
-                .Select(p => p.ProjectName)
-                .FirstOrDefault();
+            ViewBag.ProjectName = await GetProjectDisplayNameAsync(projectId);
             ViewBag.Employees = GetEmployeeList();
             ViewBag.StatusList = GetStatusList("OPEN");
 
@@ -173,10 +174,7 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
-                ViewBag.ProjectName = await _context.Projects
-                    .Where(p => p.ProjectId == model.ProjectId)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync();
+                ViewBag.ProjectName = await GetProjectDisplayNameAsync(model.ProjectId);
                 ViewBag.Employees = GetEmployeeList(model.AssignTo);
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
                 return View(model);
@@ -276,6 +274,7 @@ namespace ProjectTracking.Controllers
         {
             var issue = await _context.ProjectIssues
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .FirstOrDefaultAsync(i => i.IssueId == id);
@@ -283,7 +282,7 @@ namespace ProjectTracking.Controllers
             if (issue == null) return NotFound();
 
             ViewBag.ProjectId = issue.ProjectId;
-            ViewBag.ProjectName = issue.Project?.ProjectName;
+            ViewBag.ProjectName = issue.Project?.ProjectDisplayName;
             ViewBag.Employees = GetEmployeeList(issue.AssignTo);
             ViewBag.StatusList = GetStatusList(issue.IssueStatus);
 
@@ -311,10 +310,7 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
-                ViewBag.ProjectName = await _context.Projects
-                    .Where(p => p.ProjectId == model.ProjectId)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync();
+                ViewBag.ProjectName = await GetProjectDisplayNameAsync(model.ProjectId);
                 ViewBag.Employees = GetEmployeeList(model.AssignTo);
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
                 model.Images = await _context.ProjectIssueImages
@@ -428,6 +424,7 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues
                 .Include(i => i.Employee)
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.FixImages)
                 .FirstOrDefaultAsync(i => i.IssueId == id);
 
@@ -537,6 +534,8 @@ namespace ProjectTracking.Controllers
         {
             var query = _context.ProjectIssues
                 .AsNoTracking()
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
@@ -614,7 +613,9 @@ namespace ProjectTracking.Controllers
         private async Task LoadDropdown(int? projectId, string? empName)
         {
             ViewBag.Projects = await _context.Projects
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             ViewBag.SelectedEmp = empName;
@@ -633,6 +634,7 @@ namespace ProjectTracking.Controllers
             }
 
             var project = await _context.Projects
+                .Include(p => p.Coop)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
 
             ViewBag.SelectedProject = project;
@@ -652,6 +654,16 @@ namespace ProjectTracking.Controllers
             {
                 ViewBag.EmpList = new List<string>();
             }
+        }
+
+        private async Task<string?> GetProjectDisplayNameAsync(int projectId)
+        {
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId);
+
+            return project?.ProjectDisplayName;
         }
 
         private SelectList GetEmployeeList(int? selected = null)

@@ -426,8 +426,8 @@ namespace ProjectTracking.Controllers
 
             var projects = await _context.Projects
                 .AsNoTracking()
+                .Include(x => x.Coop)
                 .Where(x => x.BaEmpId == empId.Value)
-                .Select(x => new { x.ProjectId, x.ProjectName })
                 .ToListAsync();
 
             var projectIds = projects.Select(x => x.ProjectId).ToHashSet();
@@ -440,6 +440,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Where(x => x.Phase != null && projectIds.Contains(x.Phase.ProjectId))
                 .ToListAsync();
 
@@ -449,7 +450,7 @@ namespace ProjectTracking.Controllers
                 {
                     Type = "Assigns",
                     SourceId = x.AssignId,
-                    ProjectName = x.Phase?.Project?.ProjectName ?? "-",
+                    ProjectName = x.Phase?.Project?.ProjectDisplayName ?? "-",
                     Title = string.IsNullOrWhiteSpace(x.Role) ? x.Phase?.PhaseName ?? "-" : x.Role!,
                     OwnerName = x.Employee?.EmpName,
                     Status = x.WorkStatus,
@@ -460,6 +461,7 @@ namespace ProjectTracking.Controllers
             var issues = await _context.ProjectIssues
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Include(x => x.Employee)
                 .Where(x => projectIds.Contains(x.ProjectId))
                 .ToListAsync();
@@ -470,7 +472,7 @@ namespace ProjectTracking.Controllers
                 {
                     Type = "Issue",
                     SourceId = x.IssueId,
-                    ProjectName = x.Project?.ProjectName ?? "-",
+                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
                     Title = x.IssueName,
                     OwnerName = x.Employee?.EmpName,
                     Status = x.IssueStatus,
@@ -481,6 +483,7 @@ namespace ProjectTracking.Controllers
             var supports = await _context.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Include(x => x.Employee)
                 .Where(x => projectIds.Contains(x.ProjectId))
                 .ToListAsync();
@@ -491,7 +494,7 @@ namespace ProjectTracking.Controllers
                 {
                     Type = "Support",
                     SourceId = x.OrderId,
-                    ProjectName = x.Project?.ProjectName ?? "-",
+                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
                     Title = string.IsNullOrWhiteSpace(x.OrderTitle) ? $"Support #{x.OrderId}" : x.OrderTitle!,
                     OwnerName = x.Employee?.EmpName,
                     Status = x.Status,
@@ -502,6 +505,7 @@ namespace ProjectTracking.Controllers
             var followups = await _context.ProjectFollowups
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Include(x => x.Owner)
                 .Where(x => x.ProjectId.HasValue && projectIds.Contains(x.ProjectId.Value))
                 .ToListAsync();
@@ -512,7 +516,7 @@ namespace ProjectTracking.Controllers
                 {
                     Type = "Followup",
                     SourceId = x.FollowupId,
-                    ProjectName = x.Project?.ProjectName ?? "-",
+                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
                     Title = x.TaskTitle,
                     OwnerName = x.Owner?.EmpName,
                     Status = x.Status,

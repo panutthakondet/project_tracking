@@ -31,7 +31,9 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Projects = await _context.Projects
                 .AsNoTracking()
-                .OrderByDescending(p => p.ProjectId)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             if (projectId == null)
@@ -42,6 +44,7 @@ namespace ProjectTracking.Controllers
 
             var selectedProject = await _context.Projects
                 .AsNoTracking()
+                .Include(p => p.Coop)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (selectedProject == null)
@@ -75,6 +78,7 @@ namespace ProjectTracking.Controllers
 
             var project = await _context.Projects
                 .AsNoTracking()
+                .Include(p => p.Coop)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (project == null)
@@ -87,7 +91,7 @@ namespace ProjectTracking.Controllers
                 .OrderByDescending(p => p.PhaseId)
                 .FirstOrDefaultAsync();
 
-            ViewBag.SelectedProjectName = project.ProjectName;
+            ViewBag.SelectedProjectName = project.ProjectDisplayName;
 
             ViewBag.LastPlanStart = lastPhase?.PlanStart?.ToString("yyyy-MM-dd") ?? "";
             ViewBag.LastPlanEnd = lastPhase?.PlanEnd?.ToString("yyyy-MM-dd") ?? "";
@@ -183,9 +187,10 @@ namespace ProjectTracking.Controllers
             {
                 var project = await _context.Projects
                     .AsNoTracking()
+                    .Include(p => p.Coop)
                     .FirstOrDefaultAsync(p => p.ProjectId == phase.ProjectId);
 
-                ViewBag.SelectedProjectName = project?.ProjectName ?? "ไม่พบข้อมูลโครงการ";
+                ViewBag.SelectedProjectName = project?.ProjectDisplayName ?? "ไม่พบข้อมูลโครงการ";
 
                 var lastPhase = await _context.ProjectPhases
                     .AsNoTracking()
@@ -402,6 +407,7 @@ namespace ProjectTracking.Controllers
 
             var project = await _context.Projects
                 .AsNoTracking()
+                .Include(p => p.Coop)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (project == null)

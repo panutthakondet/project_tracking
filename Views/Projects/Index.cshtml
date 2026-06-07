@@ -34,7 +34,7 @@
     var orderedProjects = projects
         .OrderBy(x => ProjectSortOrder(x.Status))
         .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
-        .ThenBy(x => x.ProjectName)
+        .ThenBy(x => x.ProjectDisplayName)
         .ToList();
 }
 
@@ -121,18 +121,51 @@
         <div class="project-filter-form">
 
             <div class="project-filter-row">
-                <label class="form-label fw-bold">📂 Project</label>
+                <label class="form-label fw-bold">🏢 สหกรณ์</label>
+                <div class="search-dropdown-field">
+                    <input type="text"
+                           id="coopFilterSearch"
+                           class="form-control form-control-lg"
+                           placeholder="🔍 พิมพ์ค้นหาสหกรณ์..."
+                           autocomplete="off" />
+                    <button type="button"
+                            id="clearCoopFilter"
+                            class="search-dropdown-clear"
+                            title="เลือกสหกรณ์ใหม่"
+                            aria-label="เลือกสหกรณ์ใหม่">
+                        ×
+                    </button>
+                </div>
+                <div id="coopFilterDropdown"
+                     class="list-group mt-1"
+                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                </div>
+                <select id="coopFilter" style="display:none;">
+                    <option value="">ทั้งหมด</option>
+                    @foreach (var coopName in projects
+                        .Select(x => x.Coop?.CoopName)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct()
+                        .OrderBy(x => x))
+                    {
+                        <option value="@coopName">@coopName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="project-filter-row">
+                <label class="form-label fw-bold">📁 โครงการ</label>
                 <div class="search-dropdown-field">
                     <input type="text"
                            id="projectFilterSearch"
                            class="form-control form-control-lg"
-                           placeholder="🔍 พิมพ์ค้นหา Project..."
+                           placeholder="🔍 พิมพ์ค้นหาโครงการ..."
                            autocomplete="off" />
                     <button type="button"
                             id="clearProjectFilter"
                             class="search-dropdown-clear"
-                            title="เลือก Project ใหม่"
-                            aria-label="เลือก Project ใหม่">
+                            title="เลือกโครงการใหม่"
+                            aria-label="เลือกโครงการใหม่">
                         ×
                     </button>
                 </div>
@@ -142,72 +175,78 @@
                 </div>
                 <select id="projectFilter" style="display:none;">
                     <option value="">ทั้งหมด</option>
-                    @foreach (var p in projects.OrderBy(x => x.ProjectName))
+                    @foreach (var p in projects.OrderBy(x => x.ProjectDisplayName))
                     {
-                        <option value="@p.ProjectName">@p.ProjectName</option>
+                        <option value="@p.ProjectDisplayName"
+                                data-coop-name="@(p.Coop?.CoopName ?? "")"
+                                data-project-name="@p.ProjectName">
+                            @p.ProjectName
+                        </option>
                     }
                 </select>
             </div>
 
-            <div class="project-filter-row">
-                <label class="form-label fw-bold">👤 BA</label>
-                <div class="search-dropdown-field">
-                    <input type="text"
-                           id="baFilterSearch"
-                           class="form-control form-control-lg"
-                           placeholder="🔍 พิมพ์ค้นหา BA..."
-                           autocomplete="off" />
-                    <button type="button"
-                            id="clearBaFilter"
-                            class="search-dropdown-clear"
-                            title="เลือก BA ใหม่"
-                            aria-label="เลือก BA ใหม่">
-                        ×
-                    </button>
+            <div class="project-filter-pair">
+                <div class="project-filter-row">
+                    <label class="form-label fw-bold">👤 BA</label>
+                    <div class="search-dropdown-field">
+                        <input type="text"
+                               id="baFilterSearch"
+                               class="form-control form-control-lg"
+                               placeholder="🔍 พิมพ์ค้นหา BA..."
+                               autocomplete="off" />
+                        <button type="button"
+                                id="clearBaFilter"
+                                class="search-dropdown-clear"
+                                title="เลือก BA ใหม่"
+                                aria-label="เลือก BA ใหม่">
+                            ×
+                        </button>
+                    </div>
+                    <div id="baFilterDropdown"
+                         class="list-group mt-1"
+                         style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                    </div>
+                    <select id="baFilter" style="display:none;">
+                        <option value="">ทั้งหมด</option>
+                        @foreach (var ba in projects
+                            .Select(x => x.BA?.EmpName)
+                            .Where(x => !string.IsNullOrWhiteSpace(x))
+                            .Distinct()
+                            .OrderBy(x => x))
+                        {
+                            <option value="@ba">@ba</option>
+                        }
+                    </select>
                 </div>
-                <div id="baFilterDropdown"
-                     class="list-group mt-1"
-                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                </div>
-                <select id="baFilter" style="display:none;">
-                    <option value="">ทั้งหมด</option>
-                    @foreach (var ba in projects
-                        .Select(x => x.BA?.EmpName)
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .Distinct()
-                        .OrderBy(x => x))
-                    {
-                        <option value="@ba">@ba</option>
-                    }
-                </select>
-            </div>
 
-            <div class="project-filter-row">
-                <label class="form-label fw-bold">📌 Status</label>
-                <div class="search-dropdown-field">
-                    <input type="text"
-                           id="statusFilterSearch"
-                           class="form-control form-control-lg"
-                           placeholder="🔍 พิมพ์ค้นหา Status..."
-                           autocomplete="off" />
-                    <button type="button"
-                            id="clearStatusFilter"
-                            class="search-dropdown-clear"
-                            title="เลือก Status ใหม่"
-                            aria-label="เลือก Status ใหม่">
-                        ×
-                    </button>
+                <div class="project-filter-row">
+                    <label class="form-label fw-bold">📌 Status</label>
+                    <div class="search-dropdown-field">
+                        <input type="text"
+                               id="statusFilterSearch"
+                               class="form-control form-control-lg"
+                               placeholder="🔍 พิมพ์ค้นหา Status..."
+                               autocomplete="off" />
+                        <button type="button"
+                                id="clearStatusFilter"
+                                class="search-dropdown-clear"
+                                title="เลือก Status ใหม่"
+                                aria-label="เลือก Status ใหม่">
+                            ×
+                        </button>
+                    </div>
+                    <div id="statusFilterDropdown"
+                         class="list-group mt-1"
+                         style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
+                    </div>
+                    <select id="statusFilter" style="display:none;">
+                        <option value="">ทั้งหมด</option>
+                        <option value="PLAN">PLAN</option>
+                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                        <option value="DONE">DONE</option>
+                    </select>
                 </div>
-                <div id="statusFilterDropdown"
-                     class="list-group mt-1"
-                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                </div>
-                <select id="statusFilter" style="display:none;">
-                    <option value="">ทั้งหมด</option>
-                    <option value="PLAN">PLAN</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                    <option value="DONE">DONE</option>
-                </select>
             </div>
 
         </div>
@@ -245,14 +284,18 @@
             var rowNo = 1;
             foreach (var p in orderedProjects)
             {
+                var projectDisplayName = p.ProjectDisplayName;
+                var coopName = p.Coop?.CoopName ?? "";
                 <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")"
-                    data-project="@p.ProjectName.ToLower()"
+                    data-project="@projectDisplayName.ToLower()"
+                    data-project-name="@p.ProjectName.ToLower()"
+                    data-coop="@coopName.ToLower()"
                     data-ba="@((p.BA?.EmpName ?? "").ToLower())"
                     data-status="@((p.Status ?? "").ToLower())">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
                     <td class="sticky-col-2 col-name fw-semibold">
-                        @p.ProjectName
+                        @projectDisplayName
                     </td>
 
                     <td class="col-ba text-center">
@@ -373,9 +416,16 @@
                             }
                             @if (CanMenu("Projects.Delete"))
                             {
-                                <a asp-action="Delete" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-danger"
-                                   title="ลบโครงการ"
-                                   onclick="return confirm('Delete project นี้?');">🗑</a>
+                                <form asp-action="Delete"
+                                      asp-route-id="@p.ProjectId"
+                                      method="post"
+                                      class="project-delete-form"
+                                      onsubmit="return confirm('ต้องการลบโครงการนี้หรือไม่?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="ลบโครงการ">🗑</button>
+                                </form>
                             }
                             else
                             {
@@ -401,18 +451,22 @@
 
         foreach (var p in orderedProjects)
         {
+            var projectDisplayName = p.ProjectDisplayName;
+            var coopName = p.Coop?.CoopName ?? "";
             <div class="project-card"
-                 data-project="@p.ProjectName.ToLower()"
+                 data-project="@projectDisplayName.ToLower()"
+                 data-project-name="@p.ProjectName.ToLower()"
+                 data-coop="@coopName.ToLower()"
                  data-ba="@((p.BA?.EmpName ?? "").ToLower())"
                  data-status="@((p.Status ?? "").ToLower())"
-                 data-search="@($"{p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
+                 data-search="@($"{projectDisplayName} {coopName} {p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
 
                 <div class="project-card-header">
                     <div class="project-avatar">📁</div>
 
                     <div class="project-header-content">
                         <div class="project-name">
-                            @mobileRow. @p.ProjectName
+                            @mobileRow. @projectDisplayName
                         </div>
 
                         <div class="project-status">
@@ -517,6 +571,27 @@
                         </button>
                     }
 
+                    @if (CanMenu("Projects.Delete"))
+                    {
+                        <form asp-action="Delete"
+                              asp-route-id="@p.ProjectId"
+                              method="post"
+                              class="project-delete-form"
+                              onsubmit="return confirm('ต้องการลบโครงการนี้หรือไม่?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm">
+                                🗑 Delete
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            🗑 Delete
+                        </button>
+                    }
+
                     <a asp-controller="ProjectPhases"
                        asp-action="Index"
                        asp-route-projectId="@p.ProjectId"
@@ -615,6 +690,22 @@
     min-width: 0;
 }
 
+.project-delete-form {
+    display: contents;
+}
+
+.project-filter-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+}
+
+@@media (max-width: 767.98px) {
+    .project-filter-pair {
+        grid-template-columns: 1fr;
+    }
+}
+
 .project-filter-form .form-control {
     min-height: 48px;
     border-radius: 14px;
@@ -658,6 +749,7 @@
     background: #0f766e;
 }
 
+#coopFilterDropdown,
 #projectFilterDropdown,
 #baFilterDropdown,
 #statusFilterDropdown {
@@ -958,6 +1050,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
 window.applyProjectFilter = function () {
 
+    const selectedCoop = (
+        document.getElementById("coopFilter")?.value || ""
+    ).trim().toLowerCase();
+    localStorage.setItem("projects.selectedCoop", selectedCoop);
+
     const selectedProject = (
         document.getElementById("projectFilter")?.value || ""
     ).trim().toLowerCase();
@@ -982,6 +1079,10 @@ window.applyProjectFilter = function () {
             card.dataset.project || ""
         ).trim().toLowerCase();
 
+        const coopName = (
+            card.dataset.coop || ""
+        ).trim().toLowerCase();
+
         const baName = (
             card.dataset.ba || ""
         ).trim().toLowerCase();
@@ -993,13 +1094,16 @@ window.applyProjectFilter = function () {
         const matchProject = !selectedProject ||
                              projectName === selectedProject;
 
+        const matchCoop = !selectedCoop ||
+                          coopName === selectedCoop;
+
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
         const matchStatus = !selectedStatus ||
                             statusName.includes(selectedStatus);
 
-        const visible = matchProject && matchBa && matchStatus;
+        const visible = matchCoop && matchProject && matchBa && matchStatus;
 
         card.style.display = visible ? "block" : "none";
     });
@@ -1009,6 +1113,10 @@ window.applyProjectFilter = function () {
 
         const projectName = (
             row.dataset.project || ""
+        ).trim().toLowerCase();
+
+        const coopName = (
+            row.dataset.coop || ""
         ).trim().toLowerCase();
 
         const baName = (
@@ -1022,13 +1130,16 @@ window.applyProjectFilter = function () {
         const matchProject = !selectedProject ||
                              projectName === selectedProject;
 
+        const matchCoop = !selectedCoop ||
+                          coopName === selectedCoop;
+
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
         const matchStatus = !selectedStatus ||
                             statusName.includes(selectedStatus);
 
-        const visible = matchProject && matchBa && matchStatus;
+        const visible = matchCoop && matchProject && matchBa && matchStatus;
 
         row.style.display = visible ? "table-row" : "none";
     });
@@ -1052,6 +1163,9 @@ function bindFilterDropdown(config) {
     const dropdown = document.getElementById(config.dropdownId);
     const hiddenSelect = document.getElementById(config.selectId);
     const clearButton = document.getElementById(config.clearId);
+    const coopFilter = config.coopFilterId
+        ? document.getElementById(config.coopFilterId)
+        : null;
 
     if (!searchInput || !dropdown || !hiddenSelect) return;
 
@@ -1066,8 +1180,10 @@ function bindFilterDropdown(config) {
         dropdown.innerHTML = "";
 
         const keyword = filter.trim().toLowerCase();
+        const selectedCoop = (coopFilter?.value || "").trim().toLowerCase();
         const filtered = options.filter(option => {
             if (option.value === "") return false;
+            if (selectedCoop && (option.dataset.coopName || "").trim().toLowerCase() !== selectedCoop) return false;
 
             const text = `${option.text} ${option.value}`.trim().toLowerCase();
             return !keyword || text.includes(keyword);
@@ -1088,6 +1204,7 @@ function bindFilterDropdown(config) {
                 hiddenSelect.value = option.value;
                 dropdown.style.display = "none";
                 updateClearButton();
+                config.onSelect?.(option);
                 window.applyProjectFilter();
             });
 
@@ -1117,6 +1234,7 @@ function bindFilterDropdown(config) {
         hiddenSelect.value = "";
         dropdown.style.display = "none";
         updateClearButton();
+        config.onClear?.();
         window.applyProjectFilter();
     });
 
@@ -1127,15 +1245,35 @@ function bindFilterDropdown(config) {
     });
 }
 
+restoreFilter("coopFilter", "projects.selectedCoop");
 restoreFilter("projectFilter", "projects.selectedProject");
 restoreFilter("baFilter", "projects.selectedBa");
 restoreFilter("statusFilter", "projects.selectedStatus");
+
+function clearProjectFilterValue() {
+    const projectSearch = document.getElementById("projectFilterSearch");
+    const projectSelect = document.getElementById("projectFilter");
+    const projectClear = document.getElementById("clearProjectFilter");
+    if (projectSearch) projectSearch.value = "";
+    if (projectSelect) projectSelect.value = "";
+    projectClear?.classList.remove("is-visible");
+}
+
+bindFilterDropdown({
+    searchId: "coopFilterSearch",
+    dropdownId: "coopFilterDropdown",
+    selectId: "coopFilter",
+    clearId: "clearCoopFilter",
+    onSelect: clearProjectFilterValue,
+    onClear: clearProjectFilterValue
+});
 
 bindFilterDropdown({
     searchId: "projectFilterSearch",
     dropdownId: "projectFilterDropdown",
     selectId: "projectFilter",
-    clearId: "clearProjectFilter"
+    clearId: "clearProjectFilter",
+    coopFilterId: "coopFilter"
 });
 
 bindFilterDropdown({

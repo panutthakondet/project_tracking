@@ -25,6 +25,7 @@ namespace ProjectTracking.Controllers
 
             var query = _context.ProjectFollowups
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .Where(x => x.Status == "OPEN"|| x.Status == "IN_PROGRESS")
@@ -41,7 +42,9 @@ namespace ProjectTracking.Controllers
                 {
                     x.FollowupId,
                     ProjectId = x.ProjectId,
-                    Project = x.Project != null ? x.Project.ProjectName : "",
+                    Project = x.Project != null
+                        ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
+                        : "",
                     x.TaskTitle,
                     x.PartnerName,
                     x.OwnerEmpId,
@@ -70,6 +73,7 @@ namespace ProjectTracking.Controllers
 
             var data = await _context.ProjectFollowups
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                 .Where(x => x.Status == "DONE")
                 .OrderBy(x => x.NextFollowupDate)
@@ -77,7 +81,9 @@ namespace ProjectTracking.Controllers
                 {
                     x.FollowupId,
                     ProjectId = x.ProjectId,
-                    Project = x.Project != null ? x.Project.ProjectName : "",
+                    Project = x.Project != null
+                        ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
+                        : "",
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
@@ -102,6 +108,7 @@ namespace ProjectTracking.Controllers
 
             var data = await _context.ProjectFollowups
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                 .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
                 .OrderByDescending(x => x.LastContactDate)
@@ -109,7 +116,9 @@ namespace ProjectTracking.Controllers
                 {
                     x.FollowupId,
                     ProjectId = x.ProjectId,
-                    Project = x.Project != null ? x.Project.ProjectName : "",
+                    Project = x.Project != null
+                        ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
+                        : "",
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
@@ -125,7 +134,9 @@ namespace ProjectTracking.Controllers
         {
             // send project list to dropdown
             ViewBag.Projects = await _context.Projects
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var ownerIds = await _context.ProjectFollowups
@@ -159,6 +170,7 @@ namespace ProjectTracking.Controllers
 
             var data = await query
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .OrderBy(x => x.NextFollowupDate)
@@ -172,7 +184,9 @@ namespace ProjectTracking.Controllers
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var ownerList = await _context.ProjectFollowups
@@ -187,6 +201,7 @@ namespace ProjectTracking.Controllers
             var query = _context.ProjectFollowups
                 .AsNoTracking()
                 .Include(f => f.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(f => f.Owner)
                 .AsQueryable();
 
@@ -213,7 +228,8 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedStatus = status ?? "";
 
             return View(followups
-                .OrderBy(f => f.Project?.ProjectName ?? "ไม่ระบุโครงการ")
+                .OrderBy(f => f.Project?.Coop?.CoopName ?? "")
+                .ThenBy(f => f.Project?.ProjectName ?? "")
                 .ThenBy(f => f.NextFollowupDate ?? DateTime.MaxValue)
                 .ThenByDescending(f => f.CreatedAt)
                 .ToList());
@@ -231,11 +247,12 @@ namespace ProjectTracking.Controllers
             if (projectId != null)
             {
                 var project = await _context.Projects
+                    .Include(p => p.Coop)
                     .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
                 if (project != null)
                 {
-                    ViewBag.ProjectName = project.ProjectName;
+                    ViewBag.ProjectName = project.ProjectDisplayName;
                     ViewBag.ProjectId = project.ProjectId;
                 }
             }
@@ -269,6 +286,7 @@ namespace ProjectTracking.Controllers
         {
             var followup = await _context.ProjectFollowups
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .FirstOrDefaultAsync(x => x.FollowupId == id);
 
             var employees = await _context.Employees
@@ -280,7 +298,7 @@ namespace ProjectTracking.Controllers
             if (followup == null)
                 return NotFound();
 
-            ViewBag.ProjectName = followup.Project?.ProjectName;
+            ViewBag.ProjectName = followup.Project?.ProjectDisplayName;
             ViewBag.ProjectId = followup.ProjectId;
 
             return View(followup);
@@ -298,10 +316,7 @@ namespace ProjectTracking.Controllers
 
                 ViewBag.Employees = employees ?? new List<Employee>();
 
-                ViewBag.ProjectName = (await _context.Projects
-                    .Where(p => p.ProjectId == model.ProjectId)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync());
+                ViewBag.ProjectName = await GetProjectDisplayNameAsync(model.ProjectId);
 
                 ViewBag.ProjectId = model.ProjectId;
 
@@ -331,6 +346,7 @@ namespace ProjectTracking.Controllers
         {
             var followup = await _context.ProjectFollowups
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                 .FirstOrDefaultAsync(x => x.FollowupId == id);
 
@@ -513,6 +529,19 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index", new { projectId = projectId });
+        }
+
+        private async Task<string?> GetProjectDisplayNameAsync(int? projectId)
+        {
+            if (!projectId.HasValue)
+                return null;
+
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
+
+            return project?.ProjectDisplayName;
         }
     }
 }

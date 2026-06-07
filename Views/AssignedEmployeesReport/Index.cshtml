@@ -37,14 +37,14 @@
 
     <!-- PROJECT -->
     <div class="col-md-4">
-        <label class="form-label fw-bold">📁 Project</label>
+        <label class="form-label fw-bold">📁 โครงการ</label>
         <select name="projectId" class="form-select" onchange="this.form.submit()">
-            <option value="">-- Select Project --</option>
+            <option value="">-- เลือกโครงการ --</option>
             @foreach (var p in ViewBag.Projects)
             {
                 <option value="@p.ProjectId"
                         selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
-                    @p.ProjectName
+                    @p.ProjectDisplayName
                 </option>
             }
         </select>

@@ -24,7 +24,9 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? projectId)
         {
             var projects = await _context.Projects
-                .OrderBy(x => x.ProjectName)
+                .Include(x => x.Coop)
+                .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
+                .ThenBy(x => x.ProjectName)
                 .ToListAsync();
 
             var selectedProject = projectId.HasValue

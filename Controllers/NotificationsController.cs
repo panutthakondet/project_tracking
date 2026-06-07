@@ -121,6 +121,7 @@ namespace ProjectTracking.Controllers
             var order = await _context.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(project => project!.Coop)
                 .Include(x => x.Employee)
                 .FirstOrDefaultAsync(x => x.OrderId == id);
 
@@ -141,7 +142,7 @@ namespace ProjectTracking.Controllers
             var lines = new List<string>
             {
                 $"Support order #{order.OrderId}",
-                $"Project: {order.Project?.ProjectName ?? "-"}",
+                $"Project: {order.Project?.ProjectDisplayName ?? "-"}",
                 $"AssignTo: {order.AssignTo?.ToString() ?? "-"} ({order.Employee?.EmpName ?? "-"})",
                 $"Status: {order.Status ?? "-"}",
                 $"DevStatus: {order.DevStatus ?? "-"}",

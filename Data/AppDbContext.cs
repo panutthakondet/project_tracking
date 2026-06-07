@@ -14,6 +14,7 @@ namespace ProjectTracking.Data
         // ===== TABLES =====
         // ======================
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<CntMCoop> CntMCoops { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
@@ -512,6 +513,27 @@ namespace ProjectTracking.Data
             });
 
             // =========================
+            // COOPERATIVE MASTER
+            // =========================
+            modelBuilder.Entity<CntMCoop>(entity =>
+            {
+                entity.ToTable("cnt_m_coop");
+                entity.HasKey(c => c.CoopId);
+
+                entity.Property(c => c.CoopId)
+                    .HasColumnName("coop_id")
+                    .HasColumnType("int");
+
+                entity.Property(c => c.CoopName)
+                    .HasColumnName("coop_name")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.HasIndex(c => c.CoopName)
+                    .HasDatabaseName("idx_cnt_m_coop_name");
+            });
+
+            // =========================
             // PROJECT
             // =========================
             modelBuilder.Entity<Project>(entity =>
@@ -522,6 +544,11 @@ namespace ProjectTracking.Data
                 entity.Property(p => p.ProjectId)
                     .HasColumnName("project_id")
                     .HasColumnType("int");
+
+                entity.Property(p => p.CoopId)
+                    .HasColumnName("coop_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
 
                 entity.Property(p => p.ProjectName)
                     .HasColumnName("project_name")
@@ -559,7 +586,13 @@ namespace ProjectTracking.Data
                     .HasForeignKey(p => p.RequirementCardId)
                     .OnDelete(DeleteBehavior.SetNull);
 
+                entity.HasOne(p => p.Coop)
+                    .WithMany(c => c.Projects)
+                    .HasForeignKey(p => p.CoopId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(p => p.ProjectName);
+                entity.HasIndex(p => p.CoopId).HasDatabaseName("idx_project_coop_id");
                 entity.HasIndex(p => p.RequirementCardId).HasDatabaseName("idx_project_requirement_card_id");
             });
 

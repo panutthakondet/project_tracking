@@ -286,6 +286,27 @@ main {
   width: 100%;
 }
 
+.pt-project-coop-filter {
+  margin-bottom: 10px;
+}
+
+.pt-project-field-with-coop {
+  flex: 0 0 100%;
+  max-width: 100%;
+  width: 100%;
+}
+
+.pt-project-coop-filter .form-label {
+  color: #10233f;
+  font-weight: 900 !important;
+  margin-bottom: 6px;
+}
+
+.pt-project-coop-filter .pt-search-select__input {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcff 100%);
+  border-color: #cfe0ef;
+}
+
 .pt-search-select__field {
   position: relative;
 }
@@ -1011,16 +1032,16 @@ main.route-action-edit img {
   gap: 12px;
   padding: 14px;
   background:
-    linear-gradient(180deg, rgba(45, 212, 191, .1), rgba(219, 234, 254, .22)),
-    #f5fbff;
+    radial-gradient(circle at 100% 0%, rgba(20, 184, 166, .14), transparent 34%),
+    radial-gradient(circle at 0% 12%, rgba(37, 99, 235, .08), transparent 30%),
+    linear-gradient(180deg, #eef6fb 0%, #e7f1f8 48%, #f7fbfd 100%);
 }
 
 .requirement-card-popup__section {
   padding: 13px;
-  border: 1px solid rgba(20, 184, 166, .25);
-  border-left: 4px solid #14b8a6;
+  border: 1px solid #cfe0ef;
   border-radius: 16px;
-  background: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(248, 252, 255, .94));
   box-shadow: 0 10px 24px rgba(15, 35, 64, .06);
 }
 
@@ -1082,10 +1103,14 @@ main.route-action-edit img {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #d8efe9;
-  border-left: 4px solid #14b8a6;
+  border: 2px solid rgba(20, 184, 166, .48);
   border-radius: 14px;
-  background: #f8fffd;
+  background:
+    linear-gradient(#f8fffd, #f8fffd) padding-box,
+    linear-gradient(135deg, rgba(33, 212, 194, .75), rgba(15, 143, 128, .42)) border-box;
+  box-shadow:
+    0 8px 18px rgba(15, 39, 70, .06),
+    0 0 0 3px rgba(20, 184, 166, .05);
 }
 
 .requirement-card-popup__phase-head {

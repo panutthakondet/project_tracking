@@ -18,6 +18,7 @@
         : "";
 
     var requirementCardDetailUrlTemplate = Url.Action("CardDetails", "RequirementBoard", new { id = "__CARD_ID__" }) ?? "";
+    var coops = ViewBag.Coops as IEnumerable<ProjectTracking.Models.CntMCoop> ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
 }
 
 <div class="index-hero pt-form-hero">
@@ -41,6 +42,21 @@
             <div class="row g-3">
 
                 <!-- ================= BASIC INFO ================= -->
+
+                <!-- Cooperative -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        🏢 Cooperative
+                    </label>
+                    <select asp-for="CoopId" class="form-select">
+                        <option value="">-- Select Cooperative --</option>
+                        @foreach (var coop in coops)
+                        {
+                            <option value="@coop.CoopId">@coop.CoopName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="CoopId" class="text-danger"></span>
+                </div>
 
                 <!-- Project Name -->
                 <div class="col-md-8">

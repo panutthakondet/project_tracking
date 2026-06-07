@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
@@ -34,11 +35,18 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x)
                 .ToList();
 
-            ViewBag.ProjectList = allRows
-                .Select(x => x.ProjectName)
-                .Distinct()
-                .OrderBy(x => x)
+            var projectList = allRows
+                .GroupBy(x => x.ProjectName)
+                .Select(g => new SelectListItem
+                {
+                    Value = g.Key,
+                    Text = g.First().ProjectDisplayName,
+                    Selected = g.Key == projectName
+                })
+                .OrderBy(x => x.Text)
                 .ToList();
+
+            ViewBag.ProjectList = projectList;
 
             ViewBag.StatusList = allRows
                 .Select(x => x.PhaseStatus)
@@ -61,6 +69,9 @@ namespace ProjectTracking.Controllers
 
             ViewBag.SelectedEmp = empName;
             ViewBag.SelectedProject = projectName;
+            ViewBag.SelectedProjectDisplay = string.IsNullOrEmpty(projectName)
+                ? null
+                : projectList.FirstOrDefault(x => x.Value == projectName)?.Text;
             ViewBag.SelectedStatus = phaseStatus;
 
             return View(result
@@ -158,6 +169,7 @@ namespace ProjectTracking.Controllers
                 {
                     project.ProjectId,
                     project.ProjectName,
+                    CoopName = project.Coop != null ? project.Coop.CoopName : null,
                     project.StartDate,
                     project.EndDate,
                     phase.PhaseId,
@@ -191,6 +203,7 @@ namespace ProjectTracking.Controllers
                 {
                     ProjectId = row.ProjectId,
                     ProjectName = row.ProjectName,
+                    CoopName = row.CoopName,
                     StartDate = row.StartDate,
                     EndDate = row.EndDate,
                     PhaseId = row.PhaseId,

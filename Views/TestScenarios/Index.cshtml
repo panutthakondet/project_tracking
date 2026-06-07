@@ -394,7 +394,7 @@
         <form method="get">
             <div class="row g-3">
                 <div class="col-12">
-                    <label class="form-label">Select Project</label>
+                    <label class="form-label">📁 โครงการ</label>
                     @{
                         int? selProject = null;
                         if (ViewBag.SelectedProject != null)
@@ -405,14 +405,14 @@
                     <select name="projectId"
                             class="form-select"
                             onchange="this.form.submit()">
-                        <option value="">-- Select Project --</option>
+                        <option value="">-- เลือกโครงการ --</option>
                         @if (ViewBag.Projects != null)
                         {
                             foreach (var p in ViewBag.Projects)
                             {
                                 <option value="@p.ProjectId"
                                         selected="@(selProject == p.ProjectId ? "selected" : null)">
-                                    @p.ProjectName
+                                    @p.ProjectDisplayName
                                 </option>
                             }
                         }

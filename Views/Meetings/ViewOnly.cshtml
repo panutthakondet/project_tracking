@@ -19,7 +19,7 @@
     string DateInput(DateTime? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "";
     string TimeText(TimeSpan value) => $"{(int)value.TotalHours:00}:{value.Minutes:00}";
     string SelectedProjectName() => selectedProjectId.HasValue
-        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
     string DateRangeText()
     {
@@ -417,7 +417,7 @@
                 @foreach (var p in projects)
                 {
                     <option value="@p.ProjectId" selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
-                        @p.ProjectName
+                        @p.ProjectDisplayName
                     </option>
                 }
             </select>

@@ -294,9 +294,9 @@
     <form method="get" class="support-dev-filter">
         <div class="row g-3 align-items-end">
             <div class="col-12">
-                <label class="form-label fw-semibold">Project</label>
+                <label class="form-label fw-semibold">📁 โครงการ</label>
                 <select name="projectId" class="form-select" onchange="this.form.submit()">
-                    <option value="">-- Select Project --</option>
+                    <option value="">-- เลือกโครงการ --</option>
                     @foreach (var p in (SelectList)ViewBag.ProjectList)
                     {
                         <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
@@ -335,7 +335,7 @@
                             <span class="support-dev-no">#@no</span>
                             <div class="min-w-0">
                                 <span class="support-dev-order-title">@TextOrDash(item.OrderTitle)</span>
-                                <div class="support-dev-project">@TextOrDash(item.Project?.ProjectName)</div>
+                                <div class="support-dev-project">@TextOrDash(item.Project?.ProjectDisplayName)</div>
                             </div>
                         </div>
 

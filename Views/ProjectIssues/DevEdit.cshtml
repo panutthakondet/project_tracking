@@ -9,7 +9,7 @@
 
     var devStatusItems = ViewBag.DevStatusList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
     var fixImages = Model.FixImages?.ToList() ?? new List<ProjectIssueFixImage>();
-    var projectName = Model.Project?.ProjectName ?? $"Project #{Model.ProjectId}";
+    var projectName = Model.Project?.ProjectDisplayName ?? $"Project #{Model.ProjectId}";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";

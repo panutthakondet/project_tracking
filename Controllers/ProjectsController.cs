@@ -35,6 +35,7 @@ namespace ProjectTracking.Controllers
 
             var query = _context.Projects
                 .Include(p => p.BA)
+                .Include(p => p.Coop)
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -53,8 +54,10 @@ namespace ProjectTracking.Controllers
         {
             var allProjects = await _context.Projects
                 .Include(p => p.BA)
+                .Include(p => p.Coop)
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var query = allProjects.AsEnumerable();
@@ -89,6 +92,7 @@ namespace ProjectTracking.Controllers
             var result = query
                 .OrderBy(p => ProjectSortOrder(p.Status))
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
+                .ThenBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToList();
 
@@ -198,6 +202,7 @@ namespace ProjectTracking.Controllers
             // ✅ UPDATE FIELD (ครบทุกช่อง)
             // ===============================
             db.ProjectName = model.ProjectName;
+            db.CoopId = model.CoopId;
             db.StartDate = model.StartDate;
             db.EndDate = model.EndDate;
             db.Status = model.Status;
@@ -289,6 +294,11 @@ namespace ProjectTracking.Controllers
             ViewBag.Employees = await _context.Employees
                 .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
                 .OrderBy(e => e.EmpName)
+                .ToListAsync();
+
+            ViewBag.Coops = await _context.CntMCoops
+                .AsNoTracking()
+                .OrderBy(c => c.CoopName)
                 .ToListAsync();
 
             var cards = await _context.RequirementCards
@@ -395,6 +405,7 @@ namespace ProjectTracking.Controllers
             return projects
                 .OrderBy(p => ProjectSortOrder(p.Status))
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
+                .ThenBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName);
         }
 

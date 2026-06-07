@@ -30,7 +30,7 @@
 
     <div class="mb-3">
         <label>Project</label>
-        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectName : ViewBag.SelectedProjectName)" readonly />
+        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectDisplayName : ViewBag.SelectedProjectName)" readonly />
     </div>
 
     <div class="mb-3">

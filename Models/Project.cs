@@ -14,12 +14,31 @@ namespace ProjectTracking.Models
         [Column("project_id")]
         public int ProjectId { get; set; }
 
+        [Column("coop_id")]
+        public int? CoopId { get; set; }
+
+        [ForeignKey(nameof(CoopId))]
+        public CntMCoop? Coop { get; set; }
+
         // ======================
         // BASIC INFO
         // ======================
         [Required]
         [Column("project_name")]
         public string ProjectName { get; set; } = string.Empty;
+
+        [NotMapped]
+        public string ProjectDisplayName
+        {
+            get
+            {
+                var coopName = Coop?.CoopName?.Trim();
+                var projectName = ProjectName?.Trim() ?? string.Empty;
+                return string.IsNullOrWhiteSpace(coopName)
+                    ? projectName
+                    : $"{coopName} - {projectName}";
+            }
+        }
 
         // ======================
         // 👤 BUSINESS ANALYST

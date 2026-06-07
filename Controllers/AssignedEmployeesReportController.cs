@@ -21,7 +21,9 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? projectId, int? empId)
         {
             ViewBag.Projects = await _context.Projects
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var query = _context.PhaseAssigns

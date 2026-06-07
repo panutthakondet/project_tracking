@@ -18,6 +18,9 @@
     ViewData["Title"] = "บันทึกข้อมูลแผนงานและงวดงาน";
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject;
+    var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
+                         ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var selectedProjectCoopName = (selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "";
 
     var orderedPhases = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>())
         .OrderBy(p => p.PhaseOrder)
@@ -443,13 +446,30 @@
 <form method="get" class="phase-filter-form mb-4">
     <div class="phase-filter-row">
 
-        <label class="form-label fw-bold">📁 Select Project</label>
+        <label class="form-label fw-bold">🏢 สหกรณ์</label>
+        <select id="projectCoopFilter"
+                class="form-select"
+                data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+            <option value="">-- ทุกสหกรณ์ --</option>
+            @foreach (var coopName in projectOptions
+                        .Select(p => p.Coop?.CoopName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct()
+                        .OrderBy(name => name))
+            {
+                <option value="@coopName" selected="@(selectedProjectCoopName == coopName)">
+                    @coopName
+                </option>
+            }
+        </select>
+
+        <label class="form-label fw-bold">📁 โครงการ</label>
 
         <div class="search-dropdown-field">
             <input type="text"
                    id="projectSearch"
                    class="form-control form-control-lg"
-                   placeholder="🔍 พิมพ์ค้นหา Project..."
+                   placeholder="🔍 พิมพ์ค้นหาโครงการ..."
                    autocomplete="off" />
             <button type="button"
                     id="clearProjectSearch"
@@ -468,11 +488,13 @@
         <select name="projectId"
                 id="hiddenProjectSelect"
                 style="display:none;">
-            <option value="">-- Select Project --</option>
+            <option value="">-- เลือกโครงการ --</option>
 
-            @foreach (var p in (ViewBag.Projects ?? new List<dynamic>()))
+            @foreach (var p in projectOptions)
             {
                 <option value="@p.ProjectId"
+                        data-coop-name="@(p.Coop?.CoopName ?? "")"
+                        data-project-name="@p.ProjectName"
                         data-end-date="@(p.EndDate?.ToString("yyyy-MM-dd") ?? "")"
                         selected="@(ViewBag.SelectedProject != null &&
                                     ViewBag.SelectedProject.ProjectId == p.ProjectId)">
@@ -786,6 +808,7 @@ else
         const dropdown = document.getElementById("projectDropdown");
         const hiddenSelect = document.getElementById("hiddenProjectSelect");
         const clearProjectSearch = document.getElementById("clearProjectSearch");
+        const coopFilter = document.getElementById("projectCoopFilter");
 
         if (searchInput && dropdown && hiddenSelect) {
             const options = Array.from(hiddenSelect.options);
@@ -797,8 +820,10 @@ else
 
             function renderList(filter = "") {
                 dropdown.innerHTML = "";
+                const selectedCoop = (coopFilter?.value || "").toLowerCase();
 
                 const filtered = options.filter(o =>
+                    (!selectedCoop || (o.dataset.coopName || "").toLowerCase() === selectedCoop) &&
                     o.text.toLowerCase().includes(filter.toLowerCase()) &&
                     o.value !== ""
                 )
@@ -865,6 +890,14 @@ else
                     searchInput.closest("form").submit();
                 });
             }
+
+            coopFilter?.addEventListener("change", function () {
+                searchInput.value = "";
+                hiddenSelect.value = "";
+                dropdown.style.display = "none";
+                updateProjectClear();
+                renderList("");
+            });
 
             document.addEventListener("click", function (e) {
                 if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearProjectSearch?.contains(e.target)) {

@@ -17,7 +17,7 @@
     string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
     string DateTimeText(DateTime? value) => value?.ToString("dd/MM/yyyy HH:mm", th) ?? "-";
     string SelectedProjectName() => selectedProjectId.HasValue
-        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
 
     bool IsClosed(string? status)
@@ -442,7 +442,7 @@
                 @foreach (var project in projects)
                 {
                     <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
-                        @project.ProjectName
+                        @project.ProjectDisplayName
                     </option>
                 }
             </select>
@@ -530,7 +530,7 @@
                         .GroupBy(item => new
                         {
                             ProjectId = item.ProjectId ?? 0,
-                            ProjectName = TextOrDash(item.Project?.ProjectName)
+                            ProjectName = TextOrDash(item.Project?.ProjectDisplayName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();

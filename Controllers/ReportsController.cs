@@ -164,13 +164,18 @@ namespace ProjectTracking.Controllers
 
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var projectOptions = projects
                 .Select(p => new ProjectReportOptionViewModel
                 {
                     ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectName
+                    ProjectName = p.ProjectDisplayName
                 })
-                .ToListAsync();
+                .ToList();
 
             var employees = await _context.Employees
                 .AsNoTracking()
@@ -186,6 +191,7 @@ namespace ProjectTracking.Controllers
                 .Include(a => a.Employee)
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
+                    .ThenInclude(p => p!.Coop)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -204,7 +210,7 @@ namespace ProjectTracking.Controllers
                         AssignId = a.AssignId,
                         ProjectId = phase.ProjectId,
                         EmpId = a.EmpId,
-                        ProjectName = project?.ProjectName ?? "-",
+                        ProjectName = project?.ProjectDisplayName ?? "-",
                         EmployeeName = a.Employee?.EmpName ?? "-",
                         PhaseName = phase.PhaseName,
                         PhasePeriodLabel = phase.PhasePeriodLabel,
@@ -270,7 +276,7 @@ namespace ProjectTracking.Controllers
                 EmpId = empId,
                 Status = selectedStatus,
                 YearOptions = availableYears,
-                ProjectOptions = projects,
+                ProjectOptions = projectOptions,
                 EmployeeOptions = employees,
                 Summary = new TaskProgressSummaryViewModel
                 {
@@ -296,6 +302,7 @@ namespace ProjectTracking.Controllers
 
             var projects = await _context.Projects
                 .Include(p => p.BA)
+                .Include(p => p.Coop)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -310,18 +317,21 @@ namespace ProjectTracking.Controllers
 
             var issues = await _context.ProjectIssues
                 .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(i => i.Employee)
                 .AsNoTracking()
                 .ToListAsync();
 
             var supportOrders = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .AsNoTracking()
                 .ToListAsync();
 
             var followups = await _context.ProjectFollowups
                 .Include(f => f.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(f => f.Owner)
                 .AsNoTracking()
                 .ToListAsync();
@@ -479,7 +489,7 @@ namespace ProjectTracking.Controllers
                     return new ExecutiveRiskProjectViewModel
                     {
                         ProjectId = project.ProjectId,
-                        ProjectName = project.ProjectName,
+                        ProjectName = project.ProjectDisplayName,
                         OwnerName = ownerName,
                         Progress = progress,
                         RiskLevel = riskLevel,
@@ -543,7 +553,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<Project> projects,
             IReadOnlyDictionary<int, string> employees)
         {
-            var projectMap = projects.ToDictionary(p => p.ProjectId, p => p.ProjectName);
+            var projectMap = projects.ToDictionary(p => p.ProjectId, p => p.ProjectDisplayName);
 
             var phaseItems = overduePhases.Select(p => new ExecutiveDueItemViewModel
             {
@@ -576,7 +586,7 @@ namespace ProjectTracking.Controllers
             var followupItems = overdueFollowups.Select(f => new ExecutiveDueItemViewModel
             {
                 Type = "Followup",
-                ProjectName = f.Project?.ProjectName ?? "-",
+                ProjectName = f.Project?.ProjectDisplayName ?? "-",
                 Title = f.TaskTitle,
                 OwnerName = f.Owner?.EmpName ?? "-",
                 DueDate = f.NextFollowupDate,
@@ -588,7 +598,7 @@ namespace ProjectTracking.Controllers
             var supportItems = overdueSupportOrders.Select(o => new ExecutiveDueItemViewModel
             {
                 Type = "Support",
-                ProjectName = o.Project?.ProjectName ?? "-",
+                ProjectName = o.Project?.ProjectDisplayName ?? "-",
                 Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle!,
                 OwnerName = o.Employee?.EmpName ?? "-",
                 DueDate = o.EndDate,
@@ -614,7 +624,7 @@ namespace ProjectTracking.Controllers
             var issueItems = openIssues.Select(i => new ExecutiveAgingItemViewModel
             {
                 Type = "Issue",
-                ProjectName = i.Project?.ProjectName ?? "-",
+                ProjectName = i.Project?.ProjectDisplayName ?? "-",
                 Title = i.IssueName,
                 OwnerName = i.Employee?.EmpName ?? "-",
                 Priority = i.IssuePriority,
@@ -626,7 +636,7 @@ namespace ProjectTracking.Controllers
             var supportItems = openSupportOrders.Select(o => new ExecutiveAgingItemViewModel
             {
                 Type = "Support",
-                ProjectName = o.Project?.ProjectName ?? "-",
+                ProjectName = o.Project?.ProjectDisplayName ?? "-",
                 Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle!,
                 OwnerName = o.Employee?.EmpName ?? "-",
                 Priority = o.Priority ?? "-",

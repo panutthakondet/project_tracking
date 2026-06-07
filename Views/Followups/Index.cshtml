@@ -47,12 +47,12 @@
 
 <form method="get" action="/Followups/Index" class="followup-filter mb-2">
     <div class="followup-filter__field">
-        <label for="projectId">📁 Select Project</label>
+        <label for="projectId">📁 โครงการ</label>
         <select id="projectId"
                 name="projectId"
                 class="form-select"
                 onchange="this.form.submit()"
-                asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectName", selectedProjectId))">
+                asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectDisplayName", selectedProjectId))">
             <option value="">-- ทุก Project --</option>
         </select>
     </div>

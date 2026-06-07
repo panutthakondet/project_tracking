@@ -129,13 +129,13 @@
             <form method="get" asp-action="Index">
                 <div class="row g-3 align-items-end">
                     <div class="col-12">
-                        <label class="form-label fw-bold">📁 Select Project</label>
+                        <label class="form-label fw-bold">📁 โครงการ</label>
                         <select name="projectId" class="form-select form-select-lg" onchange="this.form.submit()">
                             <option value="">-- เลือกโครงการ --</option>
                             @foreach (var p in projects)
                             {
                                 <option value="@p.ProjectId" selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
-                                    @p.ProjectName
+                                    @p.ProjectDisplayName
                                 </option>
                             }
                         </select>

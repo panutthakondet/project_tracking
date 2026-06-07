@@ -322,9 +322,9 @@
     <form method="get" class="support-filter-card">
         <div class="row g-3 align-items-end">
             <div class="col-12">
-                <label class="form-label">📁 Project</label>
+                <label class="form-label">📁 โครงการ</label>
                 <select name="projectId" class="form-select" asp-items="ViewBag.ProjectList" onchange="this.form.submit()">
-                    <option value="">-- All Projects --</option>
+                    <option value="">-- เลือกโครงการ --</option>
                 </select>
             </div>
         </div>
@@ -357,7 +357,7 @@
                             <span class="support-no">#@no</span>
                             <div class="min-w-0">
                                 <span class="support-order-title">@TextOrDash(item.OrderTitle)</span>
-                                <div class="support-project-name">@TextOrDash(item.Project?.ProjectName)</div>
+                                <div class="support-project-name">@TextOrDash(item.Project?.ProjectDisplayName)</div>
                             </div>
                         </div>
 

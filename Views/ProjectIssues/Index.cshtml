@@ -227,17 +227,18 @@
 
 <form method="get" id="filterForm" class="issue-filter-form mb-4">
     <div class="issue-filter-row">
-        <label class="form-label fw-semibold">📁 Project</label>
+        <label class="form-label fw-semibold">📁 โครงการ</label>
         <select id="projectSelect"
                 name="projectId"
                 class="form-select"
                 onchange="document.getElementById('filterForm').submit()">
-            <option value="">-- Select Project --</option>
+            <option value="">-- เลือกโครงการ --</option>
             @foreach (var p in ((IEnumerable<ProjectTracking.Models.Project>)ViewBag.Projects ?? Enumerable.Empty<ProjectTracking.Models.Project>())
-                                .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
+                                .OrderBy(x => x.Coop?.CoopName ?? "")
+                                .ThenBy(x => x.ProjectName))
             {
                 <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
-                    @p.ProjectName
+                    @p.ProjectDisplayName
                 </option>
             }
         </select>

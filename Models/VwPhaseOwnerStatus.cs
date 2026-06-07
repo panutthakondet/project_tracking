@@ -14,6 +14,22 @@ namespace ProjectTracking.Models
         [Column("project_name")]
         public string ProjectName { get; set; } = "";
 
+        [NotMapped]
+        public string? CoopName { get; set; }
+
+        [NotMapped]
+        public string ProjectDisplayName
+        {
+            get
+            {
+                var coopName = CoopName?.Trim();
+                var projectName = ProjectName?.Trim() ?? string.Empty;
+                return string.IsNullOrWhiteSpace(coopName)
+                    ? projectName
+                    : $"{coopName} - {projectName}";
+            }
+        }
+
         // ================= Phase =================
         [Column("phase_id")]
         public int PhaseId { get; set; }     // ✅ เพิ่มให้ใช้ ThenBy(x => x.PhaseId)

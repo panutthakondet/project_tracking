@@ -32,11 +32,9 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> List()
         {
             // โหลดข้อมูลดิบจาก DB ก่อน แล้วค่อย format เวลาใน memory (กัน All-day/FormatException)
-            var rows = await (
-                from m in _context.Meetings.AsNoTracking()
-                join p in _context.Projects.AsNoTracking() on m.ProjectId equals p.ProjectId into pj
-                from p in pj.DefaultIfEmpty()
-                select new
+            var rows = await _context.Meetings
+                .AsNoTracking()
+                .Select(m => new
                 {
                     m.Id,
                     m.Title,
@@ -44,12 +42,14 @@ namespace ProjectTracking.Controllers
                     m.StartTime,
                     m.EndTime,
                     m.ProjectId,
-                    ProjectName = p == null ? null : p.ProjectName,
+                    ProjectName = m.Project == null
+                        ? null
+                        : ((m.Project.Coop != null ? m.Project.Coop.CoopName + " - " : "") + m.Project.ProjectName),
                     m.Location,
                     m.Description,
                     m.MeetingAudience
-                }
-            ).ToListAsync();
+                })
+                .ToListAsync();
 
             var meetings = rows.Select(x => new
             {
@@ -78,7 +78,9 @@ namespace ProjectTracking.Controllers
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var audienceList = await _context.Meetings
@@ -92,6 +94,7 @@ namespace ProjectTracking.Controllers
             var query = _context.Meetings
                 .AsNoTracking()
                 .Include(m => m.Project)
+                    .ThenInclude(p => p!.Coop)
                 .AsQueryable();
 
             if (projectId.HasValue && projectId.Value > 0)
@@ -164,7 +167,7 @@ namespace ProjectTracking.Controllers
             {
                 Id = m.Id,
                 ProjectId = m.ProjectId,
-                ProjectName = m.Project?.ProjectName ?? "ไม่ระบุโครงการ",
+                ProjectName = m.Project?.ProjectDisplayName ?? "ไม่ระบุโครงการ",
                 Title = m.Title,
                 Description = m.Description ?? "",
                 MeetingDate = m.MeetingDate,
@@ -193,15 +196,19 @@ namespace ProjectTracking.Controllers
 
         [RequireMenu("Meetings.Create")]
         [HttpGet]
-        public IActionResult Create(DateTime? date)
+        public async Task<IActionResult> Create(DateTime? date)
         {
             ViewBag.Date = date?.ToString("yyyy-MM-dd");
 
             // ส่งรายการโครงการไปให้ View ทำ dropdown
-            ViewBag.Projects = _context.Projects
+            var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
-                .Select(p => new { p.ProjectId, p.ProjectName })
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+            ViewBag.Projects = projects
+                .Select(p => new { p.ProjectId, ProjectName = p.ProjectDisplayName })
                 .ToList();
 
             // รายชื่อพนักงานทั้งหมด (ACTIVE) สำหรับเลือกผู้เข้าร่วม
@@ -230,11 +237,12 @@ namespace ProjectTracking.Controllers
             string? projectName = null;
             if (meeting.ProjectId.HasValue)
             {
-                projectName = await _context.Projects
+                var project = await _context.Projects
                     .AsNoTracking()
+                    .Include(p => p.Coop)
                     .Where(p => p.ProjectId == meeting.ProjectId.Value)
-                    .Select(p => p.ProjectName)
                     .FirstOrDefaultAsync();
+                projectName = project?.ProjectDisplayName;
             }
 
             // JOIN employee เพื่อเอาชื่อมาแสดง
@@ -268,10 +276,14 @@ namespace ProjectTracking.Controllers
             if (meeting == null)
                 return NotFound();
 
-            ViewBag.Projects = _context.Projects
+            var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
-                .Select(p => new { p.ProjectId, p.ProjectName })
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+            ViewBag.Projects = projects
+                .Select(p => new { p.ProjectId, ProjectName = p.ProjectDisplayName })
                 .ToList();
 
             // รายชื่อพนักงานทั้งหมด (ACTIVE)

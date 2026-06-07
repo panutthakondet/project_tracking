@@ -25,7 +25,7 @@
                 {
                     if ((int)ViewBag.SelectedProject == p.ProjectId)
                     {
-                        <option value="@p.ProjectId" selected>@p.ProjectName</option>
+                        <option value="@p.ProjectId" selected>@p.ProjectDisplayName</option>
                     }
                 }
             </select>
@@ -35,7 +35,7 @@
             <select asp-for="project_id" class="form-control">
                 @foreach (var p in ViewBag.Projects)
                 {
-                    <option value="@p.ProjectId">@p.ProjectName</option>
+                    <option value="@p.ProjectId">@p.ProjectDisplayName</option>
                 }
             </select>
         }

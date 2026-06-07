@@ -1,6 +1,7 @@
 @using System.Linq
 @using System.Globalization
 @using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc.Rendering
 @model IEnumerable<ProjectTracking.Models.VwPhaseOwnerStatus>
 
 @{
@@ -436,7 +437,7 @@
         <h1>รายงานสถานะส่วนงานตามพนักงาน</h1>
         <div>
             Employee: @(string.IsNullOrWhiteSpace(ViewBag.SelectedEmp as string) ? "All Employees" : ViewBag.SelectedEmp)<br />
-            Project: @(string.IsNullOrWhiteSpace(ViewBag.SelectedProject as string) ? "All Projects" : ViewBag.SelectedProject)<br />
+            Project: @(string.IsNullOrWhiteSpace(ViewBag.SelectedProject as string) ? "All Projects" : (ViewBag.SelectedProjectDisplay ?? ViewBag.SelectedProject))<br />
             Status: @(string.IsNullOrWhiteSpace(ViewBag.SelectedStatus as string) ? "All Statuses" : StatusText(ViewBag.SelectedStatus as string))<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
@@ -444,13 +445,13 @@
 
     <form method="get" class="filter-panel no-print">
         <div class="field">
-            <label for="projectName">Project</label>
-            <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
-                <option value="">-- All Projects --</option>
-                @foreach (var p in ViewBag.ProjectList)
+            <label for="projectName">📁 โครงการ</label>
+            <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหาโครงการ..." onchange="this.form.submit()">
+                <option value="">-- เลือกโครงการ --</option>
+                @foreach (var p in (IEnumerable<SelectListItem>)ViewBag.ProjectList)
                 {
-                    <option value="@p" selected="@(ViewBag.SelectedProject == p ? "selected" : null)">
-                        @p
+                    <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
+                        @p.Text
                     </option>
                 }
             </select>

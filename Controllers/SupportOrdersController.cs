@@ -33,10 +33,17 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? projectId)
         {
             // send project list to dropdown
-            ViewBag.ProjectList = new SelectList(_context.Projects, "ProjectId", "ProjectName", projectId);
+            var projectList = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+            ViewBag.ProjectList = new SelectList(projectList, "ProjectId", "ProjectDisplayName", projectId);
 
             var query = _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .AsQueryable();
 
@@ -50,11 +57,11 @@ namespace ProjectTracking.Controllers
             if (projectId.HasValue && projectId.Value > 0)
             {
                 var project = await _context.Projects
-                    .Where(p => p.ProjectId == projectId.Value)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync();
+                    .AsNoTracking()
+                    .Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
 
-                ViewBag.SelectedProjectName = project;
+                ViewBag.SelectedProjectName = project?.ProjectDisplayName;
             }
 
             var orders = await query
@@ -69,12 +76,15 @@ namespace ProjectTracking.Controllers
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var query = _context.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .Include(o => o.FixImages)
                 .AsQueryable();
@@ -132,6 +142,7 @@ namespace ProjectTracking.Controllers
         {
             var order = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .Include(o => o.FixImages)
                 .FirstOrDefaultAsync(o => o.OrderId == id);
@@ -157,10 +168,12 @@ namespace ProjectTracking.Controllers
 
             if (projectId > 0)
             {
-                ViewBag.SelectedProjectName = _context.Projects
-                    .Where(p => p.ProjectId == projectId)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefault();
+                var project = _context.Projects
+                    .AsNoTracking()
+                    .Include(p => p.Coop)
+                    .FirstOrDefault(p => p.ProjectId == projectId);
+
+                ViewBag.SelectedProjectName = project?.ProjectDisplayName;
             }
 
             var model = new ProjectSupportOrder
@@ -260,6 +273,7 @@ namespace ProjectTracking.Controllers
         {
             var order = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
@@ -272,7 +286,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             // Send project name to view
-            ViewBag.SelectedProjectName = order.Project?.ProjectName;
+            ViewBag.SelectedProjectName = order.Project?.ProjectDisplayName;
 
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
 
@@ -561,11 +575,12 @@ namespace ProjectTracking.Controllers
 
             if (order.ProjectId > 0)
             {
-                ViewBag.SelectedProjectName = await _context.Projects
+                var project = await _context.Projects
                     .AsNoTracking()
-                    .Where(p => p.ProjectId == order.ProjectId)
-                    .Select(p => p.ProjectName)
-                    .FirstOrDefaultAsync();
+                    .Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == order.ProjectId);
+
+                ViewBag.SelectedProjectName = project?.ProjectDisplayName;
             }
 
             if (order.OrderId > 0)

@@ -17,7 +17,7 @@
     var today = DateTime.Today;
 
     string SelectedProjectName() => selectedProjectId.HasValue
-        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
 
     bool IsClosed(string? status, string? devStatus)
@@ -464,7 +464,7 @@
                 @foreach (var project in projects)
                 {
                     <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
-                        @project.ProjectName
+                        @project.ProjectDisplayName
                     </option>
                 }
             </select>
@@ -560,7 +560,7 @@
                         .GroupBy(order => new
                         {
                             order.ProjectId,
-                            ProjectName = TextOrDash(order.Project?.ProjectName)
+                            ProjectName = TextOrDash(order.Project?.ProjectDisplayName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();

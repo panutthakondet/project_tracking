@@ -24,6 +24,7 @@ namespace ProjectTracking.Controllers
         {
             var query = _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .AsQueryable();
 
@@ -37,9 +38,14 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.ProjectList = new SelectList(
-                await _context.Projects.ToListAsync(),
+                await _context.Projects
+                    .AsNoTracking()
+                    .Include(p => p.Coop)
+                    .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                    .ThenBy(p => p.ProjectName)
+                    .ToListAsync(),
                 "ProjectId",
-                "ProjectName",
+                "ProjectDisplayName",
                 projectId
             );
 
@@ -54,6 +60,7 @@ namespace ProjectTracking.Controllers
         {
             var order = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .Include(o => o.FixImages)
                 .FirstOrDefaultAsync(o => o.OrderId == id);

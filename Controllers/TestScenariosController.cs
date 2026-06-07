@@ -31,7 +31,11 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarios.Create")]
         public IActionResult Create(int? projectId, int? groupId)
         {
-            ViewBag.Projects = _context.Projects.ToList();
+            ViewBag.Projects = _context.Projects
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToList();
             ViewBag.Groups = _context.TestTemplateGroups
                 .Where(g => g.is_active)
                 .OrderBy(g => g.sort_order)
@@ -69,7 +73,11 @@ namespace ProjectTracking.Controllers
                 .OrderBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();
-            ViewBag.Projects = _context.Projects.ToList();
+            ViewBag.Projects = _context.Projects
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToList();
 
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedGroup = groupId;
@@ -238,7 +246,9 @@ namespace ProjectTracking.Controllers
         {
             var projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(x => x.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
+                .ThenBy(x => x.ProjectName)
                 .ToListAsync();
 
             var allScenarios = await _context.TestScenarios
@@ -305,7 +315,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedGroup = groupId;
             ViewBag.SelectedStatus = status;
             ViewBag.SelectedPriority = priority;
-            ViewBag.ProjectNames = projects.ToDictionary(x => x.ProjectId, x => x.ProjectName);
+            ViewBag.ProjectNames = projects.ToDictionary(x => x.ProjectId, x => x.ProjectDisplayName);
 
             var scenarios = result
                 .OrderBy(x => projects.FindIndex(p => p.ProjectId == x.project_id) < 0 ? int.MaxValue : projects.FindIndex(p => p.ProjectId == x.project_id))
@@ -360,6 +370,7 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var project = _context.Projects
+                .Include(p => p.Coop)
                 .FirstOrDefault(p => p.ProjectId == projectId);
 
             var attachments = _context.TestScenarioAttachments
@@ -370,7 +381,7 @@ namespace ProjectTracking.Controllers
             var pdf = report.Generate(
                 data,
                 attachments,
-                project?.ProjectName ?? "Project",
+                project?.ProjectDisplayName ?? "Project",
                 _env.WebRootPath
             );
 

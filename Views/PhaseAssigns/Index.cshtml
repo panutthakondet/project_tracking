@@ -19,6 +19,9 @@
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject;
     var selectedProjectId = (int?)ViewBag.SelectedProjectId;
+    var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
+                         ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var selectedProjectCoopName = (selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "";
 }
 
 @functions {
@@ -232,13 +235,30 @@ thead .sticky-col { z-index: 5; }
 
 <form method="get" class="assign-filter-form mb-4" id="filterForm">
     <div class="assign-filter-row">
-        <label class="form-label fw-bold">📁 Select Project</label>
+        <label class="form-label fw-bold">🏢 สหกรณ์</label>
+        <select id="projectCoopFilter"
+                class="form-select"
+                data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+            <option value="">-- ทุกสหกรณ์ --</option>
+            @foreach (var coopName in projectOptions
+                        .Select(p => p.Coop?.CoopName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct()
+                        .OrderBy(name => name))
+            {
+                <option value="@coopName" selected="@(selectedProjectCoopName == coopName)">
+                    @coopName
+                </option>
+            }
+        </select>
+
+        <label class="form-label fw-bold">📁 โครงการ</label>
 
         <div class="search-dropdown-field">
             <input type="text"
                    id="projectSearch"
                    class="form-control form-control-lg"
-                   placeholder="🔍 พิมพ์ค้นหา Project..."
+                   placeholder="🔍 พิมพ์ค้นหาโครงการ..."
                    autocomplete="off" />
             <button type="button"
                     id="clearProjectSearch"
@@ -255,11 +275,13 @@ thead .sticky-col { z-index: 5; }
         </div>
 
         <select name="projectId" id="hiddenProjectSelect" style="display:none;">
-            <option value="">-- Select Project --</option>
-            @foreach (var p in ((IEnumerable<dynamic>)ViewBag.Projects)
+            <option value="">-- เลือกโครงการ --</option>
+            @foreach (var p in projectOptions
                                 .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
             {
                 <option value="@p.ProjectId"
+                        data-coop-name="@(p.Coop?.CoopName ?? "")"
+                        data-project-name="@p.ProjectName"
                         data-end-date="@(p.EndDate?.ToString("yyyy-MM-dd") ?? "")"
                         selected="@(selectedProjectId == p.ProjectId)">
                     @p.ProjectName
@@ -898,6 +920,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const dropdown = document.getElementById(config.dropdownId);
         const hiddenSelect = document.getElementById(config.selectId);
         const clearButton = document.getElementById(config.clearId);
+        const coopFilter = document.getElementById(config.coopFilterId || "");
 
         if (!searchInput || !dropdown || !hiddenSelect) return;
 
@@ -910,8 +933,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function renderList(filter = "") {
             dropdown.innerHTML = "";
+            const selectedCoop = (coopFilter?.value || "").toLowerCase();
 
             const filtered = options.filter(o =>
+                (!selectedCoop || (o.dataset.coopName || "").toLowerCase() === selectedCoop) &&
                 o.text.toLowerCase().includes(filter.toLowerCase()) &&
                 o.value !== ""
             )
@@ -979,6 +1004,15 @@ document.addEventListener("DOMContentLoaded", function () {
             submitSafely();
         });
 
+        coopFilter?.addEventListener("change", function () {
+            searchInput.value = "";
+            hiddenSelect.value = "";
+            dropdown.style.display = "none";
+            updateClearButton();
+            renderList("");
+            config.onClear?.();
+        });
+
         document.addEventListener("click", function (e) {
             if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearButton?.contains(e.target)) {
                 dropdown.style.display = "none";
@@ -991,6 +1025,7 @@ document.addEventListener("DOMContentLoaded", function () {
         dropdownId: "projectDropdown",
         selectId: "hiddenProjectSelect",
         clearId: "clearProjectSearch",
+        coopFilterId: "projectCoopFilter",
         sortByEndDate: true,
         onSelect: function () {
             const employeeSelect = document.getElementById("hiddenEmployeeSelect");

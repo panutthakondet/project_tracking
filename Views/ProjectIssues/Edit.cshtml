@@ -7,7 +7,7 @@
 
     var issue = Model ?? new ProjectIssue();
     var beforeImages = issue.Images?.ToList() ?? new List<ProjectIssueImage>();
-    var projectName = (ViewBag.ProjectName as string) ?? issue.Project?.ProjectName ?? $"Project #{issue.ProjectId}";
+    var projectName = (ViewBag.ProjectName as string) ?? issue.Project?.ProjectDisplayName ?? $"Project #{issue.ProjectId}";
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
 

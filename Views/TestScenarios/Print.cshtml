@@ -459,7 +459,7 @@
                 @foreach (var project in projects)
                 {
                     <option value="@project.ProjectId" selected="@(selectedProject == project.ProjectId ? "selected" : null)">
-                        @project.ProjectName
+                        @project.ProjectDisplayName
                     </option>
                 }
             </select>

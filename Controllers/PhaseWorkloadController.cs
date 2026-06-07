@@ -42,6 +42,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(p => p.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Where(x =>
                     x.PlanStart.HasValue &&
                     x.PlanEnd.HasValue &&
@@ -64,6 +65,7 @@ namespace ProjectTracking.Controllers
             var issues = await _context.ProjectIssues
                 .Include(x => x.Employee)
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Where(x =>
                     x.StartDate.HasValue &&
                     x.EndDate.HasValue &&
@@ -81,6 +83,7 @@ namespace ProjectTracking.Controllers
             var supportOrders = await _context.ProjectSupportOrders
                 .Include(x => x.Employee)
                 .Include(x => x.Project)
+                    .ThenInclude(p => p!.Coop)
                 .Where(x =>
                     x.AssignTo.HasValue &&
                     x.StartDate.HasValue &&
@@ -105,7 +108,7 @@ namespace ProjectTracking.Controllers
                     EmpId = x.EmpId,
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
                     ProjectId = x.Phase?.ProjectId ?? 0,
-                    ProjectName = x.Phase?.Project?.ProjectName ?? "-",
+                    ProjectName = x.Phase?.Project?.ProjectDisplayName ?? "-",
                     PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
                     Title = x.Role ?? x.Phase?.PhaseName ?? "-",
                     Detail = x.Phase?.PhaseName ?? "-",
@@ -127,7 +130,7 @@ namespace ProjectTracking.Controllers
                     EmpId = x.AssignTo,
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
                     ProjectId = x.ProjectId,
-                    ProjectName = x.Project?.ProjectName ?? "-",
+                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
                     Title = x.IssueName,
                     Detail = x.IssueDetail ?? "",
                     StartDate = x.StartDate,
@@ -146,7 +149,7 @@ namespace ProjectTracking.Controllers
                     EmpId = x.AssignTo!.Value,
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
                     ProjectId = x.ProjectId,
-                    ProjectName = x.Project?.ProjectName ?? "-",
+                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
                     Title = string.IsNullOrWhiteSpace(x.OrderTitle) ? $"Support #{x.OrderId}" : x.OrderTitle!,
                     Detail = x.OrderDetail ?? "",
                     StartDate = x.StartDate,

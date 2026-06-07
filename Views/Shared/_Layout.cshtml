@@ -1686,6 +1686,7 @@
                     loginFollowups = await LayoutDb.ProjectFollowups
                         .AsNoTracking()
                         .Include(followup => followup.Project)
+                            .ThenInclude(project => project!.Coop)
                         .Where(followup => followup.OwnerEmpId == loginEmployee.EmpId
                             && (followup.Status == null ||
                                 (followup.Status.ToUpper() != "DONE" && followup.Status.ToUpper() != "ACK")))
@@ -2345,7 +2346,7 @@
                         <span class="login-followup-content">
                             <h3 class="login-followup-title">@followup.TaskTitle</h3>
                             <span class="login-followup-meta">
-                                <span>@(followup.Project?.ProjectName ?? "ไม่ระบุโครงการ")</span>
+                                <span>@(followup.Project?.ProjectDisplayName ?? "ไม่ระบุโครงการ")</span>
                                 @if (!string.IsNullOrWhiteSpace(followup.PartnerName))
                                 {
                                     <span>คู่ติดต่อ: @followup.PartnerName</span>

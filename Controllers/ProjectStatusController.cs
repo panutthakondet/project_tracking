@@ -32,15 +32,18 @@ namespace ProjectTracking.Controllers
 
             var allProjects = await _context.Projects
                 .AsNoTracking()
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .Select(p => new ProjectRow
                 {
                     ProjectId = p.ProjectId,
                     ProjectName = p.ProjectName,
+                    CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     EndDate = p.EndDate
                 })
-                .OrderBy(p => p.ProjectName)
                 .ToListAsync();
 
             var selectedProjectId = projectId.HasValue && allProjects.Any(x => x.ProjectId == projectId.Value)
@@ -92,7 +95,9 @@ namespace ProjectTracking.Controllers
                     PhasePlanStart = phase.PlanStart,
                     PhasePlanEnd = phase.PlanEnd,
                     ProjectId = project.ProjectId,
-                    ProjectName = project.ProjectName
+                    ProjectName = project.Coop != null
+                        ? project.Coop.CoopName + " - " + project.ProjectName
+                        : project.ProjectName
                 })
                 .ToListAsync();
 
@@ -127,13 +132,13 @@ namespace ProjectTracking.Controllers
             {
                 SelectedProjectId = selectedProjectId,
                 SelectedProjectName = selectedProjectId.HasValue
-                    ? projects.FirstOrDefault()?.ProjectName ?? "ทุกโครงการ"
+                    ? projects.FirstOrDefault()?.ProjectDisplayName ?? "ทุกโครงการ"
                     : "ทุกโครงการ",
                 ProjectOptions = allProjects
                     .Select(p => new ProjectStatusOption
                     {
                         ProjectId = p.ProjectId,
-                        ProjectName = p.ProjectName
+                        ProjectName = p.ProjectDisplayName
                     })
                     .ToList(),
                 TotalProjects = totalProjects,
@@ -619,6 +624,10 @@ namespace ProjectTracking.Controllers
         {
             public int ProjectId { get; set; }
             public string ProjectName { get; set; } = string.Empty;
+            public string? CoopName { get; set; }
+            public string ProjectDisplayName => string.IsNullOrWhiteSpace(CoopName)
+                ? ProjectName
+                : $"{CoopName} - {ProjectName}";
             public int? BaEmpId { get; set; }
             public string Status { get; set; } = "PLAN";
             public DateTime? EndDate { get; set; }

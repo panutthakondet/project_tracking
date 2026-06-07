@@ -15,7 +15,7 @@
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
     string SelectedProjectName() => selectedProjectId.HasValue
-        ? projectList.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectName ?? "-"
+        ? projectList.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
     string SelectedBaName() => selectedBaEmpId.HasValue
         ? baList.FirstOrDefault(x => x.EmpId == selectedBaEmpId.Value)?.EmpName ?? "-"
@@ -420,7 +420,7 @@
                 @foreach (var project in projectList)
                 {
                     <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
-                        @project.ProjectName
+                        @project.ProjectDisplayName
                     </option>
                 }
             </select>
@@ -510,7 +510,7 @@
                         .GroupBy(project => new
                         {
                             project.ProjectId,
-                            ProjectName = TextOrDash(project.ProjectName)
+                            ProjectName = TextOrDash(project.ProjectDisplayName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();

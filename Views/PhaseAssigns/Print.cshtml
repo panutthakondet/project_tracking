@@ -394,7 +394,7 @@
     <header class="print-header">
         <h1>Assignment Report</h1>
         <div>
-            Project: @(ViewBag.SelectedProject?.ProjectName ?? "All Projects")<br />
+            Project: @(ViewBag.SelectedProject?.ProjectDisplayName ?? "All Projects")<br />
             Employee: @(ViewBag.SelectedEmpId == null ? "All Employees" : (ViewBag.EmployeeList as IEnumerable<ProjectTracking.Models.Employee>)?.FirstOrDefault(e => e.EmpId == ViewBag.SelectedEmpId)?.EmpName ?? "-")<br />
             Role: @(string.IsNullOrWhiteSpace(ViewBag.SelectedRole as string) ? "All Roles" : ViewBag.SelectedRole)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
@@ -409,7 +409,7 @@
                 @foreach (var p in ViewBag.Projects)
                 {
                     <option value="@p.ProjectId" selected="@(ViewBag.SelectedProjectId == p.ProjectId ? "selected" : null)">
-                        @p.ProjectName
+                        @p.ProjectDisplayName
                     </option>
                 }
             </select>

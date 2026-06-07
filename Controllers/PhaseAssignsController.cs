@@ -74,7 +74,9 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Projects = await _context.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             ViewBag.SelectedProjectId = projectId;
@@ -85,7 +87,9 @@ namespace ProjectTracking.Controllers
             if (projectId == null)
                 return View(new List<PhaseAssign>());
 
-            var project = await _context.Projects.FindAsync(projectId);
+            var project = await _context.Projects
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
             if (project == null)
                 return View(new List<PhaseAssign>());
 
@@ -154,11 +158,14 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseAssigns.Create")]
         public async Task<IActionResult> Create(int projectId, int? phaseId)
         {
-            var project = await _context.Projects.FindAsync(projectId);
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId);
             if (project == null) return NotFound();
 
             ViewBag.ProjectId = projectId;
-            ViewBag.ProjectName = project.ProjectName;
+            ViewBag.ProjectName = project.ProjectDisplayName;
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
@@ -533,7 +540,9 @@ namespace ProjectTracking.Controllers
         private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role)
         {
             ViewBag.Projects = await _context.Projects
-                .OrderBy(p => p.ProjectName)
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             ViewBag.SelectedProjectId = projectId;
@@ -546,7 +555,9 @@ namespace ProjectTracking.Controllers
             if (projectId == null)
                 return null;
 
-            ViewBag.SelectedProject = await _context.Projects.FindAsync(projectId);
+            ViewBag.SelectedProject = await _context.Projects
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
 
             // Employee dropdown
             ViewBag.EmployeeList = await (
@@ -669,6 +680,7 @@ namespace ProjectTracking.Controllers
                 // ดึง Project และผูกให้ Phase.Project เพื่อให้ View ที่อ้าง Phase.Project.* ยังทำงานได้
                 var project = await _context.Projects
                     .AsNoTracking()
+                    .Include(pr => pr.Coop)
                     .FirstOrDefaultAsync(pr => pr.ProjectId == phase.ProjectId);
 
                 if (project != null)

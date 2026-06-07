@@ -178,6 +178,7 @@ namespace ProjectTracking.Controllers
                 {
                     ProjectId = p.ProjectId,
                     ProjectName = p.ProjectName,
+                    CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     StartDate = p.StartDate,
@@ -363,7 +364,7 @@ namespace ProjectTracking.Controllers
 
             var projectNameById = projects
                 .GroupBy(p => p.ProjectId)
-                .ToDictionary(g => g.Key, g => g.First().ProjectName);
+                .ToDictionary(g => g.Key, g => g.First().ProjectDisplayName);
 
             string ProjectName(int? projectId)
             {
@@ -419,11 +420,11 @@ namespace ProjectTracking.Controllers
             var projectOverviewProjects = projects
                 .OrderBy(p => ProjectOverviewSort(p.Status))
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
-                .ThenBy(p => p.ProjectName)
+                .ThenBy(p => p.ProjectDisplayName)
                 .Select(p => new HomeDashboardProjectOverviewItem
                 {
                     ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectName,
+                    ProjectName = p.ProjectDisplayName,
                     StatusText = ProjectStatusText(p.Status),
                     StatusColor = ProjectActivityColor(p.Status),
                     StartText = FormatDashboardDate(p.StartDate, th),
@@ -439,7 +440,7 @@ namespace ProjectTracking.Controllers
 
                     return new HomeDashboardProjectProgress
                     {
-                        Name = project.ProjectName,
+                        Name = project.ProjectDisplayName,
                         Value = progress,
                         Color = ColorByIndex(index)
                     };
@@ -640,6 +641,7 @@ namespace ProjectTracking.Controllers
                 {
                     ProjectId = p.ProjectId,
                     ProjectName = p.ProjectName,
+                    CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     BaEmpId = p.BaEmpId,
                     CreatedAt = p.CreatedAt,
                     EntryId = p.EntryId
@@ -686,7 +688,7 @@ namespace ProjectTracking.Controllers
 
             var projectNameById = projects
                 .GroupBy(p => p.ProjectId)
-                .ToDictionary(g => g.Key, g => g.First().ProjectName);
+                .ToDictionary(g => g.Key, g => g.First().ProjectDisplayName);
 
             string EmployeeName(int? empId)
             {
@@ -1218,7 +1220,7 @@ namespace ProjectTracking.Controllers
                     return new HomeDashboardWatchProject
                     {
                         ProjectId = project.ProjectId,
-                        ProjectName = project.ProjectName,
+                        ProjectName = project.ProjectDisplayName,
                         OwnerName = employeeName(ownerEmpId),
                         RiskLevel = riskLevel,
                         RiskColor = riskColor,
@@ -1637,6 +1639,11 @@ namespace ProjectTracking.Controllers
         {
             public int ProjectId { get; set; }
             public string ProjectName { get; set; } = "";
+            public string? CoopName { get; set; }
+            public string ProjectDisplayName =>
+                string.IsNullOrWhiteSpace(CoopName)
+                    ? ProjectName
+                    : $"{CoopName} - {ProjectName}";
             public int? BaEmpId { get; set; }
             public string? Status { get; set; }
             public DateTime? StartDate { get; set; }

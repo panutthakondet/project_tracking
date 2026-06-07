@@ -677,8 +677,9 @@
 
         .rb-modal .modal-body {
             background:
-                radial-gradient(circle at top left, rgba(20, 184, 166, .12), transparent 36%),
-                linear-gradient(180deg, #f6fbff, #eef6fb);
+                radial-gradient(circle at 100% 0%, rgba(20, 184, 166, .15), transparent 34%),
+                radial-gradient(circle at 0% 12%, rgba(37, 99, 235, .08), transparent 30%),
+                linear-gradient(180deg, #eef6fb 0%, #e7f1f8 48%, #f7fbfd 100%);
             padding: 24px 28px;
         }
 
@@ -693,19 +694,11 @@
             display: grid;
             gap: 12px;
             padding: 16px;
-            border: 1px solid #d8e3ef;
+            border: 1px solid #cfe0ef;
             border-radius: 18px;
-            background: rgba(255, 255, 255, .94);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(248, 252, 255, .94));
             box-shadow: 0 12px 26px rgba(15, 39, 70, .08);
             overflow: hidden;
-        }
-
-        .rb-edit-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0 auto 0 0;
-            width: 5px;
-            background: linear-gradient(180deg, #21d4c2, #0f8f80);
         }
 
         .rb-edit-panel-head {
@@ -892,11 +885,14 @@
             gap: 10px;
             align-items: start;
             padding: 14px 88px 14px 14px;
-            border: 1px solid #d8e3ef;
-            border-left: 4px solid #14b8a6;
+            border: 2px solid rgba(20, 184, 166, .48);
             border-radius: 16px;
-            background: #fff;
-            box-shadow: 0 10px 22px rgba(15, 39, 70, .06);
+            background:
+                linear-gradient(#fff, #fff) padding-box,
+                linear-gradient(135deg, rgba(33, 212, 194, .75), rgba(15, 143, 128, .42)) border-box;
+            box-shadow:
+                0 10px 22px rgba(15, 39, 70, .06),
+                0 0 0 4px rgba(20, 184, 166, .06);
         }
 
         .rb-phase-row label {
