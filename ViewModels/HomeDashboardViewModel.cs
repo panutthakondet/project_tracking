@@ -114,6 +114,7 @@ namespace ProjectTracking.ViewModels
 
     public class HomeDashboardMeeting
     {
+        public int Id { get; set; }
         public string Title { get; set; } = "";
         public string Detail { get; set; } = "";
         public string TimeText { get; set; } = "";

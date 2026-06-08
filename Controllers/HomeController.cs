@@ -491,6 +491,7 @@ namespace ProjectTracking.Controllers
                 .Take(3)
                 .Select((meeting, index) => new HomeDashboardMeeting
                 {
+                    Id = meeting.Id,
                     Title = string.IsNullOrWhiteSpace(meeting.Title) ? "Untitled Meeting" : meeting.Title,
                     Detail = $"{(string.IsNullOrWhiteSpace(meeting.ProjectName) ? "ไม่ระบุโครงการ" : meeting.ProjectName)} · {(string.IsNullOrWhiteSpace(meeting.Location) ? "ไม่ระบุสถานที่" : meeting.Location)}",
                     TimeText = FormatMeetingTime(meeting.StartTime),
