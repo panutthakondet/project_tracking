@@ -1,19 +1,33 @@
-@model IEnumerable<ProjectTracking.Models.UserNotification>
+@model ProjectTracking.ViewModels.NotificationPageViewModel
 @{
     ViewData["Title"] = "Notifications";
-    var items = Model?.ToList() ?? new List<ProjectTracking.Models.UserNotification>();
-    var isAdmin = Convert.ToBoolean(ViewBag.IsAdmin ?? false);
+    var pageModel = Model ?? new ProjectTracking.ViewModels.NotificationPageViewModel();
+    var isAdmin = pageModel.IsAdmin;
 
-    string SeverityText(string? severity) => (severity ?? "").Trim().ToUpperInvariant() switch
+    string TextTone(string? value) => (value ?? "").Trim().ToUpperInvariant() switch
     {
-        "DANGER" => "ล่าช้า",
-        "WARNING" => "เสี่ยงล่าช้า",
-        _ => string.IsNullOrWhiteSpace(severity) ? "-" : severity
+        "OPEN" => "danger",
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "TODO" => "muted",
+        "IN PROGRESS" => "warning",
+        "IN_PROGRESS" => "warning",
+        "WAIT TEST" => "info",
+        "WAIT_TEST" => "info",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        "DONE" => "success",
+        "FIXED" => "success",
+        "PASS" => "success",
+        "RESOLVED" => "success",
+        "อ่านแล้ว" => "success",
+        "ยังไม่อ่าน" => "danger",
+        "ส่งงวดงานแล้ว" => "success",
+        "อนุมัติจ่ายเงินแล้ว" => "success",
+        "กำลังดำเนินการ" => "warning",
+        "วางแผน" => "info",
+        _ => "muted"
     };
-
-    string SeverityClass(string? severity) => (severity ?? "").Trim().ToUpperInvariant() == "DANGER"
-        ? "danger"
-        : "warning";
 }
 
 <style>
@@ -72,21 +86,107 @@
         padding: 10px 18px;
     }
 
-    .notification-list {
+    .notification-groups {
+        display: grid;
+        gap: 18px;
+    }
+
+    .notification-group {
+        background: rgba(255, 255, 255, .72);
+        border: 1px solid #dbe6f3;
+        border-radius: 24px;
+        padding: 14px;
+        box-shadow: 0 14px 30px rgba(15, 40, 74, .08);
+    }
+
+    .notification-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+        padding: 4px 4px 10px;
+        border-bottom: 1px solid #e2eaf5;
+    }
+
+    .notification-group-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: #10223e;
+        font-size: 1.22rem;
+        font-weight: 900;
+    }
+
+    .notification-group-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background: #e0f7f3;
+    }
+
+    .notification-group.followup .notification-group-icon {
+        background: #e0f2fe;
+    }
+
+    .notification-group-count {
+        color: #64748b;
+        font-weight: 900;
+    }
+
+    .notification-coop-groups {
         display: grid;
         gap: 14px;
     }
 
+    .notification-coop-group {
+        background: rgba(248, 250, 252, .76);
+        border: 1px solid #e2eaf5;
+        border-radius: 20px;
+        padding: 12px;
+    }
+
+    .notification-coop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        color: #10223e;
+        font-weight: 900;
+    }
+
+    .notification-coop-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+
+    .notification-coop-count {
+        color: #64748b;
+        font-size: .92rem;
+        white-space: nowrap;
+    }
+
+    .notification-list {
+        display: grid;
+        gap: 12px;
+    }
+
     .notification-card {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
         gap: 14px;
-        align-items: center;
+        align-items: start;
         background: #fff;
         border: 1px solid #dbe6f3;
         border-left: 6px solid #f59e0b;
         border-radius: 20px;
-        padding: 18px 20px;
+        padding: 14px 16px;
         color: #10223e;
         text-decoration: none;
         box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
@@ -106,45 +206,89 @@
         box-shadow: 0 16px 30px rgba(15, 40, 74, .12);
     }
 
+    .notification-card-main {
+        min-width: 0;
+    }
+
     .notification-title {
         margin: 0;
-        font-size: 1.18rem;
+        font-size: 1.08rem;
         font-weight: 900;
-        line-height: 1.25;
+        line-height: 1.28;
     }
 
-    .notification-message {
-        margin: 6px 0 0;
+    .notification-project {
+        margin: 5px 0 0;
         color: #64748b;
-        font-weight: 700;
-        line-height: 1.45;
+        font-weight: 800;
+        line-height: 1.35;
+        font-size: .93rem;
     }
 
-    .notification-meta {
+    .notification-people {
         display: flex;
-        gap: 8px;
         flex-wrap: wrap;
-        margin-top: 10px;
+        gap: 6px 18px;
+        margin-top: 8px;
         color: #718096;
         font-size: .9rem;
         font-weight: 800;
     }
 
-    .notification-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        min-width: 104px;
-        padding: 8px 14px;
+    .notification-people strong {
+        color: #17324d;
         font-weight: 900;
-        color: #92400e;
-        background: #fef3c7;
     }
 
-    .notification-pill.danger {
-        color: #be123c;
-        background: #ffe4e6;
+    .notification-side {
+        display: grid;
+        gap: 7px;
+        justify-items: end;
+        text-align: right;
+    }
+
+    .notification-date {
+        color: #17324d;
+        font-size: .95rem;
+        font-weight: 900;
+    }
+
+    .notification-status-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .notification-status-text,
+    .notification-severity {
+        font-size: .9rem;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .notification-status-text.danger,
+    .notification-severity.danger {
+        color: #e11d48;
+    }
+
+    .notification-status-text.warning,
+    .notification-severity.warning {
+        color: #d97706;
+    }
+
+    .notification-status-text.info {
+        color: #0284c7;
+    }
+
+    .notification-status-text.success {
+        color: #059669;
+    }
+
+    .notification-status-text.muted,
+    .notification-severity.normal {
+        color: #64748b;
     }
 
     .notification-empty {
@@ -176,6 +320,20 @@
         .notification-actions .btn {
             width: 100%;
         }
+
+        .notification-group-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .notification-side {
+            justify-items: start;
+            text-align: left;
+        }
+
+        .notification-status-row {
+            justify-content: flex-start;
+        }
     }
 </style>
 
@@ -191,7 +349,7 @@
         </div>
     </section>
 
-    @if (items.Count == 0)
+    @if (pageModel.TotalCount == 0)
     {
         @if (ViewBag.SyncError != null)
         {
@@ -209,33 +367,67 @@
                 Sync แจ้งเตือนไม่สำเร็จ: @ViewBag.SyncError
             </div>
         }
-        <div class="notification-list">
-            @foreach (var item in items)
+        <div class="notification-groups">
+            @foreach (var group in pageModel.Groups)
             {
-                var severityClass = SeverityClass(item.Severity);
-                <a class="notification-card @severityClass @(item.IsRead ? "is-read" : "")"
-                   asp-controller="Notifications"
-                   asp-action="Open"
-                   asp-route-id="@item.NotificationId">
-                    <div>
-                        <h2 class="notification-title">@item.Title</h2>
-                        @if (!string.IsNullOrWhiteSpace(item.Message))
-                        {
-                            <p class="notification-message">@item.Message</p>
-                        }
-                        <div class="notification-meta">
-                            @if (isAdmin && item.RecipientEmployee != null)
+                <section class="notification-group @group.Tone">
+                    <div class="notification-group-header">
+                        <h2 class="notification-group-title">
+                            <span class="notification-group-icon">@group.Icon</span>
+                            @group.Label
+                        </h2>
+                        <div class="notification-group-count">
+                            ทั้งหมด @group.TotalCount รายการ
+                            @if (group.UnreadCount > 0)
                             {
-                                <span>ผู้รับผิดชอบ: @(item.RecipientEmployee?.EmpName ?? "-")</span>
+                                <span> / ยังไม่อ่าน @group.UnreadCount รายการ</span>
                             }
-                            <span>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                            <span class="@(item.IsRead ? "text-success" : "text-danger")">
-                                @(item.IsRead ? "อ่านแล้ว" : "ยังไม่อ่าน")
-                            </span>
                         </div>
                     </div>
-                    <span class="notification-pill @severityClass">@SeverityText(item.Severity)</span>
-                </a>
+                    <div class="notification-coop-groups">
+                        @foreach (var coopGroup in group.CoopGroups)
+                        {
+                            <section class="notification-coop-group">
+                                <div class="notification-coop-header">
+                                    <span class="notification-coop-name">@coopGroup.CoopName</span>
+                                    <span class="notification-coop-count">@coopGroup.Items.Count รายการ</span>
+                                </div>
+                                <div class="notification-list">
+                                    @foreach (var item in coopGroup.Items)
+                                    {
+                                        <a class="notification-card @item.Severity @(item.IsRead ? "is-read" : "")"
+                                           asp-controller="Notifications"
+                                           asp-action="Open"
+                                           asp-route-id="@item.NotificationId">
+                                            <div class="notification-card-main">
+                                                <h3 class="notification-title">@item.Title</h3>
+                                                <p class="notification-project">@item.ProjectName</p>
+                                                <div class="notification-people">
+                                                    <span><strong>BA:</strong> @item.BaName</span>
+                                                    <span><strong>ผู้รับผิดชอบ:</strong> @item.OwnerName</span>
+                                                </div>
+                                            </div>
+                                            <div class="notification-side">
+                                                <div class="notification-date">@item.DateText</div>
+                                                <div class="notification-status-row">
+                                                    <span class="notification-severity @item.Severity">@item.SeverityText</span>
+                                                    <span class="notification-status-text @TextTone(item.StatusText)">@item.StatusText</span>
+                                                    @if (!string.IsNullOrWhiteSpace(item.ExtraStatusText) && item.ExtraStatusText != "-")
+                                                    {
+                                                        <span class="notification-status-text @TextTone(item.ExtraStatusText)">@item.ExtraStatusText</span>
+                                                    }
+                                                    <span class="notification-status-text @TextTone(item.IsRead ? "อ่านแล้ว" : "ยังไม่อ่าน")">
+                                                        @(item.IsRead ? "อ่านแล้ว" : "ยังไม่อ่าน")
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    </div>
+                </section>
             }
         </div>
     }

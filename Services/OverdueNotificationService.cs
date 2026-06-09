@@ -65,16 +65,18 @@ namespace ProjectTracking.Services
                 .Where(x => ManagedSourceTypes.Contains(x.SourceType))
                 .ToListAsync(cancellationToken);
 
+            ResolveDuplicateNotifications(existingNotifications, now);
+
             var existingByKey = existingNotifications
                 .Where(x => x.RecipientEmpId.HasValue)
                 .GroupBy(x => Key(x.SourceType, x.SourceId, x.RecipientEmpId!.Value))
-                .ToDictionary(x => x.Key, x => x.OrderByDescending(n => n.UpdatedAt).First());
+                .ToDictionary(x => x.Key, x => SelectPrimaryNotification(x));
 
             var activeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
-            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
-            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
+            // Issue/Support visibility is handled by OpenWork. Keeping their source types managed
+            // lets older notification rows resolve instead of remaining as stale badge counts.
             await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
 
             foreach (var notification in existingNotifications.Where(x => !x.IsResolved))
@@ -110,6 +112,7 @@ namespace ProjectTracking.Services
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.Coop)
                 .Where(x => x.PlanEnd.HasValue
                     && x.PlanEnd.Value <= riskUntil
                     && x.Phase != null)
@@ -123,23 +126,41 @@ namespace ProjectTracking.Services
                 if (!TryBuildDueState(row.PlanEnd, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = row.Phase?.Project?.ProjectName ?? "-";
+                var projectName = ProjectDisplayName(row.Phase?.Project);
                 var title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"Assign #{row.AssignId}" : row.Role!;
                 var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var projectId = row.Phase?.ProjectId;
+                var recipients = new List<NotificationRecipient>();
 
-                AddOrUpdate(
-                    db,
-                    employees,
-                    existingByKey,
-                    activeKeys,
-                    sourceType: "ASSIGN_DUE",
-                    sourceId: row.AssignId,
-                    empId: row.EmpId,
-                    severity: severity,
-                    title: $"{SeverityTitle(severity)} Assigns: {title}",
-                    message: message,
-                    targetUrl: $"/PhaseAssigns?projectId={row.Phase?.ProjectId}&empId={row.EmpId}",
-                    now: now);
+                if (row.Phase?.Project?.BaEmpId.HasValue == true)
+                {
+                    recipients.Add(new NotificationRecipient(
+                        row.Phase.Project.BaEmpId.Value,
+                        projectId.HasValue ? $"/PhaseAssigns?projectId={projectId.Value}" : "/PhaseAssigns"));
+                }
+
+                recipients.Add(new NotificationRecipient(
+                    row.EmpId,
+                    projectId.HasValue
+                        ? $"/PhaseAssigns?projectId={projectId.Value}&empId={row.EmpId}"
+                        : $"/PhaseAssigns?empId={row.EmpId}"));
+
+                foreach (var recipient in UniqueRecipients(recipients))
+                {
+                    AddOrUpdate(
+                        db,
+                        employees,
+                        existingByKey,
+                        activeKeys,
+                        sourceType: "ASSIGN_DUE",
+                        sourceId: row.AssignId,
+                        empId: recipient.EmpId,
+                        severity: severity,
+                        title: $"{SeverityTitle(severity)} Assigns: {title}",
+                        message: message,
+                        targetUrl: recipient.TargetUrl,
+                        now: now);
+                }
             }
         }
 
@@ -156,6 +177,7 @@ namespace ProjectTracking.Services
             var rows = await db.ProjectIssues
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Where(x => x.EndDate.HasValue
                     && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
@@ -168,22 +190,31 @@ namespace ProjectTracking.Services
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = row.Project?.ProjectName ?? "-";
+                var projectName = ProjectDisplayName(row.Project);
                 var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var recipients = new List<NotificationRecipient>();
 
-                AddOrUpdate(
-                    db,
-                    employees,
-                    existingByKey,
-                    activeKeys,
-                    sourceType: "ISSUE_DUE",
-                    sourceId: row.IssueId,
-                    empId: row.AssignTo,
-                    severity: severity,
-                    title: $"{SeverityTitle(severity)} Issue: {row.IssueName}",
-                    message: message,
-                    targetUrl: $"/ProjectIssues/Details/{row.IssueId}",
-                    now: now);
+                if (row.Project?.BaEmpId.HasValue == true)
+                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/ProjectIssues/Edit/{row.IssueId}"));
+
+                recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevEdit/{row.IssueId}"));
+
+                foreach (var recipient in UniqueRecipients(recipients))
+                {
+                    AddOrUpdate(
+                        db,
+                        employees,
+                        existingByKey,
+                        activeKeys,
+                        sourceType: "ISSUE_DUE",
+                        sourceId: row.IssueId,
+                        empId: recipient.EmpId,
+                        severity: severity,
+                        title: $"{SeverityTitle(severity)} Issue: {row.IssueName}",
+                        message: message,
+                        targetUrl: recipient.TargetUrl,
+                        now: now);
+                }
             }
         }
 
@@ -200,16 +231,13 @@ namespace ProjectTracking.Services
             var rows = await db.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(x => x.Project)
-                .Where(x => x.AssignTo.HasValue
-                    && x.EndDate.HasValue
+                    .ThenInclude(x => x!.Coop)
+                .Where(x => x.EndDate.HasValue
                     && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
             {
-                if (!row.AssignTo.HasValue)
-                    continue;
-
                 if (IsSupportDone(row.Status))
                     continue;
 
@@ -217,22 +245,32 @@ namespace ProjectTracking.Services
                     continue;
 
                 var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
-                var projectName = row.Project?.ProjectName ?? "-";
+                var projectName = ProjectDisplayName(row.Project);
                 var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var recipients = new List<NotificationRecipient>();
 
-                AddOrUpdate(
-                    db,
-                    employees,
-                    existingByKey,
-                    activeKeys,
-                    sourceType: "SUPPORT_DUE",
-                    sourceId: row.OrderId,
-                    empId: row.AssignTo.Value,
-                    severity: severity,
-                    title: $"{SeverityTitle(severity)} Support: {title}",
-                    message: message,
-                    targetUrl: $"/SupportOrders/Details/{row.OrderId}",
-                    now: now);
+                if (row.Project?.BaEmpId.HasValue == true)
+                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/SupportOrders/Edit/{row.OrderId}"));
+
+                if (row.AssignTo.HasValue)
+                    recipients.Add(new NotificationRecipient(row.AssignTo.Value, $"/SupportOrdersDev/Edit/{row.OrderId}"));
+
+                foreach (var recipient in UniqueRecipients(recipients))
+                {
+                    AddOrUpdate(
+                        db,
+                        employees,
+                        existingByKey,
+                        activeKeys,
+                        sourceType: "SUPPORT_DUE",
+                        sourceId: row.OrderId,
+                        empId: recipient.EmpId,
+                        severity: severity,
+                        title: $"{SeverityTitle(severity)} Support: {title}",
+                        message: message,
+                        targetUrl: recipient.TargetUrl,
+                        now: now);
+                }
             }
         }
 
@@ -249,6 +287,7 @@ namespace ProjectTracking.Services
             var rows = await db.ProjectFollowups
                 .AsNoTracking()
                 .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
                 .Where(x => x.OwnerEmpId.HasValue
                     && x.NextFollowupDate.HasValue
                     && x.NextFollowupDate.Value <= riskUntil)
@@ -265,7 +304,7 @@ namespace ProjectTracking.Services
                 if (!TryBuildDueState(row.NextFollowupDate, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = row.Project?.ProjectName ?? "-";
+                var projectName = ProjectDisplayName(row.Project);
                 var message = $"{stateText} | นัดติดตาม {dueText} | Project: {projectName}";
 
                 AddOrUpdate(
@@ -348,6 +387,37 @@ namespace ProjectTracking.Services
             });
         }
 
+        private static void ResolveDuplicateNotifications(IEnumerable<UserNotification> notifications, DateTime now)
+        {
+            var duplicateGroups = notifications
+                .Where(x => x.RecipientEmpId.HasValue)
+                .GroupBy(x => Key(x.SourceType, x.SourceId, x.RecipientEmpId!.Value))
+                .Where(group => group.Count() > 1);
+
+            foreach (var group in duplicateGroups)
+            {
+                var keeper = SelectPrimaryNotification(group);
+                foreach (var duplicate in group.Where(x => x.NotificationId != keeper.NotificationId))
+                {
+                    if (duplicate.IsResolved)
+                        continue;
+
+                    duplicate.IsResolved = true;
+                    duplicate.ResolvedAt = now;
+                    duplicate.UpdatedAt = now;
+                }
+            }
+        }
+
+        private static UserNotification SelectPrimaryNotification(IEnumerable<UserNotification> notifications)
+            => notifications
+                .OrderByDescending(x => !x.IsResolved)
+                .ThenBy(x => x.IsRead)
+                .ThenByDescending(x => string.Equals(x.Severity, "DANGER", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.NotificationId)
+                .First();
+
         private static bool TryBuildDueState(
             DateTime? dueDate,
             DateTime today,
@@ -398,6 +468,23 @@ namespace ProjectTracking.Services
         private static string Key(string sourceType, int sourceId, int empId)
             => $"{sourceType}:{sourceId}:{empId}";
 
+        private static string ProjectDisplayName(Project? project)
+            => project == null || string.IsNullOrWhiteSpace(project.ProjectDisplayName)
+                ? "-"
+                : project.ProjectDisplayName;
+
+        private static IEnumerable<NotificationRecipient> UniqueRecipients(IEnumerable<NotificationRecipient> recipients)
+        {
+            var seen = new HashSet<int>();
+            foreach (var recipient in recipients)
+            {
+                if (recipient.EmpId <= 0 || !seen.Add(recipient.EmpId))
+                    continue;
+
+                yield return recipient;
+            }
+        }
+
         private static string Trim(string value, int maxLength)
             => string.IsNullOrEmpty(value) || value.Length <= maxLength
                 ? value
@@ -435,5 +522,6 @@ namespace ProjectTracking.Services
         }
 
         private sealed record EmployeeRecipient(int EmpId, string EmpName, int? LoginUserId);
+        private sealed record NotificationRecipient(int EmpId, string TargetUrl);
     }
 }

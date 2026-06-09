@@ -147,7 +147,6 @@ namespace ProjectTracking.ViewModels
         public string StatusTone { get; set; } = "";
         public DateTime? PlanStart { get; set; }
         public DateTime? PlanEnd { get; set; }
-        public DateTime? PeriodStart { get; set; }
         public DateTime? PeriodEnd { get; set; }
         public DateTime? BucketDate { get; set; }
         public int Month { get; set; }

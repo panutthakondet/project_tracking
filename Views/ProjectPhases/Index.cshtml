@@ -521,7 +521,7 @@
                     <th style="width:90px;">งวดที่</th>
                     <th style="min-width:260px;">ชื่อส่วนงาน</th>
                     <th style="width:280px;">Plan Date</th>
-                    <th style="width:280px;">Period Date</th>
+                    <th style="width:180px;">กำหนดส่งงวดงาน</th>
                     <th style="width:160px;">Status</th>
                     <th style="width:320px;">Action</th>
                 </tr>
@@ -574,8 +574,6 @@
                         </td>
 
                         <td class="text-center">
-                            @(phase.PeriodStartDate?.ToString("dd MMM yyyy", th) ?? "-")
-                            &nbsp;–&nbsp;
                             @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                         </td>
 
@@ -705,7 +703,7 @@ else
 
                 <div class="phase-meta">
                     <span class="phase-meta-pill">Plan Date: @DateRange(phase.PlanStart, phase.PlanEnd)</span>
-                    <span class="phase-meta-pill">Period Date: @DateRange(phase.PeriodStartDate, phase.PeriodEndDate)</span>
+                    <span class="phase-meta-pill">กำหนดส่งงวดงาน: @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                 </div>
 
                 <div class="phase-status-grid">

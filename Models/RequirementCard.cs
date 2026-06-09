@@ -59,5 +59,7 @@ namespace ProjectTracking.Models
         public ICollection<RequirementCardAttachment> Attachments { get; set; } = new List<RequirementCardAttachment>();
 
         public ICollection<RequirementCardPhaseItem> PhaseItems { get; set; } = new List<RequirementCardPhaseItem>();
+
+        public ICollection<RequirementCardLabel> Labels { get; set; } = new List<RequirementCardLabel>();
     }
 }

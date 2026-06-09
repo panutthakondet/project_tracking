@@ -42,9 +42,6 @@ namespace ProjectTracking.Models
         [Column("plan_end")]
         public DateTime? PlanEnd { get; set; }
 
-        [Column("period_start_date")]
-        public DateTime? PeriodStartDate { get; set; }
-
         [Column("period_end_date")]
         public DateTime? PeriodEndDate { get; set; }
 

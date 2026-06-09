@@ -456,7 +456,7 @@
                         <th>Role</th>
                         <th>Status</th>
                         <th>Plan</th>
-                        <th>Period</th>
+                        <th>กำหนดส่งงวดงาน</th>
                         <th>Month</th>
                     </tr>
                 </thead>
@@ -488,10 +488,7 @@
                                     @DateText(row.PlanStart)<br />
                                     @DateText(row.PlanEnd)
                                 </td>
-                                <td class="text-center">
-                                    @DateText(row.PeriodStart)<br />
-                                    @DateText(row.PeriodEnd)
-                                </td>
+                                <td class="text-center">@DateText(row.PeriodEnd)</td>
                                 <td class="text-center">@row.MonthName</td>
                             </tr>
                         }

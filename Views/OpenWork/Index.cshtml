@@ -1,0 +1,459 @@
+@model ProjectTracking.ViewModels.OpenIssueSupportPageViewModel
+
+@{
+    ViewData["Title"] = "Open Issues / Support";
+    var pageModel = Model ?? new ProjectTracking.ViewModels.OpenIssueSupportPageViewModel();
+
+    string SeverityText(string severity) => (severity ?? "").Trim().ToLowerInvariant() switch
+    {
+        "danger" => "เลยกำหนด",
+        "warning" => "ใกล้ครบกำหนด",
+        _ => "เปิดอยู่"
+    };
+
+    string TextTone(string? value) => (value ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "danger",
+        "URGENT" => "danger",
+        "HIGH" => "danger",
+        "TODO" => "muted",
+        "IN PROGRESS" => "warning",
+        "IN_PROGRESS" => "warning",
+        "WAIT TEST" => "info",
+        "WAIT_TEST" => "info",
+        "MEDIUM" => "warning",
+        "LOW" => "success",
+        "DONE" => "success",
+        "FIXED" => "success",
+        "PASS" => "success",
+        "RESOLVED" => "success",
+        _ => "muted"
+    };
+}
+
+<style>
+    .open-work-page {
+        padding: 4px 0 28px;
+    }
+
+    .open-work-hero {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        background: linear-gradient(135deg, #10284a, #0f766e);
+        color: #fff;
+        border-radius: 24px;
+        padding: 28px 32px;
+        box-shadow: 0 18px 36px rgba(15, 40, 74, .18);
+        margin-bottom: 18px;
+    }
+
+    .open-work-eyebrow {
+        color: #9ff8ef;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .open-work-hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: 0;
+    }
+
+    .open-work-hero p {
+        margin: 10px 0 0;
+        color: #d7f4ef;
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .open-work-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .open-work-actions .btn {
+        min-width: 150px;
+        border-radius: 999px;
+        font-weight: 900;
+        padding: 10px 18px;
+    }
+
+    .open-work-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .open-work-stat {
+        background: rgba(255, 255, 255, .82);
+        border: 1px solid #dbe6f3;
+        border-left: 6px solid #22c7b8;
+        border-radius: 20px;
+        padding: 16px 18px;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
+    }
+
+    .open-work-stat span {
+        display: block;
+        color: #64748b;
+        font-weight: 900;
+    }
+
+    .open-work-stat strong {
+        display: block;
+        color: #10223e;
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-top: 6px;
+    }
+
+    .open-work-groups {
+        display: grid;
+        gap: 18px;
+    }
+
+    .open-work-group {
+        background: rgba(255, 255, 255, .72);
+        border: 1px solid #dbe6f3;
+        border-radius: 24px;
+        padding: 14px;
+        box-shadow: 0 14px 30px rgba(15, 40, 74, .08);
+    }
+
+    .open-work-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+        padding: 4px 4px 10px;
+        border-bottom: 1px solid #e2eaf5;
+    }
+
+    .open-work-group-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: #10223e;
+        font-size: 1.22rem;
+        font-weight: 900;
+    }
+
+    .open-work-group-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        color: #fff;
+        background: linear-gradient(135deg, #fb3f7a, #e11d48);
+        font-weight: 900;
+    }
+
+    .open-work-group.support .open-work-group-icon {
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+    }
+
+    .open-work-group-count {
+        color: #64748b;
+        font-weight: 900;
+    }
+
+    .open-work-coop-groups {
+        display: grid;
+        gap: 14px;
+    }
+
+    .open-work-coop-group {
+        background: rgba(248, 250, 252, .76);
+        border: 1px solid #e2eaf5;
+        border-radius: 20px;
+        padding: 12px;
+    }
+
+    .open-work-coop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        color: #10223e;
+        font-weight: 900;
+    }
+
+    .open-work-coop-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+
+    .open-work-coop-count {
+        color: #64748b;
+        font-size: .92rem;
+        white-space: nowrap;
+    }
+
+    .open-work-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .open-work-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+        gap: 14px;
+        align-items: start;
+        background: #fff;
+        border: 1px solid #dbe6f3;
+        border-left: 6px solid #22c7b8;
+        border-radius: 20px;
+        padding: 14px 16px;
+        color: #10223e;
+        text-decoration: none;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
+    }
+
+    .open-work-card.danger {
+        border-left-color: #f43f5e;
+    }
+
+    .open-work-card.warning {
+        border-left-color: #f59e0b;
+    }
+
+    .open-work-card:hover {
+        color: #10223e;
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px rgba(15, 40, 74, .12);
+    }
+
+    .open-work-card-main {
+        min-width: 0;
+    }
+
+    .open-work-title {
+        margin: 0;
+        font-size: 1.08rem;
+        font-weight: 900;
+        line-height: 1.28;
+    }
+
+    .open-work-project {
+        margin: 5px 0 0;
+        color: #64748b;
+        font-weight: 800;
+        line-height: 1.35;
+        font-size: .93rem;
+    }
+
+    .open-work-people {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin-top: 8px;
+        color: #718096;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .open-work-people strong {
+        color: #17324d;
+        font-weight: 900;
+    }
+
+    .open-work-side {
+        display: grid;
+        gap: 7px;
+        justify-items: end;
+        text-align: right;
+    }
+
+    .open-work-date {
+        color: #17324d;
+        font-size: .95rem;
+        font-weight: 900;
+    }
+
+    .open-work-status-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .open-work-status-text,
+    .open-work-severity {
+        font-size: .9rem;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .open-work-status-text.danger,
+    .open-work-severity.danger {
+        color: #e11d48;
+    }
+
+    .open-work-status-text.warning,
+    .open-work-severity.warning {
+        color: #d97706;
+    }
+
+    .open-work-status-text.info {
+        color: #0284c7;
+    }
+
+    .open-work-status-text.success {
+        color: #059669;
+    }
+
+    .open-work-status-text.muted,
+    .open-work-severity.normal {
+        color: #64748b;
+    }
+
+    .open-work-empty {
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 22px;
+        padding: 28px;
+        color: #64748b;
+        font-weight: 900;
+        text-align: center;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .06);
+    }
+
+    @@media (max-width: 768px) {
+        .open-work-hero {
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .open-work-actions {
+            justify-content: flex-start;
+        }
+
+        .open-work-card {
+            grid-template-columns: 1fr;
+        }
+
+        .open-work-side {
+            justify-items: start;
+            text-align: left;
+        }
+
+        .open-work-status-row {
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+<div class="open-work-page">
+    <section class="open-work-hero">
+        <div>
+            <div class="open-work-eyebrow">ProjectTracking</div>
+            <h1>Open Issues / Support</h1>
+            <p>
+                รายการ Issue และ Support ที่ยังเปิดอยู่
+                @if (!pageModel.IsAdmin)
+                {
+                    <span>ของ @pageModel.CurrentEmployeeName และโครงการที่เป็น BA</span>
+                }
+            </p>
+        </div>
+        <div class="open-work-actions">
+            <a class="btn btn-light" asp-controller="Home" asp-action="Index">Dashboard</a>
+            <a class="btn btn-outline-light" asp-controller="Notifications" asp-action="Index">Notifications</a>
+        </div>
+    </section>
+
+    <section class="open-work-summary" aria-label="สรุปรายการเปิดอยู่">
+        <div class="open-work-stat">
+            <span>รวมทั้งหมด</span>
+            <strong>@pageModel.TotalCount</strong>
+        </div>
+        @foreach (var group in pageModel.Groups)
+        {
+            <div class="open-work-stat">
+                <span>@group.Label</span>
+                <strong>@group.TotalCount</strong>
+            </div>
+        }
+    </section>
+
+    @if (pageModel.TotalCount == 0)
+    {
+        <div class="open-work-empty">ยังไม่มี Issue หรือ Support ที่เปิดอยู่</div>
+    }
+    else
+    {
+        <section class="open-work-groups" aria-label="รายการ Issue และ Support ที่เปิดอยู่">
+            @foreach (var group in pageModel.Groups)
+            {
+                <article class="open-work-group @group.Tone">
+                    <div class="open-work-group-header">
+                        <h2 class="open-work-group-title">
+                            <span class="open-work-group-icon">@group.Icon</span>
+                            @group.Label
+                        </h2>
+                        <span class="open-work-group-count">@group.TotalCount รายการ</span>
+                    </div>
+                    <div class="open-work-coop-groups">
+                        @foreach (var coopGroup in group.CoopGroups)
+                        {
+                            <section class="open-work-coop-group">
+                                <div class="open-work-coop-header">
+                                    <span class="open-work-coop-name">@coopGroup.CoopName</span>
+                                    <span class="open-work-coop-count">@coopGroup.Items.Count รายการ</span>
+                                </div>
+                                <div class="open-work-list">
+                                    @foreach (var item in coopGroup.Items)
+                                    {
+                                        <a class="open-work-card @item.Severity" href="@item.TargetUrl">
+                                            <div class="open-work-card-main">
+                                                <h3 class="open-work-title">@item.Title</h3>
+                                                <p class="open-work-project">@item.ProjectName</p>
+                                                <div class="open-work-people">
+                                                    <span><strong>BA:</strong> @item.BaName</span>
+                                                    <span><strong>ผู้รับผิดชอบ:</strong> @item.OwnerName</span>
+                                                </div>
+                                            </div>
+                                            <div class="open-work-side">
+                                                <div class="open-work-date">@item.DateRangeText</div>
+                                                <div class="open-work-status-row">
+                                                    <span class="open-work-severity @item.Severity">@SeverityText(item.Severity)</span>
+                                                    <span class="open-work-status-text @TextTone(item.StatusText)">@item.StatusText</span>
+                                                    @if (!string.IsNullOrWhiteSpace(item.DevStatusText) && item.DevStatusText != "-")
+                                                    {
+                                                        <span class="open-work-status-text @TextTone(item.DevStatusText)">Dev @item.DevStatusText</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(item.PriorityText) && item.PriorityText != "-")
+                                                    {
+                                                        <span class="open-work-status-text @TextTone(item.PriorityText)">@item.PriorityText</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </a>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</div>

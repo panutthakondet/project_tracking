@@ -72,11 +72,12 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("SupportOrders.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, string? status, string? priority, string? devStatus)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status, string? priority, string? devStatus)
         {
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -85,12 +86,17 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.BA)
                 .Include(o => o.Employee)
                 .Include(o => o.FixImages)
                 .AsQueryable();
 
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(o => o.ProjectId == projectId.Value);
+
+            if (baEmpId.HasValue && baEmpId.Value > 0)
+                query = query.Where(o => o.Project != null && o.Project.BaEmpId == baEmpId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(o => o.Status == status);
@@ -102,7 +108,10 @@ namespace ProjectTracking.Controllers
                 query = query.Where(o => o.DevStatus == devStatus);
 
             var orders = await query
-                .OrderBy(o => o.EndDate ?? DateTime.MaxValue)
+                .OrderBy(o => o.Project != null && o.Project.Coop != null ? o.Project.Coop.CoopName : "")
+                .ThenBy(o => o.Project != null ? o.Project.ProjectName : "")
+                .ThenBy(o => o.Project != null && o.Project.BA != null ? o.Project.BA.EmpName : "")
+                .ThenBy(o => o.EndDate ?? DateTime.MaxValue)
                 .ThenByDescending(o =>
                     o.Priority == "URGENT" ? 4 :
                     o.Priority == "HIGH" ? 3 :
@@ -121,8 +130,31 @@ namespace ProjectTracking.Controllers
                     .ToDictionaryAsync(g => g.Key, g => g.Count())
                 : new Dictionary<int, int>();
 
+            var baList = await (
+                    from order in _context.ProjectSupportOrders.AsNoTracking()
+                    join projectRow in _context.Projects.AsNoTracking()
+                        on order.ProjectId equals projectRow.ProjectId
+                    join employee in _context.Employees.AsNoTracking()
+                        on projectRow.BaEmpId equals employee.EmpId
+                    where projectRow.BaEmpId != null
+                    select new
+                    {
+                        EmpId = employee.EmpId,
+                        employee.EmpName
+                    })
+                .Distinct()
+                .OrderBy(x => x.EmpName)
+                .Select(x => new SelectListItem
+                {
+                    Value = x.EmpId.ToString(),
+                    Text = x.EmpName
+                })
+                .ToListAsync();
+
             ViewBag.Projects = projects;
             ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedBA = baEmpId;
+            ViewBag.BAList = baList;
             ViewBag.SelectedStatus = status ?? "";
             ViewBag.SelectedPriority = priority ?? "";
             ViewBag.SelectedDevStatus = devStatus ?? "";

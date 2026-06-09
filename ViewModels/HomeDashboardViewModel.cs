@@ -12,9 +12,9 @@ namespace ProjectTracking.ViewModels
 
         public string TotalProjectsNote { get; set; } = "ข้อมูลทั้งหมดในระบบ";
         public string MeetingsTodayNote { get; set; } = "รายการประชุมวันนี้";
-        public string OpenIssuesNote { get; set; } = "Issue ที่ยังไม่ปิด";
+        public string OpenIssuesNote { get; set; } = "เลยกำหนด Plan";
         public string ActiveMembersNote { get; set; } = "พนักงานสถานะ ACTIVE";
-        public string OverdueTasksNote { get; set; } = "งานติดตามเลยกำหนด";
+        public string OverdueTasksNote { get; set; } = "เลยกำหนด Plan";
 
         public List<HomeDashboardMetric> ProjectStatusMetrics { get; set; } = new();
         public string ProjectStatusDonut { get; set; } = "conic-gradient(#263450 0 100%)";
@@ -39,6 +39,8 @@ namespace ProjectTracking.ViewModels
         public int YearlyTaskAxisMax { get; set; } = 4;
         public List<HomeDashboardWatchProject> WatchProjects { get; set; } = new();
         public List<HomeDashboardWorkload> TeamWorkload { get; set; } = new();
+        public int OpenIssueSupportCount { get; set; }
+        public List<HomeDashboardOpenWorkItem> OpenIssueSupportItems { get; set; } = new();
 
         public decimal MonthWorkHours { get; set; }
         public decimal ClosedWorkHours { get; set; }
@@ -154,5 +156,16 @@ namespace ProjectTracking.ViewModels
         public int ActiveTaskCount { get; set; }
         public string Color { get; set; } = "blue";
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+    }
+
+    public class HomeDashboardOpenWorkItem
+    {
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string ProjectName { get; set; } = "-";
+        public string OwnerName { get; set; } = "-";
+        public string DueText { get; set; } = "-";
+        public string Url { get; set; } = "#";
+        public string Color { get; set; } = "orange";
     }
 }

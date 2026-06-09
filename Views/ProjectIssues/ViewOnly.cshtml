@@ -1,14 +1,19 @@
 @model IEnumerable<ProjectTracking.Models.ProjectIssue>
 @using System.Globalization
+@using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
     Layout = null;
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var selectedBA = ViewBag.SelectedBA is int baId ? baId : (int?)null;
     var selectedEmp = ViewBag.SelectedEmp as string;
     var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    var selectedDevStatus = ViewBag.SelectedDevStatus as string ?? "";
+    var baList = ViewBag.BAList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var issues = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
 
@@ -50,6 +55,11 @@
         : "NORMAL";
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
+    string SelectedBAText()
+    {
+        if (!selectedBA.HasValue) return "All BA";
+        return baList.FirstOrDefault(x => x.Value == selectedBA.Value.ToString())?.Text ?? $"BA #{selectedBA.Value}";
+    }
 }
 
 <!DOCTYPE html>
@@ -108,7 +118,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1fr) minmax(220px, 320px) minmax(160px, 220px) auto;
+            grid-template-columns: minmax(260px, 1.35fr) minmax(190px, .9fr) minmax(210px, 1fr) minmax(150px, .7fr) minmax(150px, .7fr) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -287,11 +297,11 @@
             margin-bottom: 12px;
         }
         .issue-report-table col.col-seq { width: 5%; }
-        .issue-report-table col.col-issue { width: 27%; }
-        .issue-report-table col.col-detail { width: 24%; }
+        .issue-report-table col.col-issue { width: 25%; }
+        .issue-report-table col.col-detail { width: 27%; }
         .issue-report-table col.col-owner { width: 14%; }
         .issue-report-table col.col-state { width: 15%; }
-        .issue-report-table col.col-date { width: 15%; }
+        .issue-report-table col.col-date { width: 14%; }
         th {
             padding: 7px 6px;
             color: #fff;
@@ -337,6 +347,19 @@
             font-weight: 800;
             white-space: nowrap;
         }
+        .project-group-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            margin-top: 5px;
+            color: rgba(255,255,255,.82);
+            font-size: 10px;
+            font-weight: 800;
+        }
+        .project-group-stats b {
+            color: #8df1e4;
+            font-weight: 900;
+        }
         .cell-title {
             color: #10233f;
             font-weight: 900;
@@ -345,6 +368,24 @@
             margin-top: 4px;
             color: #465a73;
             font-weight: 700;
+        }
+        .detail-block {
+            display: grid;
+            gap: 6px;
+        }
+        .detail-block div {
+            padding: 6px 7px;
+            border-radius: 8px;
+            background: #f8fbff;
+            border: 1px solid #e6edf6;
+        }
+        .detail-block b {
+            display: block;
+            margin-bottom: 3px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
         }
         .meta-stack {
             display: grid;
@@ -399,6 +440,7 @@
             h2 + table,
             h2 + .empty,
             h2 + .report-table-scroll,
+            h2 + .issue-report-table,
             h3 + table,
             h3 + .empty,
             .project-group-row + tr {
@@ -435,8 +477,10 @@
         <h1>Project Issues Report</h1>
         <div>
             Project: @(selectedProject?.ProjectDisplayName ?? "All Projects")<br />
+            BA: @SelectedBAText()<br />
             Employee: @(string.IsNullOrWhiteSpace(selectedEmp) ? "All Employees" : selectedEmp)<br />
             Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Status" : selectedStatus)<br />
+            Dev Status: @(string.IsNullOrWhiteSpace(selectedDevStatus) ? "All Dev Status" : selectedDevStatus)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
     </header>
@@ -450,6 +494,19 @@
                 {
                     <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId ? "selected" : null)">
                         @p.ProjectDisplayName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="baSelect">BA</label>
+            <select id="baSelect" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA...">
+                <option value="">-- All BA --</option>
+                @foreach (var ba in baList)
+                {
+                    <option value="@ba.Value" selected="@(selectedBA.HasValue && ba.Value == selectedBA.Value.ToString() ? "selected" : null)">
+                        @ba.Text
                     </option>
                 }
             </select>
@@ -475,6 +532,19 @@
                 @foreach (var status in statusList)
                 {
                     <option value="@status" selected="@(string.Equals(status, selectedStatus, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @status
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="devStatusSelect">Dev Status</label>
+            <select id="devStatusSelect" name="devStatus" data-placeholder="🔍 พิมพ์ค้นหา Dev Status...">
+                <option value="">-- All Dev Status --</option>
+                @foreach (var status in devStatusList)
+                {
+                    <option value="@status" selected="@(string.Equals(status, selectedDevStatus, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
                         @status
                     </option>
                 }
@@ -549,7 +619,8 @@
                         .GroupBy(issue => new
                         {
                             issue.ProjectId,
-                            ProjectName = TextOrDash(issue.Project?.ProjectDisplayName)
+                            ProjectName = TextOrDash(issue.Project?.ProjectDisplayName),
+                            BAName = TextOrDash(issue.Project?.BA?.EmpName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();
@@ -557,12 +628,27 @@
                 @foreach (var projectGroup in projectGroups)
                 {
                     var row = 1;
+                    var groupOpen = projectGroup.Count(x => string.Equals(x.IssueStatus, "OPEN", StringComparison.OrdinalIgnoreCase));
+                    var groupWip = projectGroup.Count(x => string.Equals(x.IssueStatus, "WIP", StringComparison.OrdinalIgnoreCase));
+                    var groupFixed = projectGroup.Count(x =>
+                        string.Equals(x.IssueStatus, "FIXED", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
+                    var groupDevFixed = projectGroup.Count(x => string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
+                    var groupReopen = projectGroup.Sum(x => x.ReopenCount);
                     <tr class="project-group-row">
                         <td colspan="6">
                             <div class="project-group-name">
                                 <div>
                                     <span class="project-group-label">Project</span>
                                     @projectGroup.Key.ProjectName
+                                    <div class="cell-sub">BA: @projectGroup.Key.BAName</div>
+                                    <div class="project-group-stats">
+                                        <span>Open <b>@groupOpen</b></span>
+                                        <span>WIP <b>@groupWip</b></span>
+                                        <span>Fixed/Pass <b>@groupFixed</b></span>
+                                        <span>Dev Fixed <b>@groupDevFixed</b></span>
+                                        <span>Reopen <b>@groupReopen</b></span>
+                                    </div>
                                 </div>
                                 <span class="project-group-count">@projectGroup.Count() รายการ</span>
                             </div>
@@ -578,9 +664,32 @@
                             <td>
                                 <div class="cell-title">@TextOrDash(issue.IssueName)</div>
                                 <div class="cell-sub">#@issue.IssueId</div>
+                                <div class="cell-sub">Priority: <span class="status-text @PriorityClass(issue.IssuePriority)">@PriorityText(issue.IssuePriority)</span></div>
                             </td>
-                            <td>@TextOrDash(issue.IssueDetail)</td>
-                            <td>@TextOrDash(issue.Employee?.EmpName)</td>
+                            <td>
+                                <div class="detail-block">
+                                    <div>
+                                        <b>Issue Detail</b>
+                                        @TextOrDash(issue.IssueDetail)
+                                    </div>
+                                    <div>
+                                        <b>Dev Detail</b>
+                                        @TextOrDash(issue.DevDetail)
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="meta-stack">
+                                    <div>
+                                        <span class="meta-label">BA</span>
+                                        <div class="meta-value">@TextOrDash(issue.Project?.BA?.EmpName)</div>
+                                    </div>
+                                    <div>
+                                        <span class="meta-label">Assign To</span>
+                                        <div class="meta-value">@TextOrDash(issue.Employee?.EmpName)</div>
+                                    </div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="meta-stack">
                                     <div class="meta-line">

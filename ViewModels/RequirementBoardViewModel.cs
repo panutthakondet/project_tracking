@@ -6,6 +6,7 @@ namespace ProjectTracking.ViewModels
     {
         public List<RequirementBoardColumn> Columns { get; set; } = new();
         public List<RequirementBoardOnlineUserViewModel> OnlineUsers { get; set; } = new();
+        public List<RequirementBoardLabel> Labels { get; set; } = new();
         public int TotalCards { get; set; }
         public int TotalAttachments { get; set; }
     }
@@ -36,7 +37,6 @@ namespace ProjectTracking.ViewModels
         public string? PhaseStatus { get; set; }
         public string? PlanStart { get; set; }
         public string? PlanEnd { get; set; }
-        public string? PeriodStartDate { get; set; }
         public string? PeriodEndDate { get; set; }
     }
 }

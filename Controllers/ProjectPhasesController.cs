@@ -95,7 +95,6 @@ namespace ProjectTracking.Controllers
 
             ViewBag.LastPlanStart = lastPhase?.PlanStart?.ToString("yyyy-MM-dd") ?? "";
             ViewBag.LastPlanEnd = lastPhase?.PlanEnd?.ToString("yyyy-MM-dd") ?? "";
-            ViewBag.LastPeriodStart = lastPhase?.ActualStart?.ToString("yyyy-MM-dd") ?? "";
             ViewBag.LastPeriodEnd = lastPhase?.ActualEnd?.ToString("yyyy-MM-dd") ?? "";
 
             ViewBag.PhaseTypeList = GetPhaseTypeList("MAIN");
@@ -165,12 +164,10 @@ namespace ProjectTracking.Controllers
             // รองรับวันที่ไทย dd/MM/พ.ศ.
             phase.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
             phase.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
-            phase.ActualStart = ParseThaiDate(Request.Form["ActualStart"]);
             phase.ActualEnd = ParseThaiDate(Request.Form["ActualEnd"]);
 
             ModelState.Remove("PlanStart");
             ModelState.Remove("PlanEnd");
-            ModelState.Remove("ActualStart");
             ModelState.Remove("ActualEnd");
             if (phase.ProjectId <= 0)
             {
@@ -200,7 +197,6 @@ namespace ProjectTracking.Controllers
 
                 ViewBag.LastPlanStart = lastPhase?.PlanStart?.ToString("yyyy-MM-dd") ?? "";
                 ViewBag.LastPlanEnd = lastPhase?.PlanEnd?.ToString("yyyy-MM-dd") ?? "";
-                ViewBag.LastPeriodStart = lastPhase?.ActualStart?.ToString("yyyy-MM-dd") ?? "";
                 ViewBag.LastPeriodEnd = lastPhase?.ActualEnd?.ToString("yyyy-MM-dd") ?? "";
 
                 ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
@@ -250,7 +246,6 @@ namespace ProjectTracking.Controllers
 
             ViewBag.LastPlanStart = previousPhase?.PlanStart?.ToString("yyyy-MM-dd") ?? "";
             ViewBag.LastPlanEnd = previousPhase?.PlanEnd?.ToString("yyyy-MM-dd") ?? "";
-            ViewBag.LastPeriodStart = previousPhase?.ActualStart?.ToString("yyyy-MM-dd") ?? "";
             ViewBag.LastPeriodEnd = previousPhase?.ActualEnd?.ToString("yyyy-MM-dd") ?? "";
 
             ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
@@ -272,12 +267,10 @@ namespace ProjectTracking.Controllers
             // รองรับวันที่ไทย dd/MM/พ.ศ.
             phase.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
             phase.PlanEnd = ParseThaiDate(Request.Form["PlanEnd"]);
-            phase.ActualStart = ParseThaiDate(Request.Form["ActualStart"]);
             phase.ActualEnd = ParseThaiDate(Request.Form["ActualEnd"]);
 
             ModelState.Remove("PlanStart");
             ModelState.Remove("PlanEnd");
-            ModelState.Remove("ActualStart");
             ModelState.Remove("ActualEnd");
 
             if (phase.PhaseOrder <= 0)
@@ -303,7 +296,6 @@ namespace ProjectTracking.Controllers
             existing.PeriodOrder = phase.PeriodOrder;
             existing.PlanStart = phase.PlanStart;
             existing.PlanEnd = phase.PlanEnd;
-            existing.ActualStart = phase.ActualStart;
             existing.ActualEnd = phase.ActualEnd;
             existing.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
             existing.CreatedAt = DateTime.Now;
@@ -491,7 +483,6 @@ namespace ProjectTracking.Controllers
                     PhaseStatus = NormalizePhaseStatus(item.PhaseStatus),
                     PlanStart = item.PlanStart,
                     PlanEnd = item.PlanEnd,
-                    PeriodStartDate = item.PeriodStartDate,
                     PeriodEndDate = item.PeriodEndDate,
                     CreatedAt = now,
                     EntryId = entryId

@@ -29,6 +29,28 @@
         return $"{value:dd/MM/}{value.Year + 543}";
     }
 
+    List<ProjectTracking.Models.RequirementBoardLabel> ActiveCardLabels(ProjectTracking.Models.RequirementCard card)
+    {
+        return card.Labels
+            .Where(x => x.Label != null && x.Label.IsActive)
+            .OrderBy(x => x.Label!.SortOrder)
+            .ThenBy(x => x.Label!.LabelName)
+            .Select(x => x.Label!)
+            .ToList();
+    }
+
+    var labelOptions = Model.Labels
+        .Where(x => x.IsActive)
+        .OrderBy(x => x.SortOrder)
+        .ThenBy(x => x.LabelName)
+        .ToList();
+    var labelOptionsJson = System.Text.Json.JsonSerializer.Serialize(
+        labelOptions.Select(x => new
+        {
+            labelId = x.LabelId,
+            labelName = x.LabelName,
+            colorHex = x.ColorHex
+        }));
     var allCards = Model.Columns.SelectMany(x => x.Cards).OrderByDescending(x => x.UpdatedAt).ToList();
     var visibleOnlineUsers = Model.OnlineUsers.Take(5).ToList();
     var hiddenOnlineCount = Math.Max(0, Model.OnlineUsers.Count - visibleOnlineUsers.Count);
@@ -574,6 +596,43 @@
             padding: 9px 10px 9px;
         }
 
+        .rb-card-labels,
+        .rb-selected-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .rb-card-labels {
+            margin-bottom: 8px;
+        }
+
+        .rb-card-label {
+            display: inline-flex;
+            align-items: center;
+            min-width: 58px;
+            max-width: 100%;
+            min-height: 10px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: var(--rb-label-color, #22c7b8);
+            color: var(--rb-label-text, #10213a);
+            font-size: .74rem;
+            font-weight: 900;
+            line-height: 1.6;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rb-card .rb-card-label {
+            max-width: 100%;
+            min-height: 20px;
+            padding: 2px 9px;
+            font-size: .68rem;
+            line-height: 1.35;
+        }
+
         .rb-card-title {
             margin: 0;
             color: #10213a;
@@ -691,6 +750,7 @@
 
         .rb-edit-panel {
             position: relative;
+            z-index: 20;
             display: grid;
             gap: 12px;
             padding: 16px;
@@ -698,7 +758,7 @@
             border-radius: 18px;
             background: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(248, 252, 255, .94));
             box-shadow: 0 12px 26px rgba(15, 39, 70, .08);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .rb-edit-panel-head {
@@ -710,6 +770,169 @@
             font-weight: 900;
             letter-spacing: .02em;
             text-transform: uppercase;
+        }
+
+        .rb-label-control {
+            position: relative;
+            display: grid;
+            gap: 10px;
+        }
+
+        .rb-label-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .rb-label-empty {
+            color: #64748b;
+            font-weight: 800;
+        }
+
+        .rb-label-picker-button {
+            min-height: 40px;
+            padding: 0 14px;
+            border: 1px solid rgba(20, 184, 166, .36);
+            border-radius: 999px;
+            background: #e3fbf7;
+            color: #0f766e;
+            font-weight: 900;
+        }
+
+        .rb-label-popover {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 8px);
+            z-index: 1200;
+            width: min(390px, 94vw);
+            max-height: min(330px, calc(100vh - 260px));
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 22px 54px rgba(2, 12, 32, .24);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .rb-label-popover[hidden] {
+            display: none;
+        }
+
+        .rb-label-picker-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            color: #10213a;
+            font-weight: 900;
+        }
+
+        .rb-label-picker-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 999px;
+            background: #eef4fb;
+            color: #334155;
+            font-size: 1.2rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .rb-label-search {
+            min-height: 42px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            font-weight: 800;
+        }
+
+        .rb-label-list {
+            display: grid;
+            gap: 8px;
+            max-height: 140px;
+            overflow: auto;
+            padding-right: 3px;
+        }
+
+        .rb-label-option {
+            display: grid;
+            grid-template-columns: 26px minmax(0, 1fr);
+            gap: 9px;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .rb-label-option input {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+        }
+
+        .rb-label-option-text {
+            display: block;
+            min-height: 34px;
+            padding: 6px 12px;
+            border-radius: 9px;
+            background: var(--rb-label-color, #22c7b8);
+            color: var(--rb-label-text, #10213a);
+            font-weight: 900;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rb-label-create {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e4edf6;
+        }
+
+        .rb-label-create summary {
+            display: inline-flex;
+            align-items: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border: 1px solid #d8e3ef;
+            border-radius: 12px;
+            color: #0f766e;
+            cursor: pointer;
+            font-weight: 900;
+            list-style: none;
+        }
+
+        .rb-label-create summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rb-label-create-form {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .rb-label-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 7px;
+        }
+
+        .rb-label-color {
+            width: 100%;
+            aspect-ratio: 2.15;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: var(--rb-label-color);
+        }
+
+        .rb-label-color.is-selected {
+            border-color: #10213a;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .18);
         }
 
         .rb-file-list {
@@ -1148,10 +1371,11 @@
                         @foreach (var card in column.Cards.OrderBy(x => x.SortOrder).ThenBy(x => x.CardId))
                         {
                             var coverPath = card.CoverImagePath;
+                            var cardLabels = ActiveCardLabels(card);
                             <article class="rb-card"
                                      draggable="true"
                                      data-card-id="@card.CardId"
-                                     data-search-text="@($"{card.Title} {card.Detail}")"
+                                     data-search-text="@($"{card.Title} {card.Detail} {string.Join(" ", cardLabels.Select(x => x.LabelName))}")"
                                      data-bs-toggle="modal"
                                      data-bs-target="#requirementCardModal-@card.CardId">
                                 @if (!string.IsNullOrWhiteSpace(coverPath))
@@ -1159,6 +1383,14 @@
                                     <img class="rb-card-cover" src="@coverPath" alt="@card.Title" />
                                 }
                                 <div class="rb-card-body">
+                                    <div class="rb-card-labels" data-card-labels="@card.CardId">
+                                        @foreach (var label in cardLabels)
+                                        {
+                                            <span class="rb-card-label"
+                                                  style="--rb-label-color: @label.ColorHex;"
+                                                  title="@label.LabelName">@label.LabelName</span>
+                                        }
+                                    </div>
                                     <h3 class="rb-card-title" data-card-title>@card.Title</h3>
                                 </div>
                             </article>
@@ -1198,6 +1430,7 @@
     var modalHeaderStyle = !string.IsNullOrWhiteSpace(card.CoverImagePath)
         ? $"background-image: url('{card.CoverImagePath}');"
         : "";
+    var cardLabels = ActiveCardLabels(card);
 
     <div class="modal fade rb-modal" id="requirementCardModal-@card.CardId" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -1225,6 +1458,63 @@
                                 <div>
                                     <label class="rb-field-label">รายละเอียด</label>
                                     <textarea class="rb-textarea" name="detail">@card.Detail</textarea>
+                                </div>
+                                <div class="rb-label-control" data-label-control>
+                                    <label class="rb-field-label mb-0">ป้าย</label>
+                                    <div class="rb-label-action-row">
+                                        <div class="rb-selected-labels" data-selected-labels>
+                                            @foreach (var label in cardLabels)
+                                            {
+                                                <span class="rb-card-label"
+                                                      style="--rb-label-color: @label.ColorHex;">@label.LabelName</span>
+                                            }
+                                        </div>
+                                        <button class="rb-label-picker-button" type="button" data-open-label-picker>+ เพิ่มป้าย</button>
+                                    </div>
+                                    <div data-label-hidden>
+                                        @foreach (var label in cardLabels)
+                                        {
+                                            <input type="hidden" name="labelIds" value="@label.LabelId" />
+                                        }
+                                    </div>
+                                    <div class="rb-label-popover" data-label-picker hidden>
+                                        <div class="rb-label-picker-head">
+                                            <span>ป้าย</span>
+                                            <button class="rb-label-picker-close" type="button" data-close-label-picker aria-label="ปิด">×</button>
+                                        </div>
+                                        <input class="form-control rb-label-search" type="search" placeholder="ค้นหาป้าย..." data-label-search />
+                                        <div class="rb-label-list" data-label-list>
+                                            @foreach (var label in labelOptions)
+                                            {
+                                                <label class="rb-label-option" data-label-option data-label-text="@label.LabelName">
+                                                    <input type="checkbox"
+                                                           value="@label.LabelId"
+                                                           data-label-checkbox
+                                                           @(cardLabels.Any(x => x.LabelId == label.LabelId) ? "checked" : "") />
+                                                    <span class="rb-label-option-text"
+                                                          style="--rb-label-color: @label.ColorHex;">@label.LabelName</span>
+                                                </label>
+                                            }
+                                        </div>
+                                        <details class="rb-label-create">
+                                            <summary>สร้างป้ายใหม่</summary>
+                                            <div class="rb-label-create-form" data-label-create-form>
+                                                <input class="rb-input" name="newLabelName" type="text" maxlength="100" placeholder="หัวข้อป้าย" data-label-name />
+                                                <input type="hidden" value="#52cc99" data-label-color-value />
+                                                <div class="rb-label-color-grid" data-label-colors>
+                                                    @foreach (var color in new[] { "#b7f3db", "#f8ed82", "#ffe2a8", "#ffd0cc", "#ead2ff", "#52cc99", "#f5d328", "#f59e0b", "#f87171", "#c77af2", "#1f8f67", "#a57900", "#c65a00", "#d2352d", "#9a49c8", "#c7ddff", "#bdeafa", "#d7f2a8", "#f9c5e5", "#d1d5db", "#60a5fa", "#67c1d8", "#8cc63f", "#db69ad", "#8e939c", "#2563eb", "#228399", "#4f7d20", "#ad4b84", "#6b7280" })
+                                                    {
+                                                        <button class="rb-label-color @(color == "#52cc99" ? "is-selected" : "")"
+                                                                type="button"
+                                                                data-label-color="@color"
+                                                                style="--rb-label-color: @color;"
+                                                                aria-label="เลือกสี @color"></button>
+                                                    }
+                                                </div>
+                                                <button class="rb-btn" type="button" data-create-label>สร้างป้าย</button>
+                                            </div>
+                                        </details>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1270,11 +1560,7 @@
                                                     <input class="form-control" type="text" name="phaseItems[@i].PlanEnd" value="@ThaiDateValue(phaseItem?.PlanEnd)" data-phase-field="PlanEnd" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
                                                 </div>
                                                 <div>
-                                                    <label>Period Start</label>
-                                                    <input class="form-control" type="text" name="phaseItems[@i].PeriodStartDate" value="@ThaiDateValue(phaseItem?.PeriodStartDate)" data-phase-field="PeriodStartDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
-                                                </div>
-                                                <div>
-                                                    <label>Period End</label>
+                                                    <label>กำหนดส่งงวดงาน</label>
                                                     <input class="form-control" type="text" name="phaseItems[@i].PeriodEndDate" value="@ThaiDateValue(phaseItem?.PeriodEndDate)" data-phase-field="PeriodEndDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
                                                 </div>
                                             </div>
@@ -1386,6 +1672,8 @@
     <script>
         (() => {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const createLabelUrl = '@Url.Action("CreateLabel", "RequirementBoard")';
+            const boardLabels = @Html.Raw(labelOptionsJson);
             const searchInput = document.getElementById('requirementBoardSearch');
             const searchBox = searchInput?.closest('.rb-search');
             const clearSearchButton = searchBox?.querySelector('.rb-search-clear');
@@ -1444,17 +1732,232 @@
                 }, 3600);
             }
 
+            function normalizeHex(value) {
+                const color = (value || '#22c7b8').toString().trim();
+                return color.startsWith('#') ? color : `#${color}`;
+            }
+
+            function normalizeLabel(label) {
+                return {
+                    labelId: label?.labelId ?? label?.LabelId,
+                    labelName: label?.labelName ?? label?.LabelName ?? '',
+                    colorHex: label?.colorHex ?? label?.ColorHex ?? '#22c7b8'
+                };
+            }
+
+            function labelTextColor(hex) {
+                const color = normalizeHex(hex).replace('#', '');
+                if (color.length !== 6) return '#10213a';
+
+                const r = parseInt(color.slice(0, 2), 16);
+                const g = parseInt(color.slice(2, 4), 16);
+                const b = parseInt(color.slice(4, 6), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 132 ? '#fff' : '#10213a';
+            }
+
+            function findLabel(labelId) {
+                return boardLabels.find(label => Number(normalizeLabel(label).labelId) === Number(labelId));
+            }
+
+            function createLabelChip(label, compact = false) {
+                const chip = document.createElement('span');
+                chip.className = 'rb-card-label';
+                chip.style.setProperty('--rb-label-color', normalizeHex(label.colorHex));
+                chip.style.setProperty('--rb-label-text', labelTextColor(label.colorHex));
+                chip.title = label.labelName;
+                chip.textContent = compact ? '' : label.labelName;
+                return chip;
+            }
+
+            function renderLabelCollection(container, labels, compact = false, showEmpty = true) {
+                if (!container) return;
+                container.replaceChildren();
+
+                if (!labels || labels.length === 0) {
+                    if (!compact && showEmpty) {
+                        const empty = document.createElement('span');
+                        empty.className = 'rb-label-empty';
+                        empty.textContent = 'ยังไม่มีป้าย';
+                        container.appendChild(empty);
+                    }
+                    return;
+                }
+
+                labels.forEach(label => container.appendChild(createLabelChip(label, compact)));
+            }
+
+            function selectedLabelsFor(control) {
+                return [...control.querySelectorAll('[data-label-checkbox]:checked')]
+                    .map(input => findLabel(input.value))
+                    .filter(Boolean);
+            }
+
+            function syncLabelControl(control) {
+                if (!control) return;
+
+                const labels = selectedLabelsFor(control);
+                renderLabelCollection(control.querySelector('[data-selected-labels]'), labels);
+
+                const hiddenBox = control.querySelector('[data-label-hidden]');
+                if (hiddenBox) {
+                    hiddenBox.replaceChildren();
+                    labels.forEach(label => {
+                        const hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'labelIds';
+                        hidden.value = label.labelId;
+                        hiddenBox.appendChild(hidden);
+                    });
+                }
+            }
+
+            function createLabelOption(label, checked = false) {
+                const option = document.createElement('label');
+                option.className = 'rb-label-option';
+                option.dataset.labelOption = '';
+                option.dataset.labelText = label.labelName;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = label.labelId;
+                checkbox.dataset.labelCheckbox = '';
+                checkbox.checked = checked;
+
+                const text = document.createElement('span');
+                text.className = 'rb-label-option-text';
+                text.style.setProperty('--rb-label-color', normalizeHex(label.colorHex));
+                text.style.setProperty('--rb-label-text', labelTextColor(label.colorHex));
+                text.textContent = label.labelName;
+
+                option.append(checkbox, text);
+                return option;
+            }
+
+            function appendLabelToAllPickers(label, selectedControl = null) {
+                document.querySelectorAll('[data-label-list]').forEach(list => {
+                    const control = list.closest('[data-label-control]');
+                    const option = createLabelOption(label, control === selectedControl);
+                    list.appendChild(option);
+                    if (control === selectedControl) syncLabelControl(control);
+                });
+            }
+
+            document.querySelectorAll('[data-label-control]').forEach(syncLabelControl);
+
+            document.addEventListener('click', async event => {
+                const openButton = event.target.closest('[data-open-label-picker]');
+                if (openButton) {
+                    const control = openButton.closest('[data-label-control]');
+                    const picker = control?.querySelector('[data-label-picker]');
+                    if (!picker) return;
+
+                    document.querySelectorAll('[data-label-picker]').forEach(item => {
+                        if (item !== picker) item.hidden = true;
+                    });
+                    picker.hidden = !picker.hidden;
+                    picker.querySelector('[data-label-search]')?.focus();
+                    return;
+                }
+
+                const closeButton = event.target.closest('[data-close-label-picker]');
+                if (closeButton) {
+                    const picker = closeButton.closest('[data-label-picker]');
+                    if (picker) picker.hidden = true;
+                    return;
+                }
+
+                const colorButton = event.target.closest('[data-label-color]');
+                if (colorButton) {
+                    const form = colorButton.closest('[data-label-create-form]');
+                    form?.querySelectorAll('[data-label-color]').forEach(button => button.classList.remove('is-selected'));
+                    colorButton.classList.add('is-selected');
+                    const input = form?.querySelector('[data-label-color-value]');
+                    if (input) input.value = colorButton.dataset.labelColor || '#22c7b8';
+                    return;
+                }
+
+                const createButton = event.target.closest('[data-create-label]');
+                if (!createButton) return;
+
+                const control = createButton.closest('[data-label-control]');
+                const form = createButton.closest('[data-label-create-form]');
+                const nameInput = form?.querySelector('[data-label-name]');
+                const colorInput = form?.querySelector('[data-label-color-value]');
+                const labelName = (nameInput?.value || '').trim();
+                if (!labelName) {
+                    nameInput?.focus();
+                    return;
+                }
+
+                createButton.disabled = true;
+                createButton.classList.add('is-loading');
+
+                try {
+                    const body = new FormData();
+                    body.append('__RequestVerificationToken', token);
+                    body.append('labelName', labelName);
+                    body.append('colorHex', colorInput?.value || '#22c7b8');
+
+                    const response = await fetch(createLabelUrl, {
+                        method: 'POST',
+                        body,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success || !result.label) {
+                        throw new Error(result.message || 'สร้างป้ายไม่สำเร็จ');
+                    }
+
+                    const createdLabel = normalizeLabel(result.label);
+                    boardLabels.push(createdLabel);
+                    appendLabelToAllPickers(createdLabel, control);
+                    if (nameInput) nameInput.value = '';
+                } catch (error) {
+                    window.alert(error.message || 'สร้างป้ายไม่สำเร็จ');
+                } finally {
+                    createButton.disabled = false;
+                    createButton.classList.remove('is-loading');
+                }
+            });
+
+            document.addEventListener('input', event => {
+                const search = event.target.closest('[data-label-search]');
+                if (!search) return;
+
+                const keyword = normalizeText(search.value);
+                const picker = search.closest('[data-label-picker]');
+                picker?.querySelectorAll('[data-label-option]').forEach(option => {
+                    const text = normalizeText(option.dataset.labelText);
+                    option.style.display = !keyword || text.includes(keyword) ? '' : 'none';
+                });
+            });
+
+            document.addEventListener('change', event => {
+                const checkbox = event.target.closest('[data-label-checkbox]');
+                if (!checkbox) return;
+
+                syncLabelControl(checkbox.closest('[data-label-control]'));
+            });
+
             function updateBoardCard(data, form) {
                 const cardId = data.cardId || form.dataset.cardId;
                 const card = document.querySelector(`.rb-card[data-card-id="${cardId}"]`);
                 const title = data.title || form.querySelector('[name="title"]')?.value || '';
                 const detail = data.detail || form.querySelector('[name="detail"]')?.value || '';
+                const labels = Array.isArray(data.labels)
+                    ? data.labels.map(normalizeLabel)
+                    : selectedLabelsFor(form).map(normalizeLabel);
 
                 if (card) {
                     const titleNode = card.querySelector('[data-card-title]');
                     if (titleNode) titleNode.textContent = title;
 
-                    card.dataset.searchText = `${title} ${detail}`;
+                    card.dataset.searchText = `${title} ${detail} ${labels.map(label => label.labelName).join(' ')}`;
+                    renderLabelCollection(card.querySelector('[data-card-labels]'), labels, false, false);
 
                     if (data.coverImagePath) {
                         let cover = card.querySelector('.rb-card-cover');

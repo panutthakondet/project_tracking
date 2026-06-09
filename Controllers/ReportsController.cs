@@ -220,7 +220,6 @@ namespace ProjectTracking.Controllers
                         StatusTone = statusMeta.Tone,
                         PlanStart = a.PlanStart ?? phase.PlanStart,
                         PlanEnd = a.PlanEnd ?? phase.PlanEnd,
-                        PeriodStart = phase.PeriodStartDate,
                         PeriodEnd = phase.PeriodEndDate,
                         BucketDate = bucketDate,
                         Month = month,
@@ -786,13 +785,11 @@ namespace ProjectTracking.Controllers
                     ?? phase.PlanEnd
                     ?? phase.PlanStart
                     ?? phase.PeriodEndDate
-                    ?? phase.PeriodStartDate
                     ?? phase.CreatedAt;
             }
 
             return phase.PlanStart
                 ?? phase.PlanEnd
-                ?? phase.PeriodStartDate
                 ?? phase.PeriodEndDate
                 ?? phase.CreatedAt;
         }

@@ -1042,73 +1042,6 @@
     margin:0;
 }
 
-.v2-profile-bell{
-    position:relative;
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    text-decoration:none;
-    background:linear-gradient(135deg,#22d3ee,#14b8a6);
-    border:1px solid rgba(255,255,255,.28);
-    box-shadow:0 10px 22px rgba(20,184,166,.25);
-    flex:0 0 auto;
-    transition:transform .16s ease, box-shadow .16s ease;
-}
-
-.v2-profile-bell:hover{
-    color:#fff;
-    transform:translateY(-1px);
-    box-shadow:0 14px 26px rgba(20,184,166,.32);
-}
-
-.v2-profile-bell.mailbox{
-    background:linear-gradient(135deg,#60a5fa,#7c3aed);
-    box-shadow:0 10px 22px rgba(96,165,250,.24);
-}
-
-.v2-profile-bell.mailbox:hover{
-    box-shadow:0 14px 26px rgba(124,58,237,.28);
-}
-
-.v2-profile-bell svg{
-    width:18px;
-    height:18px;
-    fill:none;
-    stroke:currentColor;
-    stroke-width:2.2;
-    stroke-linecap:round;
-    stroke-linejoin:round;
-}
-
-.v2-profile-bell-count{
-    position:absolute;
-    top:-7px;
-    right:-7px;
-    min-width:21px;
-    height:21px;
-    padding:0 6px;
-    border-radius:999px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    background:#f43f5e;
-    border:2px solid #083057;
-    font-size:11px;
-    line-height:1;
-    font-weight:900;
-    box-shadow:0 8px 16px rgba(244,63,94,.28);
-}
-
-.v2-profile-bell-count.is-empty{
-    background:#64748b;
-    color:#e2e8f0;
-}
-
 .profile-crop-modal{
     position:fixed;
     inset:0;
@@ -1692,8 +1625,6 @@
     var showLoginFollowupPopup = Context.Session.GetString("ShowLoginFollowupPopup") == "1";
     var loginFollowups = new List<ProjectTracking.Models.ProjectFollowup>();
     var loginFollowupOwnerName = "";
-    var unreadNotificationCount = 0;
-    var unreadMailboxCount = 0;
 
     if (userId != null)
     {
@@ -1757,39 +1688,6 @@
     // ✅ Permission for navbar (same logic as Home)
     var role = (Context?.Session?.GetString("Role") ?? "").Trim().ToUpperInvariant();
     var isAdmin = role == "ADMIN" || role == "ADMINISTRATOR";
-
-    if (userId != null)
-    {
-        try
-        {
-            var notificationQuery = LayoutDb.UserNotifications
-                .AsNoTracking()
-                .Where(notification => !notification.IsResolved && !notification.IsRead);
-
-            if (!isAdmin)
-            {
-                notificationQuery = notificationQuery.Where(notification => notification.RecipientUserId == userId.Value);
-            }
-
-            unreadNotificationCount = await notificationQuery.CountAsync();
-        }
-        catch
-        {
-            unreadNotificationCount = 0;
-        }
-
-        try
-        {
-            unreadMailboxCount = await LayoutDb.MailboxRecipients
-                .AsNoTracking()
-                .Where(mail => mail.RecipientUserId == userId.Value && !mail.IsRead && !mail.IsDeleted)
-                .CountAsync();
-        }
-        catch
-        {
-            unreadMailboxCount = 0;
-        }
-    }
 
     var menuRaw = (Context?.Session?.GetString("Menus") ?? "").Trim();
     var allowedMenus = new HashSet<string>(
@@ -1876,35 +1774,6 @@
         </form>
         <div class="v2-profile-name-row">
             <span class="v2-profile-name">@(string.IsNullOrWhiteSpace(username) ? "ผู้ใช้งาน" : username)</span>
-            @if (userId != null)
-            {
-                <a class="v2-profile-bell"
-                   asp-controller="Notifications"
-                   asp-action="Index"
-                   title="แจ้งเตือนงาน"
-                   aria-label="แจ้งเตือนงาน">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                    </svg>
-                    <span class="v2-profile-bell-count @(unreadNotificationCount == 0 ? "is-empty" : "")">
-                        @unreadNotificationCount
-                    </span>
-                </a>
-                <a class="v2-profile-bell mailbox"
-                   asp-controller="Mailbox"
-                   asp-action="Index"
-                   title="กล่องจดหมาย"
-                   aria-label="กล่องจดหมาย">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M4 6h16v12H4z" />
-                        <path d="m4 7 8 6 8-6" />
-                    </svg>
-                    <span class="v2-profile-bell-count @(unreadMailboxCount == 0 ? "is-empty" : "")">
-                        @unreadMailboxCount
-                    </span>
-                </a>
-            }
         </div>
         <div class="v2-profile-role-row">
             <span class="v2-profile-role">@(isAdmin ? "Administrator" : "Developer")</span>

@@ -10,9 +10,94 @@
     var openHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.OpenWorkHours * 100m / dashboard.MonthWorkHours, 1);
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
     var showYearlyPending = dashboard.YearlyTasks.Any(task => task.Pending > 0);
+    var unreadNotificationCount = Convert.ToInt32(ViewBag.UnreadNotificationCount ?? 0);
+    var unreadMailboxCount = Convert.ToInt32(ViewBag.UnreadMailboxCount ?? 0);
+    var openIssueSupportCount = dashboard.OpenIssueSupportCount;
+    var onlineUsers = ViewBag.OnlineUsers is IEnumerable<RequirementBoardOnlineUserViewModel> onlineUserRows
+        ? onlineUserRows.ToList()
+        : new List<RequirementBoardOnlineUserViewModel>();
+    var visibleOnlineUsers = onlineUsers.Take(5).ToList();
+    var hiddenOnlineCount = Math.Max(0, onlineUsers.Count - visibleOnlineUsers.Count);
 }
 
 <div class="dashboard-view">
+    <section class="dashboard-global-searchbar" aria-label="ค้นหารวมใน Dashboard">
+        <div class="dashboard-global-search"
+             data-dashboard-search
+             data-dashboard-search-url="@Url.Action("DashboardSearch", "Home")">
+            <span class="dashboard-global-search-icon" aria-hidden="true">⌕</span>
+            <input type="search"
+                   id="dashboardGlobalSearch"
+                   placeholder="ค้นหาโครงการ งวดงาน Assign Issue Support..."
+                   autocomplete="off"
+                   aria-label="ค้นหา Projects, ProjectPhases, PhaseAssigns, ProjectIssues, SupportOrders" />
+            <button type="button"
+                    class="dashboard-global-search-clear"
+                    data-dashboard-search-clear
+                    aria-label="ล้างคำค้น"
+                    hidden>×</button>
+            <div class="dashboard-global-search-results"
+                 data-dashboard-search-results
+                 hidden></div>
+        </div>
+        @if (visibleOnlineUsers.Count > 0)
+        {
+            <div class="dashboard-online-users" aria-label="ผู้ใช้งานออนไลน์">
+                @foreach (var user in visibleOnlineUsers)
+                {
+                    <span class="dashboard-online-avatar @user.ColorClass"
+                          title="@user.DisplayName">
+                        <img src="@user.AvatarPath"
+                             alt="@user.DisplayName"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    </span>
+                }
+                @if (hiddenOnlineCount > 0)
+                {
+                    <span class="dashboard-online-more">+@hiddenOnlineCount</span>
+                }
+            </div>
+        }
+        <div class="dashboard-global-tools" aria-label="แจ้งเตือนและกล่องจดหมาย">
+            <a class="dashboard-global-tool open-work"
+               asp-controller="OpenWork"
+               asp-action="Index"
+               title="Issue และ Support ที่ยังเปิดอยู่"
+               aria-label="Issue และ Support ที่ยังเปิดอยู่">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 4h6" />
+                    <path d="M10 2h4a2 2 0 0 1 2 2v2H8V4a2 2 0 0 1 2-2Z" />
+                    <path d="M8 4H6a2 2 0 0 0-2 2v16h16V6a2 2 0 0 0-2-2h-2" />
+                    <path d="M8 11h8" />
+                    <path d="M8 16h5" />
+                </svg>
+                <span class="dashboard-global-tool-count @(openIssueSupportCount == 0 ? "is-empty" : "")">@openIssueSupportCount</span>
+            </a>
+            <a class="dashboard-global-tool notification"
+               asp-controller="Notifications"
+               asp-action="Index"
+               title="แจ้งเตือนงาน"
+               aria-label="แจ้งเตือนงาน">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span class="dashboard-global-tool-count @(unreadNotificationCount == 0 ? "is-empty" : "")">@unreadNotificationCount</span>
+            </a>
+            <a class="dashboard-global-tool mailbox"
+               asp-controller="Mailbox"
+               asp-action="Index"
+               title="กล่องจดหมาย"
+               aria-label="กล่องจดหมาย">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16v12H4z" />
+                    <path d="m4 7 8 6 8-6" />
+                </svg>
+                <span class="dashboard-global-tool-count @(unreadMailboxCount == 0 ? "is-empty" : "")">@unreadMailboxCount</span>
+            </a>
+        </div>
+    </section>
+
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก">
         <article class="kpi-card kpi-blue">
             <span class="kpi-icon" aria-hidden="true">□</span>
@@ -33,7 +118,7 @@
         <article class="kpi-card kpi-orange">
             <span class="kpi-icon" aria-hidden="true">!</span>
             <div>
-                <p>Open Issues</p>
+                <p>ProjectPhases</p>
                 <strong>@dashboard.OpenIssueCount</strong>
                 <small>@dashboard.OpenIssuesNote</small>
             </div>
@@ -41,7 +126,7 @@
         <article class="kpi-card kpi-pink">
             <span class="kpi-icon" aria-hidden="true">⏱</span>
             <div>
-                <p>Overdue Tasks</p>
+                <p>PhaseAssigns</p>
                 <strong>@dashboard.OverdueTaskCount</strong>
                 <small>@dashboard.OverdueTasksNote</small>
             </div>
@@ -89,11 +174,12 @@
                     {
                         foreach (var project in dashboard.ProjectOverviewProjects)
                         {
+                            var projectSearchText = $"{project.ProjectName} {project.StatusText} {project.StartText} {project.EndText}";
                             <a class="project-overview-row"
                                asp-controller="ProjectPhases"
                                asp-action="Index"
                                asp-route-projectId="@project.ProjectId"
-                               data-project-search="@project.ProjectName"
+                               data-project-search="@projectSearchText"
                                 title="ดูงวดงานของ @project.ProjectName">
                                 <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
                                 <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
@@ -442,6 +528,521 @@
 
 .floating-tools-wrapper {
     display:none !important;
+}
+
+.dashboard-global-searchbar {
+    position:relative;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:10px;
+    margin:0 0 14px;
+}
+
+.dashboard-global-search {
+    position:relative;
+    width:min(500px, 100%);
+}
+
+.dashboard-global-search input {
+    width:100%;
+    height:50px;
+    border:1px solid rgba(33,150,243,.22);
+    border-radius:999px;
+    outline:0;
+    padding:0 52px 0 56px;
+    color:#0f1f3d;
+    background:rgba(255,255,255,.86);
+    box-shadow:0 16px 34px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.85);
+    font-size:15px;
+    font-weight:900;
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.dashboard-global-search input::-webkit-search-cancel-button {
+    display:none;
+}
+
+.dashboard-global-search input:focus {
+    border-color:rgba(20,184,166,.72);
+    background:#fff;
+    box-shadow:0 18px 40px rgba(20,184,166,.18), 0 0 0 4px rgba(20,184,166,.14);
+}
+
+.dashboard-global-search-icon {
+    position:absolute;
+    left:14px;
+    top:50%;
+    z-index:2;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    background:linear-gradient(135deg,#25d6d0,#087b73);
+    font-size:25px;
+    font-weight:900;
+    transform:translateY(-50%);
+    box-shadow:0 10px 22px rgba(20,184,166,.24);
+}
+
+.dashboard-global-search-clear {
+    position:absolute;
+    right:8px;
+    top:50%;
+    z-index:2;
+    width:36px;
+    height:36px;
+    border:0;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#5d6b84;
+    background:rgba(226,232,240,.9);
+    font-size:22px;
+    line-height:1;
+    font-weight:900;
+    cursor:pointer;
+}
+
+.dashboard-global-search-clear:hover {
+    color:#0f172a;
+    background:#e2e8f0;
+}
+
+.dashboard-online-users {
+    display:flex;
+    align-items:center;
+    flex:0 0 auto;
+    gap:0;
+    padding:5px 8px;
+    min-height:48px;
+    border-radius:999px;
+    background:rgba(255,255,255,.52);
+    border:1px solid rgba(255,255,255,.55);
+    box-shadow:0 14px 30px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+.dashboard-online-avatar {
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:40px;
+    height:40px;
+    margin-left:-7px;
+    border:2px solid rgba(255,255,255,.86);
+    border-radius:50%;
+    overflow:hidden;
+    color:#10213a;
+    background:#f59e0b;
+    box-shadow:0 7px 16px rgba(15,39,70,.20);
+}
+
+.dashboard-online-avatar:first-child {
+    margin-left:0;
+}
+
+.dashboard-online-avatar img {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.dashboard-online-avatar::after {
+    content:"";
+    position:absolute;
+    right:1px;
+    bottom:1px;
+    width:9px;
+    height:9px;
+    border:2px solid #fff;
+    border-radius:999px;
+    background:#22c55e;
+}
+
+.dashboard-online-avatar.c1 { background:#f59e0b; }
+.dashboard-online-avatar.c2 { background:#059669; }
+.dashboard-online-avatar.c3 { background:#ea580c; }
+.dashboard-online-avatar.c4 { background:#2563eb; }
+.dashboard-online-avatar.c5 { background:#111827; }
+
+.dashboard-online-more {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:34px;
+    height:38px;
+    padding:0 7px;
+    color:#0f2a45;
+    font-size:14px;
+    font-weight:1000;
+}
+
+.dashboard-global-tools {
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex:0 0 auto;
+}
+
+.dashboard-global-tool {
+    position:relative;
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    text-decoration:none;
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 14px 28px rgba(15,23,42,.15), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    padding:0;
+    cursor:pointer;
+    font:inherit;
+}
+
+.dashboard-global-tool:hover {
+    transform:translateY(-2px);
+    box-shadow:0 18px 34px rgba(15,23,42,.2), inset 0 1px 0 rgba(255,255,255,.42);
+    filter:saturate(1.06);
+}
+
+.dashboard-global-tool.notification {
+    background:linear-gradient(135deg,#2fe2da,#087f78);
+}
+
+.dashboard-global-tool.mailbox {
+    background:linear-gradient(135deg,#8b5cf6,#4f46e5);
+}
+
+.dashboard-global-tool.open-work {
+    background:linear-gradient(135deg,#ffb12f,#fb3f5f);
+}
+
+.dashboard-global-tool svg {
+    width:22px;
+    height:22px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2.25;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.dashboard-global-tool-count {
+    position:absolute;
+    right:-5px;
+    top:-7px;
+    min-width:22px;
+    height:22px;
+    padding:0 6px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    background:linear-gradient(135deg,#ff3f68,#e11d48);
+    border:2px solid rgba(255,255,255,.88);
+    font-size:12px;
+    line-height:1;
+    font-weight:1000;
+    box-shadow:0 8px 18px rgba(225,29,72,.25);
+}
+
+.dashboard-global-tool-count.is-empty {
+    color:#e9f3ff;
+    background:rgba(100,116,139,.82);
+    box-shadow:0 8px 18px rgba(15,23,42,.18);
+}
+
+.dashboard-open-work-panel {
+    position:absolute;
+    right:0;
+    top:calc(100% + 12px);
+    z-index:35;
+    width:min(430px, calc(100vw - 28px));
+    max-height:520px;
+    overflow:auto;
+    padding:12px;
+    border-radius:22px;
+    color:#eaf4ff;
+    background:
+        radial-gradient(circle at 90% 0%, rgba(251,63,95,.20), transparent 30%),
+        radial-gradient(circle at 0% 100%, rgba(20,184,166,.16), transparent 34%),
+        linear-gradient(180deg, rgba(22,40,76,.98), rgba(8,23,48,.98));
+    border:1px solid rgba(148,171,210,.28);
+    box-shadow:0 24px 58px rgba(4,12,28,.34);
+}
+
+.dashboard-open-work-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:4px 4px 10px;
+}
+
+.dashboard-open-work-head span {
+    font-size:16px;
+    font-weight:1000;
+}
+
+.dashboard-open-work-head strong {
+    padding:6px 10px;
+    border-radius:999px;
+    color:#fff;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.15);
+    font-size:12px;
+    font-weight:1000;
+}
+
+.dashboard-open-work-empty {
+    margin:0;
+    padding:18px;
+    border-radius:16px;
+    color:#bad0eb;
+    background:rgba(255,255,255,.07);
+    text-align:center;
+    font-weight:800;
+}
+
+.dashboard-open-work-list {
+    display:grid;
+    gap:12px;
+}
+
+.dashboard-open-work-group {
+    display:grid;
+    gap:8px;
+}
+
+.dashboard-open-work-group p {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:0;
+    color:#9df8ec;
+    font-size:13px;
+    font-weight:1000;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+}
+
+.dashboard-open-work-group p span {
+    color:#cbd8ea;
+}
+
+.dashboard-open-work-item {
+    display:grid;
+    grid-template-columns:36px minmax(0, 1fr);
+    gap:10px;
+    padding:10px;
+    border-radius:16px;
+    color:#eef6ff;
+    text-decoration:none;
+    background:rgba(255,255,255,.075);
+    border:1px solid rgba(151,174,213,.18);
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.dashboard-open-work-item:hover {
+    transform:translateY(-1px);
+    border-color:rgba(45,212,191,.42);
+    background:rgba(255,255,255,.11);
+}
+
+.dashboard-open-work-mark {
+    width:36px;
+    height:36px;
+    border-radius:13px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:14px;
+    font-weight:1000;
+    background:linear-gradient(135deg,#f59e0b,#fb7185);
+    box-shadow:0 10px 22px rgba(15,23,42,.18);
+}
+
+.dashboard-open-work-mark.pink { background:linear-gradient(135deg,#fb3f7a,#e11d48); }
+.dashboard-open-work-mark.orange { background:linear-gradient(135deg,#f59e0b,#f97316); }
+.dashboard-open-work-mark.cyan { background:linear-gradient(135deg,#22d3ee,#0f9f94); }
+
+.dashboard-open-work-body {
+    display:grid;
+    gap:3px;
+    min-width:0;
+}
+
+.dashboard-open-work-body strong,
+.dashboard-open-work-body small,
+.dashboard-open-work-body em {
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.dashboard-open-work-body strong {
+    font-size:14px;
+    line-height:1.25;
+    font-weight:1000;
+}
+
+.dashboard-open-work-body small {
+    color:#c7d8ee;
+    font-size:12px;
+    font-weight:800;
+}
+
+.dashboard-open-work-body em {
+    color:#93a9c8;
+    font-style:normal;
+    font-size:11px;
+    font-weight:800;
+}
+
+.dashboard-open-work-actions {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:12px;
+}
+
+.dashboard-open-work-actions a {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:38px;
+    border-radius:13px;
+    color:#08213a;
+    background:linear-gradient(135deg,#a7ffed,#2dd4bf);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:1000;
+}
+
+.dashboard-global-search-results {
+    position:absolute;
+    right:0;
+    top:calc(100% + 10px);
+    z-index:30;
+    width:min(620px, calc(100vw - 32px));
+    max-height:420px;
+    overflow:auto;
+    border-radius:18px;
+    padding:10px;
+    color:#eaf4ff;
+    background:
+        radial-gradient(circle at 84% 0%, rgba(20,184,166,.18), transparent 28%),
+        linear-gradient(180deg, rgba(20,39,75,.98), rgba(8,23,48,.98));
+    border:1px solid rgba(139,165,210,.26);
+    box-shadow:0 24px 58px rgba(4,12,28,.34);
+}
+
+.dashboard-global-search-results[hidden],
+.dashboard-global-search-clear[hidden] {
+    display:none !important;
+}
+
+.dashboard-search-state {
+    margin:0;
+    padding:13px 14px;
+    color:#aebddd;
+    font-size:13px;
+    font-weight:900;
+}
+
+.dashboard-search-group + .dashboard-search-group {
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px solid rgba(148,163,184,.16);
+}
+
+.dashboard-search-group-title {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 0 7px;
+    color:#9debe3;
+    font-size:12px;
+    line-height:1;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+}
+
+.dashboard-search-result {
+    display:grid;
+    grid-template-columns:10px minmax(0, 1fr);
+    gap:10px;
+    align-items:center;
+    padding:10px 11px;
+    border-radius:13px;
+    color:#fff;
+    text-decoration:none;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.06);
+}
+
+.dashboard-search-result + .dashboard-search-result {
+    margin-top:6px;
+}
+
+.dashboard-search-result:hover {
+    background:rgba(255,255,255,.09);
+    transform:translateY(-1px);
+}
+
+.dashboard-search-result-mark {
+    width:10px;
+    height:38px;
+    border-radius:999px;
+    background:#1688f5;
+    box-shadow:0 0 14px currentColor;
+}
+
+.dashboard-search-result-mark.blue { color:#1688f5; background:#1688f5; }
+.dashboard-search-result-mark.green { color:#10d58f; background:#10d58f; }
+.dashboard-search-result-mark.orange { color:#fb9a13; background:#fb9a13; }
+.dashboard-search-result-mark.pink { color:#ff2d62; background:#ff2d62; }
+.dashboard-search-result-mark.purple { color:#8b4df4; background:#8b4df4; }
+
+.dashboard-search-result-body {
+    min-width:0;
+}
+
+.dashboard-search-result-title {
+    display:block;
+    color:#f8fbff;
+    font-size:14px;
+    line-height:1.28;
+    font-weight:900;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.dashboard-search-result-detail {
+    display:block;
+    margin-top:3px;
+    color:#aebddd;
+    font-size:12px;
+    line-height:1.35;
+    font-weight:800;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 .dashboard-topbar {
@@ -926,7 +1527,7 @@
 .project-overview-scroll {
     display:grid;
     gap:6px;
-    max-height:258px;
+    max-height:244px;
     overflow-y:auto;
     overflow-x:hidden;
     padding-right:4px;
@@ -970,6 +1571,10 @@
     border-color:rgba(20,184,166,.24);
     color:inherit;
     transform:translateX(2px);
+}
+
+.project-overview-row.is-filter-hidden {
+    display:none !important;
 }
 
 .project-overview-name {
@@ -1044,7 +1649,7 @@
     }
 
     .project-overview-scroll {
-        max-height:360px;
+        max-height:264px;
         overflow-x:hidden;
         padding-right:5px;
     }
@@ -2012,6 +2617,74 @@
 
 @@media (max-width:640px) {
     .dashboard-view { padding:8px 8px 12px; }
+    .dashboard-global-searchbar {
+        justify-content:stretch;
+        gap:8px;
+        flex-wrap:wrap;
+    }
+    .dashboard-global-search {
+        width:auto;
+        flex:1 1 calc(100% - 160px);
+        min-width:0;
+    }
+    .dashboard-global-search input {
+        height:46px;
+        padding-left:52px;
+        padding-right:44px;
+        font-size:13px;
+    }
+    .dashboard-online-users {
+        order:3;
+        min-height:40px;
+        padding:4px 7px;
+    }
+    .dashboard-online-avatar {
+        width:34px;
+        height:34px;
+        margin-left:-6px;
+    }
+    .dashboard-online-more {
+        min-width:30px;
+        height:32px;
+        font-size:12px;
+    }
+    .dashboard-global-tools {
+        gap:7px;
+        flex:0 0 auto;
+    }
+    .dashboard-global-tool {
+        width:42px;
+        height:42px;
+    }
+    .dashboard-global-tool svg {
+        width:20px;
+        height:20px;
+    }
+    .dashboard-global-tool-count {
+        min-width:20px;
+        height:20px;
+        right:-5px;
+        top:-7px;
+        font-size:11px;
+    }
+    .dashboard-global-search-results {
+        left:0;
+        right:auto;
+        width:100%;
+        max-height:360px;
+    }
+    .dashboard-open-work-panel {
+        right:0;
+        width:min(100vw - 24px, 390px);
+        max-height:420px;
+    }
+    .dashboard-open-work-actions {
+        grid-template-columns:1fr;
+    }
+    .dashboard-search-result-title,
+    .dashboard-search-result-detail {
+        white-space:normal;
+    }
     .brand-cluster img { height:52px; }
     .brand-cluster strong { font-size:22px; }
     .dashboard-actions { gap:10px; flex-wrap:wrap; }
@@ -2050,6 +2723,9 @@
     }
     .project-overview-head {
         display:none;
+    }
+    .project-overview-scroll {
+        max-height:264px;
     }
     .project-overview-row {
         display:grid !important;
@@ -2120,20 +2796,155 @@
 
         const rows = Array.from(document.querySelectorAll('.project-overview-row[data-project-search]'));
         const emptyMessage = document.querySelector('.project-overview-empty');
+        const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const defaultVisibleRows = 5;
 
-        searchInput.addEventListener('input', () => {
-            const keyword = searchInput.value.trim().toLowerCase();
+        const applyFilter = () => {
+            const keyword = normalize(searchInput.value);
             let visibleCount = 0;
 
-            rows.forEach(row => {
-                const text = (row.dataset.projectSearch || '').toLowerCase();
-                const isVisible = !keyword || text.includes(keyword);
-                row.hidden = !isVisible;
+            rows.forEach((row, index) => {
+                const text = normalize(row.dataset.projectSearch || row.textContent);
+                const matchesSearch = !keyword || text.includes(keyword);
+                const isVisible = matchesSearch && (keyword.length > 0 || index < defaultVisibleRows);
+                row.classList.toggle('is-filter-hidden', !isVisible);
                 if (isVisible) visibleCount++;
             });
 
             if (emptyMessage) {
                 emptyMessage.hidden = visibleCount > 0;
+            }
+        };
+
+        searchInput.addEventListener('input', applyFilter);
+        applyFilter();
+    })();
+
+    (() => {
+        const root = document.querySelector('[data-dashboard-search]');
+        if (!root) return;
+
+        const input = document.getElementById('dashboardGlobalSearch');
+        const resultsBox = root.querySelector('[data-dashboard-search-results]');
+        const clearButton = root.querySelector('[data-dashboard-search-clear]');
+        const searchUrl = root.dataset.dashboardSearchUrl;
+        const groupLabels = {
+            Projects: 'Projects',
+            ProjectPhases: 'Project Phases',
+            PhaseAssigns: 'Assign Phase',
+            ProjectIssues: 'Issues',
+            SupportOrders: 'Support'
+        };
+
+        let timer = null;
+        let controller = null;
+
+        const escapeHtml = value => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const normalizeItem = item => ({
+            type: item.type ?? item.Type ?? '',
+            title: item.title ?? item.Title ?? '',
+            detail: item.detail ?? item.Detail ?? '',
+            url: item.url ?? item.Url ?? '#',
+            color: item.color ?? item.Color ?? 'blue'
+        });
+
+        const setResults = html => {
+            resultsBox.innerHTML = html;
+            resultsBox.hidden = false;
+        };
+
+        const renderResults = items => {
+            if (!items.length) {
+                setResults('<p class="dashboard-search-state">ไม่พบข้อมูลที่ตรงกับคำค้น</p>');
+                return;
+            }
+
+            const normalized = items.map(normalizeItem);
+            const groups = normalized.reduce((map, item) => {
+                if (!map.has(item.type)) map.set(item.type, []);
+                map.get(item.type).push(item);
+                return map;
+            }, new Map());
+
+            const html = Array.from(groups.entries()).map(([type, groupItems]) => {
+                const label = groupLabels[type] || type || 'ผลลัพธ์';
+                const list = groupItems.map(item => `
+                    <a class="dashboard-search-result" href="${escapeHtml(item.url)}">
+                        <span class="dashboard-search-result-mark ${escapeHtml(item.color)}" aria-hidden="true"></span>
+                        <span class="dashboard-search-result-body">
+                            <strong class="dashboard-search-result-title">${escapeHtml(item.title)}</strong>
+                            <span class="dashboard-search-result-detail">${escapeHtml(item.detail)}</span>
+                        </span>
+                    </a>
+                `).join('');
+
+                return `
+                    <div class="dashboard-search-group">
+                        <p class="dashboard-search-group-title">${escapeHtml(label)} <span>${groupItems.length}</span></p>
+                        ${list}
+                    </div>
+                `;
+            }).join('');
+
+            setResults(html);
+        };
+
+        const doSearch = async () => {
+            const keyword = input.value.trim();
+            clearButton.hidden = keyword.length === 0;
+
+            if (keyword.length < 2) {
+                resultsBox.hidden = true;
+                resultsBox.innerHTML = '';
+                return;
+            }
+
+            if (controller) controller.abort();
+            controller = new AbortController();
+            setResults('<p class="dashboard-search-state">กำลังค้นหา...</p>');
+
+            try {
+                const response = await fetch(`${searchUrl}?q=${encodeURIComponent(keyword)}`, {
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('search failed');
+                renderResults(await response.json());
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                setResults('<p class="dashboard-search-state">ค้นหาไม่สำเร็จ ลองใหม่อีกครั้ง</p>');
+            }
+        };
+
+        input.addEventListener('input', () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(doSearch, 220);
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim().length >= 2 && resultsBox.innerHTML.trim()) {
+                resultsBox.hidden = false;
+            }
+        });
+
+        clearButton.addEventListener('click', () => {
+            input.value = '';
+            clearButton.hidden = true;
+            resultsBox.hidden = true;
+            resultsBox.innerHTML = '';
+            input.focus();
+        });
+
+        document.addEventListener('click', event => {
+            if (!root.contains(event.target)) {
+                resultsBox.hidden = true;
             }
         });
     })();

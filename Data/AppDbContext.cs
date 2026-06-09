@@ -68,6 +68,8 @@ namespace ProjectTracking.Data
         public DbSet<RequirementCard> RequirementCards { get; set; }
         public DbSet<RequirementCardAttachment> RequirementCardAttachments { get; set; }
         public DbSet<RequirementCardPhaseItem> RequirementCardPhaseItems { get; set; }
+        public DbSet<RequirementBoardLabel> RequirementBoardLabels { get; set; }
+        public DbSet<RequirementCardLabel> RequirementCardLabels { get; set; }
 
         // ======================
         // ===== VIEWS =====
@@ -844,10 +846,6 @@ namespace ProjectTracking.Data
                     .HasColumnType("int")
                     .IsRequired(false);
 
-                entity.Property(p => p.PeriodStartDate)
-                    .HasColumnName("period_start_date")
-                    .IsRequired(false);
-
                 entity.Property(p => p.PeriodEndDate)
                     .HasColumnName("period_end_date")
                     .IsRequired(false);
@@ -1184,6 +1182,11 @@ namespace ProjectTracking.Data
                     .HasForeignKey(x => x.CardId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                entity.HasMany(x => x.Labels)
+                    .WithOne(x => x.Card)
+                    .HasForeignKey(x => x.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasOne(x => x.CreatedByUser)
                     .WithMany()
                     .HasForeignKey(x => x.CreatedByUserId)
@@ -1196,6 +1199,41 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(x => new { x.ColumnId, x.SortOrder }).HasDatabaseName("idx_requirement_cards_column_sort");
                 entity.HasIndex(x => x.CreatedByUserId).HasDatabaseName("idx_requirement_cards_created_by_user");
+            });
+
+            modelBuilder.Entity<RequirementBoardLabel>(entity =>
+            {
+                entity.ToTable("requirement_board_labels");
+                entity.HasKey(x => x.LabelId);
+
+                entity.Property(x => x.LabelId).HasColumnName("label_id");
+                entity.Property(x => x.LabelName).HasColumnName("label_name").HasColumnType("varchar(100)").IsRequired();
+                entity.Property(x => x.ColorHex).HasColumnName("color_hex").HasColumnType("varchar(20)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.IsActive).HasColumnName("is_active");
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasMany(x => x.CardLabels)
+                    .WithOne(x => x.Label)
+                    .HasForeignKey(x => x.LabelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder }).HasDatabaseName("idx_requirement_labels_active_sort");
+            });
+
+            modelBuilder.Entity<RequirementCardLabel>(entity =>
+            {
+                entity.ToTable("requirement_card_labels");
+                entity.HasKey(x => new { x.CardId, x.LabelId });
+
+                entity.Property(x => x.CardId).HasColumnName("card_id");
+                entity.Property(x => x.LabelId).HasColumnName("label_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+
+                entity.HasIndex(x => x.LabelId).HasDatabaseName("idx_requirement_card_labels_label");
             });
 
             modelBuilder.Entity<RequirementCardAttachment>(entity =>

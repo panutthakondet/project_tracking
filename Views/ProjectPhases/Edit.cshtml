@@ -5,12 +5,10 @@
 
     DateTime? planStart = Model?.PlanStart;
     DateTime? planEnd = Model?.PlanEnd;
-    DateTime? actualStart = Model?.ActualStart;
     DateTime? actualEnd = Model?.ActualEnd;
 
     var ps = planStart.GetValueOrDefault();
     var pe = planEnd.GetValueOrDefault();
-    var aps = actualStart.GetValueOrDefault();
     var ape = actualEnd.GetValueOrDefault();
 
     string planStartText = planStart.HasValue
@@ -19,10 +17,6 @@
 
     string planEndText = planEnd.HasValue
         ? $"{pe:dd/MM/}{pe.Year + 543}"
-        : "";
-
-    string actualStartText = actualStart.HasValue
-        ? $"{aps:dd/MM/}{aps.Year + 543}"
         : "";
 
     string actualEndText = actualEnd.HasValue
@@ -129,7 +123,7 @@
                 </div>
 
                 <!-- Plan Start -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-semibold">📅 Plan Start</label>
                     <input asp-for="PlanStart"
                            type="text"
@@ -140,7 +134,7 @@
                 </div>
 
                 <!-- Plan End -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-semibold">📅 Plan End</label>
                     <input asp-for="PlanEnd"
                            type="text"
@@ -150,20 +144,9 @@
                            placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
-                <!-- Period Start -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">🚀 Period Start</label>
-                    <input asp-for="ActualStart"
-                           type="text"
-                           class="form-control thai-date"
-                           id="editPeriodStart"
-                           value="@actualStartText"
-                           placeholder="วัน/เดือน/พ.ศ." />
-                </div>
-
-                <!-- Period End -->
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">🏁 Period End</label>
+                <!-- Period Due -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">🏁 กำหนดส่งงวดงาน</label>
                     <input asp-for="ActualEnd"
                            type="text"
                            class="form-control thai-date"
@@ -205,12 +188,10 @@
 
             const planStart = document.getElementById("editPlanStart");
             const planEnd = document.getElementById("editPlanEnd");
-            const periodStart = document.getElementById("editPeriodStart");
             const periodEnd = document.getElementById("editPeriodEnd");
 
             const lastPlanStart = '@(ViewBag.LastPlanStart ?? "")';
             const lastPlanEnd = '@(ViewBag.LastPlanEnd ?? "")';
-            const lastPeriodStart = '@(ViewBag.LastPeriodStart ?? "")';
             const lastPeriodEnd = '@(ViewBag.LastPeriodEnd ?? "")';
 
             if (!checkbox) return;
@@ -231,7 +212,6 @@
 
                     if (lastPlanStart !== "") planStart.value = toThaiDate(lastPlanStart);
                     if (lastPlanEnd !== "") planEnd.value = toThaiDate(lastPlanEnd);
-                    if (lastPeriodStart !== "") periodStart.value = toThaiDate(lastPeriodStart);
                     if (lastPeriodEnd !== "") periodEnd.value = toThaiDate(lastPeriodEnd);
 
                 }
@@ -281,7 +261,6 @@
 
         formatThaiDateInput(document.getElementById('editPlanStart'));
         formatThaiDateInput(document.getElementById('editPlanEnd'));
-        formatThaiDateInput(document.getElementById('editPeriodStart'));
         formatThaiDateInput(document.getElementById('editPeriodEnd'));
 
         document.querySelector('form').addEventListener('submit', function () {

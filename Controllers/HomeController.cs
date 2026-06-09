@@ -153,7 +153,53 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.MeetingDate >= today)
                 .CountAsync();
 
-            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today);
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim().ToUpperInvariant();
+            var isAdmin = role == "ADMIN" || role == "ADMINISTRATOR";
+            var currentEmpId = emp?.EmpId;
+            if (!currentEmpId.HasValue && currentUserId.HasValue)
+            {
+                currentEmpId = await ResolveCurrentEmployeeIdAsync(currentUserId.Value);
+            }
+
+            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin);
+
+            var unreadNotificationCount = 0;
+            var unreadMailboxCount = 0;
+
+            if (currentUserId.HasValue)
+            {
+                var notificationQuery = _context.UserNotifications
+                    .AsNoTracking()
+                    .Where(notification => !notification.IsResolved
+                        && !notification.IsRead
+                        && notification.SourceType != "ISSUE_DUE"
+                        && notification.SourceType != "SUPPORT_DUE");
+
+                if (!isAdmin)
+                {
+                    notificationQuery = notificationQuery.Where(notification => notification.RecipientUserId == currentUserId.Value);
+                }
+
+                unreadNotificationCount = isAdmin
+                    ? await notificationQuery
+                        .Select(notification => new { notification.SourceType, notification.SourceId })
+                        .Distinct()
+                        .CountAsync()
+                    : await notificationQuery
+                        .Select(notification => new { notification.SourceType, notification.SourceId, notification.RecipientUserId, notification.RecipientEmpId })
+                        .Distinct()
+                        .CountAsync();
+
+                unreadMailboxCount = await _context.MailboxRecipients
+                    .AsNoTracking()
+                    .Where(mail => mail.RecipientUserId == currentUserId.Value && !mail.IsRead && !mail.IsDeleted)
+                    .CountAsync();
+            }
+
+            ViewBag.UnreadNotificationCount = unreadNotificationCount;
+            ViewBag.UnreadMailboxCount = unreadMailboxCount;
+            ViewBag.OnlineUsers = await LoadOnlineUsersAsync();
 
             ViewBag.TotalProjectCount = dashboard.TotalProjectCount;
             ViewBag.MeetingsTodayCount = dashboard.MeetingsTodayCount;
@@ -164,7 +210,256 @@ namespace ProjectTracking.Controllers
             return View(dashboard);
         }
 
-        private async Task<HomeDashboardViewModel> BuildHomeDashboardAsync(string username, DateTime today)
+        private async Task<int?> ResolveCurrentEmployeeIdAsync(int userId)
+        {
+            var userEmpId = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(user => user.UserId == userId)
+                .Select(user => user.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (userEmpId.HasValue)
+                return userEmpId;
+
+            return await _context.Employees
+                .AsNoTracking()
+                .Where(employee => employee.LoginUserId == userId)
+                .Select(employee => (int?)employee.EmpId)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<List<RequirementBoardOnlineUserViewModel>> LoadOnlineUsersAsync()
+        {
+            var onlineCutoff = DateTime.Now.AddMinutes(-5);
+            var onlineRows = await (
+                from user in _context.LoginUsers.AsNoTracking()
+                join employee in _context.Employees.AsNoTracking()
+                    on user.UserId equals employee.LoginUserId into employeeJoin
+                from employee in employeeJoin.DefaultIfEmpty()
+                where user.Status == "ACTIVE"
+                      && user.LastSeenAt.HasValue
+                      && user.LastSeenAt.Value >= onlineCutoff
+                orderby user.LastSeenAt descending
+                select new
+                {
+                    user.UserId,
+                    user.Username,
+                    user.ProfileImagePath,
+                    user.LastSeenAt,
+                    EmployeeName = employee != null ? employee.EmpName : null
+                })
+                .ToListAsync();
+
+            return onlineRows
+                .GroupBy(x => x.UserId)
+                .Select((group, index) =>
+                {
+                    var row = group.First();
+                    var displayName = !string.IsNullOrWhiteSpace(row.EmployeeName)
+                        ? row.EmployeeName!
+                        : row.Username;
+
+                    return new RequirementBoardOnlineUserViewModel
+                    {
+                        UserId = row.UserId,
+                        DisplayName = displayName,
+                        AvatarPath = ResolveProfileImagePath(row.ProfileImagePath),
+                        ColorClass = $"c{(index % 5) + 1}",
+                        LastSeenAt = row.LastSeenAt
+                    };
+                })
+                .ToList();
+        }
+
+        [HttpGet]
+        [RequireMenu("Home.Index")]
+        public async Task<IActionResult> DashboardSearch(string? q)
+        {
+            var keyword = (q ?? string.Empty).Trim();
+            if (keyword.Length < 2)
+            {
+                return Json(Array.Empty<DashboardSearchResult>());
+            }
+
+            if (keyword.Length > 100)
+            {
+                keyword = keyword[..100];
+            }
+
+            var results = new List<DashboardSearchResult>();
+
+            var projectRows = await _context.Projects
+                .AsNoTracking()
+                .Where(p =>
+                    p.ProjectName.Contains(keyword) ||
+                    p.Status.Contains(keyword) ||
+                    (p.Coop != null && p.Coop.CoopName.Contains(keyword)))
+                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : p.Status == "DONE" ? 3 : p.Status == "CANCELLED" ? 4 : 5)
+                .ThenBy(p => p.EndDate)
+                .ThenBy(p => p.ProjectName)
+                .Select(p => new
+                {
+                    p.ProjectId,
+                    p.ProjectName,
+                    p.Status,
+                    CoopName = p.Coop != null ? p.Coop.CoopName : null
+                })
+                .Take(6)
+                .ToListAsync();
+
+            results.AddRange(projectRows.Select(p => new DashboardSearchResult
+            {
+                Type = "Projects",
+                Title = p.ProjectName,
+                Detail = $"{ProjectStatusText(p.Status)}{(string.IsNullOrWhiteSpace(p.CoopName) ? string.Empty : $" · {p.CoopName}")}",
+                Url = $"/Projects/Edit/{p.ProjectId}",
+                Color = "blue"
+            }));
+
+            var phaseRows = await (
+                from phase in _context.ProjectPhases.AsNoTracking()
+                join project in _context.Projects.AsNoTracking() on phase.ProjectId equals project.ProjectId
+                where phase.PhaseName.Contains(keyword) ||
+                      (phase.PhaseStatus != null && phase.PhaseStatus.Contains(keyword)) ||
+                      phase.PhaseType.Contains(keyword) ||
+                      project.ProjectName.Contains(keyword) ||
+                      (project.Coop != null && project.Coop.CoopName.Contains(keyword))
+                orderby project.ProjectName, phase.PhaseOrder, phase.PeriodOrder, phase.PhaseSort
+                select new
+                {
+                    phase.PhaseId,
+                    phase.ProjectId,
+                    phase.PhaseName,
+                    phase.PhaseStatus,
+                    phase.PhaseOrder,
+                    phase.PeriodOrder,
+                    project.ProjectName
+                })
+                .Take(6)
+                .ToListAsync();
+
+            results.AddRange(phaseRows.Select(p => new DashboardSearchResult
+            {
+                Type = "ProjectPhases",
+                Title = p.PhaseName,
+                Detail = $"{p.ProjectName} · ส่วนที่ {p.PhaseOrder} งวดที่ {p.PeriodOrder} · {p.PhaseStatus ?? "-"}",
+                Url = $"/ProjectPhases?projectId={p.ProjectId}",
+                Color = "purple"
+            }));
+
+            var assignRows = await (
+                from assign in _context.PhaseAssigns.AsNoTracking()
+                join phase in _context.ProjectPhases.AsNoTracking() on assign.PhaseId equals phase.PhaseId
+                join project in _context.Projects.AsNoTracking() on phase.ProjectId equals project.ProjectId
+                join emp in _context.Employees.AsNoTracking() on assign.EmpId equals emp.EmpId
+                where (assign.Role != null && assign.Role.Contains(keyword)) ||
+                      (assign.WorkStatus != null && assign.WorkStatus.Contains(keyword)) ||
+                      emp.EmpName.Contains(keyword) ||
+                      phase.PhaseName.Contains(keyword) ||
+                      project.ProjectName.Contains(keyword) ||
+                      (project.Coop != null && project.Coop.CoopName.Contains(keyword))
+                orderby emp.EmpName, project.ProjectName, phase.PhaseOrder, phase.PeriodOrder
+                select new
+                {
+                    assign.AssignId,
+                    assign.EmpId,
+                    assign.Role,
+                    assign.WorkStatus,
+                    phase.ProjectId,
+                    phase.PhaseName,
+                    phase.PhaseOrder,
+                    phase.PeriodOrder,
+                    project.ProjectName,
+                    emp.EmpName
+                })
+                .Take(6)
+                .ToListAsync();
+
+            results.AddRange(assignRows.Select(a => new DashboardSearchResult
+            {
+                Type = "PhaseAssigns",
+                Title = string.IsNullOrWhiteSpace(a.Role) ? a.PhaseName : a.Role!,
+                Detail = $"{a.EmpName} · {a.ProjectName} · ส่วนที่ {a.PhaseOrder} งวดที่ {a.PeriodOrder} · {a.WorkStatus ?? "-"}",
+                Url = $"/PhaseAssigns?projectId={a.ProjectId}&empId={a.EmpId}",
+                Color = "green"
+            }));
+
+            var issueRows = await (
+                from issue in _context.ProjectIssues.AsNoTracking()
+                join project in _context.Projects.AsNoTracking() on issue.ProjectId equals project.ProjectId
+                join emp in _context.Employees.AsNoTracking() on issue.AssignTo equals emp.EmpId into empJoin
+                from emp in empJoin.DefaultIfEmpty()
+                where issue.IssueName.Contains(keyword) ||
+                      (issue.IssueDetail != null && issue.IssueDetail.Contains(keyword)) ||
+                      issue.IssueStatus.Contains(keyword) ||
+                      issue.DevStatus.Contains(keyword) ||
+                      issue.IssuePriority.Contains(keyword) ||
+                      project.ProjectName.Contains(keyword) ||
+                      (project.Coop != null && project.Coop.CoopName.Contains(keyword)) ||
+                      (emp != null && emp.EmpName.Contains(keyword))
+                orderby issue.CreatedAt descending
+                select new
+                {
+                    issue.IssueId,
+                    issue.IssueName,
+                    issue.IssueStatus,
+                    issue.DevStatus,
+                    issue.IssuePriority,
+                    project.ProjectName,
+                    OwnerName = emp != null ? emp.EmpName : "-"
+                })
+                .Take(6)
+                .ToListAsync();
+
+            results.AddRange(issueRows.Select(i => new DashboardSearchResult
+            {
+                Type = "ProjectIssues",
+                Title = i.IssueName,
+                Detail = $"{i.ProjectName} · เจ้าของ: {i.OwnerName} · {i.IssueStatus}/{i.DevStatus} · {i.IssuePriority}",
+                Url = $"/ProjectIssues/Details/{i.IssueId}",
+                Color = "pink"
+            }));
+
+            var supportRows = await (
+                from support in _context.ProjectSupportOrders.AsNoTracking()
+                join project in _context.Projects.AsNoTracking() on support.ProjectId equals project.ProjectId
+                join emp in _context.Employees.AsNoTracking() on support.AssignTo equals emp.EmpId into empJoin
+                from emp in empJoin.DefaultIfEmpty()
+                where (support.OrderTitle != null && support.OrderTitle.Contains(keyword)) ||
+                      (support.OrderDetail != null && support.OrderDetail.Contains(keyword)) ||
+                      (support.Status != null && support.Status.Contains(keyword)) ||
+                      (support.DevStatus != null && support.DevStatus.Contains(keyword)) ||
+                      (support.Priority != null && support.Priority.Contains(keyword)) ||
+                      project.ProjectName.Contains(keyword) ||
+                      (project.Coop != null && project.Coop.CoopName.Contains(keyword)) ||
+                      (emp != null && emp.EmpName.Contains(keyword))
+                orderby support.CreatedAt descending
+                select new
+                {
+                    support.OrderId,
+                    support.OrderTitle,
+                    support.Status,
+                    support.DevStatus,
+                    support.Priority,
+                    project.ProjectName,
+                    OwnerName = emp != null ? emp.EmpName : "-"
+                })
+                .Take(6)
+                .ToListAsync();
+
+            results.AddRange(supportRows.Select(s => new DashboardSearchResult
+            {
+                Type = "SupportOrders",
+                Title = string.IsNullOrWhiteSpace(s.OrderTitle) ? $"Support #{s.OrderId}" : s.OrderTitle!,
+                Detail = $"{s.ProjectName} · เจ้าของ: {s.OwnerName} · {s.Status ?? "-"}{(string.IsNullOrWhiteSpace(s.DevStatus) ? string.Empty : $"/{s.DevStatus}")} · {s.Priority ?? "-"}",
+                Url = $"/SupportOrders/Details/{s.OrderId}",
+                Color = "orange"
+            }));
+
+            return Json(results.Take(30));
+        }
+
+        private async Task<HomeDashboardViewModel> BuildHomeDashboardAsync(string username, DateTime today, int? currentEmpId, bool isAdmin)
         {
             var th = new CultureInfo("th-TH");
             var now = DateTime.Now;
@@ -200,7 +495,6 @@ namespace ProjectTracking.Controllers
                     PlanStart = p.PlanStart,
                     PlanEnd = p.PlanEnd,
                     SubmittedDate = p.SubmittedDate,
-                    PeriodStartDate = p.PeriodStartDate,
                     PeriodEndDate = p.PeriodEndDate,
                     CreatedAt = p.CreatedAt,
                     EntryId = p.EntryId
@@ -235,6 +529,8 @@ namespace ProjectTracking.Controllers
                     IssuePriority = i.IssuePriority,
                     IsReopen = i.IsReopen,
                     ReopenCount = i.ReopenCount,
+                    StartDate = i.StartDate,
+                    EndDate = i.EndDate,
                     CreatedAt = i.CreatedAt,
                     CreatedBy = i.CreatedBy,
                     EmpId = i.AssignTo
@@ -270,6 +566,20 @@ namespace ProjectTracking.Controllers
                     StartDate = o.StartDate,
                     EndDate = o.EndDate,
                     CreatedAt = o.CreatedAt
+                })
+                .ToListAsync();
+
+            var requirementCards = await _context.RequirementCards
+                .AsNoTracking()
+                .Where(c => !c.IsArchived)
+                .Select(c => new DashboardRequirementCardRow
+                {
+                    CardId = c.CardId,
+                    Title = c.Title,
+                    ColumnName = c.Column != null ? c.Column.ColumnName : null,
+                    CreatedByEmpId = c.CreatedByEmpId,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
                 })
                 .ToListAsync();
 
@@ -503,23 +813,58 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
-            var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
+            var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
             var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, today);
             var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
             var teamWorkload = BuildTeamWorkload(assigns, issues, employees, EmployeeName, EmployeeAvatar);
+            var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
+            int? ProjectBaEmpId(int? projectId)
+            {
+                return projectId.HasValue && projectBaById.TryGetValue(projectId.Value, out var baEmpId)
+                    ? baEmpId
+                    : null;
+            }
+
+            var visibleOpenIssues = issues
+                .Where(i => !IsIssueResolved(i))
+                .Where(i => CanSeeOpenIssue(i, ProjectBaEmpId, currentEmpId, isAdmin))
+                .ToList();
+            var visibleOpenSupportOrders = supportOrders
+                .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
+                .Where(o => CanSeeOpenSupport(o, ProjectBaEmpId, currentEmpId, isAdmin))
+                .ToList();
+            var openIssueSupportCount = visibleOpenIssues.Count + visibleOpenSupportOrders.Count;
+            var openIssueSupportItems = BuildOpenIssueSupportItems(
+                visibleOpenIssues,
+                visibleOpenSupportOrders,
+                ProjectName,
+                EmployeeName,
+                ProjectBaEmpId,
+                currentEmpId,
+                isAdmin,
+                th);
+
+            var overduePlanPhaseCount = phases.Count(phase =>
+                phase.PlanEnd.HasValue &&
+                phase.PlanEnd.Value.Date < today &&
+                !IsPhaseDone(phase.PhaseStatus));
+
+            var overduePlanAssignCount = assigns.Count(assign =>
+                assign.PlanEnd.HasValue &&
+                assign.PlanEnd.Value.Date < today &&
+                Norm(assign.WorkStatus) != "DONE");
 
             return new HomeDashboardViewModel
             {
                 Username = username,
                 TotalProjectCount = projects.Count,
                 MeetingsTodayCount = todayMeetings.Count,
-                OpenIssueCount = issueOpenCount,
+                OpenIssueCount = overduePlanPhaseCount,
                 ActiveMemberCount = employees.Count(e => Norm(e.Status) == "ACTIVE"),
-                OverdueTaskCount = followups.Count(f =>
-                    f.NextFollowupDate != null &&
-                    f.NextFollowupDate.Value.Date < today &&
-                    Norm(f.Status) != "DONE"),
+                OverdueTaskCount = overduePlanAssignCount,
+                OpenIssuesNote = "เลยกำหนด Plan",
+                OverdueTasksNote = "เลยกำหนด Plan",
                 ProjectStatusMetrics = projectStatusMetrics,
                 ProjectStatusDonut = BuildDonut(projectStatusMetrics),
                 PhaseTypeMetrics = phaseTypeRows,
@@ -539,6 +884,8 @@ namespace ProjectTracking.Controllers
                 YearlyTaskAxisMax = yearlyTaskAxisMax,
                 WatchProjects = watchProjects,
                 TeamWorkload = teamWorkload,
+                OpenIssueSupportCount = openIssueSupportCount,
+                OpenIssueSupportItems = openIssueSupportItems,
                 MonthWorkHours = timeSummary.MonthWorkHours,
                 ClosedWorkHours = timeSummary.ClosedWorkHours,
                 OpenWorkHours = timeSummary.OpenWorkHours,
@@ -571,6 +918,8 @@ namespace ProjectTracking.Controllers
                     IssueName = i.IssueName,
                     IssueStatus = i.IssueStatus,
                     DevStatus = i.DevStatus,
+                    StartDate = i.StartDate,
+                    EndDate = i.EndDate,
                     CreatedAt = i.CreatedAt,
                     CreatedBy = i.CreatedBy,
                     EmpId = i.AssignTo
@@ -604,6 +953,20 @@ namespace ProjectTracking.Controllers
                     CreatedBy = o.CreatedBy,
                     AssignTo = o.AssignTo,
                     CreatedAt = o.CreatedAt
+                })
+                .ToListAsync();
+
+            var requirementCards = await _context.RequirementCards
+                .AsNoTracking()
+                .Where(c => !c.IsArchived)
+                .Select(c => new DashboardRequirementCardRow
+                {
+                    CardId = c.CardId,
+                    Title = c.Title,
+                    ColumnName = c.Column != null ? c.Column.ColumnName : null,
+                    CreatedByEmpId = c.CreatedByEmpId,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
                 })
                 .ToListAsync();
 
@@ -711,7 +1074,7 @@ namespace ProjectTracking.Controllers
                 return projectNameById.TryGetValue(projectId.Value, out var name) ? name : "-";
             }
 
-            var activities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, meetings, EmployeeName, EmployeeAvatar, ProjectName, now, 100);
+            var activities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, meetings, EmployeeName, EmployeeAvatar, ProjectName, now, 100);
 
             return View(activities);
         }
@@ -839,6 +1202,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardIssueRow> issues,
             IReadOnlyList<DashboardFollowupRow> followups,
             IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            IReadOnlyList<DashboardRequirementCardRow> requirementCards,
             IReadOnlyList<DashboardMeetingRow> meetings,
             Func<int?, string> employeeName,
             Func<int?, string> employeeAvatar,
@@ -965,6 +1329,29 @@ namespace ProjectTracking.Controllers
                         AvatarPath = employeeAvatar(o.CreatedBy ?? o.AssignTo),
                         Url = $"/SupportOrders/Details/{o.OrderId}"
                     })));
+
+            activities.AddRange(requirementCards
+                .Where(c => (c.UpdatedAt ?? c.CreatedAt) > DateTime.MinValue.AddYears(1))
+                .Select(c =>
+                {
+                    var activityAt = c.UpdatedAt ?? c.CreatedAt;
+                    var isUpdated = c.UpdatedAt.HasValue && c.UpdatedAt.Value > c.CreatedAt.AddSeconds(1);
+                    var title = string.IsNullOrWhiteSpace(c.Title) ? $"Card #{c.CardId}" : c.Title;
+                    var columnName = string.IsNullOrWhiteSpace(c.ColumnName) ? "-" : c.ColumnName;
+
+                    return (
+                        activityAt,
+                        new HomeDashboardActivity
+                        {
+                            Actor = employeeName(c.CreatedByEmpId),
+                            Detail = $"{(isUpdated ? "อัปเดต" : "เพิ่ม")}การ์ด Project Board: {title}",
+                            OwnerText = $"หัวข้อ: {columnName}",
+                            TimeText = RelativeTimeThai(activityAt, now),
+                            Color = "purple",
+                            AvatarPath = employeeAvatar(c.CreatedByEmpId),
+                            Url = $"/RequirementBoard?cardId={c.CardId}"
+                        });
+                }));
 
             activities.AddRange(meetings
                 .Where(m => (m.UpdatedAt ?? m.CreatedAt) > DateTime.MinValue.AddYears(1))
@@ -1417,6 +1804,89 @@ namespace ProjectTracking.Controllers
                 .ToList();
         }
 
+        private static List<HomeDashboardOpenWorkItem> BuildOpenIssueSupportItems(
+            IReadOnlyList<DashboardIssueRow> issues,
+            IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            Func<int?, string> projectName,
+            Func<int?, string> employeeName,
+            Func<int?, int?> projectBaEmpId,
+            int? currentEmpId,
+            bool isAdmin,
+            CultureInfo culture)
+        {
+            var rows = new List<(DateTime? dueDate, DateTime createdAt, HomeDashboardOpenWorkItem item)>();
+
+            rows.AddRange(issues
+                .Where(i => !IsIssueResolved(i))
+                .Select(i => (
+                    dueDate: i.EndDate,
+                    createdAt: i.CreatedAt,
+                    item: new HomeDashboardOpenWorkItem
+                    {
+                        Type = "Issue",
+                        Title = string.IsNullOrWhiteSpace(i.IssueName) ? $"Issue #{i.IssueId}" : i.IssueName,
+                        ProjectName = projectName(i.ProjectId),
+                        OwnerName = employeeName(i.EmpId),
+                        DueText = i.EndDate.HasValue ? FormatDashboardDate(i.EndDate, culture) : "ยังไม่กำหนด",
+                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(i.ProjectId), currentEmpId, isAdmin)
+                            ? $"/ProjectIssues/Edit/{i.IssueId}"
+                            : $"/ProjectIssues/DevEdit/{i.IssueId}",
+                        Color = IsHighPriority(i.IssuePriority) ? "pink" : "orange"
+                    })));
+
+            rows.AddRange(supportOrders
+                .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
+                .Select(o => (
+                    dueDate: o.EndDate,
+                    createdAt: o.CreatedAt ?? DateTime.MinValue,
+                    item: new HomeDashboardOpenWorkItem
+                    {
+                        Type = "Support",
+                        Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle,
+                        ProjectName = projectName(o.ProjectId),
+                        OwnerName = employeeName(o.AssignTo),
+                        DueText = o.EndDate.HasValue ? FormatDashboardDate(o.EndDate, culture) : "ยังไม่กำหนด",
+                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(o.ProjectId), currentEmpId, isAdmin)
+                            ? $"/SupportOrders/Edit/{o.OrderId}"
+                            : $"/SupportOrdersDev/Edit/{o.OrderId}",
+                        Color = IsHighPriority(o.Priority) ? "pink" : "cyan"
+                    })));
+
+            return rows
+                .OrderBy(row => row.dueDate ?? DateTime.MaxValue)
+                .ThenByDescending(row => row.createdAt)
+                .Take(10)
+                .Select(row => row.item)
+                .ToList();
+        }
+
+        private static bool CanSeeOpenIssue(
+            DashboardIssueRow issue,
+            Func<int?, int?> projectBaEmpId,
+            int? currentEmpId,
+            bool isAdmin)
+        {
+            return isAdmin ||
+                (currentEmpId.HasValue &&
+                    (issue.EmpId == currentEmpId.Value || projectBaEmpId(issue.ProjectId) == currentEmpId.Value));
+        }
+
+        private static bool CanSeeOpenSupport(
+            DashboardSupportOrderRow supportOrder,
+            Func<int?, int?> projectBaEmpId,
+            int? currentEmpId,
+            bool isAdmin)
+        {
+            return isAdmin ||
+                (currentEmpId.HasValue &&
+                    (supportOrder.AssignTo == currentEmpId.Value || projectBaEmpId(supportOrder.ProjectId) == currentEmpId.Value));
+        }
+
+        private static bool ShouldUseBaOpenWorkRoute(int? projectBaEmpId, int? currentEmpId, bool isAdmin)
+        {
+            return isAdmin || (currentEmpId.HasValue && projectBaEmpId == currentEmpId.Value);
+        }
+
         private static string RelativeTimeThai(DateTime value, DateTime now)
         {
             var span = now - value;
@@ -1448,8 +1918,8 @@ namespace ProjectTracking.Controllers
         private static DateTime? PhaseBucketDate(DashboardPhaseRow phase)
         {
             return IsPhaseDone(phase.PhaseStatus)
-                ? phase.SubmittedDate ?? phase.PlanEnd ?? phase.PlanStart ?? phase.PeriodEndDate ?? phase.PeriodStartDate ?? phase.CreatedAt
-                : phase.PlanStart ?? phase.PlanEnd ?? phase.PeriodStartDate ?? phase.PeriodEndDate ?? phase.CreatedAt;
+                ? phase.SubmittedDate ?? phase.PlanEnd ?? phase.PlanStart ?? phase.PeriodEndDate ?? phase.CreatedAt
+                : phase.PlanStart ?? phase.PlanEnd ?? phase.PeriodEndDate ?? phase.CreatedAt;
         }
 
         private static DateTime? AssignPhaseBucketDate(DashboardAssignRow assign, DashboardPhaseRow phase)
@@ -1653,6 +2123,15 @@ namespace ProjectTracking.Controllers
             public int? EntryId { get; set; }
         }
 
+        private sealed class DashboardSearchResult
+        {
+            public string Type { get; set; } = "";
+            public string Title { get; set; } = "";
+            public string Detail { get; set; } = "";
+            public string Url { get; set; } = "";
+            public string Color { get; set; } = "blue";
+        }
+
         private sealed class DashboardPhaseRow
         {
             public int PhaseId { get; set; }
@@ -1663,7 +2142,6 @@ namespace ProjectTracking.Controllers
             public DateTime? PlanStart { get; set; }
             public DateTime? PlanEnd { get; set; }
             public DateTime? SubmittedDate { get; set; }
-            public DateTime? PeriodStartDate { get; set; }
             public DateTime? PeriodEndDate { get; set; }
             public DateTime? CreatedAt { get; set; }
             public int? EntryId { get; set; }
@@ -1692,6 +2170,8 @@ namespace ProjectTracking.Controllers
             public string? IssuePriority { get; set; }
             public bool IsReopen { get; set; }
             public int ReopenCount { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
             public DateTime CreatedAt { get; set; }
             public int? CreatedBy { get; set; }
             public int EmpId { get; set; }
@@ -1721,6 +2201,16 @@ namespace ProjectTracking.Controllers
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
             public DateTime? CreatedAt { get; set; }
+        }
+
+        private sealed class DashboardRequirementCardRow
+        {
+            public int CardId { get; set; }
+            public string Title { get; set; } = "";
+            public string? ColumnName { get; set; }
+            public int? CreatedByEmpId { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime? UpdatedAt { get; set; }
         }
 
         private sealed class DashboardEmployeeRow

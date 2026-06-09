@@ -23,7 +23,6 @@ namespace ProjectTracking.ViewModels
         public string Detail { get; set; } = "";
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public DateTime? PeriodStartDate { get; set; }
         public DateTime? PeriodEndDate { get; set; }
         public string Status { get; set; } = "";
         public string WorkState { get; set; } = "";

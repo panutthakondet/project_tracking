@@ -100,15 +100,18 @@ namespace ProjectTracking.Controllers
         // VIEW ONLY REPORT
         // =====================================================
         [RequireMenu("ProjectIssues.ViewOnly")]
-        public async Task<IActionResult> ViewOnly(int? projectId, string? empName, string? status)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? devStatus)
         {
-            await LoadDropdown(projectId, empName);
+            await LoadDropdown(projectId, empName, baEmpId);
             status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
+            devStatus = string.IsNullOrWhiteSpace(devStatus) ? null : devStatus.Trim().ToUpperInvariant();
 
             var query = _context.ProjectIssues
                 .AsNoTracking()
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.Coop)
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.BA)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
@@ -117,15 +120,22 @@ namespace ProjectTracking.Controllers
             if (projectId.HasValue)
                 query = query.Where(i => i.ProjectId == projectId.Value);
 
+            if (baEmpId.HasValue)
+                query = query.Where(i => i.Project != null && i.Project.BaEmpId == baEmpId.Value);
+
             if (!string.IsNullOrWhiteSpace(empName))
                 query = query.Where(i => i.Employee != null && i.Employee.EmpName == empName);
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(i => i.IssueStatus == status);
 
+            if (!string.IsNullOrWhiteSpace(devStatus))
+                query = query.Where(i => i.DevStatus == devStatus);
+
             var issues = await query
                 .OrderBy(i => i.Project != null && i.Project.Coop != null ? i.Project.Coop.CoopName : "")
                 .ThenBy(i => i.Project != null ? i.Project.ProjectName : "")
+                .ThenBy(i => i.Project != null && i.Project.BA != null ? i.Project.BA.EmpName : "")
                 .ThenByDescending(i => i.IsReopen)
                 .ThenByDescending(i => i.ReopenCount)
                 .ThenBy(i => i.IssueId)
@@ -133,6 +143,8 @@ namespace ProjectTracking.Controllers
 
             ViewBag.StatusList = new[] { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
             ViewBag.SelectedStatus = status ?? "";
+            ViewBag.DevStatusList = new[] { "TODO", "DOING", "FIXED", "BLOCK" };
+            ViewBag.SelectedDevStatus = devStatus ?? "";
 
             return View(issues);
         }
@@ -610,7 +622,7 @@ namespace ProjectTracking.Controllers
             }
         }
 
-        private async Task LoadDropdown(int? projectId, string? empName)
+        private async Task LoadDropdown(int? projectId, string? empName, int? baEmpId = null)
         {
             ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
@@ -619,6 +631,30 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.SelectedEmp = empName;
+            ViewBag.SelectedBA = baEmpId;
+
+            var baQuery =
+                from issue in _context.ProjectIssues.AsNoTracking()
+                join projectRow in _context.Projects.AsNoTracking()
+                    on issue.ProjectId equals projectRow.ProjectId
+                join employee in _context.Employees.AsNoTracking()
+                    on projectRow.BaEmpId equals employee.EmpId
+                where projectRow.BaEmpId != null
+                select new
+                {
+                    EmpId = employee.EmpId,
+                    employee.EmpName
+                };
+
+            ViewBag.BAList = await baQuery
+                .Distinct()
+                .OrderBy(x => x.EmpName)
+                .Select(x => new SelectListItem
+                {
+                    Value = x.EmpId.ToString(),
+                    Text = x.EmpName
+                })
+                .ToListAsync();
 
             if (!projectId.HasValue)
             {

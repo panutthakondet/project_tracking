@@ -245,7 +245,7 @@
                         <th style="width:220px;">ส่วนงาน</th>
                         <th style="width:260px;">Role</th>
                         <th style="width:170px;">Plan Date</th>
-                        <th style="width:170px;">Period Date</th>
+                        <th style="width:150px;">กำหนดส่งงวดงาน</th>
                         <th>Assign / Log</th>
                     </tr>
                 </thead>
@@ -272,7 +272,7 @@
                             <td>@PhaseName(row)</td>
                             <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
                             <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
-                            <td class="text-center">@FormatRange(row.Phase?.PeriodStartDate, row.Phase?.PeriodEndDate)</td>
+                            <td class="text-center">@FormatDate(row.Phase?.PeriodEndDate)</td>
                             <td>
                                 <b>Assign:</b> @(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)<br />
                                 <b>Log:</b>

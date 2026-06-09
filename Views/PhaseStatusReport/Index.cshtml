@@ -530,7 +530,7 @@
                     <th style="width:150px;">Project Period</th>
                     <th style="width:150px;">Plan</th>
                     <th style="width:74px;">Plan Days</th>
-                    <th style="width:82px;">Period Days</th>
+                    <th style="width:120px;">กำหนดส่งงวดงาน</th>
                     <th style="width:78px;">Overdue</th>
                     <th>Remark</th>
                 </tr>
@@ -572,7 +572,7 @@
                         <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
                         <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
                         <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
-                        <td class="text-center">@(row.ActualDays?.ToString() ?? "-")</td>
+                        <td class="text-center">@FormatDate(row.ActualEnd)</td>
                         <td class="text-center">
                             <span class="status-text @((row.OverdueDays ?? 0) > 0 ? "danger" : "success")">
                                 @(row.OverdueDays ?? 0)

@@ -9,7 +9,6 @@ CREATE TABLE `requirement_card_phase_items` (
   `phase_status` varchar(50) DEFAULT 'วางแผน',
   `plan_start` date DEFAULT NULL,
   `plan_end` date DEFAULT NULL,
-  `period_start_date` date DEFAULT NULL,
   `period_end_date` date DEFAULT NULL,
   `created_by_user_id` int(11) DEFAULT NULL,
   `created_by_emp_id` int(11) DEFAULT NULL,

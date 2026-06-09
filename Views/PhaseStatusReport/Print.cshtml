@@ -407,7 +407,7 @@
                                     <span class="phase-status-meta-pill">Project Period: @FormatRange(r.StartDate, r.EndDate)</span>
                                     <span class="phase-status-meta-pill">Plan: @FormatRange(r.PlanStart, r.PlanEnd)</span>
                                     <span class="phase-status-meta-pill">Plan Days: @(r.PlanDays?.ToString() ?? "-")</span>
-                                    <span class="phase-status-meta-pill">Period Days: @(r.ActualDays?.ToString() ?? "-")</span>
+                                    <span class="phase-status-meta-pill">กำหนดส่งงวดงาน: @FormatDate(r.ActualEnd)</span>
                                     <span class="phase-status-meta-pill">Overdue: @(r.OverdueDays ?? 0) days</span>
                                 </div>
 

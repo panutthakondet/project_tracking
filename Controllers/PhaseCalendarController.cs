@@ -60,7 +60,6 @@ namespace ProjectTracking.Controllers
                         projectName = x.Project != null ? x.Project.ProjectName : "-",
                         phaseName = x.PhaseName,
                         phaseStatus = x.PhaseStatus,
-                        periodStartDate = x.PeriodStartDate,
                         periodEndDate = x.PeriodEndDate,
                         planEnd = x.PlanEnd
                     }

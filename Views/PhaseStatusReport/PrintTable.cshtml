@@ -274,7 +274,7 @@
                         <th style="width:150px;">Project Period</th>
                         <th style="width:140px;">Plan</th>
                         <th style="width:58px;">Plan Days</th>
-                        <th style="width:64px;">Period Days</th>
+                        <th style="width:100px;">กำหนดส่งงวดงาน</th>
                         <th style="width:64px;">Overdue</th>
                         <th>Remark</th>
                     </tr>
@@ -317,7 +317,7 @@
                                 <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
                                 <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
                                 <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
-                                <td class="text-center">@(row.ActualDays?.ToString() ?? "-")</td>
+                                <td class="text-center">@FormatDate(row.ActualEnd)</td>
                                 <td class="text-center">@(row.OverdueDays ?? 0)</td>
                                 <td>@(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)</td>
                             </tr>

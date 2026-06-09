@@ -40,6 +40,8 @@ namespace ProjectTracking.Controllers
                 .Where(x => columnIds.Contains(x.ColumnId) && !x.IsArchived)
                 .Include(x => x.Attachments)
                 .Include(x => x.PhaseItems)
+                .Include(x => x.Labels)
+                    .ThenInclude(x => x.Label)
                 .Include(x => x.CreatedByUser)
                 .Include(x => x.CreatedByEmployee)
                 .OrderBy(x => x.SortOrder)
@@ -95,10 +97,18 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
+            var labels = await _context.RequirementBoardLabels
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.LabelName)
+                .ToListAsync();
+
             var model = new RequirementBoardViewModel
             {
                 Columns = columns,
                 OnlineUsers = onlineUsers,
+                Labels = labels,
                 TotalCards = cards.Count,
                 TotalAttachments = cards.Sum(x => x.Attachments.Count)
             };
@@ -209,6 +219,7 @@ namespace ProjectTracking.Controllers
             string? detail,
             IFormFile? coverImage,
             List<IFormFile>? files,
+            List<int>? labelIds,
             List<RequirementCardPhaseItemInput>? phaseItems)
         {
             var isAjax = IsAjaxRequest();
@@ -247,6 +258,7 @@ namespace ProjectTracking.Controllers
             }
 
             await ReplacePhaseItemsAsync(card.CardId, phaseItems);
+            await ReplaceCardLabelsAsync(card.CardId, labelIds);
             await SaveAttachmentsAsync(card.CardId, files);
             await _context.SaveChangesAsync();
 
@@ -265,7 +277,8 @@ namespace ProjectTracking.Controllers
                     coverImagePath = card.CoverImagePath ?? "",
                     coverImageName = card.CoverImageName ?? "",
                     updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
-                    attachmentCount
+                    attachmentCount,
+                    labels = await LoadCardLabelPayloadAsync(card.CardId)
                 });
             }
 
@@ -351,6 +364,8 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.CreatedByEmployee)
                 .Include(x => x.Attachments)
                 .Include(x => x.PhaseItems)
+                .Include(x => x.Labels)
+                    .ThenInclude(x => x.Label)
                 .FirstOrDefaultAsync(x => x.CardId == id && !x.IsArchived);
 
             if (card == null) return NotFound();
@@ -389,7 +404,7 @@ namespace ProjectTracking.Controllers
                     phasePeriodLabel = item.PhasePeriodLabel,
                     phaseStatus = item.PhaseStatus ?? "-",
                     planDate = FormatDateRange(item.PlanStart, item.PlanEnd),
-                    periodDate = FormatDateRange(item.PeriodStartDate, item.PeriodEndDate)
+                    periodDate = FormatDate(item.PeriodEndDate)
                 })
                 .ToList();
 
@@ -402,8 +417,59 @@ namespace ProjectTracking.Controllers
                 coverImagePath = card.CoverImagePath,
                 createdBy,
                 updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm"),
+                labels = card.Labels
+                    .Where(x => x.Label != null && x.Label.IsActive)
+                    .OrderBy(x => x.Label!.SortOrder)
+                    .ThenBy(x => x.Label!.LabelName)
+                    .Select(x => new
+                    {
+                        labelId = x.LabelId,
+                        labelName = x.Label!.LabelName,
+                        colorHex = x.Label!.ColorHex
+                    })
+                    .ToList(),
                 phaseItems,
                 attachments
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateLabel(string labelName, string colorHex)
+        {
+            labelName = (labelName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(labelName))
+                return BadRequest(new { success = false, message = "กรุณากรอกชื่อป้าย" });
+
+            var color = NormalizeLabelColor(colorHex);
+            var maxSort = await _context.RequirementBoardLabels
+                .Select(x => (int?)x.SortOrder)
+                .MaxAsync() ?? 0;
+
+            var label = new RequirementBoardLabel
+            {
+                LabelName = labelName,
+                ColorHex = color,
+                SortOrder = maxSort + 1,
+                IsActive = true,
+                CreatedByUserId = CurrentUserId(),
+                CreatedByEmpId = CurrentEmpId(),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            _context.RequirementBoardLabels.Add(label);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                label = new
+                {
+                    labelId = label.LabelId,
+                    labelName = label.LabelName,
+                    colorHex = label.ColorHex
+                }
             });
         }
 
@@ -524,6 +590,62 @@ namespace ProjectTracking.Controllers
             return $"{startText} - {endText}";
         }
 
+        private static string FormatDate(DateTime? value)
+        {
+            var th = CultureInfo.GetCultureInfo("th-TH");
+            return value?.ToString("dd MMM yyyy", th) ?? "-";
+        }
+
+        private async Task<List<RequirementLabelPayload>> LoadCardLabelPayloadAsync(int cardId)
+        {
+            return await _context.RequirementCardLabels
+                .AsNoTracking()
+                .Where(x => x.CardId == cardId && x.Label != null && x.Label.IsActive)
+                .OrderBy(x => x.Label!.SortOrder)
+                .ThenBy(x => x.Label!.LabelName)
+                .Select(x => new RequirementLabelPayload
+                {
+                    LabelId = x.LabelId,
+                    LabelName = x.Label!.LabelName,
+                    ColorHex = x.Label!.ColorHex
+                })
+                .ToListAsync();
+        }
+
+        private async Task ReplaceCardLabelsAsync(int cardId, List<int>? labelIds)
+        {
+            var existingLabels = await _context.RequirementCardLabels
+                .Where(x => x.CardId == cardId)
+                .ToListAsync();
+
+            if (existingLabels.Count > 0)
+            {
+                _context.RequirementCardLabels.RemoveRange(existingLabels);
+            }
+
+            var cleanIds = (labelIds ?? new List<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+
+            if (cleanIds.Count == 0) return;
+
+            var validIds = await _context.RequirementBoardLabels
+                .Where(x => cleanIds.Contains(x.LabelId) && x.IsActive)
+                .Select(x => x.LabelId)
+                .ToListAsync();
+
+            foreach (var labelId in validIds)
+            {
+                _context.RequirementCardLabels.Add(new RequirementCardLabel
+                {
+                    CardId = cardId,
+                    LabelId = labelId,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
         private async Task ReplacePhaseItemsAsync(int cardId, List<RequirementCardPhaseItemInput>? inputs)
         {
             var existingItems = await _context.RequirementCardPhaseItems
@@ -558,7 +680,6 @@ namespace ProjectTracking.Controllers
                     PhaseStatus = NormalizePhaseStatus(input.PhaseStatus),
                     PlanStart = ParseBoardDate(input.PlanStart),
                     PlanEnd = ParseBoardDate(input.PlanEnd),
-                    PeriodStartDate = ParseBoardDate(input.PeriodStartDate),
                     PeriodEndDate = ParseBoardDate(input.PeriodEndDate),
                     CreatedByUserId = userId,
                     CreatedByEmpId = empId,
@@ -583,6 +704,24 @@ namespace ProjectTracking.Controllers
                 "ส่งงวดงานแล้ว" => "ส่งงวดงานแล้ว",
                 _ => "วางแผน"
             };
+        }
+
+        private static string NormalizeLabelColor(string? value)
+        {
+            var color = (value ?? "").Trim();
+            if (!color.StartsWith("#", StringComparison.Ordinal))
+            {
+                color = "#" + color;
+            }
+
+            if (color.Length != 7) return "#22c7b8";
+
+            for (var i = 1; i < color.Length; i++)
+            {
+                if (!Uri.IsHexDigit(color[i])) return "#22c7b8";
+            }
+
+            return color.ToLowerInvariant();
         }
 
         private static DateTime? ParseBoardDate(string? value)
@@ -723,6 +862,13 @@ namespace ProjectTracking.Controllers
             var empId = HttpContext.Session.GetInt32("EmpId");
             if (empId != null) return empId;
             return null;
+        }
+
+        private sealed class RequirementLabelPayload
+        {
+            public int LabelId { get; set; }
+            public string LabelName { get; set; } = "";
+            public string ColorHex { get; set; } = "";
         }
     }
 }

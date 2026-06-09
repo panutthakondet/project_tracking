@@ -482,7 +482,7 @@
                     <th style="width:170px;">Role</th>
                     <th style="width:92px;">Status</th>
                     <th style="width:150px;">Plan Date</th>
-                    <th style="width:150px;">Period Date</th>
+                    <th style="width:150px;">กำหนดส่งงวดงาน</th>
                     <th>Assign / Log</th>
                 </tr>
             </thead>
@@ -508,7 +508,7 @@
                         </span>
                     </td>
                     <td class="text-center">@FormatDate(assignment.PlanStart) - @FormatDate(assignment.PlanEnd)</td>
-                    <td class="text-center">@FormatDate(assignment.Phase?.PeriodStartDate) - @FormatDate(assignment.Phase?.PeriodEndDate)</td>
+                    <td class="text-center">@FormatDate(assignment.Phase?.PeriodEndDate)</td>
                     <td>
                         <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(assignment.Remark) ? "-" : assignment.Remark)</div>
                         @if (lastLog != null)

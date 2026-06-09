@@ -1,5 +1,6 @@
 @model IEnumerable<ProjectTracking.Models.ProjectSupportOrder>
 @using System.Globalization
+@using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
     Layout = null;
@@ -7,9 +8,11 @@
     var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var selectedBA = ViewBag.SelectedBA is int baId ? baId : (int?)null;
     var selectedStatus = ViewBag.SelectedStatus as string ?? "";
     var selectedPriority = ViewBag.SelectedPriority as string ?? "";
     var selectedDevStatus = ViewBag.SelectedDevStatus as string ?? "";
+    var baList = ViewBag.BAList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
     var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var priorityList = ViewBag.PriorityList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
@@ -19,6 +22,11 @@
     string SelectedProjectName() => selectedProjectId.HasValue
         ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
+    string SelectedBAText()
+    {
+        if (!selectedBA.HasValue) return "All BA";
+        return baList.FirstOrDefault(x => x.Value == selectedBA.Value.ToString())?.Text ?? $"BA #{selectedBA.Value}";
+    }
 
     bool IsClosed(string? status, string? devStatus)
     {
@@ -119,7 +127,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(150px, .7fr)) auto;
+            grid-template-columns: minmax(240px, 1.25fr) minmax(190px, .9fr) repeat(3, minmax(140px, .65fr)) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -289,10 +297,11 @@
             margin-bottom: 12px;
         }
         .support-report-table col.col-seq { width: 5%; }
-        .support-report-table col.col-support { width: 43%; }
-        .support-report-table col.col-owner { width: 18%; }
-        .support-report-table col.col-state { width: 16%; }
-        .support-report-table col.col-date { width: 18%; }
+        .support-report-table col.col-support { width: 23%; }
+        .support-report-table col.col-detail { width: 28%; }
+        .support-report-table col.col-owner { width: 16%; }
+        .support-report-table col.col-state { width: 14%; }
+        .support-report-table col.col-date { width: 14%; }
         th {
             padding: 7px 6px;
             color: #fff;
@@ -340,6 +349,19 @@
             font-weight: 800;
             white-space: nowrap;
         }
+        .project-group-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            margin-top: 5px;
+            color: rgba(255,255,255,.82);
+            font-size: 10px;
+            font-weight: 800;
+        }
+        .project-group-stats b {
+            color: #8df1e4;
+            font-weight: 900;
+        }
         .cell-title {
             color: #10233f;
             font-weight: 900;
@@ -348,6 +370,24 @@
             margin-top: 4px;
             color: #465a73;
             font-weight: 700;
+        }
+        .detail-block {
+            display: grid;
+            gap: 6px;
+        }
+        .detail-block div {
+            padding: 6px 7px;
+            border-radius: 8px;
+            background: #f8fbff;
+            border: 1px solid #e6edf6;
+        }
+        .detail-block b {
+            display: block;
+            margin-bottom: 3px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
         }
         .meta-stack {
             display: grid;
@@ -449,6 +489,7 @@
         <h1>Support Report</h1>
         <div>
             Project: @SelectedProjectName()<br />
+            BA: @SelectedBAText()<br />
             Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
             Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
             Dev: @(string.IsNullOrWhiteSpace(selectedDevStatus) ? "All Dev Statuses" : selectedDevStatus)<br />
@@ -465,6 +506,18 @@
                 {
                     <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
                         @project.ProjectDisplayName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="baEmpId">BA</label>
+            <select id="baEmpId" name="baEmpId" data-placeholder="🔍 พิมพ์ค้นหา BA..." onchange="this.form.submit()">
+                <option value="">-- All BA --</option>
+                @foreach (var ba in baList)
+                {
+                    <option value="@ba.Value" selected="@(selectedBA.HasValue && ba.Value == selectedBA.Value.ToString() ? "selected" : null)">
+                        @ba.Text
                     </option>
                 }
             </select>
@@ -530,7 +583,7 @@
         </article>
     </section>
 
-    <h2>Support List</h2>
+    <h2>Support List By Project</h2>
     @if (!orders.Any())
     {
         <div class="empty">ไม่พบรายการ Support ตามเงื่อนไขที่เลือก</div>
@@ -541,6 +594,7 @@
             <colgroup>
                 <col class="col-seq" />
                 <col class="col-support" />
+                <col class="col-detail" />
                 <col class="col-owner" />
                 <col class="col-state" />
                 <col class="col-date" />
@@ -548,8 +602,9 @@
             <thead>
                 <tr>
                     <th>Seq</th>
-                    <th>Support / Detail</th>
-                    <th>Owner</th>
+                    <th>Support</th>
+                    <th>Detail</th>
+                    <th>Owner / BA</th>
                     <th>Priority / Status</th>
                     <th>วันที่ / รูป</th>
                 </tr>
@@ -560,7 +615,8 @@
                         .GroupBy(order => new
                         {
                             order.ProjectId,
-                            ProjectName = TextOrDash(order.Project?.ProjectDisplayName)
+                            ProjectName = TextOrDash(order.Project?.ProjectDisplayName),
+                            BAName = TextOrDash(order.Project?.BA?.EmpName)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();
@@ -568,12 +624,25 @@
                 @foreach (var projectGroup in projectGroups)
                 {
                     var seq = 1;
+                    var groupOpen = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus));
+                    var groupWaitTest = projectGroup.Count(x => string.Equals(x.Status, "WAIT_TEST", StringComparison.OrdinalIgnoreCase));
+                    var groupDone = projectGroup.Count(x => IsClosed(x.Status, x.DevStatus));
+                    var groupDevFixed = projectGroup.Count(x => string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
+                    var groupOverdue = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus) && x.EndDate?.Date < today);
                     <tr class="project-group-row">
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="project-group-name">
                                 <div>
                                     <span class="project-group-label">Project</span>
                                     @projectGroup.Key.ProjectName
+                                    <div class="cell-sub">BA: @projectGroup.Key.BAName</div>
+                                    <div class="project-group-stats">
+                                        <span>Open <b>@groupOpen</b></span>
+                                        <span>Wait Test <b>@groupWaitTest</b></span>
+                                        <span>Done/Fixed <b>@groupDone</b></span>
+                                        <span>Dev Fixed <b>@groupDevFixed</b></span>
+                                        <span>Overdue <b>@groupOverdue</b></span>
+                                    </div>
                                 </div>
                                 <span class="project-group-count">@projectGroup.Count() รายการ</span>
                             </div>
@@ -588,9 +657,28 @@
                             <td class="text-center">@seq</td>
                             <td>
                                 <div class="cell-title">@TextOrDash(order.OrderTitle)</div>
-                                <div class="cell-sub long-text">@TextOrDash(order.OrderDetail)</div>
+                                <div class="cell-sub">#@order.OrderId</div>
                             </td>
-                            <td>@TextOrDash(order.Employee?.EmpName)</td>
+                            <td>
+                                <div class="detail-block">
+                                    <div>
+                                        <b>Support Detail</b>
+                                        @TextOrDash(order.OrderDetail)
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="meta-stack">
+                                    <div>
+                                        <span class="meta-label">BA</span>
+                                        <div class="meta-value">@TextOrDash(order.Project?.BA?.EmpName)</div>
+                                    </div>
+                                    <div>
+                                        <span class="meta-label">Assign To</span>
+                                        <div class="meta-value">@TextOrDash(order.Employee?.EmpName)</div>
+                                    </div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="meta-stack">
                                     <div class="meta-line">

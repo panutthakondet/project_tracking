@@ -58,10 +58,7 @@ namespace ProjectTracking.Models
         [NotMapped]
         public string PhaseDisplayName => $"{PhasePeriodLabel} - {PhaseName}";
 
-        // Period วันที่เริ่ม/สิ้นสุดงวดงาน
-        [Column("period_start_date")]
-        public DateTime? PeriodStartDate { get; set; }
-
+        // วันที่กำหนดส่งงวดงาน
         [Column("period_end_date")]
         public DateTime? PeriodEndDate { get; set; }
 
@@ -69,13 +66,6 @@ namespace ProjectTracking.Models
         // Backward compatibility
         // อย่ากระทบของเดิม
         // =============================
-        [NotMapped]
-        public DateTime? ActualStart
-        {
-            get => PeriodStartDate;
-            set => PeriodStartDate = value;
-        }
-
         [NotMapped]
         public DateTime? ActualEnd
         {

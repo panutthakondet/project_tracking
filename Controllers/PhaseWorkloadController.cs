@@ -16,7 +16,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId, string? viewMode)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId, string? workType, string? viewMode)
         {
             var currentDate = DateTime.Today;
 
@@ -37,8 +37,10 @@ namespace ProjectTracking.Controllers
                 ? parsedEmpId
                 : (int?)null;
             var selectedViewMode = NormalizeViewMode(viewMode);
+            var selectedWorkType = NormalizeWorkType(workType);
 
-            var phaseAssigns = await _context.PhaseAssigns
+            var phaseAssigns = selectedWorkType is "ALL" or "PHASE"
+                ? await _context.PhaseAssigns
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(p => p.Project)
@@ -60,9 +62,11 @@ namespace ProjectTracking.Controllers
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.PlanStart)
-                .ToListAsync();
+                .ToListAsync()
+                : new List<ProjectTracking.Models.PhaseAssign>();
 
-            var issues = await _context.ProjectIssues
+            var issues = selectedWorkType is "ALL" or "ISSUE"
+                ? await _context.ProjectIssues
                 .Include(x => x.Employee)
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
@@ -78,9 +82,11 @@ namespace ProjectTracking.Controllers
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.StartDate)
-                .ToListAsync();
+                .ToListAsync()
+                : new List<ProjectTracking.Models.ProjectIssue>();
 
-            var supportOrders = await _context.ProjectSupportOrders
+            var supportOrders = selectedWorkType is "ALL" or "SUPPORT"
+                ? await _context.ProjectSupportOrders
                 .Include(x => x.Employee)
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
@@ -97,7 +103,8 @@ namespace ProjectTracking.Controllers
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.StartDate)
-                .ToListAsync();
+                .ToListAsync()
+                : new List<ProjectTracking.Models.ProjectSupportOrder>();
 
             var items = phaseAssigns.Select(x => new PhaseWorkloadItemViewModel
                 {
@@ -114,7 +121,6 @@ namespace ProjectTracking.Controllers
                     Detail = x.Phase?.PhaseName ?? "-",
                     StartDate = x.PlanStart,
                     EndDate = x.PlanEnd,
-                    PeriodStartDate = x.Phase?.PeriodStartDate,
                     PeriodEndDate = x.Phase?.PeriodEndDate,
                     Status = x.WorkStatus ?? "",
                     WorkState = NormalizePhaseAssignState(x.WorkStatus),
@@ -171,6 +177,7 @@ namespace ProjectTracking.Controllers
             ViewBag.Month = selectedMonth;
             ViewBag.MonthTo = selectedMonthTo;
             ViewBag.SelectedEmpId = empId;
+            ViewBag.SelectedWorkType = selectedWorkType;
             ViewBag.ViewMode = selectedViewMode;
             ViewBag.MonthStart = monthStart;
             ViewBag.MonthEnd = monthEnd;
@@ -213,6 +220,17 @@ namespace ProjectTracking.Controllers
             return string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase)
                 ? "week"
                 : "day";
+        }
+
+        private static string NormalizeWorkType(string? workType)
+        {
+            return (workType ?? "").Trim().ToUpperInvariant() switch
+            {
+                "PHASE" or "ASSIGN" or "ASSIGNS" => "PHASE",
+                "ISSUE" or "ISSUES" => "ISSUE",
+                "SUPPORT" => "SUPPORT",
+                _ => "ALL"
+            };
         }
     }
 }
