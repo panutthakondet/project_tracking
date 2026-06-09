@@ -111,6 +111,14 @@ namespace ProjectTracking.Controllers
             HttpContext.Session.SetString("Username", user.Username ?? "");
             HttpContext.Session.SetString("Role", user.Role ?? "");
             HttpContext.Session.SetString("ProfileImagePath", ResolveProfileImagePath(user.ProfileImagePath));
+            if (user.EmpId.HasValue)
+            {
+                HttpContext.Session.SetInt32("EmpId", user.EmpId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove("EmpId");
+            }
 
             // ✅ Load menu permissions for this user
             // NOTE: Normalize username/menu keys (trim + case-insensitive) to avoid missing permissions

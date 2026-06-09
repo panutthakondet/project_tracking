@@ -59,11 +59,43 @@
 @section Styles {
     <style>
         body {
-            background: #e8f1fa;
+            background:
+                linear-gradient(135deg, #73acd0 0%, #9da8df 46%, #f0aebe 100%);
+            overflow: hidden;
+        }
+
+        .v2-shell-requirement-board {
+            height: 100vh;
+            min-height: 100vh;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 16% 22%, rgba(255, 255, 255, .18), transparent 34%),
+                radial-gradient(circle at 82% 18%, rgba(255, 255, 255, .14), transparent 30%),
+                linear-gradient(135deg, #73acd0 0%, #9da8df 46%, #f0aebe 100%) !important;
         }
 
         .v2-shell-requirement-board .v2-page {
             z-index: auto !important;
+            background: transparent !important;
+            padding: 0 !important;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .v2-shell-requirement-board .v2-page > .container {
+            height: 100%;
+            max-width: 100% !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .v2-shell-requirement-board main {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            padding-bottom: 0 !important;
+            overflow: hidden;
         }
 
         .v2-shell-requirement-board .modal-backdrop {
@@ -77,8 +109,13 @@
         .rb-page {
             width: 100%;
             max-width: 100%;
-            margin: 0 auto 36px;
+            height: 100%;
+            min-height: 0;
+            margin: 0 auto;
             padding-top: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .rb-hero {
@@ -148,19 +185,20 @@
 
         .rb-toolbar {
             display: flex;
+            flex: 0 0 auto;
             justify-content: space-between;
             gap: 14px;
             align-items: center;
-            margin: 16px 0;
+            margin: 0 0 16px;
             padding: 0;
         }
 
         .rb-board-strip {
             min-height: 68px;
             padding: 10px 18px;
-            border-radius: 22px;
-            background: linear-gradient(90deg, #76a8d2, #b1b9df);
-            box-shadow: 0 12px 28px rgba(44, 78, 124, .18);
+            border-radius: 0;
+            background: linear-gradient(135deg, #102746, #0b4e59);
+            box-shadow: 0 14px 32px rgba(15, 39, 70, .22);
         }
 
         .rb-search {
@@ -419,23 +457,30 @@
         }
 
         .rb-board-wrap {
+            flex: 1 1 auto;
+            min-height: 0;
             overflow-x: auto;
+            overflow-y: hidden;
             padding-bottom: 18px;
-            --rb-column-gap: 14px;
-            --rb-column-width: clamp(280px, calc((100% - 56px) / 4.45), 360px);
+            --rb-column-gap: 12px;
+            --rb-column-width: clamp(250px, calc((100% - 60px) / 5.2), 376px);
         }
 
         .rb-board {
             display: flex;
             align-items: flex-start;
             gap: var(--rb-column-gap);
-            min-height: calc(100vh - 270px);
+            height: 100%;
+            min-height: 0;
         }
 
         .rb-column {
+            display: flex;
+            flex-direction: column;
             flex: 0 0 var(--rb-column-width);
             max-width: var(--rb-column-width);
-            border-radius: 15px;
+            max-height: 100%;
+            border-radius: 14px;
             background: rgba(255, 255, 255, .94);
             box-shadow: 0 8px 18px rgba(15, 39, 70, .14);
             overflow: hidden;
@@ -444,7 +489,8 @@
         .rb-add-list-column {
             flex: 0 0 var(--rb-column-width);
             max-width: var(--rb-column-width);
-            border-radius: 15px;
+            align-self: flex-start;
+            border-radius: 14px;
             background: rgba(255, 255, 255, .34);
             border: 1px solid rgba(255, 255, 255, .38);
             box-shadow: 0 8px 18px rgba(15, 39, 70, .08);
@@ -505,8 +551,8 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            min-height: 58px;
-            padding: 12px 14px 10px;
+            min-height: 48px;
+            padding: 10px 12px 9px;
             border-bottom: 1px solid #e4edf6;
         }
 
@@ -517,7 +563,7 @@
             min-width: 0;
             margin: 0;
             color: #10213a;
-            font-size: 1.08rem;
+            font-size: .98rem;
             font-weight: 900;
             line-height: 1.25;
         }
@@ -531,14 +577,36 @@
             border-radius: 999px;
             background: transparent;
             color: #64748b;
-            font-size: 1.02rem;
+            font-size: .96rem;
             font-weight: 900;
         }
 
         .rb-card-list {
-            min-height: 160px;
-            padding: 9px;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 8px;
             transition: background .18s ease;
+        }
+
+        .rb-card-list::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        .rb-card-list::-webkit-scrollbar-track {
+            background: rgba(226, 236, 247, .68);
+            border-radius: 999px;
+        }
+
+        .rb-card-list::-webkit-scrollbar-thumb {
+            background: rgba(30, 85, 128, .42);
+            border: 2px solid rgba(226, 236, 247, .68);
+            border-radius: 999px;
+        }
+
+        .rb-card-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(20, 85, 110, .58);
         }
 
         .rb-card-list.is-over {
@@ -548,9 +616,9 @@
         .rb-card {
             display: block;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 9px;
             border: 1px solid #d4dfeb;
-            border-radius: 10px;
+            border-radius: 9px;
             background: #fff;
             color: inherit;
             text-align: left;
@@ -575,7 +643,7 @@
             position: fixed;
             top: -1000px;
             left: -1000px;
-            width: 300px;
+            width: 270px;
             pointer-events: none;
             transform: rotate(2deg);
             box-shadow: 0 18px 36px rgba(15, 39, 70, .28);
@@ -587,13 +655,13 @@
 
         .rb-card-cover {
             width: 100%;
-            height: 90px;
+            height: 72px;
             object-fit: fill;
             background: #dbe8f5;
         }
 
         .rb-card-body {
-            padding: 9px 10px 9px;
+            padding: 8px 9px 8px;
         }
 
         .rb-card-labels,
@@ -604,7 +672,7 @@
         }
 
         .rb-card-labels {
-            margin-bottom: 8px;
+            margin-bottom: 7px;
         }
 
         .rb-card-label {
@@ -627,34 +695,35 @@
 
         .rb-card .rb-card-label {
             max-width: 100%;
-            min-height: 20px;
-            padding: 2px 9px;
-            font-size: .68rem;
+            min-height: 18px;
+            padding: 2px 8px;
+            font-size: .64rem;
             line-height: 1.35;
         }
 
         .rb-card-title {
             margin: 0;
             color: #10213a;
-            font-size: .92rem;
+            font-size: .84rem;
             font-weight: 900;
-            line-height: 1.32;
+            line-height: 1.28;
             word-break: break-word;
         }
 
         .rb-add-card {
-            padding: 0 10px 10px;
+            padding: 0 9px 9px;
         }
 
         .rb-add-card details {
             border-top: 1px solid #e4edf6;
-            padding-top: 10px;
+            padding-top: 8px;
         }
 
         .rb-add-card summary {
             color: #0f766e;
-            min-height: 40px;
+            min-height: 36px;
             padding: 0 4px;
+            font-size: .94rem;
         }
 
         .rb-add-card form {
@@ -1293,27 +1362,6 @@
 }
 
 <div class="rb-page">
-    <section class="rb-hero">
-        <div>
-            <p class="rb-eyebrow">ProjectTracking</p>
-            <h1>Project Board</h1>
-        </div>
-        <div class="rb-stats" aria-label="Project board summary">
-            <div class="rb-stat">
-                <strong>@Model.Columns.Count</strong>
-                <span>หัวข้อทั้งหมด</span>
-            </div>
-            <div class="rb-stat">
-                <strong>@Model.TotalCards</strong>
-                <span>การ์ดทั้งหมด</span>
-            </div>
-            <div class="rb-stat">
-                <strong>@Model.TotalAttachments</strong>
-                <span>ไฟล์แนบ</span>
-            </div>
-        </div>
-    </section>
-
     <section class="rb-toolbar rb-board-strip">
         <div class="rb-search">
             <span class="rb-search-icon" aria-hidden="true">

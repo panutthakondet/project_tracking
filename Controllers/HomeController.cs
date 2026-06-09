@@ -577,7 +577,14 @@ namespace ProjectTracking.Controllers
                     CardId = c.CardId,
                     Title = c.Title,
                     ColumnName = c.Column != null ? c.Column.ColumnName : null,
+                    CreatedByUserId = c.CreatedByUserId,
+                    CreatedByUsername = c.CreatedByUser != null ? c.CreatedByUser.Username : null,
+                    CreatedByUserProfileImagePath = c.CreatedByUser != null ? c.CreatedByUser.ProfileImagePath : null,
                     CreatedByEmpId = c.CreatedByEmpId,
+                    CreatedByEmployeeName = c.CreatedByEmployee != null ? c.CreatedByEmployee.EmpName : null,
+                    CreatedByEmployeeProfileImagePath = c.CreatedByEmployee != null && c.CreatedByEmployee.LoginUser != null
+                        ? c.CreatedByEmployee.LoginUser.ProfileImagePath
+                        : null,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt
                 })
@@ -964,7 +971,14 @@ namespace ProjectTracking.Controllers
                     CardId = c.CardId,
                     Title = c.Title,
                     ColumnName = c.Column != null ? c.Column.ColumnName : null,
+                    CreatedByUserId = c.CreatedByUserId,
+                    CreatedByUsername = c.CreatedByUser != null ? c.CreatedByUser.Username : null,
+                    CreatedByUserProfileImagePath = c.CreatedByUser != null ? c.CreatedByUser.ProfileImagePath : null,
                     CreatedByEmpId = c.CreatedByEmpId,
+                    CreatedByEmployeeName = c.CreatedByEmployee != null ? c.CreatedByEmployee.EmpName : null,
+                    CreatedByEmployeeProfileImagePath = c.CreatedByEmployee != null && c.CreatedByEmployee.LoginUser != null
+                        ? c.CreatedByEmployee.LoginUser.ProfileImagePath
+                        : null,
                     CreatedAt = c.CreatedAt,
                     UpdatedAt = c.UpdatedAt
                 })
@@ -1338,17 +1352,27 @@ namespace ProjectTracking.Controllers
                     var isUpdated = c.UpdatedAt.HasValue && c.UpdatedAt.Value > c.CreatedAt.AddSeconds(1);
                     var title = string.IsNullOrWhiteSpace(c.Title) ? $"Card #{c.CardId}" : c.Title;
                     var columnName = string.IsNullOrWhiteSpace(c.ColumnName) ? "-" : c.ColumnName;
+                    var actorName = !string.IsNullOrWhiteSpace(c.CreatedByEmployeeName)
+                        ? c.CreatedByEmployeeName
+                        : (!string.IsNullOrWhiteSpace(c.CreatedByUsername)
+                            ? c.CreatedByUsername
+                            : employeeName(c.CreatedByEmpId));
+                    var avatarPath = !string.IsNullOrWhiteSpace(c.CreatedByEmployeeProfileImagePath)
+                        ? ResolveProfileImagePath(c.CreatedByEmployeeProfileImagePath)
+                        : (!string.IsNullOrWhiteSpace(c.CreatedByUserProfileImagePath)
+                            ? ResolveProfileImagePath(c.CreatedByUserProfileImagePath)
+                            : employeeAvatar(c.CreatedByEmpId));
 
                     return (
                         activityAt,
                         new HomeDashboardActivity
                         {
-                            Actor = employeeName(c.CreatedByEmpId),
+                            Actor = actorName,
                             Detail = $"{(isUpdated ? "อัปเดต" : "เพิ่ม")}การ์ด Project Board: {title}",
                             OwnerText = $"หัวข้อ: {columnName}",
                             TimeText = RelativeTimeThai(activityAt, now),
                             Color = "purple",
-                            AvatarPath = employeeAvatar(c.CreatedByEmpId),
+                            AvatarPath = avatarPath,
                             Url = $"/RequirementBoard?cardId={c.CardId}"
                         });
                 }));
@@ -2208,7 +2232,12 @@ namespace ProjectTracking.Controllers
             public int CardId { get; set; }
             public string Title { get; set; } = "";
             public string? ColumnName { get; set; }
+            public int? CreatedByUserId { get; set; }
+            public string? CreatedByUsername { get; set; }
+            public string? CreatedByUserProfileImagePath { get; set; }
             public int? CreatedByEmpId { get; set; }
+            public string? CreatedByEmployeeName { get; set; }
+            public string? CreatedByEmployeeProfileImagePath { get; set; }
             public DateTime CreatedAt { get; set; }
             public DateTime? UpdatedAt { get; set; }
         }

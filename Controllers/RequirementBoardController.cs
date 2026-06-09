@@ -861,7 +861,22 @@ namespace ProjectTracking.Controllers
         {
             var empId = HttpContext.Session.GetInt32("EmpId");
             if (empId != null) return empId;
-            return null;
+
+            var userId = CurrentUserId();
+            if (!userId.HasValue) return null;
+
+            var fallbackEmpId = _context.LoginUsers
+                .AsNoTracking()
+                .Where(x => x.UserId == userId.Value)
+                .Select(x => x.EmpId)
+                .FirstOrDefault();
+
+            if (fallbackEmpId.HasValue)
+            {
+                HttpContext.Session.SetInt32("EmpId", fallbackEmpId.Value);
+            }
+
+            return fallbackEmpId;
         }
 
         private sealed class RequirementLabelPayload
