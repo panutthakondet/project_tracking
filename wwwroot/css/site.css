@@ -7,7 +7,7 @@ html {
   --pt-accent-dark: #0f766e;
   --pt-accent-soft: rgba(20, 184, 166, .18);
   --pt-sidebar-bg: #081c42;
-  --pt-font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
+  --pt-font-family: 'Prompt', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
   --pt-control-font-size: 1rem;
   --bs-body-font-family: var(--pt-font-family);
   --bs-font-sans-serif: var(--pt-font-family);
@@ -2562,4 +2562,70 @@ main.route-controller-projectissues :is(
   font-size: .82rem !important;
   line-height: 1.15 !important;
   font-weight: 800 !important;
+}
+
+.app-date-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-date-input-wrap > .form-control,
+.app-date-input-wrap > input {
+  width: 100%;
+  min-width: 0;
+  padding-right: 54px !important;
+  text-align: center !important;
+}
+
+.app-date-input-wrap > input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-date-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(13, 148, 136, .24);
+  border-radius: 11px;
+  background: linear-gradient(135deg, #e7fffb, #ffffff);
+  color: #0f766e;
+  font-size: .95rem;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, .08), inset 0 1px 0 rgba(255, 255, 255, .9);
+  transform: translateY(-50%);
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.app-date-button:hover,
+.app-date-button:focus {
+  border-color: rgba(13, 148, 136, .42);
+  background: linear-gradient(135deg, #c8fbf2, #f8ffff);
+  color: #0b5f58;
+  transform: translateY(-50%) scale(1.03);
+}
+
+.app-date-button:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, .22);
+  outline-offset: 2px;
+}
+
+.app-date-native {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
 }

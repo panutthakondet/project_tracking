@@ -390,7 +390,7 @@
             border-radius: 16px;
             background: #fff;
             color: #10213a;
-            font-weight: 700;
+            font-weight: 500;
             outline: none;
         }
 
@@ -414,13 +414,205 @@
         .rb-phase-row .form-control::placeholder {
             color: #94a3b8;
             opacity: .58;
-            font-weight: 700;
+            font-weight: 500;
         }
 
         .rb-input:focus,
         .rb-textarea:focus {
             border-color: #14b8a6;
             box-shadow: 0 0 0 4px rgba(20, 184, 166, .14);
+        }
+
+        .rb-description-box {
+            display: grid;
+            gap: 12px;
+        }
+
+        .rb-description-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .rb-description-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #10213a;
+            font-size: 1.1rem;
+            font-weight: 900;
+        }
+
+        .rb-description-icon {
+            color: #27364d;
+            font-size: 1.95rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .rb-description-edit-button {
+            min-height: 42px;
+            padding: 0 18px;
+            border: 1px solid #d8e3ef;
+            border-radius: 12px;
+            background: #fff;
+            color: #334155;
+            font-weight: 900;
+            box-shadow: 0 8px 18px rgba(15, 39, 70, .06);
+        }
+
+        .rb-description-view {
+            height: 96px;
+            max-height: 96px;
+            padding: 12px 16px;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .72);
+            color: #2f3339;
+            font-size: .96rem;
+            font-weight: 500;
+            line-height: 1.45;
+            overflow: auto;
+            white-space: normal;
+            cursor: pointer;
+            transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+        }
+
+        .rb-description-view::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .rb-description-view::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(15, 118, 110, .26);
+        }
+
+        .rb-description-view:hover {
+            border-color: #d8e3ef;
+            background: #fff;
+            box-shadow: 0 10px 22px rgba(15, 39, 70, .06);
+        }
+
+        .rb-description-view h3,
+        .rb-description-rich h3 {
+            margin: 0 0 10px;
+            color: #10213a;
+            font-size: 1.08rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .rb-description-view ul,
+        .rb-description-view ol,
+        .rb-description-rich ul,
+        .rb-description-rich ol {
+            margin: 8px 0 8px 22px;
+            padding: 0;
+        }
+
+        .rb-description-view blockquote,
+        .rb-description-rich blockquote {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-left: 4px solid #14b8a6;
+            border-radius: 10px;
+            background: rgba(20, 184, 166, .08);
+        }
+
+        .rb-description-view hr,
+        .rb-description-rich hr {
+            margin: 12px 0;
+            border: 0;
+            border-top: 1px solid #d8e3ef;
+        }
+
+        .rb-description-placeholder {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .rb-description-editor {
+            overflow: hidden;
+            border: 2px solid #2563eb;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 14px 28px rgba(15, 39, 70, .08);
+        }
+
+        .rb-description-editor[hidden] {
+            display: none;
+        }
+
+        .rb-description-view[hidden] {
+            display: none;
+        }
+
+        .rb-description-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 54px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            color: #475569;
+            font-weight: 900;
+        }
+
+        .rb-description-tool {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 34px;
+            padding: 0 7px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #475569;
+            font-size: .98rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .rb-description-tool:hover {
+            background: #edf5ff;
+            color: #0f766e;
+        }
+
+        .rb-description-divider {
+            width: 1px;
+            height: 28px;
+            margin: 0 5px;
+            background: #d8e3ef;
+        }
+
+        .rb-description-hidden {
+            display: none;
+        }
+
+        .rb-description-rich {
+            min-height: 210px;
+            padding: 18px 20px;
+            border: 0;
+            border-radius: 0;
+            background: #fff;
+            color: #10213a;
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.55;
+            outline: none;
+            overflow: auto;
+            white-space: normal;
+        }
+
+        .rb-description-rich:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            font-weight: 500;
+            pointer-events: none;
         }
 
         .rb-btn {
@@ -854,19 +1046,61 @@
             align-items: center;
         }
 
+        .rb-selected-labels {
+            gap: 8px;
+        }
+
+        .rb-selected-labels .rb-card-label {
+            min-width: 128px;
+            min-height: 36px;
+            padding: 0 14px;
+            border-radius: 6px;
+            color: var(--rb-label-text, #10213a);
+            font-size: .92rem;
+            font-weight: 900;
+            line-height: 1.2;
+            box-shadow: none;
+        }
+
         .rb-label-empty {
             color: #64748b;
             font-weight: 800;
         }
 
         .rb-label-picker-button {
-            min-height: 40px;
-            padding: 0 14px;
-            border: 1px solid rgba(20, 184, 166, .36);
-            border-radius: 999px;
-            background: #e3fbf7;
-            color: #0f766e;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            padding: 0;
+            border: 1px solid #d5dde7;
+            border-radius: 7px;
+            background: #fff;
+            color: #3f4650;
+            font-size: 1.18rem;
             font-weight: 900;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(15, 39, 70, .1);
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, color .16s ease;
+        }
+
+        .rb-label-picker-button span {
+            display: block;
+            line-height: 1;
+        }
+
+        .rb-label-picker-button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(20, 184, 166, .58);
+            color: #0f766e;
+            box-shadow: 0 10px 20px rgba(15, 39, 70, .12);
+        }
+
+        .rb-label-picker-button.is-saving {
+            opacity: .7;
+            pointer-events: none;
         }
 
         .rb-label-popover {
@@ -1173,7 +1407,7 @@
         .rb-phase-row {
             position: relative;
             display: grid;
-            grid-template-columns: 100px 100px minmax(0, 1fr);
+            grid-template-columns: 72px 72px minmax(0, 1fr);
             gap: 10px;
             align-items: start;
             padding: 14px 88px 14px 14px;
@@ -1200,7 +1434,7 @@
         .rb-phase-row textarea {
             min-height: 42px;
             border-radius: 12px;
-            font-weight: 800;
+            font-weight: 500;
         }
 
         .rb-phase-row input[type="number"],
@@ -1208,14 +1442,60 @@
             text-align: center;
         }
 
+        .rb-date-input-wrap {
+            display: flex;
+            align-items: stretch;
+            min-width: 0;
+            position: relative;
+        }
+
+        .rb-date-input-wrap .form-control {
+            min-width: 0;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .rb-date-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            min-width: 42px;
+            min-height: 42px;
+            border: 1px solid #d8e3ef;
+            border-left: 0;
+            border-radius: 0 12px 12px 0;
+            background: linear-gradient(180deg, #ffffff, #f5f9fd);
+            color: #0f766e;
+            font-size: 1rem;
+            line-height: 1;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
+        }
+
+        .rb-date-button:hover {
+            background: #e3fbf7;
+            color: #0c5f59;
+        }
+
+        .rb-date-native {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 42px;
+            height: 42px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
         .rb-phase-name-field {
             min-width: 0;
         }
 
         .rb-phase-name-field textarea {
+            height: 42px;
             min-height: 42px;
             resize: vertical;
-            line-height: 1.5;
+            line-height: 1.25;
         }
 
         .rb-phase-add-footer {
@@ -1291,7 +1571,7 @@
 
         @@media (max-width: 1200px) {
             .rb-phase-row {
-                grid-template-columns: 92px 92px minmax(0, 1fr);
+                grid-template-columns: 72px 72px minmax(0, 1fr);
             }
 
             .rb-phase-date-grid {
@@ -1503,9 +1783,42 @@
                                     <label class="rb-field-label">หัวข้อ</label>
                                     <input class="rb-input" name="title" maxlength="255" value="@card.Title" required />
                                 </div>
-                                <div>
-                                    <label class="rb-field-label">รายละเอียด</label>
-                                    <textarea class="rb-textarea" name="detail">@card.Detail</textarea>
+                                <div class="rb-description-box" data-description-control>
+                                    <div class="rb-description-head">
+                                        <div class="rb-description-title">
+                                            <span class="rb-description-icon" aria-hidden="true">☰</span>
+                                            <span>คำอธิบาย</span>
+                                        </div>
+                                        <button class="rb-description-edit-button" type="button" data-description-toggle>แก้ไข</button>
+                                    </div>
+                                    <div class="rb-description-view" data-description-preview data-description-toggle role="button" tabindex="0">
+                                        @if (string.IsNullOrWhiteSpace(card.Detail))
+                                        {
+                                            <span class="rb-description-placeholder">เพิ่มคำอธิบายของการ์ด...</span>
+                                        }
+                                        else
+                                        {
+                                            @Html.Raw(System.Net.WebUtility.HtmlEncode(card.Detail ?? "").Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "<br />"))
+                                        }
+                                    </div>
+                                    <div class="rb-description-editor" data-description-editor hidden>
+                                        <div class="rb-description-toolbar" aria-label="เครื่องมือคำอธิบาย">
+                                            <button class="rb-description-tool" type="button" data-description-command="bold" title="ตัวหนา">B</button>
+                                            <button class="rb-description-tool" type="button" data-description-command="italic" title="ตัวเอียง"><em>I</em></button>
+                                            <button class="rb-description-tool" type="button" data-description-command="underline" title="ขีดเส้นใต้"><u>U</u></button>
+                                            <span class="rb-description-divider"></span>
+                                            <button class="rb-description-tool" type="button" data-description-command="bullet" title="รายการ">•≡⌄</button>
+                                            <span class="rb-description-divider"></span>
+                                            <button class="rb-description-tool" type="button" data-description-command="link" title="ลิงก์">🔗</button>
+                                        </div>
+                                        <textarea class="rb-description-hidden" name="detail">@card.Detail</textarea>
+                                        <div class="rb-description-rich"
+                                             data-description-rich
+                                             contenteditable="true"
+                                             role="textbox"
+                                             aria-multiline="true"
+                                             data-placeholder="เพิ่มคำอธิบายของการ์ด..."></div>
+                                    </div>
                                 </div>
                                 <div class="rb-label-control" data-label-control>
                                     <label class="rb-field-label mb-0">ป้าย</label>
@@ -1517,7 +1830,7 @@
                                                       style="--rb-label-color: @label.ColorHex;">@label.LabelName</span>
                                             }
                                         </div>
-                                        <button class="rb-label-picker-button" type="button" data-open-label-picker>+ เพิ่มป้าย</button>
+                                        <button class="rb-label-picker-button" type="button" data-open-label-picker title="เพิ่มป้าย" aria-label="เพิ่มป้าย"><span aria-hidden="true">+</span></button>
                                     </div>
                                     <div data-label-hidden>
                                         @foreach (var label in cardLabels)
@@ -1600,16 +1913,28 @@
                                             <button class="rb-phase-remove" type="button" data-remove-phase-row title="ลบแถว" aria-label="ลบแถว">&times;</button>
                                             <div class="rb-phase-date-grid">
                                                 <div>
-                                                    <label>Plan Start</label>
-                                                    <input class="form-control" type="text" name="phaseItems[@i].PlanStart" value="@ThaiDateValue(phaseItem?.PlanStart)" data-phase-field="PlanStart" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                    <label>วันที่เริ่ม แผนงาน</label>
+                                                    <div class="rb-date-input-wrap">
+                                                        <input class="form-control" type="text" name="phaseItems[@i].PlanStart" value="@ThaiDateValue(phaseItem?.PlanStart)" data-phase-field="PlanStart" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                        <button class="rb-date-button" type="button" data-rb-date-button aria-label="เลือกวันที่">📅</button>
+                                                        <input class="rb-date-native" type="date" tabindex="-1" aria-hidden="true" data-rb-native-date />
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label>Plan End</label>
-                                                    <input class="form-control" type="text" name="phaseItems[@i].PlanEnd" value="@ThaiDateValue(phaseItem?.PlanEnd)" data-phase-field="PlanEnd" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                    <label>วันที่สิ้นสุด แผนงาน</label>
+                                                    <div class="rb-date-input-wrap">
+                                                        <input class="form-control" type="text" name="phaseItems[@i].PlanEnd" value="@ThaiDateValue(phaseItem?.PlanEnd)" data-phase-field="PlanEnd" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                        <button class="rb-date-button" type="button" data-rb-date-button aria-label="เลือกวันที่">📅</button>
+                                                        <input class="rb-date-native" type="date" tabindex="-1" aria-hidden="true" data-rb-native-date />
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label>กำหนดส่งงวดงาน</label>
-                                                    <input class="form-control" type="text" name="phaseItems[@i].PeriodEndDate" value="@ThaiDateValue(phaseItem?.PeriodEndDate)" data-phase-field="PeriodEndDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                    <label>วันที่กำหนดส่งงวดงาน</label>
+                                                    <div class="rb-date-input-wrap">
+                                                        <input class="form-control" type="text" name="phaseItems[@i].PeriodEndDate" value="@ThaiDateValue(phaseItem?.PeriodEndDate)" data-phase-field="PeriodEndDate" data-rb-date placeholder="วัน/เดือน/พ.ศ." />
+                                                        <button class="rb-date-button" type="button" data-rb-date-button aria-label="เลือกวันที่">📅</button>
+                                                        <input class="rb-date-native" type="date" tabindex="-1" aria-hidden="true" data-rb-native-date />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1721,6 +2046,7 @@
         (() => {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             const createLabelUrl = '@Url.Action("CreateLabel", "RequirementBoard")';
+            const updateCardLabelsUrl = '@Url.Action("UpdateCardLabels", "RequirementBoard")';
             const boardLabels = @Html.Raw(labelOptionsJson);
             const searchInput = document.getElementById('requirementBoardSearch');
             const searchBox = searchInput?.closest('.rb-search');
@@ -1860,6 +2186,241 @@
                 }
             }
 
+            function sanitizeDescriptionHtml(value) {
+                const text = (value || '').trim();
+                if (!text) {
+                    return '';
+                }
+
+                const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text);
+                if (!looksLikeHtml) {
+                    return text
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;')
+                        .replace(/\r?\n/g, '<br>');
+                }
+
+                const template = document.createElement('template');
+                template.innerHTML = text;
+                const allowedTags = new Set(['A', 'B', 'BR', 'DIV', 'EM', 'FONT', 'H3', 'I', 'LI', 'OL', 'P', 'SPAN', 'STRONG', 'U', 'UL']);
+
+                template.content.querySelectorAll('*').forEach(node => {
+                    if (!allowedTags.has(node.tagName)) {
+                        node.replaceWith(document.createTextNode(node.textContent || ''));
+                        return;
+                    }
+
+                    [...node.attributes].forEach(attribute => {
+                        const name = attribute.name.toLowerCase();
+                        if (node.tagName === 'A' && name === 'href') {
+                            const href = attribute.value.trim();
+                            if (/^(https?:|mailto:|tel:|\/)/i.test(href)) {
+                                node.setAttribute('target', '_blank');
+                                node.setAttribute('rel', 'noopener noreferrer');
+                                return;
+                            }
+                        }
+
+                        if (node.tagName === 'FONT' && ['face', 'size'].includes(name)) {
+                            if (name === 'face' && /^(Prompt|Sarabun|Tahoma|Arial)$/i.test(attribute.value.trim())) return;
+                            if (name === 'size' && /^[2-5]$/.test(attribute.value.trim())) return;
+                        }
+
+                        if (!['target', 'rel'].includes(name)) {
+                            node.removeAttribute(attribute.name);
+                        }
+                    });
+                });
+
+                return template.innerHTML;
+            }
+
+            function renderDescriptionPreview(value) {
+                const html = sanitizeDescriptionHtml(value);
+                return html || '<span class="rb-description-placeholder">เพิ่มคำอธิบายของการ์ด...</span>';
+            }
+
+            function openDescriptionEditor(control) {
+                if (!control) return;
+
+                const editor = control.querySelector('[data-description-editor]');
+                const preview = control.querySelector('[data-description-preview]');
+                const rich = editor?.querySelector('[data-description-rich]');
+                if (!editor) return;
+
+                if (preview) preview.hidden = true;
+                editor.hidden = false;
+                rich?.focus();
+            }
+
+            function closeDescriptionEditor(control) {
+                if (!control) return;
+
+                const editor = control.querySelector('[data-description-editor]');
+                const preview = control.querySelector('[data-description-preview]');
+
+                if (editor) editor.hidden = true;
+                if (preview) preview.hidden = false;
+            }
+
+            function descriptionPlainText(html) {
+                const container = document.createElement('div');
+                container.innerHTML = sanitizeDescriptionHtml(html);
+                return (container.textContent || '').trim();
+            }
+
+            function escapeHtmlAttribute(value) {
+                return (value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            function syncDescriptionFromRich(control) {
+                const rich = control?.querySelector('[data-description-rich]');
+                const hidden = control?.querySelector('textarea[name="detail"]');
+                if (!rich || !hidden) return;
+
+                const html = sanitizeDescriptionHtml(rich.innerHTML);
+                hidden.value = descriptionPlainText(html) ? html : '';
+                syncDescriptionPreview(control, hidden.value);
+            }
+
+            function syncDescriptionEditors(root = document) {
+                root.querySelectorAll('[data-description-control]').forEach(syncDescriptionFromRich);
+            }
+
+            function initDescriptionEditors(root = document) {
+                root.querySelectorAll('[data-description-control]').forEach(control => {
+                    const hidden = control.querySelector('textarea[name="detail"]');
+                    const rich = control.querySelector('[data-description-rich]');
+                    if (!hidden || !rich || rich.dataset.descriptionReady === '1') return;
+
+                    rich.innerHTML = sanitizeDescriptionHtml(hidden.value);
+                    rich.dataset.descriptionReady = '1';
+                    syncDescriptionPreview(control, hidden.value);
+                });
+            }
+
+            function runDescriptionCommand(button) {
+                const editor = button.closest('[data-description-editor]');
+                const rich = editor?.querySelector('[data-description-rich]');
+                const command = button.dataset.descriptionCommand;
+                if (!rich || !command) return;
+
+                rich.focus();
+
+                if (command === 'bold') {
+                    document.execCommand('bold', false);
+                    syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    return;
+                }
+
+                if (command === 'italic') {
+                    document.execCommand('italic', false);
+                    syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    return;
+                }
+
+                if (command === 'underline') {
+                    document.execCommand('underline', false);
+                    syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    return;
+                }
+
+                if (command === 'bullet') {
+                    document.execCommand('insertUnorderedList', false);
+                    syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    return;
+                }
+
+                if (command === 'link') {
+                    const selection = window.getSelection();
+                    const selected = selection?.toString() || '';
+                    const url = window.prompt('ใส่ URL');
+                    if (!url) {
+                        rich.focus();
+                        return;
+                    }
+
+                    if (!selected) {
+                        document.execCommand(
+                            'insertHTML',
+                            false,
+                            `<a href="${escapeHtmlAttribute(url)}" target="_blank" rel="noopener noreferrer">ข้อความลิงก์</a>`
+                        );
+                        syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                        return;
+                    }
+
+                    document.execCommand('createLink', false, url);
+                    rich.querySelectorAll('a').forEach(link => {
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                    });
+                    syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    return;
+                }
+            }
+
+            function syncDescriptionPreview(control, value) {
+                const preview = control?.querySelector('[data-description-preview]');
+                if (!preview) return;
+
+                preview.innerHTML = renderDescriptionPreview(value);
+            }
+
+            async function saveCardLabels(control) {
+                if (!control) return;
+
+                const form = control.closest('[data-card-update-form]');
+                const cardId = form?.dataset.cardId || form?.querySelector('[name="cardId"]')?.value;
+                if (!cardId) return;
+
+                const labels = selectedLabelsFor(control);
+                const body = new FormData();
+                body.append('__RequestVerificationToken', token);
+                body.append('cardId', cardId);
+                labels.forEach(label => body.append('labelIds', label.labelId));
+
+                const triggerButton = control.querySelector('[data-open-label-picker]');
+                triggerButton?.classList.add('is-saving');
+
+                try {
+                    const response = await fetch(updateCardLabelsUrl, {
+                        method: 'POST',
+                        body,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'บันทึกป้ายไม่สำเร็จ');
+                    }
+
+                    const savedLabels = Array.isArray(result.labels)
+                        ? result.labels.map(normalizeLabel)
+                        : labels.map(normalizeLabel);
+                    const card = document.querySelector(`.rb-card[data-card-id="${cardId}"]`);
+                    if (card) {
+                        const title = card.querySelector('[data-card-title]')?.textContent || '';
+                        const detail = form.querySelector('[name="detail"]')?.value || '';
+                        card.dataset.searchText = `${title} ${detail} ${savedLabels.map(label => label.labelName).join(' ')}`;
+                        renderLabelCollection(card.querySelector('[data-card-labels]'), savedLabels, false, false);
+                    }
+                } catch (error) {
+                    window.alert(error.message || 'บันทึกป้ายไม่สำเร็จ');
+                } finally {
+                    triggerButton?.classList.remove('is-saving');
+                }
+            }
+
             function createLabelOption(label, checked = false) {
                 const option = document.createElement('label');
                 option.className = 'rb-label-option';
@@ -1892,8 +2453,39 @@
             }
 
             document.querySelectorAll('[data-label-control]').forEach(syncLabelControl);
+            initDescriptionEditors();
+
+            document.querySelectorAll('.rb-modal').forEach(modal => {
+                modal.addEventListener('hidden.bs.modal', () => {
+                    const descriptionControl = modal.querySelector('[data-description-control]');
+                    syncDescriptionFromRich(descriptionControl);
+                    const textarea = descriptionControl?.querySelector('textarea[name="detail"]');
+
+                    syncDescriptionPreview(descriptionControl, textarea?.value || '');
+                    closeDescriptionEditor(descriptionControl);
+                });
+            });
+
+            document.addEventListener('mousedown', event => {
+                const descriptionCommand = event.target.closest('[data-description-command]');
+                if (descriptionCommand) {
+                    event.preventDefault();
+                }
+            });
 
             document.addEventListener('click', async event => {
+                const descriptionCommand = event.target.closest('[data-description-command]');
+                if (descriptionCommand) {
+                    runDescriptionCommand(descriptionCommand);
+                    return;
+                }
+
+                const descriptionTrigger = event.target.closest('[data-description-toggle]');
+                if (descriptionTrigger) {
+                    openDescriptionEditor(descriptionTrigger.closest('[data-description-control]'));
+                    return;
+                }
+
                 const openButton = event.target.closest('[data-open-label-picker]');
                 if (openButton) {
                     const control = openButton.closest('[data-label-control]');
@@ -1963,6 +2555,7 @@
                     const createdLabel = normalizeLabel(result.label);
                     boardLabels.push(createdLabel);
                     appendLabelToAllPickers(createdLabel, control);
+                    await saveCardLabels(control);
                     if (nameInput) nameInput.value = '';
                 } catch (error) {
                     window.alert(error.message || 'สร้างป้ายไม่สำเร็จ');
@@ -1972,7 +2565,21 @@
                 }
             });
 
+            document.addEventListener('keydown', event => {
+                const descriptionPreview = event.target.closest('[data-description-preview]');
+                if (!descriptionPreview || (event.key !== 'Enter' && event.key !== ' ')) return;
+
+                event.preventDefault();
+                openDescriptionEditor(descriptionPreview.closest('[data-description-control]'));
+            });
+
             document.addEventListener('input', event => {
+                const richDescription = event.target.closest('[data-description-rich]');
+                if (richDescription) {
+                    syncDescriptionFromRich(richDescription.closest('[data-description-control]'));
+                    return;
+                }
+
                 const search = event.target.closest('[data-label-search]');
                 if (!search) return;
 
@@ -1984,11 +2591,13 @@
                 });
             });
 
-            document.addEventListener('change', event => {
+            document.addEventListener('change', async event => {
                 const checkbox = event.target.closest('[data-label-checkbox]');
                 if (!checkbox) return;
 
-                syncLabelControl(checkbox.closest('[data-label-control]'));
+                const control = checkbox.closest('[data-label-control]');
+                syncLabelControl(control);
+                await saveCardLabels(control);
             });
 
             function updateBoardCard(data, form) {
@@ -2022,6 +2631,10 @@
                 const modal = form.closest('.rb-modal');
                 if (!modal) return;
 
+                const descriptionControl = modal.querySelector('[data-description-control]');
+                syncDescriptionPreview(descriptionControl, detail);
+                closeDescriptionEditor(descriptionControl);
+
                 const modalMeta = modal.querySelector('[data-card-modal-meta]');
                 if (modalMeta && data.updatedAt) {
                     modalMeta.textContent = modalMeta.textContent.replace(/อัปเดต .*/, `อัปเดต ${data.updatedAt}`);
@@ -2046,6 +2659,7 @@
 
                 event.preventDefault();
                 if (!window.confirm('ต้องการบันทึกการ์ดนี้หรือไม่?')) return;
+                syncDescriptionEditors(form);
 
                 const submitButton = form.querySelector('button[type="submit"]');
                 const status = form.querySelector('[data-card-save-status]');
@@ -2110,7 +2724,7 @@
                 row.querySelectorAll('input, select, textarea').forEach(field => {
                     const fieldName = field.dataset.phaseField;
 
-                    if (fieldName === 'ItemId' || fieldName === 'PhaseName' || field.matches('[data-rb-date]')) {
+                    if (fieldName === 'ItemId' || fieldName === 'PhaseName' || field.matches('[data-rb-date], [data-rb-native-date]')) {
                         field.value = '';
                         return;
                     }
@@ -2183,6 +2797,66 @@
                 }
 
                 input.value = value;
+            });
+
+            function parseThaiDateToIso(value) {
+                const match = (value || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+                if (!match) return '';
+
+                const day = Number(match[1]);
+                const month = Number(match[2]);
+                let year = Number(match[3]);
+                if (year < 100) year += 2500;
+                if (year > 2400) year -= 543;
+
+                if (!day || !month || !year || month < 1 || month > 12 || day < 1 || day > 31) return '';
+                return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            }
+
+            function formatIsoDateToThai(value) {
+                const match = (value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!match) return '';
+
+                const year = Number(match[1]) + 543;
+                return `${match[3]}/${match[2]}/${year}`;
+            }
+
+            function syncDateInputFromNative(textInput, nativeInput) {
+                if (!textInput || !nativeInput?.value) return;
+
+                textInput.value = formatIsoDateToThai(nativeInput.value);
+                textInput.dispatchEvent(new Event('input', { bubbles: true }));
+                textInput.dispatchEvent(new Event('change', { bubbles: true }));
+                textInput.focus();
+            }
+
+            function openDatePickerFor(wrap) {
+                const textInput = wrap?.querySelector('[data-rb-date]');
+                const nativeInput = wrap?.querySelector('[data-rb-native-date]');
+                if (!textInput || !nativeInput) return;
+
+                nativeInput.value = parseThaiDateToIso(textInput.value);
+
+                if (typeof nativeInput.showPicker === 'function') {
+                    nativeInput.showPicker();
+                } else {
+                    nativeInput.click();
+                }
+            }
+
+            document.addEventListener('click', event => {
+                const button = event.target.closest('[data-rb-date-button]');
+                if (!button) return;
+
+                openDatePickerFor(button.closest('.rb-date-input-wrap'));
+            });
+
+            document.addEventListener('change', event => {
+                const nativeInput = event.target.closest('[data-rb-native-date]');
+                if (!nativeInput) return;
+
+                const wrap = nativeInput.closest('.rb-date-input-wrap');
+                syncDateInputFromNative(wrap?.querySelector('[data-rb-date]'), nativeInput);
             });
 
             function cleanupDragImage() {

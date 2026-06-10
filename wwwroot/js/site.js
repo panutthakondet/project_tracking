@@ -760,3 +760,163 @@
         }
     });
 })();
+
+(function () {
+    const enhancedFlag = "appDateEnhanced";
+    const textDateSelector = "input.thai-date, input[data-app-date], input[id='MeetingDateDisplay']";
+
+    function formatTypedThaiDate(value) {
+        let digits = (value || "").replace(/\D/g, "");
+        if (digits.length > 8) digits = digits.substring(0, 8);
+
+        if (digits.length >= 5) {
+            return `${digits.substring(0, 2)}/${digits.substring(2, 4)}/${digits.substring(4)}`;
+        }
+
+        if (digits.length >= 3) {
+            return `${digits.substring(0, 2)}/${digits.substring(2)}`;
+        }
+
+        return digits;
+    }
+
+    function thaiDateToIso(value) {
+        const match = (value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (!match) return "";
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        let year = Number(match[3]);
+        if (year < 100) year += 2500;
+        if (year > 2400) year -= 543;
+
+        if (!day || !month || !year || month < 1 || month > 12 || day < 1 || day > 31) return "";
+
+        const date = new Date(year, month - 1, day);
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "";
+
+        return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+
+    function isoDateToThai(value) {
+        const match = (value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return "";
+
+        return `${match[3]}/${match[2]}/${Number(match[1]) + 543}`;
+    }
+
+    function dispatchDateEvents(input) {
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function wrapInput(input) {
+        if (input.closest(".app-date-input-wrap")) return input.closest(".app-date-input-wrap");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "app-date-input-wrap";
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+
+    function openNativePicker(input) {
+        input.focus({ preventScroll: true });
+
+        if (typeof input.showPicker === "function") {
+            input.showPicker();
+            return;
+        }
+
+        input.click();
+    }
+
+    function enhanceNativeDate(input) {
+        if (!input || input.dataset[enhancedFlag] === "true") return;
+        if (input.hidden || input.type !== "date") return;
+        if (input.closest(".rb-date-input-wrap") || input.classList.contains("rb-date-native")) return;
+        if (input.classList.contains("app-date-native")) return;
+
+        input.dataset[enhancedFlag] = "true";
+        input.classList.add("app-date-input");
+
+        const wrapper = wrapInput(input);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "app-date-button";
+        button.setAttribute("aria-label", "เลือกวันที่");
+        button.textContent = "📅";
+
+        wrapper.appendChild(button);
+        button.addEventListener("click", () => openNativePicker(input));
+    }
+
+    function enhanceTextDate(input) {
+        if (!input || input.dataset[enhancedFlag] === "true") return;
+        if (input.hidden || input.type === "hidden") return;
+        if (input.closest(".rb-date-input-wrap")) return;
+
+        input.dataset[enhancedFlag] = "true";
+        input.classList.add("app-date-input");
+        input.setAttribute("inputmode", "numeric");
+        input.setAttribute("autocomplete", input.getAttribute("autocomplete") || "off");
+
+        const wrapper = wrapInput(input);
+
+        const nativeInput = document.createElement("input");
+        nativeInput.type = "date";
+        nativeInput.className = "app-date-native";
+        nativeInput.tabIndex = -1;
+        nativeInput.setAttribute("aria-hidden", "true");
+        nativeInput.value = thaiDateToIso(input.value);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "app-date-button";
+        button.setAttribute("aria-label", "เลือกวันที่");
+        button.textContent = "📅";
+
+        wrapper.appendChild(button);
+        wrapper.appendChild(nativeInput);
+
+        input.addEventListener("input", function () {
+            const cursorAtEnd = input.selectionStart === input.value.length;
+            input.value = formatTypedThaiDate(input.value);
+            nativeInput.value = thaiDateToIso(input.value);
+            if (cursorAtEnd) input.setSelectionRange(input.value.length, input.value.length);
+        });
+
+        input.addEventListener("change", function () {
+            nativeInput.value = thaiDateToIso(input.value);
+        });
+
+        button.addEventListener("click", function () {
+            nativeInput.value = thaiDateToIso(input.value);
+            openNativePicker(nativeInput);
+        });
+
+        nativeInput.addEventListener("change", function () {
+            if (!nativeInput.value) return;
+            input.value = isoDateToThai(nativeInput.value);
+            dispatchDateEvents(input);
+            input.focus({ preventScroll: true });
+        });
+    }
+
+    function enhanceDateInputs(root) {
+        const scope = root || document;
+
+        scope.querySelectorAll(textDateSelector).forEach(enhanceTextDate);
+        scope.querySelectorAll("input[type='date']").forEach(enhanceNativeDate);
+    }
+
+    window.ProjectTrackingDateInputs = {
+        init: enhanceDateInputs,
+        thaiDateToIso,
+        isoDateToThai
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        enhanceDateInputs(document);
+    });
+})();

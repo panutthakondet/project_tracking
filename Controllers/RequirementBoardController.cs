@@ -473,6 +473,31 @@ namespace ProjectTracking.Controllers
             });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCardLabels(int cardId, List<int>? labelIds)
+        {
+            var card = await _context.RequirementCards
+                .FirstOrDefaultAsync(x => x.CardId == cardId && !x.IsArchived);
+
+            if (card == null)
+            {
+                return NotFound(new { success = false, message = "ไม่พบการ์ดนี้ หรือการ์ดถูกลบแล้ว" });
+            }
+
+            card.UpdatedAt = DateTime.Now;
+            await ReplaceCardLabelsAsync(card.CardId, labelIds);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                cardId = card.CardId,
+                updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                labels = await LoadCardLabelPayloadAsync(card.CardId)
+            });
+        }
+
         [HttpGet]
         public async Task<IActionResult> ProjectCardDetails(int projectId)
         {
