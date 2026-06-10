@@ -1076,17 +1076,17 @@ main.route-action-edit img {
   border: 1px solid #d8efe9;
   border-radius: 14px;
   background: linear-gradient(180deg, #f8fffd, #f3f8ff);
-  color: #10213a;
+  color: #0f172a;
   font-size: .94rem;
-  font-weight: 750;
+  font-weight: 400;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .requirement-card-popup__empty {
-  color: #64748b;
-  font-weight: 800;
+  color: #475569;
+  font-weight: 400;
 }
 
 .requirement-card-popup__files {
@@ -1143,9 +1143,9 @@ main.route-action-edit img {
 }
 
 .requirement-card-popup__phase-meta {
-  color: #64748b;
+  color: #0f172a;
   font-size: .82rem;
-  font-weight: 800;
+  font-weight: 400;
   line-height: 1.45;
 }
 
@@ -1187,9 +1187,9 @@ main.route-action-edit img {
 }
 
 .requirement-card-popup__file-info {
-  color: #64748b;
+  color: #0f172a;
   font-size: .85rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .requirement-card-popup__file-actions {
@@ -2628,4 +2628,297 @@ main.route-controller-projectissues :is(
   opacity: 0;
   pointer-events: none;
   transform: translateY(-50%);
+}
+
+/* Keep field values lighter than labels/headings across every page. */
+:is(
+  input,
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .pt-readonly-field,
+  .search-dropdown-field .form-control,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field,
+  .choices__inner,
+  .choices__input,
+  .choices__list,
+  .ts-control,
+  .ts-dropdown,
+  .rb-input,
+  .rb-textarea,
+  .rb-description-view,
+  .rb-description-rich
+) {
+  font-weight: 500 !important;
+}
+
+:is(
+  input,
+  textarea,
+  .form-control,
+  .pt-search-select__input,
+  .select2-search__field,
+  .choices__input,
+  .rb-input,
+  .rb-textarea
+)::placeholder {
+  font-weight: 500 !important;
+}
+
+/* Card typography: keep names/titles strong, keep supporting details lighter. */
+:is(
+  .card-title,
+  .card-header,
+  .section-title,
+  .index-title,
+  .project-card-title,
+  .project-card-name,
+  .phase-card-title,
+  .assign-card-title,
+  .issue-title,
+  .issue-view-name,
+  .dev-issue-name,
+  .support-title,
+  .support-card-title,
+  .support-dev-title,
+  .followup-title,
+  .scenario-title,
+  .template-title,
+  .meeting-title,
+  .meeting-detail-title,
+  .activity-title,
+  .recent-activity-title,
+  .rb-card-title,
+  .requirement-card-popup__title,
+  .requirement-card-popup__phase-title,
+  .requirement-card-popup__file-name,
+  .dashboard-card-title,
+  .stat-card-title
+) {
+  font-weight: 900 !important;
+}
+
+:is(
+  .card,
+  .card-body,
+  .dashboard-card,
+  .pt-card,
+  .pt-form-card,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .support-card,
+  .followup-card,
+  .scenario-card,
+  .template-card,
+  .meeting-card,
+  .activity-card,
+  .recent-activity-card,
+  .rb-card,
+  .requirement-card-popup,
+  .report-card
+) :is(
+  p,
+  li,
+  dd,
+  small,
+  .small,
+  .text-muted,
+  .subtitle,
+  .description,
+  .detail,
+  .meta,
+  .remark,
+  .note,
+  .info,
+  .help-text,
+  .hint,
+  .project-card-detail,
+  .project-card-meta,
+  .project-card-system,
+  .project-card-dates,
+  .phase-card-detail,
+  .phase-card-meta,
+  .assign-card-detail,
+  .assign-card-meta,
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .issue-meta,
+  .issue-view-meta,
+  .dev-issue-meta,
+  .support-detail,
+  .support-meta,
+  .support-dev-detail,
+  .support-dev-meta,
+  .followup-detail,
+  .followup-meta,
+  .scenario-detail,
+  .scenario-meta,
+  .template-detail,
+  .template-meta,
+  .meeting-detail-value,
+  .meeting-detail-subtitle,
+  .activity-detail,
+  .activity-meta,
+  .recent-activity-detail,
+  .recent-activity-meta,
+  .rb-card-detail,
+  .rb-card-meta,
+  .requirement-card-popup__meta,
+  .requirement-card-popup__detail,
+  .requirement-card-popup__phase-meta,
+  .requirement-card-popup__file-info,
+  .pt-readonly-field,
+  .dev-readonly,
+  .issue-text-box,
+  .dev-text-box,
+  .issue-help-box,
+  .issue-edit-note
+) {
+  font-weight: 500 !important;
+}
+
+:is(
+  .card,
+  .card-body,
+  .dashboard-card,
+  .pt-card,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .support-card,
+  .followup-card,
+  .scenario-card,
+  .template-card,
+  .meeting-card,
+  .activity-card,
+  .recent-activity-card,
+  .rb-card,
+  .requirement-card-popup,
+  .report-card
+) :is(h1, h2, h3, h4, h5, h6, strong, b, label, .label) {
+  font-weight: 900 !important;
+}
+
+/* Final guard for light cards/forms: headings stay bold, details stay black and lighter. */
+html body main :is(
+  .pt-form-card,
+  .pt-card,
+  .card,
+  .card-body,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .support-card,
+  .followup-card,
+  .scenario-card,
+  .template-card,
+  .meeting-card,
+  .rb-card,
+  .requirement-card-popup__body
+) :is(
+  p,
+  li,
+  dd,
+  small,
+  .small,
+  .subtitle,
+  .description,
+  .detail,
+  .meta,
+  .remark,
+  .note,
+  .info,
+  .help-text,
+  .hint,
+  .project-card-detail,
+  .project-card-meta,
+  .project-card-system,
+  .project-card-dates,
+  .phase-card-detail,
+  .phase-card-meta,
+  .assign-card-detail,
+  .assign-card-meta,
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .issue-meta,
+  .issue-view-meta,
+  .dev-issue-meta,
+  .support-detail,
+  .support-meta,
+  .support-dev-detail,
+  .support-dev-meta,
+  .followup-detail,
+  .followup-meta,
+  .scenario-detail,
+  .scenario-meta,
+  .template-detail,
+  .template-meta,
+  .meeting-detail-value,
+  .meeting-detail-subtitle,
+  .activity-detail,
+  .activity-meta,
+  .recent-activity-detail,
+  .recent-activity-meta,
+  .rb-card-detail,
+  .rb-card-meta,
+  .rb-description-view,
+  .rb-description-rich,
+  .rb-file-info,
+  .requirement-card-popup__detail,
+  .requirement-card-popup__phase-meta,
+  .requirement-card-popup__file-info,
+  .pt-readonly-field,
+  .dev-readonly,
+  .issue-text-box,
+  .dev-text-box,
+  .issue-help-box,
+  .issue-edit-note
+) {
+  color: #0f172a !important;
+  font-weight: 400 !important;
+}
+
+html body main :is(
+  input,
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .search-dropdown-field .form-control,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field,
+  .choices__inner,
+  .choices__input,
+  .choices__list,
+  .ts-control,
+  .ts-dropdown,
+  .rb-input,
+  .rb-textarea,
+  .rb-description-view,
+  .rb-description-rich
+) {
+  color: #0f172a !important;
+  font-weight: 400 !important;
 }
