@@ -1924,11 +1924,25 @@
 
 @@container (max-width:1100px) {
     .project-overview-combined {
-        grid-template-columns:1fr;
+        grid-template-columns:minmax(0, 1fr) minmax(260px, .42fr);
+        gap:12px;
+        align-items:start;
     }
 
     .project-status-inline {
-        padding:14px;
+        justify-items:end;
+        align-self:start;
+        padding:8px 0 0 4px;
+    }
+
+    .project-status-inline .donut-layout {
+        width:min(100%, 320px) !important;
+        justify-self:end;
+        align-content:start;
+    }
+
+    .project-status-chart3d {
+        width:min(100%, 300px) !important;
     }
 
     .project-overview-table {
@@ -1996,6 +2010,22 @@
     .project-overview-date,
     .project-overview-mobile-label {
         display:none !important;
+    }
+}
+
+@@container (max-width:760px) {
+    .project-overview-combined {
+        grid-template-columns:1fr;
+    }
+
+    .project-status-inline {
+        justify-items:center;
+        padding:14px 0 0;
+    }
+
+    .project-status-inline .donut-layout {
+        width:min(100%, 360px) !important;
+        justify-self:center;
     }
 }
 
