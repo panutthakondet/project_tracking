@@ -91,7 +91,8 @@
         justify-content: flex-end;
         align-items: center;
         gap: 10px;
-        flex: 0 0 auto;
+        width: 100%;
+        margin-top: 14px;
     }
 
     .dev-hero-actions .btn {
@@ -336,19 +337,20 @@
                 <p class="dev-subtitle">ตรวจรายละเอียดปัญหา รูปประกอบ และสถานะการแก้ไขของทีมพัฒนา</p>
             </div>
 
-            <div class="dev-hero-actions">
-                <a asp-action="DevIndex"
-                   asp-route-projectId="@issue.ProjectId"
-                   class="btn btn-outline-light">
-                    กลับรายการ Dev
-                </a>
-                <a asp-action="DevEdit"
-                   asp-route-id="@issue.IssueId"
-                   asp-route-projectId="@issue.ProjectId"
-                   class="btn btn-primary">
-                    อัปเดต Dev
-                </a>
-            </div>
+        </div>
+
+        <div class="dev-hero-actions">
+            <a asp-action="DevIndex"
+               asp-route-projectId="@issue.ProjectId"
+               class="btn btn-outline-light">
+                กลับรายการ Dev
+            </a>
+            <a asp-action="DevEdit"
+               asp-route-id="@issue.IssueId"
+               asp-route-projectId="@issue.ProjectId"
+               class="btn btn-primary">
+                อัปเดต Dev
+            </a>
         </div>
     </section>
 

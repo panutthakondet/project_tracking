@@ -21,20 +21,30 @@
         <div class="alert alert-danger fw-bold">
             ❌ ไม่มีสิทธิ์เข้าหน้านี้
         </div>
-        <a class="btn btn-secondary" href="/Followups">← กลับ</a>
+        <a class="btn btn-outline-secondary" href="/Followups">← กลับ</a>
     </div>
     return;
 }
 
 <div class="container-fluid">
 
-    <h3 class="mb-3">
-        ✅ งานที่ Owner ทำเสร็จแล้ว
-    </h3>
+    <div class="index-hero pt-form-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">งานติดตามรอรับทราบ</h2>
+            <p class="index-subtitle">รายการที่ Owner ทำเสร็จแล้วและรอ ACK</p>
+        </div>
+        <div class="index-actions">
+            <a class="btn btn-outline-secondary" href="/Followups">กลับรายการ</a>
+        </div>
+    </div>
 
-    <div class="mb-3" style="max-width:300px;">
+    <div class="followup-dashboard-filter mb-3">
         <label class="form-label fw-bold">Filter Owner</label>
-        <select id="ownerFilter" class="form-select" onchange="filterOwner()">
+        <select id="ownerFilter"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Owner..."
+                onchange="filterOwner()">
             <option value="">-- All Owner --</option>
             @foreach (var o in owners)
             {
@@ -123,6 +133,11 @@
     var targetUrl = projectId != null
         ? Url.Action("Index", "Followups", new { projectId = projectId })
         : null;
+    string ownerAvatar = Convert.ToString(item.OwnerAvatar);
+    if (string.IsNullOrWhiteSpace(ownerAvatar))
+    {
+        ownerAvatar = "/images/Profile/profile.png";
+    }
 
     <div class="followup-dashboard-card success"
          data-owner="@item.Owner"
@@ -130,7 +145,10 @@
          onclick="@(targetUrl != null && HasMenu("Followups.Index") ? $"window.location.href='{targetUrl}'" : "")">
 
         <div class="followup-dashboard-header">
-            <div class="followup-dashboard-avatar">✅</div>
+            <img class="followup-dashboard-avatar"
+                 src="@ownerAvatar"
+                 alt="@item.Owner"
+                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
 
             <div class="followup-dashboard-header-content">
                 <div class="followup-dashboard-project">
@@ -208,13 +226,12 @@
 .followup-dashboard-avatar {
     width: 56px;
     height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(135deg,#16a34a,#15803d);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: #fff;
+    border: 3px solid #14b8a6;
+    box-shadow: 0 10px 22px rgba(15,23,42,.16);
     flex-shrink: 0;
 }
 

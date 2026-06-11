@@ -113,7 +113,8 @@
         justify-content: flex-end;
         align-items: center;
         gap: 10px;
-        flex: 0 0 auto;
+        width: 100%;
+        margin-top: 14px;
     }
 
     .support-detail-actions .btn {
@@ -359,22 +360,23 @@
                 <p class="support-detail-subtitle">@TextOrDash(Model.OrderTitle)</p>
             </div>
 
-            <div class="support-detail-actions">
-                <a asp-action="Index"
-                   asp-route-projectId="@Model.ProjectId"
-                   class="btn btn-outline-light">
-                    กลับรายการ Support
-                </a>
+        </div>
 
-                @if (CanMenu("SupportOrders.Edit"))
-                {
-                    <a asp-action="Edit"
-                       asp-route-id="@Model.OrderId"
-                       class="btn btn-primary">
-                        แก้ไข Support
-                    </a>
-                }
-            </div>
+        <div class="support-detail-actions">
+            <a asp-action="Index"
+               asp-route-projectId="@Model.ProjectId"
+               class="btn btn-outline-light">
+                กลับรายการ Support
+            </a>
+
+            @if (CanMenu("SupportOrders.Edit"))
+            {
+                <a asp-action="Edit"
+                   asp-route-id="@Model.OrderId"
+                   class="btn btn-primary">
+                    แก้ไข Support
+                </a>
+            }
         </div>
     </section>
 

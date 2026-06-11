@@ -3,7 +3,7 @@
 @using System.Linq
 
 @{
-    ViewData["Title"] = "Order Details";
+    ViewData["Title"] = "รายละเอียดงาน Support Dev";
 
     var order = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
     var th = new CultureInfo("th-TH");
@@ -13,7 +13,7 @@
         .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
 
     string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
     {
@@ -21,6 +21,17 @@
         "HIGH" => "danger",
         "MEDIUM" => "warning",
         "LOW" => "success",
+        _ => "muted"
+    };
+
+    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "muted",
+        "WIP" => "warning",
+        "FIXED" => "info",
+        "FAIL" => "danger",
+        "PASS" => "success",
+        "REJECT" => "muted",
         _ => "muted"
     };
 
@@ -39,27 +50,286 @@
         margin: 0;
     }
 
-    .support-dev-info {
-        min-height: 46px;
-        padding: .72rem .9rem;
-        border: 1px solid #d8e3ef;
-        border-radius: 14px;
-        color: #10233f;
-        background: #f8fbff;
-        font-weight: 800;
-        line-height: 1.45;
+    .support-dev-hero {
+        color: #fff;
+        background: linear-gradient(135deg, #10233f, #1f3b63);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 35, 64, .22);
+    }
+
+    .support-dev-hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .support-dev-hero-main {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .support-dev-eyebrow {
+        color: rgba(216, 230, 247, .86);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .support-dev-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 900;
+        line-height: 1.22;
         overflow-wrap: anywhere;
     }
 
-    .support-dev-info.is-tall {
-        min-height: 110px;
+    .support-dev-subtitle {
+        max-width: 920px;
+        margin: 8px 0 0;
+        color: #d8e6f7;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .support-dev-actions,
+    .support-dev-page-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .support-dev-actions {
+        flex: 0 0 auto;
+    }
+
+    .support-dev-page-actions {
+        margin-top: 18px;
+        padding: 16px;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .support-dev-actions .btn,
+    .support-dev-page-actions .btn {
+        min-width: 136px;
+        min-height: 42px;
+        border-radius: 999px !important;
+        font-size: .95rem;
+        font-weight: 900;
+        padding: .58rem 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
+    }
+
+    .support-dev-hero .btn-primary,
+    .support-dev-page-actions .btn-primary {
+        color: #062b2f !important;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+        border-color: transparent !important;
+    }
+
+    .support-dev-hero .btn-outline-light {
+        color: #fff !important;
+        background: rgba(255,255,255,.08);
+        border-color: rgba(255,255,255,.55) !important;
+    }
+
+    .support-dev-hero .btn-outline-light:hover {
+        background: rgba(255,255,255,.18) !important;
+    }
+
+    .support-dev-page-actions .btn-outline-secondary {
+        color: #1f3b63 !important;
+        background: #fff !important;
+        border-color: #b7c7dc !important;
+    }
+
+    .support-dev-page-actions .btn-outline-secondary:hover {
+        color: #10233f !important;
+        background: #edf5ff !important;
+    }
+
+    .support-dev-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .support-dev-summary-card,
+    .support-dev-panel {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .support-dev-summary-card {
+        min-height: 90px;
+        padding: 14px 16px;
+    }
+
+    .support-dev-summary-card small {
+        display: block;
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-dev-summary-card b {
+        color: #10233f;
+        font-size: 16px;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .support-dev-content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .support-dev-bottom-stack {
+        display: grid;
+        gap: 16px;
+    }
+
+    .support-dev-panel {
+        padding: 18px;
+    }
+
+    .support-dev-panel h3 {
+        margin: 0 0 12px;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .support-dev-info-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .support-dev-info-row {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .support-dev-info-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .support-dev-info-value {
+        color: #10233f;
         font-weight: 400;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+
+    .support-dev-text-box {
+        min-height: 150px;
+        color: #24364d;
+        font-weight: 400;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        line-height: 1.65;
         white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .support-dev-gallery-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .support-dev-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .support-dev-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+    }
+
+    .support-dev-image-card {
+        display: block;
+        width: 100%;
+        border: 1px solid #d8e3ef;
+        border-radius: 14px;
+        padding: 8px;
+        background: #f8fafc;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .support-dev-image-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .14);
+    }
+
+    .support-dev-image-card img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+    }
+
+    .support-dev-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        text-align: center;
+        font-weight: 700;
     }
 
     .status-text {
         font-weight: 900;
-        letter-spacing: .01em;
+        white-space: nowrap;
     }
 
     .status-text.success { color: #0f8f5f; }
@@ -68,123 +338,235 @@
     .status-text.danger { color: #d6294f; }
     .status-text.muted { color: #64748b; }
 
-    .support-dev-gallery {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
+    @@media (max-width: 991.98px) {
+        .support-dev-hero-top,
+        .support-dev-content-grid {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .support-dev-actions,
+        .support-dev-page-actions {
+            justify-content: flex-start;
+        }
+
+        .support-dev-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
-    .support-dev-image-card {
-        width: 170px;
-        padding: 8px;
-        border: 1px solid #d8e3ef;
-        border-radius: 14px;
-        background: #fff;
-    }
+    @@media (max-width: 575.98px) {
+        .support-dev-summary-grid,
+        .support-dev-info-row {
+            grid-template-columns: 1fr;
+        }
 
-    .support-dev-image-card img {
-        width: 100%;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
+        .support-dev-actions .btn,
+        .support-dev-page-actions .btn {
+            width: 100%;
+        }
     }
 </style>
 
 <div class="support-dev-details-page">
-    <h3 class="mb-3">Order Details</h3>
-
-    <div class="card shadow-sm pt-form-card mb-3">
-        <div class="card-body">
-            <div class="row g-3 mb-3">
-                <div class="col-md-8">
-                    <label class="fw-bold">Project</label>
-                    <div class="support-dev-info">@TextOrDash(order.Project?.ProjectDisplayName)</div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="fw-bold">Priority</label>
-                    <div class="support-dev-info">
-                        <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
-                    </div>
-                </div>
+    <section class="support-dev-hero">
+        <div class="support-dev-hero-top">
+            <div class="support-dev-hero-main">
+                <div class="support-dev-eyebrow">Support Dev #@order.OrderId</div>
+                <h1 class="support-dev-title">รายละเอียดงาน Support Dev</h1>
+                <p class="support-dev-subtitle">@TextOrDash(order.OrderTitle)</p>
             </div>
 
-            <div class="mb-3">
-                <label class="fw-bold">Title</label>
-                <div class="support-dev-info">@TextOrDash(order.OrderTitle)</div>
-            </div>
-
-            <div class="mb-3">
-                <label class="fw-bold">Detail</label>
-                <div class="support-dev-info is-tall">@TextOrDash(order.OrderDetail)</div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="fw-bold">Dev Status</label>
-                    <div class="support-dev-info">
-                        <span class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="fw-bold">วันที่เริ่ม</label>
-                    <div class="support-dev-info">@DateText(order.StartDate)</div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="fw-bold">วันที่สิ้นสุด</label>
-                    <div class="support-dev-info">@DateText(order.EndDate)</div>
-                </div>
+            <div class="support-dev-actions">
+                <a asp-action="Index"
+                   asp-route-projectId="@order.ProjectId"
+                   class="btn btn-outline-light">
+                    กลับรายการ Dev
+                </a>
+                <a asp-action="Edit"
+                   asp-route-id="@order.OrderId"
+                   class="btn btn-primary">
+                    อัปเดต Dev
+                </a>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="card shadow-sm pt-form-card mb-3">
-        <div class="card-body">
-            <label class="fw-bold mb-2">BA Images</label>
-            @if (beforeImages.Any())
+    <section class="support-dev-summary-grid">
+        <div class="support-dev-summary-card">
+            <small>Priority</small>
+            <b class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</b>
+        </div>
+        <div class="support-dev-summary-card">
+            <small>Status</small>
+            <b class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</b>
+        </div>
+        <div class="support-dev-summary-card">
+            <small>Dev Status</small>
+            <b class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</b>
+        </div>
+        <div class="support-dev-summary-card">
+            <small>Images</small>
+            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+        </div>
+    </section>
+
+    <section class="support-dev-content-grid">
+        <article class="support-dev-panel">
+            <div class="support-dev-gallery-head">
+                <h3>รูปจาก BA</h3>
+                <span class="support-dev-count">@beforeImages.Count รูป</span>
+            </div>
+
+            @if (beforeImages.Count > 0)
             {
-                <div class="support-dev-gallery">
+                <div class="support-dev-gallery-grid">
                     @foreach (var img in beforeImages)
                     {
-                        <div class="support-dev-image-card">
-                            <img src="@Url.Content("~" + img.FilePath)" alt="@TextOrDash(img.FileName)" />
-                        </div>
+                        var src = string.IsNullOrWhiteSpace(img.FilePath) ? "" : Url.Content("~/" + img.FilePath.TrimStart('/'));
+                        <button type="button"
+                                class="support-dev-image-card"
+                                onclick="previewSupportDevImage('@src')"
+                                aria-label="ดูรูปจาก BA">
+                            <img src="@src" alt="@TextOrDash(img.FileName)" />
+                        </button>
                     }
                 </div>
             }
             else
             {
-                <p class="text-muted mb-0">No BA images.</p>
+                <div class="support-dev-empty">ไม่มีรูปจาก BA</div>
             }
-        </div>
-    </div>
+        </article>
 
-    <div class="card shadow-sm pt-form-card mb-3">
-        <div class="card-body">
-            <label class="fw-bold mb-2">After Fix Images</label>
-            @if (afterImages.Any())
+        <article class="support-dev-panel">
+            <div class="support-dev-gallery-head">
+                <h3>รูปหลังแก้</h3>
+                <span class="support-dev-count">@afterImages.Count รูป</span>
+            </div>
+
+            @if (afterImages.Count > 0)
             {
-                <div class="support-dev-gallery">
+                <div class="support-dev-gallery-grid">
                     @foreach (var img in afterImages)
                     {
-                        <div class="support-dev-image-card">
-                            <img src="@img.FilePath" alt="After fix image" />
-                        </div>
+                        var src = string.IsNullOrWhiteSpace(img.FilePath) ? "" : Url.Content("~/" + img.FilePath.TrimStart('/'));
+                        <button type="button"
+                                class="support-dev-image-card"
+                                onclick="previewSupportDevImage('@src')"
+                                aria-label="ดูรูปหลังแก้">
+                            <img src="@src" alt="Support image after fix" />
+                        </button>
                     }
                 </div>
             }
             else
             {
-                <p class="text-muted mb-0">No fix images.</p>
+                <div class="support-dev-empty">ไม่มีรูปหลังแก้</div>
             }
-        </div>
-    </div>
+        </article>
+    </section>
 
-    <div class="pt-form-actions">
-        <a asp-action="Edit" asp-route-id="@order.OrderId" class="btn btn-primary">Fix Order</a>
-        <a asp-action="Index" asp-route-projectId="@order.ProjectId" class="btn btn-outline-secondary">Back</a>
+    <section class="support-dev-bottom-stack">
+        <article class="support-dev-panel">
+            <h3>ข้อมูล Support</h3>
+            <div class="support-dev-info-grid">
+                <div class="support-dev-info-row">
+                    <div class="support-dev-info-label">Project</div>
+                    <div class="support-dev-info-value">@TextOrDash(order.Project?.ProjectDisplayName)</div>
+                </div>
+                <div class="support-dev-info-row">
+                    <div class="support-dev-info-label">Title</div>
+                    <div class="support-dev-info-value">@TextOrDash(order.OrderTitle)</div>
+                </div>
+                <div class="support-dev-info-row">
+                    <div class="support-dev-info-label">Assign To</div>
+                    <div class="support-dev-info-value">
+                        @(order.Employee != null ? $"{order.Employee.EmpName} ({order.Employee.Position})" : "-")
+                    </div>
+                </div>
+                <div class="support-dev-info-row">
+                    <div class="support-dev-info-label">วันที่เริ่ม</div>
+                    <div class="support-dev-info-value">@DateText(order.StartDate)</div>
+                </div>
+                <div class="support-dev-info-row">
+                    <div class="support-dev-info-label">วันที่สิ้นสุด</div>
+                    <div class="support-dev-info-value">@DateText(order.EndDate)</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="support-dev-panel">
+            <h3>รายละเอียดงาน</h3>
+            <div class="support-dev-text-box">@TextOrDash(order.OrderDetail)</div>
+        </article>
+
+        <article class="support-dev-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="support-dev-text-box">@TextOrDash(order.DevDetail)</div>
+        </article>
+    </section>
+
+    <div class="support-dev-page-actions">
+        <a asp-action="Index"
+           asp-route-projectId="@order.ProjectId"
+           class="btn btn-outline-secondary">
+            กลับรายการ Dev
+        </a>
+        <a asp-action="Edit"
+           asp-route-id="@order.OrderId"
+           class="btn btn-primary">
+            อัปเดต Dev
+        </a>
     </div>
 </div>
+
+<div class="modal fade" id="supportDevImagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-body text-center p-2">
+                <img id="supportDevPreviewImage" src="" class="img-fluid rounded" alt="preview" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function prepareSupportDevImagePreviewModal(modalId) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return null;
+
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    modalEl.style.zIndex = '26010';
+    return modalEl;
+}
+
+function previewSupportDevImage(src) {
+    const img = document.getElementById("supportDevPreviewImage");
+    img.src = src;
+
+    const modalEl = prepareSupportDevImagePreviewModal("supportDevImagePreviewModal");
+    if (!modalEl) return;
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+        backdrop: true,
+        keyboard: true
+    });
+    modal.show();
+
+    window.setTimeout(function () {
+        modalEl.style.zIndex = '26010';
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            backdrop.style.zIndex = '26000';
+        });
+    }, 0);
+}
+</script>

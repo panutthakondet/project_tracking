@@ -1,6 +1,16 @@
 @model ProjectTracking.Models.ProjectFollowup
 
-<h3 class="fw-bold mb-4">📌 Follow‑up Detail</h3>
+@{
+    ViewData["Title"] = "รายละเอียดงานติดตาม";
+}
+
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">รายละเอียดงานติดตาม</h2>
+        <p class="index-subtitle">Follow-up #@Model.FollowupId</p>
+    </div>
+</div>
 
 <style>
 .followup-detail-card {
@@ -64,6 +74,13 @@
 .history-note {
     color: #334155;
     white-space: pre-wrap;
+}
+
+.followup-section-title {
+    margin: 0 0 14px;
+    color: #10233f;
+    font-size: 1.08rem;
+    font-weight: 900;
 }
 
 @@media (max-width:768px){
@@ -142,7 +159,7 @@
 </div>
 
 
-<h5 class="fw-bold mb-3">📜 History</h5>
+<h3 class="followup-section-title">ประวัติการติดตาม</h3>
 
 
 <div class="p-3">
@@ -176,10 +193,10 @@ else
 </div>
 
 
-<div class="mt-4">
+<div class="pt-form-actions">
     <a asp-action="Index"
        asp-route-projectId="@Model.ProjectId"
-       class="btn btn-secondary">
+       class="btn btn-outline-secondary">
         ← Back
     </a>
 </div>

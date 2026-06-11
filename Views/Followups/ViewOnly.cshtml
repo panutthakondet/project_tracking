@@ -147,13 +147,14 @@
         .pt-search-select__field { position: relative; }
         .pt-search-select__input {
             width: 100%;
-            min-height: 34px;
-            padding: 7px 38px 7px 10px;
+            min-height: 52px;
+            padding: 12px 44px 12px 14px;
+            border-radius: 14px;
             border: 1px solid #cbd5e1;
             color: #10233f;
             background: #fff;
             font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 12px;
+            font-size: 1rem;
             font-weight: 800;
             outline: none;
         }
@@ -176,12 +177,12 @@
         .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
         .pt-search-select__option {
             width: 100%;
-            padding: 8px 10px;
+            padding: 12px 14px;
             border: 0;
             color: #10233f;
             background: #fff;
             font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 12px;
+            font-size: .96rem;
             font-weight: 800;
             line-height: 1.35;
             text-align: left;
@@ -433,7 +434,7 @@
     <form method="get" class="filter-panel">
         <div class="field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
+            <select id="projectId" name="projectId" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
@@ -445,7 +446,7 @@
         </div>
         <div class="field">
             <label for="owner">Owner</label>
-            <select id="owner" name="owner" data-placeholder="🔍 พิมพ์ค้นหา Owner..." onchange="this.form.submit()">
+            <select id="owner" name="owner" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหา Owner..." onchange="this.form.submit()">
                 <option value="">-- All Owners --</option>
                 @foreach (var item in ownerList)
                 {
@@ -455,7 +456,7 @@
         </div>
         <div class="field">
             <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+            <select id="status" name="status" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
                 <option value="">-- All Statuses --</option>
                 @foreach (var item in statusList)
                 {

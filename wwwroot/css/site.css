@@ -1511,6 +1511,171 @@ main:is(.route-action-delete, .route-action-details, .route-action-show) dd {
   font-weight: 700;
 }
 
+/* ===== Followups Theme ===== */
+main.route-controller-followups {
+  color: #10233f;
+}
+
+main.route-controller-followups > form,
+main.route-controller-followups > .card,
+main.route-controller-followups .followup-detail-card,
+main.route-controller-followups .followup-history-card,
+main.route-controller-followups .followup-filter,
+main.route-controller-followups .followup-dashboard-filter,
+main.route-controller-followups .container-fluid > .mb-3:has(> label + select),
+main.route-controller-followups .container-fluid > .mb-3[style*="max-width"] {
+  border: 1px solid #d8e3ef !important;
+  border-radius: 22px !important;
+  background: #fff !important;
+  box-shadow: 0 12px 28px rgba(15, 35, 64, .08) !important;
+}
+
+main.route-controller-followups > form,
+main.route-controller-followups .followup-filter,
+main.route-controller-followups .followup-dashboard-filter,
+main.route-controller-followups .container-fluid > .mb-3:has(> label + select),
+main.route-controller-followups .container-fluid > .mb-3[style*="max-width"] {
+  padding: 18px !important;
+}
+
+main.route-controller-followups :is(label, .form-label, .followup-label, .info-label, .history-label, .followup-task-label) {
+  color: #64748b !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+main.route-controller-followups :is(.form-control, .form-select, .pt-search-select__input) {
+  min-height: 52px;
+  border: 1px solid #d8e3ef !important;
+  border-radius: 14px !important;
+  color: #10233f !important;
+  background-color: #f8fbff !important;
+  font-weight: 400 !important;
+}
+
+main.route-controller-followups .pt-search-select {
+  width: 100%;
+  min-width: 0;
+}
+
+main.route-controller-followups .pt-search-select__input {
+  padding: 12px 44px 12px 14px !important;
+  font-size: 1rem !important;
+}
+
+main.route-controller-followups .pt-search-select__option {
+  padding: 12px 14px !important;
+  font-size: .96rem !important;
+}
+
+main.route-controller-followups textarea.form-control {
+  min-height: 132px;
+  line-height: 1.6;
+}
+
+main.route-controller-followups :is(.btn) {
+  min-height: 42px;
+  border-radius: 999px !important;
+  padding-inline: 1.05rem;
+  font-weight: 800 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  line-height: 1.2;
+}
+
+main.route-controller-followups :is(.btn-primary, .btn-success) {
+  color: #062b2f !important;
+  background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+  border-color: transparent !important;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .16);
+}
+
+main.route-controller-followups :is(.btn-secondary, .btn-outline-secondary) {
+  color: #1f3b63 !important;
+  background: #fff !important;
+  border-color: #b7c7dc !important;
+}
+
+main.route-controller-followups :is(.btn-outline-primary, .btn-info, .btn-outline-info) {
+  color: #075985 !important;
+  background: linear-gradient(135deg, rgba(224, 242, 254, .98), rgba(186, 230, 253, .92)) !important;
+  border-color: #7dd3fc !important;
+}
+
+main.route-controller-followups :is(.btn-outline-success) {
+  color: #047857 !important;
+  background: linear-gradient(135deg, rgba(209, 250, 229, .98), rgba(167, 243, 208, .92)) !important;
+  border-color: #6ee7b7 !important;
+}
+
+main.route-controller-followups :is(.btn-danger, .btn-outline-danger) {
+  color: #b91c1c !important;
+  background: linear-gradient(135deg, rgba(254, 226, 226, .98), rgba(254, 202, 202, .92)) !important;
+  border-color: #fca5a5 !important;
+}
+
+main.route-controller-followups :is(.btn-warning, .btn-outline-warning) {
+  color: #92400e !important;
+  background: linear-gradient(135deg, rgba(254, 243, 199, .98), rgba(253, 230, 138, .92)) !important;
+  border-color: #fbbf24 !important;
+}
+
+main.route-controller-followups :is(.pt-form-actions, .followup-actions, .followup-modal__actions) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+main.route-controller-followups :is(.pt-form-actions, .followup-modal__actions) {
+  margin-top: 18px;
+}
+
+main.route-controller-followups :is(.pt-form-actions .btn, .followup-modal__actions .btn) {
+  min-width: 132px;
+}
+
+main.route-controller-followups .followup-actions .btn {
+  min-width: 84px;
+  min-height: 38px;
+  padding-inline: .85rem;
+}
+
+main.route-controller-followups .followup-actions form {
+  display: inline-flex !important;
+  margin: 0;
+}
+
+main.route-controller-followups .followup-card,
+main.route-controller-followups .followup-dashboard-card,
+main.route-controller-followups .history-item,
+main.route-controller-followups .info-box,
+main.route-controller-followups .history-box,
+main.route-controller-followups .followup-task-box {
+  border-color: #d8e3ef !important;
+  box-shadow: 0 8px 20px rgba(15, 35, 64, .06);
+}
+
+main.route-controller-followups .followup-card,
+main.route-controller-followups .followup-dashboard-card {
+  border-radius: 18px !important;
+}
+
+main.route-controller-followups .followup-avatar,
+main.route-controller-followups .followup-dashboard-avatar {
+  border-radius: 50% !important;
+  object-fit: cover;
+  border: 3px solid #14b8a6 !important;
+  box-shadow: 0 10px 22px rgba(15,23,42,.16);
+}
+
+main.route-controller-followups :is(.followup-title, .followup-dashboard-project, .followup-task-title, .history-number, .info-value) {
+  color: #10233f !important;
+}
+
 @media (max-width: 575.98px) {
   main:is(
     .route-action-delete,

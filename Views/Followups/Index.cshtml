@@ -50,7 +50,8 @@
         <label for="projectId">📁 โครงการ</label>
         <select id="projectId"
                 name="projectId"
-                class="form-select"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Project..."
                 onchange="this.form.submit()"
                 asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectDisplayName", selectedProjectId))">
             <option value="">-- ทุก Project --</option>
@@ -61,7 +62,8 @@
         <label for="ownerEmpId">👤 ผู้รับผิดชอบ</label>
         <select id="ownerEmpId"
                 name="ownerEmpId"
-                class="form-select"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Owner..."
                 onchange="this.form.submit()">
             <option value="">-- ทุกคน --</option>
             @foreach (var owner in ownerEmployees)
@@ -527,13 +529,19 @@
 .followup-actions {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
     gap: 8px;
     margin-top: 16px;
 }
 
 .followup-actions .btn {
-    flex: 1 1 calc(33.33% - 8px);
-    min-width: 90px;
+    flex: 0 0 auto;
+    min-width: 84px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .followup-modal {
@@ -648,6 +656,8 @@
 
 .followup-modal__actions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-end;
     gap: 12px;
     margin-top: 24px;
@@ -718,7 +728,10 @@
             <div class="followup-modal__grid">
                 <div class="followup-modal__field">
                     <label for="quickContactType">Contact Type</label>
-                    <select id="quickContactType" name="ContactType" class="form-select">
+                    <select id="quickContactType"
+                            name="ContactType"
+                            class="form-select form-select-lg"
+                            data-placeholder="🔍 ค้นหา Contact Type...">
                         <option value="Call">Call</option>
                         <option value="Email">Email</option>
                         <option value="Meeting">Meeting</option>
@@ -737,7 +750,7 @@
             </div>
 
             <div class="followup-modal__actions">
-                <button type="button" class="btn btn-secondary" onclick="closeQuickLog()">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="closeQuickLog()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
@@ -767,7 +780,7 @@
             </div>
 
             <div class="followup-modal__actions">
-                <button type="button" class="btn btn-secondary" onclick="closeDonePopup()">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="closeDonePopup()">Cancel</button>
                 <button type="submit" class="btn btn-success">Done</button>
             </div>
         </form>

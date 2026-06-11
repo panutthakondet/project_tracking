@@ -1,6 +1,8 @@
 @model ProjectTracking.Models.ProjectSupportOrder
 
 @{
+    ViewData["Title"] = "เพิ่มงานสนับสนุน";
+
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
     var projectId = Model?.ProjectId ?? 0;
@@ -17,8 +19,16 @@
     string endDateText = ThaiDateText(endDate);
 }
 
-<h3>เพิ่มงานสนับสนุน</h3>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">เพิ่มงานสนับสนุน</h2>
+        <p class="index-subtitle">บันทึกงาน Support ใหม่ของโครงการ</p>
+    </div>
+</div>
 
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
 <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
 @Html.AntiForgeryToken()
 
@@ -96,10 +106,14 @@
 <input type="file" name="files" multiple class="form-control"/>
 </div>
 
+<div class="pt-form-actions">
 <button class="btn btn-primary">Save</button>
-<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary ms-2">Back</a>
+<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-outline-secondary">Back</a>
+</div>
 
 </form>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

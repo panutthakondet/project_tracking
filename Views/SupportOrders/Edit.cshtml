@@ -3,6 +3,8 @@
 @model ProjectTracking.Models.ProjectSupportOrder
 
 @{
+    ViewData["Title"] = "แก้ไขงานสนับสนุน";
+
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
     var supportOrder = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
@@ -19,8 +21,16 @@
     string endDateText = ThaiDateText(endDate);
 }
 
-<h3>แก้ไขงานสนับสนุน</h3>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">แก้ไขงานสนับสนุน</h2>
+        <p class="index-subtitle">Support Order #@supportOrder.OrderId</p>
+    </div>
+</div>
 
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
 <form asp-action="Edit" asp-route-id="@supportOrder.OrderId" asp-route-projectId="@supportOrder.ProjectId" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
 
@@ -125,6 +135,8 @@
     </div>
 
 </form>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

@@ -20,8 +20,16 @@
     string endDateText = ThaiDateText(endDate);
 }
 
-<h3>เพิ่มข้อมูลปัญหาโครงการ</h3>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">เพิ่มข้อมูลปัญหาโครงการ</h2>
+        <p class="index-subtitle">@projectName</p>
+    </div>
+</div>
 
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
 <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
 @Html.AntiForgeryToken()
 
@@ -115,10 +123,14 @@
 <small class="text-muted">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
 </div>
 
+<div class="pt-form-actions">
 <button class="btn btn-primary">Save</button>
-<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-secondary ms-2">Back</a>
+<a asp-action="Index" asp-route-projectId="@projectId" class="btn btn-outline-secondary">Back</a>
+</div>
 
 </form>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

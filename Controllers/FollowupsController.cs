@@ -75,6 +75,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
                 .Where(x => x.Status == "DONE")
                 .OrderBy(x => x.NextFollowupDate)
                 .Select(x => new
@@ -87,6 +88,9 @@ namespace ProjectTracking.Controllers
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
+                    OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
+                        ? x.Owner.LoginUser.ProfileImagePath
+                        : null,
                     NextFollowupDate = x.NextFollowupDate ?? today,
                     Status =
                         x.NextFollowupDate == null ? "Done" :
@@ -110,6 +114,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
                 .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
                 .OrderByDescending(x => x.LastContactDate)
                 .Select(x => new
@@ -122,6 +127,9 @@ namespace ProjectTracking.Controllers
                     x.TaskTitle,
                     x.PartnerName,
                     Owner = x.Owner != null ? x.Owner.EmpName : "",
+                    OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
+                        ? x.Owner.LoginUser.ProfileImagePath
+                        : null,
                     NextFollowupDate = x.NextFollowupDate ?? today,
                     Status = "ACK"
                 })
@@ -348,6 +356,7 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
                 .FirstOrDefaultAsync(x => x.FollowupId == id);
 
             if (followup == null)

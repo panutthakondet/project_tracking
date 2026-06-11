@@ -1382,6 +1382,20 @@
     background:rgba(255,255,255,.08) !important;
 }
 
+.dropdown-header{
+    padding:8px 13px 4px;
+    color:#8df1e4 !important;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+}
+
+.dropdown-divider{
+    margin:7px 13px 5px;
+    border-color:rgba(141,241,228,.22);
+}
+
 .nav-spacer{
     flex:1 1 auto;
     min-height:20px;
@@ -1738,11 +1752,20 @@
                   || CanMenu("SupportOrdersDev.Index");
 
 	    var canTestScenarios = CanMenu("TestScenarios.Index")
+                             || CanMenu("TestScenarios.Create")
+                             || CanMenu("TestScenarios.Edit")
+                             || CanMenu("TestScenarios.Import")
+                             || CanMenu("TestScenarios.Export")
 	                         || CanMenu("TestScenarioTemplates.Index")
 	                         || CanMenu("TestTemplateGroups.Index");
 
+        var canTestIssuesSupport = canTestScenarios
+                                || canIssues
+                                || canSupport;
+
 	    var canEmployees = CanMenu("Employees.Index")
-	                      || CanMenu("PhaseWorkload.Index");
+	                      || CanMenu("PhaseWorkload.Index")
+                          || CanMenu("Meetings.Index");
 
 	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
@@ -1754,6 +1777,9 @@
                     || CanMenu("Followups.Dashboard")
                     || CanMenu("Followups.DashboardDone")
                     || CanMenu("Followups.DashboardACK");
+
+    var canFollowAtten = CanMenu("Attendance.Index")
+                      || canFollowups;
 
     var followupAlertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
     var followupDoneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
@@ -1840,25 +1866,19 @@
                             </li>
                         }
 
-                        @if (CanMenu("Meetings.Index"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="Meetings" ? "active-menu" : "")" asp-controller="Meetings" asp-action="Index">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
-                                    <span class="nav-label">Meetings</span>
-                                </a>
-                            </li>
-                        }
-
                         @if (canEmployees)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" || controller=="Meetings" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown" title="Employees">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
                                     <span class="nav-label">Employees</span>
                                 </a>
                                 <ul class="dropdown-menu">
+                                    @if (CanMenu("Employees.Index") || CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><h6 class="dropdown-header">Employees</h6></li>
+                                    }
                                     @if (CanMenu("Employees.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
@@ -1867,19 +1887,41 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
                                     }
+                                    @if (CanMenu("Meetings.Index"))
+                                    {
+                                        @if (CanMenu("Employees.Index") || CanMenu("PhaseWorkload.Index"))
+                                        {
+                                            <li><hr class="dropdown-divider" /></li>
+                                        }
+                                        <li><h6 class="dropdown-header">Meetings</h6></li>
+                                        <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">Meetings</a></li>
+                                    }
                                 </ul>
                             </li>
                         }
 
-                        @if (CanMenu("Projects.Index") || CanMenu("ProjectDocuments.Index") || canProjectStatus)
+                        @if (CanMenu("Projects.Index")
+                            || CanMenu("ProjectDocuments.Index")
+                            || canProjectStatus
+                            || CanMenu("ProjectPhases.Index")
+                            || CanMenu("PhaseCalendar.Index")
+                            || canAssignPhase)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Projects" || controller=="ProjectDocuments" || controller=="ProjectStatus" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(
+                                    controller=="Projects"
+                                    || controller=="ProjectDocuments"
+                                    || controller=="ProjectStatus"
+                                    || controller=="ProjectPhases"
+                                    || controller=="PhaseCalendar"
+                                    || (controller=="PhaseAssigns" && action!="Print")
+                                    ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/projects.svg" alt="" /></span>
                                     <span class="nav-label">Projects</span>
                                 </a>
                                 <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Projects</h6></li>
                                     @if (CanMenu("Projects.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Projects" asp-action="Index">บันทึกข้อมูลโครงการ</a></li>
@@ -1892,22 +1934,11 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectStatus" asp-action="Index">สถานะโครงการ</a></li>
                                     }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (CanMenu("ProjectPhases.Index") || CanMenu("PhaseCalendar.Index"))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(
-                                    controller=="ProjectPhases" 
-                                    || controller=="PhaseCalendar"
-                                    ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/phases.svg" alt="" /></span>
-                                    <span class="nav-label">Project Phases</span>
-                                </a>
-                                <ul class="dropdown-menu">
+                                    @if (CanMenu("ProjectPhases.Index") || CanMenu("PhaseCalendar.Index"))
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><h6 class="dropdown-header">Project Phases</h6></li>
+                                    }
                                     @if (CanMenu("ProjectPhases.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectPhases" asp-action="Index">บันทึกข้อมูลงวดงาน</a></li>
@@ -1916,44 +1947,39 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseCalendar" asp-action="Index">ปฏิทินกำหนดส่งงาน</a></li>
                                     }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (canAssignPhase)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="PhaseAssigns" && action!="Print" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/assign.svg" alt="" /></span>
-                                    <span class="nav-label">Assign Phase</span>
-                                </a>
-                                <ul class="dropdown-menu">
                                     @if (CanMenu("PhaseAssigns.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">มอบหมายงวดงาน</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><h6 class="dropdown-header">Phase Assigns</h6></li>
+                                        <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">Phase Assigns</a></li>
                                     }
                                 </ul>
                             </li>
                         }
 
-                        @if (canTestScenarios)
+                        @if (canTestIssuesSupport)
                         {
                             <li class="nav-item dropdown">
 	                                <a class="nav-link dropdown-toggle @(
-	                                    controller=="TestScenarios"
-	                                    && action!="PrintReport"
+	                                    (controller=="TestScenarios" && action!="PrintReport")
 	                                    || controller=="TestScenarioTemplates"
 	                                    || controller=="TestTemplateGroups"
+                                        || (controller=="ProjectIssues" && action!="ViewOnly")
+                                        || controller=="SupportOrders"
+                                        || controller=="SupportOrdersDev"
 	                                    ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/test-scenarios.svg" alt="" /></span>
-                                    <span class="nav-label">Test Scenario</span>
+                                    <span class="nav-label">Edit&amp;Scenario</span>
                                 </a>
                                 <ul class="dropdown-menu">
+                                    @if (canTestScenarios)
+                                    {
+                                        <li><h6 class="dropdown-header">Test</h6></li>
+                                    }
                                     @if (CanMenu("TestScenarios.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">จัดการ Test Scenario</a></li>
+                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">Test Scenarios</a></li>
                                     }
                                     @if (CanMenu("TestScenarioTemplates.Index"))
                                     {
@@ -1963,19 +1989,14 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">กลุ่ม Template</a></li>
                                     }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (canIssues)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="ProjectIssues" && action!="ViewOnly" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/issues.svg" alt="" /></span>
-                                    <span class="nav-label">Issues</span>
-                                </a>
-                                <ul class="dropdown-menu">
+                                    @if (canIssues)
+                                    {
+                                        @if (canTestScenarios)
+                                        {
+                                            <li><hr class="dropdown-divider" /></li>
+                                        }
+                                        <li><h6 class="dropdown-header">Issues</h6></li>
+                                    }
                                     @if (CanMenu("ProjectIssues.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="Index">บันทึกข้อมูลปัญหาโครงการ</a></li>
@@ -1984,19 +2005,14 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="ProjectIssues" asp-action="DevIndex">ตรวจสอบปัญหาโครงการ</a></li>
                                     }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (canSupport)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="SupportOrders" || controller=="SupportOrdersDev" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/workload.svg" alt="" /></span>
-                                    <span class="nav-label">Support</span>
-                                </a>
-                                <ul class="dropdown-menu">
+                                    @if (canSupport)
+                                    {
+                                        @if (canTestScenarios || canIssues)
+                                        {
+                                            <li><hr class="dropdown-divider" /></li>
+                                        }
+                                        <li><h6 class="dropdown-header">Support</h6></li>
+                                    }
                                     @if (CanMenu("SupportOrders.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="SupportOrders" asp-action="Index">บันทึกงานรับประกัน</a></li>
@@ -2009,32 +2025,28 @@
                             </li>
                         }
 
-                        @if (CanMenu("Attendance.Index"))
+                        @if (canFollowAtten)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Attendance" && action!="Map" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(((controller=="Attendance" && action!="Map") || controller=="Followups") ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
-                                    <span class="nav-label">Attendance</span>
+                                    <span class="nav-label">Follow&amp;Atten</span>
                                 </a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("Attendance.Index"))
                                     {
+                                        <li><h6 class="dropdown-header">Attendance</h6></li>
                                         <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Index">เช็คเข้าออกงาน</a></li>
                                     }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (canFollowups)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Followups" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/followups.svg" alt="" /></span>
-                                    <span class="nav-label">Followups</span>
-                                </a>
-                                <ul class="dropdown-menu">
+                                    @if (canFollowups)
+                                    {
+                                        @if (CanMenu("Attendance.Index"))
+                                        {
+                                            <li><hr class="dropdown-divider" /></li>
+                                        }
+                                        <li><h6 class="dropdown-header">Followups</h6></li>
+                                    }
                                     @if (CanMenu("Followups.Index"))
                                     {
                                         <li>

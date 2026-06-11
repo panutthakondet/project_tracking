@@ -4,16 +4,22 @@
     ViewData["Title"] = "แก้ไขงานติดตาม";
 }
 
-
-<h3>แก้ไขงานติดตาม</h3>
-<div class="mb-3">
-    <label class="form-label">Project</label>
-    <input type="text" class="form-control" value="@ViewBag.ProjectName" readonly />
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">แก้ไขงานติดตาม</h2>
+        <p class="index-subtitle">Follow-up #@Model.FollowupId</p>
+    </div>
 </div>
 
 <form asp-action="Edit" method="post">
     <input type="hidden" asp-for="FollowupId" />
     <input type="hidden" asp-for="ProjectId" />
+
+    <div class="mb-3">
+        <label class="form-label">Project</label>
+        <input type="text" class="form-control" value="@ViewBag.ProjectName" readonly />
+    </div>
 
     <div class="form-group mb-3">
         <label asp-for="TaskTitle" class="form-label">Task</label>
@@ -27,7 +33,9 @@
 
     <div class="form-group mb-3">
         <label asp-for="OwnerEmpId" class="form-label">Owner</label>
-        <select asp-for="OwnerEmpId" class="form-control"
+        <select asp-for="OwnerEmpId"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Owner..."
                 asp-items="@(new SelectList(ViewBag.Employees ?? new List<ProjectTracking.Models.Employee>(), "EmpId", "EmpName"))">
             <option value="">-- เลือก Owner --</option>
         </select>
@@ -40,7 +48,9 @@
 
     <div class="form-group mb-3">
         <label asp-for="Status" class="form-label">Status</label>
-        <select asp-for="Status" class="form-control">
+        <select asp-for="Status"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหา Status...">
             <option value="OPEN">OPEN</option>
             <option value="IN_PROGRESS">IN_PROGRESS</option>
             <option value="DONE">DONE</option>

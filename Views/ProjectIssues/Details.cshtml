@@ -74,7 +74,8 @@
         justify-content: flex-end;
         align-items: center;
         gap: 10px;
-        flex: 0 0 auto;
+        width: 100%;
+        margin-top: 14px;
     }
 
     .issue-hero-actions .btn {
@@ -303,23 +304,24 @@
                 <h1 class="issue-title">รายละเอียด Issue</h1>
             </div>
 
-            <div class="issue-hero-actions">
-                <a asp-action="Index"
-                   asp-route-projectId="@issue?.ProjectId"
-                   class="btn btn-outline-light">
-                    กลับรายการ Issue
-                </a>
+        </div>
 
-                @if (issue != null && CanMenu("ProjectIssues.Edit"))
-                {
-                    <a asp-action="Edit"
-                       asp-route-id="@issue.IssueId"
-                       asp-route-projectId="@issue.ProjectId"
-                       class="btn btn-primary">
-                        แก้ไข Issue
-                    </a>
-                }
-            </div>
+        <div class="issue-hero-actions">
+            <a asp-action="Index"
+               asp-route-projectId="@issue?.ProjectId"
+               class="btn btn-outline-light">
+                กลับรายการ Issue
+            </a>
+
+            @if (issue != null && CanMenu("ProjectIssues.Edit"))
+            {
+                <a asp-action="Edit"
+                   asp-route-id="@issue.IssueId"
+                   asp-route-projectId="@issue.ProjectId"
+                   class="btn btn-primary">
+                    แก้ไข Issue
+                </a>
+            }
         </div>
     </section>
 
