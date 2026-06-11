@@ -510,6 +510,127 @@ html body :is(
   font-weight: 400 !important;
 }
 
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .pt-readonly-field,
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .issue-text-box,
+  .dev-text-box,
+  .dev-readonly,
+  .issue-help-box,
+  .issue-edit-note,
+  .issue-info-value,
+  .issue-meta,
+  .issue-view-meta,
+  .dev-issue-meta,
+  .issue-summary-card b,
+  .support-detail,
+  .support-text-box,
+  .support-info-value,
+  .support-summary-card b,
+  .support-meta-pill,
+  .support-dev-detail,
+  .support-dev-info,
+  .support-dev-readonly,
+  .support-dev-pill
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 400 !important;
+}
+
+html body main.route-controller-projectissues .dev-detail-page :is(
+  .dev-summary-card small,
+  .dev-info-label,
+  .dev-panel h3,
+  .dev-gallery-head h3
+) {
+  font-weight: 900 !important;
+}
+
+html body main.route-controller-projectissues .dev-detail-page :is(
+  .dev-summary-card b,
+  .dev-summary-card .status-text,
+  .dev-info-value,
+  .dev-text-box
+) {
+  font-weight: 400 !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  label,
+  .form-label,
+  .issue-info-label,
+  .support-info-label,
+  .issue-panel h3,
+  .support-panel h3,
+  .issue-gallery-head h3,
+  .support-gallery-head h3
+) {
+  font-weight: 700 !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+),
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) * {
+  text-shadow: none !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .pt-readonly-field,
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .issue-text-box,
+  .dev-text-box,
+  .dev-readonly,
+  .issue-help-box,
+  .issue-edit-note,
+  .issue-info-value,
+  .issue-summary-card b,
+  .support-detail,
+  .support-text-box,
+  .support-info-value,
+  .support-summary-card b,
+  .support-dev-detail,
+  .support-dev-info,
+  .support-dev-readonly
+) :is(b, strong):not(.status-text) {
+  font-weight: 400 !important;
+}
+
 html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-eyebrow {
   color: #dbeafe !important;
   font-weight: 700 !important;
@@ -533,4 +654,15 @@ html body main.route-controller-phaseworkload .workload-hero.index-hero .index-h
   -webkit-text-fill-color: #ffffff !important;
   opacity: 1 !important;
   font-weight: 500 !important;
+}
+
+html body .dev-detail-page :is(
+  .dev-summary-card small,
+  .dev-info-label
+) {
+  color: #10233f !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  font-variation-settings: "wght" 900 !important;
+  -webkit-text-stroke: .18px currentColor;
 }

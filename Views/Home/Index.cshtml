@@ -1497,9 +1497,9 @@
 .compact-panel { min-height:198px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
 .panel-task { order:3; grid-column:span 24; min-height:252px; }
-.panel-watch { order:4; grid-column:span 24; min-height:278px; }
-.panel-issues { order:6; grid-column:span 14; min-height:298px; }
-.panel-time { order:5; grid-column:span 10; min-height:278px; }
+.panel-time { order:4; grid-column:span 10; min-height:278px; }
+.panel-issues { order:5; grid-column:span 14; min-height:336px; }
+.panel-watch { order:6; grid-column:span 24; min-height:278px; }
 .panel-team { order:8; grid-column:span 12; min-height:278px; }
 .panel-activity { order:8; grid-column:span 12; min-height:278px; }
 .panel-meetings { order:9; grid-column:span 12; min-height:340px; }
@@ -2153,7 +2153,7 @@
 
 .panel-issues .compact-donut-layout {
     grid-template-columns:1fr;
-    gap:10px;
+    gap:12px;
     min-height:0;
     justify-items:center;
     align-content:start;
@@ -2196,7 +2196,7 @@
 }
 
 .overview-pie3d {
-    width:min(100%, 156px);
+    width:min(100%, 188px);
     margin:0 auto;
 }
 
@@ -2274,8 +2274,8 @@
     z-index:1;
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:12px;
-    min-height:190px;
+    gap:14px;
+    min-height:232px;
     align-items:center;
     align-content:center;
     justify-content:center;
@@ -2284,8 +2284,8 @@
 .overview-mini {
     min-width:0;
     display:grid;
-    gap:10px;
-    padding:12px;
+    gap:12px;
+    padding:14px;
     align-self:center;
     border:1px solid rgba(217,228,251,.1);
     border-radius:12px;
@@ -2371,25 +2371,31 @@
     z-index:1;
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    align-items:start;
-    gap:10px;
+    align-items:stretch;
+    grid-auto-rows:1fr;
+    gap:12px;
 }
 
 .watch-row {
     --watch-accent:#1688f5;
-    --watch-accent-soft:rgba(22,136,245,.09);
+    --watch-accent-soft:rgba(22,136,245,.16);
+    --watch-accent-deep:rgba(22,136,245,.08);
     display:grid;
     grid-template-columns:minmax(0, 1fr) 46px minmax(112px, .38fr);
     gap:8px 12px;
-    padding:12px 12px 18px;
+    align-items:center;
+    height:100%;
+    min-height:118px;
+    padding:14px 14px 20px;
     border-radius:12px;
     color:inherit;
     text-decoration:none;
     background:
-        linear-gradient(135deg, var(--watch-accent-soft), transparent 32%),
-        linear-gradient(180deg, rgba(255,255,255,.058), rgba(255,255,255,.032));
-    border:1px solid rgba(217,228,251,.09);
-    box-shadow:0 10px 20px rgba(3,10,28,.14), inset 0 1px 0 rgba(255,255,255,.08);
+        linear-gradient(135deg, var(--watch-accent-soft) 0%, rgba(255,255,255,.035) 34%, transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.074), rgba(255,255,255,.028)),
+        linear-gradient(135deg, rgba(10,24,52,.92), rgba(17,37,72,.82) 52%, var(--watch-accent-deep));
+    border:1px solid rgba(217,228,251,.13);
+    box-shadow:0 12px 24px rgba(3,10,28,.2), inset 0 1px 0 rgba(255,255,255,.1);
     min-width:0;
     overflow:hidden;
     transition:background .18s ease, transform .18s ease, border-color .18s ease, box-shadow .18s ease;
@@ -2409,26 +2415,30 @@
 
 .watch-row:hover {
     background:
-        linear-gradient(135deg, var(--watch-accent-soft), transparent 36%),
-        linear-gradient(180deg, rgba(255,255,255,.082), rgba(255,255,255,.04));
-    border-color:rgba(217,228,251,.14);
-    box-shadow:0 14px 26px rgba(3,10,28,.18), inset 0 1px 0 rgba(255,255,255,.1);
+        linear-gradient(135deg, var(--watch-accent-soft) 0%, rgba(255,255,255,.05) 36%, transparent 64%),
+        linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04)),
+        linear-gradient(135deg, rgba(12,28,60,.96), rgba(19,42,80,.88) 52%, var(--watch-accent-deep));
+    border-color:rgba(217,228,251,.18);
+    box-shadow:0 16px 30px rgba(3,10,28,.24), inset 0 1px 0 rgba(255,255,255,.12);
     transform:translateY(-1px);
 }
 
 .watch-row.pink {
     --watch-accent:#ff3f7c;
-    --watch-accent-soft:rgba(255,63,124,.09);
+    --watch-accent-soft:rgba(255,63,124,.18);
+    --watch-accent-deep:rgba(255,63,124,.08);
 }
 
 .watch-row.orange {
     --watch-accent:#fb9a13;
-    --watch-accent-soft:rgba(251,154,19,.09);
+    --watch-accent-soft:rgba(251,154,19,.18);
+    --watch-accent-deep:rgba(251,154,19,.08);
 }
 
 .watch-row.blue {
     --watch-accent:#1688f5;
-    --watch-accent-soft:rgba(22,136,245,.09);
+    --watch-accent-soft:rgba(22,136,245,.16);
+    --watch-accent-deep:rgba(22,136,245,.08);
 }
 
 .watch-main,

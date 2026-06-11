@@ -133,8 +133,9 @@ namespace ProjectTracking.Controllers
         private static OpenIssueSupportItemViewModel BuildIssueItem(ProjectIssue issue, int? currentEmpId, bool isAdmin, DateTime today)
         {
             var project = issue.Project;
+            var isAssignee = currentEmpId.HasValue && issue.AssignTo == currentEmpId.Value;
             var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
-            var roleText = isAdmin ? "Admin" : isBa ? "BA" : "Dev";
+            var roleText = isAssignee ? "Dev" : isAdmin ? "Admin" : isBa ? "BA" : "User";
 
             return new OpenIssueSupportItemViewModel
             {
@@ -156,17 +157,18 @@ namespace ProjectTracking.Controllers
                 CreatedAt = issue.CreatedAt,
                 Severity = Severity(issue.EndDate, today),
                 RecipientRole = roleText,
-                TargetUrl = isAdmin || isBa
-                    ? $"/ProjectIssues/Edit/{issue.IssueId}"
-                    : $"/ProjectIssues/DevEdit/{issue.IssueId}"
+                TargetUrl = isAssignee
+                    ? $"/ProjectIssues/DevEdit/{issue.IssueId}"
+                    : $"/ProjectIssues/Edit/{issue.IssueId}"
             };
         }
 
         private static OpenIssueSupportItemViewModel BuildSupportItem(ProjectSupportOrder order, int? currentEmpId, bool isAdmin, DateTime today)
         {
             var project = order.Project;
+            var isAssignee = currentEmpId.HasValue && order.AssignTo == currentEmpId.Value;
             var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
-            var roleText = isAdmin ? "Admin" : isBa ? "BA" : "Dev";
+            var roleText = isAssignee ? "Dev" : isAdmin ? "Admin" : isBa ? "BA" : "User";
 
             return new OpenIssueSupportItemViewModel
             {
@@ -188,9 +190,9 @@ namespace ProjectTracking.Controllers
                 CreatedAt = order.CreatedAt ?? DateTime.MinValue,
                 Severity = Severity(order.EndDate, today),
                 RecipientRole = roleText,
-                TargetUrl = isAdmin || isBa
-                    ? $"/SupportOrders/Edit/{order.OrderId}"
-                    : $"/SupportOrdersDev/Edit/{order.OrderId}"
+                TargetUrl = isAssignee
+                    ? $"/SupportOrdersDev/Edit/{order.OrderId}"
+                    : $"/SupportOrders/Edit/{order.OrderId}"
             };
         }
 
