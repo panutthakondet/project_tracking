@@ -294,7 +294,7 @@ namespace ProjectTracking.Controllers
                     p.ProjectName.Contains(keyword) ||
                     p.Status.Contains(keyword) ||
                     (p.Coop != null && p.Coop.CoopName.Contains(keyword)))
-                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : p.Status == "DONE" ? 3 : p.Status == "CANCELLED" ? 4 : 5)
+                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : p.Status == "DONE" ? 3 : 4)
                 .ThenBy(p => p.EndDate)
                 .ThenBy(p => p.ProjectName)
                 .Select(p => new
@@ -692,24 +692,32 @@ namespace ProjectTracking.Controllers
             var completedProjectCount = projects.Count(p => Norm(p.Status) == "DONE");
             var inProgressProjectCount = projects.Count(p => Norm(p.Status) == "IN_PROGRESS");
             var pendingProjectCount = projects.Count(p => Norm(p.Status) == "PLAN");
-            var cancelledProjectCount = projects.Count(p => Norm(p.Status) == "CANCELLED");
 
             var projectStatusMetrics = new List<HomeDashboardMetric>
             {
                 CreateMetric("Completed", completedProjectCount, projects.Count, "green"),
                 CreateMetric("In Progress", inProgressProjectCount, projects.Count, "blue"),
-                CreateMetric("Pending", pendingProjectCount, projects.Count, "orange"),
-                CreateMetric("Cancelled", cancelledProjectCount, projects.Count, "purple")
+                CreateMetric("Pending", pendingProjectCount, projects.Count, "orange")
             };
 
-            var issueResolvedCount = issues.Count(IsIssueResolved);
-            var issueInProgressCount = issues.Count(i => !IsIssueResolved(i) && IsIssueInProgress(i));
-            var issueOpenCount = Math.Max(0, issues.Count - issueResolvedCount - issueInProgressCount);
             var issueMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("Open", issueOpenCount, issues.Count, "pink"),
-                CreateMetric("In Progress", issueInProgressCount, issues.Count, "orange"),
-                CreateMetric("Resolved", issueResolvedCount, issues.Count, "lime")
+                CreateMetric("OPEN", issues.Count(i => Norm(i.IssueStatus) == "OPEN"), issues.Count, "warning"),
+                CreateMetric("WIP", issues.Count(i => Norm(i.IssueStatus) == "WIP"), issues.Count, "info"),
+                CreateMetric("FIXED", issues.Count(i => Norm(i.IssueStatus) == "FIXED"), issues.Count, "cyan"),
+                CreateMetric("FAIL", issues.Count(i => Norm(i.IssueStatus) == "FAIL"), issues.Count, "danger"),
+                CreateMetric("PASS", issues.Count(i => Norm(i.IssueStatus) == "PASS"), issues.Count, "lime"),
+                CreateMetric("REJECT", issues.Count(i => Norm(i.IssueStatus) == "REJECT"), issues.Count, "violet")
+            };
+
+            var supportMetrics = new List<HomeDashboardMetric>
+            {
+                CreateMetric("OPEN", supportOrders.Count(o => Norm(o.Status) == "OPEN"), supportOrders.Count, "warning"),
+                CreateMetric("WIP", supportOrders.Count(o => Norm(o.Status) == "WIP"), supportOrders.Count, "info"),
+                CreateMetric("FIXED", supportOrders.Count(o => Norm(o.Status) == "FIXED"), supportOrders.Count, "cyan"),
+                CreateMetric("FAIL", supportOrders.Count(o => Norm(o.Status) == "FAIL"), supportOrders.Count, "danger"),
+                CreateMetric("PASS", supportOrders.Count(o => Norm(o.Status) == "PASS"), supportOrders.Count, "lime"),
+                CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
             };
 
             var phaseTypeRows = phases
@@ -722,7 +730,7 @@ namespace ProjectTracking.Controllers
 
             var monthlyPoints = BuildMonthlyProjectPoints(projects, today.Year, th);
             var maxMonthlyValue = monthlyPoints
-                .SelectMany(m => new[] { m.Completed, m.InProgress, m.Pending, m.Cancelled })
+                .SelectMany(m => new[] { m.Completed, m.InProgress, m.Pending })
                 .DefaultIfEmpty(0)
                 .Max();
 
@@ -730,8 +738,7 @@ namespace ProjectTracking.Controllers
             {
                 new() { Name = "Completed", Color = "green", Points = BuildPolyline(monthlyPoints.Select(m => m.Completed).ToList(), maxMonthlyValue) },
                 new() { Name = "In Progress", Color = "blue", Points = BuildPolyline(monthlyPoints.Select(m => m.InProgress).ToList(), maxMonthlyValue) },
-                new() { Name = "Pending", Color = "orange", Points = BuildPolyline(monthlyPoints.Select(m => m.Pending).ToList(), maxMonthlyValue) },
-                new() { Name = "Cancelled", Color = "pink", Points = BuildPolyline(monthlyPoints.Select(m => m.Cancelled).ToList(), maxMonthlyValue) }
+                new() { Name = "Pending", Color = "orange", Points = BuildPolyline(monthlyPoints.Select(m => m.Pending).ToList(), maxMonthlyValue) }
             };
 
             var projectOverviewProjects = projects
@@ -880,6 +887,9 @@ namespace ProjectTracking.Controllers
                 IssueMetrics = issueMetrics,
                 IssueTotal = issues.Count,
                 IssueDonut = BuildDonut(issueMetrics),
+                SupportMetrics = supportMetrics,
+                SupportTotal = supportOrders.Count,
+                SupportDonut = BuildDonut(supportMetrics),
                 ProjectOverviewSeries = overviewSeries,
                 ProjectOverviewMonths = monthlyPoints,
                 ProjectOverviewTooltip = monthlyPoints.ElementAtOrDefault(Math.Clamp(today.Month - 1, 0, 11)),
@@ -1175,9 +1185,6 @@ namespace ProjectTracking.Controllers
                         DateRangeIntersects(p.StartDate, p.EndDate, monthStart, monthEnd)),
                     Pending = projects.Count(p =>
                         Norm(p.Status) == "PLAN" &&
-                        DateRangeIntersects(p.StartDate, p.EndDate, monthStart, monthEnd)),
-                    Cancelled = projects.Count(p =>
-                        Norm(p.Status) == "CANCELLED" &&
                         DateRangeIntersects(p.StartDate, p.EndDate, monthStart, monthEnd))
                 });
             }
@@ -2007,6 +2014,12 @@ namespace ProjectTracking.Controllers
                 || Norm(devStatus) == "FIXED";
         }
 
+        private static bool IsSupportOrderInProgress(DashboardSupportOrderRow order)
+        {
+            return Norm(order.Status) is "WIP" or "IN_PROGRESS" or "DOING"
+                || Norm(order.DevStatus) is "WIP" or "IN_PROGRESS" or "DOING";
+        }
+
         private static string SupportOrderActivityColor(string? status, string? devStatus)
         {
             var normalizedStatus = Norm(status);
@@ -2090,8 +2103,17 @@ namespace ProjectTracking.Controllers
                 "orange" => "#fb9a13",
                 "pink" => "#ff2d62",
                 "purple" => "#8b4df4",
+                "violet" => "#a855f7",
                 "cyan" => "#0ad0c8",
                 "lime" => "#52d11f",
+                "warning" => "#f59e0b",
+                "info" => "#22c7f5",
+                "success" => "#10d58f",
+                "primary" => "#3b82f6",
+                "danger" => "#ef4444",
+                "dark" => "#64748b",
+                "secondary" => "#94a3b8",
+                "muted" => "#64748b",
                 _ => "#1688f5"
             };
         }
@@ -2118,8 +2140,7 @@ namespace ProjectTracking.Controllers
                 "IN_PROGRESS" => 1,
                 "PLAN" => 2,
                 "DONE" => 3,
-                "CANCELLED" => 4,
-                _ => 5
+                _ => 4
             };
         }
 
@@ -2130,7 +2151,6 @@ namespace ProjectTracking.Controllers
                 "DONE" => "Completed",
                 "IN_PROGRESS" => "In Progress",
                 "PLAN" => "Pending",
-                "CANCELLED" => "Cancelled",
                 _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
             };
         }

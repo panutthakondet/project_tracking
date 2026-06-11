@@ -2613,13 +2613,101 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .pt-swal-popup {
+        width: min(520px, calc(100vw - 36px)) !important;
+        padding: 0 !important;
+        border: 1px solid rgba(20, 184, 166, .22) !important;
+        border-radius: 22px !important;
+        color: #10233f !important;
+        background: #ffffff !important;
+        box-shadow: 0 24px 56px rgba(15, 35, 64, .26) !important;
+        overflow: hidden !important;
+        font-family: "Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif !important;
+    }
+
+    .pt-swal-popup::before {
+        content: "ProjectTracking";
+        display: block;
+        padding: 16px 22px;
+        color: #99f6e4;
+        background:
+            radial-gradient(circle at 92% 8%, rgba(20, 184, 166, .24), transparent 32%),
+            linear-gradient(135deg, #10233f, #174c5b);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: 0;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .pt-swal-popup .swal2-icon {
+        margin: 28px auto 14px !important;
+        transform: scale(.9);
+    }
+
+    .pt-swal-popup .swal2-title {
+        padding: 0 28px !important;
+        color: #10233f !important;
+        font-size: clamp(24px, 3vw, 32px) !important;
+        font-weight: 800 !important;
+        line-height: 1.25 !important;
+        letter-spacing: 0 !important;
+    }
+
+    .pt-swal-popup .swal2-html-container {
+        margin: 12px 28px 0 !important;
+        color: #0f172a !important;
+        font-size: 16px !important;
+        font-weight: 400 !important;
+        line-height: 1.55 !important;
+    }
+
+    .pt-swal-popup .swal2-actions {
+        margin: 24px 0 28px !important;
+        gap: 10px;
+    }
+
+    .pt-swal-confirm {
+        min-width: 124px;
+        min-height: 42px;
+        border: 0 !important;
+        border-radius: 999px !important;
+        color: #062b2f !important;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
+        box-shadow: 0 10px 22px rgba(20, 184, 166, .24) !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+    }
+
+    .pt-swal-confirm:focus {
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, .22), 0 10px 22px rgba(20, 184, 166, .24) !important;
+    }
+
+    .pt-swal-backdrop {
+        background: rgba(15, 23, 42, .54) !important;
+        backdrop-filter: blur(3px);
+    }
+</style>
+<script>
+    window.ProjectTrackingSwal = Swal.mixin({
+        customClass: {
+            popup: 'pt-swal-popup',
+            confirmButton: 'pt-swal-confirm',
+            backdrop: 'pt-swal-backdrop'
+        },
+        buttonsStyling: false,
+        backdrop: 'rgba(15, 23, 42, .54)'
+    });
+</script>
 
 @if ((Context?.Request?.Query["forbidden"].ToString() ?? "") == "1")
 {
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    Swal.fire({
+    ProjectTrackingSwal.fire({
         icon: 'error',
         title: 'ไม่มีสิทธิ์เข้าถึง',
         text: 'คุณไม่มีสิทธิ์เข้าเมนูนี้ กรุณาติดต่อผู้ดูแลระบบ',
@@ -2643,7 +2731,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // แจ้งเตือนก่อนหมดเวลา
     setTimeout(function () {
-        Swal.fire({
+        ProjectTrackingSwal.fire({
             icon: 'warning',
             title: 'Session ใกล้หมดเวลา',
             text: 'ระบบจะหมดเวลาในอีก 5 นาที',
@@ -2655,7 +2743,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // หมดเวลาแล้ว
     setTimeout(function () {
-        Swal.fire({
+        ProjectTrackingSwal.fire({
             icon: 'error',
             title: 'Session หมดเวลาแล้ว',
             text: 'กรุณาเข้าสู่ระบบใหม่',
@@ -2670,10 +2758,11 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             let res = await fetch('/Auth/CheckSession');
             if (res.status === 401) {
-                Swal.fire({
+                ProjectTrackingSwal.fire({
                     icon: 'error',
                     title: 'Session หมดเวลาแล้ว',
-                    text: 'กรุณาเข้าสู่ระบบใหม่'
+                    text: 'กรุณาเข้าสู่ระบบใหม่',
+                    confirmButtonText: 'ไปหน้า Login'
                 }).then(() => {
                     window.location.href = '/Auth/Login';
                 });

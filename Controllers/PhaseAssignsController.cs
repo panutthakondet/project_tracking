@@ -75,6 +75,7 @@ namespace ProjectTracking.Controllers
             ViewBag.Projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -535,6 +536,100 @@ namespace ProjectTracking.Controllers
             var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role);
             ViewBag.PrintDate = DateTime.Now;
             return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole));
+        }
+
+        [RequireMenu("PhaseAssigns.Index")]
+        [HttpGet]
+        public async Task<IActionResult> ViewOnly(int? projectId, int? empId, string? workStatus)
+        {
+            var today = DateTime.Today;
+
+            ViewBag.Projects = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .Include(p => p.BA)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+
+            ViewBag.EmployeeList = await _context.Employees
+                .AsNoTracking()
+                .OrderBy(e => e.EmpName)
+                .ToListAsync();
+
+            var query =
+                from a in _context.PhaseAssigns.AsNoTracking()
+                join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
+                join p in _context.Projects.AsNoTracking().Include(x => x.Coop) on ph.ProjectId equals p.ProjectId
+                join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
+                select new PhaseAssign
+                {
+                    AssignId = a.AssignId,
+                    PhaseId = a.PhaseId,
+                    PhaseOrder = a.PhaseOrder,
+                    PhaseSort = a.PhaseSort,
+                    EmpId = a.EmpId,
+                    Role = a.Role,
+                    PlanStart = a.PlanStart,
+                    PlanEnd = a.PlanEnd,
+                    CreatedAt = a.CreatedAt,
+                    WorkStatus = a.WorkStatus,
+                    Remark = a.Remark,
+                    Phase = ph,
+                    Employee = e
+                };
+
+            var rows = await query.ToListAsync();
+            foreach (var row in rows)
+            {
+                row.Phase!.Project = ViewBag.Projects is List<Project> projects
+                    ? projects.FirstOrDefault(p => p.ProjectId == row.Phase.ProjectId)
+                    : null;
+            }
+
+            var filtered = rows.AsEnumerable();
+
+            if (projectId.HasValue)
+                filtered = filtered.Where(x => x.Phase?.ProjectId == projectId.Value);
+
+            if (empId.HasValue)
+                filtered = filtered.Where(x => x.EmpId == empId.Value);
+
+            if (IsDelayFilter(workStatus))
+            {
+                filtered = filtered.Where(x =>
+                    x.PlanEnd.HasValue &&
+                    x.PlanEnd.Value.Date < today &&
+                    !IsAssignDone(x.WorkStatus));
+            }
+            else if (!string.IsNullOrWhiteSpace(workStatus))
+            {
+                filtered = filtered.Where(x => string.Equals(x.WorkStatus, workStatus, StringComparison.OrdinalIgnoreCase));
+            }
+
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedEmpId = empId;
+            ViewBag.SelectedWorkStatus = workStatus;
+            ViewBag.Today = today;
+
+            return View(filtered
+                .OrderBy(a => a.Phase?.Project?.ProjectDisplayName ?? "")
+                .ThenBy(a => a.Phase == null ? (a.PhaseOrder ?? int.MaxValue) : a.Phase.PhaseOrder)
+                .ThenBy(a => a.Phase == null ? int.MaxValue : a.Phase.PeriodOrder)
+                .ThenBy(a => a.PhaseSort ?? int.MaxValue)
+                .ThenBy(a => a.AssignId)
+                .ToList());
+        }
+
+        private static bool IsDelayFilter(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized is "DELAY" or "ล่าช้า" or "OVERDUE";
+        }
+
+        private static bool IsAssignDone(string? status)
+        {
+            return string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role)

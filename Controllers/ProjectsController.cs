@@ -416,8 +416,7 @@ namespace ProjectTracking.Controllers
                 "IN_PROGRESS" => 1,
                 "PLAN" => 2,
                 "DONE" => 3,
-                "CANCELLED" => 4,
-                _ => 5
+                _ => 4
             };
         }
 

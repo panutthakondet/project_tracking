@@ -26,6 +26,9 @@ namespace ProjectTracking.ViewModels
         public List<HomeDashboardMetric> IssueMetrics { get; set; } = new();
         public int IssueTotal { get; set; }
         public string IssueDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+        public List<HomeDashboardMetric> SupportMetrics { get; set; } = new();
+        public int SupportTotal { get; set; }
+        public string SupportDonut { get; set; } = "conic-gradient(#263450 0 100%)";
 
         public List<HomeDashboardChartSeries> ProjectOverviewSeries { get; set; } = new();
         public List<HomeDashboardMonthPoint> ProjectOverviewMonths { get; set; } = new();
@@ -83,7 +86,6 @@ namespace ProjectTracking.ViewModels
         public int Completed { get; set; }
         public int InProgress { get; set; }
         public int Pending { get; set; }
-        public int Cancelled { get; set; }
     }
 
     public class HomeDashboardProjectProgress

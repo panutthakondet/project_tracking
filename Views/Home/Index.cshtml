@@ -13,11 +13,196 @@
     var unreadNotificationCount = Convert.ToInt32(ViewBag.UnreadNotificationCount ?? 0);
     var unreadMailboxCount = Convert.ToInt32(ViewBag.UnreadMailboxCount ?? 0);
     var openIssueSupportCount = dashboard.OpenIssueSupportCount;
+    var todayIso = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     var onlineUsers = ViewBag.OnlineUsers is IEnumerable<RequirementBoardOnlineUserViewModel> onlineUserRows
         ? onlineUserRows.ToList()
         : new List<RequirementBoardOnlineUserViewModel>();
     var visibleOnlineUsers = onlineUsers.Take(5).ToList();
     var hiddenOnlineCount = Math.Max(0, onlineUsers.Count - visibleOnlineUsers.Count);
+
+    string SvgNumber(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    (double X, double Y) EllipsePoint(double cx, double cy, double rx, double ry, double angle)
+    {
+        var radians = Math.PI * angle / 180d;
+        return (cx + rx * Math.Cos(radians), cy + ry * Math.Sin(radians));
+    }
+
+    string DonutSegmentPath(double start, double end, double offsetY = 0)
+    {
+        const double cx = 130d;
+        const double cy = 116d;
+        const double outerRx = 92d;
+        const double outerRy = 45d;
+        const double innerRx = 52d;
+        const double innerRy = 25d;
+
+        var outerStart = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, start);
+        var outerEnd = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, end);
+        var innerEnd = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, end);
+        var innerStart = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, start);
+        var largeArc = Math.Abs(end - start) > 180d ? 1 : 0;
+
+        return string.Join(" ", new[]
+        {
+            $"M {SvgNumber(outerStart.X)} {SvgNumber(outerStart.Y)}",
+            $"A {outerRx} {outerRy} 0 {largeArc} 1 {SvgNumber(outerEnd.X)} {SvgNumber(outerEnd.Y)}",
+            $"L {SvgNumber(innerEnd.X)} {SvgNumber(innerEnd.Y)}",
+            $"A {innerRx} {innerRy} 0 {largeArc} 0 {SvgNumber(innerStart.X)} {SvgNumber(innerStart.Y)}",
+            "Z"
+        });
+    }
+
+    string StatusHex(string color) => color switch
+    {
+        "green" => "#7bdc49",
+        "blue" => "#2693f4",
+        "orange" => "#ffb23d",
+        "purple" => "#9b5bf2",
+        "violet" => "#a855f7",
+        "pink" => "#f55262",
+        "warning" => "#f59e0b",
+        "info" => "#22c7f5",
+        "success" => "#10d58f",
+        "primary" => "#3b82f6",
+        "danger" => "#ef4444",
+        "dark" => "#64748b",
+        "secondary" => "#94a3b8",
+        "muted" => "#64748b",
+        _ => "#45d6c6"
+    };
+
+    string StatusDarkHex(string color) => color switch
+    {
+        "green" => "#4eaa2f",
+        "blue" => "#1269b8",
+        "orange" => "#ef8700",
+        "purple" => "#6733b8",
+        "violet" => "#6d28d9",
+        "pink" => "#c92d3d",
+        "warning" => "#b76a00",
+        "info" => "#0e8fbd",
+        "success" => "#07845f",
+        "primary" => "#1d4ed8",
+        "danger" => "#b91c1c",
+        "dark" => "#334155",
+        "secondary" => "#64748b",
+        "muted" => "#334155",
+        _ => "#159b91"
+    };
+
+    string PieSegmentPath(double start, double end, double offsetY = 0)
+    {
+        const double cx = 78d;
+        const double cy = 66d;
+        const double rx = 64d;
+        const double ry = 31d;
+
+        var outerStart = EllipsePoint(cx, cy + offsetY, rx, ry, start);
+        var outerEnd = EllipsePoint(cx, cy + offsetY, rx, ry, end);
+        var largeArc = Math.Abs(end - start) > 180d ? 1 : 0;
+
+        return string.Join(" ", new[]
+        {
+            $"M {SvgNumber(cx)} {SvgNumber(cy + offsetY)}",
+            $"L {SvgNumber(outerStart.X)} {SvgNumber(outerStart.Y)}",
+            $"A {rx} {ry} 0 {largeArc} 1 {SvgNumber(outerEnd.X)} {SvgNumber(outerEnd.Y)}",
+            "Z"
+        });
+    }
+
+    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
+    {
+        var visibleMetrics = metrics.Where(metric => metric.Count > 0).ToList();
+        var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY)>();
+        if (visibleMetrics.Count == 0)
+        {
+            return result;
+        }
+
+        var total = Math.Max(1, visibleMetrics.Sum(metric => metric.Count));
+        var startAngle = -176d;
+        const double totalAngle = 352d;
+        const double gapAngle = 1.8d;
+
+        foreach (var metric in visibleMetrics)
+        {
+            var rawSpan = (double)metric.Count / total * totalAngle;
+            var span = visibleMetrics.Count == 1 ? totalAngle : Math.Max(8d, rawSpan - gapAngle);
+            var start = startAngle;
+            var end = startAngle + span;
+            var mid = (start + end) / 2d;
+            var label = EllipsePoint(78d, 66d, 74d, 41d, mid);
+
+            result.Add((
+                metric,
+                StatusHex(metric.Color),
+                StatusDarkHex(metric.Color),
+                PieSegmentPath(start, end),
+                PieSegmentPath(start, end, 16d),
+                Math.Clamp(label.X, 18d, 142d),
+                Math.Clamp(label.Y - 6d, 18d, 108d)
+            ));
+            startAngle += rawSpan;
+        }
+
+        return result;
+    }
+
+    var issueOverviewSegments = BuildOverviewPieSegments(dashboard.IssueMetrics);
+    var supportOverviewSegments = BuildOverviewPieSegments(dashboard.SupportMetrics);
+    var issueOverviewLegend = dashboard.IssueMetrics;
+    var supportOverviewLegend = dashboard.SupportMetrics;
+    var timeTrackingMetrics = new List<HomeDashboardMetric>
+    {
+        new()
+        {
+            Label = "บันทึกครบ",
+            Count = (int)Math.Round(dashboard.ClosedWorkHours),
+            Percent = closedHoursPercent,
+            Color = "green",
+            HexColor = StatusHex("green")
+        },
+        new()
+        {
+            Label = "ยังไม่ออกงาน",
+            Count = (int)Math.Round(dashboard.OpenWorkHours),
+            Percent = openHoursPercent,
+            Color = "blue",
+            HexColor = StatusHex("blue")
+        }
+    };
+    var timeTrackingSegments = BuildOverviewPieSegments(timeTrackingMetrics);
+    var projectStatusSegments = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double PinX, double PinY, double LabelX, double LabelY)>();
+    var statusMetricsForChart = dashboard.ProjectStatusMetrics.Where(metric => metric.Count > 0).ToList();
+    var statusTotalForChart = Math.Max(1, statusMetricsForChart.Sum(metric => metric.Count));
+    var statusStartAngle = -168d;
+    const double statusTotalAngle = 338d;
+    const double statusGapAngle = 2.2d;
+
+    for (var i = 0; i < statusMetricsForChart.Count; i++)
+    {
+        var metric = statusMetricsForChart[i];
+        var rawSpan = (double)metric.Count / statusTotalForChart * statusTotalAngle;
+        var span = statusMetricsForChart.Count == 1 ? statusTotalAngle : Math.Max(8d, rawSpan - statusGapAngle);
+        var start = statusStartAngle;
+        var end = statusStartAngle + span;
+        var mid = (start + end) / 2d;
+        var pin = EllipsePoint(130d, 116d, 78d, 38d, mid);
+        var label = EllipsePoint(130d, 116d, 112d, 55d, mid);
+        projectStatusSegments.Add((
+            metric,
+            StatusHex(metric.Color),
+            StatusDarkHex(metric.Color),
+            DonutSegmentPath(start, end),
+            DonutSegmentPath(start, end, 18d),
+            pin.X,
+            pin.Y,
+            label.X,
+            Math.Max(26d, label.Y - 34d)
+        ));
+        statusStartAngle += rawSpan;
+    }
 }
 
 <div class="dashboard-view">
@@ -99,120 +284,154 @@
     </section>
 
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก">
-        <article class="kpi-card kpi-blue">
+        <a class="kpi-card kpi-blue"
+           asp-controller="Projects"
+           asp-action="ViewOnly"
+           title="เปิดรายงาน Projects">
             <span class="kpi-icon" aria-hidden="true">□</span>
             <div>
                 <p>Total Projects</p>
                 <strong>@dashboard.TotalProjectCount</strong>
                 <small>@dashboard.TotalProjectsNote</small>
             </div>
-        </article>
-        <article class="kpi-card kpi-purple">
+        </a>
+        <a class="kpi-card kpi-purple"
+           asp-controller="Meetings"
+           asp-action="ViewOnly"
+           asp-route-fromDate="@todayIso"
+           asp-route-toDate="@todayIso"
+           title="เปิดรายงาน Meetings วันนี้">
             <span class="kpi-icon" aria-hidden="true">▦</span>
             <div>
                 <p>Meetings Today</p>
                 <strong>@dashboard.MeetingsTodayCount</strong>
                 <small>@dashboard.MeetingsTodayNote</small>
             </div>
-        </article>
-        <article class="kpi-card kpi-orange">
+        </a>
+        <a class="kpi-card kpi-orange"
+           asp-controller="ProjectPhases"
+           asp-action="ViewOnly"
+           asp-route-phaseStatus="DELAY"
+           title="เปิดรายงาน ProjectPhases ล่าช้า">
             <span class="kpi-icon" aria-hidden="true">!</span>
             <div>
                 <p>ProjectPhases</p>
                 <strong>@dashboard.OpenIssueCount</strong>
                 <small>@dashboard.OpenIssuesNote</small>
             </div>
-        </article>
-        <article class="kpi-card kpi-pink">
+        </a>
+        <a class="kpi-card kpi-pink"
+           asp-controller="PhaseAssigns"
+           asp-action="ViewOnly"
+           asp-route-workStatus="DELAY"
+           title="เปิดรายงาน PhaseAssigns ล่าช้า">
             <span class="kpi-icon" aria-hidden="true">⏱</span>
             <div>
                 <p>PhaseAssigns</p>
                 <strong>@dashboard.OverdueTaskCount</strong>
                 <small>@dashboard.OverdueTasksNote</small>
             </div>
-        </article>
+        </a>
     </section>
 
     <section class="dashboard-grid" aria-label="ภาพรวม dashboard">
-        <article class="glass-panel panel-wide">
+        <article class="glass-panel panel-wide panel-project-overview">
             <div class="panel-head">
-                <h2>ภาพรวมโครงการ (Projects Overview)</h2>
+                <div class="project-overview-title-row">
+                    <h2>ภาพรวมโครงการ (Projects Overview)</h2>
+                    <span aria-hidden="true"></span>
+                    <h3>สถานะโครงการ</h3>
+                </div>
                 <div class="panel-actions">
                     <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                    <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact">ทีมงานพัฒนา</a>
                 </div>
             </div>
-            <div class="project-overview-table">
-                <div class="project-overview-summary" aria-label="สรุปจำนวนสถานะโครงการ">
-                    @foreach (var metric in dashboard.ProjectStatusMetrics)
-                    {
-                        <span class="@metric.Color">
-                            <i class="dot @metric.Color"></i>
-                            <b>@metric.Label</b>
-                            <strong>@metric.Count</strong>
-                        </span>
-                    }
-                </div>
-                <label class="project-overview-search">
-                    <span>ค้นหาโครงการ</span>
-                    <input type="search"
-                           id="projectOverviewSearch"
-                           placeholder="พิมพ์ชื่อโครงการ..."
-                           autocomplete="off" />
-                </label>
-                <div class="project-overview-head" aria-hidden="true">
-                    <span>Project</span>
-                    <span>Status</span>
-                    <span>Start</span>
-                    <span>End</span>
-                </div>
-                <div class="project-overview-scroll">
-                    @if (dashboard.ProjectOverviewProjects.Count == 0)
-                    {
-                        <p class="empty-state">ยังไม่มีข้อมูลโครงการ</p>
-                    }
-                    else
-                    {
-                        foreach (var project in dashboard.ProjectOverviewProjects)
+            <div class="project-overview-combined">
+                <div class="project-overview-table">
+                    <label class="project-overview-search">
+                        <span>ค้นหาโครงการ</span>
+                        <input type="search"
+                               id="projectOverviewSearch"
+                               placeholder="พิมพ์ชื่อโครงการ..."
+                               autocomplete="off" />
+                    </label>
+                    <div class="project-overview-head" aria-hidden="true">
+                        <span>Project</span>
+                        <span>Status</span>
+                        <span>Start</span>
+                        <span>End</span>
+                    </div>
+                    <div class="project-overview-scroll" data-project-count="@dashboard.ProjectOverviewProjects.Count">
+                        @if (dashboard.ProjectOverviewProjects.Count == 0)
                         {
-                            var projectSearchText = $"{project.ProjectName} {project.StatusText} {project.StartText} {project.EndText}";
-                            <a class="project-overview-row"
-                               asp-controller="ProjectPhases"
-                               asp-action="Index"
-                               asp-route-projectId="@project.ProjectId"
-                               data-project-search="@projectSearchText"
-                                title="ดูงวดงานของ @project.ProjectName">
-                                <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
-                                <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
-                                <span class="project-overview-date">
-                                    <span class="project-overview-mobile-label">Start</span>
-                                    <time>@project.StartText</time>
-                                </span>
-                                <span class="project-overview-date">
-                                    <span class="project-overview-mobile-label">End</span>
-                                    <time>@project.EndText</time>
-                                </span>
-                            </a>
+                            <p class="empty-state">ยังไม่มีข้อมูลโครงการ</p>
                         }
-                        <p class="empty-state project-overview-empty" hidden>ไม่พบโครงการที่ค้นหา</p>
-                    }
+                        else
+                        {
+                            foreach (var project in dashboard.ProjectOverviewProjects)
+                            {
+                                var projectSearchText = $"{project.ProjectName} {project.StatusText} {project.StartText} {project.EndText}";
+                                <a class="project-overview-row"
+                                   asp-controller="ProjectPhases"
+                                   asp-action="Index"
+                                   asp-route-projectId="@project.ProjectId"
+                                   data-project-search="@projectSearchText"
+                                    title="ดูงวดงานของ @project.ProjectName">
+                                    <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
+                                    <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
+                                    <span class="project-overview-date">
+                                        <span class="project-overview-mobile-label">Start</span>
+                                        <time>@project.StartText</time>
+                                    </span>
+                                    <span class="project-overview-date">
+                                        <span class="project-overview-mobile-label">End</span>
+                                        <time>@project.EndText</time>
+                                    </span>
+                                </a>
+                            }
+                            <p class="empty-state project-overview-empty" hidden>ไม่พบโครงการที่ค้นหา</p>
+                        }
+                    </div>
                 </div>
-            </div>
-        </article>
-
-        <article class="glass-panel panel-project-status">
-            <div class="panel-head">
-                <h2>สถานะโครงการ</h2>
-                <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact">รายละเอียด</a>
-            </div>
-            <div class="donut-layout">
-                <div class="donut" style="--donut:@dashboard.ProjectStatusDonut;">
-                    <div><strong>@dashboard.TotalProjectCount</strong><span>โครงการ</span></div>
-                </div>
-                <div class="metric-list">
-                    @foreach (var metric in dashboard.ProjectStatusMetrics)
-                    {
-                        <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
-                    }
+                <div class="project-status-inline" aria-label="สถานะโครงการ">
+                    <div class="donut-layout">
+                        <figure class="project-status-chart3d" aria-label="กราฟสถานะโครงการแบบสามมิติ">
+                            <svg viewBox="0 0 260 210" role="img" aria-labelledby="projectStatusChartTitle">
+                                <title id="projectStatusChartTitle">สถานะโครงการทั้งหมด @dashboard.TotalProjectCount โครงการ</title>
+                                <ellipse class="project-status-chart3d-shadow" cx="104" cy="159" rx="92" ry="26"></ellipse>
+                                <g class="project-status-chart3d-depth">
+                                    @foreach (var segment in projectStatusSegments)
+                                    {
+                                        <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
+                                    }
+                                </g>
+                                <g class="project-status-chart3d-top">
+                                    @foreach (var segment in projectStatusSegments)
+                                    {
+                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                    }
+                                </g>
+                                <ellipse class="project-status-chart3d-hole" cx="130" cy="116" rx="50" ry="24"></ellipse>
+                                @Html.Raw($"<text class=\"project-status-chart3d-total\" x=\"130\" y=\"111\">{dashboard.TotalProjectCount}</text>")
+                                @Html.Raw("<text class=\"project-status-chart3d-caption\" x=\"130\" y=\"131\">โครงการ</text>")
+                                <g class="project-status-chart3d-pins">
+                                    @foreach (var segment in projectStatusSegments)
+                                    {
+                                        <line x1="@SvgNumber(segment.PinX)" y1="@SvgNumber(segment.PinY)" x2="@SvgNumber(segment.LabelX)" y2="@SvgNumber(segment.LabelY + 17)" stroke="@segment.DarkFill"></line>
+                                        <ellipse cx="@SvgNumber(segment.LabelX)" cy="@SvgNumber(segment.LabelY)" rx="24" ry="18" fill="@segment.Fill" stroke="@segment.DarkFill"></ellipse>
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY + 6)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
+                                    }
+                                </g>
+                            </svg>
+                        </figure>
+                        <div class="metric-list">
+                            @foreach (var metric in dashboard.ProjectStatusMetrics)
+                            {
+                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </article>
@@ -251,46 +470,81 @@
             </div>
         </article>
 
-        <article class="glass-panel compact-panel panel-top-projects">
-            <div class="panel-head">
-                <h2>Top 5 Projects Progress</h2>
-                <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
-            </div>
-            <div class="progress-list">
-                @if (dashboard.TopProjectProgress.Count == 0)
-                {
-                    <p class="empty-state">ยังไม่มีข้อมูลโครงการ</p>
-                }
-                else
-                {
-                    for (var i = 0; i < dashboard.TopProjectProgress.Count; i++)
-                    {
-                        var project = dashboard.TopProjectProgress[i];
-                        <div class="progress-row">
-                            <span>@(i + 1). @project.Name</span>
-                            <div class="progress-track"><i class="@project.Color" style="width:@project.Value%"></i></div>
-                            <b>@project.Value%</b>
-                        </div>
-                    }
-                }
-            </div>
-        </article>
-
         <article class="glass-panel compact-panel panel-issues">
             <div class="panel-head">
-                <h2>Issues Overview</h2>
-                <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                <h2>Issues &amp; Support Overview</h2>
             </div>
-            <div class="donut-layout compact-donut-layout">
-                <div class="donut donut-small" style="--donut:@dashboard.IssueDonut;">
-                    <div><strong>@dashboard.IssueTotal</strong><span>ประเด็น</span></div>
-                </div>
-                <div class="metric-list slim">
-                    @foreach (var metric in dashboard.IssueMetrics)
-                    {
-                        <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
-                    }
-                </div>
+            <div class="overview-pair">
+                <section class="overview-mini" aria-label="Issues Overview">
+                    <div class="overview-mini-head">
+                        <h3>Issues Overview</h3>
+                        <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                    </div>
+                    <div class="donut-layout compact-donut-layout overview-pie-layout">
+                        <figure class="overview-pie3d" aria-label="กราฟ Issues แบบสามมิติ">
+                            <svg viewBox="0 0 160 126" role="img" aria-labelledby="issueOverviewPieTitle">
+                                <title id="issueOverviewPieTitle">Issues ทั้งหมด @dashboard.IssueTotal รายการ</title>
+                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
+                                <g class="overview-pie3d-depth">
+                                    @foreach (var segment in issueOverviewSegments)
+                                    {
+                                        <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
+                                    }
+                                </g>
+                                <g class="overview-pie3d-top">
+                                    @foreach (var segment in issueOverviewSegments)
+                                    {
+                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                    }
+                                </g>
+                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
+                                @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.IssueTotal}</text>")
+                                @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Issues</text>")
+                            </svg>
+                        </figure>
+                        <div class="metric-list slim">
+                            @foreach (var metric in issueOverviewLegend)
+                            {
+                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                            }
+                        </div>
+                    </div>
+                </section>
+                <section class="overview-mini" aria-label="Support Overview">
+                    <div class="overview-mini-head">
+                        <h3>Support Overview</h3>
+                        <a asp-controller="SupportOrders" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                    </div>
+                    <div class="donut-layout compact-donut-layout overview-pie-layout">
+                        <figure class="overview-pie3d" aria-label="กราฟ Support แบบสามมิติ">
+                            <svg viewBox="0 0 160 126" role="img" aria-labelledby="supportOverviewPieTitle">
+                                <title id="supportOverviewPieTitle">Support ทั้งหมด @dashboard.SupportTotal รายการ</title>
+                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
+                                <g class="overview-pie3d-depth">
+                                    @foreach (var segment in supportOverviewSegments)
+                                    {
+                                        <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
+                                    }
+                                </g>
+                                <g class="overview-pie3d-top">
+                                    @foreach (var segment in supportOverviewSegments)
+                                    {
+                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                    }
+                                </g>
+                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
+                                @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.SupportTotal}</text>")
+                                @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Support</text>")
+                            </svg>
+                        </figure>
+                        <div class="metric-list slim">
+                            @foreach (var metric in supportOverviewLegend)
+                            {
+                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                            }
+                        </div>
+                    </div>
+                </section>
             </div>
         </article>
 
@@ -415,15 +669,17 @@
                            title="ดูงวดงานของ @project.ProjectName">
                             <span class="watch-main">
                                 <b>@project.ProjectName</b>
-                                <small>เจ้าของ: @project.OwnerName</small>
-                            </span>
-                            <span class="watch-status">
-                                <i class="risk-pill @project.RiskColor">@project.RiskLevel</i>
-                                <small>@project.DueText</small>
+                                <span class="watch-meta">
+                                    <small>เจ้าของ: @project.OwnerName</small>
+                                    <small>@project.DueText</small>
+                                    <i class="risk-pill @project.RiskColor">@project.RiskLevel</i>
+                                </span>
                             </span>
                             <span class="watch-progress">
-                                <span class="progress-track"><i class="@project.RiskColor" style="width:@project.Progress%"></i></span>
-                                <b class="watch-percent">@project.Progress%</b>
+                                <span class="energy-tube @project.RiskColor" title="Progress: @project.Progress%">
+                                    <i style="height:calc(@project.Progress% * .78)"></i>
+                                    <em>@project.Progress%</em>
+                                </span>
                             </span>
                             <span class="watch-reasons">
                                 @foreach (var reason in project.Reasons)
@@ -448,9 +704,27 @@
                     <span>ชั่วโมง</span>
                     <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
                 </div>
-                <div class="gauge" style="--donut:@dashboard.TimeTrackingDonut;">
-                    <div>⏱</div>
-                </div>
+                <figure class="time-donut3d" aria-label="กราฟ Time Tracking แบบสามมิติ">
+                    <svg viewBox="0 0 160 126" role="img" aria-labelledby="timeTrackingChartTitle">
+                        <title id="timeTrackingChartTitle">Time Tracking รวม @dashboard.MonthWorkHours.ToString("0.#") ชั่วโมง</title>
+                        <ellipse class="time-donut3d-shadow" cx="72" cy="99" rx="58" ry="16"></ellipse>
+                        <g class="time-donut3d-depth">
+                            @foreach (var segment in timeTrackingSegments)
+                            {
+                                <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
+                            }
+                        </g>
+                        <g class="time-donut3d-top">
+                            @foreach (var segment in timeTrackingSegments)
+                            {
+                                <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                            }
+                        </g>
+                        <ellipse class="time-donut3d-hole" cx="78" cy="66" rx="28" ry="14"></ellipse>
+                        @Html.Raw($"<text class=\"time-donut3d-total\" x=\"78\" y=\"64\">{dashboard.MonthWorkHours.ToString("0.#", CultureInfo.InvariantCulture)}</text>")
+                        @Html.Raw("<text class=\"time-donut3d-caption\" x=\"78\" y=\"78\">ชม.</text>")
+                    </svg>
+                </figure>
                 <div class="metric-card">
                     <span><i class="dot green"></i>บันทึกครบ <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
                     <span><i class="dot blue"></i>ยังไม่ออกงาน <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
@@ -466,13 +740,6 @@
                 <span><small>เกิน 12 ชม.</small><b>@dashboard.LongShiftCount ครั้ง</b></span>
                 <span><small>ระยะเกิน 5 กม.</small><b>@dashboard.LongDistanceCount ครั้ง</b></span>
             </div>
-            @if (dashboard.PendingCheckoutNames.Count > 0)
-            {
-                <div class="time-alert-row">
-                    <b>ยังไม่ออกงาน</b>
-                    <span>@string.Join(", ", dashboard.PendingCheckoutNames)</span>
-                </div>
-            }
         </article>
 
         <article class="glass-panel side-panel panel-team">
@@ -1143,6 +1410,17 @@
     grid-template-columns:72px minmax(0, 1fr);
     align-items:center;
     gap:16px;
+    text-decoration:none;
+    transition:transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.kpi-card:hover,
+.kpi-card:focus {
+    color:#fff;
+    text-decoration:none;
+    transform:translateY(-2px);
+    filter:brightness(1.03);
+    box-shadow:0 22px 40px rgba(15,23,42,.24);
 }
 
 .kpi-card::before {
@@ -1242,18 +1520,17 @@
     border:1px solid rgba(115,142,184,.22);
 }
 
-.panel-wide { order:1; grid-column:span 15; min-height:278px; container-type:inline-size; }
+.panel-wide { order:1; grid-column:span 24; min-height:278px; container-type:inline-size; }
 .compact-panel { min-height:198px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
 .panel-task { order:3; grid-column:span 24; min-height:252px; }
 .panel-watch { order:4; grid-column:span 24; min-height:278px; }
-.panel-top-projects { order:5; grid-column:span 16; min-height:238px; }
-.panel-issues { order:6; grid-column:span 8; min-height:238px; }
-.panel-time { order:7; grid-column:span 12; min-height:278px; }
+.panel-issues { order:6; grid-column:span 12; min-height:298px; }
+.panel-time { order:5; grid-column:span 12; min-height:278px; }
 .panel-team { order:8; grid-column:span 12; min-height:278px; }
-.panel-activity { order:9; grid-column:span 18; min-height:278px; }
+.panel-activity { order:8; grid-column:span 12; min-height:278px; }
 .panel-meetings { order:9; grid-column:span 6; min-height:278px; }
-.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
 
 .panel-head {
     position:relative;
@@ -1274,6 +1551,31 @@
     line-height:1.15;
     font-weight:900;
     overflow-wrap:anywhere;
+}
+
+.project-overview-title-row {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.project-overview-title-row h2,
+.project-overview-title-row h3 {
+    margin:0;
+    min-width:0;
+    color:#f6fbff;
+    font-size:16px;
+    line-height:1.15;
+    font-weight:900;
+    overflow-wrap:anywhere;
+}
+
+.project-overview-title-row > span {
+    width:1px;
+    height:18px;
+    background:rgba(217,228,251,.34);
 }
 
 .panel-actions {
@@ -1343,8 +1645,17 @@
 .dot.orange { color:#fb9a13; background:#fb9a13; }
 .dot.pink { color:#ff2d62; background:#ff2d62; }
 .dot.purple { color:#8b4df4; background:#8b4df4; }
+.dot.violet { color:#a855f7; background:#a855f7; }
 .dot.cyan { color:#0ad0c8; background:#0ad0c8; }
 .dot.lime { color:#52d11f; background:#52d11f; }
+.dot.warning { color:#f59e0b; background:#f59e0b; }
+.dot.info { color:#22c7f5; background:#22c7f5; }
+.dot.success { color:#10d58f; background:#10d58f; }
+.dot.primary { color:#3b82f6; background:#3b82f6; }
+.dot.danger { color:#ef4444; background:#ef4444; }
+.dot.dark { color:#64748b; background:#64748b; }
+.dot.secondary { color:#94a3b8; background:#94a3b8; }
+.dot.muted { color:#64748b; background:#64748b; }
 
 .line-chart {
     position:relative;
@@ -1426,48 +1737,24 @@
     max-width:100%;
 }
 
-.project-overview-summary {
+.project-overview-combined {
+    position:relative;
+    z-index:1;
     display:grid;
-    grid-template-columns:repeat(4, minmax(0, 1fr));
-    gap:8px;
-    min-width:0;
+    grid-template-columns:minmax(0, 1.72fr) minmax(320px, .88fr);
+    gap:18px;
+    align-items:stretch;
 }
 
-.project-overview-summary span {
+.project-status-inline {
     min-width:0;
     display:grid;
-    grid-template-columns:auto minmax(0, 1fr) max-content;
-    align-items:center;
-    gap:6px;
-    padding:7px 9px;
-    border:1px solid rgba(217,228,251,.08);
-    border-radius:10px;
-    background:rgba(255,255,255,.04);
+    grid-template-rows:minmax(0, 1fr);
+    padding:0 0 0 6px;
+    border:0;
+    border-radius:0;
+    background:transparent;
 }
-
-.project-overview-summary b {
-    min-width:0;
-    overflow:hidden;
-    color:#d9e4fb;
-    font-size:11px;
-    font-weight:900;
-    line-height:1.1;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.project-overview-summary strong {
-    color:#fff;
-    font-size:15px;
-    font-weight:900;
-    line-height:1;
-}
-
-.project-overview-summary span.green strong { color:#10d58f; }
-.project-overview-summary span.blue strong { color:#1688f5; }
-.project-overview-summary span.orange strong { color:#fb9a13; }
-.project-overview-summary span.purple strong { color:#b16cff; }
-.project-overview-summary span.pink strong { color:#ff4f7f; }
 
 .project-overview-search {
     min-width:0;
@@ -1488,14 +1775,21 @@
     outline:none;
     padding:0 13px;
     background:rgba(255,255,255,.055);
-    color:#f4f8ff;
+    color:#f4f8ff !important;
+    -webkit-text-fill-color:#f4f8ff;
+    caret-color:#f4f8ff;
     font-family:'Prompt', sans-serif;
     font-size:12px;
     font-weight:900;
 }
 
 .project-overview-search input::placeholder {
-    color:rgba(217,228,251,.55);
+    color:rgba(217,228,251,.7);
+    -webkit-text-fill-color:rgba(217,228,251,.7);
+}
+
+.project-overview-search input::-webkit-search-cancel-button {
+    filter:invert(1) opacity(.65);
 }
 
 .project-overview-search input:focus {
@@ -1525,12 +1819,16 @@
 }
 
 .project-overview-scroll {
-    display:grid;
+    display:flex;
+    flex-direction:column;
     gap:6px;
-    max-height:244px;
+    height:250px;
+    max-height:250px;
     overflow-y:auto;
     overflow-x:hidden;
     padding-right:4px;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
     scrollbar-width:thin;
     scrollbar-color:rgba(20,184,166,.72) rgba(15,35,64,.42);
 }
@@ -1555,6 +1853,7 @@
 }
 
 .project-overview-row {
+    flex:0 0 auto;
     min-height:44px;
     box-sizing:border-box;
     padding:7px 10px;
@@ -1624,24 +1923,16 @@
 }
 
 @@container (max-width:1100px) {
+    .project-overview-combined {
+        grid-template-columns:1fr;
+    }
+
+    .project-status-inline {
+        padding:14px;
+    }
+
     .project-overview-table {
         overflow-x:visible;
-    }
-
-    .project-overview-summary {
-        min-width:0;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
-        gap:6px;
-    }
-
-    .project-overview-summary span {
-        padding:7px 8px;
-        gap:5px;
-    }
-
-    .project-overview-summary b {
-        font-size:10px;
-        white-space:nowrap;
     }
 
     .project-overview-head {
@@ -1649,7 +1940,8 @@
     }
 
     .project-overview-scroll {
-        max-height:264px;
+        height:250px;
+        max-height:250px;
         overflow-x:hidden;
         padding-right:5px;
     }
@@ -1742,8 +2034,28 @@
     padding:0 4px;
 }
 
+.project-status-inline .donut-layout {
+    min-height:100%;
+    width:min(100%, 440px);
+    grid-template-columns:1fr;
+    justify-items:center;
+    align-content:center;
+    justify-self:center;
+    gap:14px;
+}
+
+.project-status-inline .metric-list {
+    width:min(100%, 310px);
+    gap:10px;
+}
+
+.project-status-inline .metric-list > span {
+    grid-template-columns:auto minmax(0, 1fr) max-content;
+    padding:0 4px;
+}
+
 .panel-issues .donut-layout {
-    width:min(100%, 350px);
+    width:100%;
 }
 
 .compact-donut-layout {
@@ -1788,6 +2100,74 @@
     color:#f2f7ff;
     font-size:13px;
     font-weight:900;
+}
+
+.project-status-chart3d {
+    width:min(100%, 300px);
+    margin:0 auto;
+}
+
+.project-status-chart3d svg {
+    width:100%;
+    height:auto;
+    display:block;
+    overflow:visible;
+}
+
+.project-status-chart3d-shadow {
+    fill:rgba(226,232,255,.14);
+    filter:blur(.4px);
+}
+
+.project-status-chart3d-depth path {
+    opacity:.96;
+}
+
+.project-status-chart3d-top path {
+    stroke:rgba(255,255,255,.18);
+    stroke-width:1.5;
+    filter:drop-shadow(0 6px 8px rgba(3,10,28,.16));
+}
+
+.project-status-chart3d-hole {
+    fill:#132241;
+    filter:drop-shadow(0 5px 8px rgba(3,10,28,.2));
+}
+
+.project-status-chart3d-total,
+.project-status-chart3d-caption,
+.project-status-chart3d-pins text {
+    font-family:'Prompt', sans-serif;
+    text-anchor:middle;
+    fill:#fff;
+    font-weight:900;
+    paint-order:stroke;
+    stroke:rgba(15,23,42,.1);
+    stroke-width:1px;
+}
+
+.project-status-chart3d-total {
+    font-size:30px;
+}
+
+.project-status-chart3d-caption {
+    font-size:11px;
+}
+
+.project-status-chart3d-pins line {
+    stroke-width:7;
+    stroke-linecap:round;
+    opacity:.72;
+}
+
+.project-status-chart3d-pins ellipse {
+    stroke-width:3;
+    filter:drop-shadow(0 5px 5px rgba(3,10,28,.18));
+}
+
+.project-status-chart3d-pins text {
+    font-size:17px;
+    font-style:italic;
 }
 
 .donut-small {
@@ -1837,25 +2217,143 @@
 }
 
 .panel-issues .compact-donut-layout {
-    grid-template-columns:124px minmax(0, 1fr);
-    gap:14px;
+    grid-template-columns:156px minmax(0, 1fr);
+    gap:12px;
+    min-height:0;
+    justify-content:stretch;
+    align-content:start;
+    margin:0;
 }
 
 .panel-issues .donut-small {
-    width:124px;
+    width:92px;
 }
 
 .panel-issues .donut-small > div {
-    width:76px;
+    width:58px;
+}
+
+.panel-issues .donut-small strong {
+    font-size:21px;
+}
+
+.panel-issues .donut-small span {
+    font-size:9px;
 }
 
 .panel-issues .metric-list.slim {
-    gap:12px;
-    font-size:12px;
+    gap:7px;
+    font-size:11px;
 }
 
 .panel-issues .metric-list > span {
-    grid-template-columns:auto minmax(72px, 1fr) max-content;
+    grid-template-columns:auto minmax(68px, 1fr) max-content;
+    padding:5px 7px;
+    border:1px solid rgba(217,228,251,.08);
+    border-radius:999px;
+    background:rgba(255,255,255,.04);
+}
+
+.overview-pie-layout {
+    align-items:center;
+}
+
+.overview-pie3d {
+    width:min(100%, 156px);
+    margin:0;
+}
+
+.overview-pie3d svg {
+    display:block;
+    width:100%;
+    height:auto;
+    overflow:visible;
+}
+
+.overview-pie3d-shadow {
+    fill:rgba(226,232,255,.11);
+    filter:blur(.6px);
+}
+
+.overview-pie3d-depth path {
+    opacity:.9;
+}
+
+.overview-pie3d-top path {
+    stroke:rgba(255,255,255,.18);
+    stroke-width:1;
+    filter:drop-shadow(0 7px 7px rgba(3,10,28,.14));
+}
+
+.overview-pie3d-center {
+    fill:#132241;
+    filter:drop-shadow(0 4px 7px rgba(3,10,28,.22));
+}
+
+.overview-pie3d-total,
+.overview-pie3d-caption {
+    font-family:'Prompt', sans-serif;
+    text-anchor:middle;
+    fill:#fff;
+    font-weight:900;
+    paint-order:stroke;
+    stroke:rgba(15,23,42,.14);
+    stroke-width:1px;
+}
+
+.overview-pie3d-total {
+    font-size:18px;
+}
+
+.overview-pie3d-caption {
+    font-size:8px;
+    fill:#dbeafe;
+}
+
+.overview-pair {
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:12px;
+    min-height:190px;
+    align-items:center;
+    align-content:center;
+    justify-content:center;
+}
+
+.overview-mini {
+    min-width:0;
+    display:grid;
+    gap:10px;
+    padding:12px;
+    align-self:center;
+    border:1px solid rgba(217,228,251,.1);
+    border-radius:12px;
+    background:rgba(255,255,255,.035);
+}
+
+.overview-mini-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    min-width:0;
+}
+
+.overview-mini-head h3 {
+    margin:0;
+    min-width:0;
+    color:#f6fbff;
+    font-size:13px;
+    line-height:1.15;
+    font-weight:900;
+    overflow-wrap:anywhere;
+}
+
+.overview-mini-head .panel-filter {
+    padding:6px 10px;
+    font-size:10px;
 }
 
 .empty-state,
@@ -1920,9 +2418,9 @@
 
 .watch-row {
     display:grid;
-    grid-template-columns:minmax(0, 1.35fr) 126px;
+    grid-template-columns:minmax(0, 1fr) 46px minmax(112px, .38fr);
     gap:8px 12px;
-    padding:10px 12px;
+    padding:12px 12px 18px;
     border-radius:12px;
     color:inherit;
     text-decoration:none;
@@ -1956,9 +2454,9 @@
 }
 
 .watch-main small,
-.watch-status small {
+.watch-status small,
+.watch-meta small {
     display:block;
-    margin-top:3px;
     color:#9fb0d0;
     font-size:11px;
     line-height:1.25;
@@ -1966,57 +2464,141 @@
     overflow-wrap:anywhere;
 }
 
+.watch-meta {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:5px;
+    min-width:0;
+    flex-wrap:wrap;
+}
+
+.watch-meta small {
+    margin-top:0;
+    white-space:nowrap;
+}
+
 .watch-status {
+    grid-column:3;
     justify-self:end;
     text-align:right;
 }
 
 .risk-pill {
-    min-width:56px;
-    min-height:24px;
-    border-radius:999px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding:4px 9px;
-    color:#fff;
+    padding:0;
+    background:transparent !important;
     font-size:11px;
     font-style:normal;
     font-weight:900;
+    line-height:1.15;
 }
 
-.risk-pill.pink { background:linear-gradient(135deg,#ff2d62,#ff6043); }
-.risk-pill.orange { background:linear-gradient(135deg,#fb9a13,#ffb13b); }
-.risk-pill.blue { background:linear-gradient(135deg,#1688f5,#0ad0c8); }
+.risk-pill.pink { color:#ff4f7f; }
+.risk-pill.orange { color:#ffad33; }
+.risk-pill.blue { color:#47c7ff; }
 
 .watch-progress {
+    grid-column:2;
+    grid-row:1 / span 2;
+    align-self:center;
+    justify-self:center;
     display:grid;
-    grid-template-columns:minmax(0, 1fr) 58px;
-    align-items:center;
-    gap:10px;
+    place-items:center;
 }
 
-.watch-progress .progress-track {
+.energy-tube {
+    --energy:#1688f5;
+    --energy-dark:#0d5faf;
+    position:relative;
+    width:28px;
+    height:62px;
     display:block;
+    border-radius:16px 16px 10px 10px;
+    background:linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.04) 34%, rgba(3,10,28,.3));
+    border:1px solid rgba(217,228,251,.24);
+    box-shadow:
+        0 10px 18px rgba(3,10,28,.24),
+        inset 0 1px 0 rgba(255,255,255,.28),
+        inset -6px 0 9px rgba(3,10,28,.2);
+    overflow:visible;
 }
 
-.watch-percent {
-    min-width:54px;
-    min-height:26px;
-    border-radius:999px;
+.energy-tube::before {
+    content:"";
+    position:absolute;
+    left:6px;
+    right:6px;
+    top:3px;
+    height:6px;
+    border-radius:8px 8px 3px 3px;
+    background:linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.1));
+    border:1px solid rgba(217,228,251,.18);
+}
+
+.energy-tube::after {
+    content:"";
+    position:absolute;
+    inset:13px 6px 7px;
+    border-radius:11px 11px 7px 7px;
+    background:
+        linear-gradient(90deg, rgba(255,255,255,.18), transparent 34%, rgba(0,0,0,.14) 100%),
+        rgba(5,15,35,.68);
+    box-shadow:inset 0 0 12px rgba(3,10,28,.72);
+}
+
+.energy-tube i {
+    position:absolute;
+    z-index:1;
+    left:6px;
+    right:6px;
+    bottom:7px;
+    min-height:4px;
+    border-radius:10px 10px 7px 7px;
+    background:
+        radial-gradient(circle at 38% 18%, rgba(255,255,255,.7), transparent 24%),
+        linear-gradient(180deg, color-mix(in srgb, var(--energy) 86%, white), var(--energy) 48%, var(--energy-dark));
+    box-shadow:
+        0 0 14px color-mix(in srgb, var(--energy) 62%, transparent),
+        inset 0 1px 0 rgba(255,255,255,.42),
+        inset -4px 0 8px rgba(3,10,28,.18);
+}
+
+.energy-tube em {
+    position:absolute;
+    z-index:2;
+    left:50%;
+    top:calc(100% + 4px);
+    transform:translateX(-50%);
+    width:100%;
+    min-width:0;
+    min-height:16px;
+    border-radius:0;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    justify-self:end;
-    background:rgba(255,255,255,.1);
+    background:transparent;
     color:#f4f8ff;
-    font-size:12px;
+    font-size:9px;
+    font-style:normal;
     font-weight:900;
-    text-align:right;
+    line-height:1;
     white-space:nowrap;
 }
 
+.energy-tube.pink { --energy:#ff3f7c; --energy-dark:#c81f55; }
+.energy-tube.orange { --energy:#fb9a13; --energy-dark:#c96d00; }
+.energy-tube.blue { --energy:#1688f5; --energy-dark:#0a5fb3; }
+
+.watch-percent {
+    text-align:right;
+}
+
 .watch-reasons {
+    grid-column:3;
+    align-self:center;
     display:flex;
     flex-wrap:wrap;
     gap:5px;
@@ -2146,26 +2728,6 @@
     -webkit-box-orient:vertical;
     -webkit-line-clamp:2;
     overflow-wrap:anywhere;
-}
-
-.panel-top-projects .progress-row {
-    align-items:start;
-    grid-template-columns:minmax(0, 1.45fr) minmax(96px, 1fr) 48px;
-}
-
-.panel-top-projects .progress-row span {
-    display:block;
-    overflow:visible;
-    -webkit-line-clamp:unset;
-    white-space:normal;
-}
-
-.panel-top-projects .progress-track {
-    margin-top:4px;
-}
-
-.panel-top-projects .progress-list {
-    gap:12px;
 }
 
 .progress-row b,
@@ -2402,26 +2964,74 @@
 
 .bar-group span {
     min-height:8px;
-    border-radius:5px 5px 0 0;
+    border-radius:5px 5px 2px 2px;
     position:relative;
     display:flex;
     justify-content:center;
     overflow:visible;
+    transform-style:preserve-3d;
+    box-shadow:
+        0 8px 12px rgba(3,10,28,.18),
+        inset 0 1px 0 rgba(255,255,255,.2),
+        inset -3px 0 7px rgba(3,10,28,.13);
 }
 
 .bar-group span.is-zero {
     min-height:0;
+    box-shadow:none;
 }
 
-.bar-group span:nth-child(1) { background:linear-gradient(#16d686,#047c65); }
-.bar-group span:nth-child(2) { background:linear-gradient(#12d8ff,#127be4); }
-.bar-group span:nth-child(3) { background:linear-gradient(#ffb01e,#ff8400); }
+.bar-group span::before,
+.bar-group span::after {
+    content:"";
+    position:absolute;
+    pointer-events:none;
+}
+
+.bar-group span::before {
+    left:4px;
+    right:-4px;
+    top:-5px;
+    height:6px;
+    border-radius:5px 6px 2px 2px;
+    transform:skewX(-32deg);
+    transform-origin:left bottom;
+    opacity:.9;
+}
+
+.bar-group span::after {
+    top:-1px;
+    right:-6px;
+    bottom:0;
+    width:6px;
+    border-radius:0 5px 2px 0;
+    transform:skewY(-36deg);
+    transform-origin:left top;
+    opacity:.86;
+}
+
+.bar-group span.is-zero::before,
+.bar-group span.is-zero::after {
+    content:none;
+}
+
+.bar-group span:nth-child(1) { background:linear-gradient(180deg,#36daa0 0%, #12b77f 45%, #047c65 100%); }
+.bar-group span:nth-child(2) { background:linear-gradient(180deg,#4bdcff 0%, #1aa9ef 48%, #127be4 100%); }
+.bar-group span:nth-child(3) { background:linear-gradient(180deg,#ffc653 0%, #ffa01b 48%, #ff8400 100%); }
+
+.bar-group span:nth-child(1)::before { background:linear-gradient(90deg,#68ebb7,#2fca91); }
+.bar-group span:nth-child(1)::after { background:linear-gradient(180deg,#10a873,#05705a); }
+.bar-group span:nth-child(2)::before { background:linear-gradient(90deg,#82e7ff,#37bff5); }
+.bar-group span:nth-child(2)::after { background:linear-gradient(180deg,#159bd9,#1068be); }
+.bar-group span:nth-child(3)::before { background:linear-gradient(90deg,#ffd572,#ffad31); }
+.bar-group span:nth-child(3)::after { background:linear-gradient(180deg,#ea8d0f,#d46f00); }
 
 .bar-group span i {
     position:absolute;
     top:-18px;
     left:50%;
     transform:translateX(-50%);
+    z-index:2;
     color:#fff;
     font-size:10px;
     font-style:normal;
@@ -2479,6 +3089,57 @@
     width:82px;
     color:#fff;
     font-size:38px;
+}
+
+.time-donut3d {
+    width:min(100%, 168px);
+    margin:0 auto;
+}
+
+.time-donut3d svg {
+    display:block;
+    width:100%;
+    height:auto;
+    overflow:visible;
+}
+
+.time-donut3d-shadow {
+    fill:rgba(226,232,255,.15);
+    filter:blur(.3px);
+}
+
+.time-donut3d-depth path {
+    opacity:.98;
+}
+
+.time-donut3d-top path {
+    stroke:rgba(255,255,255,.26);
+    stroke-width:1.4;
+    filter:drop-shadow(0 7px 7px rgba(3,10,28,.18));
+}
+
+.time-donut3d-hole {
+    fill:#132241;
+    filter:drop-shadow(0 4px 7px rgba(3,10,28,.22));
+}
+
+.time-donut3d-total,
+.time-donut3d-caption {
+    font-family:'Prompt', sans-serif;
+    text-anchor:middle;
+    fill:#fff;
+    font-weight:900;
+    paint-order:stroke;
+    stroke:rgba(15,23,42,.18);
+    stroke-width:1px;
+}
+
+.time-donut3d-total {
+    font-size:17px;
+}
+
+.time-donut3d-caption {
+    font-size:9px;
 }
 
 .metric-card {
@@ -2540,28 +3201,6 @@
     overflow-wrap:anywhere;
 }
 
-.time-alert-row {
-    position:relative;
-    z-index:1;
-    display:grid;
-    grid-template-columns:max-content minmax(0, 1fr);
-    gap:8px;
-    margin-top:10px;
-    padding:9px 10px;
-    border-radius:10px;
-    border:1px solid rgba(251,154,19,.22);
-    background:rgba(251,154,19,.12);
-    color:#ffe6c2;
-    font-size:11px;
-    font-weight:900;
-}
-
-.time-alert-row span {
-    min-width:0;
-    color:#fff;
-    overflow-wrap:anywhere;
-}
-
 .workload-row {
     grid-template-columns:32px minmax(0, .9fr) minmax(96px, 1.2fr) 52px;
     gap:10px;
@@ -2585,16 +3224,16 @@
     .panel-project-status,
     .panel-watch,
     .panel-activity,
-    .panel-top-projects,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
     .panel-task,
     .panel-watch,
     .panel-time { grid-column:1 / -1; }
+    .overview-pair { grid-template-columns:1fr; }
 }
 
 @@media (max-width:1024px) {
@@ -2606,13 +3245,12 @@
     .panel-project-status,
     .panel-watch,
     .panel-activity,
-    .panel-top-projects,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-top-projects):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
 }
 
 @@media (max-width:640px) {
@@ -2707,25 +3345,30 @@
     .compact-donut-layout,
     .time-layout { grid-template-columns:1fr; }
     .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
-    .time-alert-row { grid-template-columns:1fr; }
     .chart-tooltip { display:none; }
     .legend-row { margin-left:0; flex-wrap:wrap; gap:10px; }
     .watch-list { grid-template-columns:1fr; }
     .watch-row { grid-template-columns:1fr; }
+    .watch-progress {
+        grid-column:1;
+        grid-row:auto;
+        justify-self:start;
+        padding:22px 0 4px 6px;
+    }
     .watch-status { justify-self:start; text-align:left; }
+    .watch-status,
+    .watch-reasons { grid-column:1; }
     .watch-reasons { justify-content:flex-start; }
     .project-overview-table {
         overflow-x:visible;
-    }
-    .project-overview-summary {
-        min-width:0;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
     }
     .project-overview-head {
         display:none;
     }
     .project-overview-scroll {
-        max-height:264px;
+        height:250px;
+        max-height:250px;
+        overflow-y:auto;
     }
     .project-overview-row {
         display:grid !important;
@@ -2774,7 +3417,6 @@
         display:none !important;
     }
     .panel-team .workload-list { grid-template-columns:1fr; }
-    .panel-top-projects .progress-row,
     .progress-row { grid-template-columns:1fr; gap:6px; }
     .workload-row { grid-template-columns:28px minmax(0, 1fr) 42px; }
     .workload-row .progress-track {
@@ -2815,7 +3457,6 @@
     .gauge strong,
     .time-number strong,
     .time-number span,
-    .project-overview-summary strong,
     .watch-main b,
     .activity-row b,
     .meeting-row b,
@@ -2833,7 +3474,6 @@
     .panel-link,
     .legend-row,
     .metric-list,
-    .project-overview-summary b,
     .project-overview-search,
     .project-overview-search input,
     .project-overview-head,
@@ -2849,7 +3489,6 @@
     .watch-percent,
     .watch-reasons i,
     .metric-card,
-    .time-alert-row,
     .dashboard-footer
 ) {
     font-weight:600 !important;
@@ -2905,7 +3544,6 @@
         const rows = Array.from(document.querySelectorAll('.project-overview-row[data-project-search]'));
         const emptyMessage = document.querySelector('.project-overview-empty');
         const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
-        const defaultVisibleRows = 5;
 
         const applyFilter = () => {
             const keyword = normalize(searchInput.value);
@@ -2914,9 +3552,8 @@
             rows.forEach((row, index) => {
                 const text = normalize(row.dataset.projectSearch || row.textContent);
                 const matchesSearch = !keyword || text.includes(keyword);
-                const isVisible = matchesSearch && (keyword.length > 0 || index < defaultVisibleRows);
-                row.classList.toggle('is-filter-hidden', !isVisible);
-                if (isVisible) visibleCount++;
+                row.classList.toggle('is-filter-hidden', !matchesSearch);
+                if (matchesSearch) visibleCount++;
             });
 
             if (emptyMessage) {

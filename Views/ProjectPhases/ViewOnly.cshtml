@@ -1,0 +1,268 @@
+@model IEnumerable<ProjectTracking.Models.ProjectPhase>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Project Phases Report";
+    var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>()).ToList();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var selectedProjectId = ViewBag.SelectedProjectId as int?;
+    var selectedStatus = ViewBag.SelectedPhaseStatus as string;
+    var today = ViewBag.Today as DateTime? ?? DateTime.Today;
+    var th = new CultureInfo("th-TH");
+
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string StatusText(string? value)
+    {
+        if (string.Equals((value ?? "").Trim(), "DELAY", StringComparison.OrdinalIgnoreCase)) return "ล่าช้า";
+        return string.IsNullOrWhiteSpace(value) ? "-" : value!;
+    }
+
+    bool IsDone(string? status)
+    {
+        var normalized = (status ?? "").Trim().ToUpperInvariant();
+        return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
+    }
+
+    int OverdueDays(ProjectTracking.Models.ProjectPhase phase)
+    {
+        if (!phase.PlanEnd.HasValue || IsDone(phase.PhaseStatus) || phase.PlanEnd.Value.Date >= today) return 0;
+        return (today - phase.PlanEnd.Value.Date).Days;
+    }
+
+    var total = rows.Count;
+    var overdueCount = rows.Count(x => OverdueDays(x) > 0);
+    var doneCount = rows.Count(x => IsDone(x.PhaseStatus));
+    var activeCount = rows.Count(x => !IsDone(x.PhaseStatus) && OverdueDays(x) == 0);
+    var statusOptions = projects.Any()
+        ? rows.Select(x => x.PhaseStatus).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList()
+        : new List<string?>();
+}
+
+<style>
+    .phase-report-page {
+        padding: 4px 0 28px;
+    }
+
+    .phase-report-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin: 14px 0;
+    }
+
+    .phase-report-filter {
+        display: grid;
+        grid-template-columns: minmax(240px, 1.2fr) minmax(180px, .7fr) auto;
+        gap: 12px;
+        align-items: end;
+        padding: 16px;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .phase-report-filter label {
+        color: #10233f;
+        font-weight: 900;
+    }
+
+    .phase-report-filter :is(select, button) {
+        min-height: 44px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .phase-report-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 14px 0;
+    }
+
+    .phase-report-kpi {
+        padding: 16px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
+    }
+
+    .phase-report-kpi span {
+        display: block;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .phase-report-kpi strong {
+        display: block;
+        color: #10233f;
+        font-size: 2rem;
+        line-height: 1;
+        margin-top: 8px;
+    }
+
+    .phase-report-kpi.overdue strong {
+        color: #dc2626;
+    }
+
+    .phase-report-table {
+        overflow: hidden;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .phase-report-table th {
+        color: #fff;
+        background: #10233f;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .phase-report-table td {
+        vertical-align: middle;
+        font-weight: 500;
+    }
+
+    .phase-report-title {
+        color: #10233f;
+        font-weight: 900;
+    }
+
+    .phase-report-muted {
+        color: #0f172a;
+        font-weight: 400;
+    }
+
+    .phase-report-phase-text {
+        color: #0f172a;
+        font-weight: 400;
+    }
+
+    .phase-report-delay {
+        color: #b91c1c;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 900px) {
+        .phase-report-filter,
+        .phase-report-kpis {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="phase-report-page">
+    <section class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h1 class="index-title">@ViewData["Title"]</h1>
+            <p class="index-subtitle">รายงาน ProjectPhases ตามสถานะและกำหนด Plan End</p>
+        </div>
+        <div class="index-actions">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
+            <a asp-controller="PhaseAssigns" asp-action="ViewOnly" asp-route-workStatus="DELAY" class="btn btn-outline-light">PhaseAssigns ล่าช้า</a>
+        </div>
+    </section>
+
+    <form method="get" class="phase-report-filter">
+        <div>
+            <label for="projectId" class="form-label">Project</label>
+            <select id="projectId" name="projectId" class="form-select" data-placeholder="พิมพ์ค้นหา Project...">
+                <option value="">-- All Projects --</option>
+                @foreach (var project in projects)
+                {
+                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId)">
+                        @project.ProjectDisplayName
+                    </option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="phaseStatus" class="form-label">Status</label>
+            <select id="phaseStatus" name="phaseStatus" class="form-select" data-placeholder="พิมพ์ค้นหา Status...">
+                <option value="">-- All Statuses --</option>
+                <option value="DELAY" selected="@(string.Equals(selectedStatus, "DELAY", StringComparison.OrdinalIgnoreCase))">ล่าช้า</option>
+                @foreach (var status in statusOptions)
+                {
+                    <option value="@status" selected="@(string.Equals(selectedStatus, status, StringComparison.OrdinalIgnoreCase))">@StatusText(status)</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">ค้นหา</button>
+    </form>
+
+    <section class="phase-report-kpis">
+        <article class="phase-report-kpi">
+            <span>Total Phases</span>
+            <strong>@total</strong>
+        </article>
+        <article class="phase-report-kpi overdue">
+            <span>ล่าช้า</span>
+            <strong>@overdueCount</strong>
+        </article>
+        <article class="phase-report-kpi">
+            <span>ยังไม่จบ</span>
+            <strong>@activeCount</strong>
+        </article>
+        <article class="phase-report-kpi">
+            <span>จบแล้ว</span>
+            <strong>@doneCount</strong>
+        </article>
+    </section>
+
+    @if (rows.Count == 0)
+    {
+        <div class="alert alert-warning fw-bold">ไม่พบ ProjectPhase ตามเงื่อนไขที่เลือก</div>
+    }
+    else
+    {
+        <div class="table-responsive phase-report-table">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th>Project</th>
+                        <th>Phase</th>
+                        <th class="text-center">Plan</th>
+                        <th class="text-center">กำหนดส่งงวดงาน</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">ล่าช้า</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < rows.Count; i++)
+                    {
+                        var phase = rows[i];
+                        var overdueDays = OverdueDays(phase);
+                        <tr>
+                            <td class="text-center fw-bold">@(i + 1)</td>
+                            <td>
+                                <div class="phase-report-title">@phase.Project?.ProjectDisplayName</div>
+                            </td>
+                            <td>
+                                <div class="phase-report-phase-text">@phase.PhaseDisplayName</div>
+                                <div class="phase-report-muted fw-normal">BA: @(phase.Project?.BA?.EmpName ?? "-")</div>
+                            </td>
+                            <td class="text-center">@DateText(phase.PlanStart) - @DateText(phase.PlanEnd)</td>
+                            <td class="text-center">@DateText(phase.PeriodEndDate)</td>
+                            <td class="text-center">@StatusText(phase.PhaseStatus)</td>
+                            <td class="text-center">
+                                @if (overdueDays > 0)
+                                {
+                                    <span class="phase-report-delay">@overdueDays วัน</span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

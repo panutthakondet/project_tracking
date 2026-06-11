@@ -67,6 +67,69 @@ namespace ProjectTracking.Controllers
             return View(phases);
         }
 
+        [RequireMenu("ProjectPhases.Index")]
+        public async Task<IActionResult> ViewOnly(int? projectId, string? phaseStatus)
+        {
+            var today = DateTime.Today;
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .Include(p => p.BA)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .Include(p => p.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(p => p.Project)
+                    .ThenInclude(p => p!.BA)
+                .OrderBy(p => p.Project != null && p.Project.Coop != null ? p.Project.Coop.CoopName : "")
+                .ThenBy(p => p.Project != null ? p.Project.ProjectName : "")
+                .ThenBy(p => p.PhaseOrder)
+                .ThenBy(p => p.PeriodOrder)
+                .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
+                .ThenBy(p => p.PhaseId)
+                .ToListAsync();
+
+            var query = phases.AsEnumerable();
+
+            if (projectId.HasValue)
+                query = query.Where(p => p.ProjectId == projectId.Value);
+
+            if (IsDelayFilter(phaseStatus))
+            {
+                query = query.Where(p =>
+                    p.PlanEnd.HasValue &&
+                    p.PlanEnd.Value.Date < today &&
+                    !IsPhaseDone(p.PhaseStatus));
+            }
+            else if (!string.IsNullOrWhiteSpace(phaseStatus))
+            {
+                query = query.Where(p => string.Equals(p.PhaseStatus, phaseStatus, StringComparison.OrdinalIgnoreCase));
+            }
+
+            ViewBag.Projects = projects;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedPhaseStatus = phaseStatus;
+            ViewBag.Today = today;
+
+            return View(query.ToList());
+        }
+
+        private static bool IsDelayFilter(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized is "DELAY" or "ล่าช้า" or "OVERDUE";
+        }
+
+        private static bool IsPhaseDone(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
+        }
+
         // ===========================
         // CREATE (GET)
         // ===========================
