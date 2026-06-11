@@ -475,33 +475,13 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
-            var oldIssueStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
-            var newIssueStatus = GetIssueStatusFromDevStatus(newDev, oldIssueStatus);
 
             issue.DevStatus = newDev;
             issue.DevDetail = model.DevDetail;   // developer fix detail
-            issue.IssueStatus = newIssueStatus;
 
             _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
             _context.Entry(issue).Property(x => x.DevDetail).IsModified = true;
-            _context.Entry(issue).Property(x => x.IssueStatus).IsModified = true;
-
-            if (!string.Equals(oldIssueStatus, newIssueStatus, StringComparison.OrdinalIgnoreCase))
-            {
-                var changedByEmpId = await GetCurrentEntryIdAsync();
-
-                _context.ProjectIssueStatusHistories.Add(new ProjectIssueStatusHistory
-                {
-                    IssueId = issue.IssueId,
-                    OldStatus = oldIssueStatus,
-                    NewStatus = newIssueStatus,
-                    IsReopen = issue.IsReopen,
-                    ReopenCount = issue.ReopenCount,
-                    ChangedAt = DateTime.Now,
-                    ChangedByEmpId = changedByEmpId ?? issue.AssignTo
-                });
-            }
 
             await _context.SaveChangesAsync();
 
@@ -805,19 +785,6 @@ namespace ProjectTracking.Controllers
             if (value == "TODO" || value == "DOING" || value == "BLOCK")
                 return "WIP";
             return ProgrammerDevStatuses.Any(x => x.Value == value) ? value : "WIP";
-        }
-
-        private static string GetIssueStatusFromDevStatus(string devStatus, string currentIssueStatus)
-        {
-            if (currentIssueStatus == "PASS" || currentIssueStatus == "REJECT")
-                return currentIssueStatus;
-
-            return devStatus switch
-            {
-                "WIP" => "WIP",
-                "FIXED" => "FIXED",
-                _ => "OPEN"
-            };
         }
 
         private void ApplyIssueDateInput(ProjectIssue model)
