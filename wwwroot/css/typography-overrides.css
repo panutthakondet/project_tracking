@@ -527,3 +527,10 @@ html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-tit
 html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-subtitle {
   font-weight: 500 !important;
 }
+
+html body main.route-controller-phaseworkload .workload-hero.index-hero .index-hero__content > .index-subtitle {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}

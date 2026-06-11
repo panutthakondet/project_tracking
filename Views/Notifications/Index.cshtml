@@ -38,54 +38,10 @@
     }
 
     .notification-hero {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 18px;
         background: linear-gradient(135deg, #10284a, #174c5b);
-        color: #fff;
-        border-radius: 24px;
-        padding: 28px 32px;
-        box-shadow: 0 18px 36px rgba(15, 40, 74, .18);
-        margin-bottom: 18px;
     }
-
-    .notification-eyebrow {
-        color: #9ff8ef;
-        font-size: .82rem;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-
-    .notification-hero h1 {
-        margin: 0;
-        font-size: clamp(2rem, 4vw, 3.4rem);
-        font-weight: 900;
-        letter-spacing: 0;
-        line-height: 1.05;
-    }
-
-    .notification-hero p {
-        margin: 10px 0 0;
-        color: #cfe0f2;
-        font-size: 1.05rem;
-        font-weight: 700;
-    }
-
     .notification-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-
-    .notification-actions .btn {
-        min-width: 150px;
-        border-radius: 999px;
-        font-weight: 900;
-        padding: 10px 18px;
+        justify-content: flex-end !important;
     }
 
     .notification-groups {
@@ -315,17 +271,16 @@
         }
 
         .notification-hero {
-            display: block;
             padding: 24px 20px;
         }
 
         .notification-actions {
-            justify-content: flex-start;
+            justify-content: flex-end !important;
             margin-top: 18px;
         }
 
         .notification-actions .btn {
-            width: 100%;
+            width: auto;
         }
 
         .notification-group-header {
@@ -345,13 +300,13 @@
 </style>
 
 <div class="notification-page">
-    <section class="notification-hero">
-        <div>
-            <div class="notification-eyebrow">ProjectTracking</div>
-            <h1>แจ้งเตือนงาน</h1>
-            <p>งานเสี่ยงล่าช้าและงานล่าช้า @(isAdmin ? "ของทุกคนในระบบ" : "ของคุณ")</p>
+    <section class="notification-hero index-hero">
+        <div class="index-hero__content">
+            <div class="notification-eyebrow index-eyebrow">ProjectTracking</div>
+            <h1 class="index-title">แจ้งเตือนงาน</h1>
+            <p class="index-subtitle">งานเสี่ยงล่าช้าและงานล่าช้า @(isAdmin ? "ของทุกคนในระบบ" : "ของคุณ")</p>
         </div>
-        <div class="notification-actions">
+        <div class="notification-actions index-actions">
             <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
         </div>
     </section>

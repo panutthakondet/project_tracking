@@ -642,6 +642,44 @@
             color: #20324c;
         }
 
+        .rb-dashboard-btn {
+            min-height: 44px;
+            padding: 0 18px 0 14px;
+            border: 1px solid rgba(153, 246, 228, .82);
+            border-radius: 999px;
+            background:
+                linear-gradient(135deg, rgba(153, 246, 228, .24), rgba(59, 130, 246, .18)),
+                rgba(255, 255, 255, .10);
+            color: #ecfeff;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .22),
+                0 10px 22px rgba(8, 47, 73, .20);
+            font-size: .95rem;
+            letter-spacing: 0;
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+        }
+
+        .rb-dashboard-btn svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            filter: drop-shadow(0 4px 8px rgba(15, 118, 110, .28));
+        }
+
+        .rb-dashboard-btn:hover,
+        .rb-dashboard-btn:focus {
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, .92);
+            background:
+                linear-gradient(135deg, rgba(45, 212, 191, .36), rgba(96, 165, 250, .28)),
+                rgba(255, 255, 255, .16);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .28),
+                0 14px 28px rgba(8, 47, 73, .28);
+            filter: none;
+            transform: translateY(-1px);
+        }
+
         .rb-btn.danger {
             background: #fff;
             border: 1px solid #fb7185;
@@ -1795,7 +1833,13 @@
                     }
                 </div>
             }
-            <a class="rb-btn secondary" asp-controller="Home" asp-action="Index">Dashboard</a>
+            <a class="rb-btn rb-dashboard-btn" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 13.5h6.5V4H4v9.5Zm9.5 6.5H20v-9.5h-6.5V20ZM4 20h6.5v-3.5H4V20Zm9.5-12.5H20V4h-6.5v3.5Z"
+                          fill="currentColor" opacity=".92" />
+                </svg>
+                <span>Dashboard</span>
+            </a>
         </div>
     </section>
 

@@ -4,55 +4,43 @@
     ViewData["Title"] = "แก้ไขข้อมูลพนักงาน";
 }
 
-<!-- ================= HEADER ================= -->
-<div class="mb-4">
-    <h2 class="fw-bold">✏️ แก้ไขข้อมูลพนักงาน</h2>
-    <p class="text-muted mb-0">
-        แก้ไขข้อมูลพนักงานในระบบ
-    </p>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">@ViewData["Title"]</h2>
+        <p class="index-subtitle mb-0">แก้ไขข้อมูลพนักงานในระบบ</p>
+    </div>
 </div>
 
-<!-- ================= FORM CARD ================= -->
-<div class="card shadow-sm">
+<div class="card pt-form-card">
     <div class="card-body">
 
         <form asp-action="Edit" asp-route-id="@Model.EmpId" method="post">
             @Html.AntiForgeryToken()
 
-            <!-- Hidden ID -->
             <input type="hidden" asp-for="EmpId" />
 
             <div class="row g-3">
-
-                <!-- Employee Name -->
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">
-                        👤 Employee Name
-                    </label>
+                    <label asp-for="EmpName" class="form-label">ชื่อพนักงาน</label>
                     <input asp-for="EmpName"
                            class="form-control"
-                           placeholder="Enter employee name" />
+                           placeholder="ระบุชื่อพนักงาน" />
                     <span asp-validation-for="EmpName"
                           class="text-danger"></span>
                 </div>
 
-                <!-- Position -->
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">
-                        💼 Position
-                    </label>
+                    <label asp-for="Position" class="form-label">ตำแหน่ง</label>
                     <input asp-for="Position"
                            class="form-control"
-                           placeholder="e.g. Developer, QA, PM" />
+                           placeholder="เช่น Developer, QA, PM" />
                     <span asp-validation-for="Position"
                           class="text-danger"></span>
                 </div>
 
-                <!-- Status -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">
-                        📌 Status
-                    </label>
+                    <label asp-for="Status" class="form-label">สถานะ</label>
                     <select asp-for="Status"
                             class="form-select">
                         <option value="ACTIVE">ACTIVE</option>
@@ -64,17 +52,16 @@
 
             </div>
 
-            <!-- ================= BUTTONS ================= -->
-            <div class="mt-4 d-flex gap-2">
-                <button type="submit"
-                        class="btn btn-primary">
-                    💾 Save Changes
-                </button>
-
+            <div class="mt-4 d-flex justify-content-end gap-2 flex-wrap">
                 <a asp-action="Index"
                    class="btn btn-outline-secondary">
-                    ↩ Back
+                    กลับ
                 </a>
+
+                <button type="submit"
+                        class="btn btn-primary">
+                    บันทึกการแก้ไข
+                </button>
             </div>
 
         </form>
