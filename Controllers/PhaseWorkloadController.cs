@@ -8,6 +8,14 @@ namespace ProjectTracking.Controllers
 {
     public class PhaseWorkloadController : Controller
     {
+        private const string FilterYearKey = "PhaseWorkload.Filter.Year";
+        private const string FilterYearToKey = "PhaseWorkload.Filter.YearTo";
+        private const string FilterMonthKey = "PhaseWorkload.Filter.Month";
+        private const string FilterMonthToKey = "PhaseWorkload.Filter.MonthTo";
+        private const string FilterEmpIdKey = "PhaseWorkload.Filter.EmpId";
+        private const string FilterWorkTypeKey = "PhaseWorkload.Filter.WorkType";
+        private const string FilterViewModeKey = "PhaseWorkload.Filter.ViewMode";
+
         private readonly AppDbContext _context;
 
         public PhaseWorkloadController(AppDbContext context)
@@ -19,12 +27,27 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId, string? workType, string? viewMode)
         {
             var currentDate = DateTime.Today;
+            var hasFilterQuery =
+                year.HasValue ||
+                yearTo.HasValue ||
+                month.HasValue ||
+                monthTo.HasValue ||
+                !string.IsNullOrWhiteSpace(empId) ||
+                !string.IsNullOrWhiteSpace(workType) ||
+                !string.IsNullOrWhiteSpace(viewMode);
 
-            int selectedYear = year ?? currentDate.Year;
-            int selectedYearTo = yearTo ?? selectedYear;
+            int selectedYear = year ?? HttpContext.Session.GetInt32(FilterYearKey) ?? currentDate.Year;
+            int selectedYearTo = yearTo ?? HttpContext.Session.GetInt32(FilterYearToKey) ?? selectedYear;
 
-            int selectedMonth = month ?? currentDate.Month;
-            int selectedMonthTo = monthTo ?? selectedMonth;
+            int selectedMonth = ClampMonth(month ?? HttpContext.Session.GetInt32(FilterMonthKey) ?? 1);
+            int selectedMonthTo = ClampMonth(monthTo ?? HttpContext.Session.GetInt32(FilterMonthToKey) ?? 12);
+
+            if (!hasFilterQuery && !HttpContext.Session.GetInt32(FilterMonthKey).HasValue)
+            {
+                selectedMonth = 1;
+                selectedMonthTo = 12;
+                selectedYearTo = selectedYear;
+            }
 
             var monthStart = new DateTime(selectedYear, selectedMonth, 1);
             var monthEnd = new DateTime(
@@ -33,11 +56,28 @@ namespace ProjectTracking.Controllers
                 DateTime.DaysInMonth(selectedYearTo, selectedMonthTo)
             );
 
+            if (monthEnd < monthStart)
+            {
+                selectedYearTo = selectedYear;
+                selectedMonthTo = selectedMonth;
+                monthEnd = new DateTime(
+                    selectedYearTo,
+                    selectedMonthTo,
+                    DateTime.DaysInMonth(selectedYearTo, selectedMonthTo)
+                );
+            }
+
+            empId = hasFilterQuery ? empId : HttpContext.Session.GetString(FilterEmpIdKey);
+            workType = hasFilterQuery ? workType : HttpContext.Session.GetString(FilterWorkTypeKey);
+            viewMode = hasFilterQuery ? viewMode : HttpContext.Session.GetString(FilterViewModeKey);
+
             var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
                 ? parsedEmpId
                 : (int?)null;
             var selectedViewMode = NormalizeViewMode(viewMode);
             var selectedWorkType = NormalizeWorkType(workType);
+
+            SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedWorkType, selectedViewMode);
 
             var phaseAssigns = selectedWorkType is "ALL" or "PHASE"
                 ? await _context.PhaseAssigns
@@ -231,6 +271,22 @@ namespace ProjectTracking.Controllers
                 "SUPPORT" => "SUPPORT",
                 _ => "ALL"
             };
+        }
+
+        private static int ClampMonth(int month)
+        {
+            return Math.Clamp(month, 1, 12);
+        }
+
+        private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, string workType, string viewMode)
+        {
+            HttpContext.Session.SetInt32(FilterYearKey, year);
+            HttpContext.Session.SetInt32(FilterYearToKey, yearTo);
+            HttpContext.Session.SetInt32(FilterMonthKey, month);
+            HttpContext.Session.SetInt32(FilterMonthToKey, monthTo);
+            HttpContext.Session.SetString(FilterEmpIdKey, empId ?? "");
+            HttpContext.Session.SetString(FilterWorkTypeKey, workType);
+            HttpContext.Session.SetString(FilterViewModeKey, viewMode);
         }
     }
 }

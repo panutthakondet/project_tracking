@@ -122,25 +122,7 @@
 
             <div class="project-filter-row">
                 <label class="form-label fw-bold">🏢 สหกรณ์</label>
-                <div class="search-dropdown-field">
-                    <input type="text"
-                           id="coopFilterSearch"
-                           class="form-control form-control-lg"
-                           placeholder="🔍 พิมพ์ค้นหาสหกรณ์..."
-                           autocomplete="off" />
-                    <button type="button"
-                            id="clearCoopFilter"
-                            class="search-dropdown-clear"
-                            title="เลือกสหกรณ์ใหม่"
-                            aria-label="เลือกสหกรณ์ใหม่">
-                        ×
-                    </button>
-                </div>
-                <div id="coopFilterDropdown"
-                     class="list-group mt-1"
-                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                </div>
-                <select id="coopFilter" style="display:none;">
+                <select id="coopFilter" class="form-select form-select-lg">
                     <option value="">ทั้งหมด</option>
                     @foreach (var coopName in projects
                         .Select(x => x.Coop?.CoopName)
@@ -155,25 +137,7 @@
 
             <div class="project-filter-row">
                 <label class="form-label fw-bold">📁 โครงการ</label>
-                <div class="search-dropdown-field">
-                    <input type="text"
-                           id="projectFilterSearch"
-                           class="form-control form-control-lg"
-                           placeholder="🔍 พิมพ์ค้นหาโครงการ..."
-                           autocomplete="off" />
-                    <button type="button"
-                            id="clearProjectFilter"
-                            class="search-dropdown-clear"
-                            title="เลือกโครงการใหม่"
-                            aria-label="เลือกโครงการใหม่">
-                        ×
-                    </button>
-                </div>
-                <div id="projectFilterDropdown"
-                     class="list-group mt-1"
-                     style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                </div>
-                <select id="projectFilter" style="display:none;">
+                <select id="projectFilter" class="form-select form-select-lg">
                     <option value="">ทั้งหมด</option>
                     @foreach (var p in projects.OrderBy(x => x.ProjectDisplayName))
                     {
@@ -189,25 +153,7 @@
             <div class="project-filter-pair">
                 <div class="project-filter-row">
                     <label class="form-label fw-bold">👤 BA</label>
-                    <div class="search-dropdown-field">
-                        <input type="text"
-                               id="baFilterSearch"
-                               class="form-control form-control-lg"
-                               placeholder="🔍 พิมพ์ค้นหา BA..."
-                               autocomplete="off" />
-                        <button type="button"
-                                id="clearBaFilter"
-                                class="search-dropdown-clear"
-                                title="เลือก BA ใหม่"
-                                aria-label="เลือก BA ใหม่">
-                            ×
-                        </button>
-                    </div>
-                    <div id="baFilterDropdown"
-                         class="list-group mt-1"
-                         style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                    </div>
-                    <select id="baFilter" style="display:none;">
+                    <select id="baFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
                         @foreach (var ba in projects
                             .Select(x => x.BA?.EmpName)
@@ -222,25 +168,7 @@
 
                 <div class="project-filter-row">
                     <label class="form-label fw-bold">📌 Status</label>
-                    <div class="search-dropdown-field">
-                        <input type="text"
-                               id="statusFilterSearch"
-                               class="form-control form-control-lg"
-                               placeholder="🔍 พิมพ์ค้นหา Status..."
-                               autocomplete="off" />
-                        <button type="button"
-                                id="clearStatusFilter"
-                                class="search-dropdown-clear"
-                                title="เลือก Status ใหม่"
-                                aria-label="เลือก Status ใหม่">
-                            ×
-                        </button>
-                    </div>
-                    <div id="statusFilterDropdown"
-                         class="list-group mt-1"
-                         style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-                    </div>
-                    <select id="statusFilter" style="display:none;">
+                    <select id="statusFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
                         <option value="PLAN">PLAN</option>
                         <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -711,44 +639,6 @@
     border-radius: 14px;
     font-weight: 700;
 }
-
-.search-dropdown-field {
-    position: relative;
-}
-
-.search-dropdown-field .form-control {
-    padding-right: 48px;
-}
-
-.search-dropdown-clear {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 999px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: #334155;
-    background: #e2e8f0;
-    font-size: 1.15rem;
-    font-weight: 900;
-    line-height: 1;
-    transition: .15s ease;
-}
-
-.search-dropdown-clear.is-visible {
-    display: inline-flex;
-}
-
-.search-dropdown-clear:hover {
-    color: #fff;
-    background: #0f766e;
-}
-
 #coopFilterDropdown,
 #projectFilterDropdown,
 #baFilterDropdown,
@@ -1158,138 +1048,41 @@ function restoreFilter(selectId, storageKey) {
     }
 }
 
-function bindFilterDropdown(config) {
-    const searchInput = document.getElementById(config.searchId);
-    const dropdown = document.getElementById(config.dropdownId);
-    const hiddenSelect = document.getElementById(config.selectId);
-    const clearButton = document.getElementById(config.clearId);
-    const coopFilter = config.coopFilterId
-        ? document.getElementById(config.coopFilterId)
-        : null;
-
-    if (!searchInput || !dropdown || !hiddenSelect) return;
-
-    const options = Array.from(hiddenSelect.options);
-
-    function updateClearButton() {
-        if (!clearButton) return;
-        clearButton.classList.toggle("is-visible", Boolean(searchInput.value || hiddenSelect.value));
-    }
-
-    function renderList(filter = "") {
-        dropdown.innerHTML = "";
-
-        const keyword = filter.trim().toLowerCase();
-        const selectedCoop = (coopFilter?.value || "").trim().toLowerCase();
-        const filtered = options.filter(option => {
-            if (option.value === "") return false;
-            if (selectedCoop && (option.dataset.coopName || "").trim().toLowerCase() !== selectedCoop) return false;
-
-            const text = `${option.text} ${option.value}`.trim().toLowerCase();
-            return !keyword || text.includes(keyword);
-        });
-
-        if (filtered.length === 0) {
-            dropdown.style.display = "none";
-            return;
-        }
-
-        filtered.forEach(option => {
-            const item = document.createElement("a");
-            item.className = "list-group-item list-group-item-action";
-            item.textContent = option.text;
-
-            item.addEventListener("click", function () {
-                searchInput.value = option.text;
-                hiddenSelect.value = option.value;
-                dropdown.style.display = "none";
-                updateClearButton();
-                config.onSelect?.(option);
-                window.applyProjectFilter();
-            });
-
-            dropdown.appendChild(item);
-        });
-
-        dropdown.style.display = "block";
-    }
-
-    const selectedOption = options.find(option => option.selected && option.value !== "");
-    if (selectedOption) {
-        searchInput.value = selectedOption.text;
-    }
-    updateClearButton();
-
-    searchInput.addEventListener("input", function () {
-        renderList(this.value);
-        updateClearButton();
-    });
-
-    searchInput.addEventListener("focus", function () {
-        renderList(this.value);
-    });
-
-    clearButton?.addEventListener("click", function () {
-        searchInput.value = "";
-        hiddenSelect.value = "";
-        dropdown.style.display = "none";
-        updateClearButton();
-        config.onClear?.();
-        window.applyProjectFilter();
-    });
-
-    document.addEventListener("click", function (e) {
-        if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearButton?.contains(e.target)) {
-            dropdown.style.display = "none";
-        }
-    });
-}
-
 restoreFilter("coopFilter", "projects.selectedCoop");
 restoreFilter("projectFilter", "projects.selectedProject");
 restoreFilter("baFilter", "projects.selectedBa");
 restoreFilter("statusFilter", "projects.selectedStatus");
 
-function clearProjectFilterValue() {
-    const projectSearch = document.getElementById("projectFilterSearch");
+function syncProjectFilterOptions() {
+    const coopFilter = document.getElementById("coopFilter");
     const projectSelect = document.getElementById("projectFilter");
-    const projectClear = document.getElementById("clearProjectFilter");
-    if (projectSearch) projectSearch.value = "";
-    if (projectSelect) projectSelect.value = "";
-    projectClear?.classList.remove("is-visible");
+    if (!projectSelect) return;
+
+    const selectedCoop = (coopFilter?.value || "").trim().toLowerCase();
+    Array.from(projectSelect.options).forEach(option => {
+        const visible = option.value === "" ||
+            !selectedCoop ||
+            (option.dataset.coopName || "").trim().toLowerCase() === selectedCoop;
+        option.hidden = !visible;
+        option.disabled = !visible;
+    });
+
+    const selected = projectSelect.selectedOptions[0];
+    if (selected && selected.disabled) projectSelect.value = "";
 }
 
-bindFilterDropdown({
-    searchId: "coopFilterSearch",
-    dropdownId: "coopFilterDropdown",
-    selectId: "coopFilter",
-    clearId: "clearCoopFilter",
-    onSelect: clearProjectFilterValue,
-    onClear: clearProjectFilterValue
+document.getElementById("coopFilter")?.addEventListener("change", function () {
+    const projectSelect = document.getElementById("projectFilter");
+    if (projectSelect) projectSelect.value = "";
+    syncProjectFilterOptions();
+    window.applyProjectFilter();
 });
 
-bindFilterDropdown({
-    searchId: "projectFilterSearch",
-    dropdownId: "projectFilterDropdown",
-    selectId: "projectFilter",
-    clearId: "clearProjectFilter",
-    coopFilterId: "coopFilter"
+["projectFilter", "baFilter", "statusFilter"].forEach(selectId => {
+    document.getElementById(selectId)?.addEventListener("change", window.applyProjectFilter);
 });
 
-bindFilterDropdown({
-    searchId: "baFilterSearch",
-    dropdownId: "baFilterDropdown",
-    selectId: "baFilter",
-    clearId: "clearBaFilter"
-});
-
-bindFilterDropdown({
-    searchId: "statusFilterSearch",
-    dropdownId: "statusFilterDropdown",
-    selectId: "statusFilter",
-    clearId: "clearStatusFilter"
-});
-
+syncProjectFilterOptions();
 setTimeout(() => {
     window.applyProjectFilter();
 }, 50);

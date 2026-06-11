@@ -3,7 +3,7 @@
 @using System.Linq
 
 @{
-    ViewData["Title"] = "Fix Order";
+    ViewData["Title"] = "แก้ไขงานสนับสนุน";
 
     var order = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
     var th = new CultureInfo("th-TH");
@@ -106,7 +106,7 @@
 </style>
 
 <div class="support-dev-edit-page">
-    <h3>Edit Support Order</h3>
+    <h3>แก้ไขงานสนับสนุน</h3>
 
     <form asp-action="Edit" asp-route-id="@order.OrderId" asp-route-projectId="@order.ProjectId" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()

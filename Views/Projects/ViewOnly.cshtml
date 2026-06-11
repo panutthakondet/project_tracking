@@ -148,30 +148,7 @@
         .pt-search-select__input:focus {
             border-color: #14b8a6;
             box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
-        }
-        .pt-search-select__clear {
-            position: absolute;
-            top: 50%;
-            right: 8px;
-            transform: translateY(-50%);
-            width: 24px;
-            height: 24px;
-            border: 0;
-            border-radius: 999px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            color: #334155;
-            background: #e2e8f0;
-            font-size: 16px;
-            font-weight: 900;
-            line-height: 1;
-            cursor: pointer;
-        }
-        .pt-search-select__clear.is-visible { display: inline-flex; }
-        .pt-search-select__clear:hover,
-        .pt-search-select__clear:focus { color: #fff; background: #102443; }
-        .pt-search-select__dropdown {
+        }        .pt-search-select__dropdown {
             position: absolute;
             left: 0;
             right: 0;
@@ -640,19 +617,10 @@
                 input.className = "pt-search-select__input";
                 input.autocomplete = "off";
                 input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "🔍 พิมพ์ค้นหา...";
-
-                const clearButton = document.createElement("button");
-                clearButton.type = "button";
-                clearButton.className = "pt-search-select__clear";
-                clearButton.title = "เลือกใหม่";
-                clearButton.setAttribute("aria-label", "เลือกใหม่");
-                clearButton.textContent = "×";
-
                 const dropdown = document.createElement("div");
                 dropdown.className = "pt-search-select__dropdown";
 
                 field.appendChild(input);
-                field.appendChild(clearButton);
                 wrapper.appendChild(field);
                 wrapper.appendChild(dropdown);
                 select.parentNode.insertBefore(wrapper, select);
@@ -667,9 +635,7 @@
 
                 function syncInput() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value ? selected.text.trim() : "";
-                    clearButton.classList.toggle("is-visible", Boolean(selected && selected.value));
-                }
+                    input.value = selected && selected.value ? selected.text.trim() : "";                }
 
                 function renderOptions() {
                     const term = normalize(input.value);
@@ -701,6 +667,7 @@
                 }
 
                 input.addEventListener("focus", () => {
+                    input.value = "";
                     renderOptions();
                     wrapper.classList.add("is-open");
                 });
@@ -709,13 +676,6 @@
                     renderOptions();
                     wrapper.classList.add("is-open");
                 });
-
-                clearButton.addEventListener("click", () => {
-                    select.value = "";
-                    syncInput();
-                    dispatchSelectChange(select);
-                });
-
                 document.addEventListener("click", event => {
                     if (!wrapper.contains(event.target)) wrapper.classList.remove("is-open");
                 });
@@ -723,6 +683,9 @@
                 syncInput();
                 renderOptions();
             }
+
+            // Native dropdowns: custom search-select disabled globally.
+
 
             document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
         })();

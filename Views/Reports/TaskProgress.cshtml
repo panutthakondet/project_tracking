@@ -138,6 +138,69 @@
             font-size: 12px;
             font-weight: 800;
         }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .pt-search-select {
+            position: relative;
+            width: 100%;
+        }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Prompt', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e3ef;
+            background: #fff;
+            box-shadow: 0 12px 24px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown {
+            display: block;
+        }
+        .pt-search-select__option,
+        .pt-search-select__empty {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            border-bottom: 1px solid #edf2f7;
+            color: #10233f;
+            background: #fff;
+            font-family: 'Prompt', Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            text-align: left;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            background: #d9f7f2;
+        }
+        .pt-search-select__empty {
+            color: #64748b;
+        }
         .filter-submit {
             min-width: 88px;
             justify-self: start;
@@ -338,7 +401,7 @@
     <form method="get" class="filter-panel">
         <div class="field">
             <label for="projectId">Project</label>
-            <select id="projectId" name="projectId" onchange="this.form.submit()">
+            <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in report.ProjectOptions)
                 {
@@ -350,7 +413,7 @@
         </div>
         <div class="field">
             <label for="empId">Employee</label>
-            <select id="empId" name="empId" onchange="this.form.submit()">
+            <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
                 <option value="">-- All Employees --</option>
                 @foreach (var emp in report.EmployeeOptions)
                 {
@@ -362,7 +425,7 @@
         </div>
         <div class="field">
             <label for="year">Year</label>
-            <select id="year" name="year" onchange="this.form.submit()">
+            <select id="year" name="year" data-placeholder="พิมพ์ค้นหา Year..." onchange="this.form.submit()">
                 @foreach (var y in report.YearOptions)
                 {
                     <option value="@y" selected="@(report.Year == y ? "selected" : null)">@YearText(y)</option>
@@ -371,7 +434,7 @@
         </div>
         <div class="field">
             <label for="status">Status</label>
-            <select id="status" name="status" onchange="this.form.submit()">
+            <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Status..." onchange="this.form.submit()">
                 @foreach (var option in statusOptions)
                 {
                     <option value="@option.Value" selected="@(report.Status == option.Value ? "selected" : null)">
@@ -518,5 +581,116 @@
             </table>
         }
     </section>
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "พิมพ์ค้นหา...";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                select.insertAdjacentElement("afterend", wrapper);
+                wrapper.appendChild(input);
+                wrapper.appendChild(dropdown);
+                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
+                select.tabIndex = -1;
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected && selected.value !== "" ? selected.text : "";
+                }
+
+                function closeDropdown() {
+                    wrapper.classList.remove("is-open");
+                }
+
+                function renderOptions(filter = "") {
+                    dropdown.innerHTML = "";
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options)
+                        .filter(option => option.value !== "")
+                        .filter(option => {
+                            const haystack = normalize(`${option.text} ${option.value}`);
+                            return !keyword || haystack.includes(keyword);
+                        });
+
+                    if (options.length === 0) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    options.forEach(option => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (option.value === select.value) button.classList.add("is-selected");
+                        button.textContent = option.text;
+                        button.addEventListener("click", function () {
+                            select.value = option.value;
+                            closeDropdown();
+                            syncInput();
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                function openDropdown() {
+                    input.value = "";
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                }
+
+                input.addEventListener("focus", openDropdown);
+                input.addEventListener("click", openDropdown);
+                input.addEventListener("input", function () {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                });
+                input.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeDropdown();
+                        syncInput();
+                    }
+                });
+                select.addEventListener("change", syncInput);
+                document.addEventListener("click", function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInput();
+                    }
+                });
+
+                syncInput();
+            }
+
+            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+        })();
+    </script>
 </body>
 </html>

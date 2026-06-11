@@ -5,7 +5,7 @@
 @model ProjectTracking.Models.ProjectIssue
 
 @{
-    ViewData["Title"] = "Dev Update Issue";
+    ViewData["Title"] = "อัปเดตการแก้ไขปัญหา";
 
     var devStatusItems = ViewBag.DevStatusList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
     var fixImages = Model.FixImages?.ToList() ?? new List<ProjectIssueFixImage>();
@@ -143,9 +143,9 @@
 
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
-        <span class="index-eyebrow">Project Issue Dev #@Model.IssueId</span>
-        <h2 class="index-title">อัปเดตการแก้ไข Issue</h2>
-        <p class="index-subtitle">@projectName</p>
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">อัปเดตการแก้ไขปัญหา</h2>
+        <p class="index-subtitle">Project Issue Dev #@Model.IssueId · @projectName</p>
     </div>
 </div>
 

@@ -1,7 +1,7 @@
 @model ProjectTracking.Models.ProjectIssue
 
 @{
-    ViewData["Title"] = "Add Issue";
+    ViewData["Title"] = "เพิ่มข้อมูลปัญหาโครงการ";
 
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
@@ -20,7 +20,7 @@
     string endDateText = ThaiDateText(endDate);
 }
 
-<h3>สร้าง Project Issue</h3>
+<h3>เพิ่มข้อมูลปัญหาโครงการ</h3>
 
 <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
 @Html.AntiForgeryToken()

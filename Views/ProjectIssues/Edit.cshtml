@@ -3,7 +3,7 @@
 @using System.Linq
 
 @{
-    ViewData["Title"] = "แก้ไข Issue";
+    ViewData["Title"] = "แก้ไขข้อมูลปัญหาโครงการ";
 
     var issue = Model ?? new ProjectIssue();
     var beforeImages = issue.Images?.ToList() ?? new List<ProjectIssueImage>();
@@ -115,9 +115,9 @@
 
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
-        <span class="index-eyebrow">Project Issue #@issue.IssueId</span>
-        <h2 class="index-title">แก้ไขปัญหาโครงการ</h2>
-        <p class="index-subtitle">@projectName</p>
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">แก้ไขข้อมูลปัญหาโครงการ</h2>
+        <p class="index-subtitle">Project Issue #@issue.IssueId · @projectName</p>
     </div>
 
 </div>

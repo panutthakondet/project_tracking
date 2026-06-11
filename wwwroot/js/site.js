@@ -99,6 +99,34 @@
         select.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
+    function restoreNativeSelect(select) {
+        if (!select) return;
+
+        select.classList.remove(enhancedClass, "pt-native-select-hidden");
+        select.removeAttribute("tabindex");
+
+        if (select.dataset.ptWasRequired === "true") {
+            select.required = true;
+            delete select.dataset.ptWasRequired;
+        }
+
+        destroySelect2(select);
+    }
+
+    function restoreNativeSearchSelects(root) {
+        const scope = root || document;
+
+        scope.querySelectorAll(".pt-search-select").forEach(wrapper => {
+            const select = wrapper.previousElementSibling;
+            if (select && select.matches("select")) {
+                restoreNativeSelect(select);
+            }
+            wrapper.remove();
+        });
+
+        scope.querySelectorAll("select.pt-native-select-hidden, select.pt-dropdown-enhanced").forEach(restoreNativeSelect);
+    }
+
     function enhanceSelect(select) {
         if (!shouldEnhance(select)) return;
 
@@ -129,29 +157,16 @@
             getSelectedOption(select)?.text ||
             "🔍 พิมพ์ค้นหา...";
 
-        const clearButton = document.createElement("button");
-        clearButton.type = "button";
-        clearButton.className = "pt-search-select__clear";
-        clearButton.title = "เลือกใหม่";
-        clearButton.setAttribute("aria-label", "เลือกใหม่");
-        clearButton.textContent = "×";
-        clearButton.disabled = select.disabled;
-
         const dropdown = document.createElement("div");
         dropdown.className = "pt-search-select__dropdown";
 
         field.appendChild(input);
-        field.appendChild(clearButton);
         wrapper.appendChild(field);
         wrapper.appendChild(dropdown);
 
         select.insertAdjacentElement("afterend", wrapper);
         select.classList.add(enhancedClass, "pt-native-select-hidden");
         select.tabIndex = -1;
-
-        function allowClear() {
-            return hasEmptyOption(select) || !wasRequired;
-        }
 
         function validateInput() {
             if (!wasRequired) return;
@@ -161,7 +176,6 @@
         function syncInputFromSelect() {
             const selected = getSelectedOption(select);
             input.value = selected && selected.value !== "" ? selected.text : "";
-            clearButton.classList.toggle("is-visible", Boolean(select.value) && allowClear());
             validateInput();
         }
 
@@ -171,6 +185,7 @@
 
         function openDropdown() {
             if (select.disabled) return;
+            input.value = "";
             renderOptions(input.value);
             wrapper.classList.add("is-open");
         }
@@ -178,15 +193,6 @@
         function selectValue(value, text) {
             select.value = value;
             input.value = value ? text : "";
-            closeDropdown();
-            syncInputFromSelect();
-            dispatchSelectChange(select);
-        }
-
-        function clearValue() {
-            if (!allowClear()) return;
-            select.value = "";
-            input.value = "";
             closeDropdown();
             syncInputFromSelect();
             dispatchSelectChange(select);
@@ -240,8 +246,6 @@
                 syncInputFromSelect();
             }
         });
-
-        clearButton.addEventListener("click", clearValue);
 
         select.addEventListener("change", syncInputFromSelect);
         select.addEventListener("pt-dropdown-refresh", function () {
@@ -385,6 +389,7 @@
     function initProjectDropdowns(root) {
         const scope = root || document;
         initProjectCoopFilters(scope);
+        restoreNativeSearchSelects(scope);
         scope.querySelectorAll("select").forEach(enhanceSelect);
     }
 
@@ -418,6 +423,47 @@
         while (element.firstChild) {
             element.removeChild(element.firstChild);
         }
+    }
+
+    function escapeHtml(value) {
+        return (value || "")
+            .toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function sanitizeRequirementDetailHtml(value) {
+        const text = (value || "").toString().trim();
+        if (!text) return "";
+
+        if (!/<\/?[a-z][\s\S]*>/i.test(text)) {
+            return escapeHtml(text).replace(/\r\n|\r|\n/g, "<br>");
+        }
+
+        const template = document.createElement("template");
+        template.innerHTML = text;
+        const allowedTags = new Set(["A", "B", "BR", "DIV", "EM", "I", "LI", "OL", "P", "SPAN", "STRONG", "U", "UL"]);
+
+        template.content.querySelectorAll("*").forEach(node => {
+            if (!allowedTags.has(node.tagName)) {
+                node.replaceWith(document.createTextNode(node.textContent || ""));
+                return;
+            }
+
+            Array.from(node.attributes).forEach(attribute => {
+                const name = attribute.name.toLowerCase();
+                if (node.tagName === "A" && name === "href") {
+                    const href = attribute.value.trim();
+                    if (/^(https?:|mailto:|tel:|\/)/i.test(href)) return;
+                }
+                node.removeAttribute(attribute.name);
+            });
+        });
+
+        return template.innerHTML;
     }
 
     function createActionLink(label, href, variant) {
@@ -515,8 +561,9 @@
             `List: ${card.columnName || "-"} · สร้างโดย ${card.createdBy || "-"} · อัปเดต ${card.updatedAt || "-"}`
         );
 
-        const detail = setText("RequirementCardDetailText", card.detail || "ไม่มีรายละเอียด");
+        const detail = document.getElementById("RequirementCardDetailText");
         if (detail) {
+            detail.innerHTML = sanitizeRequirementDetailHtml(card.detail) || "ไม่มีรายละเอียด";
             detail.classList.toggle("requirement-card-popup__empty", !card.detail);
         }
 
@@ -678,71 +725,75 @@
 
     function initRequirementCardDetailButton(root) {
         const scope = root || document;
-        const select = scope.getElementById
-            ? scope.getElementById("RequirementCardId")
-            : document.getElementById("RequirementCardId");
-        const button = scope.getElementById
-            ? scope.getElementById("RequirementCardDetailButton")
-            : document.getElementById("RequirementCardDetailButton");
-        const projectFieldId = button?.dataset.projectFieldId || "ProjectId";
-        const projectField = scope.getElementById
-            ? scope.getElementById(projectFieldId)
-            : document.getElementById(projectFieldId);
+        const buttons = Array.from(scope.querySelectorAll
+            ? scope.querySelectorAll(".project-board-card-detail, #RequirementCardDetailButton")
+            : document.querySelectorAll(".project-board-card-detail, #RequirementCardDetailButton"));
 
-        if (!button || (!select && !projectField) || button.dataset.popupReady === "true") return;
-        button.dataset.popupReady = "true";
+        buttons.forEach(button => {
+            const selectId = button.dataset.cardFieldId || "RequirementCardId";
+            const select = scope.getElementById
+                ? scope.getElementById(selectId)
+                : document.getElementById(selectId);
+            const projectFieldId = button.dataset.projectFieldId || "ProjectId";
+            const projectField = scope.getElementById
+                ? scope.getElementById(projectFieldId)
+                : document.getElementById(projectFieldId);
 
-        const cardTemplate = button.dataset.detailUrlTemplate || "";
-        const projectTemplate = button.dataset.detailProjectUrlTemplate || "";
+            if ((!select && !projectField) || button.dataset.popupReady === "true") return;
+            button.dataset.popupReady = "true";
 
-        function getDetailUrl() {
-            const cardId = select?.value || "";
-            if (cardId && cardTemplate) {
-                return cardTemplate.replace("__CARD_ID__", encodeURIComponent(cardId));
+            const cardTemplate = button.dataset.detailUrlTemplate || "";
+            const projectTemplate = button.dataset.detailProjectUrlTemplate || "";
+
+            function getDetailUrl() {
+                const cardId = select?.value || "";
+                if (cardId && cardTemplate) {
+                    return cardTemplate.replace("__CARD_ID__", encodeURIComponent(cardId));
+                }
+
+                const projectId = projectField?.value || "";
+                if (projectId && projectTemplate) {
+                    return projectTemplate.replace("__PROJECT_ID__", encodeURIComponent(projectId));
+                }
+
+                return "";
             }
 
-            const projectId = projectField?.value || "";
-            if (projectId && projectTemplate) {
-                return projectTemplate.replace("__PROJECT_ID__", encodeURIComponent(projectId));
+            function syncButton() {
+                const hasUrl = Boolean(getDetailUrl());
+                button.classList.toggle("is-hidden", !hasUrl);
+                button.disabled = !hasUrl;
             }
 
-            return "";
-        }
+            async function openDetailPopup() {
+                const url = getDetailUrl();
+                if (!url) return;
 
-        function syncButton() {
-            const hasUrl = Boolean(getDetailUrl());
-            button.classList.toggle("is-hidden", !hasUrl);
-            button.disabled = !hasUrl;
-        }
+                const originalText = button.dataset.originalText || button.textContent.trim() || "🔎 ดูรายละเอียด";
+                button.dataset.originalText = originalText;
+                button.disabled = true;
+                button.textContent = "กำลังโหลด...";
 
-        async function openDetailPopup() {
-            const url = getDetailUrl();
-            if (!url) return;
+                try {
+                    const response = await fetch(url, { headers: { Accept: "application/json" } });
+                    if (!response.ok) throw new Error("โหลดข้อมูลการ์ดไม่สำเร็จ");
 
-            const originalText = button.dataset.originalText || button.textContent.trim() || "🔎 ดูรายละเอียด";
-            button.dataset.originalText = originalText;
-            button.disabled = true;
-            button.textContent = "กำลังโหลด...";
-
-            try {
-                const response = await fetch(url, { headers: { Accept: "application/json" } });
-                if (!response.ok) throw new Error("โหลดข้อมูลการ์ดไม่สำเร็จ");
-
-                const card = await response.json();
-                renderRequirementCardPopup(card);
-                openRequirementCardNote();
-            } catch (error) {
-                window.alert(error.message || "โหลดข้อมูลการ์ดไม่สำเร็จ");
-            } finally {
-                button.textContent = originalText;
-                syncButton();
+                    const card = await response.json();
+                    renderRequirementCardPopup(card);
+                    openRequirementCardNote();
+                } catch (error) {
+                    window.alert(error.message || "โหลดข้อมูลการ์ดไม่สำเร็จ");
+                } finally {
+                    button.textContent = originalText;
+                    syncButton();
+                }
             }
-        }
 
-        select?.addEventListener("change", syncButton);
-        projectField?.addEventListener("change", syncButton);
-        button.addEventListener("click", openDetailPopup);
-        syncButton();
+            select?.addEventListener("change", syncButton);
+            projectField?.addEventListener("change", syncButton);
+            button.addEventListener("click", openDetailPopup);
+            syncButton();
+        });
     }
 
     window.ProjectTrackingRequirementCardPopup = {

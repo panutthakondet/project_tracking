@@ -19,7 +19,7 @@
     string endDateText = ThaiDateText(endDate);
 }
 
-<h3>Edit Support Order</h3>
+<h3>แก้ไขงานสนับสนุน</h3>
 
 <form asp-action="Edit" asp-route-id="@supportOrder.OrderId" asp-route-projectId="@supportOrder.ProjectId" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()

@@ -22,6 +22,7 @@
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectCoopName = (selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "";
+    var requirementProjectCardDetailUrlTemplate = Url.Action("ProjectCardDetails", "RequirementBoard", new { projectId = "__PROJECT_ID__" }) ?? "";
 }
 
 @functions {
@@ -134,50 +135,7 @@ thead .sticky-col { z-index: 5; }
     width: 100%;
     border-radius: 14px;
     box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
-}
-
-.search-dropdown-field {
-    position: relative;
-}
-
-.search-dropdown-field .form-control {
-    padding-right: 48px;
-}
-
-.search-dropdown-clear {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 999px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: #334155;
-    background: #e2e8f0;
-    font-size: 1.15rem;
-    font-weight: 900;
-    line-height: 1;
-    transition: .15s ease;
-}
-
-.search-dropdown-clear.is-visible {
-    display: inline-flex;
-}
-
-.search-dropdown-clear:hover {
-    color: #fff;
-    background: #0f766e;
-}
-
-.search-dropdown-clear:disabled {
-    opacity: .35;
-    pointer-events: none;
-}
-</style>
+}</style>
 
 <div class="index-hero">
     <div class="index-hero__content">
@@ -196,6 +154,15 @@ thead .sticky-col { z-index: 5; }
                title="กลับไปจัดการ Phase">
                 Project Phases
             </a>
+
+            <button id="RequirementCardDetailButton"
+                    type="button"
+                    class="btn btn-outline-primary project-board-card-detail"
+                    data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
+                    data-project-field-id="hiddenProjectSelect"
+                    title="เปิดดูรายละเอียด Project Board">
+                🔎 Project Board
+            </button>
 
             @if (CanMenu("ProjectIssues.Index"))
             {
@@ -233,6 +200,8 @@ thead .sticky-col { z-index: 5; }
     }
 </div>
 
+<partial name="_RequirementCardDetailModal" />
+
 <form method="get" class="assign-filter-form mb-4" id="filterForm">
     <div class="assign-filter-row">
         <label class="form-label fw-bold">🏢 สหกรณ์</label>
@@ -254,27 +223,7 @@ thead .sticky-col { z-index: 5; }
 
         <label class="form-label fw-bold">📁 โครงการ</label>
 
-        <div class="search-dropdown-field">
-            <input type="text"
-                   id="projectSearch"
-                   class="form-control form-control-lg"
-                   placeholder="🔍 พิมพ์ค้นหาโครงการ..."
-                   autocomplete="off" />
-            <button type="button"
-                    id="clearProjectSearch"
-                    class="search-dropdown-clear"
-                    title="เลือก Project ใหม่"
-                    aria-label="เลือก Project ใหม่">
-                ×
-            </button>
-        </div>
-
-        <div id="projectDropdown"
-             class="list-group mt-1"
-             style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-        </div>
-
-        <select name="projectId" id="hiddenProjectSelect" style="display:none;">
+        <select name="projectId" id="hiddenProjectSelect" class="form-select form-select-lg">
             <option value="">-- เลือกโครงการ --</option>
             @foreach (var p in projectOptions
                                 .OrderBy(x => x.EndDate ?? DateTime.MaxValue))
@@ -293,29 +242,10 @@ thead .sticky-col { z-index: 5; }
     <div class="assign-filter-row">
         <label class="form-label fw-bold">👤 Employee</label>
 
-        <div class="search-dropdown-field">
-            <input type="text"
-                   id="employeeSearch"
-                   class="form-control form-control-lg"
-                   placeholder="🔍 พิมพ์ค้นหา Employee..."
-                   autocomplete="off"
-                   @(ViewBag.SelectedProject == null ? "disabled" : "") />
-            <button type="button"
-                    id="clearEmployeeSearch"
-                    class="search-dropdown-clear"
-                    title="เลือก Employee ใหม่"
-                    aria-label="เลือก Employee ใหม่"
-                    @(ViewBag.SelectedProject == null ? "disabled" : "")>
-                ×
-            </button>
-        </div>
-
-        <div id="employeeDropdown"
-             class="list-group mt-1"
-             style="max-height:250px; overflow-y:auto; display:none; border:1px solid #ddd;">
-        </div>
-
-        <select name="empId" id="hiddenEmployeeSelect" style="display:none;" @(ViewBag.SelectedProject == null ? "disabled" : "")>
+        <select name="empId"
+                id="hiddenEmployeeSelect"
+                class="form-select form-select-lg"
+                @(ViewBag.SelectedProject == null ? "disabled" : "")>
             <option value="">-- All Employees --</option>
             @foreach (var e in ViewBag.EmployeeList)
             {
@@ -913,7 +843,6 @@ else
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("filterForm");
-    const hasProject = @(ViewBag.SelectedProject != null ? "true" : "false");
 
     function submitSafely() {
         setTimeout(function () {
@@ -921,140 +850,38 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 0);
     }
 
-    function bindSearchDropdown(config) {
-        const searchInput = document.getElementById(config.searchId);
-        const dropdown = document.getElementById(config.dropdownId);
-        const hiddenSelect = document.getElementById(config.selectId);
-        const clearButton = document.getElementById(config.clearId);
-        const coopFilter = document.getElementById(config.coopFilterId || "");
+    const coopFilter = document.getElementById("projectCoopFilter");
+    const projectSelect = document.getElementById("hiddenProjectSelect");
+    const employeeSelect = document.getElementById("hiddenEmployeeSelect");
+    const projectOptions = projectSelect ? Array.from(projectSelect.options) : [];
 
-        if (!searchInput || !dropdown || !hiddenSelect) return;
-
-        const options = Array.from(hiddenSelect.options);
-
-        function updateClearButton() {
-            if (!clearButton) return;
-            clearButton.classList.toggle("is-visible", Boolean(searchInput.value || hiddenSelect.value));
-        }
-
-        function renderList(filter = "") {
-            dropdown.innerHTML = "";
-            const selectedCoop = (coopFilter?.value || "").toLowerCase();
-
-            const filtered = options.filter(o =>
-                (!selectedCoop || (o.dataset.coopName || "").toLowerCase() === selectedCoop) &&
-                o.text.toLowerCase().includes(filter.toLowerCase()) &&
-                o.value !== ""
-            )
-            .sort((a, b) => {
-                if (!config.sortByEndDate) {
-                    return a.text.localeCompare(b.text, "th");
-                }
-
-                const aRaw = a.dataset.endDate;
-                const bRaw = b.dataset.endDate;
-
-                if (!aRaw && !bRaw) return 0;
-                if (!aRaw) return 1;
-                if (!bRaw) return -1;
-
-                return new Date(aRaw) - new Date(bRaw);
-            });
-
-            if (filtered.length === 0) {
-                dropdown.style.display = "none";
-                return;
-            }
-
-            filtered.forEach(o => {
-                const item = document.createElement("a");
-                item.className = "list-group-item list-group-item-action";
-                item.textContent = o.text;
-
-                item.onclick = function () {
-                    searchInput.value = o.text;
-                    hiddenSelect.value = o.value;
-                    dropdown.style.display = "none";
-                    updateClearButton();
-                    config.onSelect?.();
-                    submitSafely();
-                };
-
-                dropdown.appendChild(item);
-            });
-
-            dropdown.style.display = "block";
-        }
-
-        const selectedOption = options.find(o => o.selected && o.value !== "");
-        if (selectedOption) {
-            searchInput.value = selectedOption.text;
-        }
-        updateClearButton();
-
-        searchInput.addEventListener("input", function () {
-            renderList(this.value);
-            updateClearButton();
+    function syncProjectOptions() {
+        const selectedCoop = (coopFilter?.value || "").toLowerCase();
+        projectOptions.forEach(option => {
+            const visible = option.value === "" ||
+                !selectedCoop ||
+                (option.dataset.coopName || "").toLowerCase() === selectedCoop;
+            option.hidden = !visible;
+            option.disabled = !visible;
         });
 
-        searchInput.addEventListener("focus", function () {
-            renderList(this.value);
-        });
-
-        clearButton?.addEventListener("click", function () {
-            searchInput.value = "";
-            hiddenSelect.value = "";
-            dropdown.style.display = "none";
-            updateClearButton();
-            config.onClear?.();
-            submitSafely();
-        });
-
-        coopFilter?.addEventListener("change", function () {
-            searchInput.value = "";
-            hiddenSelect.value = "";
-            dropdown.style.display = "none";
-            updateClearButton();
-            renderList("");
-            config.onClear?.();
-        });
-
-        document.addEventListener("click", function (e) {
-            if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !clearButton?.contains(e.target)) {
-                dropdown.style.display = "none";
-            }
-        });
+        const selected = projectSelect?.selectedOptions[0];
+        if (selected && selected.disabled && projectSelect) projectSelect.value = "";
     }
 
-    bindSearchDropdown({
-        searchId: "projectSearch",
-        dropdownId: "projectDropdown",
-        selectId: "hiddenProjectSelect",
-        clearId: "clearProjectSearch",
-        coopFilterId: "projectCoopFilter",
-        sortByEndDate: true,
-        onSelect: function () {
-            const employeeSelect = document.getElementById("hiddenEmployeeSelect");
-            if (employeeSelect) employeeSelect.value = "";
-        },
-        onClear: function () {
-            const employeeInput = document.getElementById("employeeSearch");
-            const employeeSelect = document.getElementById("hiddenEmployeeSelect");
-            const employeeClear = document.getElementById("clearEmployeeSearch");
-            if (employeeInput) employeeInput.value = "";
-            if (employeeSelect) employeeSelect.value = "";
-            employeeClear?.classList.remove("is-visible");
-        }
+    coopFilter?.addEventListener("change", function () {
+        if (projectSelect) projectSelect.value = "";
+        if (employeeSelect) employeeSelect.value = "";
+        syncProjectOptions();
     });
 
-    if (hasProject) {
-        bindSearchDropdown({
-            searchId: "employeeSearch",
-            dropdownId: "employeeDropdown",
-            selectId: "hiddenEmployeeSelect",
-            clearId: "clearEmployeeSearch"
-        });
-    }
+    projectSelect?.addEventListener("change", function () {
+        if (employeeSelect) employeeSelect.value = "";
+        submitSafely();
+    });
+
+    employeeSelect?.addEventListener("change", submitSafely);
+    syncProjectOptions();
 });
 </script>
 

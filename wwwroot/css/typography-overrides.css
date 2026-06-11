@@ -7,7 +7,7 @@
   --pt-detail-color: #0f172a;
   --pt-detail-muted: #334155;
   --pt-label-color: #64748b;
-  --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
+  --pt-readable-thai-font: "Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
   --pt-font-family: var(--pt-readable-thai-font);
   --bs-body-font-family: var(--pt-readable-thai-font);
   --bs-font-sans-serif: var(--pt-readable-thai-font);
@@ -93,6 +93,53 @@ html body :is(
   [class*="label"]
 ):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
   font-weight: 600 !important;
+}
+
+html body main.route-controller-phaseworkload .index-hero :is(.index-eyebrow, .index-title, .index-subtitle) {
+  text-shadow: none !important;
+}
+
+html body main.route-controller-phaseworkload .index-hero .index-eyebrow {
+  color: #99f6e4 !important;
+  font-weight: 700 !important;
+}
+
+html body main.route-controller-phaseworkload .index-hero .index-title {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html body main.route-controller-phaseworkload .index-hero .index-subtitle {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+html body .index-hero .index-eyebrow {
+  color: #dbeafe !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+  text-shadow: none !important;
+}
+
+html body .index-hero .index-title {
+  color: #ffffff !important;
+  font-size: clamp(28px, 3vw, 36px) !important;
+  font-weight: 700 !important;
+  line-height: 1.22 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+html body .index-hero .index-subtitle {
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.55 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
 }
 
 html body .v2-sidebar,
@@ -461,4 +508,22 @@ html body :is(
 ) {
   color: var(--pt-detail-color) !important;
   font-weight: 400 !important;
+}
+
+html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-eyebrow {
+  color: #dbeafe !important;
+  font-weight: 700 !important;
+}
+
+html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-title,
+html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-subtitle {
+  color: #ffffff !important;
+}
+
+html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-title {
+  font-weight: 700 !important;
+}
+
+html body :is(.card, .card-body, .pt-form-card, .pt-card) .index-hero .index-subtitle {
+  font-weight: 500 !important;
 }
