@@ -28,31 +28,6 @@
         return (cx + rx * Math.Cos(radians), cy + ry * Math.Sin(radians));
     }
 
-    string DonutSegmentPath(double start, double end, double offsetY = 0)
-    {
-        const double cx = 130d;
-        const double cy = 116d;
-        const double outerRx = 92d;
-        const double outerRy = 45d;
-        const double innerRx = 52d;
-        const double innerRy = 25d;
-
-        var outerStart = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, start);
-        var outerEnd = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, end);
-        var innerEnd = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, end);
-        var innerStart = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, start);
-        var largeArc = Math.Abs(end - start) > 180d ? 1 : 0;
-
-        return string.Join(" ", new[]
-        {
-            $"M {SvgNumber(outerStart.X)} {SvgNumber(outerStart.Y)}",
-            $"A {outerRx} {outerRy} 0 {largeArc} 1 {SvgNumber(outerEnd.X)} {SvgNumber(outerEnd.Y)}",
-            $"L {SvgNumber(innerEnd.X)} {SvgNumber(innerEnd.Y)}",
-            $"A {innerRx} {innerRy} 0 {largeArc} 0 {SvgNumber(innerStart.X)} {SvgNumber(innerStart.Y)}",
-            "Z"
-        });
-    }
-
     string StatusHex(string color) => color switch
     {
         "green" => "#7bdc49",
@@ -151,6 +126,7 @@
 
     var issueOverviewSegments = BuildOverviewPieSegments(dashboard.IssueMetrics);
     var supportOverviewSegments = BuildOverviewPieSegments(dashboard.SupportMetrics);
+    var projectOverviewSegments = BuildOverviewPieSegments(dashboard.ProjectStatusMetrics);
     var issueOverviewLegend = dashboard.IssueMetrics;
     var supportOverviewLegend = dashboard.SupportMetrics;
     var timeTrackingMetrics = new List<HomeDashboardMetric>
@@ -173,39 +149,9 @@
         }
     };
     var timeTrackingSegments = BuildOverviewPieSegments(timeTrackingMetrics);
-    var projectStatusSegments = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double PinX, double PinY, double LabelX, double LabelY)>();
-    var statusMetricsForChart = dashboard.ProjectStatusMetrics.Where(metric => metric.Count > 0).ToList();
-    var statusTotalForChart = Math.Max(1, statusMetricsForChart.Sum(metric => metric.Count));
-    var statusStartAngle = -168d;
-    const double statusTotalAngle = 338d;
-    const double statusGapAngle = 2.2d;
-
-    for (var i = 0; i < statusMetricsForChart.Count; i++)
-    {
-        var metric = statusMetricsForChart[i];
-        var rawSpan = (double)metric.Count / statusTotalForChart * statusTotalAngle;
-        var span = statusMetricsForChart.Count == 1 ? statusTotalAngle : Math.Max(8d, rawSpan - statusGapAngle);
-        var start = statusStartAngle;
-        var end = statusStartAngle + span;
-        var mid = (start + end) / 2d;
-        var pin = EllipsePoint(130d, 116d, 78d, 38d, mid);
-        var label = EllipsePoint(130d, 116d, 112d, 55d, mid);
-        projectStatusSegments.Add((
-            metric,
-            StatusHex(metric.Color),
-            StatusDarkHex(metric.Color),
-            DonutSegmentPath(start, end),
-            DonutSegmentPath(start, end, 18d),
-            pin.X,
-            pin.Y,
-            label.X,
-            Math.Max(26d, label.Y - 34d)
-        ));
-        statusStartAngle += rawSpan;
-    }
 }
 
-<div class="dashboard-view">
+<div class="dashboard-view is-loading">
     <section class="dashboard-global-searchbar" aria-label="ค้นหารวมใน Dashboard">
         <div class="dashboard-global-search"
              data-dashboard-search
@@ -396,33 +342,31 @@
                 </div>
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
                     <div class="donut-layout">
-                        <figure class="project-status-chart3d" aria-label="กราฟสถานะโครงการแบบสามมิติ">
-                            <svg viewBox="0 0 260 210" role="img" aria-labelledby="projectStatusChartTitle">
+                        <figure class="overview-pie3d project-overview-pie3d" aria-label="กราฟสถานะโครงการแบบสามมิติ">
+                            <svg viewBox="0 0 160 126" role="img" aria-labelledby="projectStatusChartTitle">
                                 <title id="projectStatusChartTitle">สถานะโครงการทั้งหมด @dashboard.TotalProjectCount โครงการ</title>
-                                <ellipse class="project-status-chart3d-shadow" cx="104" cy="159" rx="92" ry="26"></ellipse>
-                                <g class="project-status-chart3d-depth">
-                                    @foreach (var segment in projectStatusSegments)
+                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
+                                <g class="overview-pie3d-depth">
+                                    @foreach (var segment in projectOverviewSegments)
                                     {
                                         <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
                                     }
                                 </g>
-                                <g class="project-status-chart3d-top">
-                                    @foreach (var segment in projectStatusSegments)
+                                <g class="overview-pie3d-top">
+                                    @foreach (var segment in projectOverviewSegments)
                                     {
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
                                     }
                                 </g>
-                                <ellipse class="project-status-chart3d-hole" cx="130" cy="116" rx="50" ry="24"></ellipse>
-                                @Html.Raw($"<text class=\"project-status-chart3d-total\" x=\"130\" y=\"111\">{dashboard.TotalProjectCount}</text>")
-                                @Html.Raw("<text class=\"project-status-chart3d-caption\" x=\"130\" y=\"131\">โครงการ</text>")
-                                <g class="project-status-chart3d-pins">
-                                    @foreach (var segment in projectStatusSegments)
+                                <g class="overview-pie3d-labels">
+                                    @foreach (var segment in projectOverviewSegments)
                                     {
-                                        <line x1="@SvgNumber(segment.PinX)" y1="@SvgNumber(segment.PinY)" x2="@SvgNumber(segment.LabelX)" y2="@SvgNumber(segment.LabelY + 17)" stroke="@segment.DarkFill"></line>
-                                        <ellipse cx="@SvgNumber(segment.LabelX)" cy="@SvgNumber(segment.LabelY)" rx="24" ry="18" fill="@segment.Fill" stroke="@segment.DarkFill"></ellipse>
-                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY + 6)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
                                     }
                                 </g>
+                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
+                                @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.TotalProjectCount}</text>")
+                                @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">โครงการ</text>")
                             </svg>
                         </figure>
                         <div class="metric-list">
@@ -497,6 +441,12 @@
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
                                     }
                                 </g>
+                                <g class="overview-pie3d-labels">
+                                    @foreach (var segment in issueOverviewSegments)
+                                    {
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
+                                    }
+                                </g>
                                 <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
                                 @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.IssueTotal}</text>")
                                 @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Issues</text>")
@@ -530,6 +480,12 @@
                                     @foreach (var segment in supportOverviewSegments)
                                     {
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                    }
+                                </g>
+                                <g class="overview-pie3d-labels">
+                                    @foreach (var segment in supportOverviewSegments)
+                                    {
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
                                     }
                                 </g>
                                 <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
@@ -704,25 +660,33 @@
                     <span>ชั่วโมง</span>
                     <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
                 </div>
-                <figure class="time-donut3d" aria-label="กราฟ Time Tracking แบบสามมิติ">
-                    <svg viewBox="0 0 160 126" role="img" aria-labelledby="timeTrackingChartTitle">
+                <figure class="time-pyramid3d" aria-label="กราฟ Time Tracking แบบพีระมิดสามมิติ">
+                    <svg viewBox="0 0 195 150" role="img" aria-labelledby="timeTrackingChartTitle">
                         <title id="timeTrackingChartTitle">Time Tracking รวม @dashboard.MonthWorkHours.ToString("0.#") ชั่วโมง</title>
-                        <ellipse class="time-donut3d-shadow" cx="72" cy="99" rx="58" ry="16"></ellipse>
-                        <g class="time-donut3d-depth">
-                            @foreach (var segment in timeTrackingSegments)
-                            {
-                                <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
-                            }
+                        <ellipse class="time-pyramid-shadow" cx="92" cy="132" rx="84" ry="14"></ellipse>
+                        <g class="time-pyramid-layer layer-total">
+                            <polygon class="top" points="20,105 105,77 190,105 105,134"></polygon>
+                            <polygon class="left" points="20,105 105,134 105,146 20,117"></polygon>
+                            <polygon class="right" points="105,134 190,105 190,117 105,146"></polygon>
+                            <text x="105" y="111">@dashboard.MonthWorkHours.ToString("0.#", CultureInfo.InvariantCulture) ชม.</text>
                         </g>
-                        <g class="time-donut3d-top">
-                            @foreach (var segment in timeTrackingSegments)
-                            {
-                                <path d="@segment.TopPath" fill="@segment.Fill"></path>
-                            }
+                        <g class="time-pyramid-layer layer-closed">
+                            <polygon class="top" points="45,76 105,55 165,76 105,97"></polygon>
+                            <polygon class="left" points="45,76 105,97 105,108 45,87"></polygon>
+                            <polygon class="right" points="105,97 165,76 165,87 105,108"></polygon>
+                            <text x="105" y="79">@closedHoursPercent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
                         </g>
-                        <ellipse class="time-donut3d-hole" cx="78" cy="66" rx="28" ry="14"></ellipse>
-                        @Html.Raw($"<text class=\"time-donut3d-total\" x=\"78\" y=\"64\">{dashboard.MonthWorkHours.ToString("0.#", CultureInfo.InvariantCulture)}</text>")
-                        @Html.Raw("<text class=\"time-donut3d-caption\" x=\"78\" y=\"78\">ชม.</text>")
+                        <g class="time-pyramid-layer layer-open">
+                            <polygon class="top" points="72,48 105,35 138,48 105,61"></polygon>
+                            <polygon class="left" points="72,48 105,61 105,70 72,57"></polygon>
+                            <polygon class="right" points="105,61 138,48 138,57 105,70"></polygon>
+                            <text x="105" y="50">@openHoursPercent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
+                        </g>
+                        <g class="time-pyramid-layer layer-checkin">
+                            <polygon class="left" points="105,12 82,30 105,40"></polygon>
+                            <polygon class="right" points="105,12 128,30 105,40"></polygon>
+                            <text x="105" y="29">@dashboard.TodayCheckinCount</text>
+                        </g>
                     </svg>
                 </figure>
                 <div class="metric-card">
@@ -780,6 +744,7 @@
 @section Styles {
 <style>
 .dashboard-view {
+    --pt-readable-thai-font:"Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
     --panel:#111f3c;
     min-height:100vh;
     padding:8px 10px 26px;
@@ -787,11 +752,18 @@
         radial-gradient(circle at 18% 16%, rgba(34,211,238,.18), transparent 26%),
         radial-gradient(circle at 78% 24%, rgba(244,63,94,.12), transparent 24%),
         linear-gradient(180deg, #edf4fb 0%, #e7eff8 100%);
+    font-family:var(--pt-readable-thai-font);
 }
 
 .dashboard-view,
 .dashboard-view * {
     box-sizing:border-box;
+}
+
+.dashboard-view.is-loading,
+.dashboard-view.is-loading * {
+    transition:none !important;
+    animation:none !important;
 }
 
 .floating-tools-wrapper {
@@ -1526,11 +1498,11 @@
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
 .panel-task { order:3; grid-column:span 24; min-height:252px; }
 .panel-watch { order:4; grid-column:span 24; min-height:278px; }
-.panel-issues { order:6; grid-column:span 12; min-height:298px; }
-.panel-time { order:5; grid-column:span 12; min-height:278px; }
+.panel-issues { order:6; grid-column:span 14; min-height:298px; }
+.panel-time { order:5; grid-column:span 10; min-height:278px; }
 .panel-team { order:8; grid-column:span 12; min-height:278px; }
 .panel-activity { order:8; grid-column:span 12; min-height:278px; }
-.panel-meetings { order:9; grid-column:span 6; min-height:278px; }
+.panel-meetings { order:9; grid-column:span 12; min-height:340px; }
 .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
 
 .panel-head {
@@ -1942,8 +1914,8 @@
         align-content:start;
     }
 
-    .project-status-chart3d {
-        width:min(100%, 300px) !important;
+    .project-overview-pie3d {
+        width:min(100%, 230px) !important;
     }
 
     .project-overview-table {
@@ -2133,74 +2105,6 @@
     font-weight:900;
 }
 
-.project-status-chart3d {
-    width:min(100%, 300px);
-    margin:0 auto;
-}
-
-.project-status-chart3d svg {
-    width:100%;
-    height:auto;
-    display:block;
-    overflow:visible;
-}
-
-.project-status-chart3d-shadow {
-    fill:rgba(226,232,255,.14);
-    filter:blur(.4px);
-}
-
-.project-status-chart3d-depth path {
-    opacity:.96;
-}
-
-.project-status-chart3d-top path {
-    stroke:rgba(255,255,255,.18);
-    stroke-width:1.5;
-    filter:drop-shadow(0 6px 8px rgba(3,10,28,.16));
-}
-
-.project-status-chart3d-hole {
-    fill:#132241;
-    filter:drop-shadow(0 5px 8px rgba(3,10,28,.2));
-}
-
-.project-status-chart3d-total,
-.project-status-chart3d-caption,
-.project-status-chart3d-pins text {
-    font-family:'Prompt', sans-serif;
-    text-anchor:middle;
-    fill:#fff;
-    font-weight:900;
-    paint-order:stroke;
-    stroke:rgba(15,23,42,.1);
-    stroke-width:1px;
-}
-
-.project-status-chart3d-total {
-    font-size:30px;
-}
-
-.project-status-chart3d-caption {
-    font-size:11px;
-}
-
-.project-status-chart3d-pins line {
-    stroke-width:7;
-    stroke-linecap:round;
-    opacity:.72;
-}
-
-.project-status-chart3d-pins ellipse {
-    stroke-width:3;
-    filter:drop-shadow(0 5px 5px rgba(3,10,28,.18));
-}
-
-.project-status-chart3d-pins text {
-    font-size:17px;
-    font-style:italic;
-}
-
 .donut-small {
     width:108px;
 }
@@ -2248,10 +2152,10 @@
 }
 
 .panel-issues .compact-donut-layout {
-    grid-template-columns:156px minmax(0, 1fr);
-    gap:12px;
+    grid-template-columns:1fr;
+    gap:10px;
     min-height:0;
-    justify-content:stretch;
+    justify-items:center;
     align-content:start;
     margin:0;
 }
@@ -2273,12 +2177,14 @@
 }
 
 .panel-issues .metric-list.slim {
+    width:100%;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:7px;
     font-size:11px;
 }
 
 .panel-issues .metric-list > span {
-    grid-template-columns:auto minmax(68px, 1fr) max-content;
+    grid-template-columns:auto minmax(0, 1fr) max-content;
     padding:5px 7px;
     border:1px solid rgba(217,228,251,.08);
     border-radius:999px;
@@ -2286,12 +2192,24 @@
 }
 
 .overview-pie-layout {
-    align-items:center;
+    align-items:start;
 }
 
 .overview-pie3d {
     width:min(100%, 156px);
-    margin:0;
+    margin:0 auto;
+}
+
+.project-overview-pie3d {
+    width:min(100%, 230px);
+}
+
+.project-overview-pie3d .overview-pie3d-total {
+    font-size:20px;
+}
+
+.project-overview-pie3d .overview-pie3d-caption {
+    font-size:9px;
 }
 
 .overview-pie3d svg {
@@ -2322,7 +2240,8 @@
 }
 
 .overview-pie3d-total,
-.overview-pie3d-caption {
+.overview-pie3d-caption,
+.overview-pie3d-labels text {
     font-family:'Prompt', sans-serif;
     text-anchor:middle;
     fill:#fff;
@@ -2339,6 +2258,15 @@
 .overview-pie3d-caption {
     font-size:8px;
     fill:#dbeafe;
+}
+
+.overview-pie3d-labels text {
+    font-size:9px;
+    font-style:italic;
+    font-weight:800;
+    stroke:rgba(15,23,42,.28);
+    stroke-width:.9px;
+    filter:drop-shadow(0 2px 3px rgba(3,10,28,.25));
 }
 
 .overview-pair {
@@ -2448,6 +2376,8 @@
 }
 
 .watch-row {
+    --watch-accent:#1688f5;
+    --watch-accent-soft:rgba(22,136,245,.09);
     display:grid;
     grid-template-columns:minmax(0, 1fr) 46px minmax(112px, .38fr);
     gap:8px 12px;
@@ -2455,18 +2385,51 @@
     border-radius:12px;
     color:inherit;
     text-decoration:none;
-    background:rgba(255,255,255,.045);
-    border:1px solid rgba(255,255,255,.08);
+    background:
+        linear-gradient(135deg, var(--watch-accent-soft), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,.058), rgba(255,255,255,.032));
+    border:1px solid rgba(217,228,251,.09);
+    box-shadow:0 10px 20px rgba(3,10,28,.14), inset 0 1px 0 rgba(255,255,255,.08);
     min-width:0;
+    overflow:hidden;
+    transition:background .18s ease, transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.watch-row::before {
+    content:"";
+    position:absolute;
+    left:12px;
+    right:12px;
+    top:0;
+    height:2px;
+    border-radius:999px;
+    background:linear-gradient(90deg, transparent, var(--watch-accent), transparent);
+    opacity:.72;
 }
 
 .watch-row:hover {
-    background:rgba(255,255,255,.075);
+    background:
+        linear-gradient(135deg, var(--watch-accent-soft), transparent 36%),
+        linear-gradient(180deg, rgba(255,255,255,.082), rgba(255,255,255,.04));
+    border-color:rgba(217,228,251,.14);
+    box-shadow:0 14px 26px rgba(3,10,28,.18), inset 0 1px 0 rgba(255,255,255,.1);
+    transform:translateY(-1px);
 }
 
-.watch-row.pink { box-shadow:inset 3px 0 0 #ff2d62; }
-.watch-row.orange { box-shadow:inset 3px 0 0 #fb9a13; }
-.watch-row.blue { box-shadow:inset 3px 0 0 #1688f5; }
+.watch-row.pink {
+    --watch-accent:#ff3f7c;
+    --watch-accent-soft:rgba(255,63,124,.09);
+}
+
+.watch-row.orange {
+    --watch-accent:#fb9a13;
+    --watch-accent-soft:rgba(251,154,19,.09);
+}
+
+.watch-row.blue {
+    --watch-accent:#1688f5;
+    --watch-accent-soft:rgba(22,136,245,.09);
+}
 
 .watch-main,
 .watch-status,
@@ -2794,13 +2757,16 @@
 
 .meeting-row {
     display:grid;
-    grid-template-columns:58px minmax(0, 1fr) 54px;
+    grid-template-columns:66px minmax(0, 1fr) 60px;
     align-items:center;
     gap:10px;
     min-width:0;
     color:inherit;
     text-decoration:none;
-    border-radius:10px;
+    border-radius:12px;
+    padding:7px 8px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(217,228,251,.06);
     transition:background .18s ease, transform .18s ease;
 }
 
@@ -2811,8 +2777,8 @@
 }
 
 .time-pill {
-    width:58px;
-    height:44px;
+    width:62px;
+    height:48px;
     border-radius:9px;
     display:inline-flex;
     flex-direction:column;
@@ -3076,10 +3042,30 @@
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:.74fr .9fr minmax(118px, .9fr);
-    gap:14px;
+    grid-template-columns:.72fr minmax(150px, 1fr);
+    gap:12px;
     align-items:center;
     min-width:0;
+}
+
+.panel-time .metric-card {
+    grid-column:1 / -1;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+}
+
+.panel-time .metric-card span {
+    grid-template-columns:auto minmax(0, 1fr) max-content;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+    overflow:hidden;
+}
+
+.panel-time .metric-card b {
+    justify-self:end;
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
 
 .time-number,
@@ -3122,55 +3108,85 @@
     font-size:38px;
 }
 
-.time-donut3d {
-    width:min(100%, 168px);
+.time-pyramid3d {
+    width:min(100%, 195px);
     margin:0 auto;
 }
 
-.time-donut3d svg {
+.time-pyramid3d svg {
     display:block;
     width:100%;
     height:auto;
     overflow:visible;
 }
 
-.time-donut3d-shadow {
-    fill:rgba(226,232,255,.15);
-    filter:blur(.3px);
+.time-pyramid-shadow {
+    fill:rgba(3,10,28,.22);
+    filter:blur(1px);
 }
 
-.time-donut3d-depth path {
-    opacity:.98;
+.time-pyramid-layer {
+    filter:drop-shadow(0 7px 8px rgba(3,10,28,.15));
 }
 
-.time-donut3d-top path {
-    stroke:rgba(255,255,255,.26);
-    stroke-width:1.4;
-    filter:drop-shadow(0 7px 7px rgba(3,10,28,.18));
+.time-pyramid-layer polygon {
+    stroke:rgba(255,255,255,.16);
+    stroke-width:.7;
 }
 
-.time-donut3d-hole {
-    fill:#132241;
-    filter:drop-shadow(0 4px 7px rgba(3,10,28,.22));
+.time-pyramid-layer .top {
+    filter:brightness(1.05);
 }
 
-.time-donut3d-total,
-.time-donut3d-caption {
+.time-pyramid-layer text {
     font-family:'Prompt', sans-serif;
     text-anchor:middle;
     fill:#fff;
-    font-weight:900;
+    font-size:10px;
+    font-weight:800;
     paint-order:stroke;
-    stroke:rgba(15,23,42,.18);
-    stroke-width:1px;
+    stroke:rgba(15,23,42,.24);
+    stroke-width:.8px;
 }
 
-.time-donut3d-total {
-    font-size:17px;
+.layer-total .top { fill:#7561ba; }
+.layer-total .left { fill:#6253a5; }
+.layer-total .right { fill:#514395; }
+
+.layer-closed .top { fill:#075f78; }
+.layer-closed .left { fill:#07506a; }
+.layer-closed .right { fill:#04364f; }
+
+.layer-open .top { fill:#8ed967; }
+.layer-open .left { fill:#74bd57; }
+.layer-open .right { fill:#338246; }
+
+.layer-checkin .left { fill:#58c8d5; }
+.layer-checkin .right { fill:#0496b5; }
+
+.layer-total text {
+    font-size:11px;
 }
 
-.time-donut3d-caption {
+.layer-checkin text {
     font-size:9px;
+}
+
+.time-pyramid-callouts {
+    display:block;
+}
+
+.time-pyramid-callouts path {
+    fill:none;
+    stroke:rgba(217,228,251,.45);
+    stroke-width:1;
+}
+
+.time-pyramid-callouts text {
+    fill:#dbeafe;
+    font-family:'Prompt', sans-serif;
+    font-size:7px;
+    font-weight:600;
 }
 
 .metric-card {
@@ -3262,9 +3278,116 @@
     .panel-team,
     .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
     .panel-task,
-    .panel-watch,
-    .panel-time { grid-column:1 / -1; }
+    .panel-watch { grid-column:1 / -1; }
+    .panel-issues { grid-column:span 14; }
+    .panel-time { grid-column:span 10; }
     .overview-pair { grid-template-columns:1fr; }
+}
+
+@@media (max-width:1366px) {
+    .dashboard-global-searchbar {
+        justify-content:flex-end;
+        gap:8px;
+    }
+
+    .dashboard-global-search {
+        width:min(520px, 54vw);
+    }
+
+    .dashboard-online-avatar {
+        width:36px;
+        height:36px;
+    }
+
+    .dashboard-global-tool {
+        width:42px;
+        height:42px;
+    }
+
+    .kpi-grid {
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:12px;
+    }
+
+    .kpi-card {
+        min-height:112px;
+        padding:14px 16px;
+        grid-template-columns:58px minmax(0, 1fr);
+        gap:12px;
+    }
+
+    .kpi-card::before {
+        width:88px;
+        height:88px;
+        left:18px;
+        top:20px;
+    }
+
+    .kpi-icon {
+        width:54px;
+        height:54px;
+        font-size:28px;
+    }
+
+    .kpi-card p {
+        max-width:100%;
+        font-size:14px;
+        white-space:normal;
+        word-break:normal;
+    }
+
+    .kpi-card strong {
+        font-size:34px;
+    }
+
+    .kpi-card small {
+        margin-top:8px;
+        font-size:11px;
+    }
+
+    .panel-wide {
+        grid-column:1 / -1;
+    }
+
+    .panel-issues,
+    .panel-time,
+    .panel-team,
+    .panel-activity {
+        grid-column:span 12;
+    }
+
+    .panel-issues { grid-column:span 14; }
+    .panel-time { grid-column:span 10; }
+
+    .project-overview-title-row {
+        grid-template-columns:auto;
+        gap:6px;
+    }
+
+    .project-overview-title-row > span {
+        display:none;
+    }
+
+    .project-overview-combined {
+        grid-template-columns:minmax(0, 1fr) minmax(260px, .46fr);
+        gap:12px;
+    }
+
+    .project-status-inline {
+        align-self:start;
+        justify-items:end;
+        padding-top:8px;
+    }
+
+    .project-status-inline .donut-layout {
+        width:min(100%, 310px);
+        justify-self:end;
+        gap:10px;
+    }
+
+    .project-overview-pie3d {
+        width:min(100%, 220px);
+    }
 }
 
 @@media (max-width:1024px) {
@@ -3569,6 +3692,22 @@
 }
 
 <script>
+    (() => {
+        const dashboard = document.querySelector('.dashboard-view.is-loading');
+        if (!dashboard) return;
+
+        const reveal = () => dashboard.classList.remove('is-loading');
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready
+                .catch(() => undefined)
+                .then(() => requestAnimationFrame(reveal));
+            return;
+        }
+
+        requestAnimationFrame(() => requestAnimationFrame(reveal));
+    })();
+
     (() => {
         const searchInput = document.getElementById('projectOverviewSearch');
         if (!searchInput) return;

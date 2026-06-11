@@ -812,7 +812,7 @@ namespace ProjectTracking.Controllers
                         .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))));
 
             var meetingCards = todayMeetings
-                .Take(3)
+                .Take(5)
                 .Select((meeting, index) => new HomeDashboardMeeting
                 {
                     Id = meeting.Id,

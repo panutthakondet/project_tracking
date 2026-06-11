@@ -522,6 +522,22 @@ static async Task EnsureSupportOrderStatusValuesAsync(IServiceProvider services)
         if (!tableExists) return;
 
         command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_support_order'
+              AND COLUMN_NAME = 'dev_detail';";
+
+        var hasDevDetail = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasDevDetail)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project_support_order`
+                  ADD COLUMN `dev_detail` text NULL AFTER `dev_status`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
             ALTER TABLE `project_support_order`
               MODIFY COLUMN `status` varchar(20) NULL DEFAULT 'OPEN',
               MODIFY COLUMN `dev_status` varchar(20) NULL DEFAULT 'TODO';";

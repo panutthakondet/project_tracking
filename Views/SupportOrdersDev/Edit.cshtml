@@ -69,6 +69,12 @@
         font-weight: 800;
     }
 
+    .support-dev-edit-page textarea.form-control {
+        min-height: 130px;
+        border-radius: 14px;
+        line-height: 1.5;
+    }
+
     .status-text {
         font-weight: 900;
         letter-spacing: .01em;
@@ -166,6 +172,14 @@
                         <label>วันที่สิ้นสุด</label>
                         <div class="support-dev-readonly">@DateText(order.EndDate)</div>
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DevDetail">รายละเอียดการแก้ไข</label>
+                    <textarea asp-for="DevDetail"
+                              class="form-control"
+                              placeholder="ระบุรายละเอียดการแก้ไข หรือหมายเหตุจากโปรแกรมเมอร์"></textarea>
+                    <span asp-validation-for="DevDetail" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">

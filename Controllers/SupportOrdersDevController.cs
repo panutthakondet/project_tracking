@@ -112,6 +112,7 @@ namespace ProjectTracking.Controllers
             var currentStatus = NormalizeSupportStatus(dbOrder.Status);
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
             dbOrder.DevStatus = nextDevStatus;
+            dbOrder.DevDetail = order.DevDetail;
             dbOrder.Status = GetSupportStatusFromDevStatus(nextDevStatus, currentStatus);
 
             var folder = Path.Combine(

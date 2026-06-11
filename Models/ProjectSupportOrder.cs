@@ -33,6 +33,9 @@ namespace ProjectTracking.Models
         [Column("dev_status", TypeName = "varchar(20)")]
         public string? DevStatus { get; set; }
 
+        [Column("dev_detail", TypeName = "text")]
+        public string? DevDetail { get; set; }
+
         [Column("created_by")]
         public int? CreatedBy { get; set; }
 
