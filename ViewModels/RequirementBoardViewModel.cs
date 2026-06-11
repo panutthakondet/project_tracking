@@ -27,6 +27,11 @@ namespace ProjectTracking.ViewModels
         public List<int> OrderedCardIds { get; set; } = new();
     }
 
+    public class ReorderRequirementColumnsRequest
+    {
+        public List<int> OrderedColumnIds { get; set; } = new();
+    }
+
     public class RequirementCardPhaseItemInput
     {
         public int? ItemId { get; set; }

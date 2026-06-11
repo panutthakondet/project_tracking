@@ -567,6 +567,39 @@ namespace ProjectTracking.Controllers
             return Json(new { ok = true });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReorderColumns([FromBody] ReorderRequirementColumnsRequest request)
+        {
+            var orderedIds = request?.OrderedColumnIds?
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList() ?? new List<int>();
+
+            if (orderedIds.Count == 0)
+                return BadRequest(new { ok = false, message = "ข้อมูลไม่ครบ" });
+
+            var columns = await _context.RequirementBoardColumns
+                .Where(x => orderedIds.Contains(x.ColumnId) && x.IsActive)
+                .ToListAsync();
+
+            if (columns.Count != orderedIds.Count)
+                return BadRequest(new { ok = false, message = "พบหัวข้อที่ไม่ถูกต้อง" });
+
+            var now = DateTime.Now;
+            for (var i = 0; i < orderedIds.Count; i++)
+            {
+                var column = columns.FirstOrDefault(x => x.ColumnId == orderedIds[i]);
+                if (column == null) continue;
+
+                column.SortOrder = i + 1;
+                column.UpdatedAt = now;
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { ok = true });
+        }
+
         private async Task EnsureDefaultColumnsAsync()
         {
             if (await _context.RequirementBoardColumns.AnyAsync()) return;

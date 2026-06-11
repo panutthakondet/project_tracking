@@ -687,6 +687,27 @@
             overflow: hidden;
         }
 
+        .rb-column.is-column-dragging {
+            opacity: .32;
+            cursor: grabbing;
+        }
+
+        .rb-column.is-column-dragging .rb-column-head {
+            background: rgba(255, 255, 255, .72);
+        }
+
+        .rb-column.is-column-drop-before .rb-column-head {
+            box-shadow:
+                inset 5px 0 0 rgba(20, 184, 166, .78),
+                0 8px 14px rgba(15, 39, 70, .08);
+        }
+
+        .rb-column.is-column-drop-after .rb-column-head {
+            box-shadow:
+                inset -5px 0 0 rgba(20, 184, 166, .78),
+                0 8px 14px rgba(15, 39, 70, .08);
+        }
+
         .rb-add-list-column {
             flex: 0 0 var(--rb-column-width);
             max-width: var(--rb-column-width);
@@ -755,6 +776,12 @@
             min-height: clamp(42px, 5vh, 48px);
             padding: clamp(7px, .92vh, 10px) 12px clamp(7px, .82vh, 9px);
             border-bottom: 1px solid #e4edf6;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .rb-column-head:active {
+            cursor: grabbing;
         }
 
         .rb-column-title {
@@ -780,6 +807,18 @@
             color: #64748b;
             font-size: .96rem;
             font-weight: 900;
+        }
+
+        .rb-column-drag-hint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 28px;
+            color: #94a3b8;
+            font-size: 1rem;
+            line-height: 1;
+            flex: 0 0 auto;
         }
 
         .rb-card-list {
@@ -848,6 +887,18 @@
             pointer-events: none;
             transform: rotate(2deg);
             box-shadow: 0 18px 36px rgba(15, 39, 70, .28);
+        }
+
+        .rb-column-drag-image {
+            position: fixed;
+            top: -10000px;
+            left: -10000px;
+            max-height: min(78vh, 760px);
+            pointer-events: none;
+            transform: rotate(2deg);
+            opacity: .96;
+            box-shadow: 0 22px 48px rgba(15, 39, 70, .30);
+            overflow: hidden;
         }
 
         .rb-card-list.is-over .rb-card.is-dragging {
@@ -1758,8 +1809,12 @@
             @foreach (var column in Model.Columns)
             {
                 <section class="rb-column" data-column-id="@column.ColumnId">
-                    <header class="rb-column-head">
+                    <header class="rb-column-head"
+                            draggable="true"
+                            data-column-drag-handle
+                            title="ลากเพื่อสลับหัวข้อ">
                         <h2 class="rb-column-title">@column.ColumnName</h2>
+                        <span class="rb-column-drag-hint" aria-hidden="true">⋮⋮</span>
                         <span class="rb-column-count">@column.Cards.Count</span>
                     </header>
 
@@ -2120,9 +2175,12 @@
             const searchBox = searchInput?.closest('.rb-search');
             const clearSearchButton = searchBox?.querySelector('.rb-search-clear');
             let draggedCard = null;
+            let draggedColumn = null;
             let dragImage = null;
             let originalList = null;
             let originalNextCard = null;
+            let originalNextColumn = null;
+            let didColumnDrop = false;
             let didDrop = false;
             let wasDragging = false;
             let suppressClickUntil = 0;
@@ -2949,8 +3007,148 @@
                 }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
             }
 
+            function clearColumnDropMarkers() {
+                document.querySelectorAll('.rb-column.is-column-drop-before, .rb-column.is-column-drop-after')
+                    .forEach(column => column.classList.remove('is-column-drop-before', 'is-column-drop-after'));
+            }
+
+            function getColumnAfterElement(board, x) {
+                const columns = [...board.querySelectorAll('.rb-column:not(.is-column-dragging)')];
+
+                return columns.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = x - box.left - box.width / 2;
+
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+            }
+
+            async function persistColumnOrder(board) {
+                const orderedColumnIds = Array.from(board.querySelectorAll('.rb-column'))
+                    .map(column => Number(column.dataset.columnId || 0))
+                    .filter(Boolean);
+
+                if (orderedColumnIds.length === 0) return;
+
+                try {
+                    const response = await fetch('@Url.Action("ReorderColumns", "RequirementBoard")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify({ orderedColumnIds })
+                    });
+
+                    if (!response.ok) {
+                        window.location.reload();
+                    }
+                } catch {
+                    window.location.reload();
+                }
+            }
+
+            document.querySelectorAll('[data-column-drag-handle]').forEach(handle => {
+                handle.addEventListener('dragstart', event => {
+                    const column = handle.closest('.rb-column');
+                    if (!column) return;
+
+                    draggedColumn = column;
+                    originalNextColumn = column.nextElementSibling;
+                    didColumnDrop = false;
+                    wasDragging = true;
+                    column.classList.add('is-column-dragging');
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', column.dataset.columnId || '');
+
+                    dragImage = column.cloneNode(true);
+                    dragImage.classList.add('rb-column-drag-image');
+                    dragImage.classList.remove('is-column-dragging', 'is-column-drop-before', 'is-column-drop-after');
+                    dragImage.style.width = `${column.offsetWidth}px`;
+                    document.body.appendChild(dragImage);
+
+                    const rect = column.getBoundingClientRect();
+                    event.dataTransfer.setDragImage(
+                        dragImage,
+                        event.clientX - rect.left,
+                        Math.min(event.clientY - rect.top, 80)
+                    );
+                });
+
+                handle.addEventListener('dragend', () => {
+                    if (!didColumnDrop && draggedColumn) {
+                        const board = draggedColumn.closest('.rb-board');
+                        if (board) {
+                            if (originalNextColumn && originalNextColumn.parentElement === board) {
+                                board.insertBefore(draggedColumn, originalNextColumn);
+                            } else {
+                                const addColumn = board.querySelector('.rb-add-list-column');
+                                if (addColumn) {
+                                    board.insertBefore(draggedColumn, addColumn);
+                                } else {
+                                    board.appendChild(draggedColumn);
+                                }
+                            }
+                        }
+                    }
+
+                    draggedColumn?.classList.remove('is-column-dragging');
+                    clearColumnDropMarkers();
+                    cleanupDragImage();
+                    suppressClickUntil = Date.now() + 250;
+                    setTimeout(() => {
+                        draggedColumn = null;
+                        originalNextColumn = null;
+                        didColumnDrop = false;
+                        wasDragging = false;
+                    }, 0);
+                });
+            });
+
+            document.querySelectorAll('.rb-board').forEach(board => {
+                board.addEventListener('dragover', event => {
+                    if (!draggedColumn) return;
+
+                    event.preventDefault();
+                    clearColumnDropMarkers();
+
+                    const afterElement = getColumnAfterElement(board, event.clientX);
+                    const addColumn = board.querySelector('.rb-add-list-column');
+                    if (afterElement == null) {
+                        if (addColumn) {
+                            board.insertBefore(draggedColumn, addColumn);
+                        } else {
+                            board.appendChild(draggedColumn);
+                        }
+                        draggedColumn.previousElementSibling?.classList.add('is-column-drop-after');
+                    } else {
+                        board.insertBefore(draggedColumn, afterElement);
+                        afterElement.classList.add('is-column-drop-before');
+                    }
+                });
+
+                board.addEventListener('dragleave', event => {
+                    if (!draggedColumn || board.contains(event.relatedTarget)) return;
+                    clearColumnDropMarkers();
+                });
+
+                board.addEventListener('drop', async event => {
+                    if (!draggedColumn) return;
+
+                    event.preventDefault();
+                    didColumnDrop = true;
+                    clearColumnDropMarkers();
+                    await persistColumnOrder(board);
+                });
+            });
+
             document.querySelectorAll('.rb-card').forEach(card => {
                 card.addEventListener('dragstart', event => {
+                    if (draggedColumn) return;
                     draggedCard = card;
                     originalList = card.closest('.rb-card-list');
                     originalNextCard = card.nextElementSibling;
@@ -3005,6 +3203,7 @@
 
             document.querySelectorAll('.rb-card-list').forEach(list => {
                 list.addEventListener('dragover', event => {
+                    if (draggedColumn) return;
                     event.preventDefault();
                     list.classList.add('is-over');
 
@@ -3023,6 +3222,7 @@
                 });
 
                 list.addEventListener('drop', async event => {
+                    if (draggedColumn) return;
                     event.preventDefault();
                     list.classList.remove('is-over');
                     if (!draggedCard) return;
