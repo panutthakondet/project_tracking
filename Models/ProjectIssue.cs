@@ -51,11 +51,11 @@ namespace ProjectTracking.Models
         public string IssueStatus { get; set; } = "OPEN";
 
         // ===== Dev Status (Programmer) =====
-        // TODO / DOING / FIXED / BLOCK
+        // Programmer UI uses WIP / FIXED.
         [Required]
         [StringLength(20)]
         [Column("DevStatus", TypeName = "varchar(20)")]
-        public string DevStatus { get; set; } = "TODO";
+        public string DevStatus { get; set; } = "WIP";
 
         // ===== Priority =====
         [Required]

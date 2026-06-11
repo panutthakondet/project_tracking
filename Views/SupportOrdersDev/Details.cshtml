@@ -26,7 +26,7 @@
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "IN_PROGRESS" => "warning",
+        "WIP" => "warning",
         "FIXED" => "success",
         _ => "muted"
     };
@@ -53,6 +53,7 @@
 
     .support-dev-info.is-tall {
         min-height: 110px;
+        font-weight: 400;
         white-space: pre-wrap;
     }
 

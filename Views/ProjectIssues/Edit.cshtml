@@ -174,7 +174,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="IssueStatus" class="form-label fw-semibold">📌 สถานะ Issue</label>
+                    <label asp-for="IssueStatus" class="form-label fw-semibold">📌 สถานะการตรวจ (Tester/BA)</label>
                     <select asp-for="IssueStatus"
                             asp-items="ViewBag.StatusList"
                             class="form-select"></select>
@@ -226,7 +226,7 @@
                 <div class="col-md-8">
                     <label class="form-label fw-semibold">ℹ️ หมายเหตุการนับ Reopen</label>
                     <div class="issue-edit-note">
-                        เมื่อเปลี่ยนสถานะจาก FIXED/PASS กลับเป็น OPEN/WIP ระบบจะนับ Reopen ให้อัตโนมัติ
+                        BA/Tester ใช้ OPEN เมื่อเปิดหรือส่งกลับรอแก้, FAIL เมื่อทดสอบไม่ผ่าน, PASS เมื่อทดสอบผ่าน และ REJECT เมื่อไม่รับเป็นปัญหา ส่วน WIP/FIXED มาจากฝั่งโปรแกรมเมอร์
                     </div>
                 </div>
 

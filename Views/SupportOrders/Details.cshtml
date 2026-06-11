@@ -28,14 +28,17 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "muted",
-        "WAIT_TEST" => "warning",
-        "DONE" => "success",
+        "WIP" => "warning",
+        "FIXED" => "info",
+        "FAIL" => "danger",
+        "PASS" => "success",
+        "REJECT" => "muted",
         _ => "muted"
     };
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "IN_PROGRESS" => "warning",
+        "WIP" => "warning",
         "FIXED" => "success",
         _ => "muted"
     };
@@ -235,6 +238,7 @@
     .support-text-box {
         min-height: 150px;
         color: #24364d;
+        font-weight: 400;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 14px;

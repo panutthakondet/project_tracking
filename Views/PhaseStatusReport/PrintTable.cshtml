@@ -245,7 +245,27 @@
                 page-break-inside: avoid;
             }
         }
-    </style>
+    
+        /* Crisp typography normalization for standalone pages. */
+        :root { --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
+        html, body {
+            font-family: var(--pt-readable-thai-font) !important;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+        body :where(*):not(svg):not(svg *) {
+            font-family: var(--pt-readable-thai-font) !important;
+            font-stretch: normal !important;
+            letter-spacing: 0 !important;
+            text-shadow: none !important;
+        }
+        body :is(h1, h2, h3, h4, h5, h6, th, label, strong, b, .report-btn, .btn, .badge, .status-text, .cell-title, .project-group-name, [class*="title"], [class*="heading"], [class*="eyebrow"], [class*="status"], [class*="badge"], [class*="count"], [class*="total"], [class*="value"]) {
+            font-weight: 700 !important;
+        }
+        body :is(p, li, td, small, em, time, .cell-sub, .detail-block div, .meta-label, .meta-value, .empty, [class*="detail"], [class*="meta"], [class*="subtitle"], [class*="description"], [class*="desc"], [class*="remark"], [class*="note"], [class*="empty"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+            font-weight: 400 !important;
+        }
+</style>
 </head>
 <body onload="window.print()">
     <header class="print-header">

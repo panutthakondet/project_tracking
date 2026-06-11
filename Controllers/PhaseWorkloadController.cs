@@ -200,7 +200,7 @@ namespace ProjectTracking.Controllers
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
 
-            return issue is "FIXED" or "PASS" || dev == "FIXED"
+            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED"
                 ? "DONE"
                 : "IN_PROGRESS";
         }
@@ -210,7 +210,7 @@ namespace ProjectTracking.Controllers
             var orderStatus = (status ?? "").Trim().ToUpperInvariant();
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
 
-            return orderStatus == "DONE" || dev == "FIXED"
+            return orderStatus is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED"
                 ? "DONE"
                 : "IN_PROGRESS";
         }

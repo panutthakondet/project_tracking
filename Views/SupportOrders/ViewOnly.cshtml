@@ -32,20 +32,23 @@
     {
         var s = (status ?? "").Trim().ToUpperInvariant();
         var d = (devStatus ?? "").Trim().ToUpperInvariant();
-        return s == "DONE" || d == "FIXED";
+        return s == "PASS" || s == "REJECT" || d == "FIXED";
     }
 
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "warning",
-        "WAIT_TEST" => "info",
-        "DONE" => "success",
+        "WIP" => "warning",
+        "FIXED" => "info",
+        "FAIL" => "danger",
+        "PASS" => "success",
+        "REJECT" => "muted",
         _ => "muted"
     };
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "IN_PROGRESS" => "warning",
+        "WIP" => "warning",
         "FIXED" => "success",
         _ => "muted"
     };
@@ -369,8 +372,8 @@
         }
         .cell-sub {
             margin-top: 4px;
-            color: #465a73;
-            font-weight: 700;
+            color: #111827;
+            font-weight: 400;
         }
         .detail-block {
             display: grid;
@@ -381,13 +384,16 @@
             border-radius: 8px;
             background: #f8fbff;
             border: 1px solid #e6edf6;
+            color: #111827;
+            font-weight: 400;
+            line-height: 1.45;
         }
         .detail-block b {
             display: block;
             margin-bottom: 3px;
-            color: #64748b;
+            color: #111827;
             font-size: 10px;
-            font-weight: 900;
+            font-weight: 700;
             text-transform: uppercase;
         }
         .meta-stack {
@@ -401,12 +407,12 @@
             align-items: baseline;
         }
         .meta-label {
-            color: #64748b;
-            font-weight: 900;
+            color: #111827;
+            font-weight: 600;
         }
         .meta-value {
-            color: #10233f;
-            font-weight: 900;
+            color: #111827;
+            font-weight: 600;
             text-align: right;
         }
         .status-text {
@@ -421,9 +427,9 @@
         .empty {
             padding: 18px;
             border: 1px dashed #cbd5e1;
-            color: #64748b;
+            color: #111827;
             text-align: center;
-            font-weight: 800;
+            font-weight: 400;
         }
         @@page {
             size: A4 landscape;
@@ -477,7 +483,27 @@
                 grid-template-columns: 1fr;
             }
         }
-    </style>
+    
+        /* Crisp typography normalization for standalone pages. */
+        :root { --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
+        html, body {
+            font-family: var(--pt-readable-thai-font) !important;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+        body :where(*):not(svg):not(svg *) {
+            font-family: var(--pt-readable-thai-font) !important;
+            font-stretch: normal !important;
+            letter-spacing: 0 !important;
+            text-shadow: none !important;
+        }
+        body :is(h1, h2, h3, h4, h5, h6, th, label, strong, b, .report-btn, .btn, .badge, .status-text, .cell-title, .project-group-name, [class*="title"], [class*="heading"], [class*="eyebrow"], [class*="status"], [class*="badge"], [class*="count"], [class*="total"], [class*="value"]) {
+            font-weight: 700 !important;
+        }
+        body :is(p, li, td, small, em, time, .cell-sub, .detail-block div, .meta-label, .meta-value, .empty, [class*="detail"], [class*="meta"], [class*="subtitle"], [class*="description"], [class*="desc"], [class*="remark"], [class*="note"], [class*="empty"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+            font-weight: 400 !important;
+        }
+</style>
 </head>
 <body>
     <div class="report-actions">
@@ -626,7 +652,9 @@
                 {
                     var seq = 1;
                     var groupOpen = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus));
-                    var groupWaitTest = projectGroup.Count(x => string.Equals(x.Status, "WAIT_TEST", StringComparison.OrdinalIgnoreCase));
+                    var groupFixed = projectGroup.Count(x =>
+                        string.Equals(x.Status, "FIXED", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
                     var groupDone = projectGroup.Count(x => IsClosed(x.Status, x.DevStatus));
                     var groupDevFixed = projectGroup.Count(x => string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
                     var groupOverdue = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus) && x.EndDate?.Date < today);
@@ -639,8 +667,8 @@
                                     <div class="cell-sub">BA: @projectGroup.Key.BAName</div>
                                     <div class="project-group-stats">
                                         <span>Open <b>@groupOpen</b></span>
-                                        <span>Wait Test <b>@groupWaitTest</b></span>
-                                        <span>Done/Fixed <b>@groupDone</b></span>
+                                        <span>Fixed <b>@groupFixed</b></span>
+                                        <span>Closed <b>@groupDone</b></span>
                                         <span>Dev Fixed <b>@groupDevFixed</b></span>
                                         <span>Overdue <b>@groupOverdue</b></span>
                                     </div>

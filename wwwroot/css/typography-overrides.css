@@ -7,6 +7,187 @@
   --pt-detail-color: #0f172a;
   --pt-detail-muted: #334155;
   --pt-label-color: #64748b;
+  --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
+  --pt-font-family: var(--pt-readable-thai-font);
+  --bs-body-font-family: var(--pt-readable-thai-font);
+  --bs-font-sans-serif: var(--pt-readable-thai-font);
+}
+
+html,
+body {
+  font-family: var(--pt-readable-thai-font) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html body :where(*):not(svg):not(svg *) {
+  font-family: var(--pt-readable-thai-font) !important;
+  font-stretch: normal !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+html body :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  th,
+  label,
+  strong,
+  b,
+  .fw-bold,
+  .fw-semibold,
+  .btn,
+  .badge,
+  .status-text,
+  .navbar-brand,
+  .index-title,
+  .index-eyebrow,
+  .page-title,
+  .section-title,
+  .card-title,
+  [class*="title"],
+  [class*="heading"],
+  [class*="eyebrow"],
+  [class*="status"],
+  [class*="badge"],
+  [class*="count"],
+  [class*="total"],
+  [class*="value"]
+) {
+  font-weight: 700 !important;
+}
+
+html body :is(
+  p,
+  li,
+  dd,
+  td,
+  small,
+  em,
+  time,
+  .text-muted,
+  .small,
+  [class*="detail"],
+  [class*="meta"],
+  [class*="subtitle"],
+  [class*="description"],
+  [class*="desc"],
+  [class*="remark"],
+  [class*="note"],
+  [class*="empty"],
+  [class*="help"],
+  [class*="hint"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 400 !important;
+}
+
+html body :is(
+  .form-label,
+  .control-label,
+  .meta-label,
+  .card-label,
+  [class*="label"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 600 !important;
+}
+
+html body .v2-sidebar,
+html body .v2-sidebar * {
+  font-family: var(--pt-readable-thai-font) !important;
+  font-stretch: normal !important;
+  letter-spacing: 0 !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: none !important;
+}
+
+html body .v2-sidebar :is(.navbar-dark .navbar-nav .nav-link, .navbar-dark .navbar-nav .dropdown-toggle) {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+}
+
+html body .v2-sidebar :is(.navbar.navbar-dark .navbar-nav .nav-link.active-menu, .v2-profile-name, .sidebar-logo-text) {
+  font-weight: 700 !important;
+}
+
+html body .v2-sidebar :is(.dropdown-item, .v2-profile-role) {
+  font-weight: 400 !important;
+}
+
+html body .v2-sidebar :is(.dropdown-group-title, .v2-online-badge) {
+  font-weight: 600 !important;
+}
+
+html body :is(
+  .support-page,
+  .support-dev-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .support-dev-edit-page
+) :is(
+  .support-order-title,
+  .support-project-name,
+  .support-detail,
+  .support-meta-pill,
+  .support-status-row small,
+  .support-empty-card,
+  .support-info-label,
+  .support-info-value,
+  .support-text-box,
+  .support-empty,
+  .support-dev-order-title,
+  .support-dev-project,
+  .support-dev-detail,
+  .support-dev-pill,
+  .support-dev-status-row small,
+  .support-dev-empty,
+  .support-dev-info,
+  .support-dev-readonly,
+  .text-muted
+):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  color: var(--pt-detail-color) !important;
+}
+
+html body :is(
+  .support-page,
+  .support-dev-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .support-dev-edit-page
+) :is(
+  .support-detail,
+  .support-meta-pill,
+  .support-text-box,
+  .support-dev-detail,
+  .support-dev-pill,
+  .support-dev-info.is-tall,
+  .support-dev-readonly.is-tall,
+  .text-muted
+):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 400 !important;
+}
+
+html body :is(
+  .support-page,
+  .support-dev-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .support-dev-edit-page
+) :is(
+  .support-order-title,
+  .support-info-value,
+  .support-panel h3,
+  .support-summary-card b,
+  .support-dev-order-title,
+  .support-dev-info,
+  .support-dev-readonly
+):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 700 !important;
 }
 
 html body :is(

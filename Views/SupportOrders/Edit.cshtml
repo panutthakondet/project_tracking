@@ -57,11 +57,8 @@
 
     <div class="mb-3">
         <label>Status</label>
-        <select asp-for="Status" class="form-select">
-            <option value="OPEN">OPEN</option>
-            <option value="WAIT_TEST">WAIT TEST</option>
-            <option value="DONE">DONE</option>
-        </select>
+        <select asp-for="Status" asp-items="ViewBag.StatusList" class="form-select"></select>
+        <span asp-validation-for="Status" class="text-danger"></span>
     </div>
 
     <div class="row g-3 mb-3">

@@ -834,11 +834,11 @@ namespace ProjectTracking.Controllers
             }
 
             var visibleOpenIssues = issues
-                .Where(i => !IsIssueResolved(i))
+                .Where(i => IsOpenWorkStatus(i.IssueStatus))
                 .Where(i => CanSeeOpenIssue(i, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
             var visibleOpenSupportOrders = supportOrders
-                .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
+                .Where(o => IsOpenWorkStatus(o.Status))
                 .Where(o => CanSeeOpenSupport(o, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
             var openIssueSupportCount = visibleOpenIssues.Count + visibleOpenSupportOrders.Count;
@@ -1841,7 +1841,7 @@ namespace ProjectTracking.Controllers
             var rows = new List<(DateTime? dueDate, DateTime createdAt, HomeDashboardOpenWorkItem item)>();
 
             rows.AddRange(issues
-                .Where(i => !IsIssueResolved(i))
+                .Where(i => IsOpenWorkStatus(i.IssueStatus))
                 .Select(i => (
                     dueDate: i.EndDate,
                     createdAt: i.CreatedAt,
@@ -1859,7 +1859,7 @@ namespace ProjectTracking.Controllers
                     })));
 
             rows.AddRange(supportOrders
-                .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
+                .Where(o => IsOpenWorkStatus(o.Status))
                 .Select(o => (
                     dueDate: o.EndDate,
                     createdAt: o.CreatedAt ?? DateTime.MinValue,
@@ -1979,7 +1979,7 @@ namespace ProjectTracking.Controllers
         {
             var issueStatus = Norm(issue.IssueStatus);
             var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "FIXED" or "PASS" or "DONE" or "CLOSED" or "RESOLVED"
+            return issueStatus is "FIXED" or "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
                 || devStatus is "FIXED" or "DONE" or "RESOLVED";
         }
 
@@ -1988,7 +1988,7 @@ namespace ProjectTracking.Controllers
             var issueStatus = Norm(issue.IssueStatus);
             var devStatus = Norm(issue.DevStatus);
             return issueStatus is "WIP" or "IN_PROGRESS" or "DOING"
-                || devStatus is "DOING" or "IN_PROGRESS";
+                || devStatus is "WIP" or "DOING" or "IN_PROGRESS";
         }
 
         private static bool IsHighPriority(string? priority)
@@ -1996,9 +1996,14 @@ namespace ProjectTracking.Controllers
             return Norm(priority) is "HIGH" or "URGENT" or "CRITICAL";
         }
 
+        private static bool IsOpenWorkStatus(string? status)
+        {
+            return Norm(status) is "OPEN" or "FAIL";
+        }
+
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) == "DONE"
+            return Norm(status) is "FIXED" or "PASS" or "REJECT" or "DONE"
                 || Norm(devStatus) == "FIXED";
         }
 
@@ -2007,12 +2012,12 @@ namespace ProjectTracking.Controllers
             var normalizedStatus = Norm(status);
             var normalizedDevStatus = Norm(devStatus);
 
-            if (normalizedStatus == "DONE" || normalizedDevStatus == "FIXED")
+            if (normalizedStatus is "FIXED" or "PASS" or "REJECT" or "DONE" || normalizedDevStatus == "FIXED")
             {
                 return "green";
             }
 
-            if (normalizedStatus == "WAIT_TEST" || normalizedDevStatus == "IN_PROGRESS")
+            if (normalizedStatus == "WIP" || normalizedDevStatus is "WIP" or "IN_PROGRESS")
             {
                 return "orange";
             }

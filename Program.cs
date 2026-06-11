@@ -192,6 +192,8 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
 await EnsureMailboxTablesAsync(app.Services);
+await EnsureIssueDevStatusValuesAsync(app.Services);
+await EnsureSupportOrderStatusValuesAsync(app.Services);
 
 // allow large upload requests
 app.Use(async (context, next) =>
@@ -488,6 +490,107 @@ static async Task EnsureMailboxTablesAsync(IServiceProvider services)
                 FOREIGN KEY (`message_id`) REFERENCES `mailbox_messages` (`message_id`)
                 ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureSupportOrderStatusValuesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_support_order';";
+
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        command.CommandText = @"
+            ALTER TABLE `project_support_order`
+              MODIFY COLUMN `status` varchar(20) NULL DEFAULT 'OPEN',
+              MODIFY COLUMN `dev_status` varchar(20) NULL DEFAULT 'TODO';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order`
+            SET `status` = CASE
+                WHEN `status` = 'WAIT_TEST' THEN 'FIXED'
+                WHEN `status` = 'DONE' THEN 'PASS'
+                WHEN `status` = 'CLOSE' THEN 'PASS'
+                WHEN `status` = 'IN_PROGRESS' THEN 'WIP'
+                WHEN `status` IS NULL OR `status` = '' THEN 'OPEN'
+                ELSE `status`
+            END;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order`
+            SET `dev_status` = CASE
+                WHEN `dev_status` = 'IN_PROGRESS' THEN 'WIP'
+                WHEN `dev_status` IN ('TODO', 'DOING', 'BLOCK') THEN 'WIP'
+                WHEN `dev_status` IS NULL OR `dev_status` = '' THEN 'WIP'
+                ELSE `dev_status`
+            END;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `project_support_order`
+              MODIFY COLUMN `status` varchar(20) NOT NULL DEFAULT 'OPEN',
+              MODIFY COLUMN `dev_status` varchar(20) NOT NULL DEFAULT 'TODO';";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureIssueDevStatusValuesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'ProjectIssues';";
+
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        command.CommandText = @"
+            UPDATE `ProjectIssues`
+            SET `DevStatus` = CASE
+                WHEN `DevStatus` IN ('TODO', 'DOING', 'BLOCK') THEN 'WIP'
+                WHEN `DevStatus` IS NULL OR `DevStatus` = '' THEN 'WIP'
+                ELSE `DevStatus`
+            END;";
         await command.ExecuteNonQueryAsync();
     }
     finally

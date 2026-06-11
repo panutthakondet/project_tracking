@@ -22,12 +22,17 @@
 <form asp-action="Create" asp-route-projectId="@projectId" method="post" enctype="multipart/form-data">
 @Html.AntiForgeryToken()
 
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
 <div class="mb-3">
 <label>Project</label>
 <input asp-for="ProjectId" type="hidden" />
 <input type="text" class="form-control" value="@ViewBag.SelectedProjectName" readonly />
 <span asp-validation-for="ProjectId" class="text-danger"></span>
 </div>
+
+<input type="hidden" asp-for="DevStatus" value="WIP" />
+<input type="hidden" asp-for="Status" value="OPEN" />
 
 <div class="mb-3">
 <label>Title</label>
@@ -51,11 +56,8 @@
 
 <div class="mb-3">
 <label>Status</label>
-<select asp-for="Status" class="form-select">
-<option value="OPEN">OPEN</option>
-<option value="WAIT_TEST">WAIT TEST</option>
-<option value="DONE">DONE</option>
-</select>
+<div class="pt-readonly-field">OPEN - เปิดงาน / รอแก้</div>
+<span asp-validation-for="Status" class="text-danger"></span>
 </div>
 
 <div class="row g-3 mb-3">

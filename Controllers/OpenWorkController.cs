@@ -41,8 +41,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             var issueItems = issues
-                .Where(issue => !IsIssueResolved(issue))
-                .Where(issue => !IsIssueHiddenFromOpenWork(issue))
+                .Where(issue => IsOpenWorkStatus(issue.IssueStatus))
                 .Where(issue => CanSeeIssue(issue, currentEmpId, isAdmin))
                 .Select(issue => BuildIssueItem(issue, currentEmpId, isAdmin, today))
                 .ToList();
@@ -57,8 +56,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             var supportItems = supportOrders
-                .Where(order => !IsSupportResolved(order))
-                .Where(order => !IsSupportHiddenFromOpenWork(order))
+                .Where(order => IsOpenWorkStatus(order.Status))
                 .Where(order => CanSeeSupport(order, currentEmpId, isAdmin))
                 .Select(order => BuildSupportItem(order, currentEmpId, isAdmin, today))
                 .ToList();
@@ -214,36 +212,9 @@ namespace ProjectTracking.Controllers
                 (order.AssignTo == currentEmpId.Value || order.Project?.BaEmpId == currentEmpId.Value);
         }
 
-        private static bool IsIssueResolved(ProjectIssue issue)
+        private static bool IsOpenWorkStatus(string? status)
         {
-            var issueStatus = Norm(issue.IssueStatus);
-            var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "FIXED" or "PASS" or "DONE" or "CLOSED" or "RESOLVED"
-                || devStatus is "FIXED" or "DONE" or "RESOLVED";
-        }
-
-        private static bool IsIssueHiddenFromOpenWork(ProjectIssue issue)
-        {
-            var issueStatus = Norm(issue.IssueStatus);
-            var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "REJECT" or "REJECTED"
-                || devStatus is "BLOCK" or "BLOCKED";
-        }
-
-        private static bool IsSupportResolved(ProjectSupportOrder order)
-        {
-            var status = Norm(order.Status);
-            var devStatus = Norm(order.DevStatus);
-            return status is "DONE" or "CLOSE" or "CLOSED"
-                || devStatus is "FIXED" or "DONE" or "RESOLVED";
-        }
-
-        private static bool IsSupportHiddenFromOpenWork(ProjectSupportOrder order)
-        {
-            var status = Norm(order.Status);
-            var devStatus = Norm(order.DevStatus);
-            return status is "REJECT" or "REJECTED" or "BLOCK" or "BLOCKED"
-                || devStatus is "REJECT" or "REJECTED" or "BLOCK" or "BLOCKED";
+            return Norm(status) is "OPEN" or "FAIL";
         }
 
         private static string Severity(DateTime? dueDate, DateTime today)

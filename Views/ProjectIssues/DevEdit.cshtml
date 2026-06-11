@@ -22,9 +22,6 @@
         "PASS" => "success",
         "FAIL" => "danger",
         "REJECT" => "danger",
-        "TODO" => "muted",
-        "DOING" => "info",
-        "BLOCK" => "danger",
         _ => "muted"
     };
 }
@@ -201,12 +198,12 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="DevStatus" class="form-label fw-semibold">🧑‍💻 Dev Status</label>
+                    <label asp-for="DevStatus" class="form-label fw-semibold">🧑‍💻 สถานะการแก้ไข (Programmer)</label>
                     <select asp-for="DevStatus"
                             asp-items="devStatusItems"
                             class="form-select"
                             data-placeholder="🔍 พิมพ์ค้นหา Dev Status...">
-                        <option value="">-- เคลียร์ค่า / เลือกใหม่ --</option>
+                        <option value="">-- เลือกสถานะการแก้ไข --</option>
                     </select>
                     <span asp-validation-for="DevStatus" class="text-danger"></span>
                 </div>
@@ -214,7 +211,7 @@
                 <div class="col-md-8">
                     <label class="form-label fw-semibold">ℹ️ หมายเหตุ</label>
                     <div class="dev-edit-note">
-                        ระบบจะอัปเดตเวลาล่าสุดให้อัตโนมัติเมื่อบันทึกการแก้ไข Issue นี้
+                        โปรแกรมเมอร์ใช้ WIP เมื่อลงมือแก้ และ FIXED เมื่อแก้เสร็จเพื่อส่งกลับให้ BA/Tester ตรวจ
                     </div>
                 </div>
 

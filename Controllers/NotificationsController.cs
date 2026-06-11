@@ -160,7 +160,7 @@ namespace ProjectTracking.Controllers
             var hasAssignee = order.AssignTo.HasValue;
             var hasEndDate = order.EndDate.HasValue;
             var status = (order.Status ?? "").Trim().ToUpperInvariant();
-            var isDone = status == "DONE";
+            var isDone = status is "FIXED" or "PASS" or "REJECT" or "DONE";
             var isDueOrRisk = hasEndDate && order.EndDate!.Value.Date <= today.AddDays(3);
             var shouldNotify = hasAssignee && hasEndDate && isDueOrRisk && !isDone;
 
@@ -403,6 +403,7 @@ namespace ProjectTracking.Controllers
             "URGENT" => "danger",
             "HIGH" => "danger",
             "TODO" => "muted",
+            "WIP" => "warning",
             "IN PROGRESS" => "warning",
             "IN_PROGRESS" => "warning",
             "WAIT TEST" => "info",
@@ -412,6 +413,7 @@ namespace ProjectTracking.Controllers
             "DONE" => "success",
             "FIXED" => "success",
             "PASS" => "success",
+            "REJECT" => "muted",
             "RESOLVED" => "success",
             "ส่งงวดงานแล้ว" => "success",
             "อนุมัติจ่ายเงินแล้ว" => "success",

@@ -34,7 +34,8 @@
 <span asp-validation-for="ProjectId" class="text-danger"></span>
 </div>
 
-<input type="hidden" asp-for="DevStatus" value="TODO" />
+<input type="hidden" asp-for="DevStatus" value="WIP" />
+<input type="hidden" asp-for="IssueStatus" value="OPEN" />
 <input type="hidden" asp-for="IsReopen" value="false" />
 <input type="hidden" asp-for="ReopenCount" value="0" />
 
@@ -67,10 +68,7 @@
 
 <div class="mb-3">
 <label>Status</label>
-<select asp-for="IssueStatus"
-        asp-items="ViewBag.StatusList"
-        class="form-select">
-</select>
+<div class="pt-readonly-field">OPEN - เปิดปัญหา / รอแก้</div>
 <span asp-validation-for="IssueStatus" class="text-danger"></span>
 </div>
 

@@ -489,7 +489,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             items.AddRange(supports
-                .Where(x => !IsDone(x.Status))
+                .Where(x => !IsSupportDone(x.Status, x.DevStatus))
                 .Select(x => new PendingWorkItemViewModel
                 {
                     Type = "Support",
@@ -659,7 +659,14 @@ namespace ProjectTracking.Controllers
         {
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return issue is "FIXED" or "PASS" || dev == "FIXED";
+            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
+        }
+
+        private static bool IsSupportDone(string? status, string? devStatus)
+        {
+            var support = (status ?? "").Trim().ToUpperInvariant();
+            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
+            return support is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
         }
 
         private static bool IsClosedPhase(string? phaseStatus)

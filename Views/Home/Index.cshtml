@@ -2787,6 +2787,114 @@
         gap:8px 12px;
     }
 }
+
+.dashboard-view,
+.dashboard-view * {
+    font-family:var(--pt-readable-thai-font, "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif) !important;
+    font-stretch:normal !important;
+    letter-spacing:0 !important;
+    text-rendering:optimizeLegibility;
+    -webkit-font-smoothing:antialiased;
+    text-shadow:none !important;
+}
+
+.dashboard-view :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    strong,
+    b,
+    .brand-cluster strong,
+    .panel-head h2,
+    .kpi-card p,
+    .kpi-card strong,
+    .donut strong,
+    .gauge strong,
+    .time-number strong,
+    .time-number span,
+    .project-overview-summary strong,
+    .watch-main b,
+    .activity-row b,
+    .meeting-row b,
+    .progress-row b,
+    .workload-row b,
+    .time-detail-grid b
+) {
+    font-weight:700 !important;
+}
+
+.dashboard-view :is(
+    .dashboard-global-search input,
+    .dashboard-search input,
+    .panel-filter,
+    .panel-link,
+    .legend-row,
+    .metric-list,
+    .project-overview-summary b,
+    .project-overview-search,
+    .project-overview-search input,
+    .project-overview-head,
+    .project-overview-name,
+    .project-overview-status,
+    .project-overview-row time,
+    .empty-state,
+    .empty-inline,
+    .progress-row,
+    .workload-row,
+    .time-pill,
+    .risk-pill,
+    .watch-percent,
+    .watch-reasons i,
+    .metric-card,
+    .time-alert-row,
+    .dashboard-footer
+) {
+    font-weight:600 !important;
+}
+
+.dashboard-view :is(
+    small,
+    em,
+    time,
+    .kpi-card small,
+    .watch-main small,
+    .watch-status small,
+    .activity-row small,
+    .activity-row em,
+    .activity-row time,
+    .meeting-row small,
+    .dashboard-search-result-detail,
+    .dashboard-open-work-body small,
+    .dashboard-open-work-body em,
+    .time-detail-grid small,
+    .time-number small
+) {
+    font-weight:400 !important;
+}
+
+.dashboard-view :is(
+    .dashboard-online-more,
+    .dashboard-global-tool-count,
+    .dashboard-open-work-head span,
+    .dashboard-open-work-head strong,
+    .dashboard-open-work-group p,
+    .dashboard-open-work-mark,
+    .dashboard-open-work-body strong,
+    .dashboard-open-work-actions a,
+    .dashboard-search-state,
+    .dashboard-search-group-title,
+    .dashboard-search-result-title
+) {
+    font-weight:600 !important;
+}
+
+.dashboard-view :is(.dashboard-global-search-icon, .dashboard-global-search-clear, .top-icon-button, .kpi-icon) {
+    font-family:var(--pt-font-family, "Prompt", sans-serif) !important;
+    font-weight:700 !important;
+}
 </style>
 
 <script>

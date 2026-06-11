@@ -305,11 +305,9 @@ else
                 "bg-secondary";
 
             string devStatusClass =
-                i.DevStatus == "TODO" ? "bg-secondary" :
-                i.DevStatus == "DOING" ? "bg-info text-dark" :
+                i.DevStatus == "WIP" ? "bg-info text-dark" :
                 i.DevStatus == "FIXED" ? "bg-success" :
-                i.DevStatus == "BLOCK" ? "bg-danger" :
-                "bg-dark";
+                "bg-secondary";
 
             <article class="issue-card @(urgent ? "issue-urgent" : "")">
                 <div class="issue-card-left">

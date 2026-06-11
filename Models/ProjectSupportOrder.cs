@@ -27,10 +27,10 @@ namespace ProjectTracking.Models
         [Column("priority")]
         public string? Priority { get; set; }
 
-        [Column("status")]
+        [Column("status", TypeName = "varchar(20)")]
         public string? Status { get; set; }
 
-        [Column("dev_status")]
+        [Column("dev_status", TypeName = "varchar(20)")]
         public string? DevStatus { get; set; }
 
         [Column("created_by")]

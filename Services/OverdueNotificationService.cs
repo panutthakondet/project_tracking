@@ -238,7 +238,7 @@ namespace ProjectTracking.Services
 
             foreach (var row in rows)
             {
-                if (IsSupportDone(row.Status))
+                if (IsSupportDone(row.Status, row.DevStatus))
                     continue;
 
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
@@ -494,7 +494,7 @@ namespace ProjectTracking.Services
         {
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return issue is "FIXED" or "PASS" || dev == "FIXED";
+            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
         }
 
         private static bool IsDone(string? status)
@@ -503,10 +503,11 @@ namespace ProjectTracking.Services
             return normalized == "DONE";
         }
 
-        private static bool IsSupportDone(string? status)
+        private static bool IsSupportDone(string? status, string? devStatus)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
-            return normalized == "DONE";
+            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
+            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
         }
 
         private static bool IsFollowupDone(string? status)

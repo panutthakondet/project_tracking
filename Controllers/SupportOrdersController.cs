@@ -14,7 +14,15 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
-        private static readonly string[] SupportOrderStatuses = { "OPEN", "WAIT_TEST", "DONE" };
+        private static readonly string[] SupportOrderStatuses = { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
+        private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
+        private static readonly (string Value, string Text)[] TesterSupportStatuses =
+        {
+            ("OPEN", "OPEN - เปิดงาน / รอแก้"),
+            ("FAIL", "FAIL - ทดสอบไม่ผ่าน / ส่งกลับแก้"),
+            ("PASS", "PASS - ทดสอบผ่าน / ปิดงาน"),
+            ("REJECT", "REJECT - ปฏิเสธ / ไม่ใช่งาน Support")
+        };
 
         public SupportOrdersController(
             AppDbContext context,
@@ -161,7 +169,7 @@ namespace ProjectTracking.Controllers
             ViewBag.ImageCounts = imageCounts;
             ViewBag.StatusList = SupportOrderStatuses;
             ViewBag.PriorityList = new[] { "URGENT", "HIGH", "MEDIUM", "LOW" };
-            ViewBag.DevStatusList = new[] { "IN_PROGRESS", "FIXED" };
+            ViewBag.DevStatusList = SupportDevStatuses;
 
             return View(orders);
         }
@@ -212,6 +220,7 @@ namespace ProjectTracking.Controllers
             {
                 ProjectId = projectId,
                 Status = "OPEN",
+                DevStatus = "WIP",
                 Priority = "MEDIUM"
             };
 
@@ -256,7 +265,8 @@ namespace ProjectTracking.Controllers
             order.CreatedBy = projectBaEmpId ?? await GetCurrentEntryIdAsync();
 
             order.CreatedAt = DateTime.Now;
-            order.Status = NormalizeSupportStatus(order.Status);
+            order.Status = "OPEN";
+            order.DevStatus = "WIP";
 
             _context.ProjectSupportOrders.Add(order);
             await _context.SaveChangesAsync();
@@ -321,6 +331,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProjectName = order.Project?.ProjectDisplayName;
 
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
+            ViewBag.StatusList = GetStatusList(order.Status);
 
             return View(order);
         }
@@ -331,7 +342,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrders.Edit")]
-        public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> files, List<IFormFile> afterFiles, List<int> deleteImageIds)
+        public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> files, List<int> deleteImageIds)
         {
             if (id != order.OrderId)
                 return NotFound();
@@ -342,6 +353,7 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 await PopulateSupportOrderFormAsync(order);
+                ViewBag.StatusList = GetStatusList(order.Status);
                 return View(order);
             }
 
@@ -353,24 +365,14 @@ namespace ProjectTracking.Controllers
             if (existingOrder == null)
                 return NotFound();
 
-            // ===== Programmer Status Logic =====
-            // ถ้า programmer upload AFTER image -> FIXED
-            if (afterFiles != null && afterFiles.Count > 0)
-            {
-                order.DevStatus = "FIXED";
-            }
-            else
-            {
-                // ถ้าไม่ได้ส่งค่า DevStatus จากหน้า form ให้คงค่าเดิมไว้
-                order.DevStatus = existingOrder.DevStatus;
-            }
-
             order.CreatedBy = existingOrder.CreatedBy;
             order.CreatedAt = DateTime.Now;
             order.Status = NormalizeSupportStatus(order.Status);
-            if (IsDevStatusChangedToFixed(existingOrder.DevStatus, order.DevStatus))
+            order.DevStatus = NormalizeSupportDevStatus(existingOrder.DevStatus);
+
+            if (order.Status == "OPEN" || order.Status == "FAIL")
             {
-                order.Status = "WAIT_TEST";
+                order.DevStatus = "WIP";
             }
 
             _context.ProjectSupportOrders.Update(order);
@@ -422,30 +424,6 @@ namespace ProjectTracking.Controllers
                         OrderId = order.OrderId,
                         FileName = fileName,
                         FilePath = $"/uploads/support/{order.OrderId}/{fileName}"
-                    });
-                }
-            }
-
-            // ===== Upload AFTER images =====
-            if (afterFiles != null && afterFiles.Count > 0)
-            {
-                foreach (var file in afterFiles)
-                {
-                    if (file.Length == 0) continue;
-
-                    var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-                    var fullPath = Path.Combine(folder, fileName);
-
-                    using (var stream = new FileStream(fullPath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
-
-                    _context.ProjectSupportFixImages.Add(new ProjectSupportFixImage
-                    {
-                        OrderId = order.OrderId,
-                        FilePath = $"/uploads/support/{order.OrderId}/{fileName}",
-                        ImageType = "AFTER"
                     });
                 }
             }
@@ -596,6 +574,8 @@ namespace ProjectTracking.Controllers
 
         private async Task PopulateSupportOrderFormAsync(ProjectSupportOrder order)
         {
+            ViewBag.StatusList = GetStatusList(order.Status);
+
             ViewBag.EmployeeList = new SelectList(
                 await _context.Employees
                     .AsNoTracking()
@@ -647,13 +627,53 @@ namespace ProjectTracking.Controllers
         private static string NormalizeSupportStatus(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "WAIT_TEST") return "FIXED";
+            if (normalized == "DONE") return "PASS";
             return SupportOrderStatuses.Contains(normalized) ? normalized : "OPEN";
         }
 
-        private static bool IsDevStatusChangedToFixed(string? previousStatus, string? nextStatus)
+        private static string NormalizeSupportDevStatus(string? status)
         {
-            return !string.Equals((previousStatus ?? "").Trim(), "FIXED", StringComparison.OrdinalIgnoreCase)
-                && string.Equals((nextStatus ?? "").Trim(), "FIXED", StringComparison.OrdinalIgnoreCase);
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "IN_PROGRESS" || normalized == "TODO" || normalized == "DOING" || normalized == "BLOCK")
+                return "WIP";
+            return SupportDevStatuses.Contains(normalized) ? normalized : "WIP";
+        }
+
+        private SelectList GetStatusList(string? selected = null)
+        {
+            var selectedValue = NormalizeSupportStatus(selected);
+            var statuses = TesterSupportStatuses.ToList();
+
+            if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
+            {
+                statuses.Insert(1, ("WIP", "WIP - โปรแกรมเมอร์กำลังแก้ (สถานะจากระบบ)"));
+            }
+            else if (selectedValue == "FIXED" && statuses.All(x => x.Value != selectedValue))
+            {
+                statuses.Insert(1, ("FIXED", "FIXED - โปรแกรมเมอร์แก้เสร็จแล้ว (รอ BA ตรวจ)"));
+            }
+
+            return new SelectList(
+                statuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selectedValue
+            );
+        }
+
+        private static string GetSupportStatusFromDevStatus(string devStatus, string currentStatus)
+        {
+            var normalizedStatus = NormalizeSupportStatus(currentStatus);
+            if (normalizedStatus == "PASS" || normalizedStatus == "REJECT")
+                return normalizedStatus;
+
+            return devStatus switch
+            {
+                "WIP" => "WIP",
+                "FIXED" => "FIXED",
+                _ => "OPEN"
+            };
         }
     }
 }

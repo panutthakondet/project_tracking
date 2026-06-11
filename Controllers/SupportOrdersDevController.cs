@@ -109,14 +109,10 @@ namespace ProjectTracking.Controllers
             if (dbOrder == null)
                 return NotFound();
 
-            // Use status selected by programmer
-            var previousDevStatus = (dbOrder.DevStatus ?? "").Trim().ToUpperInvariant();
-            var nextDevStatus = (order.DevStatus ?? "").Trim().ToUpperInvariant();
-            dbOrder.DevStatus = order.DevStatus;
-            if (previousDevStatus != "FIXED" && nextDevStatus == "FIXED")
-            {
-                dbOrder.Status = "WAIT_TEST";
-            }
+            var currentStatus = NormalizeSupportStatus(dbOrder.Status);
+            var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
+            dbOrder.DevStatus = nextDevStatus;
+            dbOrder.Status = GetSupportStatusFromDevStatus(nextDevStatus, currentStatus);
 
             var folder = Path.Combine(
                 Directory.GetCurrentDirectory(),
@@ -175,6 +171,37 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index), new { projectId = dbOrder.ProjectId });
+        }
+
+        private static string NormalizeSupportStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "WAIT_TEST") return "FIXED";
+            if (normalized == "DONE") return "PASS";
+            return normalized is "OPEN" or "FAIL" or "PASS" or "REJECT" or "WIP" or "FIXED"
+                ? normalized
+                : "OPEN";
+        }
+
+        private static string NormalizeSupportDevStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "IN_PROGRESS" || normalized == "TODO" || normalized == "DOING" || normalized == "BLOCK")
+                return "WIP";
+            return normalized == "FIXED" ? "FIXED" : "WIP";
+        }
+
+        private static string GetSupportStatusFromDevStatus(string devStatus, string currentStatus)
+        {
+            if (currentStatus == "PASS" || currentStatus == "REJECT")
+                return currentStatus;
+
+            return devStatus switch
+            {
+                "WIP" => "WIP",
+                "FIXED" => "FIXED",
+                _ => "OPEN"
+            };
         }
     }
 }

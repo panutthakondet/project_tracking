@@ -10,6 +10,20 @@ namespace ProjectTracking.Controllers
 {
     public class ProjectIssuesController : BaseController
     {
+        private static readonly (string Value, string Text)[] TesterIssueStatuses =
+        {
+            ("OPEN", "OPEN - เปิดปัญหา / รอแก้"),
+            ("FAIL", "FAIL - ทดสอบไม่ผ่าน / ส่งกลับแก้"),
+            ("PASS", "PASS - ทดสอบผ่าน / ปิดงาน"),
+            ("REJECT", "REJECT - ปฏิเสธ / ไม่ใช่ปัญหา")
+        };
+
+        private static readonly (string Value, string Text)[] ProgrammerDevStatuses =
+        {
+            ("WIP", "WIP - กำลังแก้"),
+            ("FIXED", "FIXED - แก้เสร็จ / ส่งตรวจ")
+        };
+
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
@@ -143,7 +157,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.StatusList = new[] { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
             ViewBag.SelectedStatus = status ?? "";
-            ViewBag.DevStatusList = new[] { "TODO", "DOING", "FIXED", "BLOCK" };
+            ViewBag.DevStatusList = new[] { "WIP", "FIXED" };
             ViewBag.SelectedDevStatus = devStatus ?? "";
 
             return View(issues);
@@ -193,11 +207,9 @@ namespace ProjectTracking.Controllers
             }
 
             // ✅ normalize (กัน null/ช่องว่าง)
-            model.IssueStatus = (model.IssueStatus ?? "OPEN").Trim().ToUpperInvariant();
+            model.IssueStatus = NormalizeTesterIssueStatus(model.IssueStatus, "OPEN");
             model.IssuePriority = (model.IssuePriority ?? "NORMAL").Trim().ToUpperInvariant();
-            model.DevStatus = (model.DevStatus ?? "TODO").Trim().ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(model.DevStatus))
-                model.DevStatus = "TODO";
+            model.DevStatus = "WIP";
 
             // ✅ CreatedAt: ถ้าหน้า Create ส่งมาเองก็ใช้ได้ ถ้าไม่ได้ส่งให้ใช้ตอนนี้
             if (model.CreatedAt == default)
@@ -333,9 +345,7 @@ namespace ProjectTracking.Controllers
             }
 
             var oldStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
-            var newStatus = (model.IssueStatus ?? "").Trim().ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(newStatus))
-                newStatus = oldStatus;
+            var newStatus = NormalizeTesterIssueStatus(model.IssueStatus, oldStatus);
 
             issue.IssueName = model.IssueName;
             issue.IssueDetail = model.IssueDetail;   // BA detail
@@ -345,8 +355,14 @@ namespace ProjectTracking.Controllers
             issue.StartDate = model.StartDate;
             issue.EndDate = model.EndDate;
 
-            bool wasFixed = oldStatus == "FIXED" || oldStatus == "PASS";
-            bool reopened = newStatus == "OPEN" || newStatus == "WIP";
+            if (newStatus == "FAIL" || newStatus == "OPEN")
+            {
+                issue.DevStatus = "WIP";
+                _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
+            }
+
+            bool wasFixed = oldStatus == "FIXED" || oldStatus == "PASS" || oldStatus == "REJECT";
+            bool reopened = newStatus == "OPEN" || newStatus == "FAIL";
 
             if (wasFixed && reopened)
             {
@@ -459,14 +475,33 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
-            var newDev = (model.DevStatus ?? "TODO").Trim().ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(newDev)) newDev = "TODO";
+            var oldIssueStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
+            var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
+            var newIssueStatus = GetIssueStatusFromDevStatus(newDev, oldIssueStatus);
 
             issue.DevStatus = newDev;
             issue.DevDetail = model.DevDetail;   // developer fix detail
+            issue.IssueStatus = newIssueStatus;
 
             _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
             _context.Entry(issue).Property(x => x.DevDetail).IsModified = true;
+            _context.Entry(issue).Property(x => x.IssueStatus).IsModified = true;
+
+            if (!string.Equals(oldIssueStatus, newIssueStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                var changedByEmpId = await GetCurrentEntryIdAsync();
+
+                _context.ProjectIssueStatusHistories.Add(new ProjectIssueStatusHistory
+                {
+                    IssueId = issue.IssueId,
+                    OldStatus = oldIssueStatus,
+                    NewStatus = newIssueStatus,
+                    IsReopen = issue.IsReopen,
+                    ReopenCount = issue.ReopenCount,
+                    ChangedAt = DateTime.Now,
+                    ChangedByEmpId = changedByEmpId ?? issue.AssignTo
+                });
+            }
 
             await _context.SaveChangesAsync();
 
@@ -718,18 +753,71 @@ namespace ProjectTracking.Controllers
 
         private SelectList GetStatusList(string? selected = null)
         {
+            var selectedValue = (selected ?? "").Trim().ToUpperInvariant();
+            var statuses = TesterIssueStatuses.ToList();
+
+            if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
+            {
+                statuses.Insert(1, ("WIP", "WIP - โปรแกรมเมอร์กำลังแก้ (สถานะจากระบบ)"));
+            }
+            else if (selectedValue == "FIXED" && statuses.All(x => x.Value != selectedValue))
+            {
+                statuses.Insert(1, ("FIXED", "FIXED - โปรแกรมเมอร์แก้เสร็จแล้ว (รอ BA ตรวจ)"));
+            }
+
             return new SelectList(
-                new[] { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" },
-                selected
+                statuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selectedValue
             );
         }
 
         private SelectList GetDevStatusList(string? selected = null)
         {
+            var selectedValue = NormalizeProgrammerDevStatus(selected);
             return new SelectList(
-                new[] { "TODO", "DOING", "FIXED", "BLOCK" },
-                selected
+                ProgrammerDevStatuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selectedValue
             );
+        }
+
+        private static string NormalizeTesterIssueStatus(string? status, string? fallback = "OPEN")
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            if (TesterIssueStatuses.Any(x => x.Value == value))
+                return value;
+            if (value == "WIP" || value == "FIXED")
+                return value;
+
+            var fallbackValue = (fallback ?? "OPEN").Trim().ToUpperInvariant();
+            if (fallbackValue == "WIP" || fallbackValue == "FIXED")
+                return fallbackValue;
+
+            return TesterIssueStatuses.Any(x => x.Value == fallbackValue) ? fallbackValue : "OPEN";
+        }
+
+        private static string NormalizeProgrammerDevStatus(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            if (value == "TODO" || value == "DOING" || value == "BLOCK")
+                return "WIP";
+            return ProgrammerDevStatuses.Any(x => x.Value == value) ? value : "WIP";
+        }
+
+        private static string GetIssueStatusFromDevStatus(string devStatus, string currentIssueStatus)
+        {
+            if (currentIssueStatus == "PASS" || currentIssueStatus == "REJECT")
+                return currentIssueStatus;
+
+            return devStatus switch
+            {
+                "WIP" => "WIP",
+                "FIXED" => "FIXED",
+                _ => "OPEN"
+            };
         }
 
         private void ApplyIssueDateInput(ProjectIssue model)

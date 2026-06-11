@@ -820,13 +820,13 @@ namespace ProjectTracking.Controllers
         {
             var issueStatus = Norm(issue.IssueStatus);
             var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "FIXED" or "PASS" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED"
+            return issueStatus is "FIXED" or "PASS" or "REJECT" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED"
                 || devStatus is "FIXED" or "DONE" or "RESOLVED";
         }
 
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) == "DONE"
+            return Norm(status) is "FIXED" or "PASS" or "REJECT" or "DONE"
                 || Norm(devStatus) == "FIXED";
         }
 

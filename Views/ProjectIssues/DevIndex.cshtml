@@ -28,11 +28,9 @@
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "TODO" => "bg-secondary",
-        "DOING" => "bg-info text-dark",
+        "WIP" => "bg-info text-dark",
         "FIXED" => "bg-success",
-        "BLOCK" => "bg-danger",
-        _ => "bg-dark"
+        _ => "bg-secondary"
     };
 }
 

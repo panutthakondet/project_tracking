@@ -40,14 +40,17 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "bg-secondary",
-        "WAIT_TEST" => "bg-info text-dark",
-        "DONE" => "bg-success",
+        "WIP" => "bg-warning text-dark",
+        "FIXED" => "bg-info text-dark",
+        "FAIL" => "bg-danger",
+        "PASS" => "bg-success",
+        "REJECT" => "bg-dark",
         _ => "bg-secondary"
     };
 
     string DevStatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "IN_PROGRESS" => "bg-warning text-dark",
+        "WIP" => "bg-warning text-dark",
         "FIXED" => "bg-success",
         _ => "bg-secondary"
     };
@@ -195,7 +198,7 @@
 
     .support-dev-detail {
         color: #475569;
-        font-weight: 700;
+        font-weight: 400;
         line-height: 1.55;
         margin: 12px 0;
         white-space: pre-wrap;
@@ -218,7 +221,7 @@
         border: 1px solid #e2e8f0;
         border-radius: 999px;
         font-size: 13px;
-        font-weight: 800;
+        font-weight: 400;
     }
 
     .support-dev-status-grid {

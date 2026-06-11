@@ -27,8 +27,11 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "muted",
-        "WAIT_TEST" => "warning",
-        "DONE" => "success",
+        "WIP" => "warning",
+        "FIXED" => "info",
+        "FAIL" => "danger",
+        "PASS" => "success",
+        "REJECT" => "muted",
         _ => "muted"
     };
 
@@ -55,6 +58,7 @@
 
     .support-dev-readonly.is-tall {
         min-height: 110px;
+        font-weight: 400;
         white-space: pre-wrap;
     }
 
@@ -146,7 +150,7 @@
                         <label>Dev Status</label>
                         <select asp-for="DevStatus" class="form-select">
                             <option value="">-- Select Status --</option>
-                            <option value="IN_PROGRESS">IN_PROGRESS</option>
+                            <option value="WIP">WIP - กำลังแก้</option>
                             <option value="FIXED">FIXED</option>
                         </select>
                     </div>
