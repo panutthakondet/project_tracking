@@ -566,6 +566,7 @@ namespace ProjectTracking.Controllers
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
+                    .ThenInclude(e => e!.LoginUser)
                 .Where(i => i.ProjectId == projectId);
 
             if (!string.IsNullOrEmpty(empName))

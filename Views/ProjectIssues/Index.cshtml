@@ -14,6 +14,17 @@
         if (!issue.StartDate.HasValue && !issue.EndDate.HasValue) return "-";
         return $"{DateOrDash(issue.StartDate)} - {DateOrDash(issue.EndDate)}";
     }
+
+    string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
+    }
 }
 
 @using Microsoft.AspNetCore.Http
@@ -110,6 +121,14 @@
     min-width: 0;
 }
 
+.issue-title-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
 .issue-title {
     display: block;
     color: #111827;
@@ -129,13 +148,24 @@
     line-height: 1.45;
 }
 
+.issue-owner-line {
+    color: #0f172a;
+    font-size: .9rem;
+    font-weight: 700;
+}
+
 .issue-meta {
     display: flex;
     flex-wrap: wrap;
     gap: .5rem 1rem;
-    color: #475569;
+    color: #0f172a;
     font-size: .92rem;
-    font-weight: 600;
+    font-weight: 400;
+}
+
+.issue-meta strong {
+    color: #0f172a;
+    font-weight: 900;
 }
 
 .issue-status-grid {
@@ -152,11 +182,11 @@
 }
 
 .issue-status-item small {
-    color: #64748b;
-    font-size: .78rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .02em;
+    color: #0f172a;
+    font-size: .92rem;
+    font-weight: 900;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 .issue-status-item .badge {
@@ -168,6 +198,7 @@
     white-space: normal;
     line-height: 1.15;
     text-align: center;
+    font-weight: 400;
 }
 
 .issue-actions {
@@ -312,8 +343,16 @@ else
             <article class="issue-card @(urgent ? "issue-urgent" : "")">
                 <div class="issue-card-left">
                     <div class="issue-card-top">
-                        <span class="issue-card-index">#@row</span>
+                        <img class="pt-owner-avatar"
+                             src="@ProfileImage(i.Employee)"
+                             alt="@(i.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                             loading="lazy"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                         <div class="issue-title-wrap">
+                            <div class="issue-title-line">
+                                <span class="issue-card-index">#@row</span>
+                                <span class="issue-owner-line">ผู้รับผิดชอบ: @(i.Employee?.EmpName ?? "-")</span>
+                            </div>
                             <span class="issue-title">
                                 @i.IssueName
                                 @if (i.IsReopen)
@@ -331,8 +370,7 @@ else
                     </div>
 
                     <div class="issue-meta">
-                        <span>🗓 ช่วงวันที่: @PeriodText(i)</span>
-                        <span>👤 Owner: @(i.Employee?.EmpName ?? "-")</span>
+                        <span><strong>ช่วงวันที่:</strong> @PeriodText(i)</span>
                     </div>
 
                     <div class="issue-status-grid">

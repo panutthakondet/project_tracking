@@ -204,7 +204,6 @@
             const keyword = normalize(filter);
             const options = Array.from(select.options)
                 .filter(option => !option.disabled && !option.hidden && option.dataset.ptFilterHidden !== "true")
-                .filter(option => option.value !== "")
                 .filter(option => {
                     const haystack = normalize(`${option.text} ${option.value}`);
                     return !keyword || haystack.includes(keyword);

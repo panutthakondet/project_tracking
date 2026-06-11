@@ -90,6 +90,8 @@ namespace ProjectTracking.Controllers
 
             var project = await _context.Projects
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
+                    .ThenInclude(e => e!.LoginUser)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
             if (project == null)
                 return View(new List<PhaseAssign>());
@@ -116,6 +118,8 @@ namespace ProjectTracking.Controllers
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                 join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
+                join lu in _context.LoginUsers.AsNoTracking() on e.LoginUserId equals (int?)lu.UserId into loginJoin
+                from lu in loginJoin.DefaultIfEmpty()
                 where ph.ProjectId == projectId
                 select new PhaseAssign
                 {
@@ -132,7 +136,15 @@ namespace ProjectTracking.Controllers
                     Remark = a.Remark,
 
                     Phase = ph,
-                    Employee = e,
+                    Employee = new Employee
+                    {
+                        EmpId = e.EmpId,
+                        EmpName = e.EmpName,
+                        Position = e.Position,
+                        Status = e.Status,
+                        LoginUserId = e.LoginUserId,
+                        LoginUser = lu
+                    },
                     Logs = _context.PhaseAssignLogs
                         .Where(l => l.AssignId == a.AssignId)
                         .OrderByDescending(l => l.RoundNo)

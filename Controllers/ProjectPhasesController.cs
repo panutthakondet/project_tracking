@@ -32,6 +32,8 @@ namespace ProjectTracking.Controllers
             ViewBag.Projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
+                    .ThenInclude(e => e!.LoginUser)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -45,6 +47,8 @@ namespace ProjectTracking.Controllers
             var selectedProject = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
+                    .ThenInclude(e => e!.LoginUser)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (selectedProject == null)

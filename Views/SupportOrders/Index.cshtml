@@ -59,6 +59,16 @@
     string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
     string PeriodText(DateTime? start, DateTime? end) =>
         !start.HasValue && !end.HasValue ? "-" : $"{DateText(start)} - {DateText(end)}";
+    string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
+    }
 }
 
 <style>
@@ -196,6 +206,14 @@
         overflow-wrap: anywhere;
     }
 
+    .support-title-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+    }
+
     .support-project-name {
         margin-top: 4px;
         color: #64748b;
@@ -204,11 +222,18 @@
         overflow-wrap: anywhere;
     }
 
+    .support-owner-line {
+        color: #0f172a;
+        font-size: .9rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
     .support-detail {
         color: #475569;
         font-weight: 400;
-        line-height: 1.55;
-        margin: 12px 0;
+        line-height: 1.42;
+        margin: 8px 0;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
     }
@@ -216,49 +241,61 @@
     .support-meta {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 12px;
+        gap: 4px 16px;
+        color: #0f172a;
+        font-size: .92rem;
+        line-height: 1.35;
+        margin-bottom: 6px;
     }
 
-    .support-meta-pill {
+    .support-meta-text {
         display: inline-flex;
         align-items: center;
-        min-height: 30px;
-        padding: 6px 10px;
-        color: #475569;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        font-size: 13px;
+        gap: 4px;
+        min-height: 0;
+        padding: 0;
+        color: #0f172a;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        font-size: .92rem;
         font-weight: 400;
+    }
+
+    .support-meta-text strong {
+        color: #0f172a;
+        font-weight: 900;
     }
 
     .support-status-grid {
         display: grid;
-        gap: 10px;
+        gap: 6px;
     }
 
     .support-status-row {
         display: grid;
-        grid-template-columns: 86px minmax(0, 1fr);
+        grid-template-columns: max-content minmax(0, 1fr);
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
     .support-status-row small {
-        color: #64748b;
-        font-size: 12px;
+        color: #0f172a;
+        font-size: .93rem;
         font-weight: 900;
-        text-transform: uppercase;
+        text-transform: none;
     }
 
     .support-status-row .badge {
-        min-height: 30px;
+        min-height: 26px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         white-space: normal;
         line-height: 1.15;
         text-align: center;
+        padding: .32rem .7rem;
+        font-weight: 400;
     }
 
     .support-actions {
@@ -358,8 +395,16 @@
                 <article class="support-order-card @PriorityTone(item.Priority)">
                     <section class="support-main">
                         <div class="support-head">
-                            <span class="support-no">#@no</span>
+                            <img class="pt-owner-avatar"
+                                 src="@ProfileImage(item.Employee)"
+                                 alt="@(item.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                                 loading="lazy"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                             <div class="min-w-0">
+                                <div class="support-title-line">
+                                    <span class="support-no">#@no</span>
+                                    <span class="support-owner-line">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
+                                </div>
                                 <span class="support-order-title">@TextOrDash(item.OrderTitle)</span>
                                 <div class="support-project-name">@TextOrDash(item.Project?.ProjectDisplayName)</div>
                             </div>
@@ -368,8 +413,7 @@
                         <div class="support-detail">@TextOrDash(item.OrderDetail)</div>
 
                         <div class="support-meta">
-                            <span class="support-meta-pill">วันที่กำหนด: @PeriodText(item.StartDate, item.EndDate)</span>
-                            <span class="support-meta-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
+                            <span class="support-meta-text"><strong>วันที่กำหนด:</strong> @PeriodText(item.StartDate, item.EndDate)</span>
                         </div>
 
                         <div class="support-status-grid">

@@ -74,6 +74,17 @@
         if (!phaseOrder.HasValue) return $"งวดที่ {periodOrder}";
         return $"ส่วนที่ {phaseOrder} / งวดที่ {periodOrder}";
     }
+
+    private static string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
+    }
 }
 
 <style>
@@ -459,6 +470,14 @@ thead .sticky-col { z-index: 5; }
         margin-bottom: 10px;
     }
 
+    .assign-title-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+    }
+
     .assign-card-index {
         min-width: 46px;
         min-height: 32px;
@@ -509,30 +528,40 @@ thead .sticky-col { z-index: 5; }
     .assign-card-dates {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 12px;
-        margin-top: 14px;
-        margin-bottom: 12px;
+        gap: 4px 16px;
+        margin-top: 8px;
+        margin-bottom: 6px;
+        color: #0f172a;
+        font-size: .92rem;
+        line-height: 1.35;
     }
 
-    .assign-meta-pill {
+    .assign-meta-text {
         display: inline-flex;
         align-items: center;
-        min-height: 30px;
-        padding: 6px 10px;
+        gap: 4px;
+        min-height: 0;
+        padding: 0;
         color: #0f172a;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        font-size: 13px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        font-size: .92rem;
         font-weight: 400;
+    }
+
+    .assign-meta-text strong,
+    .assign-card-role strong {
+        color: #0f172a;
+        font-weight: 900;
     }
 
     .assign-card-role,
     .assign-card-remark {
         color: #0f172a;
-        font-size: .98rem;
+        font-size: .93rem;
         font-weight: 400;
-        line-height: 1.55;
+        line-height: 1.38;
         overflow-wrap: anywhere;
     }
 
@@ -544,31 +573,33 @@ thead .sticky-col { z-index: 5; }
 
     .assign-status-grid {
         display: grid;
-        gap: 10px;
+        gap: 6px;
+        margin-top: 6px;
     }
 
     .assign-status-row {
         display: grid;
-        grid-template-columns: 86px minmax(0, 1fr);
+        grid-template-columns: max-content minmax(0, 1fr);
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
     .assign-status-row small {
-        color: #334155;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
+        color: #0f172a;
+        font-size: .93rem;
+        font-weight: 900;
+        text-transform: none;
     }
 
     .assign-status-row .badge {
-        min-height: 30px;
+        min-height: 26px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         white-space: normal;
         line-height: 1.15;
         text-align: center;
+        padding: .32rem .7rem;
     }
 
     .assign-card-actions {
@@ -680,27 +711,37 @@ thead .sticky-col { z-index: 5; }
             <div class="assign-card @(a.WorkStatus == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
                 <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
-                        <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
-                        <span class="assign-card-index">#@row</span>
+                        <img class="pt-owner-avatar" src="@ProfileImage(a.Employee)" alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                         <div class="min-w-0">
-                            <span class="assign-card-emp">@a.Employee?.EmpName</span>
+                            <div class="assign-title-line">
+                                <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
+                                <span class="assign-card-index">#@row</span>
+                            </div>
+                            @if (a.Employee != null)
+                            {
+                                <span class="assign-card-emp">@a.Employee.EmpName</span>
+                            }
+                            else
+                            {
+                                <span class="assign-card-emp">-</span>
+                            }
                             <div class="assign-card-phase">@GetPhasePeriodSafe(a) · @GetPhaseNameSafe(a)</div>
                         </div>
                     </div>
 
-                    <div class="assign-card-dates mt-2">
-                        <span class="assign-meta-pill">
-                            Plan Date:
+                    <div class="assign-card-dates">
+                        <span class="assign-meta-text">
+                            <strong>Plan Date:</strong>
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
                             -
                             @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
-                        <span class="assign-meta-pill">
-                            กำหนดส่งงวดงาน:
+                        <span class="assign-meta-text">
+                            <strong>กำหนดส่งงวดงาน:</strong>
                             @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
                     </div>
-                    <div class="assign-card-role">Role: <span class="text-dark">@a.Role</span></div>
+                    <div class="assign-card-role"><strong>Role:</strong> <span class="text-dark">@a.Role</span></div>
                     <div class="assign-card-remark">
                         <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
                         <div class="text-muted"><b>Log:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>

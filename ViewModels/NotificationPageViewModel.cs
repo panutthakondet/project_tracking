@@ -47,6 +47,7 @@ namespace ProjectTracking.ViewModels
         public string CoopName { get; set; } = "-";
         public string BaName { get; set; } = "-";
         public string OwnerName { get; set; } = "-";
+        public string OwnerAvatarPath { get; set; } = "/images/Profile/profile.png";
         public string DateText { get; set; } = "-";
         public string StatusText { get; set; } = "-";
         public string ExtraStatusText { get; set; } = "";

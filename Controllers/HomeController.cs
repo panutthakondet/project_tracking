@@ -829,7 +829,7 @@ namespace ProjectTracking.Controllers
 
             var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
             var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
-            var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, today);
+            var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
             var teamWorkload = BuildTeamWorkload(assigns, issues, employees, EmployeeName, EmployeeAvatar);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
@@ -1485,6 +1485,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardFollowupRow> followups,
             IReadOnlyList<DashboardSupportOrderRow> supportOrders,
             Func<int?, string> employeeName,
+            Func<int?, string> employeeAvatar,
             DateTime today)
         {
             var th = new CultureInfo("th-TH");
@@ -1641,6 +1642,7 @@ namespace ProjectTracking.Controllers
                         ProjectId = project.ProjectId,
                         ProjectName = project.ProjectDisplayName,
                         OwnerName = employeeName(ownerEmpId),
+                        AvatarPath = employeeAvatar(ownerEmpId),
                         RiskLevel = riskLevel,
                         RiskColor = riskColor,
                         DueText = dueText,

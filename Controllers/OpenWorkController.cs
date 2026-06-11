@@ -38,6 +38,7 @@ namespace ProjectTracking.Controllers
                 .Include(issue => issue.Project)
                     .ThenInclude(project => project!.BA)
                 .Include(issue => issue.Employee)
+                    .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
 
             var issueItems = issues
@@ -53,6 +54,7 @@ namespace ProjectTracking.Controllers
                 .Include(order => order.Project)
                     .ThenInclude(project => project!.BA)
                 .Include(order => order.Employee)
+                    .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
 
             var supportItems = supportOrders
@@ -146,6 +148,7 @@ namespace ProjectTracking.Controllers
                 CoopName = project?.Coop?.CoopName ?? "-",
                 BaName = project?.BA?.EmpName ?? "-",
                 OwnerName = issue.Employee?.EmpName ?? "-",
+                OwnerAvatarPath = ProfileImage(issue.Employee),
                 Detail = CleanDetail(issue.IssueDetail),
                 StatusText = DisplayStatus(issue.IssueStatus),
                 DevStatusText = DisplayStatus(issue.DevStatus),
@@ -179,6 +182,7 @@ namespace ProjectTracking.Controllers
                 CoopName = project?.Coop?.CoopName ?? "-",
                 BaName = project?.BA?.EmpName ?? "-",
                 OwnerName = order.Employee?.EmpName ?? "-",
+                OwnerAvatarPath = ProfileImage(order.Employee),
                 Detail = CleanDetail(order.OrderDetail),
                 StatusText = DisplayStatus(order.Status),
                 DevStatusText = DisplayStatus(order.DevStatus),
@@ -256,6 +260,18 @@ namespace ProjectTracking.Controllers
                 return "-";
 
             return value.Trim().Replace("_", " ");
+        }
+
+        private static string ProfileImage(Employee? employee)
+        {
+            var path = employee?.LoginUser?.ProfileImagePath;
+            if (string.IsNullOrWhiteSpace(path))
+                return "/images/Profile/profile.png";
+
+            path = path.Trim();
+            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+            return path;
         }
 
         private static string FormatDate(DateTime? value)

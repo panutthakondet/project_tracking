@@ -23,6 +23,16 @@
         .ToUpperInvariant()
         .Replace(" ", "_")
         .Replace("-", "_");
+    string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
+    }
     int ProjectSortOrder(string? status) => NormalizeProjectStatus(status) switch
     {
         "IN_PROGRESS" => 1,
@@ -226,7 +236,17 @@
                     </td>
 
                     <td class="col-ba text-center">
-                        @(p.BA != null ? p.BA.EmpName : "-")
+                        @if (p.BA != null)
+                        {
+                            <span class="pt-owner-chip is-compact justify-content-center">
+                                <img class="pt-owner-avatar" src="@ProfileImage(p.BA)" alt="@p.BA.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                <span>@p.BA.EmpName</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
                     </td>
 
                     <td class="col-system">
@@ -386,35 +406,39 @@
                  data-coop="@coopName.ToLower()"
                  data-ba="@((p.BA?.EmpName ?? "").ToLower())"
                  data-status="@((p.Status ?? "").ToLower())"
-                 data-search="@($"{projectDisplayName} {coopName} {p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
+                data-search="@($"{projectDisplayName} {coopName} {p.ProjectName} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName}".ToLower())">
 
                 <div class="project-card-header">
-                    <div class="project-avatar">📁</div>
-
                     <div class="project-header-content">
-                        <div class="project-name">
-                            @mobileRow. @projectDisplayName
+                        <div class="project-card-topline">
+                            <span class="pt-owner-chip">
+                                <img class="pt-owner-avatar"
+                                     src="@ProfileImage(p.BA)"
+                                     alt="@(p.BA?.EmpName ?? "Business Analyst")"
+                                     loading="lazy"
+                                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                <span>@(p.BA?.EmpName ?? "-")</span>
+                            </span>
+
+                            <div class="project-status">
+                                <span class="badge rounded-pill px-3 py-2
+                                    @(p.Status == "DONE"
+                                        ? "bg-success"
+                                        : p.Status == "IN_PROGRESS"
+                                            ? "bg-info"
+                                            : "bg-warning text-dark")">
+                                    @p.Status
+                                </span>
+                            </div>
                         </div>
 
-                        <div class="project-status">
-                            <span class="badge rounded-pill px-3 py-2
-                                @(p.Status == "DONE"
-                                    ? "bg-success"
-                                    : p.Status == "IN_PROGRESS"
-                                        ? "bg-info"
-                                        : "bg-warning text-dark")">
-                                @p.Status
-                            </span>
+                        <div class="project-name">
+                            @mobileRow. @projectDisplayName
                         </div>
                     </div>
                 </div>
 
                 <div class="project-info">
-                    <div class="project-info-row">
-                        <span class="project-label">BA</span>
-                        <span>@(p.BA?.EmpName ?? "-")</span>
-                    </div>
-
                     <div class="project-info-row project-system-row">
                         <span class="project-label">System</span>
 
@@ -757,22 +781,27 @@ thead .sticky-col-2{
         margin-bottom: 16px;
     }
 
-    .project-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 18px;
-        background: linear-gradient(135deg,#2563eb,#3b82f6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: #fff;
-        flex-shrink: 0;
-        box-shadow: 0 6px 18px rgba(37,99,235,.20);
-    }
-
     .project-header-content {
         flex: 1;
+        min-width: 0;
+    }
+
+    .project-card-topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+        margin-bottom: 10px;
+    }
+
+    .project-card-topline .pt-owner-chip {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .project-card-topline .project-status {
+        flex: 0 0 auto;
     }
 
     .project-name {
@@ -783,7 +812,7 @@ thead .sticky-col-2{
     }
 
     .project-status {
-        margin-top: 4px;
+        margin-top: 0;
     }
 
     .project-info {

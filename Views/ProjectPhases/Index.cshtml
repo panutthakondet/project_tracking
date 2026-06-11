@@ -18,6 +18,7 @@
     ViewData["Title"] = "บันทึกข้อมูลแผนงานและงวดงาน";
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject;
+    var selectedProjectModel = selectedProject as ProjectTracking.Models.Project;
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectCoopName = (selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "";
@@ -56,6 +57,17 @@
         var startText = start?.ToString("dd MMM yyyy", th) ?? "-";
         var endText = end?.ToString("dd MMM yyyy", th) ?? "-";
         return $"{startText} - {endText}";
+    }
+
+    string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
     }
 }
 
@@ -288,6 +300,25 @@
         font-weight: 700;
     }
 
+    .phase-selected-ba {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 100%;
+    }
+
+    .phase-selected-ba-label {
+        color: #64748b;
+        font-size: .85rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
     #projectDropdown {
         width: 100%;
         border-radius: 14px;
@@ -456,6 +487,16 @@
                 </option>
             }
         </select>
+
+        @if (selectedProjectModel?.BA != null)
+        {
+            <div class="phase-selected-ba">
+                <span class="pt-owner-chip">
+                    <img class="pt-owner-avatar" src="@ProfileImage(selectedProjectModel.BA)" alt="@selectedProjectModel.BA.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    <span>@selectedProjectModel.BA.EmpName</span>
+                </span>
+            </div>
+        }
 
     </div>
 </form>

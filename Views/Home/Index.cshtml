@@ -33,6 +33,8 @@
         "green" => "#7bdc49",
         "blue" => "#2693f4",
         "orange" => "#ffb23d",
+        "cyan" => "#06b6d4",
+        "lime" => "#84cc16",
         "purple" => "#9b5bf2",
         "violet" => "#a855f7",
         "pink" => "#f55262",
@@ -52,6 +54,8 @@
         "green" => "#4eaa2f",
         "blue" => "#1269b8",
         "orange" => "#ef8700",
+        "cyan" => "#087f9b",
+        "lime" => "#4d7c0f",
         "purple" => "#6733b8",
         "violet" => "#6d28d9",
         "pink" => "#c92d3d",
@@ -148,7 +152,6 @@
             HexColor = StatusHex("blue")
         }
     };
-    var timeTrackingSegments = BuildOverviewPieSegments(timeTrackingMetrics);
 }
 
 <div class="dashboard-view is-loading">
@@ -341,32 +344,39 @@
                     </div>
                 </div>
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
-                    <div class="donut-layout">
-                        <figure class="overview-pie3d project-overview-pie3d" aria-label="กราฟสถานะโครงการแบบสามมิติ">
-                            <svg viewBox="0 0 160 126" role="img" aria-labelledby="projectStatusChartTitle">
+                    <div class="project-status-pyramid-layout">
+                        @{
+                            var completedMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(0) ?? new HomeDashboardMetric { Label = "Completed", Color = "green" };
+                            var progressMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(1) ?? new HomeDashboardMetric { Label = "In Progress", Color = "blue" };
+                            var pendingMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(2) ?? new HomeDashboardMetric { Label = "Pending", Color = "orange" };
+                        }
+                        <figure class="time-pyramid3d project-status-pyramid3d" aria-label="กราฟสถานะโครงการแบบพีระมิดสามมิติ">
+                            <svg viewBox="0 0 195 150" role="img" aria-labelledby="projectStatusChartTitle">
                                 <title id="projectStatusChartTitle">สถานะโครงการทั้งหมด @dashboard.TotalProjectCount โครงการ</title>
-                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
-                                <g class="overview-pie3d-depth">
-                                    @foreach (var segment in projectOverviewSegments)
-                                    {
-                                        <path d="@segment.BottomPath" fill="@segment.DarkFill"></path>
-                                    }
+                                <ellipse class="time-pyramid-shadow" cx="92" cy="132" rx="84" ry="14"></ellipse>
+                                <g class="time-pyramid-layer layer-total">
+                                    <polygon class="top" points="20,105 105,77 190,105 105,134"></polygon>
+                                    <polygon class="left" points="20,105 105,134 105,146 20,117"></polygon>
+                                    <polygon class="right" points="105,134 190,105 190,117 105,146"></polygon>
+                                    <text x="105" y="111">@dashboard.TotalProjectCount โครงการ</text>
                                 </g>
-                                <g class="overview-pie3d-top">
-                                    @foreach (var segment in projectOverviewSegments)
-                                    {
-                                        <path d="@segment.TopPath" fill="@segment.Fill"></path>
-                                    }
+                                <g class="time-pyramid-layer layer-closed">
+                                    <polygon class="top" points="45,76 105,55 165,76 105,97"></polygon>
+                                    <polygon class="left" points="45,76 105,97 105,108 45,87"></polygon>
+                                    <polygon class="right" points="105,97 165,76 165,87 105,108"></polygon>
+                                    <text x="105" y="79">@completedMetric.Percent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
                                 </g>
-                                <g class="overview-pie3d-labels">
-                                    @foreach (var segment in projectOverviewSegments)
-                                    {
-                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
-                                    }
+                                <g class="time-pyramid-layer layer-open">
+                                    <polygon class="top" points="72,48 105,35 138,48 105,61"></polygon>
+                                    <polygon class="left" points="72,48 105,61 105,70 72,57"></polygon>
+                                    <polygon class="right" points="105,61 138,48 138,57 105,70"></polygon>
+                                    <text x="105" y="50">@progressMetric.Percent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
                                 </g>
-                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
-                                @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.TotalProjectCount}</text>")
-                                @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">โครงการ</text>")
+                                <g class="time-pyramid-layer layer-checkin">
+                                    <polygon class="left" points="105,12 82,30 105,40"></polygon>
+                                    <polygon class="right" points="105,12 128,30 105,40"></polygon>
+                                    <text x="105" y="29">@pendingMetric.Count</text>
+                                </g>
                             </svg>
                         </figure>
                         <div class="metric-list">
@@ -620,13 +630,22 @@
                     {
                         <a class="watch-row @project.RiskColor"
                            asp-controller="ProjectPhases"
-                           asp-action="Index"
-                           asp-route-projectId="@project.ProjectId"
-                           title="ดูงวดงานของ @project.ProjectName">
+                            asp-action="Index"
+                            asp-route-projectId="@project.ProjectId"
+                            title="ดูงวดงานของ @project.ProjectName">
                             <span class="watch-main">
-                                <b>@project.ProjectName</b>
+                                <span class="watch-head">
+                                    <img class="watch-avatar"
+                                         src="@project.AvatarPath"
+                                         alt="@project.OwnerName"
+                                         loading="lazy"
+                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="watch-title-wrap">
+                                        <b>@project.ProjectName</b>
+                                        <small>BA: @project.OwnerName</small>
+                                    </span>
+                                </span>
                                 <span class="watch-meta">
-                                    <small>เจ้าของ: @project.OwnerName</small>
                                     <small>@project.DueText</small>
                                     <i class="risk-pill @project.RiskColor">@project.RiskLevel</i>
                                 </span>
@@ -655,40 +674,16 @@
                 <a asp-controller="Attendance" asp-action="Map" class="panel-link">ดูรายละเอียด</a>
             </div>
             <div class="time-layout">
+                <figure class="time-illustration" aria-label="ภาพประกอบ Time Tracking">
+                    <img src="~/images/dashboard/time-tracking-illustration.svg"
+                         alt="Time Tracking"
+                         loading="lazy" />
+                </figure>
                 <div class="time-number">
                     <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
                     <span>ชั่วโมง</span>
                     <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
                 </div>
-                <figure class="time-pyramid3d" aria-label="กราฟ Time Tracking แบบพีระมิดสามมิติ">
-                    <svg viewBox="0 0 195 150" role="img" aria-labelledby="timeTrackingChartTitle">
-                        <title id="timeTrackingChartTitle">Time Tracking รวม @dashboard.MonthWorkHours.ToString("0.#") ชั่วโมง</title>
-                        <ellipse class="time-pyramid-shadow" cx="92" cy="132" rx="84" ry="14"></ellipse>
-                        <g class="time-pyramid-layer layer-total">
-                            <polygon class="top" points="20,105 105,77 190,105 105,134"></polygon>
-                            <polygon class="left" points="20,105 105,134 105,146 20,117"></polygon>
-                            <polygon class="right" points="105,134 190,105 190,117 105,146"></polygon>
-                            <text x="105" y="111">@dashboard.MonthWorkHours.ToString("0.#", CultureInfo.InvariantCulture) ชม.</text>
-                        </g>
-                        <g class="time-pyramid-layer layer-closed">
-                            <polygon class="top" points="45,76 105,55 165,76 105,97"></polygon>
-                            <polygon class="left" points="45,76 105,97 105,108 45,87"></polygon>
-                            <polygon class="right" points="105,97 165,76 165,87 105,108"></polygon>
-                            <text x="105" y="79">@closedHoursPercent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
-                        </g>
-                        <g class="time-pyramid-layer layer-open">
-                            <polygon class="top" points="72,48 105,35 138,48 105,61"></polygon>
-                            <polygon class="left" points="72,48 105,61 105,70 72,57"></polygon>
-                            <polygon class="right" points="105,61 138,48 138,57 105,70"></polygon>
-                            <text x="105" y="50">@openHoursPercent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
-                        </g>
-                        <g class="time-pyramid-layer layer-checkin">
-                            <polygon class="left" points="105,12 82,30 105,40"></polygon>
-                            <polygon class="right" points="105,12 128,30 105,40"></polygon>
-                            <text x="105" y="29">@dashboard.TodayCheckinCount</text>
-                        </g>
-                    </svg>
-                </figure>
                 <div class="metric-card">
                     <span><i class="dot green"></i>บันทึกครบ <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
                     <span><i class="dot blue"></i>ยังไม่ออกงาน <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
@@ -1917,7 +1912,8 @@
         padding:8px 0 0 4px;
     }
 
-    .project-status-inline .donut-layout {
+    .project-status-inline .donut-layout,
+    .project-status-pyramid-layout {
         width:min(100%, 320px) !important;
         justify-self:end;
         align-content:start;
@@ -2005,7 +2001,8 @@
         padding:14px 0 0;
     }
 
-    .project-status-inline .donut-layout {
+    .project-status-inline .donut-layout,
+    .project-status-pyramid-layout {
         width:min(100%, 360px) !important;
         justify-self:center;
     }
@@ -2054,6 +2051,243 @@
     align-content:center;
     justify-self:center;
     gap:14px;
+}
+
+.project-status-pyramid-layout {
+    min-height:100%;
+    width:min(100%, 440px);
+    display:grid;
+    grid-template-columns:1fr;
+    justify-items:center;
+    align-content:center;
+    justify-self:center;
+    gap:14px;
+}
+
+.project-status-pyramid3d {
+    width:min(100%, 250px);
+}
+
+.project-status-pyramid3d .layer-total .top { fill:#f8c84a; }
+.project-status-pyramid3d .layer-total .left { fill:#e6a92f; }
+.project-status-pyramid3d .layer-total .right { fill:#c98b18; }
+.project-status-pyramid3d .layer-closed .top { fill:#8ed967; }
+.project-status-pyramid3d .layer-closed .left { fill:#74bd57; }
+.project-status-pyramid3d .layer-closed .right { fill:#338246; }
+.project-status-pyramid3d .layer-open .top { fill:#45a8ff; }
+.project-status-pyramid3d .layer-open .left { fill:#268fe0; }
+.project-status-pyramid3d .layer-open .right { fill:#1269b8; }
+.project-status-pyramid3d .layer-checkin .left { fill:#ffca66; }
+.project-status-pyramid3d .layer-checkin .right { fill:#fb9a13; }
+
+.project-status-bar-layout {
+    min-height:100%;
+    width:min(100%, 460px);
+    display:grid;
+    grid-template-columns:1fr;
+    justify-items:center;
+    align-content:center;
+    justify-self:center;
+    gap:14px;
+}
+
+.project-status-bars3d {
+    width:min(100%, 310px);
+    margin:0 auto;
+    display:grid;
+    justify-items:center;
+    gap:10px;
+}
+
+.project-status-bars3d figcaption {
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:6px;
+    color:#dbeafe;
+    font-weight:900;
+    line-height:1;
+    padding:7px 13px;
+    border:1px solid rgba(217,228,251,.12);
+    border-radius:999px;
+    background:rgba(255,255,255,.055);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.project-status-bars3d figcaption strong {
+    color:#fff;
+    font-size:24px;
+}
+
+.project-status-bars3d figcaption span {
+    font-size:12px;
+}
+
+.project-status-bars3d-stage {
+    position:relative;
+    width:286px;
+    height:166px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:24px;
+    padding:14px 26px 30px;
+    transform:perspective(700px) rotateX(0deg);
+}
+
+.project-status-bars3d-base {
+    position:absolute;
+    left:20px;
+    right:18px;
+    bottom:12px;
+    height:48px;
+    border-radius:22px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.26), rgba(219,234,254,.09) 55%, rgba(59,130,246,.16)),
+        linear-gradient(135deg, rgba(20,184,166,.32), rgba(168,85,247,.34));
+    transform:skewX(-18deg) rotate(-2deg);
+    box-shadow:
+        0 18px 28px rgba(3,10,28,.32),
+        inset 0 1px 0 rgba(255,255,255,.28);
+}
+
+.project-status-bar3d {
+    --bar-height:50%;
+    --bar-fill:#2693f4;
+    --bar-side:#1269b8;
+    position:relative;
+    z-index:1;
+    width:44px;
+    height:118px;
+    display:block;
+}
+
+.project-status-bar3d i {
+    position:absolute;
+    display:block;
+}
+
+.project-status-bar3d .bar-front {
+    left:0;
+    bottom:0;
+    width:36px;
+    height:var(--bar-height);
+    border-radius:8px 8px 6px 6px;
+    background:linear-gradient(160deg, color-mix(in srgb, var(--bar-fill), #fff 34%), var(--bar-fill) 42%, var(--bar-side));
+    box-shadow:inset 8px 0 13px rgba(255,255,255,.14), inset -8px 0 14px rgba(3,10,28,.2);
+}
+
+.project-status-bar3d .bar-side {
+    left:36px;
+    bottom:0;
+    width:14px;
+    height:var(--bar-height);
+    border-radius:0 7px 5px 0;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--bar-side), #fff 14%), var(--bar-side));
+    transform:skewY(-28deg);
+    transform-origin:left bottom;
+    filter:brightness(.96);
+}
+
+.project-status-bar3d .bar-top {
+    left:3px;
+    bottom:var(--bar-height);
+    width:36px;
+    height:14px;
+    border-radius:8px 8px 4px 4px;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--bar-fill), #fff 58%), var(--bar-fill));
+    transform:skewX(-38deg) translate(7px, -7px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.36);
+}
+
+.project-status-bar3d em {
+    position:absolute;
+    left:50%;
+    bottom:calc(var(--bar-height) + 14px);
+    transform:translateX(-50%);
+    color:#fff;
+    font-size:12px;
+    font-style:normal;
+    font-weight:900;
+    line-height:1;
+    text-shadow:0 2px 6px rgba(3,10,28,.7);
+}
+
+.time-bars3d {
+    width:min(100%, 270px);
+}
+
+.time-bars3d .project-status-bars3d-stage,
+.time-bars3d-stage {
+    width:260px;
+    height:154px;
+    gap:46px;
+    padding-inline:42px;
+}
+
+.time-bars3d .project-status-bars3d-base {
+    left:18px;
+    right:18px;
+    bottom:14px;
+    height:38px;
+    opacity:.82;
+    border-radius:24px;
+    transform:none;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.22), rgba(219,234,254,.08)),
+        linear-gradient(90deg, rgba(20,184,166,.28), rgba(59,130,246,.24) 55%, rgba(168,85,247,.28));
+}
+
+.time-bars3d .project-status-bar3d {
+    width:58px;
+    height:118px;
+}
+
+.time-bars3d .project-status-bar3d .bar-front {
+    z-index:2;
+    left:0;
+    width:42px;
+    border-radius:14px 14px 9px 9px;
+    background:
+        linear-gradient(100deg, rgba(255,255,255,.34), transparent 24%),
+        linear-gradient(160deg, color-mix(in srgb, var(--bar-fill), #fff 34%), var(--bar-fill) 46%, var(--bar-side));
+    box-shadow:
+        inset 10px 0 14px rgba(255,255,255,.13),
+        inset -10px 0 14px rgba(3,10,28,.16),
+        0 12px 20px rgba(3,10,28,.22);
+}
+
+.time-bars3d .project-status-bar3d .bar-side {
+    z-index:1;
+    left:32px;
+    width:18px;
+    height:calc(var(--bar-height) - 2px);
+    border-radius:0 13px 10px 0;
+    transform:none;
+    clip-path:polygon(0 10px, 100% 0, 100% calc(100% - 8px), 0 100%);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--bar-side), #fff 12%), var(--bar-side));
+    box-shadow:inset -7px 0 10px rgba(3,10,28,.17);
+}
+
+.time-bars3d .project-status-bar3d .bar-top {
+    z-index:3;
+    left:-1px;
+    bottom:calc(var(--bar-height) - 10px);
+    width:52px;
+    height:22px;
+    border-radius:50%;
+    transform:none;
+    background:
+        radial-gradient(ellipse at 34% 28%, rgba(255,255,255,.56), transparent 28%),
+        linear-gradient(135deg, color-mix(in srgb, var(--bar-fill), #fff 58%), var(--bar-fill) 64%, var(--bar-side));
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,.38),
+        inset 0 -5px 8px rgba(3,10,28,.12);
+}
+
+.time-bars3d .project-status-bar3d em {
+    bottom:calc(var(--bar-height) + 12px);
 }
 
 .project-status-inline .metric-list {
@@ -2162,11 +2396,23 @@
 
 .panel-issues .compact-donut-layout {
     grid-template-columns:1fr;
-    gap:12px;
+    gap:14px;
     min-height:0;
     justify-items:center;
     align-content:start;
     margin:0;
+}
+
+.panel-issues .overview-pie3d {
+    width:min(100%, 220px);
+}
+
+.panel-issues .overview-pie3d-total {
+    font-size:20px;
+}
+
+.panel-issues .overview-pie3d-caption {
+    font-size:9px;
 }
 
 .panel-issues .donut-small {
@@ -2193,11 +2439,17 @@
 }
 
 .panel-issues .metric-list > span {
-    grid-template-columns:auto minmax(0, 1fr) max-content;
+    grid-template-columns:auto max-content max-content;
     padding:5px 7px;
     border:1px solid rgba(217,228,251,.08);
     border-radius:999px;
     background:rgba(255,255,255,.04);
+}
+
+.panel-issues .metric-name {
+    overflow:visible;
+    text-overflow:clip;
+    white-space:nowrap;
 }
 
 .overview-pie-layout {
@@ -2278,6 +2530,54 @@
     filter:drop-shadow(0 2px 3px rgba(3,10,28,.25));
 }
 
+.time-pie3d {
+    width:min(100%, 278px);
+    justify-self:center;
+    margin-block:2px 0;
+}
+
+.time-pie3d svg {
+    filter:drop-shadow(0 14px 18px rgba(3,10,28,.2));
+}
+
+.time-pie3d .overview-pie3d-shadow {
+    fill:rgba(3,10,28,.18);
+    filter:blur(1px);
+}
+
+.time-pie3d .overview-pie3d-depth path {
+    opacity:.95;
+}
+
+.time-pie3d .overview-pie3d-top path {
+    stroke:rgba(255,255,255,.22);
+    stroke-width:.9px;
+    filter:drop-shadow(0 8px 9px rgba(3,10,28,.18));
+}
+
+.time-pie3d .overview-pie3d-labels text {
+    font-size:10px;
+    font-style:normal;
+    stroke:rgba(15,23,42,.34);
+    stroke-width:1.1px;
+}
+
+.time-illustration {
+    width:min(100%, 300px);
+    margin:0 auto;
+    display:grid;
+    place-items:center;
+}
+
+.time-illustration img {
+    display:block;
+    width:100%;
+    height:auto;
+    max-height:210px;
+    object-fit:contain;
+    filter:drop-shadow(0 18px 22px rgba(3,10,28,.22));
+}
+
 .overview-pair {
     position:relative;
     z-index:1;
@@ -2294,7 +2594,7 @@
     min-width:0;
     display:grid;
     gap:12px;
-    padding:14px;
+    padding:16px;
     align-self:center;
     border:1px solid rgba(217,228,251,.1);
     border-radius:12px;
@@ -2464,6 +2764,34 @@
     line-height:1.25;
     font-weight:900;
     overflow-wrap:anywhere;
+}
+
+.watch-head {
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    min-width:0;
+}
+
+.watch-avatar {
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+    background:#fff;
+    border:2px solid #14b8a6;
+    box-shadow:0 10px 22px rgba(3,10,28,.26);
+}
+
+.watch-title-wrap {
+    display:block;
+    min-width:0;
+}
+
+.watch-title-wrap small {
+    margin-top:4px;
 }
 
 .watch-main small,
@@ -3061,14 +3389,15 @@
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:.72fr minmax(150px, 1fr);
-    gap:12px;
+    grid-template-columns:1fr;
+    gap:14px;
     align-items:center;
+    justify-items:center;
     min-width:0;
 }
 
 .panel-time .metric-card {
-    grid-column:1 / -1;
+    width:100%;
     grid-template-columns:repeat(2, minmax(0, 1fr));
 }
 
@@ -3092,26 +3421,41 @@
     min-width:0;
 }
 
+.time-number {
+    width:min(100%, 520px);
+    display:grid;
+    grid-template-columns:auto auto minmax(0, 1fr);
+    align-items:end;
+    gap:10px 14px;
+    justify-content:center;
+    text-align:left;
+    padding:8px 14px;
+    border-radius:16px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+}
+
 .time-number strong {
-    display:block;
-    font-size:clamp(30px, 3vw, 39px);
+    display:inline-block;
+    font-size:clamp(28px, 3vw, 38px);
     line-height:1;
     font-weight:900;
 }
 
 .time-number span {
-    display:block;
-    margin-top:8px;
+    display:inline-block;
+    margin:0 0 2px;
     font-size:17px;
     font-weight:900;
 }
 
 .time-number small {
-    display:block;
-    margin-top:16px;
+    display:inline-block;
+    margin:0 0 3px;
     color:#9fb0d0;
     font-size:12px;
     font-weight:900;
+    white-space:nowrap;
 }
 
 .time-number small.negative { color:#ff385b; }
@@ -3128,8 +3472,10 @@
 }
 
 .time-pyramid3d {
-    width:min(100%, 195px);
+    width:min(100%, 240px);
     margin:0 auto;
+    justify-self:center;
+    align-self:center;
 }
 
 .time-pyramid3d svg {
@@ -3301,6 +3647,7 @@
     .panel-issues { grid-column:span 14; }
     .panel-time { grid-column:span 10; }
     .overview-pair { grid-template-columns:1fr; }
+    .panel-issues .overview-pie3d { width:min(100%, 240px); }
 }
 
 @@media (max-width:1366px) {
@@ -3398,7 +3745,8 @@
         padding-top:8px;
     }
 
-    .project-status-inline .donut-layout {
+    .project-status-inline .donut-layout,
+    .project-status-pyramid-layout {
         width:min(100%, 310px);
         justify-self:end;
         gap:10px;
@@ -3517,6 +3865,23 @@
     .donut-layout,
     .compact-donut-layout,
     .time-layout { grid-template-columns:1fr; }
+    .time-number,
+    .time-pyramid3d,
+    .time-bars3d,
+    .time-pie3d,
+    .time-illustration {
+        grid-column:1;
+        grid-row:auto;
+    }
+    .time-number {
+        grid-template-columns:1fr;
+        justify-items:center;
+        text-align:center;
+        gap:6px;
+    }
+    .time-number small {
+        white-space:normal;
+    }
     .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
     .chart-tooltip { display:none; }
     .legend-row { margin-left:0; flex-wrap:wrap; gap:10px; }

@@ -36,6 +36,7 @@ namespace ProjectTracking.Controllers
             var query = ExcludeOpenWorkNotifications(ApplyVisibility(_context.UserNotifications
                 .AsNoTracking()
                 .Include(x => x.RecipientEmployee)
+                    .ThenInclude(employee => employee!.LoginUser)
                 .AsQueryable()));
 
             if (!includeResolved)
@@ -257,6 +258,7 @@ namespace ProjectTracking.Controllers
                 : await _context.PhaseAssigns
                     .AsNoTracking()
                     .Include(x => x.Employee)
+                        .ThenInclude(employee => employee!.LoginUser)
                     .Include(x => x.Phase!)
                         .ThenInclude(phase => phase.Project!)
                             .ThenInclude(project => project.Coop)
@@ -271,6 +273,7 @@ namespace ProjectTracking.Controllers
                 : await _context.ProjectFollowups
                     .AsNoTracking()
                     .Include(x => x.Owner)
+                        .ThenInclude(owner => owner!.LoginUser)
                     .Include(x => x.Project!)
                         .ThenInclude(project => project.Coop)
                     .Include(x => x.Project!)
@@ -324,6 +327,7 @@ namespace ProjectTracking.Controllers
                 SeverityText = SeverityText(notification.Severity),
                 Title = CleanNotificationTitle(notification.Title),
                 OwnerName = notification.RecipientEmployee?.EmpName ?? "-",
+                OwnerAvatarPath = ProfileImage(notification.RecipientEmployee),
                 DateText = FormatDateTime(notification.CreatedAt),
                 StatusText = notification.IsRead ? "อ่านแล้ว" : "ยังไม่อ่าน",
                 IsRead = notification.IsRead,
@@ -339,6 +343,7 @@ namespace ProjectTracking.Controllers
                 item.CoopName = project?.Coop?.CoopName ?? "-";
                 item.BaName = project?.BA?.EmpName ?? "-";
                 item.OwnerName = assign.Employee?.EmpName ?? item.OwnerName;
+                item.OwnerAvatarPath = ProfileImage(assign.Employee);
                 item.DateText = FormatDateRange(assign.PlanStart ?? phase?.PlanStart, assign.PlanEnd ?? phase?.PlanEnd);
                 item.StatusText = DisplayStatus(assign.WorkStatus);
                 item.ExtraStatusText = DisplayStatus(phase?.PhaseStatus);
@@ -351,11 +356,24 @@ namespace ProjectTracking.Controllers
                 item.CoopName = project?.Coop?.CoopName ?? "-";
                 item.BaName = project?.BA?.EmpName ?? "-";
                 item.OwnerName = followup.Owner?.EmpName ?? item.OwnerName;
+                item.OwnerAvatarPath = ProfileImage(followup.Owner);
                 item.DateText = FormatDate(followup.NextFollowupDate);
                 item.StatusText = DisplayStatus(followup.Status);
             }
 
             return item;
+        }
+
+        private static string ProfileImage(Employee? employee)
+        {
+            var path = employee?.LoginUser?.ProfileImagePath;
+            if (string.IsNullOrWhiteSpace(path))
+                return "/images/Profile/profile.png";
+
+            path = path.Trim();
+            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+            return path;
         }
 
         private static string GroupLabel(string? sourceType) => Source(sourceType) switch

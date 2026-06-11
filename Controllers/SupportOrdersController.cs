@@ -53,6 +53,7 @@ namespace ProjectTracking.Controllers
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
+                    .ThenInclude(e => e!.LoginUser)
                 .AsQueryable();
 
             // filter by selected project

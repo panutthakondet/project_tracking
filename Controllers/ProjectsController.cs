@@ -35,6 +35,7 @@ namespace ProjectTracking.Controllers
 
             var query = _context.Projects
                 .Include(p => p.BA)
+                    .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
                 .AsNoTracking()
                 .AsQueryable();

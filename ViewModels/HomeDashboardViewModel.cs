@@ -143,6 +143,7 @@ namespace ProjectTracking.ViewModels
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = "";
         public string OwnerName { get; set; } = "";
+        public string AvatarPath { get; set; } = "/images/Profile/profile.png";
         public string RiskLevel { get; set; } = "";
         public string RiskColor { get; set; } = "orange";
         public string DueText { get; set; } = "";
