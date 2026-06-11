@@ -753,6 +753,9 @@
         radial-gradient(circle at 78% 24%, rgba(244,63,94,.12), transparent 24%),
         linear-gradient(180deg, #edf4fb 0%, #e7eff8 100%);
     font-family:var(--pt-readable-thai-font);
+    opacity:1;
+    transform:none;
+    will-change:auto;
 }
 
 .dashboard-view,
@@ -764,6 +767,12 @@
 .dashboard-view.is-loading * {
     transition:none !important;
     animation:none !important;
+}
+
+.dashboard-view img {
+    display:block;
+    max-width:100%;
+    height:auto;
 }
 
 .floating-tools-wrapper {
@@ -3707,15 +3716,8 @@
         if (!dashboard) return;
 
         const reveal = () => dashboard.classList.remove('is-loading');
-
-        if (document.fonts && document.fonts.ready) {
-            document.fonts.ready
-                .catch(() => undefined)
-                .then(() => requestAnimationFrame(reveal));
-            return;
-        }
-
         requestAnimationFrame(() => requestAnimationFrame(reveal));
+        window.setTimeout(reveal, 180);
     })();
 
     (() => {
