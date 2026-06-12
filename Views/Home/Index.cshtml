@@ -8,6 +8,8 @@
     var dashboard = Model ?? new HomeDashboardViewModel();
     var closedHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.ClosedWorkHours * 100m / dashboard.MonthWorkHours, 1);
     var openHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.OpenWorkHours * 100m / dashboard.MonthWorkHours, 1);
+    var todayAttendanceTotal = dashboard.TodayCheckinCount + dashboard.TodayMissingCheckinCount;
+    var todayCheckinPercent = todayAttendanceTotal <= 0 ? 0 : Math.Round(dashboard.TodayCheckinCount * 100m / todayAttendanceTotal, 1);
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
     var showYearlyPending = dashboard.YearlyTasks.Any(task => task.Pending > 0);
     var unreadNotificationCount = Convert.ToInt32(ViewBag.UnreadNotificationCount ?? 0);
@@ -90,10 +92,10 @@
         });
     }
 
-    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
+    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineEndX, double LineEndY)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
     {
         var visibleMetrics = metrics.Where(metric => metric.Count > 0).ToList();
-        var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY)>();
+        var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineEndX, double LineEndY)>();
         if (visibleMetrics.Count == 0)
         {
             return result;
@@ -111,7 +113,9 @@
             var start = startAngle;
             var end = startAngle + span;
             var mid = (start + end) / 2d;
-            var label = EllipsePoint(78d, 66d, 74d, 41d, mid);
+            var label = EllipsePoint(78d, 66d, 90d, 53d, mid);
+            var lineStart = EllipsePoint(78d, 66d, 54d, 26d, mid);
+            var lineEnd = EllipsePoint(78d, 66d, 78d, 44d, mid);
 
             result.Add((
                 metric,
@@ -119,8 +123,12 @@
                 StatusDarkHex(metric.Color),
                 PieSegmentPath(start, end),
                 PieSegmentPath(start, end, 16d),
-                Math.Clamp(label.X, 18d, 142d),
-                Math.Clamp(label.Y - 6d, 18d, 108d)
+                Math.Clamp(label.X, 6d, 154d),
+                Math.Clamp(label.Y - 8d, 10d, 116d),
+                Math.Clamp(lineStart.X, 28d, 128d),
+                Math.Clamp(lineStart.Y, 28d, 98d),
+                Math.Clamp(lineEnd.X, 10d, 150d),
+                Math.Clamp(lineEnd.Y, 14d, 112d)
             ));
             startAngle += rawSpan;
         }
@@ -344,41 +352,13 @@
                     </div>
                 </div>
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
-                    <div class="project-status-pyramid-layout">
-                        @{
-                            var completedMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(0) ?? new HomeDashboardMetric { Label = "Completed", Color = "green" };
-                            var progressMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(1) ?? new HomeDashboardMetric { Label = "In Progress", Color = "blue" };
-                            var pendingMetric = dashboard.ProjectStatusMetrics.ElementAtOrDefault(2) ?? new HomeDashboardMetric { Label = "Pending", Color = "orange" };
-                        }
-                        <figure class="time-pyramid3d project-status-pyramid3d" aria-label="กราฟสถานะโครงการแบบพีระมิดสามมิติ">
-                            <svg viewBox="0 0 195 150" role="img" aria-labelledby="projectStatusChartTitle">
-                                <title id="projectStatusChartTitle">สถานะโครงการทั้งหมด @dashboard.TotalProjectCount โครงการ</title>
-                                <ellipse class="time-pyramid-shadow" cx="92" cy="132" rx="84" ry="14"></ellipse>
-                                <g class="time-pyramid-layer layer-total">
-                                    <polygon class="top" points="20,105 105,77 190,105 105,134"></polygon>
-                                    <polygon class="left" points="20,105 105,134 105,146 20,117"></polygon>
-                                    <polygon class="right" points="105,134 190,105 190,117 105,146"></polygon>
-                                    <text x="105" y="111">@dashboard.TotalProjectCount โครงการ</text>
-                                </g>
-                                <g class="time-pyramid-layer layer-closed">
-                                    <polygon class="top" points="45,76 105,55 165,76 105,97"></polygon>
-                                    <polygon class="left" points="45,76 105,97 105,108 45,87"></polygon>
-                                    <polygon class="right" points="105,97 165,76 165,87 105,108"></polygon>
-                                    <text x="105" y="79">@completedMetric.Percent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
-                                </g>
-                                <g class="time-pyramid-layer layer-open">
-                                    <polygon class="top" points="72,48 105,35 138,48 105,61"></polygon>
-                                    <polygon class="left" points="72,48 105,61 105,70 72,57"></polygon>
-                                    <polygon class="right" points="105,61 138,48 138,57 105,70"></polygon>
-                                    <text x="105" y="50">@progressMetric.Percent.ToString("0.#", CultureInfo.InvariantCulture)%</text>
-                                </g>
-                                <g class="time-pyramid-layer layer-checkin">
-                                    <polygon class="left" points="105,12 82,30 105,40"></polygon>
-                                    <polygon class="right" points="105,12 128,30 105,40"></polygon>
-                                    <text x="105" y="29">@pendingMetric.Count</text>
-                                </g>
-                            </svg>
-                        </figure>
+                    <div class="donut-layout project-status-donut-layout">
+                        <div class="donut project-status-donut" style="--donut:@dashboard.ProjectStatusDonut">
+                            <div>
+                                <strong>@dashboard.TotalProjectCount</strong>
+                                <span>โครงการ</span>
+                            </div>
+                        </div>
                         <div class="metric-list">
                             @foreach (var metric in dashboard.ProjectStatusMetrics)
                             {
@@ -451,6 +431,13 @@
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
                                     }
                                 </g>
+                                <g class="overview-pie3d-leaders">
+                                    @foreach (var segment in issueOverviewSegments)
+                                    {
+                                        @Html.Raw($"<line x1=\"{SvgNumber(segment.LineStartX)}\" y1=\"{SvgNumber(segment.LineStartY)}\" x2=\"{SvgNumber(segment.LineEndX)}\" y2=\"{SvgNumber(segment.LineEndY)}\"></line>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"2.6\"></circle>")
+                                    }
+                                </g>
                                 <g class="overview-pie3d-labels">
                                     @foreach (var segment in issueOverviewSegments)
                                     {
@@ -490,6 +477,13 @@
                                     @foreach (var segment in supportOverviewSegments)
                                     {
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
+                                    }
+                                </g>
+                                <g class="overview-pie3d-leaders">
+                                    @foreach (var segment in supportOverviewSegments)
+                                    {
+                                        @Html.Raw($"<line x1=\"{SvgNumber(segment.LineStartX)}\" y1=\"{SvgNumber(segment.LineStartY)}\" x2=\"{SvgNumber(segment.LineEndX)}\" y2=\"{SvgNumber(segment.LineEndY)}\"></line>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"2.6\"></circle>")
                                     }
                                 </g>
                                 <g class="overview-pie3d-labels">
@@ -674,19 +668,19 @@
                 <a asp-controller="Attendance" asp-action="Map" class="panel-link">ดูรายละเอียด</a>
             </div>
             <div class="time-layout">
-                <figure class="time-illustration" aria-label="ภาพประกอบ Time Tracking">
-                    <img src="~/images/dashboard/time-tracking-illustration.svg"
-                         alt="Time Tracking"
-                         loading="lazy" />
-                </figure>
+                <div class="donut time-donut" style="--donut:@dashboard.TimeTrackingDonut" aria-label="กราฟ Time Tracking แบบ 2 มิติ">
+                    <div>
+                        <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
+                        <span>ชั่วโมง</span>
+                    </div>
+                </div>
                 <div class="time-number">
-                    <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
-                    <span>ชั่วโมง</span>
                     <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
                 </div>
                 <div class="metric-card">
                     <span><i class="dot green"></i>บันทึกครบ <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
                     <span><i class="dot blue"></i>ยังไม่ออกงาน <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
+                    <span><i class="dot cyan"></i>เข้างาน <b>@dashboard.TodayCheckinCount คน (@todayCheckinPercent.ToString("0.#")%)</b></span>
                 </div>
             </div>
             <div class="time-detail-grid">
@@ -1623,7 +1617,7 @@
 .dot.pink { color:#ff2d62; background:#ff2d62; }
 .dot.purple { color:#8b4df4; background:#8b4df4; }
 .dot.violet { color:#a855f7; background:#a855f7; }
-.dot.cyan { color:#0ad0c8; background:#0ad0c8; }
+.dot.cyan { color:#22c7f5; background:#22c7f5; }
 .dot.lime { color:#52d11f; background:#52d11f; }
 .dot.warning { color:#f59e0b; background:#f59e0b; }
 .dot.info { color:#22c7f5; background:#22c7f5; }
@@ -2053,6 +2047,14 @@
     gap:14px;
 }
 
+.project-status-donut-layout {
+    width:min(100%, 360px);
+}
+
+.project-status-donut {
+    width:min(190px, 100%);
+}
+
 .project-status-pyramid-layout {
     min-height:100%;
     width:min(100%, 440px);
@@ -2079,6 +2081,18 @@
 .project-status-pyramid3d .layer-open .right { fill:#1269b8; }
 .project-status-pyramid3d .layer-checkin .left { fill:#ffca66; }
 .project-status-pyramid3d .layer-checkin .right { fill:#fb9a13; }
+
+.time-tracking-pyramid3d .layer-total .top { fill:#f8c84a; }
+.time-tracking-pyramid3d .layer-total .left { fill:#e6a92f; }
+.time-tracking-pyramid3d .layer-total .right { fill:#c98b18; }
+.time-tracking-pyramid3d .layer-closed .top { fill:#8ed967; }
+.time-tracking-pyramid3d .layer-closed .left { fill:#74bd57; }
+.time-tracking-pyramid3d .layer-closed .right { fill:#338246; }
+.time-tracking-pyramid3d .layer-open .top { fill:#45a8ff; }
+.time-tracking-pyramid3d .layer-open .left { fill:#268fe0; }
+.time-tracking-pyramid3d .layer-open .right { fill:#1269b8; }
+.time-tracking-pyramid3d .layer-checkin .left { fill:#ffca66; }
+.time-tracking-pyramid3d .layer-checkin .right { fill:#fb9a13; }
 
 .project-status-bar-layout {
     min-height:100%;
@@ -2495,6 +2509,21 @@
     filter:drop-shadow(0 7px 7px rgba(3,10,28,.14));
 }
 
+.overview-pie3d-leaders line {
+    stroke:rgba(239,246,255,.92);
+    stroke-width:2.2;
+    stroke-linecap:round;
+    vector-effect:non-scaling-stroke;
+    filter:drop-shadow(0 2px 3px rgba(3,10,28,.48));
+}
+
+.overview-pie3d-leaders circle {
+    fill:#eff6ff;
+    stroke:rgba(15,23,42,.34);
+    stroke-width:.7;
+    filter:drop-shadow(0 2px 3px rgba(3,10,28,.42));
+}
+
 .overview-pie3d-center {
     fill:#132241;
     filter:drop-shadow(0 4px 7px rgba(3,10,28,.22));
@@ -2522,12 +2551,12 @@
 }
 
 .overview-pie3d-labels text {
-    font-size:9px;
+    font-size:10px;
     font-style:italic;
     font-weight:800;
-    stroke:rgba(15,23,42,.28);
-    stroke-width:.9px;
-    filter:drop-shadow(0 2px 3px rgba(3,10,28,.25));
+    stroke:rgba(15,23,42,.48);
+    stroke-width:1.2px;
+    filter:drop-shadow(0 2px 4px rgba(3,10,28,.36));
 }
 
 .time-pie3d {
@@ -2576,6 +2605,23 @@
     max-height:210px;
     object-fit:contain;
     filter:drop-shadow(0 18px 22px rgba(3,10,28,.22));
+}
+
+.time-donut {
+    width:min(170px, 100%);
+    justify-self:center;
+}
+
+.time-donut > div {
+    width:104px;
+}
+
+.time-donut strong {
+    font-size:28px;
+}
+
+.time-donut span {
+    font-size:11px;
 }
 
 .overview-pair {
@@ -2699,10 +2745,7 @@
     border-radius:12px;
     color:inherit;
     text-decoration:none;
-    background:
-        linear-gradient(135deg, var(--watch-accent-soft) 0%, rgba(255,255,255,.035) 34%, transparent 62%),
-        linear-gradient(180deg, rgba(255,255,255,.074), rgba(255,255,255,.028)),
-        linear-gradient(135deg, rgba(10,24,52,.92), rgba(17,37,72,.82) 52%, var(--watch-accent-deep));
+    background:rgba(20,39,74,.74);
     border:1px solid rgba(217,228,251,.13);
     box-shadow:0 12px 24px rgba(3,10,28,.2), inset 0 1px 0 rgba(255,255,255,.1);
     min-width:0;
@@ -2718,18 +2761,40 @@
     top:0;
     height:2px;
     border-radius:999px;
-    background:linear-gradient(90deg, transparent, var(--watch-accent), transparent);
-    opacity:.72;
+    background:var(--watch-accent);
+    opacity:0;
+    transition:opacity .18s ease, box-shadow .18s ease;
+}
+
+.watch-row::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius:inherit;
+    background:radial-gradient(circle at 18% 18%, var(--watch-accent-soft), transparent 42%);
+    opacity:0;
+    transition:opacity .18s ease;
 }
 
 .watch-row:hover {
-    background:
-        linear-gradient(135deg, var(--watch-accent-soft) 0%, rgba(255,255,255,.05) 36%, transparent 64%),
-        linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04)),
-        linear-gradient(135deg, rgba(12,28,60,.96), rgba(19,42,80,.88) 52%, var(--watch-accent-deep));
-    border-color:rgba(217,228,251,.18);
-    box-shadow:0 16px 30px rgba(3,10,28,.24), inset 0 1px 0 rgba(255,255,255,.12);
+    background:rgba(22,43,82,.9);
+    border-color:color-mix(in srgb, var(--watch-accent), #ffffff 24%);
+    box-shadow:
+        0 16px 30px rgba(3,10,28,.24),
+        0 0 0 1px color-mix(in srgb, var(--watch-accent), transparent 52%),
+        0 0 24px var(--watch-accent-deep),
+        inset 0 1px 0 rgba(255,255,255,.12);
     transform:translateY(-1px);
+}
+
+.watch-row:hover::before {
+    opacity:1;
+    box-shadow:0 0 14px var(--watch-accent);
+}
+
+.watch-row:hover::after {
+    opacity:1;
 }
 
 .watch-row.pink {
@@ -2754,6 +2819,8 @@
 .watch-status,
 .watch-progress,
 .watch-reasons {
+    position:relative;
+    z-index:1;
     min-width:0;
 }
 
@@ -3389,31 +3456,49 @@
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:1fr;
-    gap:14px;
+    grid-template-columns:minmax(150px, .8fr) minmax(220px, 1.2fr);
+    grid-template-areas:
+        "chart metrics"
+        "trend trend";
+    gap:12px 16px;
     align-items:center;
     justify-items:center;
     min-width:0;
 }
 
+.time-donut {
+    grid-area:chart;
+}
+
 .panel-time .metric-card {
+    grid-area:metrics;
     width:100%;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
+    max-width:100%;
+    grid-template-columns:1fr;
+    align-self:center;
+    justify-content:stretch;
+    overflow:hidden;
+    gap:8px;
+    padding:10px;
 }
 
 .panel-time .metric-card span {
-    grid-template-columns:auto minmax(0, 1fr) max-content;
+    display:flex;
     align-items:center;
+    justify-content:flex-start;
     gap:8px;
-    white-space:nowrap;
-    overflow:hidden;
+    min-width:0;
+    white-space:normal;
+    overflow:visible;
+    text-align:left;
+    flex-wrap:nowrap;
 }
 
 .panel-time .metric-card b {
-    justify-self:end;
-    display:block;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    margin-left:auto;
+    display:inline-block;
+    white-space:nowrap;
+    overflow-wrap:anywhere;
 }
 
 .time-number,
@@ -3422,17 +3507,16 @@
 }
 
 .time-number {
-    width:min(100%, 520px);
-    display:grid;
-    grid-template-columns:auto auto minmax(0, 1fr);
-    align-items:end;
-    gap:10px 14px;
+    grid-area:trend;
+    width:auto;
+    display:flex;
+    align-items:center;
+    gap:0;
     justify-content:center;
-    text-align:left;
-    padding:8px 14px;
-    border-radius:16px;
-    background:rgba(255,255,255,.035);
-    border:1px solid rgba(255,255,255,.08);
+    text-align:center;
+    padding:0;
+    border:0;
+    background:transparent;
 }
 
 .time-number strong {
@@ -3451,9 +3535,9 @@
 
 .time-number small {
     display:inline-block;
-    margin:0 0 3px;
+    margin:0;
     color:#9fb0d0;
-    font-size:12px;
+    font-size:13px;
     font-weight:900;
     white-space:nowrap;
 }
@@ -3864,7 +3948,13 @@
     }
     .donut-layout,
     .compact-donut-layout,
-    .time-layout { grid-template-columns:1fr; }
+    .time-layout {
+        grid-template-columns:1fr;
+        grid-template-areas:
+            "chart"
+            "metrics"
+            "trend";
+    }
     .time-number,
     .time-pyramid3d,
     .time-bars3d,
@@ -3881,6 +3971,9 @@
     }
     .time-number small {
         white-space:normal;
+    }
+    .panel-time .metric-card {
+        grid-template-columns:1fr;
     }
     .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
     .chart-tooltip { display:none; }

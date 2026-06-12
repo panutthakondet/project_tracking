@@ -915,7 +915,7 @@ namespace ProjectTracking.Controllers
                 LongShiftCount = timeSummary.LongShiftCount,
                 LongDistanceCount = timeSummary.LongDistanceCount,
                 PendingCheckoutNames = timeSummary.PendingCheckoutNames,
-                TimeTrackingDonut = BuildTwoPartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, "#0ad0c8", "#1688f5"),
+                TimeTrackingDonut = BuildThreePartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, timeSummary.TodayCheckinCount, "#10d58f", "#1688f5", "#22c7f5"),
                 WorkHourTrendText = timeSummary.TrendText,
                 WorkHourTrendClass = timeSummary.TrendClass
             };
@@ -1140,6 +1140,16 @@ namespace ProjectTracking.Controllers
 
             var split = Math.Round(first * 100m / total, 1);
             return $"conic-gradient({firstColor} 0 {CssPercent(split)}%, {secondColor} {CssPercent(split)}% 100%)";
+        }
+
+        private static string BuildThreePartDonut(decimal first, decimal second, decimal third, string firstColor, string secondColor, string thirdColor)
+        {
+            var total = first + second + third;
+            if (total <= 0) return "conic-gradient(#263450 0 100%)";
+
+            var firstEnd = Math.Round(first * 100m / total, 1);
+            var secondEnd = Math.Round((first + second) * 100m / total, 1);
+            return $"conic-gradient({firstColor} 0 {CssPercent(firstEnd)}%, {secondColor} {CssPercent(firstEnd)}% {CssPercent(secondEnd)}%, {thirdColor} {CssPercent(secondEnd)}% 100%)";
         }
 
         private static string BuildPolyline(IReadOnlyList<int> values, int maxValue)
