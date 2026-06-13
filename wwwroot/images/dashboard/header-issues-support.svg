@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Issues and support overview">
+  <defs>
+    <linearGradient id="tile" x1="8" y1="6" x2="64" y2="66" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#37276f"/>
+      <stop offset="1" stop-color="#0c1d4b"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#020817" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="64" height="64" rx="15" fill="url(#tile)" stroke="#4f6fd5" stroke-width="1.5"/>
+  <rect x="8" y="8" width="56" height="56" rx="13" fill="none" stroke="#b7c5ff" stroke-opacity=".12"/>
+  <g filter="url(#shadow)">
+    <path d="M36 18a18 18 0 1 0 17.2 23.4H36V18Z" fill="#a8a5ff"/>
+    <path d="M40 14v23h22A22 22 0 0 0 40 14Z" fill="#745df4"/>
+    <path d="M40 14v23h22" fill="none" stroke="#dbe4ff" stroke-opacity=".42" stroke-width="2"/>
+  </g>
+</svg>

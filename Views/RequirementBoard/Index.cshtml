@@ -693,16 +693,16 @@
             overflow-y: hidden;
             padding: 0 10px clamp(10px, 1.3vh, 18px);
             --rb-column-gap: clamp(8px, .85vw, 14px);
-            --rb-visible-columns: 5.2;
+            --rb-visible-columns: 5;
             --rb-column-gap-total: 60px;
-            --rb-column-width: clamp(240px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 360px);
-            --rb-card-gap: clamp(6px, .75vh, 9px);
-            --rb-card-cover-height: clamp(54px, 7.1vh, 88px);
-            --rb-card-body-padding-y: clamp(6px, .72vh, 8px);
-            --rb-card-body-padding-x: clamp(7px, .58vw, 9px);
-            --rb-card-title-size: clamp(.78rem, .72vw, .84rem);
-            --rb-card-label-font-size: clamp(.58rem, .58vw, .64rem);
-            --rb-card-label-height: clamp(15px, 1.8vh, 18px);
+            --rb-column-width: clamp(270px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 390px);
+            --rb-card-gap: clamp(7px, .78vh, 11px);
+            --rb-card-cover-height: clamp(66px, 7.8vh, 102px);
+            --rb-card-body-padding-y: clamp(8px, .82vh, 11px);
+            --rb-card-body-padding-x: clamp(9px, .68vw, 12px);
+            --rb-card-title-size: clamp(.86rem, .76vw, .96rem);
+            --rb-card-label-font-size: clamp(.62rem, .6vw, .68rem);
+            --rb-card-label-height: clamp(17px, 1.9vh, 20px);
         }
 
         .rb-board {
@@ -1670,9 +1670,9 @@
 
         @@media (max-width: 1200px) {
             .rb-board-wrap {
-                --rb-visible-columns: 4.25;
+                --rb-visible-columns: 4;
                 --rb-column-gap-total: 42px;
-                --rb-column-width: clamp(235px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 340px);
+                --rb-column-width: clamp(260px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 360px);
             }
 
             .rb-phase-row {
@@ -1726,7 +1726,7 @@
                 padding-right: 8px;
                 --rb-visible-columns: 2.4;
                 --rb-column-gap-total: 14px;
-                --rb-column-width: clamp(230px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 320px);
+                --rb-column-width: clamp(260px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 340px);
             }
 
             .rb-hero,
@@ -1754,17 +1754,17 @@
 
         @@media (min-width: 1440px) {
             .rb-board-wrap {
-                --rb-visible-columns: 6.2;
+                --rb-visible-columns: 5.8;
                 --rb-column-gap-total: 74px;
-                --rb-column-width: clamp(230px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 330px);
+                --rb-column-width: clamp(260px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 370px);
             }
         }
 
         @@media (min-width: 1800px) {
             .rb-board-wrap {
-                --rb-visible-columns: 7.2;
+                --rb-visible-columns: 6.3;
                 --rb-column-gap-total: 86px;
-                --rb-column-width: clamp(220px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 310px);
+                --rb-column-width: clamp(260px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 380px);
             }
         }
 
@@ -1783,11 +1783,11 @@
 
             .rb-board-wrap {
                 --rb-card-gap: 6px;
-                --rb-card-cover-height: 48px;
-                --rb-card-body-padding-y: 6px;
-                --rb-card-title-size: .78rem;
-                --rb-card-label-font-size: .56rem;
-                --rb-card-label-height: 14px;
+                --rb-card-cover-height: 56px;
+                --rb-card-body-padding-y: 7px;
+                --rb-card-title-size: .82rem;
+                --rb-card-label-font-size: .58rem;
+                --rb-card-label-height: 15px;
             }
 
             .rb-card-labels {

@@ -11,7 +11,8 @@
     var todayAttendanceTotal = dashboard.TodayCheckinCount + dashboard.TodayMissingCheckinCount;
     var todayCheckinPercent = todayAttendanceTotal <= 0 ? 0 : Math.Round(dashboard.TodayCheckinCount * 100m / todayAttendanceTotal, 1);
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
-    var showYearlyPending = dashboard.YearlyTasks.Any(task => task.Pending > 0);
+    var yearlyCompletedTotal = dashboard.YearlyTasks.Sum(task => task.Completed);
+    var yearlyInProgressTotal = dashboard.YearlyTasks.Sum(task => task.InProgress);
     var unreadNotificationCount = Convert.ToInt32(ViewBag.UnreadNotificationCount ?? 0);
     var unreadMailboxCount = Convert.ToInt32(ViewBag.UnreadMailboxCount ?? 0);
     var openIssueSupportCount = dashboard.OpenIssueSupportCount;
@@ -34,17 +35,17 @@
     {
         "green" => "#7bdc49",
         "blue" => "#2693f4",
-        "orange" => "#ffb23d",
-        "cyan" => "#06b6d4",
-        "lime" => "#84cc16",
-        "purple" => "#9b5bf2",
-        "violet" => "#a855f7",
+        "orange" => "#ff9f1c",
+        "cyan" => "#13d6c9",
+        "lime" => "#78df22",
+        "purple" => "#8b5cf6",
+        "violet" => "#b45cff",
         "pink" => "#f55262",
-        "warning" => "#f59e0b",
-        "info" => "#22c7f5",
+        "warning" => "#ff9f1c",
+        "info" => "#36a3ff",
         "success" => "#10d58f",
         "primary" => "#3b82f6",
-        "danger" => "#ef4444",
+        "danger" => "#ff4747",
         "dark" => "#64748b",
         "secondary" => "#94a3b8",
         "muted" => "#64748b",
@@ -55,14 +56,14 @@
     {
         "green" => "#4eaa2f",
         "blue" => "#1269b8",
-        "orange" => "#ef8700",
-        "cyan" => "#087f9b",
-        "lime" => "#4d7c0f",
+        "orange" => "#b86100",
+        "cyan" => "#087f75",
+        "lime" => "#3f7c0f",
         "purple" => "#6733b8",
-        "violet" => "#6d28d9",
+        "violet" => "#7428c9",
         "pink" => "#c92d3d",
-        "warning" => "#b76a00",
-        "info" => "#0e8fbd",
+        "warning" => "#b86100",
+        "info" => "#155ac7",
         "success" => "#07845f",
         "primary" => "#1d4ed8",
         "danger" => "#b91c1c",
@@ -76,35 +77,40 @@
     {
         const double cx = 78d;
         const double cy = 66d;
-        const double rx = 64d;
-        const double ry = 31d;
+        const double outerRx = 66d;
+        const double outerRy = 36d;
+        const double innerRx = 39d;
+        const double innerRy = 21d;
 
-        var outerStart = EllipsePoint(cx, cy + offsetY, rx, ry, start);
-        var outerEnd = EllipsePoint(cx, cy + offsetY, rx, ry, end);
+        var outerStart = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, start);
+        var outerEnd = EllipsePoint(cx, cy + offsetY, outerRx, outerRy, end);
+        var innerStart = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, start);
+        var innerEnd = EllipsePoint(cx, cy + offsetY, innerRx, innerRy, end);
         var largeArc = Math.Abs(end - start) > 180d ? 1 : 0;
 
         return string.Join(" ", new[]
         {
-            $"M {SvgNumber(cx)} {SvgNumber(cy + offsetY)}",
-            $"L {SvgNumber(outerStart.X)} {SvgNumber(outerStart.Y)}",
-            $"A {rx} {ry} 0 {largeArc} 1 {SvgNumber(outerEnd.X)} {SvgNumber(outerEnd.Y)}",
+            $"M {SvgNumber(outerStart.X)} {SvgNumber(outerStart.Y)}",
+            $"A {outerRx} {outerRy} 0 {largeArc} 1 {SvgNumber(outerEnd.X)} {SvgNumber(outerEnd.Y)}",
+            $"L {SvgNumber(innerEnd.X)} {SvgNumber(innerEnd.Y)}",
+            $"A {innerRx} {innerRy} 0 {largeArc} 0 {SvgNumber(innerStart.X)} {SvgNumber(innerStart.Y)}",
             "Z"
         });
     }
 
-    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineEndX, double LineEndY)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
+    List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineBendX, double LineBendY, double LineEndX, double LineEndY, string LabelAnchor)> BuildOverviewPieSegments(IReadOnlyList<HomeDashboardMetric> metrics)
     {
         var visibleMetrics = metrics.Where(metric => metric.Count > 0).ToList();
-        var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineEndX, double LineEndY)>();
+        var result = new List<(HomeDashboardMetric Metric, string Fill, string DarkFill, string TopPath, string BottomPath, double LabelX, double LabelY, double LineStartX, double LineStartY, double LineBendX, double LineBendY, double LineEndX, double LineEndY, string LabelAnchor)>();
         if (visibleMetrics.Count == 0)
         {
             return result;
         }
 
         var total = Math.Max(1, visibleMetrics.Sum(metric => metric.Count));
-        var startAngle = -176d;
-        const double totalAngle = 352d;
-        const double gapAngle = 1.8d;
+        var startAngle = -180d;
+        const double totalAngle = 360d;
+        const double gapAngle = 1.2d;
 
         foreach (var metric in visibleMetrics)
         {
@@ -113,22 +119,113 @@
             var start = startAngle;
             var end = startAngle + span;
             var mid = (start + end) / 2d;
-            var label = EllipsePoint(78d, 66d, 90d, 53d, mid);
-            var lineStart = EllipsePoint(78d, 66d, 54d, 26d, mid);
-            var lineEnd = EllipsePoint(78d, 66d, 78d, 44d, mid);
+            var lineStart = EllipsePoint(78d, 66d, 64d, 34d, mid);
+            var isRightSide = Math.Cos(Math.PI * mid / 180d) >= 0;
+            var anchor = "middle";
+            var labelPoint = EllipsePoint(78d, 66d, 92d, 52d, mid);
+            var labelX = labelPoint.X;
+            var labelY = labelPoint.Y;
+            var labelKey = metric.Label.ToUpperInvariant();
+
+            if (visibleMetrics.Count <= 2)
+            {
+                switch (labelKey)
+                {
+                    case "OPEN":
+                        labelX = 25d;
+                        labelY = 42d;
+                        anchor = "end";
+                        break;
+                    case "PASS":
+                        labelX = 151d;
+                        labelY = 86d;
+                        anchor = "start";
+                        break;
+                    default:
+                        labelX = isRightSide ? 151d : 25d;
+                        labelY = isRightSide ? 86d : 42d;
+                        anchor = isRightSide ? "start" : "end";
+                        break;
+                }
+            }
+            else
+            {
+                switch (labelKey)
+                {
+                    case "OPEN":
+                        labelX = 6d;
+                        labelY = 49d;
+                        anchor = "end";
+                        break;
+                    case "WIP":
+                        labelX = 21d;
+                        labelY = 24d;
+                        anchor = "end";
+                        break;
+                    case "FIXED":
+                        labelX = 124d;
+                        labelY = 24d;
+                        anchor = "start";
+                        break;
+                    case "FAIL":
+                        labelX = 153d;
+                        labelY = 73d;
+                        anchor = "start";
+                        break;
+                    case "PASS":
+                        labelX = 28d;
+                        labelY = 119d;
+                        anchor = "end";
+                        break;
+                    case "REJECT":
+                        labelX = 5d;
+                        labelY = 67d;
+                        anchor = "end";
+                        break;
+                }
+            }
+
+            labelX = Math.Clamp(labelX, 3d, 156d);
+            labelY = Math.Clamp(labelY, 16d, 120d);
+
+            var lineEndX = labelX + (anchor == "start" ? -5d : 9d);
+            if (metric.Label.Equals("REJECT", StringComparison.OrdinalIgnoreCase))
+            {
+                lineEndX = labelX + (anchor == "start" ? -7d : 14d);
+            }
+            var lineEndY = labelY + (labelY >= 66d ? -3d : 3d);
+            var lineBendX = lineStart.X + (lineEndX - lineStart.X) * .72d;
+            var lineBendY = lineEndY;
+            if (metric.Label.Equals("REJECT", StringComparison.OrdinalIgnoreCase) && !isRightSide)
+            {
+                lineEndX = labelX + 10d;
+                lineEndY = labelY + 1d;
+                lineBendX = lineStart.X - 17d;
+                lineBendY = lineEndY;
+            }
+            else if (metric.Label.Equals("OPEN", StringComparison.OrdinalIgnoreCase) && !isRightSide)
+            {
+                lineEndX = labelX + 12d;
+                lineEndY = labelY + 7d;
+                lineBendX = lineStart.X - 12d;
+                lineBendY = lineEndY;
+            }
 
             result.Add((
                 metric,
                 StatusHex(metric.Color),
                 StatusDarkHex(metric.Color),
                 PieSegmentPath(start, end),
-                PieSegmentPath(start, end, 16d),
-                Math.Clamp(label.X, 6d, 154d),
-                Math.Clamp(label.Y - 8d, 10d, 116d),
-                Math.Clamp(lineStart.X, 28d, 128d),
-                Math.Clamp(lineStart.Y, 28d, 98d),
-                Math.Clamp(lineEnd.X, 10d, 150d),
-                Math.Clamp(lineEnd.Y, 14d, 112d)
+                PieSegmentPath(start, end, 15d),
+                labelX,
+                labelY,
+                Math.Clamp(lineStart.X, 16d, 140d),
+                Math.Clamp(lineStart.Y, 30d, 102d),
+                Math.Clamp(lineBendX, 4d, 156d),
+                Math.Clamp(lineBendY, 14d, 114d),
+                Math.Clamp(lineEndX, 4d, 156d),
+                Math.Clamp(lineEndY, 14d, 114d),
+                anchor
             ));
             startAngle += rawSpan;
         }
@@ -158,6 +255,14 @@
             Percent = openHoursPercent,
             Color = "blue",
             HexColor = StatusHex("blue")
+        },
+        new()
+        {
+            Label = "เข้างาน",
+            Count = dashboard.TodayCheckinCount,
+            Percent = todayCheckinPercent,
+            Color = "cyan",
+            HexColor = StatusHex("cyan")
         }
     };
 }
@@ -245,12 +350,17 @@
            asp-controller="Projects"
            asp-action="ViewOnly"
            title="เปิดรายงาน Projects">
-            <span class="kpi-icon" aria-hidden="true">□</span>
+            <span class="kpi-menu" aria-hidden="true">•••</span>
+            <span class="kpi-icon" aria-hidden="true">
+                <img src="~/images/dashboard/kpi-folder.svg" alt="" loading="lazy" />
+            </span>
             <div>
                 <p>Total Projects</p>
                 <strong>@dashboard.TotalProjectCount</strong>
                 <small>@dashboard.TotalProjectsNote</small>
             </div>
+            <span class="kpi-dots" aria-hidden="true"></span>
+            <span class="kpi-wave" aria-hidden="true"></span>
         </a>
         <a class="kpi-card kpi-purple"
            asp-controller="Meetings"
@@ -258,36 +368,51 @@
            asp-route-fromDate="@todayIso"
            asp-route-toDate="@todayIso"
            title="เปิดรายงาน Meetings วันนี้">
-            <span class="kpi-icon" aria-hidden="true">▦</span>
+            <span class="kpi-menu" aria-hidden="true">•••</span>
+            <span class="kpi-icon" aria-hidden="true">
+                <img src="~/images/dashboard/kpi-calendar.svg" alt="" loading="lazy" />
+            </span>
             <div>
                 <p>Meetings Today</p>
                 <strong>@dashboard.MeetingsTodayCount</strong>
                 <small>@dashboard.MeetingsTodayNote</small>
             </div>
+            <span class="kpi-dots" aria-hidden="true"></span>
+            <span class="kpi-wave" aria-hidden="true"></span>
         </a>
         <a class="kpi-card kpi-orange"
            asp-controller="ProjectPhases"
            asp-action="ViewOnly"
            asp-route-phaseStatus="DELAY"
            title="เปิดรายงาน ProjectPhases ล่าช้า">
-            <span class="kpi-icon" aria-hidden="true">!</span>
+            <span class="kpi-menu" aria-hidden="true">•••</span>
+            <span class="kpi-icon" aria-hidden="true">
+                <img src="~/images/dashboard/kpi-alert.svg" alt="" loading="lazy" />
+            </span>
             <div>
                 <p>ProjectPhases</p>
                 <strong>@dashboard.OpenIssueCount</strong>
                 <small>@dashboard.OpenIssuesNote</small>
             </div>
+            <span class="kpi-dots" aria-hidden="true"></span>
+            <span class="kpi-bars" aria-hidden="true"></span>
         </a>
         <a class="kpi-card kpi-pink"
            asp-controller="PhaseAssigns"
            asp-action="ViewOnly"
            asp-route-workStatus="DELAY"
            title="เปิดรายงาน PhaseAssigns ล่าช้า">
-            <span class="kpi-icon" aria-hidden="true">⏱</span>
+            <span class="kpi-menu" aria-hidden="true">•••</span>
+            <span class="kpi-icon" aria-hidden="true">
+                <img src="~/images/dashboard/kpi-clock.svg" alt="" loading="lazy" />
+            </span>
             <div>
                 <p>PhaseAssigns</p>
                 <strong>@dashboard.OverdueTaskCount</strong>
                 <small>@dashboard.OverdueTasksNote</small>
             </div>
+            <span class="kpi-dots" aria-hidden="true"></span>
+            <span class="kpi-wave" aria-hidden="true"></span>
         </a>
     </section>
 
@@ -295,30 +420,35 @@
         <article class="glass-panel panel-wide panel-project-overview">
             <div class="panel-head">
                 <div class="project-overview-title-row">
-                    <h2>ภาพรวมโครงการ (Projects Overview)</h2>
-                    <span aria-hidden="true"></span>
-                    <h3>สถานะโครงการ</h3>
+                    <span class="project-overview-title-icon" aria-hidden="true">
+                        <img src="~/images/dashboard/header-project-overview.svg" alt="" loading="lazy" />
+                    </span>
+                    <span class="project-overview-title-copy">
+                        <h2>ภาพรวมโครงการ (Projects Overview)</h2>
+                        <small>สถานะโครงการ</small>
+                    </span>
                 </div>
                 <div class="panel-actions">
-                    <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
-                    <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact">ทีมงานพัฒนา</a>
+                    <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact project-overview-action">
+                        <span class="project-overview-action-icon details" aria-hidden="true"></span>
+                        <span>รายละเอียด</span>
+                    </a>
+                    <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact project-overview-action team">
+                        <span class="project-overview-action-icon team" aria-hidden="true"></span>
+                        <span>ทีมงานพัฒนา</span>
+                    </a>
                 </div>
             </div>
             <div class="project-overview-combined">
                 <div class="project-overview-table">
                     <label class="project-overview-search">
-                        <span>ค้นหาโครงการ</span>
+                        <span class="project-overview-search-label">ค้นหาโครงการ</span>
+                        <i aria-hidden="true">⌕</i>
                         <input type="search"
                                id="projectOverviewSearch"
                                placeholder="พิมพ์ชื่อโครงการ..."
                                autocomplete="off" />
                     </label>
-                    <div class="project-overview-head" aria-hidden="true">
-                        <span>Project</span>
-                        <span>Status</span>
-                        <span>Start</span>
-                        <span>End</span>
-                    </div>
                     <div class="project-overview-scroll" data-project-count="@dashboard.ProjectOverviewProjects.Count">
                         @if (dashboard.ProjectOverviewProjects.Count == 0)
                         {
@@ -334,15 +464,18 @@
                                    asp-action="Index"
                                    asp-route-projectId="@project.ProjectId"
                                    data-project-search="@projectSearchText"
-                                    title="ดูงวดงานของ @project.ProjectName">
-                                    <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
+                                   title="ดูงวดงานของ @project.ProjectName">
+                                    <span class="project-overview-icon" aria-hidden="true"></span>
+                                    <span class="project-overview-name-wrap">
+                                        <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
+                                    </span>
                                     <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
                                     <span class="project-overview-date">
-                                        <span class="project-overview-mobile-label">Start</span>
+                                        <span class="project-overview-mobile-label">เริ่ม</span>
                                         <time>@project.StartText</time>
                                     </span>
                                     <span class="project-overview-date">
-                                        <span class="project-overview-mobile-label">End</span>
+                                        <span class="project-overview-mobile-label">สิ้นสุด</span>
                                         <time>@project.EndText</time>
                                     </span>
                                 </a>
@@ -353,6 +486,7 @@
                 </div>
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
                     <div class="donut-layout project-status-donut-layout">
+                        <h3 class="project-status-card-title">ภาพรวมสถานะโครงการ</h3>
                         <div class="donut project-status-donut" style="--donut:@dashboard.ProjectStatusDonut">
                             <div>
                                 <strong>@dashboard.TotalProjectCount</strong>
@@ -365,60 +499,61 @@
                                 <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                             }
                         </div>
+                        <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
                     </div>
                 </div>
             </div>
         </article>
 
-        <article class="glass-panel side-panel panel-activity">
-            <div class="panel-head">
-                <h2>กิจกรรมล่าสุด (Recent Activity)</h2>
-                <a asp-controller="Home" asp-action="Activities" class="panel-link">ดูทั้งหมด</a>
-            </div>
-            <div class="activity-list">
-                @if (dashboard.RecentActivities.Count == 0)
-                {
-                    <p class="empty-state">ยังไม่มีกิจกรรมล่าสุด</p>
-                }
-                else
-                {
-                    foreach (var activity in dashboard.RecentActivities)
-                    {
-                        <a class="activity-row @activity.Color" href="@(string.IsNullOrWhiteSpace(activity.Url) ? Url.Action("Activities", "Home") : activity.Url)">
-                            <img class="activity-avatar"
-                                 src="@activity.AvatarPath"
-                                 alt=""
-                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                            <span>
-                                <b>@activity.Actor</b>
-                                <small>@activity.Detail</small>
-                                @if (!string.IsNullOrWhiteSpace(activity.OwnerText))
-                                {
-                                    <em>@activity.OwnerText</em>
-                                }
-                            </span>
-                            <time>@activity.TimeText</time>
-                        </a>
-                    }
-                }
-            </div>
-        </article>
-
         <article class="glass-panel compact-panel panel-issues">
-            <div class="panel-head">
-                <h2>Issues &amp; Support Overview</h2>
+            <div class="issues-overview-head">
+                <span class="issues-overview-icon" aria-hidden="true">
+                    <img src="~/images/dashboard/header-issues-support.svg" alt="" loading="lazy" />
+                </span>
+                <span>
+                    <h2>Issues &amp; Support Overview</h2>
+                    <small>ภาพรวมปัญหาและการสนับสนุน</small>
+                </span>
             </div>
             <div class="overview-pair">
                 <section class="overview-mini" aria-label="Issues Overview">
                     <div class="overview-mini-head">
-                        <h3>Issues Overview</h3>
-                        <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                        <div class="overview-mini-title">
+                            <span class="overview-mini-icon issues" aria-hidden="true">
+                                <img src="~/images/dashboard/overview-issues.svg" alt="" loading="lazy" />
+                            </span>
+                            <span>
+                                <h3>Issues Overview</h3>
+                                <small>ภาพรวมปัญหา</small>
+                            </span>
+                        </div>
+                        <a asp-controller="ProjectIssues" asp-action="ViewOnly" class="overview-detail-btn blue">
+                            <span>รายละเอียด</span>
+                            <i aria-hidden="true"></i>
+                        </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
                         <figure class="overview-pie3d" aria-label="กราฟ Issues แบบสามมิติ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="issueOverviewPieTitle">
                                 <title id="issueOverviewPieTitle">Issues ทั้งหมด @dashboard.IssueTotal รายการ</title>
-                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
+                                <defs>
+                                    <linearGradient id="issuePieGloss" x1="0" y1="26" x2="0" y2="94" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0" stop-color="#ffffff" stop-opacity=".2" />
+                                        <stop offset=".38" stop-color="#ffffff" stop-opacity=".07" />
+                                        <stop offset=".72" stop-color="#ffffff" stop-opacity="0" />
+                                    </linearGradient>
+                                    <radialGradient id="issuePieHoleShade" cx="50%" cy="34%" r="78%">
+                                        <stop offset="0" stop-color="#263b77" stop-opacity=".92" />
+                                        <stop offset=".42" stop-color="#172a5a" stop-opacity=".98" />
+                                        <stop offset="1" stop-color="#07132d" stop-opacity="1" />
+                                    </radialGradient>
+                                    <linearGradient id="issueInnerRimColor" x1="18" y1="44" x2="138" y2="88" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0" stop-color="#b45cff" stop-opacity=".9" />
+                                        <stop offset=".44" stop-color="#13d6c9" stop-opacity=".92" />
+                                        <stop offset="1" stop-color="#78df22" stop-opacity=".94" />
+                                    </linearGradient>
+                                </defs>
+                                <ellipse class="overview-pie3d-shadow" cx="75" cy="100" rx="61" ry="17"></ellipse>
                                 <g class="overview-pie3d-depth">
                                     @foreach (var segment in issueOverviewSegments)
                                     {
@@ -431,20 +566,33 @@
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
                                     }
                                 </g>
+                                <g class="overview-pie3d-gloss">
+                                    @foreach (var segment in issueOverviewSegments)
+                                    {
+                                        <path d="@segment.TopPath" fill="url(#issuePieGloss)"></path>
+                                    }
+                                </g>
+                                <ellipse class="overview-pie3d-rim outer-soft" cx="78" cy="66" rx="66.8" ry="36.6"></ellipse>
+                                <ellipse class="overview-pie3d-rim outer" cx="78" cy="66" rx="65.8" ry="35.8"></ellipse>
                                 <g class="overview-pie3d-leaders">
                                     @foreach (var segment in issueOverviewSegments)
                                     {
-                                        @Html.Raw($"<line x1=\"{SvgNumber(segment.LineStartX)}\" y1=\"{SvgNumber(segment.LineStartY)}\" x2=\"{SvgNumber(segment.LineEndX)}\" y2=\"{SvgNumber(segment.LineEndY)}\"></line>")
-                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"2.6\"></circle>")
+                                        @Html.Raw($"<polyline points=\"{SvgNumber(segment.LineStartX)},{SvgNumber(segment.LineStartY)} {SvgNumber(segment.LineBendX)},{SvgNumber(segment.LineBendY)} {SvgNumber(segment.LineEndX)},{SvgNumber(segment.LineEndY)}\"></polyline>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineStartX)}\" cy=\"{SvgNumber(segment.LineStartY)}\" r=\"1.7\"></circle>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"1.9\"></circle>")
                                     }
                                 </g>
                                 <g class="overview-pie3d-labels">
                                     @foreach (var segment in issueOverviewSegments)
                                     {
-                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\" style=\"fill:{segment.Fill};text-anchor:{segment.LabelAnchor}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
                                     }
                                 </g>
-                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
+                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="39" ry="21" fill="url(#issuePieHoleShade)"></ellipse>
+                                <ellipse class="overview-pie3d-center-shadow" cx="78" cy="72" rx="36" ry="14"></ellipse>
+                                <ellipse class="overview-pie3d-center-highlight" cx="78" cy="52" rx="28" ry="6"></ellipse>
+                                <ellipse class="overview-pie3d-center-core" cx="78" cy="67" rx="32" ry="15"></ellipse>
+                                <ellipse class="overview-pie3d-rim inner" cx="78" cy="66" rx="39" ry="21" stroke="url(#issueInnerRimColor)"></ellipse>
                                 @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.IssueTotal}</text>")
                                 @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Issues</text>")
                             </svg>
@@ -459,14 +607,42 @@
                 </section>
                 <section class="overview-mini" aria-label="Support Overview">
                     <div class="overview-mini-head">
-                        <h3>Support Overview</h3>
-                        <a asp-controller="SupportOrders" asp-action="ViewOnly" class="panel-filter compact">รายละเอียด</a>
+                        <div class="overview-mini-title">
+                            <span class="overview-mini-icon support" aria-hidden="true">
+                                <img src="~/images/dashboard/overview-support.svg" alt="" loading="lazy" />
+                            </span>
+                            <span>
+                                <h3>Support Overview</h3>
+                                <small>ภาพรวมการสนับสนุน</small>
+                            </span>
+                        </div>
+                        <a asp-controller="SupportOrders" asp-action="ViewOnly" class="overview-detail-btn green">
+                            <span>รายละเอียด</span>
+                            <i aria-hidden="true"></i>
+                        </a>
                     </div>
                     <div class="donut-layout compact-donut-layout overview-pie-layout">
                         <figure class="overview-pie3d" aria-label="กราฟ Support แบบสามมิติ">
                             <svg viewBox="0 0 160 126" role="img" aria-labelledby="supportOverviewPieTitle">
                                 <title id="supportOverviewPieTitle">Support ทั้งหมด @dashboard.SupportTotal รายการ</title>
-                                <ellipse class="overview-pie3d-shadow" cx="70" cy="99" rx="58" ry="16"></ellipse>
+                                <defs>
+                                    <linearGradient id="supportPieGloss" x1="0" y1="26" x2="0" y2="94" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0" stop-color="#ffffff" stop-opacity=".2" />
+                                        <stop offset=".38" stop-color="#ffffff" stop-opacity=".07" />
+                                        <stop offset=".72" stop-color="#ffffff" stop-opacity="0" />
+                                    </linearGradient>
+                                    <radialGradient id="supportPieHoleShade" cx="50%" cy="34%" r="78%">
+                                        <stop offset="0" stop-color="#263b77" stop-opacity=".92" />
+                                        <stop offset=".42" stop-color="#172a5a" stop-opacity=".98" />
+                                        <stop offset="1" stop-color="#07132d" stop-opacity="1" />
+                                    </radialGradient>
+                                    <linearGradient id="supportInnerRimColor" x1="18" y1="44" x2="138" y2="88" gradientUnits="userSpaceOnUse">
+                                        <stop offset="0" stop-color="#ff9f1c" stop-opacity=".94" />
+                                        <stop offset=".48" stop-color="#13d6c9" stop-opacity=".86" />
+                                        <stop offset="1" stop-color="#78df22" stop-opacity=".96" />
+                                    </linearGradient>
+                                </defs>
+                                <ellipse class="overview-pie3d-shadow" cx="75" cy="100" rx="61" ry="17"></ellipse>
                                 <g class="overview-pie3d-depth">
                                     @foreach (var segment in supportOverviewSegments)
                                     {
@@ -479,20 +655,33 @@
                                         <path d="@segment.TopPath" fill="@segment.Fill"></path>
                                     }
                                 </g>
+                                <g class="overview-pie3d-gloss">
+                                    @foreach (var segment in supportOverviewSegments)
+                                    {
+                                        <path d="@segment.TopPath" fill="url(#supportPieGloss)"></path>
+                                    }
+                                </g>
+                                <ellipse class="overview-pie3d-rim outer-soft" cx="78" cy="66" rx="66.8" ry="36.6"></ellipse>
+                                <ellipse class="overview-pie3d-rim outer" cx="78" cy="66" rx="65.8" ry="35.8"></ellipse>
                                 <g class="overview-pie3d-leaders">
                                     @foreach (var segment in supportOverviewSegments)
                                     {
-                                        @Html.Raw($"<line x1=\"{SvgNumber(segment.LineStartX)}\" y1=\"{SvgNumber(segment.LineStartY)}\" x2=\"{SvgNumber(segment.LineEndX)}\" y2=\"{SvgNumber(segment.LineEndY)}\"></line>")
-                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"2.6\"></circle>")
+                                        @Html.Raw($"<polyline points=\"{SvgNumber(segment.LineStartX)},{SvgNumber(segment.LineStartY)} {SvgNumber(segment.LineBendX)},{SvgNumber(segment.LineBendY)} {SvgNumber(segment.LineEndX)},{SvgNumber(segment.LineEndY)}\"></polyline>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineStartX)}\" cy=\"{SvgNumber(segment.LineStartY)}\" r=\"1.7\"></circle>")
+                                        @Html.Raw($"<circle cx=\"{SvgNumber(segment.LineEndX)}\" cy=\"{SvgNumber(segment.LineEndY)}\" r=\"1.9\"></circle>")
                                     }
                                 </g>
                                 <g class="overview-pie3d-labels">
                                     @foreach (var segment in supportOverviewSegments)
                                     {
-                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
+                                        @Html.Raw($"<text x=\"{SvgNumber(segment.LabelX)}\" y=\"{SvgNumber(segment.LabelY)}\" style=\"fill:{segment.Fill};text-anchor:{segment.LabelAnchor}\">{segment.Metric.Percent.ToString("0.#", CultureInfo.InvariantCulture)}%</text>")
                                     }
                                 </g>
-                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="28" ry="13"></ellipse>
+                                <ellipse class="overview-pie3d-center" cx="78" cy="66" rx="39" ry="21" fill="url(#supportPieHoleShade)"></ellipse>
+                                <ellipse class="overview-pie3d-center-shadow" cx="78" cy="72" rx="36" ry="14"></ellipse>
+                                <ellipse class="overview-pie3d-center-highlight" cx="78" cy="52" rx="28" ry="6"></ellipse>
+                                <ellipse class="overview-pie3d-center-core" cx="78" cy="67" rx="32" ry="15"></ellipse>
+                                <ellipse class="overview-pie3d-rim inner" cx="78" cy="66" rx="39" ry="21" stroke="url(#supportInnerRimColor)"></ellipse>
                                 @Html.Raw($"<text class=\"overview-pie3d-total\" x=\"78\" y=\"64\">{dashboard.SupportTotal}</text>")
                                 @Html.Raw("<text class=\"overview-pie3d-caption\" x=\"78\" y=\"78\">Support</text>")
                             </svg>
@@ -506,12 +695,23 @@
                     </div>
                 </section>
             </div>
+            <div class="issues-overview-foot">
+                <span aria-hidden="true">ⓘ</span>
+                <span>ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</span>
+            </div>
         </article>
 
         <article class="glass-panel side-panel compact-panel panel-meetings">
-            <div class="panel-head">
-                <h2>ปฏิทินการประชุมวันนี้</h2>
-                <a asp-controller="Meetings" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
+            <div class="panel-head dashboard-card-head">
+                <div class="dashboard-card-title">
+                    <span class="dashboard-card-icon meetings" aria-hidden="true">
+                        <img src="~/images/menu-icons/meetings.svg" alt="" loading="lazy" />
+                    </span>
+                    <span>
+                        <h2>ปฏิทินการประชุมวันนี้</h2>
+                    </span>
+                </div>
+                <a asp-controller="Meetings" asp-action="Index" class="panel-link dashboard-action-link calendar">ดูทั้งหมด</a>
             </div>
             <div class="meeting-list">
                 @if (dashboard.TodayMeetings.Count == 0)
@@ -524,7 +724,7 @@
                     {
                         <a class="meeting-row" asp-controller="Meetings" asp-action="Show" asp-route-id="@meeting.Id" title="ดูรายละเอียดประชุม @meeting.Title">
                             <time class="time-pill @meeting.TimeColor">@Html.Raw(meeting.TimeText)</time>
-                            <span><b>@meeting.Title</b><small>@meeting.Detail</small></span>
+                            <span class="meeting-body"><b><i></i>@meeting.Title</b><small>@meeting.Detail</small></span>
                             <span class="avatar-stack">
                                 <img src="@meeting.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                 <i>+@meeting.AttendeeCount</i>
@@ -536,18 +736,33 @@
         </article>
 
         <article class="glass-panel panel-task">
-            <div class="panel-head">
-                <h2>Task Progress (รายปี)</h2>
-                <div class="panel-actions">
-                    <div class="legend-row compact">
-                        <span><i class="dot green"></i>Completed</span>
-                        <span><i class="dot blue"></i>In Progress</span>
-                        @if (showYearlyPending)
-                        {
-                            <span><i class="dot orange"></i>Pending</span>
-                        }
+            <div class="task-progress-head">
+                <div class="task-progress-title">
+                    <span class="task-progress-icon" aria-hidden="true">
+                        <img src="~/images/dashboard/header-task-progress.svg" alt="" loading="lazy" />
+                    </span>
+                    <span>
+                        <h2>Task Progress (รายปี)</h2>
+                        <small>ภาพรวมความคืบหน้าของงานรายเดือน</small>
+                    </span>
+                </div>
+                <div class="task-progress-summary" aria-label="สรุปสถานะงานรายปี">
+                    <div class="task-summary-card completed">
+                        <span class="task-summary-dot"></span>
+                        <span>
+                            <b>Completed</b>
+                            <strong>@yearlyCompletedTotal</strong>
+                            <em>งาน</em>
+                        </span>
                     </div>
-                    <a asp-controller="Reports" asp-action="TaskProgress" class="panel-link">รายละเอียด</a>
+                    <div class="task-summary-card progress">
+                        <span class="task-summary-dot"></span>
+                        <span>
+                            <b>In Progress</b>
+                            <strong>@yearlyInProgressTotal</strong>
+                            <em>งาน</em>
+                        </span>
+                    </div>
                 </div>
             </div>
             <div class="yearly-chart">
@@ -580,17 +795,6 @@
                                         <i>@task.InProgress</i>
                                     }
                                 </span>
-                                @if (showYearlyPending)
-                                {
-                                    <span class="@(task.PendingHeight == 0 ? "is-zero" : "")"
-                                          style="height:@task.PendingHeight%"
-                                          title="Pending: @task.Pending">
-                                        @if (task.Pending > 0)
-                                        {
-                                            <i>@task.Pending</i>
-                                        }
-                                    </span>
-                                }
                             </div>
                         }
                     </div>
@@ -602,103 +806,66 @@
                     </div>
                 </div>
                 <span class="yearly-x-title">เดือน</span>
-            </div>
-        </article>
-
-        <article class="glass-panel panel-watch">
-            <div class="panel-head">
-                <h2>โครงการที่ต้องเฝ้าระวัง</h2>
-                <div class="panel-actions">
-                    <a asp-controller="PhaseWorkload" asp-action="Index" class="panel-link">ดูสถานะงาน</a>
-                    <a asp-controller="Reports" asp-action="Executive" class="panel-link">รายละเอียด</a>
+                <div class="yearly-legend" aria-hidden="true">
+                    <span><i class="dot green"></i>Completed</span>
+                    <span><i class="dot blue"></i>In Progress</span>
                 </div>
-            </div>
-            <div class="watch-list">
-                @if (dashboard.WatchProjects.Count == 0)
-                {
-                    <p class="empty-state">ยังไม่มีโครงการที่เข้าเงื่อนไขเสี่ยง</p>
-                }
-                else
-                {
-                    foreach (var project in dashboard.WatchProjects)
-                    {
-                        <a class="watch-row @project.RiskColor"
-                           asp-controller="ProjectPhases"
-                            asp-action="Index"
-                            asp-route-projectId="@project.ProjectId"
-                            title="ดูงวดงานของ @project.ProjectName">
-                            <span class="watch-main">
-                                <span class="watch-head">
-                                    <img class="watch-avatar"
-                                         src="@project.AvatarPath"
-                                         alt="@project.OwnerName"
-                                         loading="lazy"
-                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="watch-title-wrap">
-                                        <b>@project.ProjectName</b>
-                                        <small>BA: @project.OwnerName</small>
-                                    </span>
-                                </span>
-                                <span class="watch-meta">
-                                    <small>@project.DueText</small>
-                                    <i class="risk-pill @project.RiskColor">@project.RiskLevel</i>
-                                </span>
-                            </span>
-                            <span class="watch-progress">
-                                <span class="energy-tube @project.RiskColor" title="Progress: @project.Progress%">
-                                    <i style="height:calc(@project.Progress% * .78)"></i>
-                                    <em>@project.Progress%</em>
-                                </span>
-                            </span>
-                            <span class="watch-reasons">
-                                @foreach (var reason in project.Reasons)
-                                {
-                                    <i>@reason</i>
-                                }
-                            </span>
-                        </a>
-                    }
-                }
             </div>
         </article>
 
         <article class="glass-panel panel-time">
-            <div class="panel-head">
-                <h2>Time Tracking (ชั่วโมงทำงาน)</h2>
-                <a asp-controller="Attendance" asp-action="Map" class="panel-link">ดูรายละเอียด</a>
+            <div class="panel-head dashboard-card-head">
+                <div class="dashboard-card-title">
+                    <span class="dashboard-card-icon time" aria-hidden="true">
+                        <img src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" />
+                    </span>
+                    <span>
+                        <h2>Time Tracking (ชั่วโมงทำงาน)</h2>
+                        <em>ติดตามเวลาการทำงานของคุณ</em>
+                    </span>
+                </div>
+                <a asp-controller="Attendance" asp-action="Map" class="panel-link dashboard-action-link details">ดูรายละเอียด</a>
             </div>
             <div class="time-layout">
                 <div class="donut time-donut" style="--donut:@dashboard.TimeTrackingDonut" aria-label="กราฟ Time Tracking แบบ 2 มิติ">
                     <div>
                         <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
                         <span>ชั่วโมง</span>
+                        <em>บันทึกครบ</em>
                     </div>
                 </div>
-                <div class="time-number">
-                    <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
-                </div>
                 <div class="metric-card">
-                    <span><i class="dot green"></i>บันทึกครบ <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
-                    <span><i class="dot blue"></i>ยังไม่ออกงาน <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
-                    <span><i class="dot cyan"></i>เข้างาน <b>@dashboard.TodayCheckinCount คน (@todayCheckinPercent.ToString("0.#")%)</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-check.svg" alt="" loading="lazy" /><i>บันทึกครบ</i> <b>@dashboard.ClosedWorkHours.ToString("0.#") (@closedHoursPercent.ToString("0.#")%)</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" /><i>ยังไม่ออกงาน</i> <b>@dashboard.OpenWorkHours.ToString("0.#") (@openHoursPercent.ToString("0.#")%)</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-user.svg" alt="" loading="lazy" /><i>เข้างาน</i> <b>@dashboard.TodayCheckinCount คน (@todayCheckinPercent.ToString("0.#")%)</b></span>
+                </div>
+                <div class="time-number">
+                    <span aria-hidden="true"><img src="~/images/dashboard/time-icon-trend.svg" alt="" loading="lazy" /></span>
+                    <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
                 </div>
             </div>
             <div class="time-detail-grid">
-                <span><small>เข้างานวันนี้</small><b>@dashboard.TodayCheckinCount คน</b></span>
-                <span><small>ออกงานแล้ว</small><b>@dashboard.TodayCheckoutCount คน</b></span>
-                <span><small>ยังไม่ออกงาน</small><b>@dashboard.PendingCheckoutCount คน</b></span>
-                <span><small>ยังไม่เข้างาน</small><b>@dashboard.TodayMissingCheckinCount คน</b></span>
-                <span><small>วันที่มีบันทึก</small><b>@dashboard.MonthAttendanceDays วัน</b></span>
-                <span><small>เฉลี่ยต่อวัน</small><b>@dashboard.AverageHoursPerDay.ToString("0.#") ชม.</b></span>
-                <span><small>เกิน 12 ชม.</small><b>@dashboard.LongShiftCount ครั้ง</b></span>
-                <span><small>ระยะเกิน 5 กม.</small><b>@dashboard.LongDistanceCount ครั้ง</b></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-calendar.svg" alt="" loading="lazy" /><span><small>เข้างานวันนี้</small><b>@dashboard.TodayCheckinCount คน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-checkout.svg" alt="" loading="lazy" /><span><small>ออกงานแล้ว</small><b>@dashboard.TodayCheckoutCount คน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-pending.svg" alt="" loading="lazy" /><span><small>ยังไม่ออกงาน</small><b>@dashboard.PendingCheckoutCount คน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-users.svg" alt="" loading="lazy" /><span><small>ยังไม่เข้างาน</small><b>@dashboard.TodayMissingCheckinCount คน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-calendar.svg" alt="" loading="lazy" /><span><small>วันที่มีบันทึก</small><b>@dashboard.MonthAttendanceDays วัน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-bar.svg" alt="" loading="lazy" /><span><small>เฉลี่ยต่อวัน</small><b>@dashboard.AverageHoursPerDay.ToString("0.#") ชม.</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" /><span><small>เกิน 12 ชม.</small><b>@dashboard.LongShiftCount ครั้ง</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-warning.svg" alt="" loading="lazy" /><span><small>ระยะเกิน 5 กม.</small><b>@dashboard.LongDistanceCount ครั้ง</b></span></span>
             </div>
         </article>
 
         <article class="glass-panel side-panel panel-team">
-            <div class="panel-head">
-                <h2>ทีมงานที่ทำงานหนักที่สุด</h2>
-                <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link">ดูทั้งหมด</a>
+            <div class="panel-head dashboard-card-head">
+                <div class="dashboard-card-title">
+                    <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
+                    <span>
+                        <h2>ทีมงานที่ทำงานหนักที่สุด</h2>
+                        <em>จัดอันดับทีมงานตามความคืบหน้าการทำงาน</em>
+                    </span>
+                </div>
+                <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
             </div>
             <div class="workload-list">
                 @if (dashboard.TeamWorkload.Count == 0)
@@ -707,13 +874,15 @@
                 }
                 else
                 {
-                    foreach (var member in dashboard.TeamWorkload)
+                    for (var memberIndex = 0; memberIndex < dashboard.TeamWorkload.Count; memberIndex++)
                     {
+                        var member = dashboard.TeamWorkload[memberIndex];
                         <a class="workload-row"
                            asp-controller="PhaseStatusReport"
                            asp-action="Index"
                            asp-route-empName="@member.Name"
                            title="ดูรายงานสถานะงานของ @member.Name">
+                            <em class="workload-rank">@(memberIndex + 1)</em>
                             <img src="@member.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                             <span>@member.Name</span>
                             <div class="progress-track"><i class="@member.Color" style="width:@member.Value%"></i></div>
@@ -722,6 +891,48 @@
                     }
                 }
             </div>
+            <div class="dashboard-section-foot"><span>ⓘ</span> อัปเดตข้อมูลล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</div>
+        </article>
+
+        <article class="glass-panel side-panel panel-activity">
+            <div class="panel-head dashboard-card-head">
+                <div class="dashboard-card-title">
+                    <span class="dashboard-card-icon activity" aria-hidden="true">◷</span>
+                    <span>
+                        <h2>กิจกรรมล่าสุด <small>(Recent Activity)</small></h2>
+                        <em>อัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</em>
+                    </span>
+                </div>
+                <a asp-controller="Home" asp-action="Activities" class="panel-link dashboard-action-link list">ดูทั้งหมด</a>
+            </div>
+            <div class="activity-list">
+                @if (dashboard.RecentActivities.Count == 0)
+                {
+                    <p class="empty-state">ยังไม่มีกิจกรรมล่าสุด</p>
+                }
+                else
+                {
+                    foreach (var activity in dashboard.RecentActivities)
+                    {
+                        <a class="activity-row @activity.Color" href="@(string.IsNullOrWhiteSpace(activity.Url) ? Url.Action("Activities", "Home") : activity.Url)">
+                            <img class="activity-avatar"
+                                 src="@activity.AvatarPath"
+                                 alt=""
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                            <span>
+                                <b>@activity.Actor</b>
+                                <small><i class="activity-mini-icon"></i>@activity.Detail</small>
+                                @if (!string.IsNullOrWhiteSpace(activity.OwnerText))
+                                {
+                                    <em><i class="activity-owner-icon"></i>@activity.OwnerText</em>
+                                }
+                            </span>
+                            <time><i aria-hidden="true">◷</i><strong>@activity.TimeText.Split(' ').FirstOrDefault()</strong><small>@string.Join(" ", activity.TimeText.Split(' ').Skip(1))</small></time>
+                        </a>
+                    }
+                }
+            </div>
+            <a asp-controller="Home" asp-action="Index" class="dashboard-refresh-link">↻ โหลดข้อมูลใหม่</a>
         </article>
     </section>
 
@@ -775,25 +986,26 @@
     align-items:center;
     justify-content:flex-end;
     gap:10px;
-    margin:0 0 14px;
+    margin:2px 0 18px;
 }
 
 .dashboard-global-search {
     position:relative;
-    width:min(500px, 100%);
+    width:min(520px, 100%);
 }
 
 .dashboard-global-search input {
     width:100%;
-    height:50px;
-    border:1px solid rgba(33,150,243,.22);
+    height:48px;
+    border:1px solid rgba(91,157,217,.26);
     border-radius:999px;
     outline:0;
-    padding:0 52px 0 56px;
-    color:#0f1f3d;
-    background:rgba(255,255,255,.86);
-    box-shadow:0 16px 34px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.85);
-    font-size:15px;
+    padding:0 46px 0 58px;
+    color:#17345d;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.58), rgba(235,247,255,.38));
+    box-shadow:0 12px 24px rgba(15,39,70,.08), inset 0 1px 0 rgba(255,255,255,.68);
+    font-size:14px;
     font-weight:900;
     transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
@@ -803,45 +1015,45 @@
 }
 
 .dashboard-global-search input:focus {
-    border-color:rgba(20,184,166,.72);
-    background:#fff;
-    box-shadow:0 18px 40px rgba(20,184,166,.18), 0 0 0 4px rgba(20,184,166,.14);
+    border-color:rgba(20,184,166,.52);
+    background:rgba(255,255,255,.72);
+    box-shadow:0 14px 30px rgba(20,184,166,.12), 0 0 0 3px rgba(20,184,166,.1);
 }
 
 .dashboard-global-search-icon {
     position:absolute;
-    left:14px;
+    left:7px;
     top:50%;
     z-index:2;
-    width:36px;
-    height:36px;
+    width:38px;
+    height:38px;
     border-radius:50%;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     color:#fff;
-    background:linear-gradient(135deg,#25d6d0,#087b73);
-    font-size:25px;
+    background:linear-gradient(135deg,rgba(33,198,190,.88),rgba(5,126,117,.86));
+    font-size:24px;
     font-weight:900;
     transform:translateY(-50%);
-    box-shadow:0 10px 22px rgba(20,184,166,.24);
+    box-shadow:0 9px 16px rgba(20,184,166,.18);
 }
 
 .dashboard-global-search-clear {
     position:absolute;
-    right:8px;
+    right:6px;
     top:50%;
     z-index:2;
-    width:36px;
-    height:36px;
+    width:32px;
+    height:32px;
     border:0;
     border-radius:50%;
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    color:#5d6b84;
-    background:rgba(226,232,240,.9);
-    font-size:22px;
+    color:#54708d;
+    background:rgba(226,238,248,.72);
+    font-size:19px;
     line-height:1;
     font-weight:900;
     cursor:pointer;
@@ -857,12 +1069,12 @@
     align-items:center;
     flex:0 0 auto;
     gap:0;
-    padding:5px 8px;
-    min-height:48px;
+    padding:4px 7px;
+    min-height:44px;
     border-radius:999px;
-    background:rgba(255,255,255,.52);
-    border:1px solid rgba(255,255,255,.55);
-    box-shadow:0 14px 30px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.65);
+    background:rgba(255,255,255,.34);
+    border:1px solid rgba(91,157,217,.2);
+    box-shadow:0 10px 20px rgba(15,39,70,.08), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 .dashboard-online-avatar {
@@ -870,15 +1082,15 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:40px;
-    height:40px;
-    margin-left:-7px;
-    border:2px solid rgba(255,255,255,.86);
+    width:34px;
+    height:34px;
+    margin-left:-5px;
+    border:2px solid rgba(255,255,255,.78);
     border-radius:50%;
     overflow:hidden;
     color:#10213a;
     background:#f59e0b;
-    box-shadow:0 7px 16px rgba(15,39,70,.20);
+    box-shadow:0 7px 14px rgba(15,39,70,.16);
 }
 
 .dashboard-online-avatar:first-child {
@@ -896,8 +1108,8 @@
     position:absolute;
     right:1px;
     bottom:1px;
-    width:9px;
-    height:9px;
+    width:7px;
+    height:7px;
     border:2px solid #fff;
     border-radius:999px;
     background:#22c55e;
@@ -913,11 +1125,11 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:34px;
-    height:38px;
+    min-width:28px;
+    height:32px;
     padding:0 7px;
     color:#0f2a45;
-    font-size:14px;
+    font-size:12px;
     font-weight:1000;
 }
 
@@ -925,22 +1137,30 @@
     position:relative;
     display:flex;
     align-items:center;
-    gap:9px;
+    gap:5px;
     flex:0 0 auto;
+}
+
+.dashboard-global-tools::before {
+    content:"";
+    width:1px;
+    height:32px;
+    margin-right:5px;
+    background:rgba(19,52,89,.16);
 }
 
 .dashboard-global-tool {
     position:relative;
-    width:46px;
-    height:46px;
+    width:44px;
+    height:44px;
     border-radius:50%;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     color:#fff;
     text-decoration:none;
-    border:1px solid rgba(255,255,255,.45);
-    box-shadow:0 14px 28px rgba(15,23,42,.15), inset 0 1px 0 rgba(255,255,255,.35);
+    border:1px solid rgba(91,157,217,.22);
+    box-shadow:0 10px 20px rgba(15,39,70,.08), inset 0 1px 0 rgba(255,255,255,.48);
     transition:transform .18s ease, box-shadow .18s ease, filter .18s ease;
     padding:0;
     cursor:pointer;
@@ -949,25 +1169,34 @@
 
 .dashboard-global-tool:hover {
     transform:translateY(-2px);
-    box-shadow:0 18px 34px rgba(15,23,42,.2), inset 0 1px 0 rgba(255,255,255,.42);
+    box-shadow:0 13px 24px rgba(15,39,70,.13), inset 0 1px 0 rgba(255,255,255,.52);
     filter:saturate(1.06);
 }
 
 .dashboard-global-tool.notification {
-    background:linear-gradient(135deg,#2fe2da,#087f78);
+    color:#0f9f8c;
+    background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(226,252,248,.34));
+    border-color:rgba(15,159,140,.42);
+    box-shadow:0 10px 20px rgba(15,159,140,.1), 0 0 0 1px rgba(15,159,140,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 .dashboard-global-tool.mailbox {
-    background:linear-gradient(135deg,#8b5cf6,#4f46e5);
+    color:#5b22cc;
+    background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(243,238,255,.34));
+    border-color:rgba(91,34,204,.42);
+    box-shadow:0 10px 20px rgba(91,34,204,.1), 0 0 0 1px rgba(91,34,204,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 .dashboard-global-tool.open-work {
-    background:linear-gradient(135deg,#ffb12f,#fb3f5f);
+    color:#f05a00;
+    background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(255,241,224,.34));
+    border-color:rgba(240,90,0,.42);
+    box-shadow:0 10px 20px rgba(240,90,0,.1), 0 0 0 1px rgba(240,90,0,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 .dashboard-global-tool svg {
-    width:22px;
-    height:22px;
+    width:23px;
+    height:23px;
     fill:none;
     stroke:currentColor;
     stroke-width:2.25;
@@ -978,21 +1207,21 @@
 .dashboard-global-tool-count {
     position:absolute;
     right:-5px;
-    top:-7px;
-    min-width:22px;
-    height:22px;
-    padding:0 6px;
+    top:-6px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
     border-radius:999px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     color:#fff;
     background:linear-gradient(135deg,#ff3f68,#e11d48);
-    border:2px solid rgba(255,255,255,.88);
-    font-size:12px;
+    border:2px solid rgba(255,255,255,.76);
+    font-size:10px;
     line-height:1;
     font-weight:1000;
-    box-shadow:0 8px 18px rgba(225,29,72,.25);
+    box-shadow:0 7px 16px rgba(225,29,72,.2);
 }
 
 .dashboard-global-tool-count.is-empty {
@@ -1365,24 +1594,27 @@
 .kpi-grid {
     display:grid;
     grid-template-columns:repeat(4, minmax(190px, 1fr));
-    gap:16px;
-    margin-bottom:16px;
+    gap:18px;
+    margin-top:32px;
+    margin-bottom:20px;
 }
 
 .kpi-card {
-    min-height:130px;
+    min-height:176px;
     position:relative;
     overflow:hidden;
-    border-radius:16px;
-    padding:18px;
+    border-radius:20px;
+    padding:0;
     color:#fff;
-    box-shadow:0 18px 34px rgba(15,23,42,.18);
-    display:grid;
-    grid-template-columns:72px minmax(0, 1fr);
-    align-items:center;
-    gap:16px;
+    box-shadow:0 22px 34px rgba(15,23,42,.2), inset 0 1px 0 rgba(255,255,255,.2);
+    display:block;
     text-decoration:none;
     transition:transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    border:2px solid var(--kpi-accent);
+    background:
+        radial-gradient(circle at 16% 28%, color-mix(in srgb, var(--kpi-accent) 26%, transparent), transparent 18%),
+        radial-gradient(circle at 80% 95%, color-mix(in srgb, var(--kpi-accent) 18%, transparent), transparent 28%),
+        linear-gradient(135deg, #051934 0%, var(--kpi-deep) 100%);
 }
 
 .kpi-card:hover,
@@ -1397,52 +1629,67 @@
 .kpi-card::before {
     content:"";
     position:absolute;
-    width:104px;
-    height:104px;
-    left:18px;
-    top:26px;
+    width:82px;
+    height:82px;
+    left:24px;
+    top:42px;
     border-radius:50%;
-    background:rgba(255,255,255,.13);
+    background:rgba(255,255,255,.055);
+    border:3px solid var(--kpi-accent);
+    box-shadow:0 0 26px color-mix(in srgb, var(--kpi-accent) 55%, transparent), inset 0 0 30px color-mix(in srgb, var(--kpi-accent) 22%, transparent);
 }
 
-.kpi-blue { background:linear-gradient(135deg,#2d90ff,#005fe8); }
-.kpi-purple { background:linear-gradient(135deg,#9c44ff,#5512ca); }
-.kpi-orange { background:linear-gradient(135deg,#ff9b22,#ff4d0d); }
-.kpi-pink { background:linear-gradient(135deg,#ff487a,#d90962); }
+.kpi-blue { --kpi-accent:#1688f5; --kpi-deep:#002257; }
+.kpi-purple { --kpi-accent:#7c22ff; --kpi-deep:#26005a; }
+.kpi-orange { --kpi-accent:#ff7a00; --kpi-deep:#5a2300; }
+.kpi-pink { --kpi-accent:#ff2d73; --kpi-deep:#5b0022; }
 
 .kpi-icon {
-    position:relative;
     z-index:1;
-    left:auto;
-    top:auto;
-    width:64px;
-    height:64px;
+    position:absolute;
+    left:24px;
+    top:42px;
+    width:82px;
+    height:82px;
     border-radius:50%;
-    display:inline-flex;
+    display:grid;
     align-items:center;
     justify-content:center;
-    background:rgba(255,255,255,.16);
-    font-size:34px;
-    font-weight:900;
+    color:#fff;
+    background:transparent;
+}
+
+.kpi-icon img {
+    width:58px;
+    height:58px;
+    object-fit:contain;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.16));
 }
 
 .kpi-card > div {
     min-width:0;
-    position:relative;
+    position:absolute;
+    z-index:2;
+    left:128px;
+    right:24px;
+    top:48px;
     z-index:1;
 }
 
 .kpi-card p {
-    margin:0 0 4px;
+    margin:0 0 10px;
     font-size:15px;
-    line-height:1.18;
+    line-height:1.2;
     font-weight:900;
-    overflow-wrap:anywhere;
+    overflow-wrap:normal;
+    word-break:normal;
+    hyphens:none;
+    white-space:nowrap;
 }
 
 .kpi-card strong {
     display:block;
-    font-size:38px;
+    font-size:46px;
     line-height:1;
     font-weight:900;
 }
@@ -1451,10 +1698,103 @@
     display:block;
     margin-top:12px;
     color:rgba(255,255,255,.9);
-    font-size:12px;
+    font-size:13px;
     line-height:1.25;
     font-weight:800;
-    overflow-wrap:anywhere;
+    overflow-wrap:normal;
+    word-break:normal;
+    hyphens:none;
+}
+
+.kpi-menu {
+    position:absolute;
+    top:18px;
+    right:22px;
+    z-index:2;
+    color:#fff;
+    font-size:19px;
+    font-weight:1000;
+    letter-spacing:4px;
+    line-height:1;
+}
+
+.kpi-dots {
+    position:absolute;
+    left:24px;
+    bottom:22px;
+    width:62px;
+    height:48px;
+    opacity:.7;
+    background:radial-gradient(circle, var(--kpi-accent) 0 3px, transparent 3.5px) 0 0 / 18px 18px;
+}
+
+.kpi-wave {
+    position:absolute;
+    right:22px;
+    bottom:18px;
+    width:150px;
+    height:64px;
+    overflow:visible;
+    filter:drop-shadow(0 0 10px color-mix(in srgb, var(--kpi-accent) 60%, transparent));
+}
+
+.kpi-wave::before {
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    bottom:0;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--kpi-accent) 72%, #fff 18%), var(--kpi-accent));
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 64'%3E%3Cpath d='M4 58 C24 58 31 48 45 42 C57 36 66 44 78 35 C91 25 101 25 114 33 C127 41 137 26 146 11' fill='none' stroke='black' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 64'%3E%3Cpath d='M4 58 C24 58 31 48 45 42 C57 36 66 44 78 35 C91 25 101 25 114 33 C127 41 137 26 146 11' fill='none' stroke='black' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+}
+
+.kpi-wave::after {
+    content:"";
+    position:absolute;
+    right:-3px;
+    top:1px;
+    width:18px;
+    height:18px;
+    border:5px solid var(--kpi-accent);
+    border-radius:50%;
+    background:color-mix(in srgb, var(--kpi-deep) 74%, transparent);
+    box-shadow:0 0 16px color-mix(in srgb, var(--kpi-accent) 65%, transparent);
+}
+
+.kpi-wave i {
+    display:none;
+}
+
+.kpi-bars {
+    position:absolute;
+    right:20px;
+    bottom:18px;
+    transform:scale(.78);
+    transform-origin:right bottom;
+    width:130px;
+    height:78px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:flex-end;
+    gap:10px;
+}
+
+.kpi-bars::before {
+    content:"";
+    width:100%;
+    height:100%;
+    display:block;
+    background:
+        linear-gradient(to top, var(--kpi-accent) 0 8px, transparent 8px) 0 100%/14px 100% no-repeat,
+        linear-gradient(to top, var(--kpi-accent) 0 14px, transparent 14px) 24px 100%/14px 100% no-repeat,
+        linear-gradient(to top, var(--kpi-accent) 0 22px, transparent 22px) 48px 100%/14px 100% no-repeat,
+        linear-gradient(to top, var(--kpi-accent) 0 34px, transparent 34px) 72px 100%/14px 100% no-repeat,
+        linear-gradient(to top, var(--kpi-accent) 0 52px, transparent 52px) 96px 100%/14px 100% no-repeat,
+        linear-gradient(to top, var(--kpi-accent) 0 72px, transparent 72px) 120px 100%/14px 100% no-repeat;
+    filter:drop-shadow(0 0 10px color-mix(in srgb, var(--kpi-accent) 45%, transparent));
 }
 
 .dashboard-grid {
@@ -1494,14 +1834,144 @@
 .panel-wide { order:1; grid-column:span 24; min-height:278px; container-type:inline-size; }
 .compact-panel { min-height:198px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
-.panel-task { order:3; grid-column:span 24; min-height:252px; }
-.panel-time { order:4; grid-column:span 10; min-height:278px; }
-.panel-issues { order:5; grid-column:span 14; min-height:336px; }
-.panel-watch { order:6; grid-column:span 24; min-height:278px; }
-.panel-team { order:8; grid-column:span 12; min-height:278px; }
-.panel-activity { order:8; grid-column:span 12; min-height:278px; }
-.panel-meetings { order:9; grid-column:span 12; min-height:340px; }
-.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+.panel-task { order:3; grid-column:span 24; min-height:230px; }
+.panel-issues { order:4; grid-column:span 24; min-height:520px; }
+.panel-time { order:5; grid-column:span 24; min-height:248px; }
+.panel-team { order:6; grid-column:span 24; min-height:285px; }
+.panel-activity { order:7; grid-column:span 24; min-height:270px; }
+.panel-meetings { order:8; grid-column:span 24; min-height:280px; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+
+.panel-task {
+    padding:20px 24px 20px;
+    border-radius:18px;
+    border:1px solid rgba(30,93,168,.48);
+    background:
+        radial-gradient(circle at 48% 42%, rgba(0,110,255,.2), transparent 38%),
+        linear-gradient(180deg, rgba(4,19,43,.99), rgba(3,16,36,.99));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 18px 34px rgba(2,8,23,.22);
+}
+
+.panel-issues {
+    padding:26px 28px 24px;
+    border-radius:18px;
+    border:1px solid rgba(59,130,246,.26);
+    background:
+        radial-gradient(circle at 50% 34%, rgba(0,108,255,.16), transparent 44%),
+        linear-gradient(180deg, rgba(3,15,39,.99), rgba(3,12,31,.99));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 18px 34px rgba(2,8,23,.22);
+}
+
+.task-progress-head {
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:14px;
+}
+
+.task-progress-title {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.task-progress-icon {
+    flex:0 0 48px;
+    width:48px;
+    height:48px;
+    display:grid;
+    place-items:center;
+}
+
+.task-progress-icon img {
+    display:block;
+    width:48px;
+    height:48px;
+}
+
+.task-progress-title h2 {
+    margin:0;
+    color:#f8fbff;
+    font-size:24px;
+    line-height:1.1;
+    font-weight:1000;
+}
+
+.task-progress-title small {
+    display:block;
+    margin-top:5px;
+    color:#a7b9d8;
+    font-size:13px;
+    font-weight:800;
+}
+
+.task-progress-summary {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:0 0 auto;
+}
+
+.task-summary-card {
+    min-width:156px;
+    min-height:58px;
+    display:grid;
+    grid-template-columns:26px minmax(0, 1fr);
+    align-items:center;
+    gap:10px;
+    padding:9px 14px;
+    border-radius:13px;
+    color:#fff;
+    background:linear-gradient(180deg, rgba(8,31,70,.82), rgba(5,24,55,.9));
+    border:1px solid rgba(48,161,255,.28);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 24px rgba(2,8,23,.18);
+}
+
+.task-summary-dot {
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    background:#10d58f;
+    box-shadow:0 0 18px rgba(16,213,143,.5);
+}
+
+.task-summary-card.progress .task-summary-dot {
+    background:#1688f5;
+    box-shadow:0 0 18px rgba(22,136,245,.5);
+}
+
+.task-summary-card b {
+    display:block;
+    color:#f8fbff;
+    font-size:13px;
+    font-weight:900;
+    line-height:1.1;
+}
+
+.task-summary-card strong {
+    display:inline-block;
+    margin-top:5px;
+    color:#10d58f;
+    font-size:22px;
+    line-height:1;
+    font-weight:1000;
+}
+
+.task-summary-card.progress strong {
+    color:#1688f5;
+}
+
+.task-summary-card em {
+    margin-left:6px;
+    color:#b8c7e4;
+    font-size:12px;
+    font-style:normal;
+    font-weight:800;
+}
 
 .panel-head {
     position:relative;
@@ -1524,29 +1994,164 @@
     overflow-wrap:anywhere;
 }
 
+.panel-project-overview {
+    padding:22px 24px;
+    border:1px solid rgba(59,130,246,.26);
+    border-radius:18px;
+    background:
+        radial-gradient(circle at 82% 16%, rgba(20,184,166,.08), transparent 30%),
+        linear-gradient(180deg, rgba(8,27,57,.98), rgba(7,22,46,.99));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 18px 34px rgba(2,8,23,.2);
+}
+
+.panel-project-overview .panel-head {
+    margin-bottom:24px;
+}
+
 .project-overview-title-row {
     min-width:0;
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:16px;
     flex-wrap:wrap;
 }
 
-.project-overview-title-row h2,
-.project-overview-title-row h3 {
+.project-overview-title-icon {
+    width:58px !important;
+    height:58px !important;
+    flex:0 0 58px;
+    display:grid;
+    place-items:center;
+}
+
+.project-overview-title-icon img {
+    display:block;
+    width:58px;
+    height:58px;
+}
+
+.project-overview-title-copy {
+    min-width:0;
+    display:block;
+}
+
+.project-overview-title-row h2 {
     margin:0;
     min-width:0;
     color:#f6fbff;
-    font-size:16px;
-    line-height:1.15;
-    font-weight:900;
+    font-size:27px;
+    line-height:1.1;
+    font-weight:1000;
     overflow-wrap:anywhere;
 }
 
-.project-overview-title-row > span {
-    width:1px;
-    height:18px;
-    background:rgba(217,228,251,.34);
+.project-overview-title-row small {
+    display:block;
+    margin-top:8px;
+    color:#a7b9d8;
+    font-size:14px;
+    font-weight:800;
+}
+
+.project-overview-action {
+    min-width:142px;
+    min-height:44px;
+    display:inline-flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    padding:0 18px !important;
+    border-radius:14px !important;
+    background:linear-gradient(135deg, rgba(31,74,205,.96), rgba(34,67,168,.9)) !important;
+    border:2px solid rgba(83,139,255,.86) !important;
+    color:#f7fbff !important;
+    font-size:14px !important;
+    font-weight:900 !important;
+    line-height:1 !important;
+    letter-spacing:0;
+    box-shadow:
+        0 0 0 1px rgba(147,197,253,.18),
+        0 16px 28px rgba(37,99,235,.2),
+        inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+.project-overview-action.team {
+    min-width:150px;
+    background:linear-gradient(135deg, rgba(13,148,136,.94), rgba(16,121,111,.88)) !important;
+    border-color:rgba(45,212,191,.82) !important;
+    box-shadow:
+        0 0 0 1px rgba(153,246,228,.14),
+        0 16px 28px rgba(20,184,166,.18),
+        inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+.project-overview-action:hover {
+    transform:translateY(-1px);
+    filter:brightness(1.05);
+}
+
+.project-overview-action-icon {
+    position:relative;
+    flex:0 0 15px;
+    width:15px;
+    height:15px;
+    display:inline-block;
+}
+
+.project-overview-action-icon.details {
+    border:2px solid currentColor;
+    border-radius:3px;
+    opacity:.95;
+}
+
+.project-overview-action-icon.details::before,
+.project-overview-action-icon.details::after {
+    content:"";
+    position:absolute;
+    left:2px;
+    right:2px;
+    height:2px;
+    border-radius:999px;
+    background:currentColor;
+    box-shadow:0 5px 0 currentColor;
+}
+
+.project-overview-action-icon.details::before {
+    top:3px;
+}
+
+.project-overview-action-icon.details::after {
+    top:11px;
+    left:10px;
+    right:auto;
+    width:3px;
+    height:3px;
+    border-radius:50%;
+    box-shadow:none;
+}
+
+.project-overview-action-icon.team::before {
+    content:"";
+    position:absolute;
+    left:6px;
+    top:1px;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:currentColor;
+    box-shadow:-6px 6px 0 -1px currentColor, 6px 6px 0 -1px currentColor;
+}
+
+.project-overview-action-icon.team::after {
+    content:"";
+    position:absolute;
+    left:1px;
+    right:1px;
+    bottom:1px;
+    height:8px;
+    border-radius:8px 8px 3px 3px;
+    background:currentColor;
+    clip-path:polygon(38% 0, 62% 0, 100% 100%, 0 100%);
 }
 
 .panel-actions {
@@ -1603,27 +2208,27 @@
 }
 
 .dot {
-    width:10px;
-    height:10px;
+    width:11px;
+    height:11px;
     border-radius:50%;
     display:inline-block;
     margin-right:8px;
-    box-shadow:0 0 12px currentColor;
+    box-shadow:0 0 14px currentColor;
 }
 
-.dot.green { color:#10d58f; background:#10d58f; }
-.dot.blue { color:#1688f5; background:#1688f5; }
-.dot.orange { color:#fb9a13; background:#fb9a13; }
+.dot.green { color:#7bdc49; background:#7bdc49; }
+.dot.blue { color:#2693f4; background:#2693f4; }
+.dot.orange { color:#ff9f1c; background:#ff9f1c; }
 .dot.pink { color:#ff2d62; background:#ff2d62; }
-.dot.purple { color:#8b4df4; background:#8b4df4; }
-.dot.violet { color:#a855f7; background:#a855f7; }
-.dot.cyan { color:#22c7f5; background:#22c7f5; }
-.dot.lime { color:#52d11f; background:#52d11f; }
-.dot.warning { color:#f59e0b; background:#f59e0b; }
-.dot.info { color:#22c7f5; background:#22c7f5; }
+.dot.purple { color:#8b5cf6; background:#8b5cf6; }
+.dot.violet { color:#b45cff; background:#b45cff; }
+.dot.cyan { color:#13d6c9; background:#13d6c9; }
+.dot.lime { color:#78df22; background:#78df22; }
+.dot.warning { color:#ff9f1c; background:#ff9f1c; }
+.dot.info { color:#36a3ff; background:#36a3ff; }
 .dot.success { color:#10d58f; background:#10d58f; }
 .dot.primary { color:#3b82f6; background:#3b82f6; }
-.dot.danger { color:#ef4444; background:#ef4444; }
+.dot.danger { color:#ff4747; background:#ff4747; }
 .dot.dark { color:#64748b; background:#64748b; }
 .dot.secondary { color:#94a3b8; background:#94a3b8; }
 .dot.muted { color:#64748b; background:#64748b; }
@@ -1703,7 +2308,7 @@
     position:relative;
     z-index:1;
     display:grid;
-    gap:8px;
+    gap:12px;
     min-width:0;
     max-width:100%;
 }
@@ -1712,8 +2317,8 @@
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:minmax(0, 1.72fr) minmax(320px, .88fr);
-    gap:18px;
+    grid-template-columns:minmax(0, 1.95fr) minmax(350px, .88fr);
+    gap:28px;
     align-items:stretch;
 }
 
@@ -1721,37 +2326,50 @@
     min-width:0;
     display:grid;
     grid-template-rows:minmax(0, 1fr);
-    padding:0 0 0 6px;
-    border:0;
-    border-radius:0;
-    background:transparent;
+    padding:0;
 }
 
 .project-overview-search {
+    position:relative;
     min-width:0;
-    display:grid;
-    gap:4px;
+    display:block;
     color:#8fa4c8;
     font-size:11px;
     font-weight:900;
 }
 
+.project-overview-search-label {
+    display:none;
+}
+
+.project-overview-search i {
+    position:absolute;
+    left:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#b8c7e4;
+    font-size:26px;
+    font-style:normal;
+    z-index:1;
+}
+
 .project-overview-search input {
     width:100%;
     min-width:0;
-    height:38px;
+    height:54px;
     box-sizing:border-box;
-    border:1px solid rgba(217,228,251,.16);
-    border-radius:10px;
+    border:1px solid rgba(59,130,246,.22);
+    border-radius:13px;
     outline:none;
-    padding:0 13px;
-    background:rgba(255,255,255,.055);
+    padding:0 18px 0 58px;
+    background:linear-gradient(180deg, rgba(26,48,90,.9), rgba(18,38,76,.86));
     color:#f4f8ff !important;
     -webkit-text-fill-color:#f4f8ff;
     caret-color:#f4f8ff;
     font-family:'Prompt', sans-serif;
-    font-size:12px;
+    font-size:15px;
     font-weight:900;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
 }
 
 .project-overview-search input::placeholder {
@@ -1771,9 +2389,10 @@
 .project-overview-head,
 .project-overview-row {
     display:grid;
-    grid-template-columns:minmax(0, 1.7fr) 112px 96px 96px;
+    grid-template-columns:68px minmax(0, 1fr) 150px 220px;
+    grid-template-rows:auto auto;
     align-items:center;
-    gap:10px;
+    gap:6px 18px;
     min-width:0;
 }
 
@@ -1792,9 +2411,9 @@
 .project-overview-scroll {
     display:flex;
     flex-direction:column;
-    gap:6px;
-    height:250px;
-    max-height:250px;
+    gap:14px;
+    height:clamp(430px, 46vh, 520px);
+    max-height:clamp(430px, 46vh, 520px);
     overflow-y:auto;
     overflow-x:hidden;
     padding-right:4px;
@@ -1825,72 +2444,211 @@
 
 .project-overview-row {
     flex:0 0 auto;
-    min-height:44px;
+    position:relative;
+    min-height:78px;
     box-sizing:border-box;
-    padding:7px 10px;
-    border:1px solid rgba(217,228,251,.08);
-    border-radius:10px;
-    background:rgba(255,255,255,.035);
+    padding:14px 22px 14px 26px;
+    border:1px solid rgba(59,130,246,.18);
+    border-radius:14px;
+    background:linear-gradient(180deg, rgba(24,48,92,.76), rgba(16,37,76,.76));
     color:inherit;
     text-decoration:none;
-    transition:background .18s ease, transform .18s ease, border-color .18s ease;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 10px 22px rgba(2,8,23,.16);
+    overflow:hidden;
+    transition:background .18s ease, transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.project-overview-row::before {
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:5px;
+    background:var(--project-row-accent, #2d8cff);
+    box-shadow:0 0 20px var(--project-row-accent, #2d8cff);
 }
 
 .project-overview-row:hover {
-    background:rgba(255,255,255,.06);
-    border-color:rgba(20,184,166,.24);
+    background:linear-gradient(180deg, rgba(29,57,108,.86), rgba(18,43,86,.86));
+    border-color:rgba(96,165,250,.36);
     color:inherit;
-    transform:translateX(2px);
+    transform:translateX(3px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 14px 28px rgba(2,8,23,.22);
 }
+
+.project-overview-row:nth-of-type(5n + 1) { --project-row-accent:#2d8cff; --project-row-icon-bg:linear-gradient(135deg,#1d4ed8,#0ea5e9); }
+.project-overview-row:nth-of-type(5n + 2) { --project-row-accent:#14b8a6; --project-row-icon-bg:linear-gradient(135deg,#0f766e,#22d3ee); }
+.project-overview-row:nth-of-type(5n + 3) { --project-row-accent:#8b5cf6; --project-row-icon-bg:linear-gradient(135deg,#6d28d9,#a78bfa); }
+.project-overview-row:nth-of-type(5n + 4) { --project-row-accent:#fb923c; --project-row-icon-bg:linear-gradient(135deg,#c2410c,#fb923c); }
+.project-overview-row:nth-of-type(5n + 5) { --project-row-accent:#ec4899; --project-row-icon-bg:linear-gradient(135deg,#be185d,#f472b6); }
 
 .project-overview-row.is-filter-hidden {
     display:none !important;
 }
 
+.project-overview-icon {
+    grid-row:1 / span 2;
+    width:52px;
+    height:52px;
+    border-radius:11px;
+    display:grid;
+    place-items:center;
+    background:var(--project-row-icon-bg, linear-gradient(135deg,#1d4ed8,#0ea5e9));
+    border:1px solid rgba(255,255,255,.24);
+    box-shadow:0 12px 22px rgba(2,8,23,.22), inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+.project-overview-icon::before {
+    content:"▦";
+    color:#e0f2fe;
+    font-size:23px;
+    font-weight:900;
+}
+
+.project-overview-row:nth-of-type(5n + 2) .project-overview-icon::before { content:"◎"; }
+.project-overview-row:nth-of-type(5n + 3) .project-overview-icon::before { content:"▭"; }
+.project-overview-row:nth-of-type(5n + 4) .project-overview-icon::before { content:"⌁"; }
+.project-overview-row:nth-of-type(5n + 5) .project-overview-icon::before { content:"●"; }
+
+.project-overview-name-wrap {
+    grid-row:1 / span 2;
+    min-width:0;
+    display:block;
+}
+
 .project-overview-name {
     min-width:0;
     color:#f4f8ff;
-    font-size:12px;
+    font-size:14px;
     font-weight:900;
-    line-height:1.2;
+    line-height:1.35;
     white-space:normal;
     overflow-wrap:break-word;
     word-break:normal;
 }
 
 .project-overview-status {
+    grid-row:1 / span 2;
     justify-self:center;
-    color:#1688f5;
-    font-size:11px;
+    min-width:128px;
+    min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 12px;
+    border-radius:999px;
+    color:#60a5fa;
+    background:rgba(37,99,235,.18);
+    border:1px solid rgba(96,165,250,.22);
+    font-size:14px;
     font-weight:900;
     text-align:center;
     white-space:nowrap;
 }
 
-.project-overview-status.green { color:#10d58f; }
-.project-overview-status.orange { color:#fb9a13; }
-.project-overview-status.purple { color:#b16cff; }
-.project-overview-status.blue { color:#30a1ff; }
-.project-overview-status.pink { color:#ff4f7f; }
+.project-overview-status.green {
+    color:#10d58f;
+    background:rgba(16,213,143,.14);
+    border-color:rgba(16,213,143,.28);
+}
+
+.project-overview-status.orange {
+    color:#fb9a13;
+    background:rgba(251,154,19,.14);
+    border-color:rgba(251,154,19,.3);
+}
+
+.project-overview-status.purple {
+    color:#b16cff;
+    background:rgba(177,108,255,.14);
+    border-color:rgba(177,108,255,.28);
+}
+
+.project-overview-status.blue {
+    color:#30a1ff;
+    background:rgba(48,161,255,.14);
+    border-color:rgba(48,161,255,.3);
+}
+
+.project-overview-status.pink {
+    color:#ff4f7f;
+    background:rgba(255,79,127,.14);
+    border-color:rgba(255,79,127,.28);
+}
 
 .project-overview-date {
+    position:relative;
     min-width:0;
-    justify-self:center;
-    display:flex;
+    grid-column:4;
+    grid-row:1;
+    justify-self:start;
+    display:grid;
+    grid-template-columns:auto auto;
+    gap:4px 8px;
     align-items:center;
-    justify-content:center;
+    justify-content:start;
+    padding-left:24px;
+}
+
+.project-overview-date::after {
+    content:"";
+    position:absolute;
+    left:0;
+    top:-2px;
+    bottom:-2px;
+    border-left:1px dashed rgba(148,163,184,.28);
 }
 
 .project-overview-mobile-label {
-    display:none !important;
+    display:inline !important;
+    color:#a9b8d6;
+    font-size:12px;
+    font-weight:800;
 }
 
 .project-overview-row time {
     color:#d9e4fb;
-    font-size:11px;
+    font-size:13px;
     font-weight:900;
     text-align:center;
     white-space:nowrap;
+}
+
+.project-overview-date::before {
+    content:"▣";
+    grid-row:1 / span 2;
+    align-self:center;
+    color:#b8c7e4;
+    font-size:14px;
+}
+
+.project-overview-date + .project-overview-date {
+    grid-column:4;
+    grid-row:2;
+    margin-top:0;
+}
+
+.project-overview-date .project-overview-mobile-label {
+    grid-column:2;
+}
+
+.project-overview-date time {
+    grid-column:2;
+}
+
+@@container (max-width:560px) {
+    .project-overview-row {
+        grid-template-columns:48px minmax(0, 1fr) !important;
+    }
+
+    .project-overview-date {
+        grid-column:2 !important;
+        justify-self:start !important;
+    }
+
+    .project-overview-status {
+        grid-column:2 !important;
+        justify-self:start !important;
+    }
 }
 
 @@container (max-width:1100px) {
@@ -1926,22 +2684,22 @@
     }
 
     .project-overview-scroll {
-        height:250px;
-        max-height:250px;
+        height:clamp(430px, 46vh, 520px);
+        max-height:clamp(430px, 46vh, 520px);
         overflow-x:hidden;
         padding-right:5px;
     }
 
     .project-overview-row {
         display:grid !important;
-        grid-template-columns:minmax(0, 1fr) max-content !important;
+        grid-template-columns:56px minmax(0, 1fr) 132px 180px !important;
         align-items:center !important;
         justify-content:stretch !important;
         min-width:0 !important;
-        min-height:48px !important;
+        min-height:74px !important;
         height:auto !important;
-        gap:10px !important;
-        padding:9px 12px !important;
+        gap:10px 14px !important;
+        padding:12px 14px 12px 18px !important;
     }
 
     .project-overview-row:hover {
@@ -1963,14 +2721,15 @@
     }
 
     .project-overview-status {
-        justify-self:end !important;
+        justify-self:center !important;
         width:auto !important;
-        min-height:0 !important;
+        min-height:32px !important;
+        min-width:0 !important;
         display:inline-flex !important;
         align-items:center;
-        justify-content:flex-end;
-        padding:0 !important;
-        text-align:right !important;
+        justify-content:center;
+        padding:0 10px !important;
+        text-align:center !important;
         white-space:nowrap !important;
         line-height:1.1 !important;
     }
@@ -1979,9 +2738,40 @@
         content:none !important;
     }
 
-    .project-overview-date,
+    .project-overview-date {
+        grid-column:4 !important;
+        grid-row:1 !important;
+        position:relative;
+        display:inline-flex !important;
+        align-items:center !important;
+        justify-content:flex-start !important;
+        gap:4px !important;
+        min-width:0 !important;
+        padding-left:18px !important;
+        white-space:nowrap !important;
+    }
+
+    .project-overview-date + .project-overview-date {
+        grid-column:4 !important;
+        grid-row:2 !important;
+        margin-top:0 !important;
+    }
+
     .project-overview-mobile-label {
-        display:none !important;
+        display:inline !important;
+        color:#8fa4c8;
+        font-size:10px;
+        font-weight:800;
+    }
+
+    .project-overview-icon {
+        width:48px;
+        height:48px;
+        border-radius:10px;
+    }
+
+    .project-overview-icon::before {
+        font-size:18px;
     }
 }
 
@@ -2039,20 +2829,82 @@
 
 .project-status-inline .donut-layout {
     min-height:100%;
-    width:min(100%, 440px);
+    width:100%;
     grid-template-columns:1fr;
     justify-items:center;
     align-content:center;
     justify-self:center;
-    gap:14px;
+    gap:16px;
 }
 
 .project-status-donut-layout {
-    width:min(100%, 360px);
+    width:100%;
+    min-height:100%;
+    padding:28px 26px;
+    border:1px solid rgba(59,130,246,.28);
+    border-radius:15px;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(37,99,235,.18), transparent 40%),
+        linear-gradient(180deg, rgba(12,35,75,.88), rgba(8,27,57,.88));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 14px 28px rgba(2,8,23,.18);
+    grid-template-columns:1fr;
+    justify-items:center;
+    align-content:center;
+    gap:18px;
 }
 
 .project-status-donut {
-    width:min(190px, 100%);
+    width:min(250px, 100%);
+    box-shadow:0 0 28px rgba(22,136,245,.28), 0 14px 30px rgba(2,8,23,.24);
+}
+
+.project-status-donut > div {
+    width:124px;
+    background:#102345;
+    box-shadow:inset 0 0 28px rgba(15,23,42,.22);
+}
+
+.project-status-donut strong {
+    font-size:42px;
+}
+
+.project-status-card-title {
+    justify-self:start;
+    width:100%;
+    margin:0;
+    color:#f6fbff;
+    font-size:17px;
+    font-weight:900;
+}
+
+.project-status-updated {
+    width:100%;
+    color:#8fa4c8;
+    font-size:12px;
+    font-weight:600;
+}
+
+.project-status-donut-layout .metric-list {
+    width:100%;
+    gap:10px;
+}
+
+.project-status-donut-layout .metric-list > span {
+    min-height:50px;
+    padding:0 16px;
+    border:1px solid rgba(96,165,250,.16);
+    border-radius:10px;
+    background:rgba(15,35,70,.72);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.project-status-donut-layout .metric-name {
+    font-size:14px;
+}
+
+.project-status-donut-layout .metric-list b {
+    color:#dbeafe;
+    font-size:14px;
 }
 
 .project-status-pyramid-layout {
@@ -2410,7 +3262,7 @@
 
 .panel-issues .compact-donut-layout {
     grid-template-columns:1fr;
-    gap:14px;
+    gap:12px;
     min-height:0;
     justify-items:center;
     align-content:start;
@@ -2418,11 +3270,11 @@
 }
 
 .panel-issues .overview-pie3d {
-    width:min(100%, 220px);
+    width:min(100%, 318px);
 }
 
 .panel-issues .overview-pie3d-total {
-    font-size:20px;
+    font-size:22px;
 }
 
 .panel-issues .overview-pie3d-caption {
@@ -2448,16 +3300,19 @@
 .panel-issues .metric-list.slim {
     width:100%;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:7px;
-    font-size:11px;
+    gap:9px 12px;
+    font-size:13px;
 }
 
 .panel-issues .metric-list > span {
-    grid-template-columns:auto max-content max-content;
-    padding:5px 7px;
-    border:1px solid rgba(217,228,251,.08);
-    border-radius:999px;
-    background:rgba(255,255,255,.04);
+    min-height:44px;
+    grid-template-columns:auto minmax(72px, 1fr) max-content;
+    gap:10px;
+    padding:0 14px;
+    border:1px solid rgba(96,165,250,.16);
+    border-radius:10px;
+    background:linear-gradient(180deg, rgba(23,47,91,.78), rgba(10,29,62,.82));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
 }
 
 .panel-issues .metric-name {
@@ -2492,41 +3347,105 @@
     width:100%;
     height:auto;
     overflow:visible;
+    shape-rendering:geometricPrecision;
 }
 
 .overview-pie3d-shadow {
-    fill:rgba(226,232,255,.11);
-    filter:blur(.6px);
+    fill:rgba(61,91,142,.3);
+    filter:blur(1.8px);
 }
 
 .overview-pie3d-depth path {
-    opacity:.9;
+    opacity:.96;
+    stroke:rgba(3,10,28,.16);
+    stroke-width:.35;
+    filter:drop-shadow(0 9px 10px rgba(3,10,28,.28));
 }
 
 .overview-pie3d-top path {
-    stroke:rgba(255,255,255,.18);
-    stroke-width:1;
-    filter:drop-shadow(0 7px 7px rgba(3,10,28,.14));
+    stroke:rgba(3,10,28,.16);
+    stroke-width:.32;
+    stroke-linejoin:round;
+    stroke-linecap:round;
+    filter:
+        saturate(1.3) contrast(1.14)
+        drop-shadow(0 6px 10px rgba(3,10,28,.2));
 }
 
-.overview-pie3d-leaders line {
-    stroke:rgba(239,246,255,.92);
+.overview-pie3d-gloss path {
+    mix-blend-mode:screen;
+    opacity:.22;
+    pointer-events:none;
+}
+
+.overview-pie3d-rim {
+    fill:none;
+    pointer-events:none;
+}
+
+.overview-pie3d-rim.outer {
+    stroke:rgba(255,255,255,.22);
+    stroke-width:.55;
+    filter:drop-shadow(0 0 4px rgba(125,211,252,.12));
+}
+
+.overview-pie3d-rim.outer-soft {
+    stroke:rgba(125,211,252,.2);
     stroke-width:2.2;
+    filter:blur(.28px) drop-shadow(0 0 7px rgba(34,211,238,.16));
+}
+
+.overview-pie3d-rim.inner {
+    stroke-width:1.65;
+    filter:
+        drop-shadow(0 -1px 3px rgba(255,255,255,.1))
+        drop-shadow(0 5px 12px rgba(3,10,28,.68));
+}
+
+.overview-pie3d-leaders line,
+.overview-pie3d-leaders polyline {
+    fill:none;
+    stroke:rgba(239,246,255,.94);
+    stroke-width:1.55;
+    stroke-linejoin:round;
     stroke-linecap:round;
     vector-effect:non-scaling-stroke;
-    filter:drop-shadow(0 2px 3px rgba(3,10,28,.48));
+    filter:drop-shadow(0 1px 3px rgba(3,10,28,.48));
+}
+
+.overview-pie3d-leaders {
+    display:none;
 }
 
 .overview-pie3d-leaders circle {
     fill:#eff6ff;
     stroke:rgba(15,23,42,.34);
-    stroke-width:.7;
-    filter:drop-shadow(0 2px 3px rgba(3,10,28,.42));
+    stroke-width:.45;
+    filter:drop-shadow(0 1px 2px rgba(3,10,28,.36));
 }
 
 .overview-pie3d-center {
-    fill:#132241;
-    filter:drop-shadow(0 4px 7px rgba(3,10,28,.22));
+    filter:
+        drop-shadow(0 -2px 5px rgba(255,255,255,.1))
+        drop-shadow(0 9px 15px rgba(3,10,28,.5));
+}
+
+.overview-pie3d-center-shadow {
+    fill:rgba(2,8,23,.42);
+    filter:blur(.65px);
+    pointer-events:none;
+}
+
+.overview-pie3d-center-highlight {
+    fill:rgba(54,163,255,.08);
+    filter:blur(.7px);
+    pointer-events:none;
+}
+
+.overview-pie3d-center-core {
+    fill:rgba(6,17,42,.5);
+    filter:blur(.18px);
+    pointer-events:none;
 }
 
 .overview-pie3d-total,
@@ -2542,21 +3461,21 @@
 }
 
 .overview-pie3d-total {
-    font-size:18px;
+    font-size:20px;
 }
 
 .overview-pie3d-caption {
-    font-size:8px;
+    font-size:9px;
     fill:#dbeafe;
 }
 
 .overview-pie3d-labels text {
-    font-size:10px;
+    font-size:9.2px;
     font-style:italic;
-    font-weight:800;
-    stroke:rgba(15,23,42,.48);
-    stroke-width:1.2px;
-    filter:drop-shadow(0 2px 4px rgba(3,10,28,.36));
+    font-weight:900;
+    stroke:rgba(15,23,42,.62);
+    stroke-width:1.05px;
+    filter:drop-shadow(0 2px 4px rgba(3,10,28,.4));
 }
 
 .time-pie3d {
@@ -2629,8 +3548,8 @@
     z-index:1;
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:14px;
-    min-height:232px;
+    gap:18px;
+    min-height:380px;
     align-items:center;
     align-content:center;
     justify-content:center;
@@ -2639,19 +3558,30 @@
 .overview-mini {
     min-width:0;
     display:grid;
-    gap:12px;
-    padding:16px;
+    gap:18px;
+    padding:18px 20px 20px;
     align-self:center;
-    border:1px solid rgba(217,228,251,.1);
-    border-radius:12px;
-    background:rgba(255,255,255,.035);
+    min-height:100%;
+    border:1px solid rgba(96,165,250,.24);
+    border-radius:14px;
+    background:
+        radial-gradient(circle at 48% 42%, rgba(0,108,255,.14), transparent 42%),
+        linear-gradient(180deg, rgba(8,30,66,.72), rgba(5,20,48,.84));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.overview-mini:nth-child(2) {
+    border-color:rgba(20,184,166,.26);
+    background:
+        radial-gradient(circle at 48% 42%, rgba(20,184,166,.12), transparent 42%),
+        linear-gradient(180deg, rgba(5,38,54,.72), rgba(4,21,42,.84));
 }
 
 .overview-mini-head {
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:8px;
+    gap:14px;
     min-width:0;
 }
 
@@ -2659,15 +3589,126 @@
     margin:0;
     min-width:0;
     color:#f6fbff;
-    font-size:13px;
+    font-size:18px;
     line-height:1.15;
-    font-weight:900;
+    font-weight:1000;
     overflow-wrap:anywhere;
 }
 
-.overview-mini-head .panel-filter {
-    padding:6px 10px;
-    font-size:10px;
+.overview-mini-head small {
+    display:block;
+    margin-top:6px;
+    color:#9fb0d0;
+    font-size:13px;
+    font-weight:800;
+}
+
+.issues-overview-head {
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:18px;
+}
+
+.issues-overview-icon {
+    width:58px;
+    height:58px;
+    flex:0 0 58px;
+    display:grid;
+    place-items:center;
+}
+
+.issues-overview-icon img,
+.overview-mini-icon img {
+    display:block;
+    width:100%;
+    height:100%;
+}
+
+.issues-overview-head h2 {
+    margin:0;
+    color:#f8fbff;
+    font-size:27px;
+    line-height:1.1;
+    font-weight:1000;
+}
+
+.issues-overview-head small {
+    display:block;
+    margin-top:8px;
+    color:#a7b9d8;
+    font-size:14px;
+    font-weight:800;
+}
+
+.overview-mini-title {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.overview-mini-icon {
+    width:46px;
+    height:46px;
+    flex:0 0 46px;
+    display:grid;
+    place-items:center;
+}
+
+.overview-detail-btn {
+    min-width:112px;
+    min-height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:0 15px;
+    border-radius:999px;
+    color:#f8fbff;
+    text-decoration:none;
+    font-size:13px;
+    font-weight:900;
+    border:1px solid rgba(96,165,250,.35);
+    background:rgba(37,99,235,.18);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.overview-detail-btn.green {
+    border-color:rgba(20,184,166,.38);
+    background:rgba(20,184,166,.16);
+}
+
+.overview-detail-btn:hover {
+    color:#fff;
+    transform:translateY(-1px);
+}
+
+.overview-detail-btn i {
+    width:8px;
+    height:8px;
+    border:solid currentColor;
+    border-width:0 2px 2px 0;
+    transform:rotate(-45deg);
+}
+
+.issues-overview-foot {
+    position:relative;
+    z-index:1;
+    min-height:38px;
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    color:#9fb0d0;
+    font-size:13px;
+    font-weight:800;
+    border:1px solid rgba(96,165,250,.12);
+    border-radius:10px;
+    background:rgba(7,24,54,.56);
 }
 
 .empty-state,
@@ -2719,309 +3760,6 @@
 .panel-team .workload-list {
     grid-template-columns:1fr;
     gap:10px;
-}
-
-.watch-list {
-    position:relative;
-    z-index:1;
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    align-items:stretch;
-    grid-auto-rows:1fr;
-    gap:12px;
-}
-
-.watch-row {
-    --watch-accent:#1688f5;
-    --watch-accent-soft:rgba(22,136,245,.16);
-    --watch-accent-deep:rgba(22,136,245,.08);
-    display:grid;
-    grid-template-columns:minmax(0, 1fr) 46px minmax(112px, .38fr);
-    gap:8px 12px;
-    align-items:center;
-    height:100%;
-    min-height:118px;
-    padding:14px 14px 20px;
-    border-radius:12px;
-    color:inherit;
-    text-decoration:none;
-    background:rgba(20,39,74,.74);
-    border:1px solid rgba(217,228,251,.13);
-    box-shadow:0 12px 24px rgba(3,10,28,.2), inset 0 1px 0 rgba(255,255,255,.1);
-    min-width:0;
-    overflow:hidden;
-    transition:background .18s ease, transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-}
-
-.watch-row::before {
-    content:"";
-    position:absolute;
-    left:12px;
-    right:12px;
-    top:0;
-    height:2px;
-    border-radius:999px;
-    background:var(--watch-accent);
-    opacity:0;
-    transition:opacity .18s ease, box-shadow .18s ease;
-}
-
-.watch-row::after {
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    border-radius:inherit;
-    background:radial-gradient(circle at 18% 18%, var(--watch-accent-soft), transparent 42%);
-    opacity:0;
-    transition:opacity .18s ease;
-}
-
-.watch-row:hover {
-    background:rgba(22,43,82,.9);
-    border-color:color-mix(in srgb, var(--watch-accent), #ffffff 24%);
-    box-shadow:
-        0 16px 30px rgba(3,10,28,.24),
-        0 0 0 1px color-mix(in srgb, var(--watch-accent), transparent 52%),
-        0 0 24px var(--watch-accent-deep),
-        inset 0 1px 0 rgba(255,255,255,.12);
-    transform:translateY(-1px);
-}
-
-.watch-row:hover::before {
-    opacity:1;
-    box-shadow:0 0 14px var(--watch-accent);
-}
-
-.watch-row:hover::after {
-    opacity:1;
-}
-
-.watch-row.pink {
-    --watch-accent:#ff3f7c;
-    --watch-accent-soft:rgba(255,63,124,.18);
-    --watch-accent-deep:rgba(255,63,124,.08);
-}
-
-.watch-row.orange {
-    --watch-accent:#fb9a13;
-    --watch-accent-soft:rgba(251,154,19,.18);
-    --watch-accent-deep:rgba(251,154,19,.08);
-}
-
-.watch-row.blue {
-    --watch-accent:#1688f5;
-    --watch-accent-soft:rgba(22,136,245,.16);
-    --watch-accent-deep:rgba(22,136,245,.08);
-}
-
-.watch-main,
-.watch-status,
-.watch-progress,
-.watch-reasons {
-    position:relative;
-    z-index:1;
-    min-width:0;
-}
-
-.watch-main b {
-    display:block;
-    color:#fff;
-    font-size:13px;
-    line-height:1.25;
-    font-weight:900;
-    overflow-wrap:anywhere;
-}
-
-.watch-head {
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    min-width:0;
-}
-
-.watch-avatar {
-    width:44px;
-    height:44px;
-    flex:0 0 44px;
-    border-radius:50%;
-    object-fit:cover;
-    display:block;
-    background:#fff;
-    border:2px solid #14b8a6;
-    box-shadow:0 10px 22px rgba(3,10,28,.26);
-}
-
-.watch-title-wrap {
-    display:block;
-    min-width:0;
-}
-
-.watch-title-wrap small {
-    margin-top:4px;
-}
-
-.watch-main small,
-.watch-status small,
-.watch-meta small {
-    display:block;
-    color:#9fb0d0;
-    font-size:11px;
-    line-height:1.25;
-    font-weight:800;
-    overflow-wrap:anywhere;
-}
-
-.watch-meta {
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-top:5px;
-    min-width:0;
-    flex-wrap:wrap;
-}
-
-.watch-meta small {
-    margin-top:0;
-    white-space:nowrap;
-}
-
-.watch-status {
-    grid-column:3;
-    justify-self:end;
-    text-align:right;
-}
-
-.risk-pill {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:0;
-    background:transparent !important;
-    font-size:11px;
-    font-style:normal;
-    font-weight:900;
-    line-height:1.15;
-}
-
-.risk-pill.pink { color:#ff4f7f; }
-.risk-pill.orange { color:#ffad33; }
-.risk-pill.blue { color:#47c7ff; }
-
-.watch-progress {
-    grid-column:2;
-    grid-row:1 / span 2;
-    align-self:center;
-    justify-self:center;
-    display:grid;
-    place-items:center;
-}
-
-.energy-tube {
-    --energy:#1688f5;
-    --energy-dark:#0d5faf;
-    position:relative;
-    width:28px;
-    height:62px;
-    display:block;
-    border-radius:16px 16px 10px 10px;
-    background:linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.04) 34%, rgba(3,10,28,.3));
-    border:1px solid rgba(217,228,251,.24);
-    box-shadow:
-        0 10px 18px rgba(3,10,28,.24),
-        inset 0 1px 0 rgba(255,255,255,.28),
-        inset -6px 0 9px rgba(3,10,28,.2);
-    overflow:visible;
-}
-
-.energy-tube::before {
-    content:"";
-    position:absolute;
-    left:6px;
-    right:6px;
-    top:3px;
-    height:6px;
-    border-radius:8px 8px 3px 3px;
-    background:linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.1));
-    border:1px solid rgba(217,228,251,.18);
-}
-
-.energy-tube::after {
-    content:"";
-    position:absolute;
-    inset:13px 6px 7px;
-    border-radius:11px 11px 7px 7px;
-    background:
-        linear-gradient(90deg, rgba(255,255,255,.18), transparent 34%, rgba(0,0,0,.14) 100%),
-        rgba(5,15,35,.68);
-    box-shadow:inset 0 0 12px rgba(3,10,28,.72);
-}
-
-.energy-tube i {
-    position:absolute;
-    z-index:1;
-    left:6px;
-    right:6px;
-    bottom:7px;
-    min-height:4px;
-    border-radius:10px 10px 7px 7px;
-    background:
-        radial-gradient(circle at 38% 18%, rgba(255,255,255,.7), transparent 24%),
-        linear-gradient(180deg, color-mix(in srgb, var(--energy) 86%, white), var(--energy) 48%, var(--energy-dark));
-    box-shadow:
-        0 0 14px color-mix(in srgb, var(--energy) 62%, transparent),
-        inset 0 1px 0 rgba(255,255,255,.42),
-        inset -4px 0 8px rgba(3,10,28,.18);
-}
-
-.energy-tube em {
-    position:absolute;
-    z-index:2;
-    left:50%;
-    top:calc(100% + 4px);
-    transform:translateX(-50%);
-    width:100%;
-    min-width:0;
-    min-height:16px;
-    border-radius:0;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    background:transparent;
-    color:#f4f8ff;
-    font-size:9px;
-    font-style:normal;
-    font-weight:900;
-    line-height:1;
-    white-space:nowrap;
-}
-
-.energy-tube.pink { --energy:#ff3f7c; --energy-dark:#c81f55; }
-.energy-tube.orange { --energy:#fb9a13; --energy-dark:#c96d00; }
-.energy-tube.blue { --energy:#1688f5; --energy-dark:#0a5fb3; }
-
-.watch-percent {
-    text-align:right;
-}
-
-.watch-reasons {
-    grid-column:3;
-    align-self:center;
-    display:flex;
-    flex-wrap:wrap;
-    gap:5px;
-    justify-content:flex-end;
-}
-
-.watch-reasons i {
-    border-radius:999px;
-    padding:4px 8px;
-    color:#d9e4fb;
-    background:rgba(255,255,255,.075);
-    font-size:10px;
-    font-style:normal;
-    font-weight:900;
-    line-height:1.1;
 }
 
 .activity-row {
@@ -3244,23 +3982,27 @@
     position:relative;
     z-index:1;
     display:grid;
-    grid-template-columns:40px minmax(0, 1fr);
-    grid-template-rows:minmax(202px, auto) 20px;
+    grid-template-columns:44px minmax(0, 1fr);
+    grid-template-rows:minmax(238px, auto) 22px 28px;
     column-gap:10px;
     min-width:0;
-    padding:0 2px 0 20px;
+    padding:24px 22px 14px 22px;
+    border:1px solid rgba(48,161,255,.3);
+    border-radius:14px;
+    background:
+        radial-gradient(circle at 50% 46%, rgba(0,108,255,.16), transparent 42%),
+        linear-gradient(180deg, rgba(4,26,61,.64), rgba(3,20,48,.72));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .yearly-y-title {
     position:absolute;
-    left:-6px;
-    top:74px;
-    transform:rotate(-90deg);
-    transform-origin:left center;
-    color:rgba(217,228,251,.78);
-    font-size:10px;
+    left:24px;
+    top:22px;
+    transform:none;
+    color:#b8c7e4;
+    font-size:12px;
     font-weight:900;
-    letter-spacing:.02em;
     white-space:nowrap;
 }
 
@@ -3268,10 +4010,10 @@
     grid-column:1;
     grid-row:1;
     position:relative;
-    height:150px;
-    margin-top:24px;
-    color:rgba(217,228,251,.8);
-    font-size:10px;
+    height:190px;
+    margin-top:42px;
+    color:#d9e4fb;
+    font-size:11px;
     font-weight:900;
     line-height:1;
 }
@@ -3287,7 +4029,7 @@
     grid-row:1;
     position:relative;
     min-width:0;
-    overflow-x:auto;
+    overflow-x:hidden;
     overflow-y:hidden;
     scrollbar-color:rgba(20,184,166,.65) rgba(15,35,64,.45);
     scrollbar-width:thin;
@@ -3311,21 +4053,22 @@
     grid-column:2;
     grid-row:2;
     justify-self:center;
-    align-self:end;
-    color:rgba(217,228,251,.78);
-    font-size:10px;
+    align-self:center;
+    color:#a7b9d8;
+    font-size:12px;
     font-weight:900;
 }
 
 .bar-chart {
-    min-width:720px;
-    height:174px;
+    min-width:0;
+    width:100%;
+    height:238px;
     box-sizing:border-box;
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(58px, 1fr));
+    grid-template-columns:repeat(12, minmax(0, 1fr));
     align-items:start;
-    gap:14px;
-    padding:0 16px;
+    gap:8px;
+    padding:0 10px;
     position:relative;
     background:none;
 }
@@ -3336,20 +4079,21 @@
     z-index:0;
     left:0;
     right:0;
-    top:24px;
-    height:150px;
-    border-left:1px solid rgba(217,228,251,.36);
-    border-bottom:1px solid rgba(217,228,251,.36);
-    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.1) 0 1px, transparent 1px 25px);
+    top:42px;
+    height:190px;
+    border-left:1px solid rgba(217,228,251,.6);
+    border-bottom:1px solid rgba(217,228,251,.6);
+    background:repeating-linear-gradient(to bottom, rgba(148,163,184,.22) 0 1px, transparent 1px 38px);
     pointer-events:none;
 }
 
 .yearly-x-axis {
-    min-width:720px;
+    min-width:0;
+    width:100%;
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(58px, 1fr));
-    gap:14px;
-    padding:6px 16px 0;
+    grid-template-columns:repeat(12, minmax(0, 1fr));
+    gap:8px;
+    padding:6px 10px 0;
     color:#d9e4fb;
     font-size:11px;
     font-weight:900;
@@ -3363,28 +4107,28 @@
 }
 
 .bar-group {
-    height:150px;
-    margin-top:24px;
+    height:190px;
+    margin-top:42px;
     display:grid;
-    grid-template-columns:repeat(3, 1fr);
+    grid-template-columns:repeat(2, 1fr);
     align-items:end;
-    gap:5px;
+    gap:4px;
     position:relative;
     z-index:1;
 }
 
 .bar-group span {
-    min-height:8px;
-    border-radius:5px 5px 2px 2px;
+    min-height:6px;
+    border-radius:6px 6px 2px 2px;
     position:relative;
     display:flex;
     justify-content:center;
     overflow:visible;
-    transform-style:preserve-3d;
     box-shadow:
-        0 8px 12px rgba(3,10,28,.18),
-        inset 0 1px 0 rgba(255,255,255,.2),
-        inset -3px 0 7px rgba(3,10,28,.13);
+        0 7px 14px rgba(2,8,23,.26),
+        inset 0 1px 0 rgba(255,255,255,.32),
+        inset 0 -14px 20px rgba(4,21,49,.18),
+        0 0 22px color-mix(in srgb, currentColor 26%, transparent);
 }
 
 .bar-group span.is-zero {
@@ -3392,50 +4136,32 @@
     box-shadow:none;
 }
 
-.bar-group span::before,
-.bar-group span::after {
+.bar-group span::before {
     content:"";
     position:absolute;
     pointer-events:none;
 }
 
 .bar-group span::before {
-    left:4px;
-    right:-4px;
-    top:-5px;
-    height:6px;
-    border-radius:5px 6px 2px 2px;
-    transform:skewX(-32deg);
-    transform-origin:left bottom;
-    opacity:.9;
+    inset:0;
+    border-radius:inherit;
+    background:linear-gradient(90deg, rgba(255,255,255,.2), transparent 34% 72%, rgba(255,255,255,.08));
+    opacity:.58;
 }
 
-.bar-group span::after {
-    top:-1px;
-    right:-6px;
-    bottom:0;
-    width:6px;
-    border-radius:0 5px 2px 0;
-    transform:skewY(-36deg);
-    transform-origin:left top;
-    opacity:.86;
-}
-
-.bar-group span.is-zero::before,
-.bar-group span.is-zero::after {
+.bar-group span.is-zero::before {
     content:none;
 }
 
-.bar-group span:nth-child(1) { background:linear-gradient(180deg,#36daa0 0%, #12b77f 45%, #047c65 100%); }
-.bar-group span:nth-child(2) { background:linear-gradient(180deg,#4bdcff 0%, #1aa9ef 48%, #127be4 100%); }
-.bar-group span:nth-child(3) { background:linear-gradient(180deg,#ffc653 0%, #ffa01b 48%, #ff8400 100%); }
+.bar-group span:nth-child(1) {
+    color:#19df8b;
+    background:linear-gradient(180deg,#22df8b 0%, #10c783 54%, #07866b 100%);
+}
 
-.bar-group span:nth-child(1)::before { background:linear-gradient(90deg,#68ebb7,#2fca91); }
-.bar-group span:nth-child(1)::after { background:linear-gradient(180deg,#10a873,#05705a); }
-.bar-group span:nth-child(2)::before { background:linear-gradient(90deg,#82e7ff,#37bff5); }
-.bar-group span:nth-child(2)::after { background:linear-gradient(180deg,#159bd9,#1068be); }
-.bar-group span:nth-child(3)::before { background:linear-gradient(90deg,#ffd572,#ffad31); }
-.bar-group span:nth-child(3)::after { background:linear-gradient(180deg,#ea8d0f,#d46f00); }
+.bar-group span:nth-child(2) {
+    color:#1aa7ff;
+    background:linear-gradient(180deg,#2fc4ff 0%, #1298f3 55%, #0a5fc0 100%);
+}
 
 .bar-group span i {
     position:absolute;
@@ -3443,13 +4169,33 @@
     left:50%;
     transform:translateX(-50%);
     z-index:2;
-    color:#fff;
-    font-size:10px;
+    color:currentColor;
+    font-size:11px;
     font-style:normal;
     font-weight:900;
     line-height:1;
-    text-shadow:0 2px 6px rgba(0,0,0,.72);
+    text-shadow:0 2px 8px rgba(0,0,0,.72), 0 0 14px color-mix(in srgb, currentColor 34%, transparent);
     pointer-events:none;
+}
+
+.yearly-legend {
+    grid-column:2;
+    grid-row:3;
+    justify-self:center;
+    align-self:end;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:44px;
+    color:#f8fbff;
+    font-size:13px;
+    font-weight:900;
+}
+
+.yearly-legend span {
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
 }
 
 .time-layout {
@@ -3697,17 +4443,764 @@
     overflow-wrap:anywhere;
 }
 
+.panel-time,
+.panel-team,
+.panel-activity,
+.panel-meetings {
+    padding:26px 30px;
+    border-radius:18px;
+    border:1px solid rgba(42,103,184,.36);
+    background:
+        radial-gradient(circle at 82% 14%, rgba(28,126,255,.12), transparent 34%),
+        linear-gradient(180deg, rgba(4,19,43,.99), rgba(3,16,36,.99));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.055), 0 18px 34px rgba(2,8,23,.22);
+}
+
+.dashboard-card-head {
+    margin-bottom:24px;
+}
+
+.dashboard-card-title {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:16px;
+}
+
+.dashboard-card-title h2 {
+    margin:0;
+    color:#f8fbff;
+    font-size:27px;
+    line-height:1.12;
+    font-weight:1000;
+}
+
+.dashboard-card-title h2 small {
+    color:#b7c4e3;
+    font-size:.62em;
+    font-weight:800;
+}
+
+.dashboard-card-title em {
+    display:block;
+    margin-top:7px;
+    color:#a7b9d8;
+    font-size:14px;
+    font-style:normal;
+    font-weight:800;
+}
+
+.dashboard-card-icon {
+    width:58px;
+    height:58px;
+    flex:0 0 58px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    color:#eaf7ff;
+    font-size:31px;
+    font-weight:1000;
+    line-height:1;
+    background:linear-gradient(145deg, rgba(25,110,235,.98), rgba(9,65,151,.92));
+    border:1px solid rgba(83,139,255,.72);
+    box-shadow:0 14px 30px rgba(17,80,189,.24), inset 0 1px 0 rgba(255,255,255,.26);
+}
+
+.dashboard-card-icon.time {
+    color:#08213a;
+    background:linear-gradient(145deg,#27e5ff,#0676d8);
+    border-color:rgba(68,214,255,.72);
+}
+
+.dashboard-card-icon.watch {
+    background:linear-gradient(145deg,#8b5cf6,#2645c7);
+    border-color:rgba(139,92,246,.72);
+}
+
+.dashboard-card-icon.team,
+.dashboard-card-icon.activity {
+    background:linear-gradient(145deg,#5d63ff,#1837a5);
+    border-color:rgba(117,124,255,.72);
+    font-size:20px;
+    letter-spacing:-8px;
+}
+
+.dashboard-card-icon.activity {
+    letter-spacing:0;
+    font-size:34px;
+    background:linear-gradient(145deg,#8b5cf6,#1688f5);
+}
+
+.dashboard-card-icon.meetings {
+    background:linear-gradient(145deg,#4f46e5,#0b67d8);
+    border-color:rgba(99,102,241,.72);
+}
+
+.dashboard-action-link {
+    min-height:44px;
+    min-width:136px;
+    padding:0 18px !important;
+    border-radius:15px !important;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    color:#8eb8ff !important;
+    background:linear-gradient(180deg, rgba(16,43,92,.78), rgba(7,25,58,.88)) !important;
+    border:1px solid rgba(73,124,218,.45) !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 14px 24px rgba(2,8,23,.16);
+    font-size:15px !important;
+    font-weight:1000 !important;
+}
+
+.dashboard-action-link::before {
+    content:"";
+    width:18px;
+    height:18px;
+    flex:0 0 18px;
+    background:currentColor;
+    opacity:.95;
+    clip-path:polygon(14% 10%, 86% 10%, 86% 24%, 28% 24%, 28% 38%, 78% 38%, 78% 52%, 28% 52%, 28% 66%, 86% 66%, 86% 80%, 14% 80%);
+}
+
+.dashboard-action-link.calendar::before {
+    clip-path:polygon(18% 14%, 28% 14%, 28% 4%, 42% 4%, 42% 14%, 58% 14%, 58% 4%, 72% 4%, 72% 14%, 82% 14%, 82% 86%, 18% 86%);
+}
+
+.dashboard-action-link.list::before {
+    clip-path:polygon(10% 18%, 22% 18%, 22% 30%, 10% 30%, 10% 44%, 22% 44%, 22% 56%, 10% 56%, 10% 70%, 22% 70%, 22% 82%, 10% 82%, 10% 70%, 90% 70%, 90% 82%, 22% 82%, 22% 70%, 90% 70%, 90% 56%, 22% 56%, 22% 44%, 90% 44%, 90% 30%, 22% 30%, 22% 18%, 90% 18%, 90% 30%, 22% 30%);
+}
+
+.dashboard-action-link.chart::before {
+    clip-path:polygon(16% 78%, 28% 78%, 28% 48%, 16% 48%, 16% 78%, 44% 78%, 56% 78%, 56% 24%, 44% 24%, 44% 78%, 72% 78%, 84% 78%, 84% 36%, 72% 36%, 72% 78%);
+}
+
+.dashboard-action-link.details::before {
+    clip-path:polygon(14% 10%, 76% 10%, 76% 22%, 28% 22%, 28% 34%, 82% 34%, 82% 46%, 28% 46%, 28% 58%, 68% 58%, 68% 70%, 14% 70%);
+}
+
+.panel-time .time-layout {
+    grid-template-columns:minmax(300px, .86fr) minmax(380px, 1fr);
+    grid-template-areas:
+        "chart metrics"
+        "trend trend";
+    gap:20px 26px;
+    align-items:stretch;
+}
+
+.time-donut {
+    position:relative;
+    width:min(100%, 430px);
+    aspect-ratio:1;
+    place-self:center;
+    border-radius:50%;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 35%, transparent 36%),
+        var(--donut);
+    filter:drop-shadow(0 0 26px rgba(16,213,143,.24));
+}
+
+.time-donut::before {
+    content:"";
+    position:absolute;
+    inset:18px;
+    border-radius:50%;
+    background:var(--donut);
+    box-shadow:0 0 42px rgba(16,213,143,.34), inset 0 8px 20px rgba(255,255,255,.14), inset 0 -22px 28px rgba(1,55,48,.35);
+    -webkit-mask:radial-gradient(circle, transparent 0 42%, #000 43%);
+    mask:radial-gradient(circle, transparent 0 42%, #000 43%);
+}
+
+.time-donut > div {
+    position:absolute;
+    inset:50% auto auto 50%;
+    transform:translate(-50%, -50%);
+    z-index:2;
+    display:grid;
+    justify-items:center;
+    color:#f8fbff;
+    text-align:center;
+}
+
+.time-donut strong {
+    font-size:52px;
+    line-height:1;
+    font-weight:1000;
+}
+
+.time-donut span {
+    margin-top:8px;
+    font-size:20px;
+    font-weight:1000;
+}
+
+.time-donut em {
+    margin-top:12px;
+    padding:5px 12px;
+    border-radius:999px;
+    color:#10d58f;
+    background:rgba(16,213,143,.12);
+    border:1px solid rgba(16,213,143,.36);
+    font-size:13px;
+    font-style:normal;
+    font-weight:1000;
+}
+
+.panel-time .metric-card {
+    grid-area:metrics;
+    align-self:center;
+    min-height:300px;
+    padding:24px 30px;
+    border-radius:18px;
+    display:grid;
+    gap:0;
+    background:linear-gradient(180deg, rgba(5,30,66,.72), rgba(4,22,51,.86));
+    border:1px solid rgba(20,184,166,.34);
+}
+
+.panel-time .metric-card span {
+    display:grid;
+    grid-template-columns:64px minmax(0, 1fr) max-content;
+    align-items:center;
+    gap:22px;
+    min-height:82px;
+    border-bottom:1px dashed rgba(20,184,166,.18);
+    color:#f8fbff;
+    font-size:20px;
+    font-weight:1000;
+}
+
+.panel-time .metric-card span:last-child {
+    border-bottom:0;
+}
+
+.panel-time .metric-card .dot {
+    width:54px;
+    height:54px;
+    border-radius:50%;
+    display:inline-grid;
+    place-items:center;
+}
+
+.panel-time .metric-card .dot::after {
+    content:"";
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#071b38;
+}
+
+.panel-time .metric-card b {
+    margin:0;
+    color:#10d58f;
+    font-size:22px;
+}
+
+.panel-time .metric-card span:nth-child(2) b {
+    color:#1688f5;
+}
+
+.panel-time .metric-card span:nth-child(3) b {
+    color:#22c7f5;
+}
+
+.time-number {
+    grid-area:trend;
+    min-height:78px;
+    padding:14px 20px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:24px;
+    background:rgba(11,31,66,.66);
+    border:1px solid rgba(148,171,210,.2);
+}
+
+.time-number > span {
+    width:52px;
+    height:52px;
+    display:grid;
+    place-items:center;
+    border-radius:14px;
+    color:#f8fbff;
+    background:linear-gradient(180deg, rgba(46,65,111,.9), rgba(21,37,74,.95));
+    border:1px solid rgba(148,171,210,.22);
+    font-size:28px;
+    font-weight:1000;
+}
+
+.time-number small {
+    color:#ff3868;
+    font-size:28px;
+    font-weight:1000;
+}
+
+.time-detail-grid {
+    gap:14px;
+    margin-top:20px;
+}
+
+.time-detail-grid > span {
+    min-height:92px;
+    padding:18px 20px;
+    border-radius:16px;
+    display:grid;
+    align-content:center;
+    background:linear-gradient(180deg, rgba(14,37,77,.78), rgba(8,28,61,.84));
+    border:1px solid rgba(110,145,196,.24);
+}
+
+.time-detail-grid small {
+    color:#a7b9d8;
+    font-size:15px;
+}
+
+.time-detail-grid b {
+    margin-top:8px;
+    font-size:28px;
+}
+
+.panel-time {
+    min-height:292px;
+    padding:18px 22px 18px;
+    border-color:rgba(30,93,168,.48);
+    background:
+        radial-gradient(circle at 48% 42%, rgba(0,110,255,.18), transparent 38%),
+        linear-gradient(180deg, rgba(4,19,43,.99), rgba(3,16,36,.99));
+}
+
+.panel-time .dashboard-card-head {
+    margin-bottom:9px;
+}
+
+.panel-time .dashboard-card-title {
+    gap:13px;
+}
+
+.panel-time .dashboard-card-icon {
+    width:44px;
+    height:44px;
+    flex-basis:44px;
+}
+
+.panel-time .dashboard-card-icon img {
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+.panel-time .dashboard-card-title h2 {
+    font-size:22px;
+    line-height:1.1;
+}
+
+.panel-time .dashboard-card-title em {
+    margin-top:5px;
+    font-size:13px;
+}
+
+.panel-time .time-layout {
+    grid-template-columns:minmax(230px, .72fr) minmax(340px, 1fr);
+    grid-template-areas:
+        "chart metrics"
+        "trend metrics";
+    gap:8px 18px;
+    align-items:center;
+}
+
+.panel-time .time-donut {
+    width:min(100%, 230px);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 44%, transparent 45%),
+        var(--donut);
+}
+
+.panel-time .time-donut::before {
+    inset:10px;
+    -webkit-mask:radial-gradient(circle, transparent 0 55%, #000 56%);
+    mask:radial-gradient(circle, transparent 0 55%, #000 56%);
+}
+
+.panel-time .time-donut strong {
+    font-size:34px;
+}
+
+.panel-time .time-donut span {
+    margin-top:4px;
+    font-size:14px;
+}
+
+.panel-time .time-donut em {
+    margin-top:6px;
+    padding:3px 10px;
+    font-size:10px;
+}
+
+.panel-time .metric-card {
+    min-height:152px;
+    padding:12px 16px;
+    border-radius:16px;
+    border-color:rgba(14,165,233,.35);
+    background:linear-gradient(180deg, rgba(7,32,70,.72), rgba(4,19,43,.78));
+}
+
+.panel-time .metric-card span {
+    display:grid;
+    grid-template-columns:36px minmax(0, 1fr) max-content;
+    gap:11px;
+    min-height:40px;
+    font-size:14px;
+}
+
+.panel-time .metric-card span i {
+    color:#fff;
+    font-style:normal;
+    font-weight:900;
+}
+
+.time-metric-icon {
+    width:36px;
+    height:36px;
+    display:block;
+}
+
+.panel-time .metric-card b {
+    font-size:15px;
+}
+
+.panel-time .time-number {
+    min-height:40px;
+    padding:6px 12px;
+    gap:12px;
+    justify-self:stretch;
+    border:1px solid rgba(217,228,251,.12);
+    border-radius:18px;
+    background:rgba(255,255,255,.025);
+}
+
+.panel-time .time-number > span {
+    width:30px;
+    height:30px;
+    border-radius:12px;
+    font-size:18px;
+    display:grid;
+    place-items:center;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(217,228,251,.12);
+}
+
+.panel-time .time-number > span img {
+    width:22px;
+    height:22px;
+}
+
+.panel-time .time-number small {
+    font-size:16px;
+}
+
+.panel-time .time-detail-grid {
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:8px 10px;
+    margin-top:10px;
+}
+
+.panel-time .time-detail-grid > span {
+    display:grid;
+    grid-template-columns:32px minmax(0, 1fr);
+    align-items:center;
+    gap:9px;
+    min-height:58px;
+    padding:8px 10px;
+    border-radius:12px;
+    border-color:rgba(59,130,246,.22);
+    background:linear-gradient(180deg, rgba(16,37,76,.64), rgba(8,25,55,.7));
+}
+
+.panel-time .time-detail-icon {
+    width:32px;
+    height:32px;
+}
+
+.panel-time .time-detail-grid small {
+    font-size:11px;
+}
+
+.panel-time .time-detail-grid b {
+    margin-top:3px;
+    font-size:18px;
+}
+
+.time-detail-icon {
+    width:38px;
+    height:38px;
+    display:block;
+}
+
+.panel-team .workload-list {
+    gap:8px;
+}
+
 .workload-row {
-    grid-template-columns:32px minmax(0, .9fr) minmax(96px, 1.2fr) 52px;
-    gap:10px;
-    padding:7px 8px;
-    border-radius:10px;
-    background:rgba(255,255,255,.035);
+    position:relative;
+    grid-template-columns:30px 42px minmax(220px, .44fr) minmax(300px, 1fr) 68px;
+    min-height:64px;
+    padding:9px 18px;
+    border-radius:13px;
+    background:linear-gradient(180deg, rgba(9,31,68,.78), rgba(7,24,54,.86));
+    border:1px solid rgba(91,157,217,.28);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 26px rgba(2,8,23,.14);
+}
+
+.workload-rank {
+    position:static;
+    width:28px;
+    height:28px;
+    border-radius:8px;
+    display:grid;
+    place-items:center;
+    color:#d9fbe8;
+    background:rgba(16,213,143,.12);
+    border:1px solid rgba(16,213,143,.48);
+    font-size:14px;
+    font-style:normal;
+    font-weight:1000;
+    box-shadow:0 0 18px rgba(16,213,143,.18);
 }
 
 .panel-team .workload-row img {
-    width:30px;
-    height:30px;
+    width:38px;
+    height:38px;
+    border:2px solid rgba(125,220,73,.78);
+    box-shadow:0 0 14px rgba(125,220,73,.2);
+}
+
+.workload-row span {
+    color:#f8fbff;
+    font-size:15px;
+    font-weight:1000;
+    -webkit-line-clamp:2;
+}
+
+.workload-row b {
+    color:#7dffad;
+    font-size:21px;
+    font-weight:1000;
+}
+
+.progress-track {
+    height:10px;
+    background:rgba(148,163,184,.14);
+}
+
+.dashboard-section-foot {
+    position:relative;
+    z-index:1;
+    margin-top:10px;
+    padding:7px 12px;
+    border-radius:10px;
+    color:#9fb0d0;
+    background:rgba(8,24,54,.72);
+    border:1px solid rgba(91,157,217,.18);
+    font-size:11px;
+    font-weight:800;
+}
+
+.activity-list,
+.meeting-list {
+    gap:8px;
+}
+
+.activity-row {
+    grid-template-columns:54px minmax(0, 1fr) 110px;
+    min-height:68px;
+    padding:10px 14px;
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(9,31,68,.72), rgba(7,24,54,.82));
+    border:1px solid rgba(91,157,217,.2);
+}
+
+.activity-avatar {
+    width:42px;
+    height:42px;
+    border-width:2px;
+}
+
+.activity-row b {
+    font-size:14px;
+    line-height:1.2;
+}
+
+.activity-row small,
+.activity-row em {
+    display:flex;
+    align-items:flex-start;
+    gap:6px;
+    margin-top:3px;
+    color:#b8c7e4;
+    font-size:11px;
+    line-height:1.2;
+    white-space:normal;
+}
+
+.activity-mini-icon,
+.activity-owner-icon {
+    flex:0 0 12px;
+    width:12px;
+    height:12px;
+    margin-top:1px;
+    border-radius:4px;
+    background:#1688f5;
+    box-shadow:0 0 12px rgba(22,136,245,.32);
+}
+
+.activity-owner-icon {
+    border-radius:50%;
+    background:#10d58f;
+}
+
+.activity-row time {
+    height:100%;
+    border-left:1px solid rgba(91,157,217,.28);
+    display:grid;
+    grid-template-columns:22px minmax(0, 1fr);
+    align-content:center;
+    align-items:center;
+    gap:4px 7px;
+    padding-left:14px;
+    color:#b8c7e4;
+    font-size:11px;
+}
+
+.activity-row time i {
+    grid-row:1 / span 2;
+    color:#1688f5;
+    font-size:18px;
+    font-style:normal;
+}
+
+.activity-row time strong {
+    color:#fff;
+    font-size:21px;
+    line-height:1;
+}
+
+.activity-row time small {
+    margin:0;
+    color:#b8c7e4;
+    font-size:11px;
+    line-height:1.1;
+}
+
+.dashboard-refresh-link {
+    position:relative;
+    z-index:1;
+    display:flex;
+    justify-content:center;
+    margin-top:9px;
+    color:#1688f5;
+    text-decoration:none;
+    font-size:12px;
+    font-weight:1000;
+}
+
+.panel-meetings {
+    grid-column:span 24;
+    min-height:285px;
+    padding:20px 24px 22px;
+    border-color:rgba(82,116,255,.34);
+    background:
+        radial-gradient(circle at 16% 18%, rgba(139,92,246,.13), transparent 34%),
+        radial-gradient(circle at 82% 34%, rgba(22,136,245,.1), transparent 36%),
+        linear-gradient(180deg, rgba(4,19,43,.99), rgba(3,16,36,.99));
+}
+
+.panel-meetings .dashboard-card-head {
+    margin-bottom:14px;
+}
+
+.panel-meetings .dashboard-card-icon {
+    width:46px;
+    height:46px;
+    flex-basis:46px;
+    background:linear-gradient(135deg, rgba(139,92,246,.92), rgba(22,136,245,.86));
+    box-shadow:0 0 22px rgba(139,92,246,.24);
+}
+
+.panel-meetings .dashboard-card-icon img {
+    width:28px;
+    height:28px;
+    object-fit:contain;
+}
+
+.panel-meetings .dashboard-card-title h2 {
+    font-size:24px;
+    line-height:1.12;
+}
+
+.panel-meetings .meeting-list {
+    gap:10px;
+}
+
+.meeting-row {
+    grid-template-columns:102px minmax(0, 1fr) 106px;
+    gap:16px;
+    min-height:92px;
+    padding:14px 18px;
+    border-radius:15px;
+    background:
+        radial-gradient(circle at 8% 50%, rgba(139,92,246,.16), transparent 34%),
+        linear-gradient(180deg, rgba(9,31,68,.74), rgba(7,24,54,.82));
+    border:1px solid rgba(82,116,255,.36);
+    box-shadow:0 16px 32px rgba(3,10,28,.22), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.time-pill {
+    width:86px;
+    height:72px;
+    border-radius:15px;
+    font-size:17px;
+    box-shadow:0 0 26px rgba(139,92,246,.32), inset 0 1px 0 rgba(255,255,255,.26);
+}
+
+.meeting-row b {
+    font-size:18px;
+    line-height:1.24;
+    white-space:normal;
+}
+
+.meeting-row b i {
+    width:11px;
+    height:11px;
+    margin-right:9px;
+    border-radius:50%;
+    display:inline-block;
+    background:#8b5cf6;
+    box-shadow:0 0 14px rgba(139,92,246,.45);
+}
+
+.meeting-row small {
+    margin-top:6px;
+    color:#b8c7e4;
+    font-size:14px;
+    line-height:1.25;
+    white-space:normal;
+}
+
+.meeting-row .avatar-stack img {
+    width:36px;
+    height:36px;
+    margin-left:-10px;
+    border-width:2px;
+}
+
+.meeting-row .avatar-stack i {
+    min-width:40px;
+    height:40px;
+    margin-left:-12px;
+    font-size:14px;
+    background:rgba(19,52,112,.86);
+    border:1px solid rgba(59,130,246,.45);
 }
 
 @@media (max-width:1440px) {
@@ -3718,20 +5211,20 @@
     .kpi-grid { grid-template-columns:repeat(4, minmax(170px, 1fr)); }
     .panel-wide,
     .panel-project-status,
-    .panel-watch,
     .panel-activity,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
-    .panel-task,
-    .panel-watch { grid-column:1 / -1; }
-    .panel-issues { grid-column:span 14; }
-    .panel-time { grid-column:span 10; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
+    .panel-task { grid-column:1 / -1; }
+    .panel-issues,
+    .panel-time,
+    .panel-team,
+    .panel-activity { grid-column:span 24; }
     .overview-pair { grid-template-columns:1fr; }
-    .panel-issues .overview-pie3d { width:min(100%, 240px); }
+    .panel-issues .overview-pie3d { width:min(100%, 330px); }
 }
 
 @@media (max-width:1366px) {
@@ -3741,58 +5234,104 @@
     }
 
     .dashboard-global-search {
-        width:min(520px, 54vw);
+        width:min(500px, 44vw);
     }
 
     .dashboard-online-avatar {
-        width:36px;
-        height:36px;
+        width:34px;
+        height:34px;
     }
 
     .dashboard-global-tool {
-        width:42px;
-        height:42px;
+        width:44px;
+        height:44px;
     }
 
     .kpi-grid {
-        grid-template-columns:repeat(2, minmax(0, 1fr));
+        grid-template-columns:repeat(4, minmax(0, 1fr));
         gap:12px;
     }
 
     .kpi-card {
-        min-height:112px;
-        padding:14px 16px;
-        grid-template-columns:58px minmax(0, 1fr);
-        gap:12px;
+        min-height:166px;
+        padding:0;
     }
 
     .kpi-card::before {
-        width:88px;
-        height:88px;
-        left:18px;
-        top:20px;
+        width:70px;
+        height:70px;
+        left:20px;
+        top:40px;
     }
 
     .kpi-icon {
-        width:54px;
-        height:54px;
-        font-size:28px;
+        width:70px;
+        height:70px;
+        left:20px;
+        top:40px;
+    }
+
+    .kpi-icon img {
+        width:50px;
+        height:50px;
+    }
+
+    .kpi-card > div {
+        left:108px;
+        right:18px;
+        top:46px;
     }
 
     .kpi-card p {
         max-width:100%;
+        margin-top:0;
+        margin-bottom:8px;
         font-size:14px;
-        white-space:normal;
+        line-height:1.18;
+        white-space:nowrap;
+        overflow-wrap:normal;
         word-break:normal;
+        hyphens:none;
     }
 
     .kpi-card strong {
-        font-size:34px;
+        font-size:38px;
     }
 
     .kpi-card small {
-        margin-top:8px;
+        margin-top:10px;
         font-size:11px;
+        line-height:1.25;
+        overflow-wrap:normal;
+        word-break:normal;
+        hyphens:none;
+    }
+
+    .kpi-menu {
+        top:18px;
+        right:20px;
+        font-size:18px;
+    }
+
+    .kpi-dots {
+        left:20px;
+        bottom:16px;
+        transform:scale(.68);
+        transform-origin:left bottom;
+    }
+
+    .kpi-wave {
+        right:18px;
+        bottom:14px;
+        width:112px;
+        height:48px;
+    }
+
+    .kpi-bars {
+        right:14px;
+        bottom:14px;
+        transform:scale(.58);
+        transform-origin:right bottom;
     }
 
     .panel-wide {
@@ -3800,22 +5339,18 @@
     }
 
     .panel-issues,
-    .panel-time,
-    .panel-team,
-    .panel-activity {
+    .panel-time {
         grid-column:span 12;
     }
 
-    .panel-issues { grid-column:span 14; }
-    .panel-time { grid-column:span 10; }
+    .panel-issues,
+    .panel-time,
+    .panel-team,
+    .panel-activity { grid-column:span 24; }
 
     .project-overview-title-row {
         grid-template-columns:auto;
         gap:6px;
-    }
-
-    .project-overview-title-row > span {
-        display:none;
     }
 
     .project-overview-combined {
@@ -3848,14 +5383,13 @@
     .kpi-grid { grid-template-columns:repeat(2, minmax(180px, 1fr)); }
     .panel-wide,
     .panel-project-status,
-    .panel-watch,
     .panel-activity,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-watch):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
 }
 
 @@media (max-width:640px) {
@@ -3892,7 +5426,7 @@
         font-size:12px;
     }
     .dashboard-global-tools {
-        gap:7px;
+        gap:5px;
         flex:0 0 auto;
     }
     .dashboard-global-tool {
@@ -3978,18 +5512,6 @@
     .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
     .chart-tooltip { display:none; }
     .legend-row { margin-left:0; flex-wrap:wrap; gap:10px; }
-    .watch-list { grid-template-columns:1fr; }
-    .watch-row { grid-template-columns:1fr; }
-    .watch-progress {
-        grid-column:1;
-        grid-row:auto;
-        justify-self:start;
-        padding:22px 0 4px 6px;
-    }
-    .watch-status { justify-self:start; text-align:left; }
-    .watch-status,
-    .watch-reasons { grid-column:1; }
-    .watch-reasons { justify-content:flex-start; }
     .project-overview-table {
         overflow-x:visible;
     }
@@ -3997,20 +5519,20 @@
         display:none;
     }
     .project-overview-scroll {
-        height:250px;
-        max-height:250px;
+        height:430px;
+        max-height:430px;
         overflow-y:auto;
     }
     .project-overview-row {
         display:grid !important;
-        grid-template-columns:minmax(0, 1fr) max-content !important;
+        grid-template-columns:48px minmax(0, 1fr) !important;
         justify-content:stretch !important;
         align-items:center !important;
         min-width:0 !important;
-        min-height:48px !important;
+        min-height:92px !important;
         height:auto !important;
-        gap:10px !important;
-        padding:9px 12px !important;
+        gap:8px 12px !important;
+        padding:10px 12px 10px 16px !important;
     }
     .project-overview-row:hover {
         transform:none;
@@ -4029,27 +5551,45 @@
         -webkit-line-clamp:2;
     }
     .project-overview-status {
-        justify-self:end !important;
+        grid-column:2 !important;
+        justify-self:start !important;
         width:auto !important;
-        min-height:0 !important;
+        min-height:28px !important;
         display:inline-flex !important;
         align-items:center;
-        justify-content:flex-end;
-        padding:0 !important;
-        text-align:right !important;
+        justify-content:center;
+        padding:0 10px !important;
+        text-align:center !important;
         white-space:nowrap !important;
         line-height:1.1 !important;
     }
     .project-overview-status::before {
         content:none !important;
     }
-    .project-overview-date,
+    .project-overview-date {
+        grid-column:2 !important;
+        display:grid !important;
+        grid-template-columns:auto auto !important;
+        align-items:center !important;
+        justify-content:start !important;
+        gap:4px 8px !important;
+        min-width:0 !important;
+        white-space:nowrap !important;
+    }
+
+    .project-overview-date + .project-overview-date {
+        grid-column:2 !important;
+        margin-top:0 !important;
+    }
     .project-overview-mobile-label {
-        display:none !important;
+        display:inline !important;
+        color:#8fa4c8;
+        font-size:10px;
+        font-weight:800;
     }
     .panel-team .workload-list { grid-template-columns:1fr; }
     .progress-row { grid-template-columns:1fr; gap:6px; }
-    .workload-row { grid-template-columns:28px minmax(0, 1fr) 42px; }
+    .workload-row { grid-template-columns:28px 34px minmax(0, 1fr) 48px; }
     .workload-row .progress-track {
         grid-column:1 / -1;
         grid-row:2;
@@ -4088,7 +5628,6 @@
     .gauge strong,
     .time-number strong,
     .time-number span,
-    .watch-main b,
     .activity-row b,
     .meeting-row b,
     .progress-row b,
@@ -4116,9 +5655,6 @@
     .progress-row,
     .workload-row,
     .time-pill,
-    .risk-pill,
-    .watch-percent,
-    .watch-reasons i,
     .metric-card,
     .dashboard-footer
 ) {
@@ -4130,8 +5666,6 @@
     em,
     time,
     .kpi-card small,
-    .watch-main small,
-    .watch-status small,
     .activity-row small,
     .activity-row em,
     .activity-row time,

@@ -2055,8 +2055,8 @@ namespace ProjectTracking.Controllers
             return Norm(status) switch
             {
                 "DONE" => "green",
-                "IN_PROGRESS" => "orange",
-                "PLAN" => "purple",
+                "IN_PROGRESS" => "blue",
+                "PLAN" => "orange",
                 _ => "blue"
             };
         }
