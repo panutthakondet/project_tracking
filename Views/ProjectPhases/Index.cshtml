@@ -21,7 +21,13 @@
     var selectedProjectModel = selectedProject as ProjectTracking.Models.Project;
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
-    var selectedProjectCoopName = (selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "";
+    var selectedProjectCoopName = ((selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "").Trim();
+    var projectCoopOptions = projectOptions
+        .Select(p => p.Coop?.CoopName?.Trim())
+        .Where(name => !string.IsNullOrWhiteSpace(name))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(name => name)
+        .ToList();
     var requirementProjectCardDetailUrlTemplate = Url.Action("ProjectCardDetails", "RequirementBoard", new { projectId = "__PROJECT_ID__" }) ?? "";
 
     var orderedPhases = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectPhase>())
@@ -456,13 +462,9 @@
                 class="form-select"
                 data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
             <option value="">-- ทุกสหกรณ์ --</option>
-            @foreach (var coopName in projectOptions
-                        .Select(p => p.Coop?.CoopName)
-                        .Where(name => !string.IsNullOrWhiteSpace(name))
-                        .Distinct()
-                        .OrderBy(name => name))
+            @foreach (var coopName in projectCoopOptions)
             {
-                <option value="@coopName" selected="@(selectedProjectCoopName == coopName)">
+                <option value="@coopName" selected="@(string.Equals(selectedProjectCoopName, coopName, StringComparison.OrdinalIgnoreCase))">
                     @coopName
                 </option>
             }
@@ -472,7 +474,8 @@
 
         <select name="projectId"
                 id="hiddenProjectSelect"
-                class="form-select form-select-lg">
+                class="form-select form-select-lg"
+                data-project-coop-filter="off">
             <option value="">-- เลือกโครงการ --</option>
 
             @foreach (var p in projectOptions)

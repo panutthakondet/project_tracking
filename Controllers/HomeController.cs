@@ -831,7 +831,7 @@ namespace ProjectTracking.Controllers
             var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
-            var teamWorkload = BuildTeamWorkload(assigns, issues, employees, EmployeeName, EmployeeAvatar);
+            var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             int? ProjectBaEmpId(int? projectId)
             {
@@ -1800,8 +1800,6 @@ namespace ProjectTracking.Controllers
 
         private static List<HomeDashboardWorkload> BuildTeamWorkload(
             IReadOnlyList<DashboardAssignRow> assigns,
-            IReadOnlyList<DashboardIssueRow> issues,
-            IReadOnlyList<DashboardEmployeeRow> employees,
             Func<int?, string> employeeName,
             Func<int?, string> employeeAvatar)
         {
@@ -1810,21 +1808,14 @@ namespace ProjectTracking.Controllers
                 .GroupBy(a => a.EmpId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            var openIssues = issues
-                .Where(i => !IsIssueResolved(i))
-                .GroupBy(i => i.EmpId)
-                .ToDictionary(g => g.Key, g => g.Count());
-
             var rows = activeAssigns.Keys
-                .Union(openIssues.Keys)
                 .Select(empId =>
                 {
                     activeAssigns.TryGetValue(empId, out var assignCount);
-                    openIssues.TryGetValue(empId, out var issueCount);
                     return new
                     {
                         EmpId = empId,
-                        Count = assignCount + issueCount,
+                        Count = assignCount,
                         AvatarPath = employeeAvatar(empId)
                     };
                 })
