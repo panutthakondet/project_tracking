@@ -186,6 +186,10 @@
                             @mobileRow. @emp.EmpName
                         </div>
 
+                        <div class="employee-email-text">
+                            @(emp.LoginUser?.Email ?? "-")
+                        </div>
+
                         <div class="employee-position">
                             @emp.Position
                         </div>
@@ -193,13 +197,6 @@
                 </div>
 
                 <div class="employee-info">
-                    <div class="employee-info-row">
-                        <span class="employee-label">Email</span>
-                        <span class="employee-email">
-                            @(emp.LoginUser?.Email ?? "-")
-                        </span>
-                    </div>
-
                     <div class="employee-info-row">
                         <span class="employee-label">Status</span>
                         <span class="badge @(emp.Status == "ACTIVE" ? "bg-success" : "bg-secondary")">
@@ -279,6 +276,10 @@
     min-width: 0;
 }
 
+.employee-card-header > div {
+    min-width: 0;
+}
+
 .employee-avatar {
     width: 62px;
     height: 62px;
@@ -311,6 +312,15 @@
 .employee-position {
     font-size: .92rem;
     color: #6b7280;
+}
+
+.employee-email-text {
+    color: #6b7280;
+    font-size: .92rem;
+    font-weight: 400;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .employee-info {
