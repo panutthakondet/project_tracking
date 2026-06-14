@@ -113,19 +113,16 @@ namespace ProjectTracking.Controllers
             var delayedProjects = projects.Count(p => IsProjectDelayed(p, today));
             var inProgressProjects = projects.Count(p =>
                 !IsProjectDone(p)
-                && !IsProjectDelayed(p, today)
                 && NormalizeProjectStatus(p.Status) == "IN_PROGRESS");
             var planProjects = projects.Count(p =>
                 !IsProjectDone(p)
-                && !IsProjectDelayed(p, today)
                 && NormalizeProjectStatus(p.Status) != "IN_PROGRESS");
 
             var statusMetrics = new List<ProjectStatusMetric>
             {
                 BuildStatusMetric("เสร็จสิ้น", doneProjects, totalProjects, "#19c979"),
                 BuildStatusMetric("กำลังดำเนินการ", inProgressProjects, totalProjects, "#ffb444"),
-                BuildStatusMetric("วางแผน", planProjects, totalProjects, "#33a1ff"),
-                BuildStatusMetric("ล่าช้า", delayedProjects, totalProjects, "#e9435a")
+                BuildStatusMetric("วางแผน", planProjects, totalProjects, "#33a1ff")
             };
 
             var model = new ProjectStatusDetailViewModel
@@ -553,7 +550,13 @@ namespace ProjectTracking.Controllers
 
         private static string NormalizeProjectStatus(string? status)
         {
-            return (status ?? "PLAN").Trim().ToUpperInvariant();
+            var normalized = (status ?? "PLAN").Trim().ToUpperInvariant();
+            return normalized switch
+            {
+                "DONE" or "COMPLETED" or "COMPLETE" or "FINISHED" or "เสร็จสิ้น" or "เสร็จแล้ว" => "DONE",
+                "IN_PROGRESS" or "IN PROGRESS" or "WIP" or "WORKING" or "กำลังดำเนินการ" or "กำลังทำ" => "IN_PROGRESS",
+                _ => "PLAN"
+            };
         }
 
         private static bool IsAssignDone(AssignRow assign)

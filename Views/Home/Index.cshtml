@@ -861,7 +861,7 @@
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
                     <span>
-                        <h2>ทีมงานที่ทำงานหนักที่สุด</h2>
+                        <h2>จำนวนงานของพนักงาน มากสุด 5 อันดับ</h2>
                         <em>จัดอันดับทีมงานตามความคืบหน้าการทำงาน</em>
                     </span>
                 </div>
@@ -5792,6 +5792,63 @@
 .dashboard-view :is(.dashboard-global-search-icon, .dashboard-global-search-clear, .top-icon-button, .kpi-icon) {
     font-family:var(--pt-font-family, "Prompt", sans-serif) !important;
     font-weight:700 !important;
+}
+
+.dashboard-view {
+    --dashboard-section-title-size:clamp(23px, 1.45vw, 26px);
+    --dashboard-section-subtitle-size:clamp(13px, .86vw, 15px);
+    --dashboard-section-icon-size:52px;
+}
+
+.dashboard-view :is(
+    .project-overview-title-row h2,
+    .task-progress-title h2,
+    .issues-overview-head h2,
+    .dashboard-card-title h2
+) {
+    font-size:var(--dashboard-section-title-size) !important;
+    line-height:1.12 !important;
+    font-weight:700 !important;
+}
+
+.dashboard-view .dashboard-card-title h2 small {
+    font-size:1em !important;
+    font-weight:inherit !important;
+}
+
+.dashboard-view :is(
+    .project-overview-title-row small,
+    .task-progress-title small,
+    .issues-overview-head small,
+    .dashboard-card-title em
+) {
+    margin-top:6px !important;
+    color:#a7b9d8 !important;
+    font-size:var(--dashboard-section-subtitle-size) !important;
+    line-height:1.35 !important;
+    font-style:normal !important;
+    font-weight:400 !important;
+}
+
+.dashboard-view :is(
+    .project-overview-title-icon,
+    .task-progress-icon,
+    .issues-overview-icon,
+    .dashboard-card-icon
+) {
+    width:var(--dashboard-section-icon-size) !important;
+    height:var(--dashboard-section-icon-size) !important;
+    flex:0 0 var(--dashboard-section-icon-size) !important;
+}
+
+.dashboard-view :is(
+    .project-overview-title-icon img,
+    .task-progress-icon img,
+    .issues-overview-icon img,
+    .dashboard-card-icon img
+) {
+    width:100% !important;
+    height:100% !important;
 }
 </style>
 }

@@ -175,7 +175,8 @@
 
         function syncInputFromSelect() {
             const selected = getSelectedOption(select);
-            input.value = selected && selected.value !== "" ? selected.text : "";
+            const showEmptyOptionText = select.dataset.showEmptyOptionText === "true";
+            input.value = selected && (selected.value !== "" || showEmptyOptionText) ? selected.text : "";
             validateInput();
         }
 

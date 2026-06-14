@@ -31,6 +31,39 @@
         .ToList();
     var hasTeamMembers = statusPage.TeamGroups.Any(x => x.Members.Count > 0);
     string PercentText(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+    var completedMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("เสร็จ")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "เสร็จสิ้น", Color = "#18c57a" };
+    var progressMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("กำลัง")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "กำลังดำเนินการ", Color = "#f59e0b" };
+    var planMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("วาง")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "วางแผน", Color = "#2f8ee8" };
+    var statusCardMetrics = new[]
+    {
+        new { Metric = completedMetric, ClassName = "completed", Icon = "✓" },
+        new { Metric = progressMetric, ClassName = "progressing", Icon = "◔" },
+        new { Metric = planMetric, ClassName = "planning", Icon = "□" }
+    };
+    var taskOverviewTotalEmployees = statusPage.TaskOverview.Count;
+    var taskOverviewTotalTasks = statusPage.TaskOverview.Sum(x => x.TotalCount);
+    var taskOverviewDoneTasks = statusPage.TaskOverview.Sum(x => x.DoneCount);
+    var taskOverviewWorkingTasks = statusPage.TaskOverview.Sum(x => x.InProgressCount);
+    var taskOverviewDelayTasks = statusPage.TaskOverview.Sum(x => x.DelayCount);
+    var taskOverviewDonePercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDoneTasks * 100m / taskOverviewTotalTasks, 2);
+    var taskOverviewWorkingPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewWorkingTasks * 100m / taskOverviewTotalTasks, 2);
+    var taskOverviewDelayPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDelayTasks * 100m / taskOverviewTotalTasks, 2);
+    var taskOverviewAxisMax = 25;
+    var taskOverviewAxisTicks = Enumerable.Range(0, 6)
+        .Select(i => taskOverviewAxisMax - (i * 5))
+        .ToList();
+    var taskOverviewFirstChartCount = (int)Math.Ceiling(statusPage.TaskOverview.Count / 2m);
+    var taskOverviewGroups = statusPage.TaskOverview
+        .Select((member, index) => new { Member = member, Index = index })
+        .GroupBy(x => x.Index < taskOverviewFirstChartCount ? 0 : 1)
+        .Select(group => group.Select(x => x.Member).ToList())
+        .Where(group => group.Count > 0)
+        .ToList();
+    var weeklyTotalTasks = statusPage.ThisWeekTasks.Count;
+    var weeklyDoneTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "done");
+    var weeklyDelayTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "stuck");
+    var weeklyWorkingTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "working");
+    var weeklyNearDueTasks = Math.Max(0, weeklyTotalTasks - weeklyDoneTasks - weeklyDelayTasks);
 }
 
 <div class="project-status-page">
@@ -77,30 +110,94 @@
     <section class="team-project-board" aria-label="ทีมงานและสถานะโครงการ">
         <div class="status-left-column">
             <article class="status-board-card status-pie-card">
-                <div class="board-card-head">
-                    <h2>สถานะโครงการ</h2>
-                    <strong>@statusPage.TotalProjects</strong>
+                <div class="project-status-showcase">
+                    <div class="project-status-showcase__head">
+                        <div class="project-status-showcase__icon" aria-hidden="true">
+                            <span></span>
+                        </div>
+                        <div>
+                            <h2>สถานะโครงการ</h2>
+                            <p>ภาพรวมสถานะของโครงการทั้งหมด</p>
+                        </div>
+                    </div>
+
+                    <div class="project-status-total-card" aria-label="โครงการทั้งหมด">
+                        <span>โครงการทั้งหมด</span>
+                        <strong>@statusPage.TotalProjects</strong>
+                        <small>โครงการ</small>
+                    </div>
                 </div>
 
-                <div class="project-status-pie-wrap">
-                    <div class="project-status-pie" style="--pie:@statusPage.ProjectStatusChart;"></div>
-                </div>
-
-                <div class="status-metrics">
-                    @foreach (var metric in statusPage.StatusMetrics)
+                <div class="project-status-donut-stage">
+                    @if (completedMetric.Count > 0)
                     {
-                        <div class="status-metric">
-                            <span><i style="--dot:@metric.Color;"></i>@metric.Label</span>
-                            <b>@metric.Count <small>@PercentText(metric.Percent)%</small></b>
+                        <div class="donut-side-label donut-side-label--right" style="--label-color:@completedMetric.Color;">
+                            <strong>@PercentText(completedMetric.Percent)%</strong>
+                            <b>@completedMetric.Label</b>
+                            <span>@completedMetric.Count โครงการ</span>
+                        </div>
+                    }
+
+                    @if (progressMetric.Count > 0)
+                    {
+                        <div class="donut-side-label donut-side-label--left" style="--label-color:@progressMetric.Color;">
+                            <strong>@PercentText(progressMetric.Percent)%</strong>
+                            <b>@progressMetric.Label</b>
+                            <span>@progressMetric.Count โครงการ</span>
+                        </div>
+                    }
+
+                    @if (planMetric.Count > 0)
+                    {
+                        <div class="donut-side-label donut-side-label--plan" style="--label-color:@planMetric.Color;">
+                            <strong>@PercentText(planMetric.Percent)%</strong>
+                            <b>@planMetric.Label</b>
+                            <span>@planMetric.Count โครงการ</span>
+                        </div>
+                    }
+
+                    <div class="project-status-donut" style="--pie:@statusPage.ProjectStatusChart;">
+                        <div class="project-status-donut__inner">
+                            <span class="project-status-donut__mark" aria-hidden="true"></span>
+                            <strong>@statusPage.TotalProjects</strong>
+                            <b>โครงการทั้งหมด</b>
+                            <i></i>
+                            <em>
+                                @foreach (var metric in statusPage.StatusMetrics)
+                                {
+                                    <span style="--dot:@metric.Color;"></span>
+                                }
+                            </em>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-status-summary-grid">
+                    @foreach (var item in statusCardMetrics)
+                    {
+                        <div class="project-status-summary-card project-status-summary-card--@item.ClassName" style="--status-color:@item.Metric.Color;">
+                            <span class="project-status-summary-card__icon">@item.Icon</span>
+                            <b>@item.Metric.Label</b>
+                            <strong>@item.Metric.Count</strong>
+                            <small>โครงการ</small>
+                            <div class="project-status-mini-progress">
+                                <span style="width:@PercentText(item.Metric.Percent)%;"></span>
+                                <em>@PercentText(item.Metric.Percent)%</em>
+                            </div>
                         </div>
                     }
                 </div>
             </article>
 
             <article class="status-board-card task-overview-card">
-                <div class="board-card-head">
-                    <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
-                    <span>@statusPage.WeekRangeText</span>
+                <div class="light-report-head">
+                    <div class="light-report-title">
+                        <span class="light-report-icon light-report-icon--people" aria-hidden="true"></span>
+                        <div>
+                            <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
+                            <p>สรุปสถานะงานทั้งหมดของแต่ละผู้รับผิดชอบ</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="task-chart-legend">
@@ -115,28 +212,71 @@
                 }
                 else
                 {
-                    <div class="task-overview-scroll">
-                        <div class="task-overview-chart" style="--task-count:@statusPage.TaskOverview.Count; --task-min-width:@(statusPage.TaskOverview.Count * 112)px;">
-                            @foreach (var member in statusPage.TaskOverview)
-                            {
-                                <div class="task-overview-item" title="@member.Name">
-                                    <div class="task-stack-frame">
-                                        <div class="task-stack" style="height:@member.TotalHeightPercent%;">
-                                            <span class="done" style="height:@member.DoneHeightPercent%;"></span>
-                                            <span class="working" style="height:@member.InProgressHeightPercent%;"></span>
-                                            <span class="stuck" style="height:@member.DelayHeightPercent%;"></span>
-                                        </div>
-                                    </div>
-                                    <img class="js-profile-preview"
-                                         src="@member.AvatarPath"
-                                         alt="@member.Name"
-                                         data-profile-name="@member.Name"
-                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <b>@member.Name</b>
-                                    <small>@member.TotalCount งาน</small>
+                    <div class="task-overview-plots">
+                        @foreach (var chartMembers in taskOverviewGroups)
+                        {
+                            <div class="task-overview-plot" style="--task-axis-max:@taskOverviewAxisMax;">
+                                <div class="task-y-axis" aria-hidden="true">
+                                    <span class="task-y-title">จำนวนงาน (งาน)</span>
+                                    @foreach (var tick in taskOverviewAxisTicks)
+                                    {
+                                        var tickPosition = Math.Round((taskOverviewAxisMax - tick) * 100m / taskOverviewAxisMax, 3);
+                                        <span style="--tick:@tickPosition.ToString("0.###", CultureInfo.InvariantCulture);">@tick</span>
+                                    }
                                 </div>
-                            }
-                        </div>
+                                <div class="task-overview-scroll">
+                                    <div class="task-overview-chart" style="--task-count:@chartMembers.Count; --task-min-width:@(Math.Max(1, chartMembers.Count) * 106)px;">
+                                        @foreach (var member in chartMembers)
+                                        {
+                                            var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                            var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                            var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                            <div class="task-overview-item" title="@member.Name">
+                                                <div class="task-stack-frame" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน">
+                                                    <span class="task-single-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
+                                                          title="เสร็จแล้ว @member.DoneCount งาน"
+                                                          style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                        <em>@member.DoneCount</em>
+                                                        <i></i>
+                                                    </span>
+                                                    <span class="task-single-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
+                                                          title="กำลังทำ @member.InProgressCount งาน"
+                                                          style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                        <em>@member.InProgressCount</em>
+                                                        <i></i>
+                                                    </span>
+                                                    <span class="task-single-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
+                                                          title="ล่าช้า @member.DelayCount งาน"
+                                                          style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                        <em>@member.DelayCount</em>
+                                                        <i></i>
+                                                    </span>
+                                                </div>
+                                                <div class="task-member-card">
+                                                    <small>รวม @member.TotalCount งาน</small>
+                                                    <img class="js-profile-preview"
+                                                         src="@member.AvatarPath"
+                                                         alt="@member.Name"
+                                                         data-profile-name="@member.Name"
+                                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                    <b>@member.Name</b>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <span class="task-x-title" aria-hidden="true">ผู้รับผิดชอบ</span>
+                    </div>
+
+                    <div class="task-overview-footer">
+                        <span class="footer-info">ⓘ</span>
+                        <span>รวมทั้งหมด <b>@taskOverviewTotalEmployees</b> คน</span>
+                        <span>รวมงานทั้งหมด <b>@taskOverviewTotalTasks</b> งาน</span>
+                        <span class="footer-status footer-status--done"><i></i>เสร็จแล้ว <b>@taskOverviewDoneTasks</b> งาน (@PercentText(taskOverviewDonePercent)%)</span>
+                        <span class="footer-status footer-status--working"><i></i>กำลังทำ <b>@taskOverviewWorkingTasks</b> งาน (@PercentText(taskOverviewWorkingPercent)%)</span>
+                        <span class="footer-status footer-status--stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b> งาน (@PercentText(taskOverviewDelayPercent)%)</span>
                     </div>
                 }
             </article>
@@ -144,8 +284,14 @@
 
         <div class="status-right-column">
             <article class="status-board-card org-chart-card">
-                <div class="board-card-head">
-                    <h2>แผนผัง ทีมพัฒนาระบบ</h2>
+                <div class="light-report-head">
+                    <div class="light-report-title">
+                        <span class="light-report-icon light-report-icon--team" aria-hidden="true"></span>
+                        <div>
+                            <h2>แผนผัง ทีมพัฒนาระบบ</h2>
+                            <p>ภาพรวมทีมและบทบาทผู้รับผิดชอบในโครงการ</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="role-lane-board">
@@ -321,9 +467,18 @@
             </article>
 
             <article class="status-board-card week-task-card">
-                <div class="board-card-head">
-                    <h2>งานสัปดาห์นี้</h2>
-                    <span>@statusPage.WeekRangeText</span>
+                <div class="light-report-head">
+                    <div class="light-report-title">
+                        <span class="light-report-icon light-report-icon--tasks" aria-hidden="true"></span>
+                        <div>
+                            <h2>งานสัปดาห์นี้</h2>
+                            <p>ติดตามความคืบหน้าและกำหนดส่งงาน</p>
+                        </div>
+                    </div>
+                    <div class="light-date-pill">
+                        <span aria-hidden="true">▣</span>
+                        @statusPage.WeekRangeText
+                    </div>
                 </div>
 
                 @if (statusPage.ThisWeekTasks.Count == 0)
@@ -345,10 +500,13 @@
                             <tbody>
                                 @foreach (var task in statusPage.ThisWeekTasks)
                                 {
-                                    <tr>
+                                    <tr class="week-row-@task.StatusClass">
                                         <td>
-                                            <b>@task.Title</b>
-                                            <small>@task.ProjectName</small>
+                                            <span class="week-task-icon @task.StatusClass" aria-hidden="true">□</span>
+                                            <span class="week-task-copy">
+                                                <b>@task.Title</b>
+                                                <small>@task.ProjectName</small>
+                                            </span>
                                         </td>
                                         <td>
                                             <span class="task-owner">
@@ -366,6 +524,14 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="week-task-footer">
+                        <span><i class="week-total-icon"></i>รวมทั้งหมด <b>@weeklyTotalTasks</b> งาน</span>
+                        <span><i class="near"></i>ใกล้ถึงกำหนด <b>@weeklyNearDueTasks</b> งาน</span>
+                        <span class="week-foot-status stuck"><i></i>ล่าช้า <b>@weeklyDelayTasks</b> งาน</span>
+                        <span class="week-foot-status working"><i></i>กำลังทำ <b>@weeklyWorkingTasks</b> งาน</span>
+                        <span class="week-foot-status done"><i></i>เสร็จสิ้น <b>@weeklyDoneTasks</b> งาน</span>
                     </div>
                 }
             </article>
@@ -522,7 +688,8 @@
         }
 
         .status-pie-card {
-            order: 2;
+            order: 4;
+            grid-column: 1 / -1;
         }
 
         .task-overview-card {
@@ -578,21 +745,380 @@
         }
 
         .status-pie-card {
-            min-height: 318px;
+            min-height: 560px;
+            padding: clamp(22px, 2.2vw, 34px);
+            border-radius: 26px;
+            color: #15213b;
+            background:
+                radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .98), rgba(255, 255, 255, .9) 46%, rgba(247, 250, 255, .96) 100%);
+            border: 1px solid rgba(218, 226, 238, .95);
+            box-shadow: 0 24px 58px rgba(44, 63, 100, .12);
         }
 
-        .project-status-pie-wrap {
+        .project-status-showcase {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 22px;
+            margin-bottom: 12px;
+        }
+
+        .project-status-showcase__head {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            align-items: center;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        .project-status-showcase__icon {
+            width: 72px;
+            height: 72px;
             display: grid;
             place-items: center;
-            padding: 2px 0 14px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #eafff5, #f1fbf7);
         }
 
-        .project-status-pie {
-            width: min(232px, 82%);
+        .project-status-showcase__icon span {
+            width: 30px;
+            height: 38px;
+            position: relative;
+            display: block;
+            border: 4px solid #17b978;
+            border-radius: 5px 11px 5px 5px;
+        }
+
+        .project-status-showcase__icon span::before {
+            content: "";
+            position: absolute;
+            right: -4px;
+            top: -4px;
+            width: 13px;
+            height: 13px;
+            border-left: 4px solid #17b978;
+            border-bottom: 4px solid #17b978;
+            background: #eafff5;
+            border-radius: 0 8px 0 4px;
+        }
+
+        .project-status-showcase__icon span::after {
+            content: "";
+            position: absolute;
+            right: 2px;
+            bottom: 4px;
+            width: 22px;
+            height: 18px;
+            background:
+                linear-gradient(#17b978, #17b978) 0 10px / 5px 8px no-repeat,
+                linear-gradient(#17b978, #17b978) 8px 4px / 5px 14px no-repeat,
+                linear-gradient(#17b978, #17b978) 16px 0 / 5px 18px no-repeat;
+        }
+
+        .project-status-showcase h2 {
+            margin: 0;
+            color: #14203a;
+            font-size: clamp(30px, 3vw, 44px);
+            line-height: 1.05;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .project-status-showcase p {
+            margin: 9px 0 0;
+            color: #66728a;
+            font-size: clamp(16px, 1.2vw, 20px);
+            font-weight: 800;
+        }
+
+        .project-status-total-card {
+            min-width: 170px;
+            min-height: 120px;
+            display: grid;
+            place-items: center;
+            padding: 18px 20px;
+            border-radius: 18px;
+            background: linear-gradient(145deg, #f6f9ff, #eef3fb);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 18px 36px rgba(37, 51, 80, .08);
+            text-align: center;
+        }
+
+        .project-status-total-card span,
+        .project-status-total-card small {
+            color: #657188;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .project-status-total-card strong {
+            color: #252978;
+            font-size: 54px;
+            line-height: .95;
+            font-weight: 900;
+        }
+
+        .project-status-donut-stage {
+            position: relative;
+            min-height: 360px;
+            display: grid;
+            place-items: center;
+            margin: 6px 0 18px;
+        }
+
+        .project-status-donut {
+            position: relative;
+            width: min(410px, 76%);
             aspect-ratio: 1;
+            display: grid;
+            place-items: center;
             border-radius: 50%;
             background: var(--pie);
-            box-shadow: inset -14px -10px 0 rgba(15, 23, 42, .05), 0 16px 24px rgba(15, 23, 42, .08);
+            box-shadow:
+                inset 0 0 0 2px rgba(255, 255, 255, .78),
+                0 26px 38px rgba(64, 79, 112, .12);
+        }
+
+        .project-status-donut::before {
+            content: "";
+            position: absolute;
+            inset: 24%;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 45% 38%, rgba(255, 255, 255, .96), rgba(255, 255, 255, .9) 58%, rgba(245, 248, 253, .96) 100%);
+            box-shadow:
+                inset 0 10px 20px rgba(15, 23, 42, .06),
+                0 0 0 1px rgba(255, 255, 255, .86);
+        }
+
+        .project-status-donut::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 34% 24%, rgba(255, 255, 255, .28), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, .26), transparent 42%);
+            mix-blend-mode: soft-light;
+            pointer-events: none;
+        }
+
+        .project-status-donut__inner {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            justify-items: center;
+            text-align: center;
+        }
+
+        .project-status-donut__mark {
+            width: 34px;
+            height: 28px;
+            margin-bottom: 12px;
+            opacity: .22;
+            background:
+                linear-gradient(#94a3b8, #94a3b8) 5px 13px / 7px 15px no-repeat,
+                linear-gradient(#94a3b8, #94a3b8) 14px 7px / 7px 21px no-repeat,
+                linear-gradient(#94a3b8, #94a3b8) 23px 2px / 7px 26px no-repeat;
+            border: 4px solid #94a3b8;
+            border-radius: 5px;
+        }
+
+        .project-status-donut__inner strong {
+            color: #111b35;
+            font-size: clamp(56px, 6vw, 88px);
+            line-height: .9;
+            font-weight: 900;
+        }
+
+        .project-status-donut__inner b {
+            margin-top: 10px;
+            color: #66728a;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .project-status-donut__inner i {
+            width: 34px;
+            height: 2px;
+            margin: 12px 0 10px;
+            background: #d9e0ea;
+        }
+
+        .project-status-donut__inner em {
+            display: inline-flex;
+            gap: 12px;
+            font-style: normal;
+        }
+
+        .project-status-donut__inner em span {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--dot);
+        }
+
+        .donut-side-label {
+            position: absolute;
+            z-index: 2;
+            display: grid;
+            gap: 4px;
+            color: #172033;
+            font-weight: 900;
+        }
+
+        .donut-side-label strong {
+            color: var(--label-color);
+            font-size: clamp(30px, 3.4vw, 42px);
+            line-height: 1;
+        }
+
+        .donut-side-label b {
+            font-size: 17px;
+        }
+
+        .donut-side-label span {
+            color: #59657b;
+            font-size: 15px;
+        }
+
+        .donut-side-label::before,
+        .donut-side-label::after {
+            content: "";
+            position: absolute;
+            top: 40px;
+            background: var(--label-color);
+        }
+
+        .donut-side-label::before {
+            width: 62px;
+            height: 2px;
+            border-top: 2px dashed var(--label-color);
+            background: transparent;
+        }
+
+        .donut-side-label::after {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .donut-side-label--right {
+            right: max(2%, 12px);
+            top: 45%;
+        }
+
+        .donut-side-label--right::before {
+            right: 100%;
+            margin-right: 14px;
+        }
+
+        .donut-side-label--right::after {
+            right: calc(100% + 72px);
+            transform: translateY(-5px);
+        }
+
+        .donut-side-label--left {
+            left: max(2%, 12px);
+            top: 56%;
+            text-align: left;
+        }
+
+        .donut-side-label--left::before {
+            left: 100%;
+            margin-left: 14px;
+        }
+
+        .donut-side-label--left::after {
+            left: calc(100% + 72px);
+            transform: translateY(-5px);
+        }
+
+        .project-status-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .project-status-summary-card {
+            min-width: 0;
+            min-height: 180px;
+            display: grid;
+            justify-items: center;
+            align-content: center;
+            gap: 6px;
+            padding: 18px 16px;
+            border-radius: 16px;
+            background:
+                radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--status-color) 16%, transparent), transparent 44%),
+                linear-gradient(145deg, color-mix(in srgb, var(--status-color) 9%, #fff), rgba(255, 255, 255, .9));
+            text-align: center;
+        }
+
+        .project-status-summary-card__icon {
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 4px;
+            border-radius: 50%;
+            color: var(--status-color);
+            background: color-mix(in srgb, var(--status-color) 16%, #fff);
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .project-status-summary-card b {
+            color: var(--status-color);
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .project-status-summary-card strong {
+            color: #15213b;
+            font-size: 44px;
+            line-height: .95;
+            font-weight: 900;
+        }
+
+        .project-status-summary-card small {
+            color: #657188;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .project-status-mini-progress {
+            width: 100%;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .project-status-mini-progress::before {
+            content: "";
+            grid-column: 1;
+            grid-row: 1;
+            height: 7px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--status-color) 20%, #eef3fb);
+        }
+
+        .project-status-mini-progress span {
+            grid-column: 1;
+            grid-row: 1;
+            width: 0;
+            max-width: 100%;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--status-color);
+        }
+
+        .project-status-mini-progress em {
+            color: var(--status-color);
+            font-style: normal;
+            font-size: 14px;
+            font-weight: 900;
         }
 
         .status-metrics {
@@ -1156,10 +1682,1501 @@
             font-weight: 800;
         }
 
+        .task-overview-card,
+        .week-task-card {
+            padding: clamp(24px, 2.2vw, 38px);
+            border-radius: 24px;
+            color: #15213b;
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(250, 252, 255, .94));
+            border: 1px solid rgba(218, 226, 238, .95);
+            box-shadow: 0 24px 58px rgba(44, 63, 100, .12);
+        }
+
+        .light-report-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 26px;
+        }
+
+        .light-report-title {
+            min-width: 0;
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            align-items: center;
+            gap: 18px;
+        }
+
+        .light-report-icon {
+            width: 70px;
+            height: 70px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: linear-gradient(145deg, #eefcf5, #e6fff4);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 24px rgba(15, 23, 42, .06);
+            position: relative;
+        }
+
+        .light-report-icon::before,
+        .light-report-icon::after {
+            content: "";
+            position: absolute;
+        }
+
+        .light-report-icon--people::before {
+            width: 34px;
+            height: 24px;
+            border: 5px solid #19bd78;
+            border-top: 0;
+            border-radius: 16px 16px 5px 5px;
+            bottom: 18px;
+            left: 18px;
+        }
+
+        .light-report-icon--people::after {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #19bd78;
+            top: 18px;
+            left: 23px;
+            box-shadow: 19px 0 0 -3px #19bd78, 24px 12px 0 -6px #19bd78;
+        }
+
+        .light-report-icon--tasks {
+            background: linear-gradient(145deg, #f2edff, #ebe5ff);
+        }
+
+        .light-report-icon--tasks::before {
+            width: 30px;
+            height: 38px;
+            border: 4px solid #8b5cf6;
+            border-radius: 6px;
+        }
+
+        .light-report-icon--tasks::after {
+            width: 17px;
+            height: 19px;
+            background:
+                linear-gradient(#8b5cf6, #8b5cf6) 0 0 / 17px 3px no-repeat,
+                linear-gradient(#8b5cf6, #8b5cf6) 0 8px / 17px 3px no-repeat,
+                linear-gradient(#8b5cf6, #8b5cf6) 0 16px / 17px 3px no-repeat;
+        }
+
+        .light-report-icon--team {
+            background: linear-gradient(145deg, #eaf7ff, #e8f1ff);
+        }
+
+        .light-report-icon--team::before {
+            width: 34px;
+            height: 24px;
+            border: 5px solid #2f8ee8;
+            border-top: 0;
+            border-radius: 16px 16px 6px 6px;
+            bottom: 17px;
+            left: 18px;
+        }
+
+        .light-report-icon--team::after {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #2f8ee8;
+            top: 17px;
+            left: 27px;
+            box-shadow: -15px 10px 0 -4px #58c7ff, 15px 10px 0 -4px #58c7ff;
+        }
+
+        .light-report-title h2 {
+            margin: 0;
+            color: #172033;
+            font-size: clamp(26px, 2vw, 34px);
+            line-height: 1.08;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .light-report-title p {
+            margin: 9px 0 0;
+            color: #68758d;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .light-date-pill {
+            min-height: 54px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 18px;
+            border-radius: 9px;
+            color: #64748b;
+            background: rgba(255, 255, 255, .86);
+            border: 1px solid #dbe4f0;
+            box-shadow: 0 8px 22px rgba(44, 63, 100, .05);
+            font-size: 17px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .light-date-pill span,
+        .light-date-pill i {
+            color: #64748b;
+            font-style: normal;
+            font-size: 17px;
+        }
+
+        .task-overview-card {
+            min-height: auto;
+        }
+
+        .task-overview-card .task-chart-legend {
+            gap: 30px;
+            margin: 0 0 44px 4px;
+            color: #64748b;
+            font-size: 15px;
+        }
+
+        .task-overview-card .task-chart-legend i {
+            width: 14px;
+            height: 14px;
+        }
+
+        .task-overview-scroll {
+            height: auto;
+            min-height: 438px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0 0 10px;
+            scrollbar-color: #bfd0e4 #eef3f8;
+        }
+
+        .task-overview-chart {
+            min-width: max(100%, var(--task-min-width));
+            height: 438px;
+            display: grid;
+            grid-template-columns: repeat(var(--task-count), minmax(114px, 1fr));
+            align-items: end;
+            gap: 22px;
+            padding: 0 28px;
+            border: 1px solid #dfe7f1;
+            border-radius: 12px;
+            background:
+                repeating-linear-gradient(to bottom, transparent 0 60px, rgba(203, 213, 225, .58) 61px, transparent 62px),
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-chart::before {
+            content: "จำนวนงาน (งาน)";
+            position: absolute;
+        }
+
+        .task-overview-item {
+            height: 100%;
+            display: grid;
+            grid-template-rows: 290px 132px;
+            justify-items: center;
+            align-items: end;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .task-stack-frame {
+            width: 64px;
+            height: 280px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .task-stack-frame > strong {
+            position: absolute;
+            bottom: calc(var(--bar-height, 100%) + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #172033;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .task-stack {
+            width: 64px;
+            min-height: 8px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            border-radius: 10px 10px 0 0;
+            background: #edf2f8;
+            box-shadow: 0 12px 22px rgba(15, 23, 42, .08);
+        }
+
+        .task-stack span:first-child {
+            border-radius: 0 0 0 0;
+        }
+
+        .task-stack .done {
+            background: linear-gradient(180deg, #1fd48b, #10b86d);
+        }
+
+        .task-stack .working {
+            background: linear-gradient(180deg, #ffbd48, #f59a16);
+        }
+
+        .task-stack .stuck {
+            background: linear-gradient(180deg, #f55768, #e53b52);
+        }
+
+        .task-member-card {
+            width: 100%;
+            min-height: 126px;
+            display: grid;
+            justify-items: center;
+            align-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 10px;
+            background:
+                radial-gradient(circle at 50% 0, rgba(20, 184, 166, .1), transparent 60%),
+                #f6fbfa;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, .06);
+        }
+
+        .task-member-card img {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, .18), 0 8px 18px rgba(15, 23, 42, .14);
+        }
+
+        .task-member-card b {
+            width: 100%;
+            color: #172033;
+            font-size: 12px;
+            line-height: 1.25;
+            font-weight: 900;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .task-member-card small {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .task-member-card small strong {
+            color: #10b981;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .task-overview-footer,
+        .week-task-footer {
+            min-height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 18px 28px;
+            margin-top: 22px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            color: #64748b;
+            background: linear-gradient(180deg, #fbfcff, #f5f8fc);
+            border: 1px solid #dce5f1;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .task-overview-footer b,
+        .week-task-footer b {
+            color: #15213b;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .footer-info {
+            width: 28px;
+            height: 28px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #5b7ceb;
+            border: 1px solid rgba(91, 124, 235, .28);
+        }
+
+        .footer-status,
+        .week-foot-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-status i,
+        .week-foot-status i {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .footer-status--done i,
+        .week-foot-status.done i {
+            background: #19c979;
+        }
+
+        .footer-status--working i,
+        .week-foot-status.working i,
+        .near {
+            background: #f59e0b;
+        }
+
+        .footer-status--stuck i,
+        .week-foot-status.stuck i {
+            background: #e9435a;
+        }
+
+        .week-task-card {
+            min-height: auto;
+        }
+
+        .week-task-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            box-shadow: 0 16px 34px rgba(44, 63, 100, .07);
+        }
+
+        .week-task-table {
+            min-width: 960px;
+            border-spacing: 0;
+            table-layout: fixed;
+        }
+
+        .week-task-table thead th {
+            padding: 18px 24px;
+            color: #64748b;
+            background: linear-gradient(180deg, #fbfbff, #f4f1fb);
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .week-task-table tbody tr {
+            position: relative;
+        }
+
+        .week-task-table td {
+            padding: 18px 24px;
+            background: #fff;
+            border: 0;
+            border-bottom: 1px solid #e6ecf4;
+            color: #172033;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .week-task-table tr td:first-child {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            border-left: 5px solid #8b5cf6;
+            border-radius: 0;
+        }
+
+        .week-task-table tr.week-row-working td:first-child {
+            border-left-color: #f59e0b;
+        }
+
+        .week-task-table tr.week-row-done td:first-child {
+            border-left-color: #19c979;
+        }
+
+        .week-task-table tr.week-row-stuck td:first-child {
+            border-left-color: #e9435a;
+        }
+
+        .week-task-icon {
+            width: 54px;
+            height: 54px;
+            flex: 0 0 54px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #8b5cf6;
+            background: #f4edff;
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .week-task-icon.working {
+            color: #f59e0b;
+            background: #fff6e8;
+        }
+
+        .week-task-icon.done {
+            color: #19c979;
+            background: #ecfff7;
+        }
+
+        .week-task-icon.stuck {
+            color: #e9435a;
+            background: #fff0f2;
+        }
+
+        .week-task-copy {
+            min-width: 0;
+        }
+
+        .week-task-table td b {
+            color: #111827;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .week-task-table td small {
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .task-owner {
+            gap: 12px;
+            color: #172033;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .task-owner img {
+            width: 46px;
+            height: 46px;
+            flex-basis: 46px;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, .15), 0 8px 18px rgba(15, 23, 42, .16);
+        }
+
+        .week-status {
+            min-height: 44px;
+            border-radius: 9px;
+            border: 1px solid currentColor;
+            background: transparent;
+            font-size: 15px;
+        }
+
+        .week-status.done {
+            color: #0faf68;
+            background: #edfff6;
+        }
+
+        .week-status.working {
+            color: #f59e0b;
+            background: #fff8eb;
+        }
+
+        .week-status.stuck {
+            color: #e53e56;
+            background: #fff0f2;
+        }
+
+        .week-total-icon,
+        .near {
+            width: 30px;
+            height: 30px;
+            display: inline-block;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        .week-total-icon {
+            background: #efe9ff;
+            box-shadow: inset 0 0 0 8px #fff;
+        }
+
+        .near {
+            background: #fff6e8;
+            box-shadow: inset 0 0 0 8px #fff;
+        }
+
+        /* Final ProjectStatus layout tuning */
+        .status-pie-card {
+            order: 1;
+            min-height: 460px;
+            padding: clamp(20px, 1.8vw, 28px);
+        }
+
+        .task-overview-card {
+            order: 2;
+            padding: clamp(20px, 1.8vw, 30px);
+        }
+
+        .week-task-card {
+            order: 3;
+            grid-column: 1 / -1;
+            padding: clamp(20px, 1.8vw, 30px);
+        }
+
+        .org-chart-card {
+            order: 4;
+        }
+
+        .project-status-showcase {
+            margin-bottom: 2px;
+        }
+
+        .project-status-showcase__head {
+            grid-template-columns: 62px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .project-status-showcase__icon {
+            width: 60px;
+            height: 60px;
+        }
+
+        .project-status-showcase h2 {
+            font-size: clamp(26px, 2.35vw, 36px);
+        }
+
+        .project-status-showcase p {
+            margin-top: 6px;
+            font-size: 15px;
+        }
+
+        .project-status-total-card {
+            min-width: 145px;
+            min-height: 94px;
+            padding: 14px 16px;
+        }
+
+        .project-status-total-card strong {
+            font-size: 42px;
+        }
+
+        .project-status-donut-stage {
+            min-height: 292px;
+            margin: 0 0 14px;
+        }
+
+        .project-status-donut {
+            width: min(310px, 58%);
+        }
+
+        .project-status-donut__inner strong {
+            font-size: clamp(42px, 4vw, 62px);
+        }
+
+        .project-status-donut__inner b {
+            font-size: 15px;
+        }
+
+        .donut-side-label strong {
+            font-size: clamp(24px, 2.4vw, 32px);
+        }
+
+        .donut-side-label b {
+            font-size: 14px;
+        }
+
+        .donut-side-label span {
+            font-size: 13px;
+        }
+
+        .project-status-summary-grid {
+            gap: 12px;
+        }
+
+        .project-status-summary-card {
+            min-height: 132px;
+            padding: 14px 12px;
+        }
+
+        .project-status-summary-card__icon {
+            width: 42px;
+            height: 42px;
+            font-size: 22px;
+        }
+
+        .project-status-summary-card b {
+            font-size: 15px;
+        }
+
+        .project-status-summary-card strong {
+            font-size: 34px;
+        }
+
+        .light-report-head {
+            margin-bottom: 18px;
+        }
+
+        .light-report-title {
+            grid-template-columns: 58px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .light-report-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+        }
+
+        .light-report-title h2 {
+            font-size: clamp(23px, 1.7vw, 29px);
+        }
+
+        .light-report-title p {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .light-date-pill {
+            min-height: 44px;
+            padding: 0 14px;
+            font-size: 15px;
+        }
+
+        .task-overview-card .task-chart-legend {
+            margin: 0 0 20px 4px;
+            gap: 24px;
+            font-size: 13px;
+        }
+
+        .task-overview-scroll {
+            min-height: 348px;
+            padding: 0 0 8px;
+        }
+
+        .task-overview-chart {
+            position: relative;
+            height: 342px;
+            grid-template-columns: repeat(var(--task-count), minmax(104px, 1fr));
+            gap: 18px;
+            padding: 30px 24px 0 62px;
+            background:
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 61px 28px / 1px 210px no-repeat,
+                linear-gradient(#d8e2ef 1px, transparent 1px) 62px 238px / calc(100% - 86px) 1px no-repeat,
+                repeating-linear-gradient(to bottom, transparent 0 51px, rgba(203, 213, 225, .56) 52px, transparent 53px),
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-chart::before {
+            content: "จำนวนงาน (งาน)";
+            position: absolute;
+            left: 18px;
+            top: 16px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .task-overview-chart::after {
+            content: "ผู้รับผิดชอบ";
+            position: absolute;
+            left: 50%;
+            bottom: 94px;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .task-overview-item {
+            grid-template-rows: 214px 104px;
+            gap: 10px;
+        }
+
+        .task-stack-frame {
+            width: 52px;
+            height: 206px;
+        }
+
+        .task-stack {
+            width: 52px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .task-stack-frame > strong {
+            font-size: 15px;
+            bottom: calc(var(--bar-height, 100%) + 6px);
+        }
+
+        .task-member-card {
+            min-height: 100px;
+            padding: 8px;
+        }
+
+        .task-member-card img {
+            width: 46px;
+            height: 46px;
+            border-width: 3px;
+        }
+
+        .task-member-card b {
+            font-size: 11px;
+            line-height: 1.18;
+        }
+
+        .task-member-card small {
+            font-size: 12px;
+        }
+
+        .task-overview-footer,
+        .week-task-footer {
+            min-height: 50px;
+            margin-top: 16px;
+            padding: 9px 16px;
+            gap: 12px 22px;
+            font-size: 13px;
+        }
+
+        .task-overview-footer b,
+        .week-task-footer b {
+            font-size: 17px;
+        }
+
+        .task-overview-plot {
+            position: relative;
+            display: grid;
+            grid-template-columns: 64px minmax(0, 1fr);
+            gap: 10px;
+            padding: 28px 0 28px;
+        }
+
+        .task-y-axis {
+            position: relative;
+            height: 312px;
+            margin-top: 0;
+            color: #64748b;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .task-y-title {
+            position: absolute;
+            left: 0;
+            top: -25px;
+            width: max-content;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .task-y-axis span:not(.task-y-title) {
+            position: absolute;
+            right: 8px;
+            top: calc(var(--tick) * 1%);
+            transform: translateY(-50%);
+            line-height: 1;
+        }
+
+        .task-overview-plot .task-overview-scroll {
+            min-height: 348px;
+            padding: 0 0 14px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .task-overview-plot .task-overview-chart {
+            position: relative;
+            min-width: max(100%, var(--task-min-width));
+            height: 342px;
+            display: grid;
+            grid-template-columns: repeat(var(--task-count), minmax(112px, 1fr));
+            align-items: end;
+            gap: 18px;
+            padding: 0 18px;
+            border: 1px solid #dfe7f1;
+            border-radius: 12px;
+            background:
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 0 0 / 1px 312px no-repeat,
+                repeating-linear-gradient(to bottom, transparent 0 77px, rgba(203, 213, 225, .56) 78px, transparent 79px),
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-plot .task-overview-chart::before,
+        .task-overview-plot .task-overview-chart::after {
+            display: none;
+            content: none;
+        }
+
+        .task-overview-plot .task-overview-item {
+            height: 100%;
+            min-width: 0;
+            display: grid;
+            grid-template-rows: 218px 106px;
+            justify-items: center;
+            align-items: end;
+            gap: 12px;
+            padding-top: 12px;
+        }
+
+        .task-overview-plot .task-stack-frame {
+            width: 52px;
+            height: 206px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .task-overview-plot .task-stack-frame > strong {
+            position: absolute;
+            left: 50%;
+            bottom: calc(var(--bar-height, 100%) + 6px);
+            transform: translateX(-50%);
+            z-index: 2;
+            color: #111827;
+            font-size: 15px;
+            line-height: 1;
+            font-weight: 900;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, .8);
+        }
+
+        .task-overview-plot .task-stack {
+            width: 52px;
+            min-height: 4px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            border-radius: 8px 8px 0 0;
+            background: #edf2f8;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, .08);
+        }
+
+        .task-overview-plot .task-member-card {
+            width: 100%;
+            min-height: 104px;
+            display: grid;
+            grid-template-rows: 48px auto auto;
+            justify-items: center;
+            align-content: start;
+            gap: 4px;
+            padding: 8px 7px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(236, 253, 245, .72), rgba(248, 250, 252, .95));
+            box-shadow: 0 8px 18px rgba(15, 23, 42, .06);
+        }
+
+        .task-overview-plot .task-member-card img {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, .22), 0 6px 12px rgba(15, 23, 42, .12);
+        }
+
+        .task-overview-plot .task-member-card b {
+            max-width: 100%;
+            color: #111827;
+            font-size: 11px;
+            line-height: 1.18;
+            font-weight: 900;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .task-overview-plot .task-member-card small {
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.1;
+            font-weight: 800;
+        }
+
+        .task-overview-plot {
+            grid-template-columns: 66px minmax(0, 1fr);
+            padding: 28px 0 32px;
+        }
+
+        .task-y-axis {
+            height: 238px;
+            margin-top: 0;
+        }
+
+        .task-overview-plot .task-overview-scroll {
+            min-height: 360px;
+            padding: 0 0 16px;
+        }
+
+        .task-overview-plot .task-overview-chart {
+            height: 344px;
+            grid-template-columns: repeat(var(--task-count), minmax(118px, 1fr));
+            align-items: start;
+            gap: 20px;
+            padding: 0 20px;
+            background:
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 0 0 / 1px 238px no-repeat,
+                linear-gradient(#d8e2ef 1px, transparent 1px) 0 238px / 100% 1px no-repeat,
+                repeating-linear-gradient(to bottom, transparent 0 29px, rgba(203, 213, 225, .58) 30px, transparent 31px) 0 0 / 100% 238px no-repeat,
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-plot .task-overview-item {
+            grid-template-rows: 238px 96px;
+            gap: 10px;
+            align-items: start;
+            padding-top: 0;
+        }
+
+        .task-overview-plot .task-stack-frame {
+            width: 68px;
+            height: 210px;
+            align-self: end;
+            margin-bottom: 0;
+        }
+
+        .task-overview-plot .task-stack-frame > strong {
+            bottom: min(calc(var(--bar-height, 100%) + 7px), 194px);
+        }
+
+        .task-overview-plot .task-stack,
+        .task-overview-plot .task-stack--triple {
+            width: 68px;
+            height: 100%;
+            max-height: 210px;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 0;
+            overflow: visible;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        .task-overview-plot .task-stack--triple span {
+            width: 22px;
+            min-height: 0;
+            display: block;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, .1);
+        }
+
+        .task-overview-plot .task-stack--triple span:first-child {
+            border-radius: 9px 0 0 0;
+        }
+
+        .task-overview-plot .task-stack--triple span:last-child {
+            border-radius: 0 9px 0 0;
+        }
+
+        .task-overview-plot .task-stack--triple .done {
+            background: linear-gradient(180deg, #2cdb8f, #11b96c);
+        }
+
+        .task-overview-plot .task-stack--triple .working {
+            background: linear-gradient(180deg, #ffc75a, #f59e0b);
+        }
+
+        .task-overview-plot .task-stack--triple .stuck {
+            background: linear-gradient(180deg, #ff6b7d, #e9435a);
+        }
+
+        .task-overview-plot .task-member-card {
+            min-height: 92px;
+            grid-template-rows: 48px auto;
+            align-content: start;
+            padding: 8px 7px 7px;
+        }
+
+        .task-overview-plot .task-member-card b {
+            font-size: 11px;
+            line-height: 1.15;
+        }
+
+        .task-x-title {
+            position: absolute;
+            left: 53%;
+            bottom: 14px;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 800;
+            pointer-events: none;
+        }
+
+        .week-task-table-wrap {
+            border-radius: 10px;
+        }
+
+        .week-task-table {
+            min-width: 900px;
+        }
+
+        .week-task-table thead th {
+            padding: 13px 18px;
+            font-size: 13px;
+        }
+
+        .week-task-table td {
+            padding: 12px 18px;
+            font-size: 13px;
+        }
+
+        .week-task-table tr td:first-child {
+            gap: 14px;
+        }
+
+        .week-task-icon {
+            width: 42px;
+            height: 42px;
+            flex-basis: 42px;
+            font-size: 19px;
+        }
+
+        .week-task-table td b {
+            font-size: 15px;
+        }
+
+        .week-task-table td small {
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .week-task-table {
+            min-width: 1120px;
+            table-layout: fixed;
+        }
+
+        .week-task-table th:nth-child(1),
+        .week-task-table td:nth-child(1) {
+            width: 48%;
+        }
+
+        .week-task-table th:nth-child(2),
+        .week-task-table td:nth-child(2) {
+            width: 26%;
+        }
+
+        .week-task-table th:nth-child(3),
+        .week-task-table td:nth-child(3) {
+            width: 12%;
+        }
+
+        .week-task-table th:nth-child(4),
+        .week-task-table td:nth-child(4) {
+            width: 14%;
+        }
+
+        .week-task-copy {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .week-task-table td b,
+        .week-task-table td small,
+        .week-task-copy b,
+        .week-task-copy small {
+            overflow: visible;
+            text-overflow: clip;
+            white-space: normal;
+        }
+
+        .week-task-copy b {
+            display: block;
+            overflow: visible;
+            line-height: 1.25;
+        }
+
+        .week-task-copy small {
+            display: block;
+            overflow: visible;
+            line-height: 1.3;
+        }
+
+        .task-owner {
+            gap: 9px;
+            font-size: 13px;
+            min-width: 0;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .task-owner img {
+            width: 36px;
+            height: 36px;
+            flex-basis: 36px;
+        }
+
+        .week-status {
+            min-height: 36px;
+            font-size: 13px;
+        }
+
+        .status-pie-card {
+            min-height: 390px;
+            padding: clamp(16px, 1.45vw, 24px);
+        }
+
+        .project-status-showcase__head {
+            grid-template-columns: 52px minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .project-status-showcase__icon {
+            width: 50px;
+            height: 50px;
+        }
+
+        .project-status-showcase__icon span {
+            width: 22px;
+            height: 28px;
+            border-width: 3px;
+        }
+
+        .project-status-showcase h2 {
+            font-size: clamp(24px, 2vw, 32px);
+        }
+
+        .project-status-showcase p {
+            font-size: 14px;
+        }
+
+        .project-status-total-card {
+            min-width: 128px;
+            min-height: 82px;
+            padding: 10px 14px;
+            border-radius: 16px;
+        }
+
+        .project-status-total-card span,
+        .project-status-total-card small {
+            font-size: 12px;
+        }
+
+        .project-status-total-card strong {
+            font-size: 36px;
+        }
+
+        .project-status-donut-stage {
+            min-height: 236px;
+            margin: -2px 0 10px;
+        }
+
+        .project-status-donut {
+            width: min(246px, 44%);
+        }
+
+        .project-status-donut__mark {
+            width: 24px;
+            height: 20px;
+            margin-bottom: 8px;
+            border-width: 3px;
+        }
+
+        .project-status-donut__inner strong {
+            font-size: clamp(34px, 3.3vw, 50px);
+        }
+
+        .project-status-donut__inner b {
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .project-status-donut__inner i {
+            margin: 8px 0 7px;
+        }
+
+        .project-status-donut__inner em {
+            gap: 8px;
+        }
+
+        .project-status-donut__inner em span {
+            width: 8px;
+            height: 8px;
+        }
+
+        .donut-side-label strong {
+            font-size: clamp(22px, 2.1vw, 30px);
+        }
+
+        .donut-side-label b {
+            font-size: 13px;
+        }
+
+        .donut-side-label span {
+            font-size: 12px;
+        }
+
+        .donut-side-label::before {
+            width: 44px;
+        }
+
+        .donut-side-label::after {
+            width: 10px;
+            height: 10px;
+        }
+
+        .donut-side-label--left {
+            left: 13%;
+            top: 51%;
+        }
+
+        .donut-side-label--left::before {
+            margin-left: 10px;
+        }
+
+        .donut-side-label--left::after {
+            left: calc(100% + 56px);
+        }
+
+        .donut-side-label--right {
+            right: 16%;
+            top: 41%;
+        }
+
+        .donut-side-label--right::before {
+            margin-right: 10px;
+        }
+
+        .donut-side-label--right::after {
+            right: calc(100% + 56px);
+        }
+
+        .status-pie-card .donut-side-label::before {
+            width: 30px;
+        }
+
+        .status-pie-card .donut-side-label--left {
+            left: 20%;
+            top: 51%;
+        }
+
+        .status-pie-card .donut-side-label--left::before {
+            margin-left: 8px;
+        }
+
+        .status-pie-card .donut-side-label--left::after {
+            left: calc(100% + 42px);
+        }
+
+        .status-pie-card .donut-side-label--right {
+            right: 22%;
+            top: 41%;
+        }
+
+        .status-pie-card .donut-side-label--right::before {
+            margin-right: 8px;
+        }
+
+        .status-pie-card .donut-side-label--right::after {
+            right: calc(100% + 42px);
+        }
+
+        .project-status-summary-grid {
+            gap: 10px;
+        }
+
+        .project-status-summary-card {
+            min-height: 104px;
+            padding: 10px;
+            gap: 3px;
+        }
+
+        .project-status-summary-card__icon {
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+
+        .project-status-summary-card b {
+            font-size: 13px;
+        }
+
+        .project-status-summary-card strong {
+            font-size: 28px;
+        }
+
+        .project-status-summary-card small,
+        .project-status-mini-progress em {
+            font-size: 12px;
+        }
+
+        .project-status-mini-progress {
+            margin-top: 7px;
+        }
+
+        .week-task-card {
+            padding: clamp(16px, 1.25vw, 22px);
+        }
+
+        .week-task-card .light-report-head {
+            margin-bottom: 14px;
+        }
+
+        .week-task-card .light-report-title {
+            grid-template-columns: 48px minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .week-task-card .light-report-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 11px;
+        }
+
+        .week-task-card .light-report-title h2 {
+            font-size: clamp(22px, 1.45vw, 27px);
+        }
+
+        .week-task-card .light-report-title p {
+            font-size: 13px;
+            margin-top: 3px;
+        }
+
+        .week-task-card .light-date-pill {
+            min-height: 38px;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        .week-task-table-wrap {
+            border-radius: 9px;
+            box-shadow: 0 10px 24px rgba(44, 63, 100, .05);
+        }
+
+        .week-task-table {
+            min-width: 1020px;
+        }
+
+        .week-task-table thead th {
+            padding: 10px 16px;
+            font-size: 12px;
+        }
+
+        .week-task-table td {
+            padding: 10px 16px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .week-task-table tr td:first-child {
+            gap: 12px;
+            border-left-width: 4px;
+        }
+
+        .week-task-icon {
+            width: 34px;
+            height: 34px;
+            flex-basis: 34px;
+            font-size: 15px;
+        }
+
+        .week-task-table td b,
+        .week-task-copy b {
+            font-size: 14px;
+            line-height: 1.22;
+        }
+
+        .week-task-table td small,
+        .week-task-copy small {
+            margin-top: 3px;
+            font-size: 11px;
+            line-height: 1.25;
+        }
+
+        .week-task-copy b,
+        .week-task-copy small {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .week-task-copy b {
+            -webkit-line-clamp: 2;
+        }
+
+        .week-task-copy small {
+            -webkit-line-clamp: 2;
+        }
+
+        .task-owner {
+            gap: 8px;
+            font-size: 13px;
+            line-height: 1.2;
+        }
+
+        .task-owner img {
+            width: 32px;
+            height: 32px;
+            flex-basis: 32px;
+            border-width: 2px;
+        }
+
+        .week-status {
+            min-height: 34px;
+            padding: 0 14px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .week-task-footer {
+            min-height: 44px;
+            margin-top: 12px;
+            padding: 8px 14px;
+            gap: 10px 18px;
+            font-size: 12px;
+        }
+
+        .week-task-footer b {
+            font-size: 15px;
+        }
+
+        .status-pie-card .project-status-summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .status-pie-card .donut-side-label--plan {
+            left: 49%;
+            top: 15%;
+            transform: translateX(-50%);
+            text-align: center;
+            justify-items: center;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .72);
+            box-shadow: 0 10px 24px rgba(49, 93, 170, .12);
+        }
+
+        .status-pie-card .donut-side-label--plan::before {
+            display: none;
+        }
+
+        .status-pie-card .donut-side-label--plan::after {
+            display: none;
+        }
+
+        .status-pie-card .donut-side-label--plan strong {
+            font-size: clamp(24px, 2.25vw, 34px);
+        }
+
+        .status-pie-card .donut-side-label--plan b,
+        .status-pie-card .donut-side-label--plan span {
+            font-size: 12px;
+        }
+
         @@media (max-width: 1280px) {
             .team-project-board {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 max-width: 100%;
+            }
+
+            .status-pie-card {
+                grid-column: 1 / -1;
+            }
+
+            .project-status-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .org-chart-card,
@@ -1189,6 +3206,83 @@
 
             .status-board-card {
                 padding: 18px;
+            }
+
+            .project-status-showcase {
+                grid-template-columns: 1fr;
+            }
+
+            .project-status-showcase__head {
+                grid-template-columns: 58px minmax(0, 1fr);
+                gap: 14px;
+            }
+
+            .project-status-showcase__icon {
+                width: 58px;
+                height: 58px;
+            }
+
+            .project-status-total-card {
+                width: 100%;
+                min-height: 92px;
+            }
+
+            .project-status-donut-stage {
+                min-height: 230px;
+                padding-top: 42px;
+            }
+
+            .project-status-donut {
+                width: min(220px, 68vw);
+            }
+
+            .donut-side-label {
+                position: static;
+                justify-items: center;
+                text-align: center;
+            }
+
+            .donut-side-label::before,
+            .donut-side-label::after {
+                display: none;
+            }
+
+            .donut-side-label--right,
+            .donut-side-label--left,
+            .donut-side-label--plan {
+                position: absolute;
+                top: 0;
+                left: auto;
+                right: auto;
+            }
+
+            .donut-side-label--left {
+                transform: translateX(-46%);
+            }
+
+            .donut-side-label--right {
+                transform: translateX(46%);
+            }
+
+            .donut-side-label--plan {
+                transform: translateY(-12px);
+            }
+
+            .donut-side-label strong {
+                font-size: 22px;
+            }
+
+            .donut-side-label b,
+            .donut-side-label span {
+                display: none;
+            }
+
+            .project-status-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .project-status-summary-card {
+                min-height: 138px;
             }
 
             .status-metrics {
@@ -1243,6 +3337,684 @@
             .week-task-table {
                 min-width: 620px;
             }
+        }
+
+        .week-task-card .week-task-table {
+            min-width: 1280px;
+            table-layout: fixed;
+        }
+
+        .week-task-card .week-task-table th:nth-child(1),
+        .week-task-card .week-task-table td:nth-child(1) {
+            width: 58%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(2),
+        .week-task-card .week-task-table td:nth-child(2) {
+            width: 20%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(3),
+        .week-task-card .week-task-table td:nth-child(3) {
+            width: 10%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(4),
+        .week-task-card .week-task-table td:nth-child(4) {
+            width: 12%;
+        }
+
+        .week-task-card .week-task-copy {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .week-task-card .week-task-copy b,
+        .week-task-card .week-task-copy small {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            -webkit-line-clamp: unset;
+            -webkit-box-orient: unset;
+        }
+
+        .week-task-card .week-task-table-wrap {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: visible;
+            overflow-y: hidden;
+        }
+
+        .week-task-card .week-task-table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+        }
+
+        .week-task-card .week-task-table th,
+        .week-task-card .week-task-table td {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .week-task-card .week-task-table th:nth-child(1),
+        .week-task-card .week-task-table td:nth-child(1) {
+            width: 48%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(2),
+        .week-task-card .week-task-table td:nth-child(2) {
+            width: 27%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(3),
+        .week-task-card .week-task-table td:nth-child(3) {
+            width: 12%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(4),
+        .week-task-card .week-task-table td:nth-child(4) {
+            width: 13%;
+        }
+
+        .week-task-card .week-task-table tr td:first-child {
+            display: table-cell;
+            border-left-width: 4px;
+            vertical-align: middle;
+        }
+
+        .week-task-card .week-task-copy b,
+        .week-task-card .week-task-copy small {
+            white-space: nowrap;
+        }
+
+        .week-task-card .task-owner {
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .week-task-card .week-status {
+            width: 100%;
+            max-width: 132px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .task-overview-card .task-overview-plot {
+            --task-bar-area: 286px;
+            --task-member-area: 118px;
+            position: relative;
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            gap: 12px;
+            padding: 36px 0 34px;
+        }
+
+        .task-overview-card .task-y-axis {
+            position: relative;
+            width: 68px;
+            height: var(--task-bar-area);
+            margin: 0;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .task-overview-card .task-y-title {
+            position: absolute;
+            left: 0;
+            top: -30px;
+            width: 130px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.1;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .task-overview-card .task-y-axis span:not(.task-y-title) {
+            position: absolute;
+            right: 10px;
+            top: calc(var(--tick) * 1%);
+            transform: translateY(-50%);
+            color: #64748b;
+            line-height: 1;
+            text-align: right;
+        }
+
+        .task-overview-card .task-overview-scroll {
+            min-height: calc(var(--task-bar-area) + var(--task-member-area));
+            height: auto;
+            padding: 0 0 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .task-overview-card .task-overview-chart {
+            position: relative;
+            min-width: max(100%, var(--task-min-width));
+            height: calc(var(--task-bar-area) + var(--task-member-area));
+            display: grid;
+            grid-template-columns: repeat(var(--task-count), minmax(136px, 1fr));
+            align-items: start;
+            gap: 22px;
+            padding: 0 22px;
+            border: 1px solid #dfe7f1;
+            border-radius: 12px;
+            background:
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 0 0 / 1px var(--task-bar-area) no-repeat,
+                linear-gradient(#d8e2ef 1px, transparent 1px) 0 var(--task-bar-area) / 100% 1px no-repeat,
+                repeating-linear-gradient(to bottom, rgba(203, 213, 225, .68) 0 1px, transparent 1px calc(var(--task-bar-area) / 8)) 0 0 / 100% var(--task-bar-area) no-repeat,
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-card .task-overview-chart::before,
+        .task-overview-card .task-overview-chart::after {
+            display: none;
+            content: none;
+        }
+
+        .task-overview-card .task-overview-item {
+            height: 100%;
+            min-width: 0;
+            display: grid;
+            grid-template-rows: var(--task-bar-area) var(--task-member-area);
+            justify-items: center;
+            align-items: end;
+            gap: 0;
+            padding: 0;
+        }
+
+        .task-overview-card .task-stack-frame {
+            width: 106px;
+            height: calc(var(--task-bar-area) - 30px);
+            align-self: end;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            margin: 0 0 0;
+            overflow: visible;
+        }
+
+        .task-overview-card .task-stack-frame > strong,
+        .task-overview-card .task-stack {
+            display: none;
+        }
+
+        .task-overview-card .task-single-bar {
+            position: relative;
+            width: 30px;
+            height: var(--bar-height);
+            min-height: 4px;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            border-radius: 9px 9px 0 0;
+        }
+
+        .task-overview-card .task-single-bar.is-zero {
+            min-height: 3px;
+        }
+
+        .task-overview-card .task-single-bar em {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 7px);
+            transform: translateX(-50%);
+            z-index: 3;
+            color: #111827;
+            font-size: 13px;
+            line-height: 1;
+            font-style: normal;
+            font-weight: 900;
+            white-space: nowrap;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, .9);
+        }
+
+        .task-overview-card .task-single-bar i {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: inherit;
+            border-radius: inherit;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, .1);
+        }
+
+        .task-overview-card .task-single-bar.done i {
+            background: linear-gradient(180deg, #35dc91 0%, #12b86d 100%);
+        }
+
+        .task-overview-card .task-single-bar.working i {
+            background: linear-gradient(180deg, #ffc85d 0%, #f2a832 100%);
+        }
+
+        .task-overview-card .task-single-bar.stuck i {
+            background: linear-gradient(180deg, #f45b6a 0%, #dc4655 100%);
+        }
+
+        .task-overview-card .task-member-card {
+            width: 100%;
+            min-height: 108px;
+            display: grid;
+            grid-template-rows: 48px auto auto;
+            justify-items: center;
+            align-content: start;
+            gap: 4px;
+            padding: 9px 8px 8px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(236, 253, 245, .72), rgba(248, 250, 252, .96));
+            box-shadow: 0 8px 18px rgba(15, 23, 42, .055);
+        }
+
+        .task-overview-card .task-member-card img {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, .22), 0 6px 12px rgba(15, 23, 42, .12);
+        }
+
+        .task-overview-card .task-member-card b {
+            max-width: 100%;
+            color: #111827;
+            font-size: 11px;
+            line-height: 1.18;
+            font-weight: 900;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .task-overview-card .task-member-card small {
+            display: block;
+            color: #10b981;
+            font-size: 12px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .task-overview-card .task-x-title {
+            position: absolute;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 900;
+            pointer-events: none;
+        }
+
+        .status-pie-card .donut-side-label--plan {
+            left: 58%;
+            top: 5%;
+            transform: none;
+            padding: 0;
+            text-align: left;
+            justify-items: start;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .status-pie-card .donut-side-label--plan::before {
+            display: block;
+            position: absolute;
+            right: calc(100% + 12px);
+            left: auto;
+            top: 58px;
+            width: 90px;
+            margin: 0;
+            border-top: 3px dashed var(--label-color);
+            transform: none;
+        }
+
+        .status-pie-card .donut-side-label--plan::after {
+            display: block;
+            position: absolute;
+            right: calc(100% + 100px);
+            left: auto;
+            top: 54px;
+            width: 10px;
+            height: 10px;
+            transform: none;
+        }
+
+        .status-pie-card .donut-side-label--plan strong {
+            font-size: clamp(22px, 2.1vw, 30px);
+        }
+
+        .status-pie-card .donut-side-label--plan b,
+        .status-pie-card .donut-side-label--plan span {
+            display: block;
+            font-size: 12px;
+        }
+
+        .status-pie-card .donut-side-label--left {
+            left: 16%;
+            top: 47%;
+        }
+
+        .status-pie-card .donut-side-label--left::before {
+            left: 100%;
+            top: 38px;
+            width: 90px;
+            margin-left: 18px;
+        }
+
+        .status-pie-card .donut-side-label--left::after {
+            left: calc(100% + 106px);
+            top: 34px;
+            transform: none;
+        }
+
+        .status-pie-card .donut-side-label--right {
+            right: 15%;
+            top: 43%;
+        }
+
+        .status-pie-card .donut-side-label--right::before {
+            right: 100%;
+            top: 38px;
+            width: 72px;
+            margin-right: 18px;
+        }
+
+        .status-pie-card .donut-side-label--right::after {
+            right: calc(100% + 88px);
+            top: 34px;
+            transform: none;
+        }
+
+        .week-task-card .week-task-table-wrap {
+            overflow: visible;
+        }
+
+        .week-task-card .week-task-table {
+            width: 100%;
+            min-width: 0;
+            table-layout: fixed;
+        }
+
+        .week-task-card .week-task-table th:nth-child(1),
+        .week-task-card .week-task-table td:nth-child(1) {
+            width: 58%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(2),
+        .week-task-card .week-task-table td:nth-child(2) {
+            width: 24%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(3),
+        .week-task-card .week-task-table td:nth-child(3) {
+            width: 9%;
+        }
+
+        .week-task-card .week-task-table th:nth-child(4),
+        .week-task-card .week-task-table td:nth-child(4) {
+            width: 9%;
+        }
+
+        .week-task-card .week-task-copy {
+            display: inline-block;
+            min-width: 0;
+            width: calc(100% - 56px);
+            max-width: calc(100% - 56px);
+            vertical-align: middle;
+        }
+
+        .week-task-card .week-task-icon {
+            display: inline-grid;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        .week-task-card .week-task-copy b,
+        .week-task-card .week-task-copy small {
+            display: block;
+            overflow: visible;
+            text-overflow: clip;
+            white-space: normal;
+            -webkit-line-clamp: unset;
+            -webkit-box-orient: unset;
+        }
+
+        .week-task-card .task-owner {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+        }
+
+        .task-overview-card .task-overview-scroll {
+            width: 100%;
+            min-width: 0;
+            overflow: visible;
+            padding-bottom: 10px;
+        }
+
+        .task-overview-card .task-overview-chart {
+            width: 100%;
+            min-width: 0 !important;
+            max-width: 100%;
+            box-sizing: border-box;
+            grid-template-columns: repeat(var(--task-count), minmax(72px, 1fr));
+            gap: clamp(6px, .72vw, 14px);
+            padding: 0 clamp(8px, .8vw, 16px);
+            overflow: hidden;
+            background:
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 0 0 / 1px var(--task-bar-area) no-repeat,
+                linear-gradient(90deg, #d8e2ef 1px, transparent 1px) 100% 0 / 1px var(--task-bar-area) no-repeat,
+                linear-gradient(#d8e2ef 1px, transparent 1px) 0 0 / 100% 1px no-repeat,
+                linear-gradient(#d8e2ef 1px, transparent 1px) 0 var(--task-bar-area) / 100% 1px no-repeat,
+                repeating-linear-gradient(to bottom, rgba(203, 213, 225, .68) 0 1px, transparent 1px calc(var(--task-bar-area) / 8)) 0 0 / 100% var(--task-bar-area) no-repeat,
+                linear-gradient(#fff, #fff);
+        }
+
+        .task-overview-card .task-overview-item {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .task-overview-card .task-stack-frame {
+            width: min(100%, 96px);
+            gap: clamp(2px, .24vw, 4px);
+        }
+
+        .task-overview-card .task-single-bar {
+            width: clamp(14px, 1.18vw, 26px);
+        }
+
+        .task-overview-card .task-single-bar em {
+            font-size: clamp(10px, .72vw, 13px);
+        }
+
+        .task-overview-card .task-member-card {
+            min-width: 0;
+            min-height: 102px;
+            grid-template-rows: auto 44px auto;
+            gap: 3px;
+            padding: 6px 5px 7px;
+        }
+
+        .task-overview-card .task-member-card img {
+            width: clamp(34px, 2.8vw, 44px);
+            height: clamp(34px, 2.8vw, 44px);
+        }
+
+        .task-overview-card .task-member-card b {
+            font-size: clamp(8px, .58vw, 11px);
+            line-height: 1.16;
+        }
+
+        .task-overview-card .task-member-card small {
+            font-size: clamp(9px, .62vw, 12px);
+            color: #10b981;
+            line-height: 1.05;
+            white-space: nowrap;
+        }
+
+        .task-overview-card .task-overview-plots {
+            position: relative;
+            display: grid;
+            gap: 16px;
+            margin-top: 20px;
+            padding-bottom: 30px;
+        }
+
+        .task-overview-card .task-overview-plots > .task-overview-plot {
+            --task-bar-area: 190px;
+            --task-member-area: 98px;
+            width: 100%;
+            margin: 0;
+            padding: 28px 0 0;
+            grid-template-columns: 70px minmax(0, 1fr);
+            gap: 10px;
+        }
+
+        .task-overview-card .task-overview-plots .task-y-axis {
+            width: 62px;
+            height: var(--task-bar-area);
+        }
+
+        .task-overview-card .task-overview-plots .task-y-axis span:not(.task-y-title) {
+            right: 8px;
+            font-size: 11px;
+        }
+
+        .task-overview-card .task-overview-plots .task-y-title {
+            top: -26px;
+            font-size: 11px;
+        }
+
+        .task-overview-card .task-overview-plots .task-overview-scroll {
+            width: 100%;
+            min-height: calc(var(--task-bar-area) + var(--task-member-area));
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 6px;
+        }
+
+        .task-overview-card .task-overview-plots .task-overview-chart {
+            width: max(100%, var(--task-min-width));
+            min-width: var(--task-min-width) !important;
+            height: calc(var(--task-bar-area) + var(--task-member-area));
+            grid-template-columns: repeat(var(--task-count), minmax(94px, 1fr));
+            justify-content: start;
+            gap: 12px;
+            padding: 0 12px;
+            overflow: visible;
+        }
+
+        .task-overview-card .task-overview-plots .task-stack-frame {
+            width: min(100%, 82px);
+            height: calc(var(--task-bar-area) - 24px);
+        }
+
+        .task-overview-card .task-overview-plots .task-single-bar {
+            width: clamp(16px, 1.25vw, 24px);
+        }
+
+        .task-overview-card .task-overview-plots .task-member-card {
+            min-height: 92px;
+            grid-template-rows: auto 38px auto;
+            padding: 5px 4px 6px;
+        }
+
+        .task-overview-card .task-overview-plots .task-member-card img {
+            width: 38px;
+            height: 38px;
+        }
+
+        .task-overview-card .task-overview-plots .task-member-card b {
+            font-size: clamp(8px, .56vw, 10px);
+        }
+
+        .task-overview-card .task-overview-plots .task-x-title {
+            bottom: 2px;
+        }
+
+        .status-pie-card .donut-side-label {
+            display: none !important;
+        }
+
+        .status-pie-card .project-status-summary-card {
+            border: 1px solid color-mix(in srgb, var(--status-color) 34%, transparent);
+            background:
+                radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--status-color) 28%, transparent), transparent 52%),
+                linear-gradient(145deg, color-mix(in srgb, var(--status-color) 18%, #fff) 0%, color-mix(in srgb, var(--status-color) 8%, #fff) 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .78),
+                0 14px 30px color-mix(in srgb, var(--status-color) 18%, transparent);
+        }
+
+        .status-pie-card .project-status-summary-card__icon {
+            color: #fff;
+            background:
+                radial-gradient(circle at 34% 24%, rgba(255, 255, 255, .48), transparent 28%),
+                linear-gradient(145deg, color-mix(in srgb, var(--status-color) 86%, #fff), color-mix(in srgb, var(--status-color) 100%, #111827));
+            box-shadow:
+                0 0 0 8px color-mix(in srgb, var(--status-color) 14%, transparent),
+                0 10px 22px color-mix(in srgb, var(--status-color) 28%, transparent);
+        }
+
+        .status-pie-card .project-status-summary-card b,
+        .status-pie-card .project-status-mini-progress em {
+            color: color-mix(in srgb, var(--status-color) 92%, #111827);
+        }
+
+        .status-pie-card .project-status-mini-progress {
+            background: color-mix(in srgb, var(--status-color) 13%, #eef2f7);
+        }
+
+        .status-pie-card .project-status-mini-progress span {
+            background: linear-gradient(90deg, color-mix(in srgb, var(--status-color) 88%, #fff), var(--status-color));
+            box-shadow: 0 0 16px color-mix(in srgb, var(--status-color) 28%, transparent);
+        }
+
+        .status-pie-card .project-status-showcase__head,
+        .task-overview-card .light-report-title,
+        .week-task-card .light-report-title {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .status-pie-card .project-status-showcase__icon,
+        .task-overview-card .light-report-icon,
+        .week-task-card .light-report-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            flex: 0 0 54px;
+        }
+
+        .status-pie-card .project-status-showcase h2,
+        .task-overview-card .light-report-title h2,
+        .week-task-card .light-report-title h2 {
+            margin: 0;
+            color: #111827;
+            font-size: clamp(24px, 1.7vw, 30px);
+            line-height: 1.08;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .status-pie-card .project-status-showcase p,
+        .task-overview-card .light-report-title p,
+        .week-task-card .light-report-title p {
+            margin: 5px 0 0;
+            color: #68758d;
+            font-size: 14px;
+            line-height: 1.35;
+            font-weight: 800;
+            letter-spacing: 0;
         }
     </style>
 }

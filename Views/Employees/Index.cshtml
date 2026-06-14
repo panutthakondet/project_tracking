@@ -100,7 +100,7 @@
                         @emp.Position
                     </td>
 
-                    <td>
+                    <td class="employee-table-email">
                         @if (emp.LoginUser != null)
                         {
                             @emp.LoginUser.Email
@@ -195,7 +195,7 @@
                 <div class="employee-info">
                     <div class="employee-info-row">
                         <span class="employee-label">Email</span>
-                        <span>
+                        <span class="employee-email">
                             @(emp.LoginUser?.Email ?? "-")
                         </span>
                     </div>
@@ -326,6 +326,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    min-width: 0;
     background: #f8fafc;
     border: 1px solid #e5e7eb;
     border-radius: 14px;
@@ -333,10 +334,23 @@
     font-size: .92rem;
 }
 
+.employee-info-row > span:last-child {
+    min-width: 0;
+    text-align: right;
+}
+
+.employee-email,
+.employee-table-email {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
+}
+
 .employee-label {
     color: #64748b;
     min-width: 70px;
     font-weight: 600;
+    flex: 0 0 auto;
 }
 
 .employee-actions {

@@ -131,7 +131,7 @@
 
             <div class="project-filter-row">
                 <label class="form-label fw-bold">🏢 สหกรณ์</label>
-                <select id="coopFilter" class="form-select form-select-lg">
+                <select id="coopFilter" class="form-select form-select-lg" data-show-empty-option-text="true">
                     <option value="">ทั้งหมด</option>
                     @foreach (var coopName in projects
                         .Select(x => x.Coop?.CoopName)
@@ -417,23 +417,29 @@
                                      alt="@(p.BA?.EmpName ?? "Business Analyst")"
                                      loading="lazy"
                                      onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                <span>@(p.BA?.EmpName ?? "-")</span>
-                            </span>
-
-                            <div class="project-status">
-                                <span class="badge rounded-pill px-3 py-2
-                                    @(p.Status == "DONE"
-                                        ? "bg-success"
-                                        : p.Status == "IN_PROGRESS"
-                                            ? "bg-info"
-                                            : "bg-warning text-dark")">
-                                    @p.Status
+                                <span class="pt-owner-meta">
+                                    <span class="pt-owner-name">@(p.BA?.EmpName ?? "-")</span>
+                                    <span class="project-status">
+                                        <span class="badge rounded-pill px-3 py-2
+                                            @(p.Status == "DONE"
+                                                ? "bg-success"
+                                                : p.Status == "IN_PROGRESS"
+                                                    ? "bg-info"
+                                                    : "bg-warning text-dark")">
+                                            @p.Status
+                                        </span>
+                                    </span>
                                 </span>
-                            </div>
+                            </span>
                         </div>
 
-                        <div class="project-name">
-                            @mobileRow. @projectDisplayName
+                        <div class="project-title-row">
+                            <span class="project-row-number">@mobileRow</span>
+                            <div class="project-title-stack">
+                                <div class="project-name">
+                                    @projectDisplayName
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -772,6 +778,61 @@ thead .sticky-col-2{
     white-space: nowrap;
 }
 
+.project-title-row {
+    display:grid;
+    grid-template-columns:34px minmax(0, 1fr);
+    align-items:start;
+    gap:10px;
+}
+
+.project-row-number {
+    width:30px;
+    height:30px;
+    border-radius:10px;
+    display:inline-grid;
+    place-items:center;
+    color:#10233f;
+    background:#eaf3ff;
+    border:1px solid #cfe2f6;
+    font-size:.92rem;
+    font-weight:800;
+    line-height:1;
+}
+
+.project-title-stack {
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.project-name {
+    color:#0f172a;
+    font-size:1.08rem;
+    font-weight:700;
+    line-height:1.35;
+    overflow-wrap:anywhere;
+}
+
+.project-status {
+    display:flex;
+    align-items:center;
+    margin-top:0;
+}
+
+.pt-owner-meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.pt-owner-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
 @@media (max-width: 768px) {
 
     .project-card-header {
@@ -798,10 +859,6 @@ thead .sticky-col-2{
     .project-card-topline .pt-owner-chip {
         min-width: 0;
         flex: 1 1 auto;
-    }
-
-    .project-card-topline .project-status {
-        flex: 0 0 auto;
     }
 
     .project-name {
