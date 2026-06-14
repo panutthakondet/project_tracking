@@ -489,6 +489,12 @@
                 {
                     <div class="week-task-table-wrap">
                         <table class="week-task-table">
+                            <colgroup>
+                                <col class="week-col-task" />
+                                <col class="week-col-owner" />
+                                <col class="week-col-due" />
+                                <col class="week-col-status" />
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>งาน</th>
@@ -3740,24 +3746,39 @@
             table-layout: fixed;
         }
 
-        .week-task-card .week-task-table th:nth-child(1),
-        .week-task-card .week-task-table td:nth-child(1) {
-            width: 58%;
+        .week-task-card .week-col-task {
+            width: 50%;
         }
 
-        .week-task-card .week-task-table th:nth-child(2),
-        .week-task-card .week-task-table td:nth-child(2) {
+        .week-task-card .week-col-owner {
             width: 24%;
         }
 
+        .week-task-card .week-col-due {
+            width: 13%;
+        }
+
+        .week-task-card .week-col-status {
+            width: 13%;
+        }
+
+        .week-task-card .week-task-table th,
+        .week-task-card .week-task-table td {
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
         .week-task-card .week-task-table th:nth-child(3),
-        .week-task-card .week-task-table td:nth-child(3) {
-            width: 9%;
+        .week-task-card .week-task-table td:nth-child(3),
+        .week-task-card .week-task-table th:nth-child(4),
+        .week-task-card .week-task-table td:nth-child(4) {
+            white-space: nowrap;
         }
 
         .week-task-card .week-task-table th:nth-child(4),
         .week-task-card .week-task-table td:nth-child(4) {
-            width: 9%;
+            text-align: center;
+            overflow: visible;
         }
 
         .week-task-card .week-task-copy {
@@ -3788,6 +3809,15 @@
             white-space: normal;
             overflow: visible;
             text-overflow: clip;
+        }
+
+        .week-task-card .week-status {
+            width: auto;
+            min-width: 84px;
+            max-width: 100%;
+            padding: 8px 10px;
+            box-sizing: border-box;
+            line-height: 1.1;
         }
 
         .task-overview-card .task-overview-scroll {

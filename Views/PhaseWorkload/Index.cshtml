@@ -147,105 +147,109 @@
 
                         <input type="hidden" name="viewMode" value="@viewMode" />
 
-                        <label class="fw-bold mb-0 text-nowrap">
-                            ประเภท
-                        </label>
+                        <div class="workload-filter-row is-type-row">
+                            <label class="workload-filter-label fw-bold mb-0 text-nowrap">
+                                ประเภท
+                            </label>
 
-                        <div class="workload-filter-control is-type">
-                            <select id="workTypeFilter"
-                                    name="workType"
-                                    class="form-select workload-filter-select"
-                                    onchange="this.form.submit()">
-                                <option value="ALL" selected="@(selectedWorkType == "ALL")">-- ทั้งหมด --</option>
-                                <option value="PHASE" selected="@(selectedWorkType == "PHASE")">Assigns</option>
-                                <option value="ISSUE" selected="@(selectedWorkType == "ISSUE")">Issue</option>
-                                <option value="SUPPORT" selected="@(selectedWorkType == "SUPPORT")">Support</option>
-                            </select>
+                            <div class="workload-filter-control is-type">
+                                <select id="workTypeFilter"
+                                        name="workType"
+                                        class="form-select workload-filter-select"
+                                        data-autosubmit="true">
+                                    <option value="ALL" selected="@(selectedWorkType == "ALL")">-- ทั้งหมด --</option>
+                                    <option value="PHASE" selected="@(selectedWorkType == "PHASE")">Assigns</option>
+                                    <option value="ISSUE" selected="@(selectedWorkType == "ISSUE")">Issue</option>
+                                    <option value="SUPPORT" selected="@(selectedWorkType == "SUPPORT")">Support</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <label class="fw-bold mb-0 text-nowrap">
-                            ผู้รับผิดชอบ
-                        </label>
+                        <div class="workload-filter-row is-range-row">
+                            <label class="workload-filter-label fw-bold mb-0 text-nowrap">
+                                ผู้รับผิดชอบ
+                            </label>
 
-                        <div class="workload-filter-control is-employee">
-                            <select id="empFilter"
-                                    name="empId"
-                                    class="form-select emp-select-fixed"
-                                    onchange="this.form.submit()">
+                            <div class="workload-filter-control is-employee">
+                                <select id="empFilter"
+                                        name="empId"
+                                        class="form-select emp-select-fixed"
+                                        data-autosubmit="true">
 
-                                <option value="">
-                                    -- ทั้งหมด --
-                                </option>
+                                    <option value="">
+                                        -- ทั้งหมด --
+                                    </option>
 
-                                @foreach (var emp in employees)
+                                    @foreach (var emp in employees)
+                                    {
+                                        <option value="@emp.Key.EmpId"
+                                                selected="@(selectedEmpId == emp.Key.EmpId.ToString())">
+                                            @emp.Key.EmpName
+                                        </option>
+                                    }
+
+                                </select>
+                            </div>
+
+                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ปี</label>
+
+                            <div class="workload-filter-control is-year">
+                                <select name="year"
+                                        class="form-select workload-filter-select"
+                                        form="filterForm"
+                                        data-autosubmit="true">
+                                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
                                 {
-                                    <option value="@emp.Key.EmpId"
-                                            selected="@(selectedEmpId == emp.Key.EmpId.ToString())">
-                                        @emp.Key.EmpName
+                                    <option value="@y" selected="@(year == y)">@(y + 543)</option>
+                                }
+                                </select>
+                            </div>
+
+                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">เดือน</label>
+
+                            <div class="workload-filter-control is-month">
+                                <select name="month"
+                                        class="form-select workload-filter-select month-select"
+                                        form="filterForm"
+                                        data-autosubmit="true">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(month == m)">
+                                        @(new DateTime(year, m, 1).ToString("MMMM", th))
                                     </option>
                                 }
+                                </select>
+                            </div>
 
-                            </select>
-                        </div>
+                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ถึงปี</label>
 
-                        <label class="fw-bold mb-0 text-nowrap">ปี</label>
+                            <div class="workload-filter-control is-year">
+                                <select name="yearTo"
+                                        class="form-select workload-filter-select"
+                                        form="filterForm"
+                                        data-autosubmit="true">
+                                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
+                                {
+                                    <option value="@y" selected="@(yearTo == y)">@(y + 543)</option>
+                                }
+                                </select>
+                            </div>
 
-                        <div class="workload-filter-control is-year">
-                            <select name="year"
-                                    class="form-select workload-filter-select"
-                                    form="filterForm"
-                                    onchange="this.form.submit()">
-                            @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
-                            {
-                                <option value="@y" selected="@(year == y)">@(y + 543)</option>
-                            }
-                            </select>
-                        </div>
+                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ถึงเดือน</label>
 
-                        <label class="fw-bold mb-0 text-nowrap">เดือน</label>
-
-                        <div class="workload-filter-control is-month">
-                            <select name="month"
-                                    class="form-select workload-filter-select month-select"
-                                    form="filterForm"
-                                    onchange="this.form.submit()">
-                            @for (int m = 1; m <= 12; m++)
-                            {
-                                <option value="@m" selected="@(month == m)">
-                                    @(new DateTime(year, m, 1).ToString("MMMM", th))
-                                </option>
-                            }
-                            </select>
-                        </div>
-
-                        <label class="fw-bold mb-0 text-nowrap">ถึงปี</label>
-
-                        <div class="workload-filter-control is-year">
-                            <select name="yearTo"
-                                    class="form-select workload-filter-select"
-                                    form="filterForm"
-                                    onchange="this.form.submit()">
-                            @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
-                            {
-                                <option value="@y" selected="@(yearTo == y)">@(y + 543)</option>
-                            }
-                            </select>
-                        </div>
-
-                        <label class="fw-bold mb-0 text-nowrap">ถึงเดือน</label>
-
-                        <div class="workload-filter-control is-month">
-                            <select name="monthTo"
-                                    class="form-select workload-filter-select month-select"
-                                    form="filterForm"
-                                    onchange="this.form.submit()">
-                            @for (int m = 1; m <= 12; m++)
-                            {
-                                <option value="@m" selected="@(monthTo == m)">
-                                    @(new DateTime(year, m, 1).ToString("MMMM", th))
-                                </option>
-                            }
-                            </select>
+                            <div class="workload-filter-control is-month">
+                                <select name="monthTo"
+                                        class="form-select workload-filter-select month-select"
+                                        form="filterForm"
+                                        data-autosubmit="true">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(monthTo == m)">
+                                        @(new DateTime(year, m, 1).ToString("MMMM", th))
+                                    </option>
+                                }
+                                </select>
+                            </div>
                         </div>
 
                     </form>
@@ -859,15 +863,43 @@
 
 <style>
 .employee-filter-wrap {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
     flex: none !important;
     width: 100% !important;
     max-width: none !important;
     overflow: visible !important;
-    white-space: nowrap;
+    white-space: normal;
+}
+
+.workload-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.workload-filter-row.is-type-row {
+    align-items: center;
+}
+
+.workload-filter-row.is-range-row {
+    padding-top: 2px;
+}
+
+.workload-filter-label {
+    flex: 0 0 116px;
+    width: 116px;
+    text-align: left;
+}
+
+.workload-filter-label.is-compact {
+    flex: 0 0 auto;
+    width: auto;
 }
 
 .workload-filter-control {
@@ -1168,10 +1200,10 @@ main.route-controller-phaseworkload {
     }
 }
 
-@@media (max-width: 768px) {
-    .phase-project-cell,
-    .sticky-employee-col {
-        min-width: 120px !important;
+	@@media (max-width: 768px) {
+	    .phase-project-cell,
+	    .sticky-employee-col {
+	        min-width: 120px !important;
         width: 120px !important;
         max-width: 120px !important;
         font-size: 11px !important;
@@ -1180,8 +1212,176 @@ main.route-controller-phaseworkload {
 
     .timeline-cell {
         min-width: 16px !important;
-        width: 16px !important;
+	        width: 16px !important;
+	    }
+	}
+
+	@@media (hover: none) and (pointer: coarse), (max-width: 1180px) {
+	    main.route-controller-phaseworkload {
+	        overflow-x: hidden;
+	    }
+
+	    .workload-page-wrap > .card {
+	        overflow: hidden !important;
+	        box-shadow: 0 10px 24px rgba(15, 35, 64, .10) !important;
+	    }
+
+	    .workload-responsive-wrap {
+	        overflow-x: auto !important;
+	        overflow-y: hidden !important;
+	        overscroll-behavior-x: contain;
+	        -webkit-overflow-scrolling: touch;
+	        transform: translateZ(0);
+	    }
+
+	    .workload-table,
+	    .workload-table *,
+	    .work-item {
+	        transition: none !important;
+	        animation: none !important;
+	    }
+
+	    .work-item:hover {
+	        transform: translateY(-50%);
+	        box-shadow: none;
+	    }
+
+	    .sticky-employee-col,
+	    .phase-project-cell {
+	        box-shadow: 2px 0 4px rgba(15, 35, 64, .05);
+	    }
+	}
+
+    .employee-filter-wrap {
+        gap: 14px !important;
     }
-}
-</style>
+
+    .workload-filter-row {
+        display: grid !important;
+        grid-template-columns: 116px minmax(260px, 360px);
+        align-items: center;
+        column-gap: 14px;
+        row-gap: 12px;
+        width: 100%;
+    }
+
+    .workload-filter-row.is-range-row {
+        grid-template-columns:
+            116px minmax(260px, 1.35fr)
+            42px minmax(150px, .72fr)
+            62px minmax(180px, .88fr)
+            62px minmax(150px, .72fr)
+            86px minmax(180px, .88fr);
+    }
+
+    .workload-filter-label,
+    .workload-filter-label.is-compact {
+        width: 100% !important;
+        flex: none !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        text-align: left;
+    }
+
+    .workload-filter-control,
+    .workload-filter-control.is-type,
+    .workload-filter-control.is-employee,
+    .workload-filter-control.is-year,
+    .workload-filter-control.is-month {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex: none !important;
+    }
+
+    @@media (max-width: 1500px) {
+        .workload-filter-row.is-range-row {
+            grid-template-columns:
+                116px minmax(280px, 1fr)
+                62px minmax(180px, 1fr)
+                62px minmax(180px, 1fr);
+        }
+    }
+
+    @@media (max-width: 980px) {
+        .workload-filter-row,
+        .workload-filter-row.is-range-row {
+            grid-template-columns: 132px minmax(0, 1fr);
+            column-gap: 12px;
+            row-gap: 12px;
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .filter-toolbar {
+            gap: 14px;
+        }
+
+        .workload-status-row {
+            gap: 10px;
+        }
+
+        .workload-status-divider {
+            display: none;
+        }
+
+        .workload-filter-row,
+        .workload-filter-row.is-range-row {
+            grid-template-columns: 1fr;
+            row-gap: 7px;
+        }
+
+        .workload-filter-label,
+        .workload-filter-label.is-compact {
+            font-size: 14px !important;
+            line-height: 1.2;
+        }
+
+        .emp-select-fixed,
+        #empFilter,
+        .workload-filter-select,
+        .month-select {
+            height: 44px !important;
+            min-height: 44px !important;
+            max-height: 44px !important;
+            line-height: 44px !important;
+            padding-left: 16px !important;
+        }
+    }
+	</style>
+	}
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById('filterForm');
+            if (!form) return;
+
+            let submitTimer = null;
+            form.querySelectorAll('[data-autosubmit="true"]').forEach((control) => {
+                control.addEventListener('change', () => {
+                    window.clearTimeout(submitTimer);
+                    submitTimer = window.setTimeout(() => {
+                        if (form.requestSubmit) {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    }, 220);
+                });
+            });
+
+            if ('fetch' in window) {
+                window.setInterval(() => {
+                    if (document.visibilityState !== 'visible') return;
+                    fetch('@Url.Action("KeepAlive", "PhaseWorkload")', {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).catch(() => {});
+                }, 240000);
+            }
+        })();
+    </script>
 }

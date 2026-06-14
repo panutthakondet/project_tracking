@@ -1863,8 +1863,8 @@ namespace ProjectTracking.Controllers
                         OwnerName = employeeName(i.EmpId),
                         DueText = i.EndDate.HasValue ? FormatDashboardDate(i.EndDate, culture) : "ยังไม่กำหนด",
                         Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(i.ProjectId), currentEmpId, isAdmin)
-                            ? $"/ProjectIssues/Edit/{i.IssueId}"
-                            : $"/ProjectIssues/DevEdit/{i.IssueId}",
+                            ? $"/ProjectIssues/Details/{i.IssueId}"
+                            : $"/ProjectIssues/DevDetails/{i.IssueId}",
                         Color = IsHighPriority(i.IssuePriority) ? "pink" : "orange"
                     })));
 
@@ -1881,8 +1881,8 @@ namespace ProjectTracking.Controllers
                         OwnerName = employeeName(o.AssignTo),
                         DueText = o.EndDate.HasValue ? FormatDashboardDate(o.EndDate, culture) : "ยังไม่กำหนด",
                         Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(o.ProjectId), currentEmpId, isAdmin)
-                            ? $"/SupportOrders/Edit/{o.OrderId}"
-                            : $"/SupportOrdersDev/Edit/{o.OrderId}",
+                            ? $"/SupportOrders/Details/{o.OrderId}"
+                            : $"/SupportOrdersDev/Details/{o.OrderId}",
                         Color = IsHighPriority(o.Priority) ? "pink" : "cyan"
                     })));
 

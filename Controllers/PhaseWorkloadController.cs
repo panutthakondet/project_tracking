@@ -75,6 +75,10 @@ namespace ProjectTracking.Controllers
                 ? parsedEmpId
                 : (int?)null;
             var selectedViewMode = NormalizeViewMode(viewMode);
+            if (selectedViewMode == "day" && (monthEnd - monthStart).TotalDays > 62)
+            {
+                selectedViewMode = "week";
+            }
             var selectedWorkType = NormalizeWorkType(workType);
 
             SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedWorkType, selectedViewMode);
@@ -226,6 +230,13 @@ namespace ProjectTracking.Controllers
             {
                 Items = items
             });
+        }
+
+        [HttpGet]
+        public IActionResult KeepAlive()
+        {
+            HttpContext.Session.SetString("PhaseWorkload.LastSeen", DateTime.UtcNow.ToString("O"));
+            return NoContent();
         }
 
         private static string NormalizePhaseAssignState(string? status)

@@ -161,8 +161,8 @@ namespace ProjectTracking.Controllers
                 Severity = Severity(issue.EndDate, today),
                 RecipientRole = roleText,
                 TargetUrl = isAssignee
-                    ? $"/ProjectIssues/DevEdit/{issue.IssueId}"
-                    : $"/ProjectIssues/Edit/{issue.IssueId}"
+                    ? $"/ProjectIssues/DevDetails/{issue.IssueId}"
+                    : $"/ProjectIssues/Details/{issue.IssueId}"
             };
         }
 
@@ -195,8 +195,8 @@ namespace ProjectTracking.Controllers
                 Severity = Severity(order.EndDate, today),
                 RecipientRole = roleText,
                 TargetUrl = isAssignee
-                    ? $"/SupportOrdersDev/Edit/{order.OrderId}"
-                    : $"/SupportOrders/Edit/{order.OrderId}"
+                    ? $"/SupportOrdersDev/Details/{order.OrderId}"
+                    : $"/SupportOrders/Details/{order.OrderId}"
             };
         }
 

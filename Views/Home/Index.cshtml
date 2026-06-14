@@ -2058,8 +2058,12 @@
 }
 
 .project-overview-action {
-    min-width:142px;
-    min-height:44px;
+    width:150px;
+    min-width:150px;
+    height:46px;
+    min-height:46px;
+    box-sizing:border-box;
+    flex:0 0 150px;
     display:inline-flex !important;
     align-items:center;
     justify-content:center;
@@ -2073,6 +2077,7 @@
     font-weight:900 !important;
     line-height:1 !important;
     letter-spacing:0;
+    white-space:nowrap;
     box-shadow:
         0 0 0 1px rgba(147,197,253,.18),
         0 16px 28px rgba(37,99,235,.2),
@@ -2080,7 +2085,6 @@
 }
 
 .project-overview-action.team {
-    min-width:150px;
     background:linear-gradient(135deg, rgba(13,148,136,.94), rgba(16,121,111,.88)) !important;
     border-color:rgba(45,212,191,.82) !important;
     box-shadow:

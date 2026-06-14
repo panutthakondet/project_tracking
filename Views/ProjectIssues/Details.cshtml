@@ -310,7 +310,7 @@
             <a asp-action="Index"
                asp-route-projectId="@issue?.ProjectId"
                class="btn btn-outline-light">
-                กลับรายการ Issue
+                ไปหน้า Issue
             </a>
 
             @if (issue != null && CanMenu("ProjectIssues.Edit"))
@@ -319,7 +319,7 @@
                    asp-route-id="@issue.IssueId"
                    asp-route-projectId="@issue.ProjectId"
                    class="btn btn-primary">
-                    แก้ไข Issue
+                    ไปหน้าแก้ไข
                 </a>
             }
         </div>
