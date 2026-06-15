@@ -100,10 +100,19 @@ namespace ProjectTracking.Services
                 return 0;
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
+            var text = BuildNotificationText(title, message, absoluteUrl);
             var flexMessage = BuildNotificationFlexMessage(title, message, absoluteUrl);
             foreach (var lineUserId in lineUserIds)
             {
-                await PushMessageAsync(lineUserId, flexMessage, cancellationToken);
+                try
+                {
+                    await PushMessageAsync(lineUserId, flexMessage, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE Flex notification failed. Falling back to text for EmpId={EmpId}", empId);
+                    await PushTextAsync(lineUserId, text, cancellationToken);
+                }
             }
 
             return lineUserIds.Count;
@@ -124,7 +133,7 @@ namespace ProjectTracking.Services
             {
                 to,
                 messages = new[] { message }
-            }, cancellationToken);
+            }, cancellationToken, throwOnFailure: true);
         }
 
         public async Task ReplyTextAsync(string replyToken, string text, CancellationToken cancellationToken = default)
@@ -139,7 +148,11 @@ namespace ProjectTracking.Services
             }, cancellationToken);
         }
 
-        private async Task SendLineRequestAsync(string endpoint, object payload, CancellationToken cancellationToken)
+        private async Task SendLineRequestAsync(
+            string endpoint,
+            object payload,
+            CancellationToken cancellationToken,
+            bool throwOnFailure = false)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _channelAccessToken);
@@ -153,6 +166,8 @@ namespace ProjectTracking.Services
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
                 _logger.LogWarning("LINE API request failed. Status={StatusCode}, Body={Body}", response.StatusCode, body);
+                if (throwOnFailure)
+                    throw new InvalidOperationException($"LINE API request failed. Status={(int)response.StatusCode}, Body={body}");
             }
         }
 
@@ -192,7 +207,7 @@ namespace ProjectTracking.Services
                 bodyContents.Add(new
                 {
                     type = "text",
-                    text = TrimFlexText(message.Trim(), 3000),
+                    text = TrimFlexText(message.Trim(), 1800),
                     size = "sm",
                     color = "#334155",
                     wrap = true,

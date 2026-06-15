@@ -14,15 +14,18 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly LineMessagingService _lineMessagingService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<EmployeesController> _logger;
 
         public EmployeesController(
             AppDbContext context,
             LineMessagingService lineMessagingService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger<EmployeesController> logger)
         {
             _context = context;
             _lineMessagingService = lineMessagingService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         // ===========================
@@ -168,16 +171,24 @@ namespace ProjectTracking.Controllers
             {
                 foreach (var recipient in item.Recipients.Where(x => x.HasLineRecipient))
                 {
-                    var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId,
-                        BuildSelectionLineTitle(item),
-                        item.Message,
-                        recipient.TargetUrl,
-                        HttpContext.RequestAborted);
+                    try
+                    {
+                        var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.EmpId,
+                            BuildSelectionLineTitle(item),
+                            item.Message,
+                            recipient.TargetUrl,
+                            HttpContext.RequestAborted);
 
-                    sentCount += deliveredCount;
-                    if (deliveredCount > 0)
-                        AddLineOverdueNotificationSendLog(item, recipient);
+                        sentCount += deliveredCount;
+                        if (deliveredCount > 0)
+                            AddLineOverdueNotificationSendLog(item, recipient);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", recipient.EmpId, item.Key);
+                        TempData["Error"] = "ส่ง LINE ไม่สำเร็จบางรายการ กรุณาตรวจสอบ token/LINE API หรือดู log เพิ่มเติม";
+                    }
                 }
             }
 
