@@ -59,7 +59,7 @@
 
     .assign-report-filter {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 14px;
         align-items: start;
         padding: 16px;
@@ -220,7 +220,7 @@
         </div>
         <div>
             <label for="projectId" class="form-label">Project</label>
-            <select id="projectId" name="projectId" class="form-select" data-placeholder="พิมพ์ค้นหา Project...">
+            <select id="projectId" name="projectId" class="form-select" data-placeholder="พิมพ์ค้นหา Project..." data-project-coop-filter="off">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
