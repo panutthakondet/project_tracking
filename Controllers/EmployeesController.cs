@@ -155,52 +155,61 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Employees.LineOverdue")]
         public async Task<IActionResult> SendSelectedLineOverdue(List<string>? selectedKeys)
         {
-            if (selectedKeys == null || selectedKeys.Count == 0)
+            try
             {
-                TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่ง LINE";
-                return RedirectToAction(nameof(LineOverdue));
-            }
-
-            var selected = selectedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var items = (await BuildLineOverdueSelectionItemsAsync())
-                .Where(x => selected.Contains(x.Key))
-                .ToList();
-
-            var sentCount = 0;
-            foreach (var item in items.Where(x => x.HasLineRecipient))
-            {
-                foreach (var recipient in item.Recipients.Where(x => x.HasLineRecipient))
+                if (selectedKeys == null || selectedKeys.Count == 0)
                 {
-                    try
-                    {
-                        var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.EmpId,
-                            BuildSelectionLineTitle(item),
-                            item.Message,
-                            recipient.TargetUrl,
-                            HttpContext.RequestAborted);
+                    TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่ง LINE";
+                    return RedirectToAction(nameof(LineOverdue));
+                }
 
-                        sentCount += deliveredCount;
-                        if (deliveredCount > 0)
-                            AddLineOverdueNotificationSendLog(item, recipient);
-                    }
-                    catch (Exception ex)
+                var selected = selectedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var items = (await BuildLineOverdueSelectionItemsAsync())
+                    .Where(x => selected.Contains(x.Key))
+                    .ToList();
+
+                var sentCount = 0;
+                foreach (var item in items.Where(x => x.HasLineRecipient))
+                {
+                    foreach (var recipient in item.Recipients.Where(x => x.HasLineRecipient))
                     {
-                        _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", recipient.EmpId, item.Key);
-                        TempData["Error"] = "ส่ง LINE ไม่สำเร็จบางรายการ กรุณาตรวจสอบ token/LINE API หรือดู log เพิ่มเติม";
+                        try
+                        {
+                            var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                                recipient.EmpId,
+                                BuildSelectionLineTitle(item),
+                                item.Message,
+                                recipient.TargetUrl,
+                                HttpContext.RequestAborted);
+
+                            sentCount += deliveredCount;
+                            if (deliveredCount > 0)
+                                await UpsertLineOverdueNotificationSendLogAsync(item, recipient);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", recipient.EmpId, item.Key);
+                            TempData["Error"] = "ส่ง LINE ไม่สำเร็จบางรายการ กรุณาตรวจสอบ token/LINE API หรือดู log เพิ่มเติม";
+                        }
                     }
                 }
+
+                if (sentCount > 0)
+                    await _context.SaveChangesAsync();
+
+                var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasLineRecipient));
+                TempData["Success"] = $"ส่ง LINE แล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
+                if (skippedCount > 0)
+                    TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE";
+
+                return RedirectToAction(nameof(LineOverdue));
             }
-
-            if (sentCount > 0)
-                await _context.SaveChangesAsync();
-
-            var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasLineRecipient));
-            TempData["Success"] = $"ส่ง LINE แล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
-            if (skippedCount > 0)
-                TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE";
-
-            return RedirectToAction(nameof(LineOverdue));
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "LINE overdue send action failed.");
+                TempData["Error"] = "ส่ง LINE ไม่สำเร็จ ระบบบันทึก error ไว้แล้ว กรุณาลองใหม่หรือตรวจสอบ log";
+                return RedirectToAction(nameof(LineOverdue));
+            }
         }
 
         private async Task<List<LineOverdueSelectionItemViewModel>> BuildLineOverdueSelectionItemsAsync()
@@ -297,9 +306,9 @@ namespace ProjectTracking.Controllers
                 var baName = EmployeeName(employees, baEmpId);
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
-                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevEdit/{row.IssueId}");
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Edit/{row.IssueId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
             }
 
             var supports = await _context.ProjectSupportOrders
@@ -324,10 +333,10 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 if (row.AssignTo.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Edit/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
 
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Edit/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
             }
 
             var followups = await _context.ProjectFollowups
@@ -497,26 +506,36 @@ namespace ProjectTracking.Controllers
                 StringComparer.OrdinalIgnoreCase);
         }
 
-        private void AddLineOverdueNotificationSendLog(LineOverdueSelectionItemViewModel item, LineOverdueRecipientViewModel recipient)
+        private async Task UpsertLineOverdueNotificationSendLogAsync(LineOverdueSelectionItemViewModel item, LineOverdueRecipientViewModel recipient)
         {
             var now = DateTime.Now;
-            _context.UserNotifications.Add(new UserNotification
+            var notification = await _context.UserNotifications
+                .FirstOrDefaultAsync(x => x.SourceType == item.SourceType
+                    && x.SourceId == item.SourceId
+                    && x.RecipientEmpId == recipient.EmpId);
+
+            if (notification == null)
             {
-                RecipientUserId = recipient.UserId,
-                RecipientEmpId = recipient.EmpId,
-                SourceType = item.SourceType,
-                SourceId = item.SourceId,
-                Title = Trim(BuildSelectionLineTitle(item), 255),
-                Message = item.Message,
-                TargetUrl = recipient.TargetUrl,
-                Severity = item.Severity,
-                IsRead = true,
-                ReadAt = now,
-                IsResolved = true,
-                ResolvedAt = now,
-                CreatedAt = now,
-                UpdatedAt = now
-            });
+                notification = new UserNotification
+                {
+                    RecipientEmpId = recipient.EmpId,
+                    SourceType = item.SourceType,
+                    SourceId = item.SourceId,
+                    CreatedAt = now
+                };
+                _context.UserNotifications.Add(notification);
+            }
+
+            notification.RecipientUserId = recipient.UserId;
+            notification.Title = Trim(BuildSelectionLineTitle(item), 255);
+            notification.Message = item.Message;
+            notification.TargetUrl = Trim(recipient.TargetUrl ?? "", 500);
+            notification.Severity = item.Severity;
+            notification.IsRead = true;
+            notification.ReadAt = now;
+            notification.IsResolved = true;
+            notification.ResolvedAt = now;
+            notification.UpdatedAt = now;
         }
 
         private static bool TrySelectionDueState(

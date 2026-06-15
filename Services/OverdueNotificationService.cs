@@ -236,9 +236,9 @@ namespace ProjectTracking.Services
                 var recipients = new List<NotificationRecipient>();
 
                 if (row.Project?.BaEmpId.HasValue == true)
-                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/ProjectIssues/Edit/{row.IssueId}"));
+                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/ProjectIssues/Details/{row.IssueId}"));
 
-                recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevEdit/{row.IssueId}"));
+                recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevDetails/{row.IssueId}"));
 
                 foreach (var recipient in UniqueRecipients(recipients))
                 {
@@ -304,10 +304,10 @@ namespace ProjectTracking.Services
                 var recipients = new List<NotificationRecipient>();
 
                 if (row.Project?.BaEmpId.HasValue == true)
-                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/SupportOrders/Edit/{row.OrderId}"));
+                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/SupportOrders/Details/{row.OrderId}"));
 
                 if (row.AssignTo.HasValue)
-                    recipients.Add(new NotificationRecipient(row.AssignTo.Value, $"/SupportOrdersDev/Edit/{row.OrderId}"));
+                    recipients.Add(new NotificationRecipient(row.AssignTo.Value, $"/SupportOrdersDev/Details/{row.OrderId}"));
 
                 foreach (var recipient in UniqueRecipients(recipients))
                 {

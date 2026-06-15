@@ -245,6 +245,23 @@ namespace ProjectTracking.Services
                 });
             }
 
+            var body = new Dictionary<string, object?>
+            {
+                ["type"] = "box",
+                ["layout"] = "vertical",
+                ["paddingAll"] = "16px",
+                ["contents"] = bubbleContents
+            };
+
+            if (!string.IsNullOrWhiteSpace(absoluteUrl))
+            {
+                body["action"] = new
+                {
+                    type = "uri",
+                    uri = absoluteUrl
+                };
+            }
+
             return new
             {
                 type = "flex",
@@ -253,13 +270,7 @@ namespace ProjectTracking.Services
                 {
                     type = "bubble",
                     size = "mega",
-                    body = new
-                    {
-                        type = "box",
-                        layout = "vertical",
-                        paddingAll = "16px",
-                        contents = bubbleContents
-                    }
+                    body
                 }
             };
         }

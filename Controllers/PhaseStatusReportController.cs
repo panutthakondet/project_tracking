@@ -350,9 +350,9 @@ namespace ProjectTracking.Controllers
                 var baName = EmployeeName(employees, baEmpId);
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
-                AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevEdit/{row.IssueId}");
+                AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Edit/{row.IssueId}");
+                    AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
             }
 
             var supports = await _context.ProjectSupportOrders
@@ -377,10 +377,10 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 if (row.AssignTo.HasValue)
-                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Edit/{row.OrderId}");
+                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
 
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Edit/{row.OrderId}");
+                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
             }
 
             return items
