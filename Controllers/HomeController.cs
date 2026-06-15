@@ -461,6 +461,13 @@ namespace ProjectTracking.Controllers
             return Json(results.Take(30));
         }
 
+        [RequireMenu("Home.Index")]
+        public async Task<IActionResult> LineOverdueOverview(string? coopName, int? projectId, int? empId, string? status)
+        {
+            var model = await BuildLineOverdueOverviewDetailAsync(coopName, projectId, empId, status);
+            return View(model);
+        }
+
         private async Task<HomeDashboardViewModel> BuildHomeDashboardAsync(string username, DateTime today, int? currentEmpId, bool isAdmin)
         {
             var th = new CultureInfo("th-TH");
@@ -722,7 +729,7 @@ namespace ProjectTracking.Controllers
                 CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
             };
 
-            var lineOverview = await BuildLineOverdueOverviewAsync(projects, phases, assigns, issues, followups, supportOrders, today);
+            var lineOverview = await BuildLineOverdueOverviewAsync(projects, phases, assigns, today);
 
             var phaseTypeRows = phases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.PhaseType) ? "OTHERS" : Norm(p.PhaseType))
@@ -896,6 +903,7 @@ namespace ProjectTracking.Controllers
                 SupportDonut = BuildDonut(supportMetrics),
                 LineOverdueMetrics = lineOverview.Metrics,
                 LineOverdueTotal = lineOverview.Total,
+                LineOverdueProjectCount = lineOverview.ProjectCount,
                 LineOverdueDonut = BuildDonut(lineOverview.Metrics),
                 LineOverdueLinkedCount = lineOverview.LinkedCount,
                 LineOverdueMissingLineCount = lineOverview.MissingLineCount,
@@ -934,9 +942,6 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardProjectRow> projects,
             IReadOnlyList<DashboardPhaseRow> phases,
             IReadOnlyList<DashboardAssignRow> assigns,
-            IReadOnlyList<DashboardIssueRow> issues,
-            IReadOnlyList<DashboardFollowupRow> followups,
-            IReadOnlyList<DashboardSupportOrderRow> supportOrders,
             DateTime today)
         {
             var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
@@ -956,61 +961,42 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
             var linkedEmpIdSet = linkedEmpIds.ToHashSet();
             var items = new List<LineOverdueOverviewItem>();
+            var affectedProjectIds = assigns
+                .Select(assign =>
+                {
+                    if (!phaseById.TryGetValue(assign.PhaseId, out var phase))
+                        return (ProjectId: (int?)null, IsAffected: false);
+
+                    var isActiveDue = !IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus)
+                        && TryLineOverdueSeverity(assign.PlanEnd ?? phase.PlanEnd, today, riskUntil, out _);
+
+                    return (ProjectId: (int?)phase.ProjectId, IsAffected: isActiveDue);
+                })
+                .Where(x => x.IsAffected && x.ProjectId.HasValue)
+                .Select(x => x.ProjectId!.Value)
+                .Distinct()
+                .ToHashSet();
 
             foreach (var assign in assigns)
             {
                 if (!phaseById.TryGetValue(assign.PhaseId, out var phase))
                     continue;
 
-                if (!TryLineOverdueSeverity(assign.PlanEnd ?? phase.PlanEnd, today, riskUntil, out var severity))
+                if (!affectedProjectIds.Contains(phase.ProjectId))
                     continue;
 
                 if (IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus))
-                    severity = "DONE";
+                {
+                    projectById.TryGetValue(phase.ProjectId, out var doneProject);
+                    AddLineOverdueOverviewItem(items, "DONE", assign.EmpId, doneProject?.BaEmpId);
+                    continue;
+                }
+
+                if (!TryLineOverdueSeverity(assign.PlanEnd ?? phase.PlanEnd, today, riskUntil, out var severity))
+                    continue;
 
                 projectById.TryGetValue(phase.ProjectId, out var project);
                 AddLineOverdueOverviewItem(items, severity, assign.EmpId, project?.BaEmpId);
-            }
-
-            foreach (var issue in issues)
-            {
-                if (!TryLineOverdueSeverity(issue.EndDate, today, riskUntil, out var severity))
-                    continue;
-
-                if (IsLineOverdueIssueDone(issue.IssueStatus, issue.DevStatus))
-                    severity = "DONE";
-
-                projectById.TryGetValue(issue.ProjectId, out var project);
-                AddLineOverdueOverviewItem(items, severity, issue.EmpId, project?.BaEmpId);
-            }
-
-            foreach (var support in supportOrders)
-            {
-                if (!TryLineOverdueSeverity(support.EndDate, today, riskUntil, out var severity))
-                    continue;
-
-                if (IsLineOverdueSupportDone(support.Status, support.DevStatus))
-                    severity = "DONE";
-
-                projectById.TryGetValue(support.ProjectId, out var project);
-                AddLineOverdueOverviewItem(items, severity, support.AssignTo, project?.BaEmpId);
-            }
-
-            foreach (var followup in followups)
-            {
-                if (!TryLineOverdueSeverity(followup.NextFollowupDate, today, riskUntil, out var severity))
-                    continue;
-
-                if (IsLineOverdueFollowupDone(followup.Status))
-                    severity = "DONE";
-                else if (!IsLineOverdueFollowupOpen(followup.Status))
-                    continue;
-
-                DashboardProjectRow? project = null;
-                if (followup.ProjectId.HasValue)
-                    projectById.TryGetValue(followup.ProjectId.Value, out project);
-
-                AddLineOverdueOverviewItem(items, severity, followup.OwnerEmpId, project?.BaEmpId);
             }
 
             var total = items.Count;
@@ -1029,9 +1015,158 @@ namespace ProjectTracking.Controllers
             return new LineOverdueOverviewResult
             {
                 Total = total,
+                ProjectCount = affectedProjectIds.Count,
                 Metrics = metrics,
                 LinkedCount = linkedCount,
                 MissingLineCount = activeItems.Count - linkedCount
+            };
+        }
+
+        private async Task<LineOverdueOverviewDetailViewModel> BuildLineOverdueOverviewDetailAsync(string? coopName, int? projectId, int? empId, string? status)
+        {
+            var today = DateTime.Today;
+            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskUntil = today.AddDays(riskDays);
+            var statusFilter = Norm(status);
+
+            var assigns = await _context.PhaseAssigns
+                .AsNoTracking()
+                .Include(a => a.Employee)
+                .Include(a => a.Phase!)
+                    .ThenInclude(p => p!.Project)
+                        .ThenInclude(p => p!.Coop)
+                .Include(a => a.Phase!)
+                    .ThenInclude(p => p!.Project)
+                        .ThenInclude(p => p!.BA)
+                .ToListAsync();
+
+            var affectedProjectIds = assigns
+                .Where(assign => assign.Phase?.Project != null
+                    && !IsLineOverdueAssignDone(assign.WorkStatus, assign.Phase.PhaseStatus)
+                    && TryLineOverdueSeverity(assign.PlanEnd ?? assign.Phase.PlanEnd, today, riskUntil, out _))
+                .Select(assign => assign.Phase!.ProjectId)
+                .Distinct()
+                .ToHashSet();
+
+            var allRows = new List<LineOverdueOverviewAssignViewModel>();
+
+            foreach (var assign in assigns)
+            {
+                var phase = assign.Phase;
+                var project = phase?.Project;
+                if (phase == null || project == null || !affectedProjectIds.Contains(phase.ProjectId))
+                    continue;
+
+                var dueDate = assign.PlanEnd ?? phase.PlanEnd;
+                var isDone = IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus);
+                string category;
+                if (isDone)
+                {
+                    category = "DONE";
+                }
+                else if (TryLineOverdueSeverity(dueDate, today, riskUntil, out var severity))
+                {
+                    category = severity;
+                }
+                else
+                {
+                    continue;
+                }
+
+                var overdueDays = category == "DANGER" && dueDate.HasValue
+                    ? Math.Max(0, (today - dueDate.Value.Date).Days)
+                    : 0;
+                var daysLeft = category == "WARNING" && dueDate.HasValue
+                    ? Math.Max(0, (dueDate.Value.Date - today).Days)
+                    : 0;
+
+                allRows.Add(new LineOverdueOverviewAssignViewModel
+                {
+                    AssignId = assign.AssignId,
+                    ProjectId = phase.ProjectId,
+                    EmpId = assign.EmpId,
+                    CoopName = project.Coop?.CoopName ?? "-",
+                    ProjectName = project.ProjectDisplayName,
+                    PhaseName = phase.PhaseDisplayName,
+                    PhasePeriodLabel = phase.PhasePeriodLabel,
+                    Role = string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role!,
+                    OwnerName = assign.Employee?.EmpName ?? "-",
+                    BaName = project.BA?.EmpName ?? "-",
+                    StatusCategory = category,
+                    StatusText = category switch
+                    {
+                        "DONE" => "เสร็จสิ้นแล้ว",
+                        "DANGER" => $"ล่าช้า {overdueDays} วัน",
+                        "WARNING" => daysLeft == 0 ? "ครบกำหนดวันนี้" : $"เสี่ยงล่าช้า เหลือ {daysLeft} วัน",
+                        _ => "-"
+                    },
+                    StatusTone = category switch
+                    {
+                        "DONE" => "done",
+                        "DANGER" => "danger",
+                        _ => "warning"
+                    },
+                    PlanStart = assign.PlanStart ?? phase.PlanStart,
+                    PlanEnd = dueDate,
+                    PeriodEnd = phase.PeriodEndDate,
+                    OverdueDays = overdueDays,
+                    Remark = string.IsNullOrWhiteSpace(assign.Remark) ? "-" : assign.Remark!
+                });
+            }
+
+            var projectOptions = allRows
+                .GroupBy(x => new { x.ProjectId, x.ProjectName, x.CoopName })
+                .Select(x => new ProjectReportOptionViewModel
+                {
+                    ProjectId = x.Key.ProjectId,
+                    ProjectName = x.Key.ProjectName,
+                    CoopName = x.Key.CoopName == "-" ? "" : x.Key.CoopName
+                })
+                .OrderBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
+                .ToList();
+
+            var employeeOptions = allRows
+                .GroupBy(x => new { x.EmpId, x.OwnerName })
+                .Select(x => new EmployeeReportOptionViewModel
+                {
+                    EmpId = x.Key.EmpId,
+                    EmpName = x.Key.OwnerName
+                })
+                .OrderBy(x => x.EmpName)
+                .ToList();
+
+            var rows = allRows
+                .Where(x => string.IsNullOrWhiteSpace(coopName) || string.Equals(x.CoopName, coopName, StringComparison.OrdinalIgnoreCase))
+                .Where(x => !projectId.HasValue || x.ProjectId == projectId.Value)
+                .Where(x => !empId.HasValue || x.EmpId == empId.Value)
+                .Where(x => string.IsNullOrWhiteSpace(statusFilter) || x.StatusCategory == statusFilter)
+                .OrderBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
+                .ThenBy(x => LineOverdueOverviewStatusRank(x.StatusCategory))
+                .ThenBy(x => x.PlanEnd ?? DateTime.MaxValue)
+                .ThenBy(x => x.OwnerName)
+                .ThenBy(x => x.Role)
+                .ToList();
+
+            return new LineOverdueOverviewDetailViewModel
+            {
+                GeneratedAt = DateTime.Now,
+                Today = today,
+                RiskUntil = riskUntil,
+                RiskDays = riskDays,
+                CoopName = coopName,
+                ProjectId = projectId,
+                EmpId = empId,
+                Status = statusFilter,
+                ProjectCount = rows.Select(x => x.ProjectId).Distinct().Count(),
+                TotalCount = rows.Count,
+                DoneCount = rows.Count(x => x.StatusCategory == "DONE"),
+                WarningCount = rows.Count(x => x.StatusCategory == "WARNING"),
+                DangerCount = rows.Count(x => x.StatusCategory == "DANGER"),
+                ProjectOptions = projectOptions,
+                EmployeeOptions = employeeOptions,
+                Rows = rows
             };
         }
 
@@ -1051,6 +1186,17 @@ namespace ProjectTracking.Controllers
                 Severity = severity,
                 RecipientEmpIds = recipients
             });
+        }
+
+        private static int LineOverdueOverviewStatusRank(string? status)
+        {
+            return status switch
+            {
+                "DANGER" => 1,
+                "WARNING" => 2,
+                "DONE" => 3,
+                _ => 9
+            };
         }
 
         private static bool TryLineOverdueSeverity(DateTime? dueDate, DateTime today, DateTime riskUntil, out string severity)
@@ -2507,6 +2653,7 @@ namespace ProjectTracking.Controllers
         private sealed class LineOverdueOverviewResult
         {
             public int Total { get; set; }
+            public int ProjectCount { get; set; }
             public List<HomeDashboardMetric> Metrics { get; set; } = new();
             public int LinkedCount { get; set; }
             public int MissingLineCount { get; set; }

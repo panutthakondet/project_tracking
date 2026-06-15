@@ -32,6 +32,7 @@ namespace ProjectTracking.ViewModels
 
         public List<HomeDashboardMetric> LineOverdueMetrics { get; set; } = new();
         public int LineOverdueTotal { get; set; }
+        public int LineOverdueProjectCount { get; set; }
         public string LineOverdueDonut { get; set; } = "conic-gradient(#263450 0 100%)";
         public int LineOverdueLinkedCount { get; set; }
         public int LineOverdueMissingLineCount { get; set; }

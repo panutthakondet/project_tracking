@@ -513,18 +513,18 @@
                         <img src="~/images/dashboard/kpi-alert.svg" alt="" loading="lazy" />
                     </span>
                     <span>
-                        <h2>Overdue Overview</h2>
-                        <small>ภาพรวมงานที่ต้องแจ้งเตือน LINE</small>
+                        <h2>Assigns Overdue Overview</h2>
+                        <small>ภาพรวมงานที่เสี่ยงล่าช้า และงานล่าช้า</small>
                     </span>
                 </div>
-                <a asp-controller="Employees" asp-action="LineOverdue" class="panel-filter compact line-overdue-detail-link">
+                <a asp-controller="Home" asp-action="LineOverdueOverview" class="overview-detail-btn orange line-overdue-detail-link">
                     <span>รายละเอียด</span>
                     <i aria-hidden="true"></i>
                 </a>
             </div>
             <div class="line-overdue-overview-body">
                 <div class="donut-layout project-status-donut-layout line-overdue-donut-layout">
-                    <h3 class="project-status-card-title">สถานะแจ้งเตือน LINE</h3>
+                    <h3 class="project-status-card-title">สถานะงานที่เสี่ยงล่าช้า และงานล่าช้า</h3>
                     <div class="donut project-status-donut line-overdue-donut" style="--donut:@dashboard.LineOverdueDonut">
                         <div>
                             <strong>@dashboard.LineOverdueTotal</strong>
@@ -536,8 +536,9 @@
                         {
                             <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                         }
+                        <span><i class="dot blue"></i><span class="metric-name">โครงการที่มีงานเสี่ยง/ล่าช้า</span><b>@dashboard.LineOverdueProjectCount</b></span>
                     </div>
-                    <small class="project-status-updated">ⓘ รวม Assigns, Issues, Support และ Followup ที่อยู่ในช่วงเสี่ยง/ล่าช้า โดยแยกงานเสร็จแล้วออกจากงานที่ยังดำเนินการ</small>
+                    <small class="project-status-updated">ⓘ นับ Assigns ในโครงการที่มีงานเสี่ยง/ล่าช้า โดย Done คือ Assigns ที่เสร็จแล้วในโครงการกลุ่มนั้น</small>
                 </div>
             </div>
         </article>
@@ -3837,6 +3838,11 @@
 .overview-detail-btn.green {
     border-color:rgba(20,184,166,.38);
     background:rgba(20,184,166,.16);
+}
+
+.overview-detail-btn.orange {
+    border-color:rgba(245,158,11,.48);
+    background:rgba(245,158,11,.18);
 }
 
 .overview-detail-btn:hover {

@@ -552,7 +552,7 @@ namespace ProjectTracking.Controllers
 
         [RequireMenu("PhaseAssigns.Index")]
         [HttpGet]
-        public async Task<IActionResult> ViewOnly(int? projectId, int? empId, string? workStatus)
+        public async Task<IActionResult> ViewOnly(string? coopName, int? projectId, int? empId, string? workStatus)
         {
             var today = DateTime.Today;
 
@@ -603,6 +603,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue)
                 filtered = filtered.Where(x => x.Phase?.ProjectId == projectId.Value);
+            else if (!string.IsNullOrWhiteSpace(coopName))
+                filtered = filtered.Where(x => string.Equals(x.Phase?.Project?.Coop?.CoopName, coopName, StringComparison.OrdinalIgnoreCase));
 
             if (empId.HasValue)
                 filtered = filtered.Where(x => x.EmpId == empId.Value);
@@ -619,6 +621,7 @@ namespace ProjectTracking.Controllers
                 filtered = filtered.Where(x => string.Equals(x.WorkStatus, workStatus, StringComparison.OrdinalIgnoreCase));
             }
 
+            ViewBag.SelectedCoopName = coopName;
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedEmpId = empId;
             ViewBag.SelectedWorkStatus = workStatus;

@@ -6,6 +6,7 @@
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.PhaseAssign>()).ToList();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var employees = ViewBag.EmployeeList as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
+    var selectedCoopName = ViewBag.SelectedCoopName as string;
     var selectedProjectId = ViewBag.SelectedProjectId as int?;
     var selectedEmpId = ViewBag.SelectedEmpId as int?;
     var selectedStatus = ViewBag.SelectedWorkStatus as string;
@@ -58,9 +59,9 @@
 
     .assign-report-filter {
         display: grid;
-        grid-template-columns: minmax(220px, .8fr) minmax(240px, 1.1fr) minmax(200px, .8fr) minmax(180px, .7fr) auto;
-        gap: 12px;
-        align-items: end;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        align-items: start;
         padding: 16px;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
@@ -69,14 +70,40 @@
     }
 
     .assign-report-filter label {
+        display: block;
+        min-height: 28px;
+        margin-bottom: 8px;
         color: #10233f;
         font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
     }
 
-    .assign-report-filter :is(select, button) {
-        min-height: 44px;
+    .assign-report-filter > div {
+        display: grid;
+        grid-template-rows: auto 48px;
+        align-content: start;
+        min-width: 0;
+    }
+
+    .assign-report-filter .pt-project-coop-filter {
+        margin-bottom: 0;
+    }
+
+    .assign-report-filter .pt-project-coop-filter .form-label {
+        margin-bottom: 8px;
+    }
+
+    .assign-report-filter :is(select, button, .pt-search-select, .pt-search-select__field, .pt-search-select__input) {
+        width: 100%;
+        min-height: 48px;
         border-radius: 12px;
         font-weight: 800;
+    }
+
+    .assign-report-filter :is(.select2-container, .choices, .choices__inner, .ts-wrapper, .ts-control) {
+        width: 100% !important;
+        min-width: 0;
     }
 
     .assign-report-kpis {
@@ -183,11 +210,11 @@
     <form method="get" class="assign-report-filter">
         <div>
             <label for="coopFilter" class="form-label">สหกรณ์</label>
-            <select id="coopFilter" class="form-select" data-placeholder="พิมพ์ค้นหาสหกรณ์...">
+            <select id="coopFilter" name="coopName" class="form-select" data-placeholder="พิมพ์ค้นหาสหกรณ์...">
                 <option value="">-- All Cooperatives --</option>
                 @foreach (var coop in coopList)
                 {
-                    <option value="@coop">@coop</option>
+                    <option value="@coop" selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase))">@coop</option>
                 }
             </select>
         </div>
@@ -228,7 +255,6 @@
                 }
             </select>
         </div>
-        <button type="submit" class="btn btn-primary">ค้นหา</button>
     </form>
 
     <section class="assign-report-kpis">
@@ -308,6 +334,13 @@
             const normalize = value => (value || "").toString().trim().toLowerCase();
             const coopFilter = document.getElementById("coopFilter");
             const projectFilter = document.getElementById("projectId");
+            const form = coopFilter?.closest("form");
+
+            function submitFilters() {
+                if (!form) return;
+                if (typeof form.requestSubmit === "function") form.requestSubmit();
+                else form.submit();
+            }
 
             function syncProjectFilterOptions() {
                 if (!projectFilter) return;
@@ -324,16 +357,13 @@
             }
 
             coopFilter?.addEventListener("change", function () {
-                localStorage.setItem("reports.phaseAssigns.selectedCoop", normalize(coopFilter.value));
                 if (projectFilter) projectFilter.value = "";
                 syncProjectFilterOptions();
+                submitFilters();
             });
 
-            const savedCoop = localStorage.getItem("reports.phaseAssigns.selectedCoop") || "";
-            if (savedCoop && coopFilter) {
-                const match = Array.from(coopFilter.options).find(option => normalize(option.value) === savedCoop);
-                if (match) coopFilter.value = match.value;
-            }
+            [projectFilter, document.getElementById("empId"), document.getElementById("workStatus")]
+                .forEach(select => select?.addEventListener("change", submitFilters));
 
             syncProjectFilterOptions();
         })();

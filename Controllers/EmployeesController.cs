@@ -144,9 +144,16 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Employees.LineOverdue")]
-        public async Task<IActionResult> LineOverdue()
+        public async Task<IActionResult> LineOverdue(string? type)
         {
             var items = await BuildLineOverdueSelectionItemsAsync();
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                items = items
+                    .Where(x => string.Equals(x.SourceType, type, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
             return View(new LineOverdueSelectionViewModel { Items = items });
         }
 

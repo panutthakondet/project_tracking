@@ -1,0 +1,414 @@
+@model ProjectTracking.ViewModels.LineOverdueOverviewDetailViewModel
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Overdue Overview Detail";
+    var th = new CultureInfo("th-TH");
+    var rows = Model.Rows ?? new List<ProjectTracking.ViewModels.LineOverdueOverviewAssignViewModel>();
+    var selectedCoopName = Model.CoopName;
+    var coopList = Model.ProjectOptions
+        .Select(x => x.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string DateTimeText(DateTime value) => value.ToString("dd MMM yyyy HH:mm", th);
+}
+
+<style>
+    .overdue-overview-page {
+        padding: 4px 0 28px;
+    }
+
+    .overdue-overview-filter {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        align-items: start;
+        padding: 16px;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .overdue-overview-filter label {
+        display: block;
+        min-height: 28px;
+        margin-bottom: 8px;
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .overdue-overview-filter > div {
+        display: grid;
+        grid-template-rows: auto 48px;
+        align-content: start;
+        min-width: 0;
+    }
+
+    .overdue-overview-filter .pt-project-coop-filter {
+        margin-bottom: 0;
+    }
+
+    .overdue-overview-filter .pt-project-coop-filter .form-label {
+        margin-bottom: 8px;
+    }
+
+    .overdue-overview-filter :is(select, button, .pt-search-select, .pt-search-select__field, .pt-search-select__input) {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .overdue-overview-filter :is(.select2-container, .choices, .choices__inner, .ts-wrapper, .ts-control) {
+        width: 100% !important;
+        min-width: 0;
+    }
+
+    .overdue-overview-kpis {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin: 14px 0;
+    }
+
+    .overdue-overview-kpi {
+        padding: 16px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
+    }
+
+    .overdue-overview-kpi span {
+        display: block;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .overdue-overview-kpi strong {
+        display: block;
+        color: #10233f;
+        font-size: 2rem;
+        line-height: 1;
+        margin-top: 8px;
+    }
+
+    .overdue-overview-kpi.danger strong { color: #dc2626; }
+    .overdue-overview-kpi.warning strong { color: #d97706; }
+    .overdue-overview-kpi.done strong { color: #16a34a; }
+
+    .overdue-overview-note {
+        margin: 0 0 12px;
+        color: #64748b;
+        font-weight: 800;
+    }
+
+    .overdue-overview-table {
+        overflow: hidden;
+        border: 1px solid #d8e3ef;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .overdue-overview-table table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .overdue-overview-table th {
+        color: #fff;
+        background: #10233f;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .overdue-overview-table td {
+        vertical-align: top;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-title {
+        color: #10233f;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-muted {
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .overdue-overview-meta {
+        display: grid;
+        gap: 4px;
+        margin-top: 8px;
+        color: #475569;
+        font-size: .92rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .overdue-overview-phase {
+        display: grid;
+        gap: 6px;
+    }
+
+    .overdue-overview-role {
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 900;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-detail-line {
+        color: #475569;
+        font-size: .92rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .overdue-overview-date {
+        display: grid;
+        gap: 3px;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .overdue-overview-remark {
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 100%;
+        min-height: 28px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-weight: 900;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: center;
+    }
+
+    .overdue-overview-status.done {
+        color: #166534;
+        background: #dcfce7;
+    }
+
+    .overdue-overview-status.warning {
+        color: #92400e;
+        background: #fef3c7;
+    }
+
+    .overdue-overview-status.danger {
+        color: #b91c1c;
+        background: #fee2e2;
+    }
+
+    @@media (max-width: 1100px) {
+        .overdue-overview-filter,
+        .overdue-overview-kpis {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="overdue-overview-page">
+    <section class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Dashboard</span>
+            <h1 class="index-title">@ViewData["Title"]</h1>
+            <p class="index-subtitle">รายละเอียด Assigns ในโครงการที่มีงานเสี่ยงล่าช้า/ล่าช้า สำหรับภาพรวมแจ้งเตือน LINE</p>
+        </div>
+        <div class="index-actions">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
+            <a asp-controller="Employees" asp-action="LineOverdue" asp-route-type="ASSIGN_DUE" class="btn btn-outline-light">Send LINE Assigns</a>
+        </div>
+    </section>
+
+    <form method="get" class="overdue-overview-filter">
+        <div>
+            <label for="coopFilter" class="form-label">สหกรณ์</label>
+            <select id="coopFilter" name="coopName" class="form-select" data-placeholder="พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopList)
+                {
+                    <option value="@coop" selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase))">@coop</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="projectId" class="form-label">Project</label>
+            <select id="projectId" name="projectId" class="form-select" data-placeholder="พิมพ์ค้นหา Project...">
+                <option value="">-- All Projects --</option>
+                @foreach (var project in Model.ProjectOptions)
+                {
+                    <option value="@project.ProjectId"
+                            data-coop-name="@project.CoopName"
+                            selected="@(Model.ProjectId == project.ProjectId)">
+                        @project.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="empId" class="form-label">ผู้รับผิดชอบ</label>
+            <select id="empId" name="empId" class="form-select" data-placeholder="พิมพ์ค้นหาผู้รับผิดชอบ...">
+                <option value="">-- All Employees --</option>
+                @foreach (var employee in Model.EmployeeOptions)
+                {
+                    <option value="@employee.EmpId" selected="@(Model.EmpId == employee.EmpId)">
+                        @employee.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="status" class="form-label">Status</label>
+            <select id="status" name="status" class="form-select" data-placeholder="พิมพ์ค้นหา Status...">
+                <option value="">-- All Statuses --</option>
+                <option value="DANGER" selected="@(string.Equals(Model.Status, "DANGER", StringComparison.OrdinalIgnoreCase))">ล่าช้า</option>
+                <option value="WARNING" selected="@(string.Equals(Model.Status, "WARNING", StringComparison.OrdinalIgnoreCase))">เสี่ยงล่าช้า</option>
+                <option value="DONE" selected="@(string.Equals(Model.Status, "DONE", StringComparison.OrdinalIgnoreCase))">เสร็จสิ้นแล้ว</option>
+            </select>
+        </div>
+    </form>
+
+    <section class="overdue-overview-kpis">
+        <article class="overdue-overview-kpi">
+            <span>Projects</span>
+            <strong>@Model.ProjectCount</strong>
+        </article>
+        <article class="overdue-overview-kpi">
+            <span>Total Assigns</span>
+            <strong>@Model.TotalCount</strong>
+        </article>
+        <article class="overdue-overview-kpi danger">
+            <span>ล่าช้า</span>
+            <strong>@Model.DangerCount</strong>
+        </article>
+        <article class="overdue-overview-kpi warning">
+            <span>เสี่ยงล่าช้า</span>
+            <strong>@Model.WarningCount</strong>
+        </article>
+        <article class="overdue-overview-kpi done">
+            <span>Done</span>
+            <strong>@Model.DoneCount</strong>
+        </article>
+    </section>
+
+    <p class="overdue-overview-note">
+        นับ Assigns ในโครงการที่มีงานยังไม่เสร็จและเข้าเงื่อนไขเสี่ยง/ล่าช้า ช่วงแจ้งเตือน @Model.RiskDays วัน
+        ข้อมูล ณ @DateTimeText(Model.GeneratedAt)
+    </p>
+
+    @if (rows.Count == 0)
+    {
+        <div class="alert alert-warning fw-bold">ไม่พบ Assigns ตามเงื่อนไขที่เลือก</div>
+    }
+    else
+    {
+        <div class="table-responsive overdue-overview-table">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width:54px">#</th>
+                        <th style="width:28%">Project</th>
+                        <th style="width:31%">Phase / Role</th>
+                        <th class="text-center" style="width:190px">Status</th>
+                        <th style="width:24%">Plan / Remark</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < rows.Count; i++)
+                    {
+                        var row = rows[i];
+                        <tr>
+                            <td class="text-center fw-bold">@(i + 1)</td>
+                            <td>
+                                <div class="overdue-overview-title">@row.ProjectName</div>
+                                <div class="overdue-overview-meta">
+                                    <span>เจ้าของงาน: @row.OwnerName</span>
+                                    <span>BA: @row.BaName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="overdue-overview-phase">
+                                    <div class="overdue-overview-role">@row.Role</div>
+                                    <div class="overdue-overview-detail-line">@row.PhaseName</div>
+                                    <div class="overdue-overview-muted">@row.PhasePeriodLabel</div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="overdue-overview-status @row.StatusTone">@row.StatusText</span>
+                            </td>
+                            <td>
+                                <div class="overdue-overview-date">
+                                    <span>Plan: @DateText(row.PlanStart) - @DateText(row.PlanEnd)</span>
+                                    <span>กำหนดงวดงาน: @DateText(row.PeriodEnd)</span>
+                                </div>
+                                <div class="overdue-overview-meta overdue-overview-remark">
+                                    <span>Remark: @row.Remark</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <script>
+        (function () {
+            const normalize = value => (value || "").toString().trim().toLowerCase();
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+            const form = coopFilter?.closest("form");
+
+            function submitFilters() {
+                if (!form) return;
+                if (typeof form.requestSubmit === "function") form.requestSubmit();
+                else form.submit();
+            }
+
+            function syncProjectFilterOptions() {
+                if (!projectFilter) return;
+
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter.options).forEach(option => {
+                    const visible = option.value === "" || !selectedCoop || normalize(option.dataset.coopName || "") === selectedCoop;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                });
+
+                const selected = projectFilter.selectedOptions[0];
+                if (selected && selected.disabled) projectFilter.value = "";
+            }
+
+            coopFilter?.addEventListener("change", function () {
+                if (projectFilter) projectFilter.value = "";
+                syncProjectFilterOptions();
+                submitFilters();
+            });
+
+            [projectFilter, document.getElementById("empId"), document.getElementById("status")]
+                .forEach(select => select?.addEventListener("change", submitFilters));
+
+            syncProjectFilterOptions();
+        })();
+    </script>
+</div>

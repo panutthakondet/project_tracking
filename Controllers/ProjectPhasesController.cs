@@ -72,7 +72,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("ProjectPhases.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, string? phaseStatus)
+        public async Task<IActionResult> ViewOnly(string? coopName, int? projectId, string? phaseStatus)
         {
             var today = DateTime.Today;
             var projects = await _context.Projects
@@ -101,6 +101,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue)
                 query = query.Where(p => p.ProjectId == projectId.Value);
+            else if (!string.IsNullOrWhiteSpace(coopName))
+                query = query.Where(p => string.Equals(p.Project?.Coop?.CoopName, coopName, StringComparison.OrdinalIgnoreCase));
 
             if (IsDelayFilter(phaseStatus))
             {
@@ -115,6 +117,7 @@ namespace ProjectTracking.Controllers
             }
 
             ViewBag.Projects = projects;
+            ViewBag.SelectedCoopName = coopName;
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedPhaseStatus = phaseStatus;
             ViewBag.Today = today;
