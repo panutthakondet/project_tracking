@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
@@ -11,6 +12,9 @@ namespace ProjectTracking.Controllers
     [Route("line")]
     public class LineController : ControllerBase
     {
+        private static readonly ConcurrentQueue<LineDebugEntry> DebugEntries = new();
+        private const int MaxDebugEntries = 50;
+
         private readonly AppDbContext _context;
         private readonly LineMessagingService _lineMessaging;
         private readonly ILogger<LineController> _logger;
@@ -38,6 +42,37 @@ namespace ProjectTracking.Controllers
             });
         }
 
+        [HttpGet("debug")]
+        public async Task<IActionResult> Debug(CancellationToken cancellationToken)
+        {
+            var recentRecipients = await _context.LineRecipients
+                .AsNoTracking()
+                .OrderByDescending(x => x.UpdatedAt)
+                .Take(10)
+                .Select(x => new
+                {
+                    x.LineRecipientId,
+                    x.UserId,
+                    x.EmpId,
+                    x.RecipientType,
+                    HasLineUserId = !string.IsNullOrWhiteSpace(x.LineUserId),
+                    x.IsActive,
+                    x.LastWebhookAt,
+                    x.UpdatedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(new
+            {
+                ok = true,
+                now = DateTime.Now,
+                hasChannelSecret = _lineMessaging.HasChannelSecret,
+                hasChannelAccessToken = _lineMessaging.IsConfigured,
+                recentWebhookEvents = DebugEntries.Reverse().Take(MaxDebugEntries).ToList(),
+                recentRecipients
+            });
+        }
+
         [HttpPost("webhook")]
         public async Task<IActionResult> Webhook(CancellationToken cancellationToken)
         {
@@ -47,21 +82,37 @@ namespace ProjectTracking.Controllers
 
             if (!_lineMessaging.IsWebhookSignatureValid(body, signature))
             {
+                AddDebug("invalid_signature", bodyLength: body.Length, signaturePresent: !string.IsNullOrWhiteSpace(signature));
                 _logger.LogWarning("Invalid LINE webhook signature");
                 return Unauthorized();
             }
 
-            using var document = JsonDocument.Parse(body);
-            if (!document.RootElement.TryGetProperty("events", out var events) || events.ValueKind != JsonValueKind.Array)
-                return Ok();
-
-            foreach (var lineEvent in events.EnumerateArray())
+            try
             {
-                await HandleEventAsync(lineEvent, cancellationToken);
-            }
+                using var document = JsonDocument.Parse(body);
+                if (!document.RootElement.TryGetProperty("events", out var events) || events.ValueKind != JsonValueKind.Array)
+                {
+                    AddDebug("no_events", bodyLength: body.Length, signaturePresent: true);
+                    return Ok();
+                }
 
-            await _context.SaveChangesAsync(cancellationToken);
-            return Ok();
+                AddDebug("received", bodyLength: body.Length, signaturePresent: true, eventCount: events.GetArrayLength());
+
+                foreach (var lineEvent in events.EnumerateArray())
+                {
+                    await HandleEventAsync(lineEvent, cancellationToken);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                AddDebug("saved", bodyLength: body.Length, signaturePresent: true, eventCount: events.GetArrayLength());
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                AddDebug("error", bodyLength: body.Length, signaturePresent: true, error: ex.Message);
+                _logger.LogError(ex, "LINE webhook handling failed");
+                return Ok();
+            }
         }
 
         private async Task HandleEventAsync(JsonElement lineEvent, CancellationToken cancellationToken)
@@ -76,6 +127,13 @@ namespace ProjectTracking.Controllers
             var lineUserId = ReadString(source, "userId");
             var lineGroupId = ReadString(source, "groupId");
             var now = DateTime.Now;
+
+            AddDebug(
+                "event",
+                eventType: eventType,
+                sourceType: sourceType,
+                lineUserId: MaskLineId(lineUserId),
+                groupId: MaskLineId(lineGroupId));
 
             if (sourceType == "group" && !string.IsNullOrWhiteSpace(lineGroupId))
             {
@@ -108,6 +166,7 @@ namespace ProjectTracking.Controllers
                 return;
 
             var username = ParseLinkUsername(text);
+            AddDebug("message", eventType: eventType, sourceType: sourceType, lineUserId: MaskLineId(lineUserId), text: MaskMessage(text), username: username);
             if (string.IsNullOrWhiteSpace(username))
             {
                 if (!string.IsNullOrWhiteSpace(replyToken))
@@ -146,6 +205,7 @@ namespace ProjectTracking.Controllers
             recipient.EmpId = empId;
             recipient.IsActive = true;
             recipient.UpdatedAt = now;
+            AddDebug("linked", eventType: eventType, sourceType: sourceType, lineUserId: MaskLineId(lineUserId), username: user.Username, empId: empId);
 
             if (!string.IsNullOrWhiteSpace(replyToken))
             {
@@ -239,5 +299,75 @@ namespace ProjectTracking.Controllers
             => element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
                 : null;
+
+        private static void AddDebug(
+            string stage,
+            int? bodyLength = null,
+            bool? signaturePresent = null,
+            int? eventCount = null,
+            string? eventType = null,
+            string? sourceType = null,
+            string? lineUserId = null,
+            string? groupId = null,
+            string? text = null,
+            string? username = null,
+            int? empId = null,
+            string? error = null)
+        {
+            DebugEntries.Enqueue(new LineDebugEntry(
+                DateTime.Now,
+                stage,
+                bodyLength,
+                signaturePresent,
+                eventCount,
+                eventType,
+                sourceType,
+                lineUserId,
+                groupId,
+                text,
+                username,
+                empId,
+                error));
+
+            while (DebugEntries.Count > MaxDebugEntries && DebugEntries.TryDequeue(out _))
+            {
+            }
+        }
+
+        private static string? MaskLineId(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return value.Length <= 8
+                ? "***"
+                : $"{value[..4]}...{value[^4..]}";
+        }
+
+        private static string? MaskMessage(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            return trimmed.StartsWith("LINK ", StringComparison.OrdinalIgnoreCase)
+                ? "LINK ***"
+                : trimmed.Length <= 30 ? trimmed : $"{trimmed[..30]}...";
+        }
+
+        private sealed record LineDebugEntry(
+            DateTime At,
+            string Stage,
+            int? BodyLength,
+            bool? SignaturePresent,
+            int? EventCount,
+            string? EventType,
+            string? SourceType,
+            string? LineUserId,
+            string? GroupId,
+            string? Text,
+            string? Username,
+            int? EmpId,
+            string? Error);
     }
 }
