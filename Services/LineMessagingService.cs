@@ -68,7 +68,7 @@ namespace ProjectTracking.Services
                 Encoding.UTF8.GetBytes(signature));
         }
 
-        public async Task SendNotificationToEmployeeAsync(
+        public async Task<int> SendNotificationToEmployeeAsync(
             int empId,
             string title,
             string? message,
@@ -76,7 +76,7 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken = default)
         {
             if (!IsConfigured)
-                return;
+                return 0;
 
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             var lineUserIds = await db.LineRecipients
@@ -91,13 +91,15 @@ namespace ProjectTracking.Services
                 .ToListAsync(cancellationToken);
 
             if (lineUserIds.Count == 0)
-                return;
+                return 0;
 
             var text = BuildNotificationText(title, message, targetUrl);
             foreach (var lineUserId in lineUserIds)
             {
                 await PushTextAsync(lineUserId, text, cancellationToken);
             }
+
+            return lineUserIds.Count;
         }
 
         public async Task PushTextAsync(string to, string text, CancellationToken cancellationToken = default)

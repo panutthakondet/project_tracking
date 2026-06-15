@@ -141,7 +141,21 @@ namespace ProjectTracking.Services
 
                 var projectName = ProjectDisplayName(row.Phase?.Project);
                 var title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"Assign #{row.AssignId}" : row.Role!;
-                var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var message = BuildPhaseAssignMessage(
+                    stateText,
+                    row.Phase?.Project?.Coop?.CoopName,
+                    projectName,
+                    title,
+                    EmployeeName(employees, row.EmpId),
+                    EmployeeName(employees, row.Phase?.Project?.BaEmpId),
+                    row.Phase?.PhaseOrder,
+                    row.Phase?.PeriodOrder,
+                    row.Phase?.Project?.StartDate,
+                    row.Phase?.Project?.EndDate,
+                    row.PlanStart ?? row.Phase?.PlanStart,
+                    row.PlanEnd ?? row.Phase?.PlanEnd,
+                    row.Phase?.PeriodEndDate,
+                    row.Remark);
                 var projectId = row.Phase?.ProjectId;
                 var recipients = new List<NotificationRecipient>();
 
@@ -569,6 +583,38 @@ namespace ProjectTracking.Services
             });
         }
 
+        private static string BuildPhaseAssignMessage(
+            string stateText,
+            string? coopName,
+            string projectName,
+            string title,
+            string ownerName,
+            string baName,
+            int? phaseOrder,
+            int? periodOrder,
+            DateTime? projectStart,
+            DateTime? projectEnd,
+            DateTime? planStart,
+            DateTime? planEnd,
+            DateTime? dueDate,
+            string? remark)
+        {
+            return string.Join("\n", new[]
+            {
+                $"สถานะ: {stateText}",
+                $"สหกรณ์: {(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)}",
+                $"Project: {projectName}",
+                $"หัวข้อ: {title}",
+                $"เจ้าของงาน: {ownerName}",
+                $"BA: {baName}",
+                $"ส่วน / งวด: ส่วนที่ {(phaseOrder?.ToString() ?? "-")} / งวดที่ {(periodOrder?.ToString() ?? "-")}",
+                $"Project Period: {DateText(projectStart)} - {DateText(projectEnd)}",
+                $"Plan: {DateText(planStart)} - {DateText(planEnd)}",
+                $"กำหนดส่งงวดงาน: {DateText(dueDate)}",
+                $"Remark: {(string.IsNullOrWhiteSpace(remark) ? "-" : remark)}"
+            });
+        }
+
         private static string EmployeeName(
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             int? empId)
@@ -610,8 +656,9 @@ namespace ProjectTracking.Services
 
         private static bool IsDone(string? status)
         {
-            var normalized = (status ?? "").Trim().ToUpperInvariant();
-            return normalized == "DONE";
+            var raw = (status ?? "").Trim();
+            var normalized = raw.ToUpperInvariant();
+            return normalized == "DONE" || raw is "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
         }
 
         private static bool IsSupportDone(string? status, string? devStatus)
@@ -630,7 +677,7 @@ namespace ProjectTracking.Services
         private static bool IsClosedPhase(string? phaseStatus)
         {
             var normalized = (phaseStatus ?? "").Trim();
-            return normalized == "ส่งงวดงานแล้ว" || normalized == "อนุมัติจ่ายเงินแล้ว";
+            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
         }
 
         private sealed record EmployeeRecipient(int EmpId, string EmpName, int? LoginUserId);

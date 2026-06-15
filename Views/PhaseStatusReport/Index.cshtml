@@ -435,17 +435,6 @@
         }
         <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
         <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
-        @if (CanMenu("PhaseStatusReport.SendMail"))
-        {
-            <form asp-action="SendOverdueLine" method="post" class="no-print" style="display:inline;">
-                @Html.AntiForgeryToken()
-                <button type="submit"
-                        class="report-btn warning"
-                        onclick="return confirm('ต้องการส่ง LINE แจ้งงานเสี่ยงล่าช้า/งานล่าช้าหรือไม่?');">
-                    Send Overdue Line
-                </button>
-            </form>
-        }
     </div>
 
     <header class="print-header">
