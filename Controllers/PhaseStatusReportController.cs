@@ -150,7 +150,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseStatusReport.SendMail")]
         public async Task<IActionResult> SendOverdueLine()
         {
-            await _overdueNotificationService.SyncAsync();
+            await _overdueNotificationService.SyncAndSendLineAsync();
 
             TempData["Success"] = "ส่ง LINE แจ้งงานเสี่ยงล่าช้า/งานล่าช้าเรียบร้อยแล้ว";
             return RedirectToAction(nameof(Index));

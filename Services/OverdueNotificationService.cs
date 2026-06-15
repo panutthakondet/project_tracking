@@ -32,6 +32,12 @@ namespace ProjectTracking.Services
         }
 
         public async Task SyncAsync(CancellationToken cancellationToken = default)
+            => await SyncAsync(forceLineSend: false, cancellationToken);
+
+        public async Task SyncAndSendLineAsync(CancellationToken cancellationToken = default)
+            => await SyncAsync(forceLineSend: true, cancellationToken);
+
+        private async Task SyncAsync(bool forceLineSend, CancellationToken cancellationToken = default)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -78,10 +84,10 @@ namespace ProjectTracking.Services
             var activeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var lineQueue = new List<LineNotificationPayload>();
 
-            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
-            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
-            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
-            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
+            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
+            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
+            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
+            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
 
             foreach (var notification in existingNotifications.Where(x => !x.IsResolved))
             {
@@ -108,6 +114,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
             IList<LineNotificationPayload> lineQueue,
+            bool forceLineSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -159,6 +166,7 @@ namespace ProjectTracking.Services
                         existingByKey,
                         activeKeys,
                         lineQueue,
+                        forceLineSend,
                         sourceType: "ASSIGN_DUE",
                         sourceId: row.AssignId,
                         empId: recipient.EmpId,
@@ -177,6 +185,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
             IList<LineNotificationPayload> lineQueue,
+            bool forceLineSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -223,6 +232,7 @@ namespace ProjectTracking.Services
                         existingByKey,
                         activeKeys,
                         lineQueue,
+                        forceLineSend,
                         sourceType: "ISSUE_DUE",
                         sourceId: row.IssueId,
                         empId: recipient.EmpId,
@@ -241,6 +251,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
             IList<LineNotificationPayload> lineQueue,
+            bool forceLineSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -289,6 +300,7 @@ namespace ProjectTracking.Services
                         existingByKey,
                         activeKeys,
                         lineQueue,
+                        forceLineSend,
                         sourceType: "SUPPORT_DUE",
                         sourceId: row.OrderId,
                         empId: recipient.EmpId,
@@ -307,6 +319,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
             IList<LineNotificationPayload> lineQueue,
+            bool forceLineSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -341,6 +354,7 @@ namespace ProjectTracking.Services
                     existingByKey,
                     activeKeys,
                     lineQueue,
+                    forceLineSend,
                     sourceType: "FOLLOWUP_DUE",
                     sourceId: row.FollowupId,
                     empId: row.OwnerEmpId.Value,
@@ -358,6 +372,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
             IList<LineNotificationPayload> lineQueue,
+            bool forceLineSend,
             string sourceType,
             int sourceId,
             int empId,
@@ -395,6 +410,10 @@ namespace ProjectTracking.Services
                 {
                     notification.IsRead = false;
                     notification.ReadAt = null;
+                    lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
+                }
+                else if (forceLineSend)
+                {
                     lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
                 }
 

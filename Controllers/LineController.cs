@@ -136,16 +136,23 @@ namespace ProjectTracking.Controllers
                 return;
             }
 
+            var empId = user.EmpId ?? await _context.Employees
+                .AsNoTracking()
+                .Where(x => x.LoginUserId == user.UserId)
+                .Select(x => (int?)x.EmpId)
+                .FirstOrDefaultAsync(cancellationToken);
+
             recipient.UserId = user.UserId;
-            recipient.EmpId = user.EmpId;
+            recipient.EmpId = empId;
             recipient.IsActive = true;
             recipient.UpdatedAt = now;
 
             if (!string.IsNullOrWhiteSpace(replyToken))
             {
+                var empText = empId.HasValue ? $" (EmpId: {empId.Value})" : "";
                 await _lineMessaging.ReplyTextAsync(
                     replyToken,
-                    $"ผูก LINE กับบัญชี {user.Username} เรียบร้อยแล้ว",
+                    $"ผูก LINE กับบัญชี {user.Username}{empText} เรียบร้อยแล้ว",
                     cancellationToken);
             }
         }
