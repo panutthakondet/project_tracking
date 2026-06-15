@@ -5,7 +5,8 @@
     Layout = null;
     var th = new CultureInfo("th-TH");
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
-        .OrderBy(x => x.ProjectName)
+        .OrderBy(x => x.CoopName)
+        .ThenBy(x => x.ProjectName)
         .ThenBy(x => x.PhaseOrder)
         .ThenBy(x => x.PeriodOrder)
         .ThenBy(x => x.PhaseId)
@@ -133,6 +134,30 @@
             border-color: #18365e;
             font-size: 11px;
             font-weight: 900;
+        }
+
+        .phase-coop-row td {
+            padding: 9px 11px;
+            color: #10233f;
+            background: #dff7f1 !important;
+            border-color: #b8e7dc;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .phase-coop-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .phase-coop-label {
+            color: #0f766e;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
         }
 
         .phase-project-group {
@@ -302,48 +327,68 @@
                 </thead>
                 <tbody>
                     @{
-                        var projectGroups = rows
-                            .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                        var coopGroups = rows
+                            .GroupBy(x => string.IsNullOrWhiteSpace(x.CoopName) ? "-" : x.CoopName)
                             .OrderBy(group => group.Key)
                             .ToList();
                     }
 
-                    @foreach (var projectGroup in projectGroups)
+                    @foreach (var coopGroup in coopGroups)
                     {
-                        var seq = 1;
-                        <tr class="phase-project-row">
+                        var projectGroups = coopGroup
+                            .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                            .OrderBy(group => group.Key)
+                            .ToList();
+
+                        <tr class="phase-coop-row">
                             <td colspan="10">
-                                <div class="phase-project-group">
+                                <div class="phase-coop-group">
                                     <div>
-                                        <span class="phase-project-label">Project</span>
-                                        @projectGroup.Key
+                                        <span class="phase-coop-label">Cooperative</span>
+                                        @coopGroup.Key
                                     </div>
-                                    <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                                    <span class="phase-project-count">@coopGroup.Count() รายการ</span>
                                 </div>
                             </td>
                         </tr>
 
-                        @foreach (var row in projectGroup)
+                        @foreach (var projectGroup in projectGroups)
                         {
-                            <tr>
-                                <td class="text-center">@seq</td>
-                                <td class="text-center">ส่วนที่ @row.PhaseOrder / งวดที่ @row.PeriodOrder</td>
-                                <td>
-                                    <strong>@row.EmpName</strong><br />
-                                    <span class="@StatusTextClass(row.PhaseStatus)">
-                                        @StatusText(row.PhaseStatus)
-                                    </span>
+                            var seq = 1;
+                            <tr class="phase-project-row">
+                                <td colspan="10">
+                                    <div class="phase-project-group">
+                                        <div>
+                                            <span class="phase-project-label">Project</span>
+                                            @projectGroup.Key
+                                        </div>
+                                        <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                                    </div>
                                 </td>
-                                <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
-                                <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
-                                <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
-                                <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
-                                <td class="text-center">@FormatDate(row.ActualEnd)</td>
-                                <td class="text-center">@(row.OverdueDays ?? 0)</td>
-                                <td>@(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)</td>
                             </tr>
 
-                            seq++;
+                            @foreach (var row in projectGroup)
+                            {
+                                <tr>
+                                    <td class="text-center">@seq</td>
+                                    <td class="text-center">ส่วนที่ @row.PhaseOrder / งวดที่ @row.PeriodOrder</td>
+                                    <td>
+                                        <strong>@row.EmpName</strong><br />
+                                        <span class="@StatusTextClass(row.PhaseStatus)">
+                                            @StatusText(row.PhaseStatus)
+                                        </span>
+                                    </td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.Role) ? "-" : row.Role)</td>
+                                    <td class="text-center">@FormatRange(row.StartDate, row.EndDate)</td>
+                                    <td class="text-center">@FormatRange(row.PlanStart, row.PlanEnd)</td>
+                                    <td class="text-center">@(row.PlanDays?.ToString() ?? "-")</td>
+                                    <td class="text-center">@FormatDate(row.ActualEnd)</td>
+                                    <td class="text-center">@(row.OverdueDays ?? 0)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.Remark) ? "-" : row.Remark)</td>
+                                </tr>
+
+                                seq++;
+                            }
                         }
                     }
                 </tbody>

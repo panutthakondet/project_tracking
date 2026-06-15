@@ -5,7 +5,8 @@
     Layout = null;
     var th = new CultureInfo("th-TH");
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.VwPhaseOwnerStatus>())
-        .OrderBy(x => x.ProjectName)
+        .OrderBy(x => x.CoopName)
+        .ThenBy(x => x.ProjectName)
         .ThenBy(x => x.PhaseOrder)
         .ThenBy(x => x.PeriodOrder)
         .ThenBy(x => x.PhaseId)
@@ -124,6 +125,38 @@
 
         .phase-project-group + .phase-project-group {
             margin-top: 14px;
+        }
+
+        .phase-coop-group {
+            display: grid;
+            gap: 10px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .phase-coop-group + .phase-coop-group {
+            margin-top: 18px;
+        }
+
+        .phase-coop-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 11px 14px;
+            color: #10233f;
+            background: #dff7f1;
+            border: 1px solid #b8e7dc;
+            border-radius: 14px;
+            font-weight: 900;
+        }
+
+        .phase-coop-label {
+            color: #0f766e;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .05em;
+            text-transform: uppercase;
         }
 
         .phase-project-header {
@@ -386,66 +419,84 @@
     {
         <div class="phase-status-card-list">
             @{
-                var projectGroups = rows
-                    .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                var coopGroups = rows
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.CoopName) ? "-" : x.CoopName)
                     .OrderBy(group => group.Key)
                     .ToList();
             }
 
-            @foreach (var projectGroup in projectGroups)
+            @foreach (var coopGroup in coopGroups)
             {
-                var seq = 1;
-                <section class="phase-project-group">
-                    <div class="phase-project-header">
+                var projectGroups = coopGroup
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.ProjectName) ? "-" : x.ProjectName)
+                    .OrderBy(group => group.Key)
+                    .ToList();
+
+                <section class="phase-coop-group">
+                    <div class="phase-coop-header">
                         <div>
-                            <span class="phase-project-label">Project</span>
-                            @projectGroup.Key
+                            <span class="phase-coop-label">Cooperative</span>
+                            @coopGroup.Key
                         </div>
-                        <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                        <span class="phase-project-count">@coopGroup.Count() รายการ</span>
                     </div>
 
-                    @foreach (var r in projectGroup)
+                    @foreach (var projectGroup in projectGroups)
                     {
-                        <article class="phase-status-card @CardToneClass(r.PhaseStatus)">
-                            <section class="phase-status-card-left">
-                                <div class="phase-status-card-header">
-                                    <span class="phase-status-seq">Seq @seq</span>
-                                    <div>
-                                        <div class="phase-status-employee">
-                                            Employee: <strong>@r.EmpName</strong>
-                                            <span class="phase-status-inline">
-                                                Status:
-                                                <span class="@StatusTextClass(r.PhaseStatus)">
-                                                    @StatusText(r.PhaseStatus)
-                                                </span>
-                                            </span>
+                        var seq = 1;
+                        <section class="phase-project-group">
+                            <div class="phase-project-header">
+                                <div>
+                                    <span class="phase-project-label">Project</span>
+                                    @projectGroup.Key
+                                </div>
+                                <span class="phase-project-count">@projectGroup.Count() รายการ</span>
+                            </div>
+
+                            @foreach (var r in projectGroup)
+                            {
+                                <article class="phase-status-card @CardToneClass(r.PhaseStatus)">
+                                    <section class="phase-status-card-left">
+                                        <div class="phase-status-card-header">
+                                            <span class="phase-status-seq">Seq @seq</span>
+                                            <div>
+                                                <div class="phase-status-employee">
+                                                    Employee: <strong>@r.EmpName</strong>
+                                                    <span class="phase-status-inline">
+                                                        Status:
+                                                        <span class="@StatusTextClass(r.PhaseStatus)">
+                                                            @StatusText(r.PhaseStatus)
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div class="phase-status-meta-grid">
-                                    <span class="phase-status-meta-pill">ส่วนที่ @r.PhaseOrder / งวดที่ @r.PeriodOrder</span>
-                                    <span class="phase-status-meta-pill">Project Period: @FormatRange(r.StartDate, r.EndDate)</span>
-                                    <span class="phase-status-meta-pill">Plan: @FormatRange(r.PlanStart, r.PlanEnd)</span>
-                                    <span class="phase-status-meta-pill">Plan Days: @(r.PlanDays?.ToString() ?? "-")</span>
-                                    <span class="phase-status-meta-pill">กำหนดส่งงวดงาน: @FormatDate(r.ActualEnd)</span>
-                                    <span class="phase-status-meta-pill">Overdue: @(r.OverdueDays ?? 0) days</span>
-                                </div>
+                                        <div class="phase-status-meta-grid">
+                                            <span class="phase-status-meta-pill">ส่วนที่ @r.PhaseOrder / งวดที่ @r.PeriodOrder</span>
+                                            <span class="phase-status-meta-pill">Project Period: @FormatRange(r.StartDate, r.EndDate)</span>
+                                            <span class="phase-status-meta-pill">Plan: @FormatRange(r.PlanStart, r.PlanEnd)</span>
+                                            <span class="phase-status-meta-pill">Plan Days: @(r.PlanDays?.ToString() ?? "-")</span>
+                                            <span class="phase-status-meta-pill">กำหนดส่งงวดงาน: @FormatDate(r.ActualEnd)</span>
+                                            <span class="phase-status-meta-pill">Overdue: @(r.OverdueDays ?? 0) days</span>
+                                        </div>
+                                    </section>
 
-                                <div class="phase-status-role">
-                                    Role: <span>@(string.IsNullOrWhiteSpace(r.Role) ? "-" : r.Role)</span>
-                                </div>
-                            </section>
+                                    <section class="phase-status-card-right">
+                                        <div class="phase-status-card-role">
+                                            <span>Role</span>
+                                            <strong>@(string.IsNullOrWhiteSpace(r.Role) ? "-" : r.Role)</strong>
+                                        </div>
+                                        <div class="phase-status-card-remark">
+                                            <span>Remark</span>
+                                            <p>@(string.IsNullOrWhiteSpace(r.Remark) ? "-" : r.Remark)</p>
+                                        </div>
+                                    </section>
+                                </article>
 
-                            <aside class="phase-status-card-right">
-                                <div class="phase-status-remark">
-                                    <b>Remark:</b>
-                                    @(string.IsNullOrWhiteSpace(r.Remark) ? "-" : r.Remark)
-                                </div>
-                            </aside>
-                        </article>
-
-                        seq++;
+                                seq++;
+                            }
+                        </section>
                     }
                 </section>
             }

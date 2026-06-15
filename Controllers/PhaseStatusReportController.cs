@@ -75,7 +75,8 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedStatus = phaseStatus;
 
             return View(result
-                .OrderBy(x => x.ProjectName)
+                .OrderBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
                 .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
@@ -105,7 +106,8 @@ namespace ProjectTracking.Controllers
             ViewBag.PrintDate = DateTime.Now;
 
             return View(result
-                .OrderBy(x => x.ProjectName)
+                .OrderBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
                 .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
@@ -132,7 +134,8 @@ namespace ProjectTracking.Controllers
             ViewBag.PrintDate = DateTime.Now;
 
             return View(result
-                .OrderBy(x => x.ProjectName)
+                .OrderBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
                 .ThenBy(x => x.PhaseOrder)
                 .ThenBy(x => x.PeriodOrder)
                 .ThenBy(x => x.PhaseId)
