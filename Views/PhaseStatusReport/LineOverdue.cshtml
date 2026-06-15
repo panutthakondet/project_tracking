@@ -183,8 +183,7 @@
 </head>
 <body>
     <div class="actions">
-        <a asp-action="Index" class="btn">Back to Report</a>
-        <button type="button" class="btn" id="selectAllButton">Select All Ready</button>
+        <button type="button" class="btn" id="selectAllButton">Select All</button>
         <button type="button" class="btn" id="clearButton">Clear</button>
         <button type="submit" form="sendForm" class="btn warning">Send Selected Line</button>
     </div>
@@ -256,8 +255,7 @@
                                 <input type="checkbox"
                                        class="row-check"
                                        name="selectedKeys"
-                                       value="@item.Key"
-                                       @(item.HasLineRecipient ? "" : "disabled") />
+                                       value="@item.Key" />
                             </td>
                             <td class="text-center">
                                 <span class="badge @(item.HasLineRecipient ? "ready" : "missing")">
@@ -300,7 +298,7 @@
             const clearButton = document.getElementById('clearButton');
 
             selectAllButton?.addEventListener('click', function () {
-                checks.filter(x => !x.disabled).forEach(x => x.checked = true);
+                checks.forEach(x => x.checked = true);
             });
 
             clearButton?.addEventListener('click', function () {
