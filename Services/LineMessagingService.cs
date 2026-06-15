@@ -49,6 +49,12 @@ namespace ProjectTracking.Services
         public bool HasAppBaseUrl
             => !string.IsNullOrWhiteSpace(_appBaseUrl);
 
+        public string ChannelSecretFingerprint
+            => Fingerprint(_channelSecret);
+
+        public string ChannelAccessTokenFingerprint
+            => Fingerprint(_channelAccessToken);
+
         public bool IsWebhookSignatureValid(string body, string? signature)
         {
             if (string.IsNullOrWhiteSpace(_channelSecret) || string.IsNullOrWhiteSpace(signature))
@@ -93,10 +99,11 @@ namespace ProjectTracking.Services
             if (lineUserIds.Count == 0)
                 return 0;
 
-            var text = BuildNotificationText(title, message, targetUrl);
+            var absoluteUrl = ToAbsoluteUrl(targetUrl);
+            var flexMessage = BuildNotificationFlexMessage(title, message, absoluteUrl);
             foreach (var lineUserId in lineUserIds)
             {
-                await PushTextAsync(lineUserId, text, cancellationToken);
+                await PushMessageAsync(lineUserId, flexMessage, cancellationToken);
             }
 
             return lineUserIds.Count;
@@ -108,6 +115,15 @@ namespace ProjectTracking.Services
             {
                 to,
                 messages = new[] { new { type = "text", text = TrimLineText(text) } }
+            }, cancellationToken);
+        }
+
+        private async Task PushMessageAsync(string to, object message, CancellationToken cancellationToken = default)
+        {
+            await SendLineRequestAsync(PushEndpoint, new
+            {
+                to,
+                messages = new[] { message }
             }, cancellationToken);
         }
 
@@ -155,6 +171,96 @@ namespace ProjectTracking.Services
             return sb.ToString().Trim();
         }
 
+        private object BuildNotificationFlexMessage(string title, string? message, string? absoluteUrl)
+        {
+            var bodyContents = new List<object>
+            {
+                new
+                {
+                    type = "text",
+                    text = string.IsNullOrWhiteSpace(title) ? "แจ้งเตือนงาน" : title.Trim(),
+                    weight = "bold",
+                    size = "lg",
+                    color = NotificationTitleColor(title),
+                    wrap = true
+                }
+            };
+
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                bodyContents.Add(new { type = "separator", margin = "md" });
+                bodyContents.Add(new
+                {
+                    type = "text",
+                    text = TrimFlexText(message.Trim(), 3000),
+                    size = "sm",
+                    color = "#334155",
+                    wrap = true,
+                    margin = "md"
+                });
+            }
+
+            var bubbleContents = new List<object>
+            {
+                new
+                {
+                    type = "box",
+                    layout = "vertical",
+                    spacing = "sm",
+                    contents = bodyContents
+                }
+            };
+
+            if (!string.IsNullOrWhiteSpace(absoluteUrl))
+            {
+                bubbleContents.Add(new { type = "separator", margin = "md" });
+                bubbleContents.Add(new
+                {
+                    type = "button",
+                    style = "primary",
+                    color = "#0F766E",
+                    height = "sm",
+                    margin = "md",
+                    action = new
+                    {
+                        type = "uri",
+                        label = "เปิดรายละเอียด",
+                        uri = absoluteUrl
+                    }
+                });
+            }
+
+            return new
+            {
+                type = "flex",
+                altText = TrimLineText(BuildNotificationText(title, message, absoluteUrl), 400),
+                contents = new
+                {
+                    type = "bubble",
+                    size = "mega",
+                    body = new
+                    {
+                        type = "box",
+                        layout = "vertical",
+                        paddingAll = "16px",
+                        contents = bubbleContents
+                    }
+                }
+            };
+        }
+
+        private static string NotificationTitleColor(string title)
+        {
+            var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#DC2626";
+
+            if (normalized.StartsWith("งานเสี่ยงล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#D97706";
+
+            return "#0F172A";
+        }
+
         private string? ToAbsoluteUrl(string? targetUrl)
         {
             if (string.IsNullOrWhiteSpace(targetUrl))
@@ -171,9 +277,23 @@ namespace ProjectTracking.Services
                 : $"{_appBaseUrl}/{targetUrl}";
         }
 
-        private static string TrimLineText(string text)
+        private static string TrimLineText(string text, int maxLength = 5000)
             => string.IsNullOrWhiteSpace(text)
                 ? "-"
-                : (text.Length <= 5000 ? text : text[..5000]);
+                : (text.Length <= maxLength ? text : text[..maxLength]);
+
+        private static string TrimFlexText(string text, int maxLength)
+            => string.IsNullOrWhiteSpace(text)
+                ? "-"
+                : (text.Length <= maxLength ? text : text[..maxLength]);
+
+        private static string Fingerprint(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim()));
+            return Convert.ToHexString(hash)[..12];
+        }
     }
 }

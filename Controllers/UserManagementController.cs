@@ -748,6 +748,7 @@ namespace ProjectTracking.Controllers
             {
                 "Index" => 10,
                 "ViewOnly" => 20,
+                "LineOverdue" => 25,
                 "View" => 30,
                 "Details" => 40,
                 "Show" => 45,
@@ -820,6 +821,7 @@ namespace ProjectTracking.Controllers
             {
                 "Index" => "เข้าใช้งาน",
                 "ViewOnly" => "ดูรายงาน",
+                "LineOverdue" => "แจ้งเตือนงานล่าช้าทาง LINE",
                 "View" => "ดูรายละเอียด",
                 "Show" => "ดูรายละเอียด",
                 "Create" => "เพิ่ม",

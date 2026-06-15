@@ -12,6 +12,12 @@
     var selectedOwner = ViewBag.SelectedOwner as string ?? "";
     var selectedStatus = ViewBag.SelectedStatus as string ?? "";
     var today = DateTime.Today;
+    var coopList = projects
+        .Select(x => x.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
@@ -433,12 +439,24 @@
 
     <form method="get" class="filter-panel">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopList)
+                {
+                    <option value="@coop">@coop</option>
+                }
+            </select>
+        </div>
+        <div class="field">
             <label for="projectId">Project</label>
             <select id="projectId" name="projectId" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
-                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
+                    <option value="@project.ProjectId"
+                            data-coop-name="@(project.Coop?.CoopName ?? "")"
+                            selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
                         @project.ProjectDisplayName
                     </option>
                 }
@@ -632,13 +650,13 @@
 
                 function syncInput() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value ? selected.text.trim() : "";                }
+                    input.value = selected ? selected.text.trim() : "";                }
 
                 function renderOptions() {
                     const term = normalize(input.value);
                     dropdown.innerHTML = "";
 
-                    const matches = options.filter(item => !term || normalize(item.text).includes(term));
+                    const matches = options.filter(item => !item.option.disabled && (!term || normalize(item.text).includes(term)));
                     if (!matches.length) {
                         const empty = document.createElement("div");
                         empty.className = "pt-search-select__empty";
@@ -685,6 +703,37 @@
 
 
             document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+
+            function syncProjectFilterOptions() {
+                if (!projectFilter) return;
+
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter.options).forEach(option => {
+                    const visible = option.value === "" || !selectedCoop || normalize(option.dataset.coopName || "") === selectedCoop;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                });
+
+                const selected = projectFilter.selectedOptions[0];
+                if (selected && selected.disabled) projectFilter.value = "";
+            }
+
+            coopFilter?.addEventListener("change", function () {
+                localStorage.setItem("reports.followups.selectedCoop", normalize(coopFilter.value));
+                if (projectFilter) projectFilter.value = "";
+                syncProjectFilterOptions();
+            });
+
+            const savedCoop = localStorage.getItem("reports.followups.selectedCoop") || "";
+            if (savedCoop && coopFilter) {
+                const match = Array.from(coopFilter.options).find(option => normalize(option.value) === savedCoop);
+                if (match) coopFilter.value = match.value;
+            }
+
+            syncProjectFilterOptions();
         })();
     </script>
 </body>

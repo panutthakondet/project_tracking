@@ -3,16 +3,26 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
+using ProjectTracking.ViewModels;
+using System.Globalization;
 
 namespace ProjectTracking.Controllers
 {
     public class EmployeesController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly LineMessagingService _lineMessagingService;
+        private readonly IConfiguration _configuration;
 
-        public EmployeesController(AppDbContext context)
+        public EmployeesController(
+            AppDbContext context,
+            LineMessagingService lineMessagingService,
+            IConfiguration configuration)
         {
             _context = context;
+            _lineMessagingService = lineMessagingService;
+            _configuration = configuration;
         }
 
         // ===========================
@@ -129,5 +139,535 @@ namespace ProjectTracking.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        [RequireMenu("Employees.LineOverdue")]
+        public async Task<IActionResult> LineOverdue()
+        {
+            var items = await BuildLineOverdueSelectionItemsAsync();
+            return View(new LineOverdueSelectionViewModel { Items = items });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("Employees.LineOverdue")]
+        public async Task<IActionResult> SendSelectedLineOverdue(List<string>? selectedKeys)
+        {
+            if (selectedKeys == null || selectedKeys.Count == 0)
+            {
+                TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่ง LINE";
+                return RedirectToAction(nameof(LineOverdue));
+            }
+
+            var selected = selectedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var items = (await BuildLineOverdueSelectionItemsAsync())
+                .Where(x => selected.Contains(x.Key))
+                .ToList();
+
+            var sentCount = 0;
+            foreach (var item in items.Where(x => x.HasLineRecipient))
+            {
+                foreach (var recipient in item.Recipients.Where(x => x.HasLineRecipient))
+                {
+                    var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.EmpId,
+                        BuildSelectionLineTitle(item),
+                        item.Message,
+                        recipient.TargetUrl,
+                        HttpContext.RequestAborted);
+
+                    sentCount += deliveredCount;
+                    if (deliveredCount > 0)
+                        AddLineOverdueNotificationSendLog(item, recipient);
+                }
+            }
+
+            if (sentCount > 0)
+                await _context.SaveChangesAsync();
+
+            var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasLineRecipient));
+            TempData["Success"] = $"ส่ง LINE แล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
+            if (skippedCount > 0)
+                TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE";
+
+            return RedirectToAction(nameof(LineOverdue));
+        }
+
+        private async Task<List<LineOverdueSelectionItemViewModel>> BuildLineOverdueSelectionItemsAsync()
+        {
+            var today = DateTime.Today;
+            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskUntil = today.AddDays(riskDays);
+
+            var employeeRows = await _context.Employees
+                .AsNoTracking()
+                .Select(x => new { x.EmpId, x.EmpName, x.LoginUserId, Username = x.LoginUser != null ? x.LoginUser.Username : null })
+                .ToListAsync();
+
+            var employees = employeeRows.ToDictionary(x => x.EmpId, x => x.EmpName ?? $"Employee #{x.EmpId}");
+            var employeeUsers = employeeRows.ToDictionary(x => x.EmpId, x => x.LoginUserId);
+            var employeeUsernames = employeeRows.ToDictionary(x => x.EmpId, x => string.IsNullOrWhiteSpace(x.Username) ? null : x.Username);
+            var lineEmpIds = await _context.LineRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.EmpId.HasValue && x.LineUserId != null && x.LineUserId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var hasLine = lineEmpIds.ToHashSet();
+            var sendStats = await LoadLineSendStatsAsync();
+
+            var items = new List<LineOverdueSelectionItemViewModel>();
+
+            var assigns = await _context.PhaseAssigns
+                .AsNoTracking()
+                .Include(x => x.Phase!)
+                    .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.Coop)
+                .Where(x => x.Phase != null
+                    && ((x.PlanEnd ?? x.Phase!.PlanEnd).HasValue)
+                    && (x.PlanEnd ?? x.Phase!.PlanEnd)!.Value <= riskUntil)
+                .ToListAsync();
+
+            foreach (var row in assigns)
+            {
+                if (IsDone(row.WorkStatus, row.Phase?.PhaseStatus) || IsClosedPhaseForSelection(row.Phase?.PhaseStatus))
+                    continue;
+
+                var dueDate = row.PlanEnd ?? row.Phase?.PlanEnd;
+                if (!TrySelectionDueState(dueDate, today, riskUntil, out var severity, out var stateText, out var overdueDays))
+                    continue;
+
+                var project = row.Phase?.Project;
+                var title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"Assign #{row.AssignId}" : row.Role!;
+                var ownerName = EmployeeName(employees, row.EmpId);
+                var baEmpId = project?.BaEmpId;
+                var baName = EmployeeName(employees, baEmpId);
+                var message = BuildSelectionMessage(
+                    stateText,
+                    project?.Coop?.CoopName,
+                    ProjectNameForSelection(project),
+                    title,
+                    ownerName,
+                    baName,
+                    row.Phase?.PhaseOrder,
+                    row.Phase?.PeriodOrder,
+                    project?.StartDate,
+                    project?.EndDate,
+                    row.PlanStart ?? row.Phase?.PlanStart,
+                    row.PlanEnd ?? row.Phase?.PlanEnd,
+                    row.Phase?.PeriodEndDate,
+                    row.Remark,
+                    includeTitleLine: true);
+
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
+
+                if (baEmpId.HasValue)
+                {
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
+                }
+            }
+
+            var issues = await _context.ProjectIssues
+                .AsNoTracking()
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
+                .Where(x => x.EndDate.HasValue && x.EndDate.Value <= riskUntil)
+                .ToListAsync();
+
+            foreach (var row in issues)
+            {
+                if (IsIssueDoneForSelection(row.IssueStatus, row.DevStatus))
+                    continue;
+
+                if (!TrySelectionDueState(row.EndDate, today, riskUntil, out var severity, out var stateText, out var overdueDays))
+                    continue;
+
+                var ownerName = EmployeeName(employees, row.AssignTo);
+                var baEmpId = row.Project?.BaEmpId;
+                var baName = EmployeeName(employees, baEmpId);
+                var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
+
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevEdit/{row.IssueId}");
+                if (baEmpId.HasValue)
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Edit/{row.IssueId}");
+            }
+
+            var supports = await _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
+                .Where(x => x.EndDate.HasValue && x.EndDate.Value <= riskUntil)
+                .ToListAsync();
+
+            foreach (var row in supports)
+            {
+                if (IsSupportDoneForSelection(row.Status, row.DevStatus))
+                    continue;
+
+                if (!TrySelectionDueState(row.EndDate, today, riskUntil, out var severity, out var stateText, out var overdueDays))
+                    continue;
+
+                var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
+                var ownerName = EmployeeName(employees, row.AssignTo);
+                var baEmpId = row.Project?.BaEmpId;
+                var baName = EmployeeName(employees, baEmpId);
+                var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
+
+                if (row.AssignTo.HasValue)
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Edit/{row.OrderId}");
+
+                if (baEmpId.HasValue)
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Edit/{row.OrderId}");
+            }
+
+            var followups = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.Coop)
+                .Where(x => x.OwnerEmpId.HasValue
+                    && x.NextFollowupDate.HasValue
+                    && x.NextFollowupDate.Value <= riskUntil)
+                .ToListAsync();
+
+            foreach (var row in followups)
+            {
+                if (!IsFollowupOpenForSelection(row.Status))
+                    continue;
+
+                if (!TrySelectionDueState(row.NextFollowupDate, today, riskUntil, out var severity, out var stateText, out var overdueDays))
+                    continue;
+
+                var title = string.IsNullOrWhiteSpace(row.TaskTitle) ? $"Followup #{row.FollowupId}" : row.TaskTitle;
+                var ownerName = EmployeeName(employees, row.OwnerEmpId);
+                var baEmpId = row.Project?.BaEmpId;
+                var baName = EmployeeName(employees, baEmpId);
+                var startDate = row.LastContactDate ?? row.CreatedAt;
+                var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.Project?.StartDate, row.Project?.EndDate, startDate, row.NextFollowupDate, row.NextFollowupDate, row.PartnerName);
+
+                if (row.OwnerEmpId.HasValue)
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, row.OwnerEmpId.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+
+                if (baEmpId.HasValue)
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+            }
+
+            return items
+                .OrderBy(x => LineOverdueTypeRank(x.SourceType))
+                .ThenByDescending(x => x.Recipients.Any(r => r.HasLineRecipient))
+                .ThenBy(x => x.EndDate ?? x.DueDate ?? DateTime.MaxValue)
+                .ThenBy(x => x.CoopName)
+                .ThenBy(x => x.ProjectName)
+                .ThenByDescending(x => x.Severity == "DANGER")
+                .ThenByDescending(x => x.OverdueDays)
+                .ThenBy(x => x.DueDate)
+                .ToList();
+        }
+
+        private static int LineOverdueTypeRank(string? sourceType)
+        {
+            return sourceType switch
+            {
+                "ASSIGN_DUE" => 1,
+                "ISSUE_DUE" => 2,
+                "SUPPORT_DUE" => 3,
+                "FOLLOWUP_DUE" => 4,
+                _ => 99
+            };
+        }
+
+        private static void AddSelectionItem(
+            IList<LineOverdueSelectionItemViewModel> items,
+            IReadOnlyDictionary<int, string> employees,
+            IReadOnlyDictionary<int, int?> employeeUsers,
+            IReadOnlyDictionary<int, string?> employeeUsernames,
+            ISet<int> hasLine,
+            IReadOnlyDictionary<string, LineSendStat> sendStats,
+            string sourceType,
+            string sourceLabel,
+            int sourceId,
+            int recipientEmpId,
+            string recipientRole,
+            string ownerName,
+            string baName,
+            string severity,
+            string stateText,
+            string? coopName,
+            string projectName,
+            string title,
+            DateTime? startDate,
+            DateTime? endDate,
+            DateTime? dueDate,
+            int overdueDays,
+            string message,
+            string targetUrl)
+        {
+            if (recipientEmpId <= 0)
+                return;
+
+            var key = $"{sourceType}:{sourceId}";
+            var existingItem = items.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (existingItem != null)
+            {
+                AddRecipient(existingItem, employees, employeeUsers, employeeUsernames, hasLine, recipientEmpId, recipientRole, targetUrl);
+                return;
+            }
+
+            sendStats.TryGetValue(key, out var sendStat);
+
+            var item = new LineOverdueSelectionItemViewModel
+            {
+                Key = key,
+                SourceType = sourceType,
+                SourceLabel = sourceLabel,
+                SourceId = sourceId,
+                OwnerName = ownerName,
+                BaName = baName,
+                Severity = severity,
+                StateText = stateText,
+                CoopName = string.IsNullOrWhiteSpace(coopName) ? "-" : coopName,
+                ProjectName = projectName,
+                Title = title,
+                StartDate = startDate,
+                EndDate = endDate,
+                DueDate = dueDate,
+                OverdueDays = overdueDays,
+                LineSendCount = sendStat?.Count ?? 0,
+                LastLineSentAt = sendStat?.LastSentAt,
+                Message = message,
+                TargetUrl = targetUrl
+            };
+            AddRecipient(item, employees, employeeUsers, employeeUsernames, hasLine, recipientEmpId, recipientRole, targetUrl);
+            items.Add(item);
+        }
+
+        private static void AddRecipient(
+            LineOverdueSelectionItemViewModel item,
+            IReadOnlyDictionary<int, string> employees,
+            IReadOnlyDictionary<int, int?> employeeUsers,
+            IReadOnlyDictionary<int, string?> employeeUsernames,
+            ISet<int> hasLine,
+            int recipientEmpId,
+            string recipientRole,
+            string targetUrl)
+        {
+            if (recipientEmpId <= 0 || item.Recipients.Any(x => x.EmpId == recipientEmpId))
+                return;
+
+            item.Recipients.Add(new LineOverdueRecipientViewModel
+            {
+                EmpId = recipientEmpId,
+                UserId = employeeUsers.TryGetValue(recipientEmpId, out var userId) ? userId : null,
+                Username = employeeUsernames.TryGetValue(recipientEmpId, out var username) ? username : null,
+                Name = EmployeeName(employees, recipientEmpId),
+                Role = recipientRole,
+                HasLineRecipient = hasLine.Contains(recipientEmpId),
+                TargetUrl = targetUrl
+            });
+        }
+
+        private async Task<Dictionary<string, LineSendStat>> LoadLineSendStatsAsync()
+        {
+            var sourceTypes = new[] { "ASSIGN_DUE", "ISSUE_DUE", "SUPPORT_DUE", "FOLLOWUP_DUE" };
+            var rows = await _context.UserNotifications
+                .AsNoTracking()
+                .Where(x => sourceTypes.Contains(x.SourceType) && x.RecipientEmpId.HasValue)
+                .GroupBy(x => new { x.SourceType, x.SourceId })
+                .Select(x => new
+                {
+                    x.Key.SourceType,
+                    x.Key.SourceId,
+                    Count = x.Count(),
+                    LastSentAt = x.Max(n => n.UpdatedAt)
+                })
+                .ToListAsync();
+
+            return rows.ToDictionary(
+                x => $"{x.SourceType}:{x.SourceId}",
+                x => new LineSendStat(x.Count, x.LastSentAt),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        private void AddLineOverdueNotificationSendLog(LineOverdueSelectionItemViewModel item, LineOverdueRecipientViewModel recipient)
+        {
+            var now = DateTime.Now;
+            _context.UserNotifications.Add(new UserNotification
+            {
+                RecipientUserId = recipient.UserId,
+                RecipientEmpId = recipient.EmpId,
+                SourceType = item.SourceType,
+                SourceId = item.SourceId,
+                Title = Trim(BuildSelectionLineTitle(item), 255),
+                Message = item.Message,
+                TargetUrl = recipient.TargetUrl,
+                Severity = item.Severity,
+                IsRead = true,
+                ReadAt = now,
+                IsResolved = true,
+                ResolvedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+
+        private static bool TrySelectionDueState(
+            DateTime? dueDate,
+            DateTime today,
+            DateTime riskUntil,
+            out string severity,
+            out string stateText,
+            out int overdueDays)
+        {
+            severity = "WARNING";
+            stateText = "";
+            overdueDays = 0;
+
+            if (!dueDate.HasValue)
+                return false;
+
+            var due = dueDate.Value.Date;
+            if (due > riskUntil)
+                return false;
+
+            if (due < today)
+            {
+                severity = "DANGER";
+                overdueDays = (today - due).Days;
+                stateText = $"ล่าช้า {overdueDays:N0} วัน";
+                return true;
+            }
+
+            if (due == today)
+            {
+                stateText = "ครบกำหนดวันนี้";
+                return true;
+            }
+
+            stateText = $"เสี่ยงล่าช้า เหลือ {(due - today).Days:N0} วัน";
+            return true;
+        }
+
+        private static string BuildSelectionLineTitle(LineOverdueSelectionItemViewModel item)
+        {
+            var prefix = string.Equals(item.Severity, "DANGER", StringComparison.OrdinalIgnoreCase)
+                ? "งานล่าช้า"
+                : "งานเสี่ยงล่าช้า";
+
+            return $"{prefix} {LineOverdueTypeTitle(item.SourceType, item.SourceLabel)}:";
+        }
+
+        private static string LineOverdueTypeTitle(string? sourceType, string fallback)
+            => sourceType switch
+            {
+                "ASSIGN_DUE" => "Assigns",
+                "ISSUE_DUE" => "Issues",
+                "SUPPORT_DUE" => "Support",
+                "FOLLOWUP_DUE" => "Followup",
+                _ => fallback
+            };
+
+        private static string BuildSelectionMessage(
+            string stateText,
+            string? coopName,
+            string projectName,
+            string title,
+            string ownerName,
+            string baName,
+            int? phaseOrder,
+            int? periodOrder,
+            DateTime? projectStart,
+            DateTime? projectEnd,
+            DateTime? planStart,
+            DateTime? planEnd,
+            DateTime? dueDate,
+            string? remark,
+            bool includeTitleLine = true)
+        {
+            var rows = new List<string>
+            {
+                $"สถานะ: {stateText}",
+                $"สหกรณ์: {(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)}",
+                $"Project: {projectName}"
+            };
+
+            if (includeTitleLine)
+                rows.Add($"งาน: {(string.IsNullOrWhiteSpace(title) ? "-" : title)}");
+
+            rows.Add($"เจ้าของงาน: {ownerName}");
+            rows.Add($"BA: {baName}");
+
+            if (phaseOrder.HasValue || periodOrder.HasValue)
+                rows.Add($"ส่วน / งวด: ส่วนที่ {(phaseOrder?.ToString() ?? "-")} / งวดที่ {(periodOrder?.ToString() ?? "-")}");
+
+            rows.Add($"Project Period: {DateText(projectStart)} - {DateText(projectEnd)}");
+            rows.Add($"Plan: {DateText(planStart)} - {DateText(planEnd)}");
+            rows.Add($"กำหนดส่ง: {DateText(dueDate)}");
+            rows.Add($"Remark: {(string.IsNullOrWhiteSpace(remark) ? "-" : remark)}");
+            return string.Join("\n", rows);
+        }
+
+        private static string EmployeeName(IReadOnlyDictionary<int, string> employees, int? empId)
+        {
+            if (!empId.HasValue || empId.Value <= 0)
+                return "-";
+
+            return employees.TryGetValue(empId.Value, out var name) && !string.IsNullOrWhiteSpace(name)
+                ? name
+                : $"Employee #{empId.Value}";
+        }
+
+        private static string ProjectNameForSelection(Project? project)
+        {
+            if (project == null)
+                return "-";
+
+            return string.IsNullOrWhiteSpace(project.ProjectName)
+                ? "-"
+                : project.ProjectName;
+        }
+
+        private static bool IsClosedPhaseForSelection(string? phaseStatus)
+        {
+            var normalized = (phaseStatus ?? "").Trim();
+            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
+        }
+
+        private static bool IsIssueDoneForSelection(string? issueStatus, string? devStatus)
+        {
+            var issue = Norm(issueStatus);
+            var dev = Norm(devStatus);
+            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
+        }
+
+        private static bool IsSupportDoneForSelection(string? status, string? devStatus)
+        {
+            var normalized = Norm(status);
+            var dev = Norm(devStatus);
+            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
+        }
+
+        private static bool IsFollowupOpenForSelection(string? status)
+        {
+            return Norm(status) == "OPEN";
+        }
+
+        private static bool IsDone(string? workStatus, string? phaseStatus)
+        {
+            var work = Norm(workStatus);
+            var phase = Norm(phaseStatus);
+            return work == "DONE"
+                || phase is "DONE" or "ส่งงวดงานแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
+        }
+
+        private static string DateText(DateTime? value)
+            => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
+
+        private static string Trim(string value, int maxLength)
+            => value.Length <= maxLength ? value : value[..maxLength];
+
+        private static string Norm(string? value)
+            => (value ?? "").Trim().ToUpperInvariant();
+
+        private static readonly CultureInfo ThaiCulture = new("th-TH");
+
+        private sealed record LineSendStat(int Count, DateTime LastSentAt);
     }
 }

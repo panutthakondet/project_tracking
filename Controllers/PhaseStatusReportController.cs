@@ -48,9 +48,17 @@ namespace ProjectTracking.Controllers
                 {
                     Value = g.Key,
                     Text = g.First().ProjectDisplayName,
-                    Selected = g.Key == projectName
+                    Selected = g.Key == projectName,
+                    Group = new SelectListGroup { Name = g.First().CoopName ?? "" }
                 })
                 .OrderBy(x => x.Text)
+                .ToList();
+
+            ViewBag.CoopList = allRows
+                .Select(x => x.CoopName)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .OrderBy(x => x)
                 .ToList();
 
             ViewBag.ProjectList = projectList;
@@ -149,46 +157,18 @@ namespace ProjectTracking.Controllers
                 .ToList());
         }
 
-        [RequireMenu("PhaseStatusReport.SendMail")]
-        public async Task<IActionResult> LineOverdue()
+        [RequireMenu("Employees.LineOverdue")]
+        public IActionResult LineOverdue()
         {
-            var items = await BuildLineOverdueSelectionItemsAsync();
-            return View(new LineOverdueSelectionViewModel { Items = items });
+            return RedirectToAction("LineOverdue", "Employees");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseStatusReport.SendMail")]
-        public async Task<IActionResult> SendSelectedLineOverdue(List<string>? selectedKeys)
+        [RequireMenu("Employees.LineOverdue")]
+        public IActionResult SendSelectedLineOverdue(List<string>? selectedKeys)
         {
-            if (selectedKeys == null || selectedKeys.Count == 0)
-            {
-                TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่ง LINE";
-                return RedirectToAction(nameof(LineOverdue));
-            }
-
-            var selected = selectedKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var items = (await BuildLineOverdueSelectionItemsAsync())
-                .Where(x => selected.Contains(x.Key))
-                .ToList();
-
-            var sentCount = 0;
-            foreach (var item in items.Where(x => x.HasLineRecipient))
-            {
-                sentCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
-                    item.RecipientEmpId,
-                    BuildSelectionLineTitle(item),
-                    item.Message,
-                    item.TargetUrl,
-                    HttpContext.RequestAborted);
-            }
-
-            var skippedCount = items.Count(x => !x.HasLineRecipient);
-            TempData["Success"] = $"ส่ง LINE แล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
-            if (skippedCount > 0)
-                TempData["Error"] = $"มี {skippedCount} รายการที่ยังไม่ได้ผูก LINE";
-
-            return RedirectToAction(nameof(LineOverdue));
+            return RedirectToAction("LineOverdue", "Employees");
         }
 
         // =====================================================
@@ -196,34 +176,10 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequireMenu("PhaseStatusReport.SendMail")]
-        public async Task<IActionResult> SendOverdueLine(string? empName, string? projectName, string? phaseStatus)
+        [RequireMenu("Employees.LineOverdue")]
+        public IActionResult SendOverdueLine(string? empName, string? projectName, string? phaseStatus)
         {
-            var rows = ApplyFilters(await BuildPhaseOwnerStatusRowsAsync(), empName, projectName, phaseStatus)
-                .Where(IsLineDueRow)
-                .OrderBy(x => x.CoopName)
-                .ThenBy(x => x.ProjectName)
-                .ThenBy(x => x.PhaseOrder)
-                .ThenBy(x => x.PeriodOrder)
-                .ThenBy(x => x.EmpName)
-                .ToList();
-
-            var sentCount = 0;
-            foreach (var row in rows)
-            {
-                sentCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
-                    row.EmpId,
-                    BuildLineTitle(row),
-                    BuildLineMessage(row),
-                    BuildPhaseStatusReportUrl(row, empName, projectName, phaseStatus),
-                    HttpContext.RequestAborted);
-            }
-
-            TempData["Success"] = sentCount > 0
-                ? $"ส่ง LINE จากรายการในรายงานแล้ว {sentCount} ปลายทาง ({rows.Count} รายการ)"
-                : $"ไม่พบ LINE recipient ที่ผูกกับพนักงานในรายการนี้ ({rows.Count} รายการ)";
-
-            return RedirectToAction(nameof(Index), new { empName, projectName, phaseStatus });
+            return RedirectToAction("LineOverdue", "Employees");
         }
 
         private IEnumerable<VwPhaseOwnerStatus> ApplyFilters(

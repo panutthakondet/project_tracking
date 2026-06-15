@@ -157,6 +157,7 @@ namespace ProjectTracking.ViewModels
     {
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = "";
+        public string CoopName { get; set; } = "";
     }
 
     public class EmployeeReportOptionViewModel

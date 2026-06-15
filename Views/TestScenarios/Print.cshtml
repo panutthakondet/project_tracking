@@ -14,6 +14,16 @@
     int? selectedGroup = ViewBag.SelectedGroup is int groupId ? groupId : null;
     string selectedStatus = ViewBag.SelectedStatus as string ?? "";
     string selectedPriority = ViewBag.SelectedPriority as string ?? "";
+    var selectedProjectModel = selectedProject.HasValue
+        ? projects.FirstOrDefault(x => x.ProjectId == selectedProject.Value)
+        : null;
+    var selectedCoop = selectedProjectModel?.Coop?.CoopName ?? "";
+    var coopOptions = projects
+        .Select(x => x.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 
     string ProjectName(int id)
     {
@@ -107,7 +117,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: repeat(4, minmax(170px, 1fr));
+            grid-template-columns: repeat(5, minmax(160px, 1fr));
             gap: 10px;
             margin-bottom: 12px;
             padding: 12px;
@@ -436,6 +446,7 @@
     <header class="print-header">
         <h1>Test Scenario Report</h1>
         <div>
+            Cooperative: @(string.IsNullOrWhiteSpace(selectedCoop) ? "All Cooperatives" : selectedCoop)<br />
             Project: @(selectedProject.HasValue ? ProjectName(selectedProject.Value) : "All Projects")<br />
             Group: @(selectedGroup.HasValue ? groups.FirstOrDefault(x => x.group_id == selectedGroup.Value)?.group_name ?? "-" : "All Groups")<br />
             Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
@@ -446,12 +457,27 @@
 
     <form method="get" class="filter-panel no-print">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopOptions)
+                {
+                    <option value="@coop" selected="@(string.Equals(selectedCoop, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @coop
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
             <label for="projectId">Project</label>
             <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
-                    <option value="@project.ProjectId" selected="@(selectedProject == project.ProjectId ? "selected" : null)">
+                    <option value="@project.ProjectId"
+                            data-coop-name="@(project.Coop?.CoopName ?? "")"
+                            selected="@(selectedProject == project.ProjectId ? "selected" : null)">
                         @project.ProjectDisplayName
                     </option>
                 }
@@ -664,7 +690,7 @@
 
                 function syncInput() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value ? selected.text.trim() : "";                }
+                    input.value = selected ? selected.text.trim() : "";                }
 
                 function renderOptions() {
                     const term = normalize(input.value);
@@ -717,6 +743,27 @@
 
 
             document.querySelectorAll("select[data-placeholder]").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+
+            function syncProjectOptionsByCoop() {
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter?.options || []).forEach(option => {
+                    option.disabled = option.value !== "" &&
+                        selectedCoop &&
+                        normalize(option.dataset.coopName || "") !== selectedCoop;
+                });
+
+                const selected = projectFilter?.selectedOptions[0];
+                if (selected && selected.disabled && projectFilter) {
+                    projectFilter.value = "";
+                    dispatchSelectChange(projectFilter);
+                }
+            }
+
+            coopFilter?.addEventListener("change", syncProjectOptionsByCoop);
+            syncProjectOptionsByCoop();
         })();
 
     </script>

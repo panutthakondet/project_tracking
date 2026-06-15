@@ -23,6 +23,13 @@
             : "All Projects";
     }
 
+    string CoopName()
+    {
+        return report.ProjectId.HasValue
+            ? report.ProjectOptions.FirstOrDefault(x => x.ProjectId == report.ProjectId.Value)?.CoopName ?? "-"
+            : "All Cooperatives";
+    }
+
     string EmployeeName()
     {
         return report.EmpId.HasValue
@@ -48,6 +55,16 @@
         new { Value = "IN_PROGRESS", Text = "กำลังดำเนินการ" },
         new { Value = "PENDING", Text = "วางแผน" }
     };
+
+    var coopOptions = report.ProjectOptions
+        .Select(x => x.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+    var selectedCoop = report.ProjectId.HasValue
+        ? report.ProjectOptions.FirstOrDefault(x => x.ProjectId == report.ProjectId.Value)?.CoopName ?? ""
+        : "";
 
     var projectGroups = report.Rows
         .GroupBy(x => new { x.ProjectId, x.ProjectName })
@@ -113,7 +130,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(260px, 1.5fr) minmax(220px, 1fr) minmax(120px, .45fr) minmax(180px, .7fr) auto;
+            grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.35fr) minmax(220px, 1fr) minmax(120px, .45fr) minmax(180px, .7fr) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -390,6 +407,7 @@
         <h1>Task Progress Report</h1>
         <div>
             Year: @YearText(report.Year)<br />
+            Cooperative: @CoopName()<br />
             Project: @ProjectName()<br />
             Employee: @EmployeeName()<br />
             Status: @StatusName(report.Status)<br />
@@ -400,12 +418,27 @@
 
     <form method="get" class="filter-panel">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" data-placeholder="พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopOptions)
+                {
+                    <option value="@coop" selected="@(string.Equals(selectedCoop, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @coop
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
             <label for="projectId">Project</label>
             <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in report.ProjectOptions)
                 {
-                    <option value="@project.ProjectId" selected="@(report.ProjectId == project.ProjectId ? "selected" : null)">
+                    <option value="@project.ProjectId"
+                            data-coop-name="@project.CoopName"
+                            selected="@(report.ProjectId == project.ProjectId ? "selected" : null)">
                         @project.ProjectName
                     </option>
                 }
@@ -619,7 +652,7 @@
 
                 function syncInput() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    input.value = selected ? selected.text : "";
                 }
 
                 function closeDropdown() {
@@ -630,7 +663,6 @@
                     dropdown.innerHTML = "";
                     const keyword = normalize(filter);
                     const options = Array.from(select.options)
-                        .filter(option => option.value !== "")
                         .filter(option => {
                             const haystack = normalize(`${option.text} ${option.value}`);
                             return !keyword || haystack.includes(keyword);
@@ -690,6 +722,27 @@
             }
 
             document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+
+            function syncProjectOptionsByCoop() {
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter?.options || []).forEach(option => {
+                    option.disabled = option.value !== "" &&
+                        selectedCoop &&
+                        normalize(option.dataset.coopName || "") !== selectedCoop;
+                });
+
+                const selected = projectFilter?.selectedOptions[0];
+                if (selected && selected.disabled && projectFilter) {
+                    projectFilter.value = "";
+                    dispatchSelectChange(projectFilter);
+                }
+            }
+
+            coopFilter?.addEventListener("change", syncProjectOptionsByCoop);
+            syncProjectOptionsByCoop();
         })();
     </script>
 </body>

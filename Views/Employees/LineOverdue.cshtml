@@ -1,0 +1,728 @@
+@model ProjectTracking.ViewModels.LineOverdueSelectionViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Send Overdue Line";
+    var th = new CultureInfo("th-TH");
+
+    string FormatDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string FormatDateTime(DateTime? value) => value?.ToString("dd MMM yyyy HH:mm", th) ?? "-";
+    string SeverityClass(string severity) => string.Equals(severity, "DANGER", StringComparison.OrdinalIgnoreCase) ? "danger" : "warning";
+    string SeverityText(string severity) => string.Equals(severity, "DANGER", StringComparison.OrdinalIgnoreCase) ? "เลยกำหนด" : "ใกล้ครบกำหนด";
+    string TypeIcon(string sourceType) => sourceType switch
+    {
+        "ASSIGN_DUE" => "A",
+        "ISSUE_DUE" => "I",
+        "SUPPORT_DUE" => "S",
+        "FOLLOWUP_DUE" => "F",
+        _ => "L"
+    };
+    string TypeTone(string sourceType) => sourceType switch
+    {
+        "ISSUE_DUE" => "issue",
+        "SUPPORT_DUE" => "support",
+        "FOLLOWUP_DUE" => "followup",
+        _ => "assign"
+    };
+    var groupedItems = Model.Items
+        .GroupBy(x => new { x.SourceType, x.SourceLabel })
+        .OrderBy(g => g.Key.SourceType == "ASSIGN_DUE" ? 1 : g.Key.SourceType == "ISSUE_DUE" ? 2 : g.Key.SourceType == "SUPPORT_DUE" ? 3 : g.Key.SourceType == "FOLLOWUP_DUE" ? 4 : 99)
+        .ToList();
+    var coopOptions = Model.Items
+        .Select(x => x.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x) && x != "-")
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+    var projectOptions = Model.Items
+        .Select(x => new { x.ProjectName, x.CoopName })
+        .Where(x => !string.IsNullOrWhiteSpace(x.ProjectName) && x.ProjectName != "-")
+        .GroupBy(x => new { x.ProjectName, x.CoopName })
+        .Select(x => x.Key)
+        .OrderBy(x => x.ProjectName)
+        .ToList();
+    var baOptions = Model.Items
+        .Select(x => x.BaName)
+        .Where(x => !string.IsNullOrWhiteSpace(x) && x != "-")
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+}
+
+<style>
+        .line-overdue-page {
+            color: #10233f;
+            padding-bottom: 28px;
+        }
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 14px 0;
+            flex-wrap: wrap;
+        }
+        .line-btn {
+            min-height: 42px;
+            padding: 8px 15px;
+            border: 1px solid #10233f;
+            border-radius: 999px;
+            color: #10233f;
+            background: #fff;
+            font-weight: 900;
+        }
+        .line-btn.warning {
+            border-color: #f59e0b;
+            color: #7c4a03;
+        }
+        .line-btn.primary {
+            color: #fff;
+            background: #10233f;
+        }
+        .notice {
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+        .notice.error {
+            border-color: #fecdd3;
+            background: #fff1f2;
+            color: #be123c;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 14px 0;
+        }
+        .kpi {
+            padding: 16px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #258cfb;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
+        }
+        .kpi.ready { border-left-color: #14b8a6; }
+        .kpi.missing { border-left-color: #f43f5e; }
+        .kpi.danger { border-left-color: #f43f5e; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.sent { border-left-color: #6366f1; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 700;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+        .line-overdue-groups {
+            display: grid;
+            gap: 18px;
+        }
+        .line-filter-panel {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(160px, 1fr));
+            gap: 12px;
+            margin: 14px 0;
+            padding: 14px;
+            border: 1px solid #d8e3ef;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(15, 35, 64, .06);
+        }
+        .line-filter-field {
+            display: grid;
+            gap: 6px;
+        }
+        .line-filter-field label {
+            color: #64748b;
+            font-weight: 900;
+            font-size: .88rem;
+        }
+        .line-filter-field input,
+        .line-filter-field select {
+            width: 100%;
+            min-height: 42px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 8px 11px;
+            color: #10233f;
+            background: #fff;
+            font-weight: 800;
+        }
+        .filter-result {
+            margin: 0 0 12px;
+            color: #64748b;
+            font-weight: 800;
+        }
+        .project-filter-form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        .project-filter-row {
+            width: 100%;
+            min-width: 0;
+        }
+        .project-filter-pair {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 14px;
+        }
+        .project-filter-form .form-select {
+            min-height: 48px;
+            border-radius: 14px;
+            font-weight: 700;
+        }
+        .line-overdue-group {
+            border: 1px solid #d8e3ef;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, .72);
+            padding: 14px;
+            box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        }
+        .line-overdue-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 12px;
+            padding: 4px 4px 10px;
+            border-bottom: 1px solid #e2eaf5;
+        }
+        .line-overdue-group-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            color: #10223e;
+            font-size: 1.22rem;
+            font-weight: 900;
+        }
+        .line-overdue-group-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            color: #fff;
+            background: linear-gradient(135deg, #22c7b8, #0f766e);
+            font-weight: 900;
+        }
+        .line-overdue-group.issue .line-overdue-group-icon {
+            background: linear-gradient(135deg, #fb3f7a, #e11d48);
+        }
+        .line-overdue-group.support .line-overdue-group-icon {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+        }
+        .line-overdue-group.followup .line-overdue-group-icon {
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+        }
+        .line-overdue-group-count {
+            color: #64748b;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .line-overdue-coop-groups {
+            display: grid;
+            gap: 14px;
+        }
+        .line-overdue-coop-group {
+            border: 1px solid #e2eaf5;
+            border-radius: 20px;
+            background: rgba(248, 250, 252, .76);
+            padding: 12px;
+        }
+        .line-overdue-coop-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(20, 184, 166, .22);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(20, 184, 166, .14), rgba(59, 130, 246, .10));
+            padding: 9px 12px;
+        }
+        .line-overdue-coop-name {
+            min-width: 0;
+            color: #0f766e;
+            font-weight: 800;
+            overflow-wrap: anywhere;
+            line-height: 1.3;
+        }
+        .line-overdue-coop-count {
+            color: #64748b;
+            font-size: .92rem;
+            white-space: nowrap;
+        }
+        .line-overdue-list {
+            display: grid;
+            gap: 12px;
+        }
+        .line-overdue-card {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) minmax(250px, auto);
+            gap: 14px;
+            align-items: start;
+            border: 1px solid #dbe6f3;
+            border-left: 6px solid #f59e0b;
+            border-radius: 20px;
+            background: #fff;
+            padding: 14px 16px;
+            color: #10223e;
+            box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
+        }
+        .line-overdue-card.danger {
+            border-left-color: #f43f5e;
+        }
+        .line-overdue-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(15, 40, 74, .12);
+        }
+        .line-overdue-card-main,
+        .line-overdue-card-side {
+            min-width: 0;
+        }
+        .line-overdue-card-title {
+            margin: 0;
+            color: #10223e;
+            font-size: 1.08rem;
+            font-weight: 900;
+            line-height: 1.28;
+            overflow-wrap: anywhere;
+        }
+        .line-overdue-project {
+            margin: 5px 0 0;
+            color: #0f172a;
+            font-size: .93rem;
+            font-weight: 400;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .line-overdue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .line-overdue-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eef6ff;
+            color: #10233f;
+            font-size: .86rem;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+        .line-overdue-chip.ready {
+            color: #0f766e;
+            background: #ccfbf1;
+        }
+        .line-overdue-chip.missing {
+            color: #be123c;
+            background: #ffe4e6;
+        }
+        .line-overdue-chip.danger {
+            color: #be123c;
+            background: #ffe4e6;
+        }
+        .line-overdue-chip.warning {
+            color: #92400e;
+            background: #fef3c7;
+        }
+        .line-overdue-people {
+            display: grid;
+            gap: 4px;
+            margin-top: 10px;
+            color: #0f172a;
+            font-size: .9rem;
+            font-weight: 700;
+        }
+        .line-overdue-card-side {
+            display: grid;
+            justify-items: end;
+            gap: 8px;
+            color: #64748b;
+            font-weight: 900;
+            text-align: right;
+        }
+        .line-overdue-date {
+            color: #10223e;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .line-overdue-overdue {
+            color: #be123c;
+            font-size: 1.02rem;
+            font-weight: 900;
+        }
+        .muted { color: #64748b; }
+        .empty {
+            padding: 28px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 20px;
+            color: #64748b;
+            background: #fff;
+            text-align: center;
+            font-weight: 800;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #102443;
+        }
+        @@media (max-width: 900px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            .line-filter-panel {
+                grid-template-columns: 1fr;
+            }
+            .project-filter-pair {
+                grid-template-columns: 1fr;
+            }
+            .line-overdue-card {
+                grid-template-columns: 34px minmax(0, 1fr);
+            }
+            .line-overdue-card-side {
+                grid-column: 2;
+                justify-items: start;
+                text-align: left;
+            }
+        }
+</style>
+
+<div class="line-overdue-page">
+    <section class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Employees</span>
+            <h1 class="index-title">@ViewData["Title"]</h1>
+            <p class="index-subtitle">เลือกรายการงานเสี่ยงล่าช้า/งานล่าช้าเพื่อส่งแจ้งเตือน LINE</p>
+        </div>
+        <div class="index-actions">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
+            <a asp-controller="Employees" asp-action="Index" class="btn btn-outline-light">Employees</a>
+        </div>
+    </section>
+
+    <div class="actions">
+        <button type="button" class="line-btn" id="selectAllButton">Select All</button>
+        <button type="button" class="line-btn" id="clearButton">Clear</button>
+        <button type="submit" form="sendForm" class="line-btn warning">Send Selected Line</button>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="notice">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="notice error">@TempData["Error"]</div>
+    }
+
+    <section class="kpi-grid">
+        <article class="kpi">
+            <span>Total</span>
+            <strong>@Model.TotalCount</strong>
+            <small>รายการงานทั้งหมด</small>
+        </article>
+        <article class="kpi danger">
+            <span>Overdue</span>
+            <strong>@Model.OverdueCount</strong>
+            <small>งานล่าช้า</small>
+        </article>
+        <article class="kpi warning">
+            <span>Risk</span>
+            <strong>@Model.RiskCount</strong>
+            <small>งานเสี่ยงล่าช้า</small>
+        </article>
+        <article class="kpi ready">
+            <span>Ready</span>
+            <strong>@Model.ReadyCount</strong>
+            <small>ผูก LINE แล้ว</small>
+        </article>
+        <article class="kpi missing">
+            <span>Missing LINE</span>
+            <strong>@Model.MissingLineCount</strong>
+            <small>ยังส่งไม่ได้</small>
+        </article>
+        <article class="kpi sent">
+            <span>Sent</span>
+            <strong>@Model.TotalLineSendCount</strong>
+            <small>@Model.SentItemCount รายการเคยส่งแล้ว</small>
+        </article>
+    </section>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-3">
+        <div class="card-body py-3">
+            <div class="project-filter-form">
+                <div class="project-filter-row">
+                    <label class="form-label fw-bold">🏢 สหกรณ์</label>
+                    <select id="coopFilter" class="form-select form-select-lg" data-show-empty-option-text="true">
+                        <option value="">ทั้งหมด</option>
+                        @foreach (var coopName in coopOptions)
+                        {
+                            <option value="@coopName">@coopName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="project-filter-row">
+                    <label class="form-label fw-bold">📁 โครงการ</label>
+                    <select id="projectFilter" class="form-select form-select-lg">
+                        <option value="">ทั้งหมด</option>
+                        @foreach (var project in projectOptions)
+                        {
+                            <option value="@project.ProjectName" data-coop-name="@project.CoopName">
+                                @project.ProjectName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="project-filter-pair">
+                    <div class="project-filter-row">
+                        <label class="form-label fw-bold">👤 BA</label>
+                        <select id="baFilter" class="form-select form-select-lg">
+                            <option value="">ทั้งหมด</option>
+                            @foreach (var ba in baOptions)
+                            {
+                                <option value="@ba">@ba</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="project-filter-row">
+                        <label class="form-label fw-bold">📌 Status</label>
+                        <select id="statusFilter" class="form-select form-select-lg">
+                            <option value="">ทั้งหมด</option>
+                            <option value="danger">งานล่าช้า</option>
+                            <option value="warning">งานเสี่ยงล่าช้า</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="filter-result" id="filterResult">แสดง @Model.TotalCount รายการ</p>
+
+    @if (!Model.Items.Any())
+    {
+        <div class="empty">ไม่พบงานเสี่ยงล่าช้า/งานล่าช้า</div>
+    }
+    else
+    {
+        <form id="sendForm" asp-controller="Employees" asp-action="SendSelectedLineOverdue" method="post" class="line-overdue-groups">
+            @Html.AntiForgeryToken()
+            @foreach (var typeGroup in groupedItems)
+            {
+                <section class="line-overdue-group @TypeTone(typeGroup.Key.SourceType)">
+                    <div class="line-overdue-group-header">
+                        <h2 class="line-overdue-group-title">
+                            <span class="line-overdue-group-icon">@TypeIcon(typeGroup.Key.SourceType)</span>
+                            @typeGroup.Key.SourceLabel
+                        </h2>
+                        <span class="line-overdue-group-count">@typeGroup.Count() รายการ</span>
+                    </div>
+
+                    <div class="line-overdue-coop-groups">
+                        @foreach (var coopGroup in typeGroup.GroupBy(x => x.CoopName).OrderBy(x => x.Key))
+                        {
+                            <section class="line-overdue-coop-group">
+                                <div class="line-overdue-coop-header">
+                                    <span class="line-overdue-coop-name">@coopGroup.Key</span>
+                                    <span class="line-overdue-coop-count">@coopGroup.Count() รายการ</span>
+                                </div>
+
+                                <div class="line-overdue-list">
+                                    @foreach (var item in coopGroup)
+                                    {
+                                        <article class="line-overdue-card @SeverityClass(item.Severity)"
+                                                 data-coop="@item.CoopName"
+                                                 data-project="@item.ProjectName"
+                                                 data-ba="@item.BaName"
+                                                 data-status="@SeverityClass(item.Severity)"
+                                                 data-state="@item.StateText">
+                                            <div>
+                                                <input type="checkbox"
+                                                       class="row-check"
+                                                       name="selectedKeys"
+                                                       value="@item.Key"
+                                                       aria-label="เลือกส่ง @item.Title" />
+                                            </div>
+                                            <div class="line-overdue-card-main">
+                                                <h3 class="line-overdue-card-title">@item.Title</h3>
+                                                <p class="line-overdue-project">@item.ProjectName</p>
+                                                <div class="line-overdue-meta">
+                                                    <span class="line-overdue-chip @SeverityClass(item.Severity)">@SeverityText(item.Severity)</span>
+                                                    <span class="line-overdue-chip @SeverityClass(item.Severity)">@item.StateText</span>
+                                                    <span class="line-overdue-chip @(item.HasMissingLineRecipient ? "missing" : "ready")">
+                                                        @item.LineLinkText
+                                                    </span>
+                                                    <span class="line-overdue-chip">@item.RecipientRole</span>
+                                                    <span class="line-overdue-chip">ส่งแล้ว @item.LineSendCount ครั้ง</span>
+                                                </div>
+                                                <div class="line-overdue-people">
+                                                    <span>เจ้าของงาน: @item.OwnerName</span>
+                                                    <span>BA: @item.BaName</span>
+                                                    <span>ส่งล่าสุด: @FormatDateTime(item.LastLineSentAt)</span>
+                                                </div>
+                                            </div>
+                                            <div class="line-overdue-card-side">
+                                                <div class="line-overdue-date">@FormatDate(item.StartDate) - @FormatDate(item.EndDate)</div>
+                                                <div class="line-overdue-overdue">@item.OverdueDays วัน</div>
+                                            </div>
+                                        </article>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    </div>
+                </section>
+            }
+        </form>
+    }
+
+    <script>
+        (function () {
+            const checks = Array.from(document.querySelectorAll('.row-check'));
+            const selectAllButton = document.getElementById('selectAllButton');
+            const clearButton = document.getElementById('clearButton');
+            const cards = Array.from(document.querySelectorAll('.line-overdue-card'));
+            const coopGroups = Array.from(document.querySelectorAll('.line-overdue-coop-group'));
+            const typeGroups = Array.from(document.querySelectorAll('.line-overdue-group'));
+            const filterResult = document.getElementById('filterResult');
+            const filters = {
+                coop: document.getElementById('coopFilter'),
+                project: document.getElementById('projectFilter'),
+                ba: document.getElementById('baFilter'),
+                status: document.getElementById('statusFilter')
+            };
+
+            function normalize(value) {
+                return (value || '').toString().trim().toLowerCase();
+            }
+
+            function saveFilters() {
+                localStorage.setItem('lineOverdue.selectedCoop', normalize(filters.coop?.value));
+                localStorage.setItem('lineOverdue.selectedProject', normalize(filters.project?.value));
+                localStorage.setItem('lineOverdue.selectedBa', normalize(filters.ba?.value));
+                localStorage.setItem('lineOverdue.selectedStatus', normalize(filters.status?.value));
+            }
+
+            function restoreFilter(selectId, storageKey) {
+                const savedValue = localStorage.getItem(storageKey) || '';
+                const select = document.getElementById(selectId);
+                if (!savedValue || !select) return;
+
+                const match = Array.from(select.options)
+                    .find(opt => normalize(opt.value) === savedValue);
+
+                if (match) {
+                    select.value = match.value;
+                }
+            }
+
+            function syncProjectFilterOptions() {
+                const selectedCoop = normalize(filters.coop?.value);
+                const projectSelect = filters.project;
+                if (!projectSelect) return;
+
+                Array.from(projectSelect.options).forEach(option => {
+                    const visible = option.value === ''
+                        || !selectedCoop
+                        || normalize(option.dataset.coopName) === selectedCoop;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                });
+
+                const selected = projectSelect.selectedOptions[0];
+                if (selected && selected.disabled) projectSelect.value = '';
+            }
+
+            function cardMatches(card) {
+                const selectedCoop = normalize(filters.coop?.value);
+                const selectedProject = normalize(filters.project?.value);
+                const selectedBa = normalize(filters.ba?.value);
+                const selectedStatus = normalize(filters.status?.value);
+
+                const coopName = normalize(card.dataset.coop);
+                const projectName = normalize(card.dataset.project);
+                const baName = normalize(card.dataset.ba);
+                const statusName = normalize(card.dataset.status);
+
+                return (!selectedCoop || coopName === selectedCoop)
+                    && (!selectedProject || projectName === selectedProject)
+                    && (!selectedBa || baName.includes(selectedBa))
+                    && (!selectedStatus || statusName === selectedStatus);
+            }
+
+            function applyFilters() {
+                saveFilters();
+                let visibleCount = 0;
+                cards.forEach(card => {
+                    const visible = cardMatches(card);
+                    card.hidden = !visible;
+                    if (!visible) {
+                        const check = card.querySelector('.row-check');
+                        if (check) check.checked = false;
+                    } else {
+                        visibleCount++;
+                    }
+                });
+
+                coopGroups.forEach(group => {
+                    group.hidden = !Array.from(group.querySelectorAll('.line-overdue-card')).some(card => !card.hidden);
+                });
+
+                typeGroups.forEach(group => {
+                    group.hidden = !Array.from(group.querySelectorAll('.line-overdue-card')).some(card => !card.hidden);
+                });
+
+                if (filterResult) {
+                    filterResult.textContent = `แสดง ${visibleCount} รายการ`;
+                }
+            }
+
+            selectAllButton?.addEventListener('click', function () {
+                checks.forEach(x => {
+                    if (!x.closest('.line-overdue-card')?.hidden) x.checked = true;
+                });
+            });
+
+            clearButton?.addEventListener('click', function () {
+                checks.forEach(x => x.checked = false);
+            });
+
+            restoreFilter('coopFilter', 'lineOverdue.selectedCoop');
+            restoreFilter('projectFilter', 'lineOverdue.selectedProject');
+            restoreFilter('baFilter', 'lineOverdue.selectedBa');
+            restoreFilter('statusFilter', 'lineOverdue.selectedStatus');
+
+            filters.coop?.addEventListener('change', function () {
+                if (filters.project) filters.project.value = '';
+                syncProjectFilterOptions();
+                applyFilters();
+            });
+
+            ['project', 'ba', 'status'].forEach(key => {
+                filters[key]?.addEventListener('change', applyFilters);
+            });
+
+            syncProjectFilterOptions();
+            setTimeout(applyFilters, 50);
+        })();
+    </script>
+</div>

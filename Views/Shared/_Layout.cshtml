@@ -1810,6 +1810,7 @@
                                 || canSupport;
 
 	    var canEmployees = CanMenu("Employees.Index")
+                          || CanMenu("Employees.LineOverdue")
 	                      || CanMenu("PhaseWorkload.Index")
                           || CanMenu("Meetings.Index");
 
@@ -1921,7 +1922,7 @@
                                     <span class="nav-label">Employees</span>
                                 </a>
                                 <ul class="dropdown-menu">
-                                    @if (CanMenu("Employees.Index") || CanMenu("PhaseWorkload.Index"))
+                                    @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
                                     {
                                         <li><h6 class="dropdown-header">Employees</h6></li>
                                     }
@@ -1929,13 +1930,17 @@
                                     {
                                         <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
                                     }
+                                    @if (CanMenu("Employees.LineOverdue"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="LineOverdue">แจ้งเตือนงานล่าช้าทาง LINE</a></li>
+                                    }
                                     @if (CanMenu("PhaseWorkload.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
                                     }
                                     @if (CanMenu("Meetings.Index"))
                                     {
-                                        @if (CanMenu("Employees.Index") || CanMenu("PhaseWorkload.Index"))
+                                        @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
                                         {
                                             <li><hr class="dropdown-divider" /></li>
                                         }

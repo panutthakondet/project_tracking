@@ -30,6 +30,12 @@ namespace ProjectTracking.ViewModels
         public int SupportTotal { get; set; }
         public string SupportDonut { get; set; } = "conic-gradient(#263450 0 100%)";
 
+        public List<HomeDashboardMetric> LineOverdueMetrics { get; set; } = new();
+        public int LineOverdueTotal { get; set; }
+        public string LineOverdueDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+        public int LineOverdueLinkedCount { get; set; }
+        public int LineOverdueMissingLineCount { get; set; }
+
         public List<HomeDashboardChartSeries> ProjectOverviewSeries { get; set; } = new();
         public List<HomeDashboardMonthPoint> ProjectOverviewMonths { get; set; } = new();
         public HomeDashboardMonthPoint? ProjectOverviewTooltip { get; set; }

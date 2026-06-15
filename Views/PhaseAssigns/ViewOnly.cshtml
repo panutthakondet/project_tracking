@@ -11,6 +11,12 @@
     var selectedStatus = ViewBag.SelectedWorkStatus as string;
     var today = ViewBag.Today as DateTime? ?? DateTime.Today;
     var th = new CultureInfo("th-TH");
+    var coopList = projects
+        .Select(x => x.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 
     string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
 
@@ -52,7 +58,7 @@
 
     .assign-report-filter {
         display: grid;
-        grid-template-columns: minmax(240px, 1.1fr) minmax(200px, .8fr) minmax(180px, .7fr) auto;
+        grid-template-columns: minmax(220px, .8fr) minmax(240px, 1.1fr) minmax(200px, .8fr) minmax(180px, .7fr) auto;
         gap: 12px;
         align-items: end;
         padding: 16px;
@@ -176,12 +182,24 @@
 
     <form method="get" class="assign-report-filter">
         <div>
+            <label for="coopFilter" class="form-label">สหกรณ์</label>
+            <select id="coopFilter" class="form-select" data-placeholder="พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopList)
+                {
+                    <option value="@coop">@coop</option>
+                }
+            </select>
+        </div>
+        <div>
             <label for="projectId" class="form-label">Project</label>
             <select id="projectId" name="projectId" class="form-select" data-placeholder="พิมพ์ค้นหา Project...">
                 <option value="">-- All Projects --</option>
                 @foreach (var project in projects)
                 {
-                    <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId)">
+                    <option value="@project.ProjectId"
+                            data-coop-name="@(project.Coop?.CoopName ?? "")"
+                            selected="@(selectedProjectId == project.ProjectId)">
                         @project.ProjectDisplayName
                     </option>
                 }
@@ -285,4 +303,39 @@
             </table>
         </div>
     }
+    <script>
+        (function () {
+            const normalize = value => (value || "").toString().trim().toLowerCase();
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+
+            function syncProjectFilterOptions() {
+                if (!projectFilter) return;
+
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter.options).forEach(option => {
+                    const visible = option.value === "" || !selectedCoop || normalize(option.dataset.coopName || "") === selectedCoop;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                });
+
+                const selected = projectFilter.selectedOptions[0];
+                if (selected && selected.disabled) projectFilter.value = "";
+            }
+
+            coopFilter?.addEventListener("change", function () {
+                localStorage.setItem("reports.phaseAssigns.selectedCoop", normalize(coopFilter.value));
+                if (projectFilter) projectFilter.value = "";
+                syncProjectFilterOptions();
+            });
+
+            const savedCoop = localStorage.getItem("reports.phaseAssigns.selectedCoop") || "";
+            if (savedCoop && coopFilter) {
+                const match = Array.from(coopFilter.options).find(option => normalize(option.value) === savedCoop);
+                if (match) coopFilter.value = match.value;
+            }
+
+            syncProjectFilterOptions();
+        })();
+    </script>
 </div>

@@ -70,17 +70,6 @@ namespace ProjectTracking.Controllers
                     new()
                     {
                         Group = "Project Phases",
-                        Title = "Send Overdue Line",
-                        Description = "เลือกรายการงานเสี่ยงล่าช้า/งานล่าช้า และส่งแจ้งเตือน LINE เฉพาะรายการที่เลือก",
-                        Controller = "PhaseStatusReport",
-                        Action = "LineOverdue",
-                        PermissionKey = "PhaseStatusReport.SendMail",
-                        Icon = "/images/menu-icons/phase-calendar.svg",
-                        Tone = "pink"
-                    },
-                    new()
-                    {
-                        Group = "Project Phases",
                         Title = "Task Progress Report",
                         Description = "รายละเอียดงานรายปีจากรายการ Assign โดยอิงสถานะจากส่วนงานของโครงการ",
                         Controller = "Reports",
@@ -184,7 +173,8 @@ namespace ProjectTracking.Controllers
                 .Select(p => new ProjectReportOptionViewModel
                 {
                     ProjectId = p.ProjectId,
-                    ProjectName = p.ProjectDisplayName
+                    ProjectName = p.ProjectDisplayName,
+                    CoopName = p.Coop?.CoopName ?? ""
                 })
                 .ToList();
 

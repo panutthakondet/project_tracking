@@ -38,7 +38,9 @@ namespace ProjectTracking.Controllers
                 webhook = "/line/webhook",
                 hasChannelSecret = _lineMessaging.HasChannelSecret,
                 hasChannelAccessToken = _lineMessaging.IsConfigured,
-                hasAppBaseUrl = _lineMessaging.HasAppBaseUrl
+                hasAppBaseUrl = _lineMessaging.HasAppBaseUrl,
+                channelSecretFingerprint = _lineMessaging.ChannelSecretFingerprint,
+                channelAccessTokenFingerprint = _lineMessaging.ChannelAccessTokenFingerprint
             });
         }
 
@@ -68,6 +70,8 @@ namespace ProjectTracking.Controllers
                 now = DateTime.Now,
                 hasChannelSecret = _lineMessaging.HasChannelSecret,
                 hasChannelAccessToken = _lineMessaging.IsConfigured,
+                channelSecretFingerprint = _lineMessaging.ChannelSecretFingerprint,
+                channelAccessTokenFingerprint = _lineMessaging.ChannelAccessTokenFingerprint,
                 recentWebhookEvents = DebugEntries.Reverse().Take(MaxDebugEntries).ToList(),
                 recentRecipients
             });

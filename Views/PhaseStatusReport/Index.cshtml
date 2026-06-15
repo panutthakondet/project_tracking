@@ -33,6 +33,9 @@
     var inProgress = rows.Count(x => x.PhaseStatus == "IN_PROGRESS");
     var delay = rows.Count(x => x.PhaseStatus == "DELAY");
     var overdueDays = rows.Sum(x => x.OverdueDays ?? 0);
+    var selectedProjectItem = (ViewBag.ProjectList as IEnumerable<SelectListItem>)?
+        .FirstOrDefault(x => x.Value == (ViewBag.SelectedProject as string));
+    var selectedCoopName = selectedProjectItem?.Group?.Name ?? "";
 
     string FormatDate(DateTime? value)
     {
@@ -137,7 +140,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
             gap: 10px;
             margin-bottom: 12px;
             padding: 12px;
@@ -440,6 +443,7 @@
     <header class="print-header">
         <h1>รายงานสถานะส่วนงานตามพนักงาน</h1>
         <div>
+            Cooperative: @(string.IsNullOrWhiteSpace(selectedCoopName) ? "All Cooperatives" : selectedCoopName)<br />
             Employee: @(string.IsNullOrWhiteSpace(ViewBag.SelectedEmp as string) ? "All Employees" : ViewBag.SelectedEmp)<br />
             Project: @(string.IsNullOrWhiteSpace(ViewBag.SelectedProject as string) ? "All Projects" : (ViewBag.SelectedProjectDisplay ?? ViewBag.SelectedProject))<br />
             Status: @(string.IsNullOrWhiteSpace(ViewBag.SelectedStatus as string) ? "All Statuses" : StatusText(ViewBag.SelectedStatus as string))<br />
@@ -449,12 +453,27 @@
 
     <form method="get" class="filter-panel no-print">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in ViewBag.CoopList ?? new List<string>())
+                {
+                    <option value="@coop" selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @coop
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
             <label for="projectName">📁 โครงการ</label>
             <select id="projectName" name="projectName" data-placeholder="🔍 พิมพ์ค้นหาโครงการ..." onchange="this.form.submit()">
-                <option value="">-- เลือกโครงการ --</option>
+                <option value="">-- All Projects --</option>
                 @foreach (var p in (IEnumerable<SelectListItem>)ViewBag.ProjectList)
                 {
-                    <option value="@p.Value" selected="@(p.Selected ? "selected" : null)">
+                    <option value="@p.Value"
+                            data-coop-name="@(p.Group?.Name ?? "")"
+                            selected="@(p.Selected ? "selected" : null)">
                         @p.Text
                     </option>
                 }
@@ -657,7 +676,7 @@
 
                 function syncInputFromSelect() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    input.value = selected ? selected.text : "";
                 }
 
                 function closeDropdown() {
@@ -668,7 +687,7 @@
                     dropdown.innerHTML = "";
                     const keyword = normalize(filter);
                     const options = Array.from(select.options)
-                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => !option.disabled)
                         .filter(option => {
                             const haystack = normalize(`${option.text} ${option.value}`);
                             return !keyword || haystack.includes(keyword);
@@ -731,6 +750,27 @@
 
 
             document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectName");
+
+            function syncProjectOptionsByCoop() {
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter?.options || []).forEach(option => {
+                    option.disabled = option.value !== "" &&
+                        selectedCoop &&
+                        normalize(option.dataset.coopName || "") !== selectedCoop;
+                });
+
+                const selected = projectFilter?.selectedOptions[0];
+                if (selected && selected.disabled && projectFilter) {
+                    projectFilter.value = "";
+                    dispatchSelectChange(projectFilter);
+                }
+            }
+
+            coopFilter?.addEventListener("change", syncProjectOptionsByCoop);
+            syncProjectOptionsByCoop();
         })();
 
     </script>

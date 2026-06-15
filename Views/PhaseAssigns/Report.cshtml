@@ -3,22 +3,41 @@
 @{
     ViewData["Title"] = "Assigned Employees Report";
     var th = new CultureInfo("th-TH");
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var coopList = projects
+        .Select(x => x.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 }
 
 <h2 class="fw-bold mb-3">📄 Assigned Employees Report</h2>
 
 <!-- FILTER -->
 <form method="get" class="row g-3 mb-4 no-print" id="filterForm">
+    <div class="col-md-4">
+        <label class="form-label fw-bold">🏢 สหกรณ์</label>
+        <select id="coopFilter" class="form-select select2-search">
+            <option value="">-- All Cooperatives --</option>
+            @foreach (var coop in coopList)
+            {
+                <option value="@coop">@coop</option>
+            }
+        </select>
+    </div>
+
     <!-- PROJECT -->
     <div class="col-md-4">
         <label class="form-label fw-bold">📁 Project</label>
 
         <!-- ✅ เพิ่ม class select2-search -->
         <select id="projectSelect" name="projectId" class="form-select select2-search">
-            <option value="">-- Select Project --</option>
-            @foreach (var p in ViewBag.Projects)
+            <option value="">-- All Projects --</option>
+            @foreach (var p in projects)
             {
                 <option value="@p.ProjectId"
+                        data-coop-name="@(p.Coop?.CoopName ?? "")"
                         selected="@(ViewBag.SelectedProjectId == p.ProjectId)">
                     @p.ProjectDisplayName
                 </option>
@@ -113,6 +132,39 @@ else
     $(function () {
         // ✅ ไม่ต้อง init select2 ที่นี่แล้ว (_Layout ทำให้)
         // ✅ แค่ submit เมื่อเปลี่ยนค่า
+        const normalize = value => (value || '').toString().trim().toLowerCase();
+        const coopFilter = document.getElementById('coopFilter');
+        const projectSelect = document.getElementById('projectSelect');
+
+        function syncProjectFilterOptions() {
+            if (!projectSelect) return;
+
+            const selectedCoop = normalize(coopFilter?.value || '');
+            Array.from(projectSelect.options).forEach(option => {
+                const visible = option.value === '' || !selectedCoop || normalize(option.dataset.coopName || '') === selectedCoop;
+                option.hidden = !visible;
+                option.disabled = !visible;
+            });
+
+            const selected = projectSelect.selectedOptions[0];
+            if (selected && selected.disabled) projectSelect.value = '';
+            $('#projectSelect').trigger('change.select2');
+        }
+
+        const savedCoop = localStorage.getItem('reports.phaseAssignsReport.selectedCoop') || '';
+        if (savedCoop && coopFilter) {
+            const match = Array.from(coopFilter.options).find(option => normalize(option.value) === savedCoop);
+            if (match) coopFilter.value = match.value;
+        }
+
+        $('#coopFilter').on('change', function () {
+            localStorage.setItem('reports.phaseAssignsReport.selectedCoop', normalize(this.value));
+            $('#projectSelect').val('');
+            syncProjectFilterOptions();
+        });
+
+        syncProjectFilterOptions();
+
         $('#projectSelect, #empSelect').on('change', function () {
             $('#filterForm').submit();
         });

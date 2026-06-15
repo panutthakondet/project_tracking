@@ -18,10 +18,12 @@ namespace ProjectTracking.Controllers
         private const string DefaultProfileImagePath = "/images/Profile/profile.png";
 
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(AppDbContext context)
+        public HomeController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [RequireMenu("Home.Index")]
@@ -720,6 +722,8 @@ namespace ProjectTracking.Controllers
                 CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
             };
 
+            var lineOverview = await BuildLineOverdueOverviewAsync(projects, phases, assigns, issues, followups, supportOrders, today);
+
             var phaseTypeRows = phases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.PhaseType) ? "OTHERS" : Norm(p.PhaseType))
                 .OrderByDescending(g => g.Count())
@@ -890,6 +894,11 @@ namespace ProjectTracking.Controllers
                 SupportMetrics = supportMetrics,
                 SupportTotal = supportOrders.Count,
                 SupportDonut = BuildDonut(supportMetrics),
+                LineOverdueMetrics = lineOverview.Metrics,
+                LineOverdueTotal = lineOverview.Total,
+                LineOverdueDonut = BuildDonut(lineOverview.Metrics),
+                LineOverdueLinkedCount = lineOverview.LinkedCount,
+                LineOverdueMissingLineCount = lineOverview.MissingLineCount,
                 ProjectOverviewSeries = overviewSeries,
                 ProjectOverviewMonths = monthlyPoints,
                 ProjectOverviewTooltip = monthlyPoints.ElementAtOrDefault(Math.Clamp(today.Month - 1, 0, 11)),
@@ -919,6 +928,177 @@ namespace ProjectTracking.Controllers
                 WorkHourTrendText = timeSummary.TrendText,
                 WorkHourTrendClass = timeSummary.TrendClass
             };
+        }
+
+        private async Task<LineOverdueOverviewResult> BuildLineOverdueOverviewAsync(
+            IReadOnlyList<DashboardProjectRow> projects,
+            IReadOnlyList<DashboardPhaseRow> phases,
+            IReadOnlyList<DashboardAssignRow> assigns,
+            IReadOnlyList<DashboardIssueRow> issues,
+            IReadOnlyList<DashboardFollowupRow> followups,
+            IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            DateTime today)
+        {
+            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskUntil = today.AddDays(riskDays);
+            var projectById = projects
+                .GroupBy(x => x.ProjectId)
+                .ToDictionary(x => x.Key, x => x.First());
+            var phaseById = phases
+                .GroupBy(x => x.PhaseId)
+                .ToDictionary(x => x.Key, x => x.First());
+
+            var linkedEmpIds = await _context.LineRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.EmpId.HasValue && x.LineUserId != null && x.LineUserId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var linkedEmpIdSet = linkedEmpIds.ToHashSet();
+            var items = new List<LineOverdueOverviewItem>();
+
+            foreach (var assign in assigns)
+            {
+                if (!phaseById.TryGetValue(assign.PhaseId, out var phase))
+                    continue;
+
+                if (!TryLineOverdueSeverity(assign.PlanEnd ?? phase.PlanEnd, today, riskUntil, out var severity))
+                    continue;
+
+                if (IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus))
+                    severity = "DONE";
+
+                projectById.TryGetValue(phase.ProjectId, out var project);
+                AddLineOverdueOverviewItem(items, severity, assign.EmpId, project?.BaEmpId);
+            }
+
+            foreach (var issue in issues)
+            {
+                if (!TryLineOverdueSeverity(issue.EndDate, today, riskUntil, out var severity))
+                    continue;
+
+                if (IsLineOverdueIssueDone(issue.IssueStatus, issue.DevStatus))
+                    severity = "DONE";
+
+                projectById.TryGetValue(issue.ProjectId, out var project);
+                AddLineOverdueOverviewItem(items, severity, issue.EmpId, project?.BaEmpId);
+            }
+
+            foreach (var support in supportOrders)
+            {
+                if (!TryLineOverdueSeverity(support.EndDate, today, riskUntil, out var severity))
+                    continue;
+
+                if (IsLineOverdueSupportDone(support.Status, support.DevStatus))
+                    severity = "DONE";
+
+                projectById.TryGetValue(support.ProjectId, out var project);
+                AddLineOverdueOverviewItem(items, severity, support.AssignTo, project?.BaEmpId);
+            }
+
+            foreach (var followup in followups)
+            {
+                if (!TryLineOverdueSeverity(followup.NextFollowupDate, today, riskUntil, out var severity))
+                    continue;
+
+                if (IsLineOverdueFollowupDone(followup.Status))
+                    severity = "DONE";
+                else if (!IsLineOverdueFollowupOpen(followup.Status))
+                    continue;
+
+                DashboardProjectRow? project = null;
+                if (followup.ProjectId.HasValue)
+                    projectById.TryGetValue(followup.ProjectId.Value, out project);
+
+                AddLineOverdueOverviewItem(items, severity, followup.OwnerEmpId, project?.BaEmpId);
+            }
+
+            var total = items.Count;
+            var doneCount = items.Count(x => x.Severity == "DONE");
+            var dangerCount = items.Count(x => x.Severity == "DANGER");
+            var warningCount = items.Count(x => x.Severity == "WARNING");
+            var metrics = new List<HomeDashboardMetric>
+            {
+                CreateMetric("เสร็จสิ้นแล้ว", doneCount, total, "green"),
+                CreateMetric("กำลังดำเนินการเสี่ยงล่าช้า", warningCount, total, "warning"),
+                CreateMetric("กำลังดำเนินการล่าช้า", dangerCount, total, "danger")
+            };
+            var activeItems = items.Where(x => x.Severity != "DONE").ToList();
+            var linkedCount = activeItems.Count(x => x.RecipientEmpIds.Count > 0 && x.RecipientEmpIds.All(linkedEmpIdSet.Contains));
+
+            return new LineOverdueOverviewResult
+            {
+                Total = total,
+                Metrics = metrics,
+                LinkedCount = linkedCount,
+                MissingLineCount = activeItems.Count - linkedCount
+            };
+        }
+
+        private static void AddLineOverdueOverviewItem(
+            IList<LineOverdueOverviewItem> items,
+            string severity,
+            params int?[] recipientEmpIds)
+        {
+            var recipients = recipientEmpIds
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToHashSet();
+
+            items.Add(new LineOverdueOverviewItem
+            {
+                Severity = severity,
+                RecipientEmpIds = recipients
+            });
+        }
+
+        private static bool TryLineOverdueSeverity(DateTime? dueDate, DateTime today, DateTime riskUntil, out string severity)
+        {
+            severity = "WARNING";
+            if (!dueDate.HasValue)
+                return false;
+
+            var due = dueDate.Value.Date;
+            if (due > riskUntil)
+                return false;
+
+            severity = due < today ? "DANGER" : "WARNING";
+            return true;
+        }
+
+        private static bool IsLineOverdueAssignDone(string? workStatus, string? phaseStatus)
+        {
+            var work = Norm(workStatus);
+            var phase = Norm(phaseStatus);
+            return work == "DONE"
+                || phase is "DONE" or "ส่งงวดงานแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+        }
+
+        private static bool IsLineOverdueIssueDone(string? issueStatus, string? devStatus)
+        {
+            var issue = Norm(issueStatus);
+            var dev = Norm(devStatus);
+            return issue is "FIXED" or "PASS" or "REJECT"
+                || dev == "FIXED";
+        }
+
+        private static bool IsLineOverdueSupportDone(string? status, string? devStatus)
+        {
+            var normalized = Norm(status);
+            var dev = Norm(devStatus);
+            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE"
+                || dev == "FIXED";
+        }
+
+        private static bool IsLineOverdueFollowupOpen(string? status)
+        {
+            return Norm(status) == "OPEN";
+        }
+
+        private static bool IsLineOverdueFollowupDone(string? status)
+        {
+            return Norm(status) is "DONE" or "CLOSED" or "RESOLVED" or "FIXED" or "PASS" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
         }
 
         [RequireMenu("Home.Index")]
@@ -2322,6 +2502,20 @@ namespace ProjectTracking.Controllers
             public List<string> PendingCheckoutNames { get; set; } = new();
             public string TrendText { get; set; } = "";
             public string TrendClass { get; set; } = "neutral";
+        }
+
+        private sealed class LineOverdueOverviewResult
+        {
+            public int Total { get; set; }
+            public List<HomeDashboardMetric> Metrics { get; set; } = new();
+            public int LinkedCount { get; set; }
+            public int MissingLineCount { get; set; }
+        }
+
+        private sealed class LineOverdueOverviewItem
+        {
+            public string Severity { get; set; } = "WARNING";
+            public HashSet<int> RecipientEmpIds { get; set; } = new();
         }
 
         // ===============================

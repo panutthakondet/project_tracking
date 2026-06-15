@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
+using System.Globalization;
 
 namespace ProjectTracking.Services
 {
@@ -139,7 +140,7 @@ namespace ProjectTracking.Services
                 if (!TryBuildDueState(row.PlanEnd, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = ProjectDisplayName(row.Phase?.Project);
+                var projectName = ProjectName(row.Phase?.Project);
                 var title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"Assign #{row.AssignId}" : row.Role!;
                 var message = BuildPhaseAssignMessage(
                     stateText,
@@ -185,7 +186,7 @@ namespace ProjectTracking.Services
                         sourceId: row.AssignId,
                         empId: recipient.EmpId,
                         severity: severity,
-                        title: $"{SeverityTitle(severity)} Assigns: {title}",
+                        title: $"{SeverityTitle(severity)} Assigns:",
                         message: message,
                         targetUrl: recipient.TargetUrl,
                         now: now);
@@ -221,10 +222,11 @@ namespace ProjectTracking.Services
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = ProjectDisplayName(row.Project);
+                var projectName = ProjectName(row.Project);
                 var baEmpId = row.Project?.BaEmpId;
                 var message = BuildWorkMessage(
                     stateText,
+                    row.Project?.Coop?.CoopName,
                     projectName,
                     row.IssueName,
                     EmployeeName(employees, row.AssignTo),
@@ -251,7 +253,7 @@ namespace ProjectTracking.Services
                         sourceId: row.IssueId,
                         empId: recipient.EmpId,
                         severity: severity,
-                        title: $"{SeverityTitle(severity)} Issue: {row.IssueName}",
+                        title: $"{SeverityTitle(severity)} Issues:",
                         message: message,
                         targetUrl: recipient.TargetUrl,
                         now: now);
@@ -288,10 +290,11 @@ namespace ProjectTracking.Services
                     continue;
 
                 var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
-                var projectName = ProjectDisplayName(row.Project);
+                var projectName = ProjectName(row.Project);
                 var baEmpId = row.Project?.BaEmpId;
                 var message = BuildWorkMessage(
                     stateText,
+                    row.Project?.Coop?.CoopName,
                     projectName,
                     title,
                     EmployeeName(employees, row.AssignTo),
@@ -319,7 +322,7 @@ namespace ProjectTracking.Services
                         sourceId: row.OrderId,
                         empId: recipient.EmpId,
                         severity: severity,
-                        title: $"{SeverityTitle(severity)} Support: {title}",
+                        title: $"{SeverityTitle(severity)} Support:",
                         message: message,
                         targetUrl: recipient.TargetUrl,
                         now: now);
@@ -353,30 +356,51 @@ namespace ProjectTracking.Services
                 if (!row.OwnerEmpId.HasValue)
                     continue;
 
-                if (IsFollowupDone(row.Status))
+                if (!IsFollowupOpen(row.Status))
                     continue;
 
                 if (!TryBuildDueState(row.NextFollowupDate, today, riskUntil, out var severity, out var dueText, out var stateText))
                     continue;
 
-                var projectName = ProjectDisplayName(row.Project);
-                var message = $"{stateText} | นัดติดตาม {dueText} | Project: {projectName}";
+                var projectName = ProjectName(row.Project);
+                var title = string.IsNullOrWhiteSpace(row.TaskTitle) ? $"Followup #{row.FollowupId}" : row.TaskTitle!;
+                var baEmpId = row.Project?.BaEmpId;
+                var startDate = row.LastContactDate ?? row.CreatedAt;
+                var message = BuildWorkMessage(
+                    stateText,
+                    row.Project?.Coop?.CoopName,
+                    projectName,
+                    title,
+                    EmployeeName(employees, row.OwnerEmpId),
+                    EmployeeName(employees, baEmpId),
+                    startDate,
+                    row.NextFollowupDate);
+                var recipients = new List<NotificationRecipient>
+                {
+                    new(row.OwnerEmpId.Value, $"/Followups/Details/{row.FollowupId}")
+                };
 
-                AddOrUpdate(
-                    db,
-                    employees,
-                    existingByKey,
-                    activeKeys,
-                    lineQueue,
-                    forceLineSend,
-                    sourceType: "FOLLOWUP_DUE",
-                    sourceId: row.FollowupId,
-                    empId: row.OwnerEmpId.Value,
-                    severity: severity,
-                    title: $"{SeverityTitle(severity)} Followup: {row.TaskTitle}",
-                    message: message,
-                    targetUrl: $"/Followups/Details/{row.FollowupId}",
-                    now: now);
+                if (baEmpId.HasValue)
+                    recipients.Add(new NotificationRecipient(baEmpId.Value, $"/Followups/Details/{row.FollowupId}"));
+
+                foreach (var recipient in UniqueRecipients(recipients))
+                {
+                    AddOrUpdate(
+                        db,
+                        employees,
+                        existingByKey,
+                        activeKeys,
+                        lineQueue,
+                        forceLineSend,
+                        sourceType: "FOLLOWUP_DUE",
+                        sourceId: row.FollowupId,
+                        empId: recipient.EmpId,
+                        severity: severity,
+                        title: $"{SeverityTitle(severity)} Followup:",
+                        message: message,
+                        targetUrl: recipient.TargetUrl,
+                        now: now);
+                }
             }
         }
 
@@ -526,7 +550,7 @@ namespace ProjectTracking.Services
             if (due > riskUntil)
                 return false;
 
-            dueText = due.ToString("dd/MM/yyyy");
+            dueText = ThaiDateText(due);
 
             if (due < today)
             {
@@ -557,13 +581,14 @@ namespace ProjectTracking.Services
         private static string Key(string sourceType, int sourceId, int empId)
             => $"{sourceType}:{sourceId}:{empId}";
 
-        private static string ProjectDisplayName(Project? project)
-            => project == null || string.IsNullOrWhiteSpace(project.ProjectDisplayName)
+        private static string ProjectName(Project? project)
+            => project == null || string.IsNullOrWhiteSpace(project.ProjectName)
                 ? "-"
-                : project.ProjectDisplayName;
+                : project.ProjectName;
 
         private static string BuildWorkMessage(
             string stateText,
+            string? coopName,
             string projectName,
             string title,
             string ownerName,
@@ -574,8 +599,9 @@ namespace ProjectTracking.Services
             return string.Join("\n", new[]
             {
                 $"สถานะ: {stateText}",
+                $"สหกรณ์: {(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)}",
                 $"Project: {projectName}",
-                $"หัวข้อ: {title}",
+                $"งาน: {title}",
                 $"เจ้าของงาน: {ownerName}",
                 $"BA: {baName}",
                 $"วันที่เริ่ม: {DateText(startDate)}",
@@ -604,7 +630,7 @@ namespace ProjectTracking.Services
                 $"สถานะ: {stateText}",
                 $"สหกรณ์: {(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)}",
                 $"Project: {projectName}",
-                $"หัวข้อ: {title}",
+                $"งาน: {title}",
                 $"เจ้าของงาน: {ownerName}",
                 $"BA: {baName}",
                 $"ส่วน / งวด: ส่วนที่ {(phaseOrder?.ToString() ?? "-")} / งวดที่ {(periodOrder?.ToString() ?? "-")}",
@@ -628,7 +654,12 @@ namespace ProjectTracking.Services
         }
 
         private static string DateText(DateTime? value)
-            => value.HasValue ? value.Value.ToString("dd/MM/yyyy") : "-";
+            => value.HasValue ? ThaiDateText(value.Value) : "-";
+
+        private static string ThaiDateText(DateTime value)
+            => value.ToString("dd MMM yyyy", ThaiCulture);
+
+        private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         private static IEnumerable<NotificationRecipient> UniqueRecipients(IEnumerable<NotificationRecipient> recipients)
         {
@@ -668,10 +699,10 @@ namespace ProjectTracking.Services
             return normalized is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
         }
 
-        private static bool IsFollowupDone(string? status)
+        private static bool IsFollowupOpen(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
-            return normalized is "DONE" or "ACK";
+            return normalized == "OPEN";
         }
 
         private static bool IsClosedPhase(string? phaseStatus)

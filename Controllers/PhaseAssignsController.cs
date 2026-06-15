@@ -659,37 +659,45 @@ namespace ProjectTracking.Controllers
             ViewBag.EmployeeList = new List<Employee>();
             ViewBag.RoleList = new List<string>();
 
-            if (projectId == null)
-                return null;
-
-            ViewBag.SelectedProject = await _context.Projects
-                .Include(p => p.Coop)
-                .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
+            ViewBag.SelectedProject = projectId.HasValue
+                ? await _context.Projects
+                    .Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value)
+                : null;
 
             // Employee dropdown
-            ViewBag.EmployeeList = await (
+            var employeeQuery =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                 join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
-                where ph.ProjectId == projectId
-                group new { e.EmpId, e.EmpName } by new { e.EmpId, e.EmpName } into g
-                orderby g.Key.EmpName
-                select new Employee
+                select new { a.EmpId, e.EmpName, ph.ProjectId };
+
+            if (projectId.HasValue)
+                employeeQuery = employeeQuery.Where(x => x.ProjectId == projectId.Value);
+
+            ViewBag.EmployeeList = await employeeQuery
+                .GroupBy(x => new { x.EmpId, x.EmpName })
+                .OrderBy(g => g.Key.EmpName)
+                .Select(g => new Employee
                 {
                     EmpId = g.Key.EmpId,
                     EmpName = g.Key.EmpName
-                }
-            ).ToListAsync();
+                })
+                .ToListAsync();
 
             var roleQuery =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
-                where ph.ProjectId == projectId && a.Role != null && a.Role != ""
+                where a.Role != null && a.Role != ""
                 select new
                 {
                     a.EmpId,
+                    ph.ProjectId,
                     a.Role
                 };
+
+            if (projectId.HasValue)
+                roleQuery = roleQuery.Where(x => x.ProjectId == projectId.Value);
 
             if (empId.HasValue)
                 roleQuery = roleQuery.Where(x => x.EmpId == empId.Value);
@@ -712,14 +720,10 @@ namespace ProjectTracking.Controllers
 
         private async Task<List<PhaseAssign>> BuildPrintReportRowsAsync(int? projectId, int? empId, string? role)
         {
-            if (projectId == null)
-                return new List<PhaseAssign>();
-
             var query =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                 join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
-                where ph.ProjectId == projectId.Value
                 select new PhaseAssign
                 {
                     AssignId = a.AssignId,
@@ -741,6 +745,9 @@ namespace ProjectTracking.Controllers
                         .OrderBy(l => l.RoundNo)
                         .ToList()
                 };
+
+            if (projectId.HasValue)
+                query = query.Where(x => x.Phase != null && x.Phase.ProjectId == projectId.Value);
 
             if (empId.HasValue)
                 query = query.Where(x => x.EmpId == empId.Value);

@@ -16,6 +16,12 @@
     var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var issues = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectIssue>()).ToList();
+    var coopList = projects
+        .Select(x => x.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 
     var totalIssues = issues.Count;
     var openCount = issues.Count(x => string.Equals(x.IssueStatus, "OPEN", StringComparison.OrdinalIgnoreCase));
@@ -474,12 +480,24 @@
 
     <form method="get" id="filterForm" class="filter-panel">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopList)
+                {
+                    <option value="@coop">@coop</option>
+                }
+            </select>
+        </div>
+        <div class="field">
             <label for="projectSelect">Project</label>
             <select id="projectSelect" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project...">
                 <option value="">-- All Projects --</option>
                 @foreach (var p in projects)
                 {
-                    <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId ? "selected" : null)">
+                    <option value="@p.ProjectId"
+                            data-coop-name="@(p.Coop?.CoopName ?? "")"
+                            selected="@(selectedProject?.ProjectId == p.ProjectId ? "selected" : null)">
                         @p.ProjectDisplayName
                     </option>
                 }
@@ -769,7 +787,7 @@
                 select.tabIndex = -1;
                 function syncInputFromSelect() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    input.value = selected ? selected.text : "";
                 }
 
                 function closeDropdown() {
@@ -780,7 +798,7 @@
                     dropdown.innerHTML = "";
                     const keyword = normalize(filter);
                     const options = Array.from(select.options)
-                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => !option.disabled)
                         .filter(option => {
                             const haystack = normalize(`${option.text} ${option.value}`);
                             return !keyword || haystack.includes(keyword);
@@ -843,6 +861,37 @@
 
 
             document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectSelect");
+
+            function syncProjectFilterOptions() {
+                if (!projectFilter) return;
+
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter.options).forEach(option => {
+                    const visible = option.value === "" || !selectedCoop || normalize(option.dataset.coopName || "") === selectedCoop;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                });
+
+                const selected = projectFilter.selectedOptions[0];
+                if (selected && selected.disabled) projectFilter.value = "";
+            }
+
+            coopFilter?.addEventListener("change", function () {
+                localStorage.setItem("reports.issues.selectedCoop", normalize(coopFilter.value));
+                if (projectFilter) projectFilter.value = "";
+                syncProjectFilterOptions();
+            });
+
+            const savedCoop = localStorage.getItem("reports.issues.selectedCoop") || "";
+            if (savedCoop && coopFilter) {
+                const match = Array.from(coopFilter.options).find(option => normalize(option.value) === savedCoop);
+                if (match) coopFilter.value = match.value;
+            }
+
+            syncProjectFilterOptions();
         })();
 
     </script>

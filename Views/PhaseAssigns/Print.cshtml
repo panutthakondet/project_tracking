@@ -10,6 +10,16 @@
         .ThenBy(a => a.PhaseSort ?? int.MaxValue)
         .ThenBy(a => a.AssignId)
         .ToList();
+    var projectList = (ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
+    var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var selectedCoopName = (selectedProject?.Coop?.CoopName ?? "").Trim();
+    var coopList = projectList
+        .Select(p => p.Coop?.CoopName)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
 
     var doneCount = assignments.Count(a => string.Equals(a.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase));
     var progressCount = assignments.Count(a => string.Equals(a.WorkStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
@@ -133,7 +143,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
             gap: 10px;
             margin-bottom: 12px;
             padding: 12px;
@@ -387,7 +397,8 @@
     <header class="print-header">
         <h1>Assignment Report</h1>
         <div>
-            Project: @(ViewBag.SelectedProject?.ProjectDisplayName ?? "All Projects")<br />
+            Cooperative: @(string.IsNullOrWhiteSpace(selectedCoopName) ? "All Cooperatives" : selectedCoopName)<br />
+            Project: @(selectedProject?.ProjectDisplayName ?? "All Projects")<br />
             Employee: @(ViewBag.SelectedEmpId == null ? "All Employees" : (ViewBag.EmployeeList as IEnumerable<ProjectTracking.Models.Employee>)?.FirstOrDefault(e => e.EmpId == ViewBag.SelectedEmpId)?.EmpName ?? "-")<br />
             Role: @(string.IsNullOrWhiteSpace(ViewBag.SelectedRole as string) ? "All Roles" : ViewBag.SelectedRole)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
@@ -396,12 +407,25 @@
 
     <form method="get" class="filter-panel no-print">
         <div class="field">
+            <label for="coopFilter">Cooperative</label>
+            <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
+                <option value="">-- All Cooperatives --</option>
+                @foreach (var coop in coopList)
+                {
+                    <option value="@coop" selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@coop</option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
             <label for="projectId">Project</label>
             <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
-                <option value="">-- Select Project --</option>
-                @foreach (var p in ViewBag.Projects)
+                <option value="">-- All Projects --</option>
+                @foreach (var p in projectList)
                 {
-                    <option value="@p.ProjectId" selected="@(ViewBag.SelectedProjectId == p.ProjectId ? "selected" : null)">
+                    <option value="@p.ProjectId"
+                            data-coop-name="@(p.Coop?.CoopName ?? "")"
+                            selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
                         @p.ProjectDisplayName
                     </option>
                 }
@@ -566,7 +590,7 @@
 
                 function syncInputFromSelect() {
                     const selected = getSelectedOption(select);
-                    input.value = selected && selected.value !== "" ? selected.text : "";
+                    input.value = selected ? selected.text : "";
                 }
 
                 function closeDropdown() {
@@ -577,7 +601,7 @@
                     dropdown.innerHTML = "";
                     const keyword = normalize(filter);
                     const options = Array.from(select.options)
-                        .filter(option => !option.disabled && option.value !== "")
+                        .filter(option => !option.disabled)
                         .filter(option => {
                             const haystack = normalize(`${option.text} ${option.value}`);
                             return !keyword || haystack.includes(keyword);
@@ -640,6 +664,27 @@
 
 
             document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+
+            const coopFilter = document.getElementById("coopFilter");
+            const projectFilter = document.getElementById("projectId");
+
+            function syncProjectOptionsByCoop() {
+                const selectedCoop = normalize(coopFilter?.value || "");
+                Array.from(projectFilter?.options || []).forEach(option => {
+                    option.disabled = option.value !== "" &&
+                        selectedCoop &&
+                        normalize(option.dataset.coopName || "") !== selectedCoop;
+                });
+
+                const selected = projectFilter?.selectedOptions[0];
+                if (selected && selected.disabled && projectFilter) {
+                    projectFilter.value = "";
+                    dispatchSelectChange(projectFilter);
+                }
+            }
+
+            coopFilter?.addEventListener("change", syncProjectOptionsByCoop);
+            syncProjectOptionsByCoop();
         })();
 
     </script>

@@ -238,6 +238,7 @@
     var projectOverviewSegments = BuildOverviewPieSegments(dashboard.ProjectStatusMetrics);
     var issueOverviewLegend = dashboard.IssueMetrics;
     var supportOverviewLegend = dashboard.SupportMetrics;
+    var lineOverdueLegend = dashboard.LineOverdueMetrics;
     var timeTrackingMetrics = new List<HomeDashboardMetric>
     {
         new()
@@ -501,6 +502,42 @@
                         </div>
                         <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
                     </div>
+                </div>
+            </div>
+        </article>
+
+        <article class="glass-panel compact-panel panel-line-overdue">
+            <div class="line-overdue-overview-head">
+                <div class="line-overdue-title-row">
+                    <span class="line-overdue-title-icon" aria-hidden="true">
+                        <img src="~/images/dashboard/kpi-alert.svg" alt="" loading="lazy" />
+                    </span>
+                    <span>
+                        <h2>Overdue Overview</h2>
+                        <small>ภาพรวมงานที่ต้องแจ้งเตือน LINE</small>
+                    </span>
+                </div>
+                <a asp-controller="Employees" asp-action="LineOverdue" class="panel-filter compact line-overdue-detail-link">
+                    <span>รายละเอียด</span>
+                    <i aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="line-overdue-overview-body">
+                <div class="donut-layout project-status-donut-layout line-overdue-donut-layout">
+                    <h3 class="project-status-card-title">สถานะแจ้งเตือน LINE</h3>
+                    <div class="donut project-status-donut line-overdue-donut" style="--donut:@dashboard.LineOverdueDonut">
+                        <div>
+                            <strong>@dashboard.LineOverdueTotal</strong>
+                            <span>รายการ</span>
+                        </div>
+                    </div>
+                    <div class="metric-list line-overdue-metric-list">
+                        @foreach (var metric in lineOverdueLegend)
+                        {
+                            <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                        }
+                    </div>
+                    <small class="project-status-updated">ⓘ รวม Assigns, Issues, Support และ Followup ที่อยู่ในช่วงเสี่ยง/ล่าช้า โดยแยกงานเสร็จแล้วออกจากงานที่ยังดำเนินการ</small>
                 </div>
             </div>
         </article>
@@ -1839,12 +1876,13 @@
 .compact-panel { min-height:198px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
 .panel-task { order:3; grid-column:span 24; min-height:230px; }
-.panel-issues { order:4; grid-column:span 24; min-height:520px; }
-.panel-time { order:5; grid-column:span 24; min-height:248px; }
-.panel-team { order:6; grid-column:span 24; min-height:285px; }
-.panel-activity { order:7; grid-column:span 24; min-height:270px; }
-.panel-meetings { order:8; grid-column:span 24; min-height:280px; }
-.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+.panel-line-overdue { order:4; grid-column:span 24; min-height:310px; }
+.panel-issues { order:5; grid-column:span 24; min-height:520px; }
+.panel-time { order:6; grid-column:span 24; min-height:248px; }
+.panel-team { order:7; grid-column:span 24; min-height:285px; }
+.panel-activity { order:8; grid-column:span 24; min-height:270px; }
+.panel-meetings { order:9; grid-column:span 24; min-height:280px; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
 
 .panel-task {
     padding:20px 24px 20px;
@@ -1864,6 +1902,82 @@
         radial-gradient(circle at 50% 34%, rgba(0,108,255,.16), transparent 44%),
         linear-gradient(180deg, rgba(3,15,39,.99), rgba(3,12,31,.99));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 18px 34px rgba(2,8,23,.22);
+}
+
+.panel-line-overdue {
+    padding:24px 28px;
+    border-radius:18px;
+    border:1px solid rgba(245,158,11,.28);
+    background:
+        radial-gradient(circle at 86% 20%, rgba(245,158,11,.16), transparent 34%),
+        radial-gradient(circle at 18% 34%, rgba(239,68,68,.12), transparent 38%),
+        linear-gradient(180deg, rgba(4,19,43,.99), rgba(3,16,36,.99));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 18px 34px rgba(2,8,23,.22);
+}
+
+.line-overdue-overview-head {
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+}
+
+.line-overdue-title-row {
+    display:flex;
+    align-items:center;
+    gap:14px;
+    min-width:0;
+}
+
+.line-overdue-title-icon {
+    width:54px;
+    height:54px;
+    flex:0 0 54px;
+    display:grid;
+    place-items:center;
+    border-radius:16px;
+    background:linear-gradient(135deg, rgba(245,158,11,.92), rgba(239,68,68,.86));
+    box-shadow:0 0 24px rgba(245,158,11,.24), inset 0 1px 0 rgba(255,255,255,.28);
+}
+
+.line-overdue-title-icon img {
+    width:34px;
+    height:34px;
+    object-fit:contain;
+}
+
+.line-overdue-title-row h2 {
+    margin:0;
+    color:#fff;
+    font-size:26px;
+    font-weight:1000;
+    line-height:1.15;
+}
+
+.line-overdue-title-row small {
+    display:block;
+    margin-top:4px;
+    color:#a9bddc;
+    font-size:13px;
+    font-weight:800;
+}
+
+.line-overdue-detail-link {
+    flex:0 0 auto;
+    border-color:rgba(245,158,11,.56);
+    color:#fff4dc;
+}
+
+.line-overdue-detail-link i {
+    display:none;
+}
+
+.line-overdue-overview-body {
+    position:relative;
+    z-index:1;
 }
 
 .task-progress-head {
@@ -2913,6 +3027,42 @@
 .project-status-donut-layout .metric-list b {
     color:#dbeafe;
     font-size:14px;
+}
+
+.panel-line-overdue .line-overdue-donut-layout {
+    grid-template-columns:minmax(210px, .34fr) minmax(0, 1fr);
+    justify-items:center;
+    align-items:center;
+    padding:22px 24px;
+    min-height:210px;
+    background:
+        radial-gradient(circle at 48% 40%, rgba(245,158,11,.16), transparent 42%),
+        linear-gradient(180deg, rgba(12,35,75,.78), rgba(8,27,57,.84));
+    border-color:rgba(245,158,11,.24);
+}
+
+.panel-line-overdue .line-overdue-donut-layout .project-status-card-title,
+.panel-line-overdue .line-overdue-donut-layout .project-status-updated {
+    grid-column:1 / -1;
+}
+
+.panel-line-overdue .line-overdue-donut {
+    width:min(210px, 100%);
+    box-shadow:0 0 30px rgba(245,158,11,.2), 0 14px 30px rgba(2,8,23,.24);
+}
+
+.panel-line-overdue .line-overdue-donut > div {
+    width:108px;
+}
+
+.panel-line-overdue .line-overdue-donut strong {
+    font-size:38px;
+}
+
+.panel-line-overdue .line-overdue-metric-list {
+    width:100%;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px 12px;
 }
 
 .project-status-pyramid-layout {
@@ -5242,13 +5392,15 @@
     .panel-wide,
     .panel-project-status,
     .panel-activity,
+    .panel-line-overdue,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
     .panel-task { grid-column:1 / -1; }
+    .panel-line-overdue,
     .panel-issues,
     .panel-time,
     .panel-team,
@@ -5369,11 +5521,13 @@
         grid-column:1 / -1;
     }
 
+    .panel-line-overdue,
     .panel-issues,
     .panel-time {
         grid-column:span 12;
     }
 
+    .panel-line-overdue,
     .panel-issues,
     .panel-time,
     .panel-team,
@@ -5458,12 +5612,13 @@
     .panel-wide,
     .panel-project-status,
     .panel-activity,
+    .panel-line-overdue,
     .panel-issues,
     .panel-meetings,
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
 
     .panel-meetings {
         padding:18px;
