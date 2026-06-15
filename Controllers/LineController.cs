@@ -25,6 +25,19 @@ namespace ProjectTracking.Controllers
             _logger = logger;
         }
 
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new
+            {
+                ok = true,
+                webhook = "/line/webhook",
+                hasChannelSecret = _lineMessaging.HasChannelSecret,
+                hasChannelAccessToken = _lineMessaging.IsConfigured,
+                hasAppBaseUrl = _lineMessaging.HasAppBaseUrl
+            });
+        }
+
         [HttpPost("webhook")]
         public async Task<IActionResult> Webhook(CancellationToken cancellationToken)
         {

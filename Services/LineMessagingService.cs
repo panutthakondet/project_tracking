@@ -43,10 +43,22 @@ namespace ProjectTracking.Services
         public bool IsConfigured
             => !string.IsNullOrWhiteSpace(_channelAccessToken);
 
+        public bool HasChannelSecret
+            => !string.IsNullOrWhiteSpace(_channelSecret);
+
+        public bool HasAppBaseUrl
+            => !string.IsNullOrWhiteSpace(_appBaseUrl);
+
         public bool IsWebhookSignatureValid(string body, string? signature)
         {
             if (string.IsNullOrWhiteSpace(_channelSecret) || string.IsNullOrWhiteSpace(signature))
+            {
+                _logger.LogWarning(
+                    "LINE webhook signature validation skipped. HasSecret={HasSecret}, HasSignature={HasSignature}",
+                    !string.IsNullOrWhiteSpace(_channelSecret),
+                    !string.IsNullOrWhiteSpace(signature));
                 return false;
+            }
 
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_channelSecret));
             var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(body));

@@ -16,11 +16,12 @@ using QuestPDF.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 // ==================================================
-// LOAD .env FILE (ใช้เฉพาะตอนพัฒนาในเครื่อง)
+// LOAD .env FILE
 // ==================================================
-if (builder.Environment.IsDevelopment())
+var envPath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+if (File.Exists(envPath))
 {
-    Env.Load();
+    Env.Load(envPath);
 }
 
 // ==================================================
@@ -259,6 +260,8 @@ app.UseRequireLogin();
 // ==================================================
 // Route
 // ==================================================
+app.MapControllers();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
