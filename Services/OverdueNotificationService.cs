@@ -15,17 +15,20 @@ namespace ProjectTracking.Services
         };
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
+        private readonly LineMessagingService _lineMessagingService;
         private readonly ILogger<OverdueNotificationService> _logger;
         private readonly int _riskDays;
 
         public OverdueNotificationService(
             IDbContextFactory<AppDbContext> dbFactory,
+            LineMessagingService lineMessagingService,
             IConfiguration configuration,
             ILogger<OverdueNotificationService> logger)
         {
             _dbFactory = dbFactory;
+            _lineMessagingService = lineMessagingService;
             _logger = logger;
-            _riskDays = Math.Clamp(configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 3, 0, 30);
+            _riskDays = Math.Clamp(configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
         public async Task SyncAsync(CancellationToken cancellationToken = default)
@@ -73,11 +76,12 @@ namespace ProjectTracking.Services
                 .ToDictionary(x => x.Key, x => SelectPrimaryNotification(x));
 
             var activeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var lineQueue = new List<LineNotificationPayload>();
 
-            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
-            // Issue/Support visibility is handled by OpenWork. Keeping their source types managed
-            // lets older notification rows resolve instead of remaining as stale badge counts.
-            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, today, riskUntil, now, cancellationToken);
+            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
+            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
+            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
+            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, lineQueue, today, riskUntil, now, cancellationToken);
 
             foreach (var notification in existingNotifications.Where(x => !x.IsResolved))
             {
@@ -94,6 +98,7 @@ namespace ProjectTracking.Services
             }
 
             await db.SaveChangesAsync(cancellationToken);
+            await SendLineNotificationsAsync(lineQueue, cancellationToken);
             _logger.LogInformation("Overdue notification sync completed. Active={ActiveCount}", activeKeys.Count);
         }
 
@@ -102,6 +107,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
+            IList<LineNotificationPayload> lineQueue,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -152,6 +158,7 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
+                        lineQueue,
                         sourceType: "ASSIGN_DUE",
                         sourceId: row.AssignId,
                         empId: recipient.EmpId,
@@ -169,6 +176,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
+            IList<LineNotificationPayload> lineQueue,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -191,7 +199,15 @@ namespace ProjectTracking.Services
                     continue;
 
                 var projectName = ProjectDisplayName(row.Project);
-                var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var baEmpId = row.Project?.BaEmpId;
+                var message = BuildWorkMessage(
+                    stateText,
+                    projectName,
+                    row.IssueName,
+                    EmployeeName(employees, row.AssignTo),
+                    EmployeeName(employees, baEmpId),
+                    row.StartDate,
+                    row.EndDate);
                 var recipients = new List<NotificationRecipient>();
 
                 if (row.Project?.BaEmpId.HasValue == true)
@@ -206,6 +222,7 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
+                        lineQueue,
                         sourceType: "ISSUE_DUE",
                         sourceId: row.IssueId,
                         empId: recipient.EmpId,
@@ -223,6 +240,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
+            IList<LineNotificationPayload> lineQueue,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -246,7 +264,15 @@ namespace ProjectTracking.Services
 
                 var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
                 var projectName = ProjectDisplayName(row.Project);
-                var message = $"{stateText} | กำหนด {dueText} | Project: {projectName}";
+                var baEmpId = row.Project?.BaEmpId;
+                var message = BuildWorkMessage(
+                    stateText,
+                    projectName,
+                    title,
+                    EmployeeName(employees, row.AssignTo),
+                    EmployeeName(employees, baEmpId),
+                    row.StartDate,
+                    row.EndDate);
                 var recipients = new List<NotificationRecipient>();
 
                 if (row.Project?.BaEmpId.HasValue == true)
@@ -262,6 +288,7 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
+                        lineQueue,
                         sourceType: "SUPPORT_DUE",
                         sourceId: row.OrderId,
                         empId: recipient.EmpId,
@@ -279,6 +306,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
+            IList<LineNotificationPayload> lineQueue,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -312,6 +340,7 @@ namespace ProjectTracking.Services
                     employees,
                     existingByKey,
                     activeKeys,
+                    lineQueue,
                     sourceType: "FOLLOWUP_DUE",
                     sourceId: row.FollowupId,
                     empId: row.OwnerEmpId.Value,
@@ -328,6 +357,7 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
+            IList<LineNotificationPayload> lineQueue,
             string sourceType,
             int sourceId,
             int empId,
@@ -365,11 +395,13 @@ namespace ProjectTracking.Services
                 {
                     notification.IsRead = false;
                     notification.ReadAt = null;
+                    lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
                 }
 
                 return;
             }
 
+            lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
             db.UserNotifications.Add(new UserNotification
             {
                 RecipientUserId = employee?.LoginUserId,
@@ -385,6 +417,30 @@ namespace ProjectTracking.Services
                 CreatedAt = now,
                 UpdatedAt = now
             });
+        }
+
+        private async Task SendLineNotificationsAsync(
+            IEnumerable<LineNotificationPayload> lineQueue,
+            CancellationToken cancellationToken)
+        {
+            foreach (var notification in lineQueue
+                .GroupBy(x => $"{x.EmpId}:{x.Title}:{x.Message}:{x.TargetUrl}")
+                .Select(x => x.First()))
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        notification.EmpId,
+                        notification.Title,
+                        notification.Message,
+                        notification.TargetUrl,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE notification failed for EmpId={EmpId}", notification.EmpId);
+                }
+            }
         }
 
         private static void ResolveDuplicateNotifications(IEnumerable<UserNotification> notifications, DateTime now)
@@ -473,6 +529,42 @@ namespace ProjectTracking.Services
                 ? "-"
                 : project.ProjectDisplayName;
 
+        private static string BuildWorkMessage(
+            string stateText,
+            string projectName,
+            string title,
+            string ownerName,
+            string baName,
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            return string.Join("\n", new[]
+            {
+                $"สถานะ: {stateText}",
+                $"Project: {projectName}",
+                $"หัวข้อ: {title}",
+                $"เจ้าของงาน: {ownerName}",
+                $"BA: {baName}",
+                $"วันที่เริ่ม: {DateText(startDate)}",
+                $"วันที่สิ้นสุด: {DateText(endDate)}"
+            });
+        }
+
+        private static string EmployeeName(
+            IReadOnlyDictionary<int, EmployeeRecipient> employees,
+            int? empId)
+        {
+            if (!empId.HasValue || empId.Value <= 0)
+                return "-";
+
+            return employees.TryGetValue(empId.Value, out var employee)
+                ? employee.EmpName
+                : $"Employee #{empId.Value}";
+        }
+
+        private static string DateText(DateTime? value)
+            => value.HasValue ? value.Value.ToString("dd/MM/yyyy") : "-";
+
         private static IEnumerable<NotificationRecipient> UniqueRecipients(IEnumerable<NotificationRecipient> recipients)
         {
             var seen = new HashSet<int>();
@@ -524,5 +616,6 @@ namespace ProjectTracking.Services
 
         private sealed record EmployeeRecipient(int EmpId, string EmpName, int? LoginUserId);
         private sealed record NotificationRecipient(int EmpId, string TargetUrl);
+        private sealed record LineNotificationPayload(int EmpId, string Title, string? Message, string? TargetUrl);
     }
 }

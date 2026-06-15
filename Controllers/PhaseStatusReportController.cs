@@ -11,14 +11,14 @@ namespace ProjectTracking.Controllers
     public class PhaseStatusReportController : BaseController
     {
         private readonly AppDbContext _context;
-        private readonly OverdueMailService _overdueMailService;
+        private readonly OverdueNotificationService _overdueNotificationService;
 
         public PhaseStatusReportController(
             AppDbContext context,
-            OverdueMailService overdueMailService)
+            OverdueNotificationService overdueNotificationService)
         {
             _context = context;
-            _overdueMailService = overdueMailService;
+            _overdueNotificationService = overdueNotificationService;
         }
 
         // =====================================================
@@ -140,16 +140,16 @@ namespace ProjectTracking.Controllers
         }
 
         // =====================================================
-        // 🔔 SEND EMAIL (กดปุ่มจากหน้า Report)
+        // 🔔 SEND LINE (กดปุ่มจากหน้า Report)
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("PhaseStatusReport.SendMail")]
-        public async Task<IActionResult> SendOverdueMail()
+        public async Task<IActionResult> SendOverdueLine()
         {
-            await _overdueMailService.SendOncePerDayAsync();
+            await _overdueNotificationService.SyncAsync();
 
-            TempData["Success"] = "ส่ง Email แจ้ง Phase Overdue เรียบร้อยแล้ว";
+            TempData["Success"] = "ส่ง LINE แจ้งงานเสี่ยงล่าช้า/งานล่าช้าเรียบร้อยแล้ว";
             return RedirectToAction(nameof(Index));
         }
 
