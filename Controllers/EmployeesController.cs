@@ -175,11 +175,12 @@ namespace ProjectTracking.Controllers
                     {
                         try
                         {
+                            var targetUrl = ToRequestAbsoluteUrl(recipient.TargetUrl);
                             var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
                                 recipient.EmpId,
                                 BuildSelectionLineTitle(item),
                                 item.Message,
-                                recipient.TargetUrl,
+                                targetUrl,
                                 HttpContext.RequestAborted);
 
                             sentCount += deliveredCount;
@@ -210,6 +211,22 @@ namespace ProjectTracking.Controllers
                 TempData["Error"] = "ส่ง LINE ไม่สำเร็จ ระบบบันทึก error ไว้แล้ว กรุณาลองใหม่หรือตรวจสอบ log";
                 return RedirectToAction(nameof(LineOverdue));
             }
+        }
+
+        private string? ToRequestAbsoluteUrl(string? targetUrl)
+        {
+            if (string.IsNullOrWhiteSpace(targetUrl))
+                return null;
+
+            if (Uri.TryCreate(targetUrl, UriKind.Absolute, out _))
+                return targetUrl;
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}".TrimEnd('/');
+            var path = targetUrl.StartsWith("/", StringComparison.Ordinal)
+                ? targetUrl
+                : $"/{targetUrl}";
+
+            return $"{baseUrl}{path}";
         }
 
         private async Task<List<LineOverdueSelectionItemViewModel>> BuildLineOverdueSelectionItemsAsync()
