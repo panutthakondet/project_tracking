@@ -42,6 +42,18 @@ namespace ProjectTracking.Controllers
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
+            ViewBag.LineLinkedEmpIds = (await _context.LineRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive
+                    && x.EmpId.HasValue
+                    && x.RecipientType == "USER"
+                    && x.LineUserId != null
+                    && x.LineUserId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync())
+                .ToHashSet();
+
             return View(employees);
         }
 

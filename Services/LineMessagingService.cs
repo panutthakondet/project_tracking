@@ -100,6 +100,14 @@ namespace ProjectTracking.Services
                 return 0;
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
+            if (!string.IsNullOrWhiteSpace(targetUrl) && string.IsNullOrWhiteSpace(absoluteUrl))
+            {
+                _logger.LogWarning(
+                    "LINE notification target URL could not be converted to absolute URL. TargetUrl={TargetUrl}, HasAppBaseUrl={HasAppBaseUrl}",
+                    targetUrl,
+                    HasAppBaseUrl);
+            }
+
             var text = BuildNotificationText(title, message, absoluteUrl);
             var flexMessage = BuildNotificationFlexMessage(title, message, absoluteUrl);
             foreach (var lineUserId in lineUserIds)
@@ -229,6 +237,20 @@ namespace ProjectTracking.Services
             if (!string.IsNullOrWhiteSpace(absoluteUrl))
             {
                 bubbleContents.Add(new { type = "separator", margin = "md" });
+                bubbleContents.Add(new
+                {
+                    type = "text",
+                    text = $"ลิงก์รายละเอียด: {absoluteUrl}",
+                    size = "xs",
+                    color = "#2563EB",
+                    wrap = true,
+                    margin = "md",
+                    action = new
+                    {
+                        type = "uri",
+                        uri = absoluteUrl
+                    }
+                });
                 bubbleContents.Add(new
                 {
                     type = "button",
