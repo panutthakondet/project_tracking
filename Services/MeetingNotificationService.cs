@@ -714,15 +714,27 @@ ORDER BY ma.id;";
             if (string.IsNullOrWhiteSpace(targetUrl))
                 return null;
 
-            if (Uri.TryCreate(targetUrl, UriKind.Absolute, out _))
+            if (Uri.TryCreate(targetUrl, UriKind.Absolute, out var absoluteUri)
+                && (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
+            {
                 return targetUrl;
+            }
 
             if (string.IsNullOrWhiteSpace(_appBaseUrl))
                 return null;
 
-            return targetUrl.StartsWith("/")
-                ? $"{_appBaseUrl}{targetUrl}"
-                : $"{_appBaseUrl}/{targetUrl}";
+            var baseUrl = _appBaseUrl.Contains("://", StringComparison.Ordinal)
+                ? _appBaseUrl
+                : $"https://{_appBaseUrl}";
+
+            var candidate = targetUrl.StartsWith("/")
+                ? $"{baseUrl}{targetUrl}"
+                : $"{baseUrl}/{targetUrl}";
+
+            return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                    ? candidate
+                    : null;
         }
 
         private static string BuildDisplayName(string? empName, string? position)

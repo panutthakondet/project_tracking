@@ -251,20 +251,6 @@ namespace ProjectTracking.Services
                         uri = absoluteUrl
                     }
                 });
-                bubbleContents.Add(new
-                {
-                    type = "button",
-                    style = "primary",
-                    color = NotificationActionColor(title),
-                    height = "sm",
-                    margin = "md",
-                    action = new
-                    {
-                        type = "uri",
-                        label = "เปิดรายละเอียด",
-                        uri = absoluteUrl
-                    }
-                });
             }
 
             var body = new Dictionary<string, object?>
@@ -288,16 +274,49 @@ namespace ProjectTracking.Services
                 };
             }
 
+            object? footer = null;
+            if (!string.IsNullOrWhiteSpace(absoluteUrl))
+            {
+                footer = new
+                {
+                    type = "box",
+                    layout = "vertical",
+                    spacing = "sm",
+                    paddingAll = "12px",
+                    contents = new object[]
+                    {
+                        new
+                        {
+                            type = "button",
+                            style = "primary",
+                            color = NotificationActionColor(title),
+                            height = "sm",
+                            action = new
+                            {
+                                type = "uri",
+                                label = "เปิดรายละเอียด",
+                                uri = absoluteUrl
+                            }
+                        }
+                    }
+                };
+            }
+
+            var bubble = new Dictionary<string, object?>
+            {
+                ["type"] = "bubble",
+                ["size"] = "mega",
+                ["body"] = body
+            };
+
+            if (footer != null)
+                bubble["footer"] = footer;
+
             return new
             {
                 type = "flex",
                 altText = TrimLineText(BuildNotificationText(title, message, absoluteUrl), 400),
-                contents = new
-                {
-                    type = "bubble",
-                    size = "mega",
-                    body
-                }
+                contents = bubble
             };
         }
 
@@ -378,15 +397,27 @@ namespace ProjectTracking.Services
             if (string.IsNullOrWhiteSpace(targetUrl))
                 return null;
 
-            if (Uri.TryCreate(targetUrl, UriKind.Absolute, out _))
+            if (Uri.TryCreate(targetUrl, UriKind.Absolute, out var absoluteUri)
+                && (absoluteUri.Scheme == Uri.UriSchemeHttp || absoluteUri.Scheme == Uri.UriSchemeHttps))
+            {
                 return targetUrl;
+            }
 
             if (string.IsNullOrWhiteSpace(_appBaseUrl))
                 return null;
 
-            return targetUrl.StartsWith("/")
-                ? $"{_appBaseUrl}{targetUrl}"
-                : $"{_appBaseUrl}/{targetUrl}";
+            var baseUrl = _appBaseUrl.Contains("://", StringComparison.Ordinal)
+                ? _appBaseUrl
+                : $"https://{_appBaseUrl}";
+
+            var candidate = targetUrl.StartsWith("/")
+                ? $"{baseUrl}{targetUrl}"
+                : $"{baseUrl}/{targetUrl}";
+
+            return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                    ? candidate
+                    : null;
         }
 
         private static string TrimLineText(string text, int maxLength = 5000)
