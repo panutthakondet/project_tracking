@@ -343,12 +343,31 @@
             background: #fef3c7;
         }
         .line-overdue-people {
-            display: grid;
-            gap: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
             margin-top: 10px;
             color: #0f172a;
             font-size: .9rem;
             font-weight: 700;
+        }
+        .line-overdue-person {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .line-overdue-person img {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #dbe6f3;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #fff;
+            flex: 0 0 auto;
+        }
+        .line-overdue-person span {
+            overflow-wrap: anywhere;
         }
         .line-overdue-card-side {
             display: grid;
@@ -575,8 +594,20 @@
                                                     <span class="line-overdue-chip">ส่งแล้ว @item.LineSendCount ครั้ง</span>
                                                 </div>
                                                 <div class="line-overdue-people">
-                                                    <span>เจ้าของงาน: @item.OwnerName</span>
-                                                    <span>BA: @item.BaName</span>
+                                                    <span class="line-overdue-person">
+                                                        <img src="@item.OwnerAvatarPath"
+                                                             alt="@item.OwnerName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span>เจ้าของงาน: @item.OwnerName</span>
+                                                    </span>
+                                                    <span class="line-overdue-person">
+                                                        <img src="@item.BaAvatarPath"
+                                                             alt="@item.BaName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span>BA: @item.BaName</span>
+                                                    </span>
                                                     <span>ส่งล่าสุด: @FormatDateTime(item.LastLineSentAt)</span>
                                                 </div>
                                             </div>

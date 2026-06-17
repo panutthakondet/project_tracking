@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -14,8 +15,11 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
+        private readonly LineMessagingService _lineMessagingService;
+        private readonly ILogger<SupportOrdersController> _logger;
         private static readonly string[] SupportOrderStatuses = { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
         private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
+        private static readonly CultureInfo ThaiCulture = new("th-TH");
         private static readonly (string Value, string Text)[] TesterSupportStatuses =
         {
             ("OPEN", "OPEN - เปิดงาน / รอแก้"),
@@ -27,11 +31,15 @@ namespace ProjectTracking.Controllers
         public SupportOrdersController(
             AppDbContext context,
             IWebHostEnvironment env,
-            OverdueNotificationService notificationService)
+            OverdueNotificationService notificationService,
+            LineMessagingService lineMessagingService,
+            ILogger<SupportOrdersController> logger)
         {
             _context = context;
             _env = env;
             _notificationService = notificationService;
+            _lineMessagingService = lineMessagingService;
+            _logger = logger;
         }
 
         // =========================
@@ -304,6 +312,7 @@ namespace ProjectTracking.Controllers
             }
 
             await SyncNotificationsSafelyAsync();
+            await SendCreatedSupportLineSafelyAsync(order.OrderId);
 
             return RedirectToAction("Index", new { projectId = order.ProjectId });
         }
@@ -471,6 +480,85 @@ namespace ProjectTracking.Controllers
                 // Notification sync should not block the main save flow.
             }
         }
+
+        private async Task SendCreatedSupportLineSafelyAsync(int orderId)
+        {
+            if (!_lineMessagingService.IsConfigured)
+                return;
+
+            try
+            {
+                var order = await _context.ProjectSupportOrders
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.OrderId == orderId);
+
+                if (order == null)
+                    return;
+
+                var project = order.Project;
+                var recipientTargets = new Dictionary<int, string>();
+
+                if (project?.BaEmpId is > 0)
+                    recipientTargets[project.BaEmpId.Value] = $"/SupportOrders/Details/{order.OrderId}";
+
+                if (order.AssignTo is > 0)
+                    recipientTargets.TryAdd(order.AssignTo.Value, $"/SupportOrdersDev/Details/{order.OrderId}");
+
+                if (recipientTargets.Count == 0)
+                    return;
+
+                var title = "แจ้ง Support ใหม่:";
+                var message = BuildCreatedSupportLineMessage(order);
+
+                foreach (var recipient in recipientTargets)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.Key,
+                        title,
+                        message,
+                        recipient.Value,
+                        HttpContext.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send created support LINE notification failed. OrderId={OrderId}", orderId);
+            }
+        }
+
+        private static string BuildCreatedSupportLineMessage(ProjectSupportOrder order)
+        {
+            var project = order.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForLine(project)}",
+                $"Support: {TextOrDash(order.OrderTitle)}",
+                $"รายละเอียด: {TextOrDash(order.OrderDetail)}",
+                $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Priority: {TextOrDash(order.Priority)}",
+                $"Status: {TextOrDash(order.Status)} / Dev {TextOrDash(order.DevStatus)}",
+                $"วันที่เริ่ม: {DateText(order.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(order.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string ProjectNameForLine(Project? project)
+            => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
+
+        private static string TextOrDash(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+        private static string DateText(DateTime? value)
+            => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
 
         private void ApplySupportDateInput(ProjectSupportOrder order)
         {

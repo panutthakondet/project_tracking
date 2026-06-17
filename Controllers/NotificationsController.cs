@@ -265,6 +265,7 @@ namespace ProjectTracking.Controllers
                     .Include(x => x.Phase!)
                         .ThenInclude(phase => phase.Project!)
                             .ThenInclude(project => project.BA)
+                                .ThenInclude(ba => ba!.LoginUser)
                     .Where(x => assignIds.Contains(x.AssignId))
                     .ToDictionaryAsync(x => x.AssignId);
 
@@ -278,6 +279,7 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(project => project.Coop)
                     .Include(x => x.Project!)
                         .ThenInclude(project => project.BA)
+                            .ThenInclude(ba => ba!.LoginUser)
                     .Where(x => followupIds.Contains(x.FollowupId))
                     .ToDictionaryAsync(x => x.FollowupId);
 
@@ -342,6 +344,7 @@ namespace ProjectTracking.Controllers
                 item.ProjectName = ProjectDisplayName(project);
                 item.CoopName = project?.Coop?.CoopName ?? "-";
                 item.BaName = project?.BA?.EmpName ?? "-";
+                item.BaAvatarPath = ProfileImage(project?.BA);
                 item.OwnerName = assign.Employee?.EmpName ?? item.OwnerName;
                 item.OwnerAvatarPath = ProfileImage(assign.Employee);
                 item.DateText = FormatDateRange(assign.PlanStart ?? phase?.PlanStart, assign.PlanEnd ?? phase?.PlanEnd);
@@ -355,6 +358,7 @@ namespace ProjectTracking.Controllers
                 item.ProjectName = ProjectDisplayName(project);
                 item.CoopName = project?.Coop?.CoopName ?? "-";
                 item.BaName = project?.BA?.EmpName ?? "-";
+                item.BaAvatarPath = ProfileImage(project?.BA);
                 item.OwnerName = followup.Owner?.EmpName ?? item.OwnerName;
                 item.OwnerAvatarPath = ProfileImage(followup.Owner);
                 item.DateText = FormatDate(followup.NextFollowupDate);

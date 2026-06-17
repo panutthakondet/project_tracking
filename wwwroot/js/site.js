@@ -971,3 +971,153 @@
         enhanceDateInputs(document);
     });
 })();
+
+(function () {
+    const defaultProfileImage = "/images/Profile/profile.png";
+    const previewSelector = [
+        "img.js-profile-preview",
+        "img.pt-owner-avatar",
+        "img.employee-table-avatar",
+        "img.employee-avatar",
+        "img.followup-avatar",
+        "img.followup-dashboard-avatar",
+        ".rb-online-avatar img",
+        ".v2-avatar img",
+        "img[onerror*='/images/Profile/profile.png']",
+        'img[onerror*="/images/Profile/profile.png"]',
+        "img[src*='/uploads/profiles/']",
+        'img[src*="/uploads/profiles/"]',
+        "img[src*='/images/Profile/profile.png']",
+        'img[src*="/images/Profile/profile.png"]'
+    ].join(",");
+
+    let popover;
+    let previewImage;
+    let previewName;
+
+    function ensurePopover() {
+        if (popover) return;
+
+        popover = document.createElement("div");
+        popover.className = "profile-hover-popover";
+
+        previewImage = document.createElement("img");
+        previewImage.alt = "";
+        previewImage.onerror = function () {
+            this.onerror = null;
+            this.src = defaultProfileImage;
+        };
+
+        previewName = document.createElement("span");
+
+        popover.appendChild(previewImage);
+        popover.appendChild(previewName);
+        document.body.appendChild(popover);
+    }
+
+    function isProfileImage(image) {
+        if (!image || image.tagName !== "IMG") return false;
+        if (image.dataset.profilePreviewBound === "true") return false;
+        if (image.id === "profileCropImage" || image.closest("#profileCropModal")) return false;
+        if (image.closest(".profile-hover-popover")) return false;
+        return true;
+    }
+
+    function profileName(image) {
+        return (image.dataset.profileName || image.alt || image.title || "").trim();
+    }
+
+    function imageSrc(image) {
+        return image.currentSrc || image.src || defaultProfileImage;
+    }
+
+    function placePopover(x, y) {
+        if (!popover) return;
+
+        const gap = 16;
+        const width = popover.offsetWidth || 190;
+        const height = popover.offsetHeight || 220;
+        let left = x + gap;
+        let top = y + gap;
+
+        if (left + width > window.innerWidth - 12) {
+            left = x - width - gap;
+        }
+
+        if (top + height > window.innerHeight - 12) {
+            top = window.innerHeight - height - 12;
+        }
+
+        popover.style.left = Math.max(12, left) + "px";
+        popover.style.top = Math.max(12, top) + "px";
+    }
+
+    function showPopover(image, x, y) {
+        ensurePopover();
+        previewImage.src = imageSrc(image);
+        previewName.textContent = profileName(image);
+        previewName.hidden = !previewName.textContent;
+        popover.classList.add("is-visible");
+        placePopover(x, y);
+    }
+
+    function hidePopover() {
+        if (popover) popover.classList.remove("is-visible");
+    }
+
+    function bindImage(image) {
+        if (!isProfileImage(image)) return;
+
+        image.dataset.profilePreviewBound = "true";
+        image.classList.add("pt-profile-preview-enabled");
+
+        image.addEventListener("mouseenter", function (event) {
+            showPopover(image, event.clientX, event.clientY);
+        });
+
+        image.addEventListener("mousemove", function (event) {
+            placePopover(event.clientX, event.clientY);
+        });
+
+        image.addEventListener("mouseleave", hidePopover);
+
+        image.addEventListener("focus", function () {
+            const rect = image.getBoundingClientRect();
+            showPopover(image, rect.right, rect.top);
+        });
+
+        image.addEventListener("blur", hidePopover);
+    }
+
+    function init(root) {
+        const scope = root || document;
+        if (scope.matches && scope.matches(previewSelector)) {
+            bindImage(scope);
+        }
+        scope.querySelectorAll?.(previewSelector).forEach(bindImage);
+    }
+
+    window.ProjectTrackingProfilePreview = {
+        init
+    };
+
+    function boot() {
+        init(document);
+
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1) init(node);
+                });
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();

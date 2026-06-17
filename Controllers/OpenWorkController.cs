@@ -37,6 +37,7 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(project => project!.Coop)
                 .Include(issue => issue.Project)
                     .ThenInclude(project => project!.BA)
+                        .ThenInclude(ba => ba!.LoginUser)
                 .Include(issue => issue.Employee)
                     .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
@@ -53,6 +54,7 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(project => project!.Coop)
                 .Include(order => order.Project)
                     .ThenInclude(project => project!.BA)
+                        .ThenInclude(ba => ba!.LoginUser)
                 .Include(order => order.Employee)
                     .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
@@ -147,6 +149,7 @@ namespace ProjectTracking.Controllers
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
                 BaName = project?.BA?.EmpName ?? "-",
+                BaAvatarPath = ProfileImage(project?.BA),
                 OwnerName = issue.Employee?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(issue.Employee),
                 Detail = CleanDetail(issue.IssueDetail),
@@ -181,6 +184,7 @@ namespace ProjectTracking.Controllers
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
                 BaName = project?.BA?.EmpName ?? "-",
+                BaAvatarPath = ProfileImage(project?.BA),
                 OwnerName = order.Employee?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(order.Employee),
                 Detail = CleanDetail(order.OrderDetail),

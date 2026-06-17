@@ -250,6 +250,27 @@
         font-weight: 600;
     }
 
+    .open-work-person {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .open-work-person img {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #dbe6f3;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #fff;
+        flex: 0 0 auto;
+    }
+
+    .open-work-person span {
+        overflow-wrap: anywhere;
+    }
+
     .open-work-side {
         display: grid;
         gap: 7px;
@@ -400,11 +421,6 @@
                                         <a class="open-work-card @item.Severity" href="@item.TargetUrl">
                                             <div class="open-work-card-main">
                                                 <div class="open-work-card-head">
-                                                    <img class="pt-owner-avatar"
-                                                         src="@item.OwnerAvatarPath"
-                                                         alt="@item.OwnerName"
-                                                         loading="lazy"
-                                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                                     <div class="min-w-0">
                                                         <h3 class="open-work-title">@item.Title</h3>
                                                         <p class="open-work-project">@item.ProjectName</p>
@@ -412,7 +428,20 @@
                                                     </div>
                                                 </div>
                                                 <div class="open-work-people">
-                                                    <span><strong>BA:</strong> @item.BaName</span>
+                                                    <span class="open-work-person">
+                                                        <img src="@item.OwnerAvatarPath"
+                                                             alt="@item.OwnerName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span><strong>เจ้าของงาน:</strong> @item.OwnerName</span>
+                                                    </span>
+                                                    <span class="open-work-person">
+                                                        <img src="@item.BaAvatarPath"
+                                                             alt="@item.BaName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span><strong>BA:</strong> @item.BaName</span>
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div class="open-work-side">

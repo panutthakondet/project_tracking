@@ -326,7 +326,7 @@ namespace ProjectTracking.Services
             if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#DC2626";
 
-            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+            if (IsMeetingNotificationTitle(normalized))
                 return "#2563EB";
 
             if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
@@ -344,7 +344,7 @@ namespace ProjectTracking.Services
             if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#FEF2F2";
 
-            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+            if (IsMeetingNotificationTitle(normalized))
                 return "#EFF6FF";
 
             if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
@@ -362,7 +362,7 @@ namespace ProjectTracking.Services
             if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#FECACA";
 
-            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+            if (IsMeetingNotificationTitle(normalized))
                 return "#BFDBFE";
 
             if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
@@ -380,7 +380,7 @@ namespace ProjectTracking.Services
             if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#DC2626";
 
-            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+            if (IsMeetingNotificationTitle(normalized))
                 return "#2563EB";
 
             if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
@@ -391,6 +391,11 @@ namespace ProjectTracking.Services
 
             return "#0F766E";
         }
+
+        private static bool IsMeetingNotificationTitle(string normalizedTitle)
+            => normalizedTitle.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase)
+                || normalizedTitle.StartsWith("เชิญประชุม", StringComparison.OrdinalIgnoreCase)
+                || normalizedTitle.StartsWith("อัปเดตประชุม", StringComparison.OrdinalIgnoreCase);
 
         private string? ToAbsoluteUrl(string? targetUrl)
         {

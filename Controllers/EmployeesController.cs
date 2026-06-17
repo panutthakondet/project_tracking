@@ -256,12 +256,20 @@ namespace ProjectTracking.Controllers
 
             var employeeRows = await _context.Employees
                 .AsNoTracking()
-                .Select(x => new { x.EmpId, x.EmpName, x.LoginUserId, Username = x.LoginUser != null ? x.LoginUser.Username : null })
+                .Select(x => new
+                {
+                    x.EmpId,
+                    x.EmpName,
+                    x.LoginUserId,
+                    Username = x.LoginUser != null ? x.LoginUser.Username : null,
+                    ProfileImagePath = x.LoginUser != null ? x.LoginUser.ProfileImagePath : null
+                })
                 .ToListAsync();
 
             var employees = employeeRows.ToDictionary(x => x.EmpId, x => x.EmpName ?? $"Employee #{x.EmpId}");
             var employeeUsers = employeeRows.ToDictionary(x => x.EmpId, x => x.LoginUserId);
             var employeeUsernames = employeeRows.ToDictionary(x => x.EmpId, x => string.IsNullOrWhiteSpace(x.Username) ? null : x.Username);
+            var employeeAvatars = employeeRows.ToDictionary(x => x.EmpId, x => ProfileImage(x.ProfileImagePath));
             var lineEmpIds = await _context.LineRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive && x.EmpId.HasValue && x.LineUserId != null && x.LineUserId != "")
@@ -314,11 +322,11 @@ namespace ProjectTracking.Controllers
                     row.Remark,
                     includeTitleLine: true);
 
-                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
 
                 if (baEmpId.HasValue)
                 {
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmpId.Value, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.EmpId), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, project?.Coop?.CoopName, ProjectNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
                 }
             }
 
@@ -342,9 +350,9 @@ namespace ProjectTracking.Controllers
                 var baName = EmployeeName(employees, baEmpId);
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
-                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
+                AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
             }
 
             var supports = await _context.ProjectSupportOrders
@@ -369,10 +377,10 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 if (row.AssignTo.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
 
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.AssignTo), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
             }
 
             var followups = await _context.ProjectFollowups
@@ -400,10 +408,10 @@ namespace ProjectTracking.Controllers
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, ownerName, baName, null, null, row.Project?.StartDate, row.Project?.EndDate, startDate, row.NextFollowupDate, row.NextFollowupDate, row.PartnerName);
 
                 if (row.OwnerEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, row.OwnerEmpId.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, row.OwnerEmpId.Value, "เจ้าของงาน", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
 
                 if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
+                    AddSelectionItem(items, employees, employeeUsers, employeeUsernames, hasLine, sendStats, "FOLLOWUP_DUE", "Followup", row.FollowupId, baEmpId.Value, "BA", ownerName, EmployeeAvatar(employeeAvatars, row.OwnerEmpId), baName, EmployeeAvatar(employeeAvatars, baEmpId), severity, stateText, row.Project?.Coop?.CoopName, ProjectNameForSelection(row.Project), title, startDate, row.NextFollowupDate, row.NextFollowupDate, overdueDays, message, $"/Followups/Details/{row.FollowupId}");
             }
 
             return items
@@ -443,7 +451,9 @@ namespace ProjectTracking.Controllers
             int recipientEmpId,
             string recipientRole,
             string ownerName,
+            string ownerAvatarPath,
             string baName,
+            string baAvatarPath,
             string severity,
             string stateText,
             string? coopName,
@@ -476,7 +486,9 @@ namespace ProjectTracking.Controllers
                 SourceLabel = sourceLabel,
                 SourceId = sourceId,
                 OwnerName = ownerName,
+                OwnerAvatarPath = ownerAvatarPath,
                 BaName = baName,
+                BaAvatarPath = baAvatarPath,
                 Severity = severity,
                 StateText = stateText,
                 CoopName = string.IsNullOrWhiteSpace(coopName) ? "-" : coopName,
@@ -678,6 +690,27 @@ namespace ProjectTracking.Controllers
             return employees.TryGetValue(empId.Value, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name
                 : $"Employee #{empId.Value}";
+        }
+
+        private static string EmployeeAvatar(IReadOnlyDictionary<int, string> employeeAvatars, int? empId)
+        {
+            if (!empId.HasValue || empId.Value <= 0)
+                return "/images/Profile/profile.png";
+
+            return employeeAvatars.TryGetValue(empId.Value, out var avatar) && !string.IsNullOrWhiteSpace(avatar)
+                ? avatar
+                : "/images/Profile/profile.png";
+        }
+
+        private static string ProfileImage(string? profileImagePath)
+        {
+            if (string.IsNullOrWhiteSpace(profileImagePath))
+                return "/images/Profile/profile.png";
+
+            var path = profileImagePath.Trim();
+            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+            return path;
         }
 
         private static string ProjectNameForSelection(Project? project)

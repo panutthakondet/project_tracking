@@ -41,7 +41,9 @@ namespace ProjectTracking.ViewModels
             set => _recipientRole = string.IsNullOrWhiteSpace(value) ? "-" : value;
         }
         public string OwnerName { get; set; } = "-";
+        public string OwnerAvatarPath { get; set; } = "/images/Profile/profile.png";
         public string BaName { get; set; } = "-";
+        public string BaAvatarPath { get; set; } = "/images/Profile/profile.png";
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public DateTime? DueDate { get; set; }

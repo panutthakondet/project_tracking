@@ -307,6 +307,19 @@
             </div>
         }
         <div class="dashboard-global-tools" aria-label="แจ้งเตือนและกล่องจดหมาย">
+            <a class="dashboard-global-tool attendance"
+               asp-controller="Attendance"
+               asp-action="Index"
+               title="Attendance"
+               aria-label="Attendance">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <path d="M3 10h18" />
+                    <path d="M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z" />
+                    <path d="m9 16 2 2 4-5" />
+                </svg>
+            </a>
             <a class="dashboard-global-tool open-work"
                asp-controller="OpenWork"
                asp-action="Index"
@@ -1234,6 +1247,13 @@
     background:linear-gradient(180deg, rgba(255,255,255,.54), rgba(255,241,224,.34));
     border-color:rgba(240,90,0,.42);
     box-shadow:0 10px 20px rgba(240,90,0,.1), 0 0 0 1px rgba(240,90,0,.12), inset 0 1px 0 rgba(255,255,255,.5);
+}
+
+.dashboard-global-tool.attendance {
+    color:#1688f5;
+    background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(226,244,255,.38));
+    border-color:rgba(22,136,245,.42);
+    box-shadow:0 10px 20px rgba(22,136,245,.1), 0 0 0 1px rgba(22,136,245,.12), inset 0 1px 0 rgba(255,255,255,.5);
 }
 
 .dashboard-global-tool svg {

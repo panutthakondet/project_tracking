@@ -5,6 +5,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
 using ProjectTracking.Services;
+using System.Globalization;
 
 namespace ProjectTracking.Controllers
 {
@@ -27,15 +28,22 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
+        private readonly LineMessagingService _lineMessagingService;
+        private readonly ILogger<ProjectIssuesController> _logger;
+        private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         public ProjectIssuesController(
             AppDbContext context,
             IWebHostEnvironment env,
-            OverdueNotificationService notificationService)
+            OverdueNotificationService notificationService,
+            LineMessagingService lineMessagingService,
+            ILogger<ProjectIssuesController> logger)
         {
             _context = context;
             _env = env;
             _notificationService = notificationService;
+            _lineMessagingService = lineMessagingService;
+            _logger = logger;
         }
 
         // =====================================================
@@ -286,6 +294,7 @@ namespace ProjectTracking.Controllers
             }
 
             await SyncNotificationsSafelyAsync();
+            await SendCreatedIssueLineSafelyAsync(model.IssueId);
 
             return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
         }
@@ -475,7 +484,9 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
+            var oldDev = NormalizeProgrammerDevStatus(issue.DevStatus);
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
+            var shouldNotifyBaFixed = oldDev != "FIXED" && newDev == "FIXED";
 
             issue.DevStatus = newDev;
             issue.DevDetail = model.DevDetail;   // developer fix detail
@@ -508,6 +519,8 @@ namespace ProjectTracking.Controllers
             await SaveFixImages(issue.IssueId, afterImages);
 
             await SyncNotificationsSafelyAsync();
+            if (shouldNotifyBaFixed)
+                await SendFixedIssueLineToBaSafelyAsync(issue.IssueId);
 
             return RedirectToAction(nameof(DevIndex), new { projectId = issue.ProjectId });
         }
@@ -888,6 +901,137 @@ namespace ProjectTracking.Controllers
         {
             return ModelState.TryGetValue(key, out var state) && state.Errors.Count > 0;
         }
+
+        private async Task SendCreatedIssueLineSafelyAsync(int issueId)
+        {
+            if (!_lineMessagingService.IsConfigured)
+                return;
+
+            try
+            {
+                var issue = await _context.ProjectIssues
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.IssueId == issueId);
+
+                if (issue == null)
+                    return;
+
+                var project = issue.Project;
+                var recipientTargets = new Dictionary<int, string>();
+
+                if (project?.BaEmpId is > 0)
+                    recipientTargets[project.BaEmpId.Value] = $"/ProjectIssues/Details/{issue.IssueId}";
+
+                if (issue.AssignTo > 0)
+                    recipientTargets.TryAdd(issue.AssignTo, $"/ProjectIssues/DevDetails/{issue.IssueId}");
+
+                if (recipientTargets.Count == 0)
+                    return;
+
+                var title = "แจ้ง Issue ใหม่:";
+                var message = BuildCreatedIssueLineMessage(issue);
+
+                foreach (var recipient in recipientTargets)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.Key,
+                        title,
+                        message,
+                        recipient.Value,
+                        HttpContext.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send created issue LINE notification failed. IssueId={IssueId}", issueId);
+            }
+        }
+
+        private async Task SendFixedIssueLineToBaSafelyAsync(int issueId)
+        {
+            if (!_lineMessagingService.IsConfigured)
+                return;
+
+            try
+            {
+                var issue = await _context.ProjectIssues
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.IssueId == issueId);
+
+                var baEmpId = issue?.Project?.BaEmpId;
+                if (issue == null || !baEmpId.HasValue || baEmpId.Value <= 0)
+                    return;
+
+                await _lineMessagingService.SendNotificationToEmployeeAsync(
+                    baEmpId.Value,
+                    "แจ้ง Issue แก้เสร็จ:",
+                    BuildFixedIssueLineMessage(issue),
+                    $"/ProjectIssues/Details/{issue.IssueId}",
+                    HttpContext.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send fixed issue LINE notification failed. IssueId={IssueId}", issueId);
+            }
+        }
+
+        private static string BuildCreatedIssueLineMessage(ProjectIssue issue)
+        {
+            var project = issue.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForLine(project)}",
+                $"Issue: {TextOrDash(issue.IssueName)}",
+                $"รายละเอียด: {TextOrDash(issue.IssueDetail)}",
+                $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Priority: {TextOrDash(issue.IssuePriority)}",
+                $"Status: {TextOrDash(issue.IssueStatus)} / Dev {TextOrDash(issue.DevStatus)}",
+                $"วันที่เริ่ม: {DateText(issue.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(issue.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string BuildFixedIssueLineMessage(ProjectIssue issue)
+        {
+            var project = issue.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForLine(project)}",
+                $"Issue: {TextOrDash(issue.IssueName)}",
+                $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Dev Status: {TextOrDash(issue.DevStatus)}",
+                $"รายละเอียดการแก้ไข: {TextOrDash(issue.DevDetail)}",
+                $"วันที่เริ่ม: {DateText(issue.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(issue.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string ProjectNameForLine(Project? project)
+            => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
+
+        private static string TextOrDash(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+        private static string DateText(DateTime? value)
+            => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
 
         private async Task SyncNotificationsSafelyAsync()
         {

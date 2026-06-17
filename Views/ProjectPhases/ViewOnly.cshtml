@@ -43,6 +43,10 @@
     var statusOptions = projects.Any()
         ? rows.Select(x => x.PhaseStatus).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList()
         : new List<string?>();
+    var phaseCoopGroups = rows
+        .GroupBy(x => string.IsNullOrWhiteSpace(x.Project?.Coop?.CoopName) ? "-" : x.Project!.Coop!.CoopName!)
+        .OrderBy(x => x.Key)
+        .ToList();
 }
 
 <style>
@@ -139,12 +143,86 @@
         color: #dc2626;
     }
 
-    .phase-report-table {
+    .phase-report-groups {
+        display: grid;
+        gap: 16px;
+    }
+
+    .phase-report-group {
         overflow: hidden;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
         background: #fff;
         box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .phase-report-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px;
+        border-bottom: 1px solid #d8e3ef;
+        background: #f8fafc;
+    }
+
+    .phase-report-group-title {
+        min-width: 0;
+    }
+
+    .phase-report-group-title span {
+        display: block;
+        color: #64748b;
+        font-size: .84rem;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .phase-report-group-title strong {
+        display: block;
+        color: #10233f;
+        font-size: 1.15rem;
+        font-weight: 900;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .phase-report-group-stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .phase-report-group-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        border: 1px solid #d8e3ef;
+        border-radius: 999px;
+        padding: 4px 10px;
+        color: #475569;
+        background: #fff;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .phase-report-group-stat b {
+        color: #10233f;
+    }
+
+    .phase-report-group-stat.overdue b {
+        color: #dc2626;
+    }
+
+    .phase-report-table {
+        overflow: hidden;
+        border: 0;
+        border-radius: 0;
+        background: #fff;
+        box-shadow: none;
     }
 
     .phase-report-table th {
@@ -183,6 +261,15 @@
         .phase-report-filter,
         .phase-report-kpis {
             grid-template-columns: 1fr;
+        }
+
+        .phase-report-group-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .phase-report-group-stats {
+            justify-content: flex-start;
         }
     }
 </style>
@@ -263,50 +350,72 @@
     }
     else
     {
-        <div class="table-responsive phase-report-table">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="text-center">#</th>
-                        <th>Project</th>
-                        <th>Phase</th>
-                        <th class="text-center">Plan</th>
-                        <th class="text-center">กำหนดส่งงวดงาน</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">ล่าช้า</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (var i = 0; i < rows.Count; i++)
-                    {
-                        var phase = rows[i];
-                        var overdueDays = OverdueDays(phase);
-                        <tr>
-                            <td class="text-center fw-bold">@(i + 1)</td>
-                            <td>
-                                <div class="phase-report-title">@phase.Project?.ProjectDisplayName</div>
-                            </td>
-                            <td>
-                                <div class="phase-report-phase-text">@phase.PhaseDisplayName</div>
-                                <div class="phase-report-muted fw-normal">BA: @(phase.Project?.BA?.EmpName ?? "-")</div>
-                            </td>
-                            <td class="text-center">@DateText(phase.PlanStart) - @DateText(phase.PlanEnd)</td>
-                            <td class="text-center">@DateText(phase.PeriodEndDate)</td>
-                            <td class="text-center">@StatusText(phase.PhaseStatus)</td>
-                            <td class="text-center">
-                                @if (overdueDays > 0)
+        var runningNo = 0;
+        <div class="phase-report-groups">
+            @foreach (var group in phaseCoopGroups)
+            {
+                <section class="phase-report-group">
+                    <div class="phase-report-group-head">
+                        <div class="phase-report-group-title">
+                            <span>สหกรณ์</span>
+                            <strong>@group.Key</strong>
+                        </div>
+                        <div class="phase-report-group-stats">
+                            <span class="phase-report-group-stat">Projects <b>@group.Select(x => x.ProjectId).Distinct().Count()</b></span>
+                            <span class="phase-report-group-stat">Phases <b>@group.Count()</b></span>
+                            <span class="phase-report-group-stat overdue">ล่าช้า <b>@group.Count(x => OverdueDays(x) > 0)</b></span>
+                            <span class="phase-report-group-stat">ยังไม่จบ <b>@group.Count(x => !IsDone(x.PhaseStatus) && OverdueDays(x) == 0)</b></span>
+                            <span class="phase-report-group-stat">จบแล้ว <b>@group.Count(x => IsDone(x.PhaseStatus))</b></span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive phase-report-table">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th>Project</th>
+                                    <th>Phase</th>
+                                    <th class="text-center">Plan</th>
+                                    <th class="text-center">กำหนดส่งงวดงาน</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">ล่าช้า</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var phase in group)
                                 {
-                                    <span class="phase-report-delay">@overdueDays วัน</span>
+                                    runningNo++;
+                                    var overdueDays = OverdueDays(phase);
+                                    <tr>
+                                        <td class="text-center fw-bold">@runningNo</td>
+                                        <td>
+                                            <div class="phase-report-title">@phase.Project?.ProjectDisplayName</div>
+                                        </td>
+                                        <td>
+                                            <div class="phase-report-phase-text">@phase.PhaseDisplayName</div>
+                                            <div class="phase-report-muted fw-normal">BA: @(phase.Project?.BA?.EmpName ?? "-")</div>
+                                        </td>
+                                        <td class="text-center">@DateText(phase.PlanStart) - @DateText(phase.PlanEnd)</td>
+                                        <td class="text-center">@DateText(phase.PeriodEndDate)</td>
+                                        <td class="text-center">@StatusText(phase.PhaseStatus)</td>
+                                        <td class="text-center">
+                                            @if (overdueDays > 0)
+                                            {
+                                                <span class="phase-report-delay">@overdueDays วัน</span>
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                    </tr>
                                 }
-                                else
-                                {
-                                    <span>-</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
         </div>
     }
     <script>

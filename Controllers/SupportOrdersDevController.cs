@@ -4,16 +4,26 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
+using System.Globalization;
 
 namespace ProjectTracking.Controllers
 {
     public class SupportOrdersDevController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly LineMessagingService _lineMessagingService;
+        private readonly ILogger<SupportOrdersDevController> _logger;
+        private static readonly CultureInfo ThaiCulture = new("th-TH");
 
-        public SupportOrdersDevController(AppDbContext context)
+        public SupportOrdersDevController(
+            AppDbContext context,
+            LineMessagingService lineMessagingService,
+            ILogger<SupportOrdersDevController> logger)
         {
             _context = context;
+            _lineMessagingService = lineMessagingService;
+            _logger = logger;
         }
 
         // =========================
@@ -109,7 +119,9 @@ namespace ProjectTracking.Controllers
             if (dbOrder == null)
                 return NotFound();
 
+            var oldDevStatus = NormalizeSupportDevStatus(dbOrder.DevStatus);
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
+            var shouldNotifyBaFixed = oldDevStatus != "FIXED" && nextDevStatus == "FIXED";
             dbOrder.DevStatus = nextDevStatus;
             dbOrder.DevDetail = order.DevDetail;
 
@@ -169,8 +181,72 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
+            if (shouldNotifyBaFixed)
+                await SendFixedSupportLineToBaSafelyAsync(dbOrder.OrderId);
+
             return RedirectToAction(nameof(Index), new { projectId = dbOrder.ProjectId });
         }
+
+        private async Task SendFixedSupportLineToBaSafelyAsync(int orderId)
+        {
+            if (!_lineMessagingService.IsConfigured)
+                return;
+
+            try
+            {
+                var order = await _context.ProjectSupportOrders
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.OrderId == orderId);
+
+                var baEmpId = order?.Project?.BaEmpId;
+                if (order == null || !baEmpId.HasValue || baEmpId.Value <= 0)
+                    return;
+
+                await _lineMessagingService.SendNotificationToEmployeeAsync(
+                    baEmpId.Value,
+                    "แจ้ง Support แก้เสร็จ:",
+                    BuildFixedSupportLineMessage(order),
+                    $"/SupportOrders/Details/{order.OrderId}",
+                    HttpContext.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send fixed support LINE notification failed. OrderId={OrderId}", orderId);
+            }
+        }
+
+        private static string BuildFixedSupportLineMessage(ProjectSupportOrder order)
+        {
+            var project = order.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForLine(project)}",
+                $"Support: {TextOrDash(order.OrderTitle)}",
+                $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Dev Status: {TextOrDash(order.DevStatus)}",
+                $"รายละเอียดการแก้ไข: {TextOrDash(order.DevDetail)}",
+                $"วันที่เริ่ม: {DateText(order.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(order.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string ProjectNameForLine(Project? project)
+            => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
+
+        private static string TextOrDash(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+        private static string DateText(DateTime? value)
+            => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
 
         private static string NormalizeSupportDevStatus(string? status)
         {

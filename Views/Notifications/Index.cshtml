@@ -217,6 +217,27 @@
         font-weight: 600;
     }
 
+    .notification-person {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .notification-person img {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #dbe6f3;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #fff;
+        flex: 0 0 auto;
+    }
+
+    .notification-person span {
+        overflow-wrap: anywhere;
+    }
+
     .notification-side {
         display: grid;
         gap: 7px;
@@ -378,11 +399,6 @@
                                            asp-route-id="@item.NotificationId">
                                             <div class="notification-card-main">
                                                 <div class="notification-card-head">
-                                                    <img class="pt-owner-avatar"
-                                                         src="@item.OwnerAvatarPath"
-                                                         alt="@item.OwnerName"
-                                                         loading="lazy"
-                                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                                     <div class="min-w-0">
                                                         <h3 class="notification-title">@item.Title</h3>
                                                         <p class="notification-project">@item.ProjectName</p>
@@ -390,7 +406,20 @@
                                                     </div>
                                                 </div>
                                                 <div class="notification-people">
-                                                    <span><strong>BA:</strong> @item.BaName</span>
+                                                    <span class="notification-person">
+                                                        <img src="@item.OwnerAvatarPath"
+                                                             alt="@item.OwnerName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span><strong>เจ้าของงาน:</strong> @item.OwnerName</span>
+                                                    </span>
+                                                    <span class="notification-person">
+                                                        <img src="@item.BaAvatarPath"
+                                                             alt="@item.BaName"
+                                                             loading="lazy"
+                                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                        <span><strong>BA:</strong> @item.BaName</span>
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div class="notification-side">

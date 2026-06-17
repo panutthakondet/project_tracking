@@ -389,20 +389,20 @@ namespace ProjectTracking.Controllers
 
             try
             {
-                var emailResult = await _meetingNotificationService.SendCreatedEmailAsync(createdMeetingId);
-                if (emailResult.FailedCount > 0)
+                var notifyResult = await _meetingNotificationService.SendCreatedNotificationsAsync(createdMeetingId);
+                if (notifyResult.FailedCount > 0)
                 {
-                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ส่งอีเมลไม่สำเร็จ {emailResult.FailedCount} รายการ";
+                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ";
                 }
-                else if (emailResult.SentCount > 0)
+                else if (notifyResult.SentCount > 0)
                 {
-                    TempData["Success"] = $"สร้าง Meeting สำเร็จ และส่งอีเมลเชิญประชุมแล้ว {emailResult.SentCount} รายการ";
+                    TempData["Success"] = $"สร้าง Meeting สำเร็จ และส่งแจ้งเตือนแล้ว {notifyResult.SentCount} รายการ";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Meeting was created but created-email notification failed. MeetingId={MeetingId}", createdMeetingId);
-                TempData["Error"] = "สร้าง Meeting สำเร็จ แต่ระบบส่งอีเมลเชิญประชุมไม่สำเร็จ";
+                _logger.LogError(ex, "Meeting was created but created notification failed. MeetingId={MeetingId}", createdMeetingId);
+                TempData["Error"] = "สร้าง Meeting สำเร็จ แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
             }
 
             return RedirectToAction("Index");
@@ -417,11 +417,8 @@ namespace ProjectTracking.Controllers
             if (meeting == null)
                 return NotFound();
 
-            var oldStatus = NormalizeMeetingStatus(meeting.Status);
             var newStatus = NormalizeMeetingStatus(model.Status);
-            var shouldSendCancellationNotice =
-                oldStatus != "CANCELLED" &&
-                newStatus == "CANCELLED";
+            var shouldSendCancellationNotice = newStatus == "CANCELLED";
 
             meeting.Title = model.Title;
             meeting.Description = model.Description;
@@ -437,20 +434,35 @@ namespace ProjectTracking.Controllers
             if (!meeting.CreatedBy.HasValue)
                 meeting.CreatedBy = await GetCurrentEntryIdAsync();
 
-            // อัปเดตรายชื่อผู้เข้าร่วม
-            var existing = _context.MeetingAttendees.Where(a => a.MeetingId == meeting.Id);
-            _context.MeetingAttendees.RemoveRange(existing);
+            // อัปเดตรายชื่อผู้เข้าร่วมโดยรักษา attendee_id เดิมไว้ เพื่อให้ log แจ้งเตือนยังตรวจซ้ำได้ถูกต้อง
+            var selectedUserIds = (users ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToHashSet();
 
-            if (users != null && users.Count > 0)
+            var existingAttendees = await _context.MeetingAttendees
+                .Where(a => a.MeetingId == meeting.Id)
+                .ToListAsync();
+
+            var removeAttendees = existingAttendees
+                .Where(a => !selectedUserIds.Contains(a.UserId))
+                .ToList();
+
+            if (removeAttendees.Count > 0)
+                _context.MeetingAttendees.RemoveRange(removeAttendees);
+
+            var existingUserIds = existingAttendees
+                .Where(a => selectedUserIds.Contains(a.UserId))
+                .Select(a => a.UserId)
+                .ToHashSet();
+
+            foreach (var uid in selectedUserIds.Where(id => !existingUserIds.Contains(id)))
             {
-                foreach (var uid in users)
+                _context.MeetingAttendees.Add(new MeetingAttendee
                 {
-                    _context.MeetingAttendees.Add(new MeetingAttendee
-                    {
-                        MeetingId = meeting.Id,
-                        UserId = uid
-                    });
-                }
+                    MeetingId = meeting.Id,
+                    UserId = uid
+                });
             }
 
             await _context.SaveChangesAsync();
@@ -477,6 +489,30 @@ namespace ProjectTracking.Controllers
                 {
                     _logger.LogError(ex, "Meeting was cancelled but cancellation notification failed. MeetingId={MeetingId}", meeting.Id);
                     TempData["Error"] = "บันทึกสถานะยกเลิกแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
+                }
+            }
+            else
+            {
+                try
+                {
+                    var result = await _meetingNotificationService.SendUpdatedNotificationsAsync(meeting.Id);
+                    if (result.FailedCount > 0)
+                    {
+                        TempData["Error"] = $"บันทึกการแก้ไขแล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ";
+                    }
+                    else if (result.SentCount > 0)
+                    {
+                        TempData["Success"] = $"บันทึกการแก้ไขแล้ว และส่งแจ้งเตือนแล้ว {result.SentCount} รายการ";
+                    }
+                    else
+                    {
+                        TempData["Success"] = "บันทึกการแก้ไขแล้ว";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Meeting was updated but update notification failed. MeetingId={MeetingId}", meeting.Id);
+                    TempData["Error"] = "บันทึกการแก้ไขแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
                 }
             }
 

@@ -50,6 +50,10 @@
     var doneCount = rows.Count(x => IsDone(x.WorkStatus));
     var progressCount = rows.Count(x => !IsDone(x.WorkStatus));
     var statusOptions = rows.Select(x => x.WorkStatus).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
+    var assignCoopGroups = rows
+        .GroupBy(x => string.IsNullOrWhiteSpace(x.Phase?.Project?.Coop?.CoopName) ? "-" : x.Phase!.Project!.Coop!.CoopName!)
+        .OrderBy(x => x.Key)
+        .ToList();
 }
 
 <style>
@@ -139,12 +143,86 @@
         color: #dc2626;
     }
 
-    .assign-report-table {
+    .assign-report-groups {
+        display: grid;
+        gap: 16px;
+    }
+
+    .assign-report-group {
         overflow: hidden;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
         background: #fff;
         box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .assign-report-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px;
+        border-bottom: 1px solid #d8e3ef;
+        background: #f8fafc;
+    }
+
+    .assign-report-group-title {
+        min-width: 0;
+    }
+
+    .assign-report-group-title span {
+        display: block;
+        color: #64748b;
+        font-size: .84rem;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .assign-report-group-title strong {
+        display: block;
+        color: #10233f;
+        font-size: 1.15rem;
+        font-weight: 900;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-report-group-stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .assign-report-group-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        border: 1px solid #d8e3ef;
+        border-radius: 999px;
+        padding: 4px 10px;
+        color: #475569;
+        background: #fff;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .assign-report-group-stat b {
+        color: #10233f;
+    }
+
+    .assign-report-group-stat.overdue b {
+        color: #dc2626;
+    }
+
+    .assign-report-table {
+        overflow: hidden;
+        border: 0;
+        border-radius: 0;
+        background: #fff;
+        box-shadow: none;
     }
 
     .assign-report-table th {
@@ -190,6 +268,15 @@
         .assign-report-filter,
         .assign-report-kpis {
             grid-template-columns: 1fr;
+        }
+
+        .assign-report-group-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .assign-report-group-stats {
+            justify-content: flex-start;
         }
     }
 </style>
@@ -282,51 +369,73 @@
     }
     else
     {
-        <div class="table-responsive assign-report-table">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="text-center col-seq">#</th>
-                        <th>Project</th>
-                        <th>Phase</th>
-                        <th>Role</th>
-                        <th class="text-center">Plan</th>
-                        <th class="text-center">ล่าช้า</th>
-                        <th>Remark</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (var i = 0; i < rows.Count; i++)
-                    {
-                        var assign = rows[i];
-                        var overdueDays = OverdueDays(assign);
-                        <tr>
-                            <td class="text-center fw-bold col-seq">@(i + 1)</td>
-                            <td>
-                                <div class="assign-report-title">@assign.Phase?.Project?.ProjectDisplayName</div>
-                            </td>
-                            <td>
-                                <div class="assign-report-phase-text">@(assign.Phase?.PhaseDisplayName ?? "-")</div>
-                                <div class="assign-report-muted fw-normal">ผู้รับผิดชอบ: @(assign.Employee?.EmpName ?? "-")</div>
-                                <div class="assign-report-muted fw-normal">BA: @(assign.Phase?.Project?.BA?.EmpName ?? "-")</div>
-                            </td>
-                            <td>@(string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role)</td>
-                            <td class="text-center">@DateText(assign.PlanStart) - @DateText(assign.PlanEnd)</td>
-                            <td class="text-center">
-                                @if (overdueDays > 0)
+        var runningNo = 0;
+        <div class="assign-report-groups">
+            @foreach (var group in assignCoopGroups)
+            {
+                <section class="assign-report-group">
+                    <div class="assign-report-group-head">
+                        <div class="assign-report-group-title">
+                            <span>สหกรณ์</span>
+                            <strong>@group.Key</strong>
+                        </div>
+                        <div class="assign-report-group-stats">
+                            <span class="assign-report-group-stat">Projects <b>@group.Select(x => x.Phase?.ProjectId).Where(x => x.HasValue).Distinct().Count()</b></span>
+                            <span class="assign-report-group-stat">Assigns <b>@group.Count()</b></span>
+                            <span class="assign-report-group-stat overdue">ล่าช้า <b>@group.Count(x => OverdueDays(x) > 0)</b></span>
+                            <span class="assign-report-group-stat">IN_PROGRESS <b>@group.Count(x => !IsDone(x.WorkStatus))</b></span>
+                            <span class="assign-report-group-stat">DONE <b>@group.Count(x => IsDone(x.WorkStatus))</b></span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive assign-report-table">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center col-seq">#</th>
+                                    <th>Project</th>
+                                    <th>Phase</th>
+                                    <th>Role</th>
+                                    <th class="text-center">Plan</th>
+                                    <th class="text-center">ล่าช้า</th>
+                                    <th>Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var assign in group)
                                 {
-                                    <span class="assign-report-delay">@overdueDays วัน</span>
+                                    runningNo++;
+                                    var overdueDays = OverdueDays(assign);
+                                    <tr>
+                                        <td class="text-center fw-bold col-seq">@runningNo</td>
+                                        <td>
+                                            <div class="assign-report-title">@assign.Phase?.Project?.ProjectDisplayName</div>
+                                        </td>
+                                        <td>
+                                            <div class="assign-report-phase-text">@(assign.Phase?.PhaseDisplayName ?? "-")</div>
+                                            <div class="assign-report-muted fw-normal">ผู้รับผิดชอบ: @(assign.Employee?.EmpName ?? "-")</div>
+                                            <div class="assign-report-muted fw-normal">BA: @(assign.Phase?.Project?.BA?.EmpName ?? "-")</div>
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role)</td>
+                                        <td class="text-center">@DateText(assign.PlanStart) - @DateText(assign.PlanEnd)</td>
+                                        <td class="text-center">
+                                            @if (overdueDays > 0)
+                                            {
+                                                <span class="assign-report-delay">@overdueDays วัน</span>
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(assign.Remark) ? "-" : assign.Remark)</td>
+                                    </tr>
                                 }
-                                else
-                                {
-                                    <span>-</span>
-                                }
-                            </td>
-                            <td>@(string.IsNullOrWhiteSpace(assign.Remark) ? "-" : assign.Remark)</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
         </div>
     }
     <script>

@@ -1032,12 +1032,14 @@ namespace ProjectTracking.Controllers
             var assigns = await _context.PhaseAssigns
                 .AsNoTracking()
                 .Include(a => a.Employee)
+                    .ThenInclude(e => e!.LoginUser)
                 .Include(a => a.Phase!)
                     .ThenInclude(p => p!.Project)
                         .ThenInclude(p => p!.Coop)
                 .Include(a => a.Phase!)
                     .ThenInclude(p => p!.Project)
                         .ThenInclude(p => p!.BA)
+                            .ThenInclude(ba => ba!.LoginUser)
                 .ToListAsync();
 
             var affectedProjectIds = assigns
@@ -1091,7 +1093,9 @@ namespace ProjectTracking.Controllers
                     PhasePeriodLabel = phase.PhasePeriodLabel,
                     Role = string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role!,
                     OwnerName = assign.Employee?.EmpName ?? "-",
+                    OwnerAvatarPath = ResolveProfileImagePath(assign.Employee?.LoginUser?.ProfileImagePath),
                     BaName = project.BA?.EmpName ?? "-",
+                    BaAvatarPath = ResolveProfileImagePath(project.BA?.LoginUser?.ProfileImagePath),
                     StatusCategory = category,
                     StatusText = category switch
                     {
@@ -1149,6 +1153,21 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.Role)
                 .ToList();
 
+            var coopGroups = rows
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.CoopName) ? "-" : x.CoopName)
+                .Select(x => new LineOverdueOverviewCoopGroupViewModel
+                {
+                    CoopName = x.Key,
+                    ProjectCount = x.Select(row => row.ProjectId).Distinct().Count(),
+                    TotalCount = x.Count(),
+                    DoneCount = x.Count(row => row.StatusCategory == "DONE"),
+                    WarningCount = x.Count(row => row.StatusCategory == "WARNING"),
+                    DangerCount = x.Count(row => row.StatusCategory == "DANGER"),
+                    Rows = x.ToList()
+                })
+                .OrderBy(x => x.CoopName)
+                .ToList();
+
             return new LineOverdueOverviewDetailViewModel
             {
                 GeneratedAt = DateTime.Now,
@@ -1166,6 +1185,7 @@ namespace ProjectTracking.Controllers
                 DangerCount = rows.Count(x => x.StatusCategory == "DANGER"),
                 ProjectOptions = projectOptions,
                 EmployeeOptions = employeeOptions,
+                CoopGroups = coopGroups,
                 Rows = rows
             };
         }

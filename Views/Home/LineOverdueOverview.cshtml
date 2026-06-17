@@ -5,6 +5,7 @@
     ViewData["Title"] = "Overdue Overview Detail";
     var th = new CultureInfo("th-TH");
     var rows = Model.Rows ?? new List<ProjectTracking.ViewModels.LineOverdueOverviewAssignViewModel>();
+    var coopGroups = Model.CoopGroups ?? new List<ProjectTracking.ViewModels.LineOverdueOverviewCoopGroupViewModel>();
     var selectedCoopName = Model.CoopName;
     var coopList = Model.ProjectOptions
         .Select(x => x.CoopName)
@@ -110,119 +111,264 @@
         font-weight: 800;
     }
 
-    .overdue-overview-table {
-        overflow: hidden;
-        border: 1px solid #d8e3ef;
-        border-radius: 18px;
-        background: #fff;
-        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    .overdue-overview-groups {
+        display: grid;
+        gap: 18px;
     }
 
-    .overdue-overview-table table {
-        width: 100%;
+    .overdue-overview-group {
+        background: rgba(255, 255, 255, .72);
+        border: 1px solid #dbe6f3;
+        border-radius: 24px;
+        padding: 14px;
+        box-shadow: 0 14px 30px rgba(15, 40, 74, .08);
+    }
+
+    .overdue-overview-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, rgba(20, 184, 166, .14), rgba(59, 130, 246, .10));
+        border: 1px solid rgba(20, 184, 166, .22);
+        border-radius: 14px;
+        padding: 9px 12px;
+    }
+
+    .overdue-overview-group-title {
         min-width: 0;
-        table-layout: fixed;
     }
 
-    .overdue-overview-table th {
-        color: #fff;
-        background: #10233f;
+    .overdue-overview-group-title span {
+        display: block;
+        color: #64748b;
+        font-size: .84rem;
         font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .overdue-overview-group-title strong {
+        display: block;
+        color: #0f766e;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-group-stats {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .overdue-overview-group-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        border: 1px solid #d8e3ef;
+        border-radius: 999px;
+        padding: 4px 10px;
+        color: #475569;
+        background: #fff;
+        font-weight: 900;
+        line-height: 1.2;
         white-space: nowrap;
     }
 
-    .overdue-overview-table td {
-        vertical-align: top;
-        font-weight: 500;
-        overflow-wrap: anywhere;
+    .overdue-overview-group-stat b {
+        color: #10233f;
+    }
+
+    .overdue-overview-group-stat.danger b { color: #dc2626; }
+    .overdue-overview-group-stat.warning b { color: #d97706; }
+    .overdue-overview-group-stat.done b { color: #16a34a; }
+
+    .overdue-overview-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .overdue-overview-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+        gap: 14px;
+        align-items: start;
+        background: #fff;
+        border: 1px solid #dbe6f3;
+        border-left: 6px solid #22c7b8;
+        border-radius: 20px;
+        padding: 14px 16px;
+        color: #10223e;
+        text-decoration: none;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .overdue-overview-card.danger {
+        border-left-color: #f43f5e;
+    }
+
+    .overdue-overview-card.warning {
+        border-left-color: #f59e0b;
+    }
+
+    .overdue-overview-card.done {
+        border-left-color: #10b981;
+    }
+
+    .overdue-overview-card:hover {
+        color: #10223e;
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px rgba(15, 40, 74, .12);
+    }
+
+    .overdue-overview-card-main {
+        min-width: 0;
+    }
+
+    .overdue-overview-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        min-width: 0;
     }
 
     .overdue-overview-title {
-        color: #10233f;
+        margin: 0;
+        color: #10223e;
+        font-size: 1.08rem;
         font-weight: 900;
+        line-height: 1.28;
         overflow-wrap: anywhere;
     }
 
-    .overdue-overview-muted {
-        color: #475569;
+    .overdue-overview-project {
+        margin: 5px 0 0;
+        color: #0f172a;
+        font-size: .93rem;
+        font-weight: 400;
+        line-height: 1.35;
+    }
+
+    .overdue-overview-owner-line {
+        margin-top: 5px;
+        color: #0f172a;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .overdue-overview-people {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: .9rem;
+        font-weight: 400;
+    }
+
+    .overdue-overview-people strong {
+        color: #0f172a;
         font-weight: 600;
     }
 
-    .overdue-overview-meta {
-        display: grid;
-        gap: 4px;
-        margin-top: 8px;
-        color: #475569;
-        font-size: .92rem;
-        font-weight: 700;
-        line-height: 1.35;
+    .overdue-overview-person {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
     }
 
-    .overdue-overview-phase {
-        display: grid;
-        gap: 6px;
+    .overdue-overview-person img {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #dbe6f3;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #fff;
+        flex: 0 0 auto;
     }
 
-    .overdue-overview-role {
-        color: #10233f;
-        font-size: 1.02rem;
-        font-weight: 900;
-        line-height: 1.35;
+    .overdue-overview-person span {
         overflow-wrap: anywhere;
     }
 
-    .overdue-overview-detail-line {
-        color: #475569;
-        font-size: .92rem;
-        font-weight: 700;
-        line-height: 1.35;
+    .overdue-overview-side {
+        display: grid;
+        gap: 7px;
+        justify-items: end;
+        text-align: right;
     }
 
     .overdue-overview-date {
-        display: grid;
-        gap: 3px;
-        font-weight: 800;
-        line-height: 1.35;
+        color: #0f172a;
+        font-size: .95rem;
+        font-weight: 400;
+    }
+
+    .overdue-overview-status-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .overdue-overview-remark {
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 600;
         overflow-wrap: anywhere;
     }
 
     .overdue-overview-status {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        max-width: 100%;
-        min-height: 28px;
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-weight: 900;
-        line-height: 1.25;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        text-align: center;
+        font-size: .9rem;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
     }
 
     .overdue-overview-status.done {
-        color: #166534;
-        background: #dcfce7;
+        color: #059669;
     }
 
     .overdue-overview-status.warning {
-        color: #92400e;
-        background: #fef3c7;
+        color: #d97706;
     }
 
     .overdue-overview-status.danger {
-        color: #b91c1c;
-        background: #fee2e2;
+        color: #e11d48;
     }
 
     @@media (max-width: 1100px) {
         .overdue-overview-filter,
         .overdue-overview-kpis {
             grid-template-columns: 1fr;
+        }
+
+        .overdue-overview-group-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .overdue-overview-group-stats {
+            justify-content: flex-start;
+        }
+
+        .overdue-overview-card {
+            grid-template-columns: 1fr;
+        }
+
+        .overdue-overview-side {
+            justify-items: start;
+            text-align: left;
+        }
+
+        .overdue-overview-status-row {
+            justify-content: flex-start;
         }
     }
 </style>
@@ -322,53 +468,75 @@
     }
     else
     {
-        <div class="table-responsive overdue-overview-table">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="text-center" style="width:54px">#</th>
-                        <th style="width:28%">Project</th>
-                        <th style="width:31%">Phase / Role</th>
-                        <th class="text-center" style="width:190px">Status</th>
-                        <th style="width:24%">Plan / Remark</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (var i = 0; i < rows.Count; i++)
-                    {
-                        var row = rows[i];
-                        <tr>
-                            <td class="text-center fw-bold">@(i + 1)</td>
-                            <td>
-                                <div class="overdue-overview-title">@row.ProjectName</div>
-                                <div class="overdue-overview-meta">
-                                    <span>เจ้าของงาน: @row.OwnerName</span>
-                                    <span>BA: @row.BaName</span>
+        <div class="overdue-overview-groups">
+            @foreach (var group in coopGroups)
+            {
+                <section class="overdue-overview-group">
+                    <div class="overdue-overview-group-head">
+                        <div class="overdue-overview-group-title">
+                            <span>สหกรณ์</span>
+                            <strong>@group.CoopName</strong>
+                        </div>
+                        <div class="overdue-overview-group-stats">
+                            <span class="overdue-overview-group-stat">Projects <b>@group.ProjectCount</b></span>
+                            <span class="overdue-overview-group-stat">Assigns <b>@group.TotalCount</b></span>
+                            <span class="overdue-overview-group-stat danger">ล่าช้า <b>@group.DangerCount</b></span>
+                            <span class="overdue-overview-group-stat warning">เสี่ยง <b>@group.WarningCount</b></span>
+                            <span class="overdue-overview-group-stat done">Done <b>@group.DoneCount</b></span>
+                        </div>
+                    </div>
+
+                    <div class="overdue-overview-list">
+                        @foreach (var row in group.Rows)
+                        {
+                            <a class="overdue-overview-card @row.StatusTone"
+                               asp-controller="PhaseAssigns"
+                               asp-action="Index"
+                               asp-route-projectId="@row.ProjectId"
+                               asp-route-empId="@row.EmpId">
+                                <div class="overdue-overview-card-main">
+                                    <div class="overdue-overview-card-head">
+                                        <div class="min-w-0">
+                                            <h3 class="overdue-overview-title">@row.Role</h3>
+                                            <p class="overdue-overview-project">@row.ProjectName</p>
+                                            <div class="overdue-overview-owner-line">ผู้รับผิดชอบ: @row.OwnerName</div>
+                                        </div>
+                                    </div>
+                                    <div class="overdue-overview-people">
+                                        <span class="overdue-overview-person">
+                                            <img src="@row.OwnerAvatarPath"
+                                                 alt="@row.OwnerName"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <span><strong>เจ้าของงาน:</strong> @row.OwnerName</span>
+                                        </span>
+                                        <span class="overdue-overview-person">
+                                            <img src="@row.BaAvatarPath"
+                                                 alt="@row.BaName"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <span><strong>BA:</strong> @row.BaName</span>
+                                        </span>
+                                        <span><strong>Phase:</strong> @row.PhaseName</span>
+                                        <span><strong>งวด:</strong> @row.PhasePeriodLabel</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(row.Remark) && row.Remark != "-")
+                                    {
+                                        <div class="overdue-overview-remark">Remark: @row.Remark</div>
+                                    }
                                 </div>
-                            </td>
-                            <td>
-                                <div class="overdue-overview-phase">
-                                    <div class="overdue-overview-role">@row.Role</div>
-                                    <div class="overdue-overview-detail-line">@row.PhaseName</div>
-                                    <div class="overdue-overview-muted">@row.PhasePeriodLabel</div>
+                                <div class="overdue-overview-side">
+                                    <div class="overdue-overview-date">Plan: @DateText(row.PlanStart) - @DateText(row.PlanEnd)</div>
+                                    <div class="overdue-overview-date">กำหนดงวดงาน: @DateText(row.PeriodEnd)</div>
+                                    <div class="overdue-overview-status-row">
+                                        <span class="overdue-overview-status @row.StatusTone">@row.StatusText</span>
+                                    </div>
                                 </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="overdue-overview-status @row.StatusTone">@row.StatusText</span>
-                            </td>
-                            <td>
-                                <div class="overdue-overview-date">
-                                    <span>Plan: @DateText(row.PlanStart) - @DateText(row.PlanEnd)</span>
-                                    <span>กำหนดงวดงาน: @DateText(row.PeriodEnd)</span>
-                                </div>
-                                <div class="overdue-overview-meta overdue-overview-remark">
-                                    <span>Remark: @row.Remark</span>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
         </div>
     }
 
