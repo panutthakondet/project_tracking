@@ -25,7 +25,7 @@
 
     .overdue-overview-filter {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
         align-items: start;
         padding: 16px;
@@ -254,18 +254,18 @@
         line-height: 1.35;
     }
 
-    .overdue-overview-owner-line {
-        margin-top: 5px;
-        color: #0f172a;
-        font-size: .9rem;
-        font-weight: 700;
-    }
-
     .overdue-overview-people {
+        grid-column: 1 / -1;
         display: flex;
         flex-wrap: wrap;
-        gap: 6px 18px;
-        margin-top: 8px;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 8px 18px;
+        margin-top: 4px;
+        padding: 10px 12px;
+        border: 1px solid #dbeafe;
+        border-radius: 14px;
+        background: #f4f8ff;
         color: #0f172a;
         font-size: .9rem;
         font-weight: 400;
@@ -295,6 +295,21 @@
 
     .overdue-overview-person span {
         overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: .9rem;
+        font-weight: 400;
+    }
+
+    .overdue-overview-meta strong {
+        color: #0f172a;
+        font-weight: 600;
     }
 
     .overdue-overview-side {
@@ -370,6 +385,10 @@
         .overdue-overview-status-row {
             justify-content: flex-start;
         }
+
+        .overdue-overview-people {
+            justify-content: flex-start;
+        }
     }
 </style>
 
@@ -407,18 +426,6 @@
                             data-coop-name="@project.CoopName"
                             selected="@(Model.ProjectId == project.ProjectId)">
                         @project.ProjectName
-                    </option>
-                }
-            </select>
-        </div>
-        <div>
-            <label for="empId" class="form-label">ผู้รับผิดชอบ</label>
-            <select id="empId" name="empId" class="form-select" data-placeholder="พิมพ์ค้นหาผู้รับผิดชอบ...">
-                <option value="">-- All Employees --</option>
-                @foreach (var employee in Model.EmployeeOptions)
-                {
-                    <option value="@employee.EmpId" selected="@(Model.EmpId == employee.EmpId)">
-                        @employee.EmpName
                     </option>
                 }
             </select>
@@ -499,26 +506,10 @@
                                         <div class="min-w-0">
                                             <h3 class="overdue-overview-title">@row.Role</h3>
                                             <p class="overdue-overview-project">@row.ProjectName</p>
-                                            <div class="overdue-overview-owner-line">ผู้รับผิดชอบ: @row.OwnerName</div>
                                         </div>
                                     </div>
-                                    <div class="overdue-overview-people">
-                                        <span class="overdue-overview-person">
-                                            <img src="@row.OwnerAvatarPath"
-                                                 alt="@row.OwnerName"
-                                                 loading="lazy"
-                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                            <span><strong>เจ้าของงาน:</strong> @row.OwnerName</span>
-                                        </span>
-                                        <span class="overdue-overview-person">
-                                            <img src="@row.BaAvatarPath"
-                                                 alt="@row.BaName"
-                                                 loading="lazy"
-                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                            <span><strong>BA:</strong> @row.BaName</span>
-                                        </span>
+                                    <div class="overdue-overview-meta">
                                         <span><strong>Phase:</strong> @row.PhaseName</span>
-                                        <span><strong>งวด:</strong> @row.PhasePeriodLabel</span>
                                     </div>
                                     @if (!string.IsNullOrWhiteSpace(row.Remark) && row.Remark != "-")
                                     {
@@ -531,6 +522,22 @@
                                     <div class="overdue-overview-status-row">
                                         <span class="overdue-overview-status @row.StatusTone">@row.StatusText</span>
                                     </div>
+                                </div>
+                                <div class="overdue-overview-people">
+                                    <span class="overdue-overview-person">
+                                        <img src="@row.OwnerAvatarPath"
+                                             alt="@row.OwnerName"
+                                             loading="lazy"
+                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span><strong>ผู้รับผิดชอบ:</strong> @row.OwnerName</span>
+                                    </span>
+                                    <span class="overdue-overview-person">
+                                        <img src="@row.BaAvatarPath"
+                                             alt="@row.BaName"
+                                             loading="lazy"
+                                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span><strong>BA:</strong> @row.BaName</span>
+                                    </span>
                                 </div>
                             </a>
                         }

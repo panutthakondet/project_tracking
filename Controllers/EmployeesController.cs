@@ -73,10 +73,8 @@ namespace ProjectTracking.Controllers
                 .Distinct()
                 .ToListAsync();
 
-            ViewBag.LineLinkedEmpIds = lineLinkedEmpIds
-                .Concat(telegramLinkedEmpIds)
-                .Distinct()
-                .ToHashSet();
+            ViewBag.LineLinkedEmpIds = lineLinkedEmpIds.ToHashSet();
+            ViewBag.TelegramLinkedEmpIds = telegramLinkedEmpIds.ToHashSet();
 
             return View(employees);
         }

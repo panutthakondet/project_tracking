@@ -201,7 +201,10 @@
                                         @(a.EmailSent ? "ส่งอีเมลแล้ว" : "ยังไม่ส่งอีเมล")
                                     </span>
                                     <span class="@(a.LineSent ? "text-primary" : "text-muted")">
-                                        @(a.LineSent ? "ส่ง LINE/Telegram แล้ว" : "ยังไม่ส่ง LINE/Telegram")
+                                        @(a.LineSent ? "ส่ง LINE แล้ว" : "ยังไม่ส่ง LINE")
+                                    </span>
+                                    <span class="@(a.TelegramSent ? "text-info" : "text-muted")">
+                                        @(a.TelegramSent ? "ส่ง Telegram แล้ว" : "ยังไม่ส่ง Telegram")
                                     </span>
                                 </div>
                             </div>

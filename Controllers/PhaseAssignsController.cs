@@ -10,16 +10,27 @@ using System.Text.Json.Serialization;
 using System.IO;
 using System;
 using System.Globalization;
+using ProjectTracking.Services;
 
 namespace ProjectTracking.Controllers
 {
     public class PhaseAssignsController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
+        private readonly ILogger<PhaseAssignsController> _logger;
 
-        public PhaseAssignsController(AppDbContext context)
+        public PhaseAssignsController(
+            AppDbContext context,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
+            ILogger<PhaseAssignsController> logger)
         {
             _context = context;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
+            _logger = logger;
         }
 
         // รองรับวันที่ไทย dd/MM/พ.ศ.
@@ -302,6 +313,7 @@ namespace ProjectTracking.Controllers
             model.EntryId = await GetCurrentEntryIdAsync();
             _context.PhaseAssigns.Add(model);
             await _context.SaveChangesAsync();
+            await SendCreatedPhaseAssignTelegramSafelyAsync(model.AssignId);
 
             return RedirectToAction(nameof(Index), new { projectId = phase!.ProjectId });
         }
@@ -1333,6 +1345,121 @@ namespace ProjectTracking.Controllers
                 model.EmpId);
         }
 
+        private async Task SendCreatedPhaseAssignTelegramSafelyAsync(int assignId)
+        {
+            if (!_telegramMessagingService.IsConfigured
+                || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted))
+                return;
+
+            try
+            {
+                var assign = await LoadPhaseAssignNotificationAsync(assignId);
+                if (assign == null)
+                    return;
+
+                var recipients = new Dictionary<int, string>();
+                var projectUrl = $"/PhaseAssigns/Index?projectId={assign.ProjectId}";
+                var ownerUrl = $"/PhaseAssigns/Index?projectId={assign.ProjectId}&empId={assign.EmpId}";
+
+                if (assign.BaEmpId is > 0)
+                    recipients[assign.BaEmpId.Value] = projectUrl;
+
+                if (assign.EmpId > 0)
+                    recipients.TryAdd(assign.EmpId, ownerUrl);
+
+                if (recipients.Count == 0)
+                    return;
+
+                var title = "แจ้ง Assign ใหม่:";
+                var message = BuildCreatedPhaseAssignTelegramMessage(assign);
+
+                foreach (var recipient in recipients)
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.Key,
+                        title,
+                        message,
+                        recipient.Value,
+                        HttpContext.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send created phase assign Telegram notification failed. AssignId={AssignId}", assignId);
+            }
+        }
+
+        private async Task<PhaseAssignNotificationRow?> LoadPhaseAssignNotificationAsync(int assignId)
+        {
+            var query =
+                from a in _context.PhaseAssigns.AsNoTracking()
+                join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
+                join p in _context.Projects.AsNoTracking() on ph.ProjectId equals p.ProjectId
+                join coop in _context.CntMCoops.AsNoTracking() on p.CoopId equals (int?)coop.CoopId into coopJoin
+                from coop in coopJoin.DefaultIfEmpty()
+                join emp in _context.Employees.AsNoTracking() on a.EmpId equals emp.EmpId into empJoin
+                from emp in empJoin.DefaultIfEmpty()
+                join ba in _context.Employees.AsNoTracking() on p.BaEmpId equals (int?)ba.EmpId into baJoin
+                from ba in baJoin.DefaultIfEmpty()
+                where a.AssignId == assignId
+                select new PhaseAssignNotificationRow
+                {
+                    AssignId = a.AssignId,
+                    ProjectId = p.ProjectId,
+                    ProjectName = p.ProjectName,
+                    CoopName = coop != null ? coop.CoopName : null,
+                    PhaseName = ph.PhaseName,
+                    PhaseOrder = ph.PhaseOrder,
+                    PeriodOrder = ph.PeriodOrder,
+                    Role = a.Role,
+                    EmpId = a.EmpId,
+                    OwnerName = emp != null ? emp.EmpName : null,
+                    BaEmpId = p.BaEmpId,
+                    BaName = ba != null ? ba.EmpName : null,
+                    PlanStart = a.PlanStart ?? ph.PlanStart,
+                    PlanEnd = a.PlanEnd ?? ph.PlanEnd,
+                    PeriodEndDate = ph.PeriodEndDate,
+                    WorkStatus = a.WorkStatus,
+                    Remark = a.Remark
+                };
+
+            return await query.FirstOrDefaultAsync(HttpContext.RequestAborted);
+        }
+
+        private static string BuildCreatedPhaseAssignTelegramMessage(PhaseAssignNotificationRow assign)
+        {
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(assign.CoopName)}",
+                $"Project: {ProjectNameForTelegram(assign)}",
+                $"Phase: ส่วนที่ {assign.PhaseOrder} งวดที่ {assign.PeriodOrder} - {TextOrDash(assign.PhaseName)}",
+                $"งาน: {TextOrDash(assign.Role)}",
+                $"ผู้รับผิดชอบ: {TextOrDash(assign.OwnerName)}",
+                $"BA: {TextOrDash(assign.BaName)}",
+                $"Plan: {ThaiDateText(assign.PlanStart)} - {ThaiDateText(assign.PlanEnd)}",
+                $"กำหนดงวดงาน: {ThaiDateText(assign.PeriodEndDate)}",
+                $"สถานะ: {TextOrDash(assign.WorkStatus)}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(assign.Remark))
+                rows.Add($"Remark: {assign.Remark.Trim()}");
+
+            return string.Join(Environment.NewLine, rows);
+        }
+
+        private static string ProjectNameForTelegram(PhaseAssignNotificationRow assign)
+            => string.IsNullOrWhiteSpace(assign.CoopName)
+                ? TextOrDash(assign.ProjectName)
+                : $"{assign.CoopName} - {TextOrDash(assign.ProjectName)}";
+
+        private static string ThaiDateText(DateTime? value)
+            => value.HasValue
+                ? value.Value.ToString("dd MMM yyyy", new CultureInfo("th-TH"))
+                : "-";
+
+        private static string TextOrDash(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
         private async Task<int?> GetCurrentEntryIdAsync()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -1351,6 +1478,27 @@ namespace ProjectTracking.Controllers
                 .Where(u => u.UserId == userId.Value)
                 .Select(u => u.EmpId)
                 .FirstOrDefaultAsync();
+        }
+
+        private sealed class PhaseAssignNotificationRow
+        {
+            public int AssignId { get; set; }
+            public int ProjectId { get; set; }
+            public string? ProjectName { get; set; }
+            public string? CoopName { get; set; }
+            public string? PhaseName { get; set; }
+            public int PhaseOrder { get; set; }
+            public int PeriodOrder { get; set; }
+            public string? Role { get; set; }
+            public int EmpId { get; set; }
+            public string? OwnerName { get; set; }
+            public int? BaEmpId { get; set; }
+            public string? BaName { get; set; }
+            public DateTime? PlanStart { get; set; }
+            public DateTime? PlanEnd { get; set; }
+            public DateTime? PeriodEndDate { get; set; }
+            public string? WorkStatus { get; set; }
+            public string? Remark { get; set; }
         }
     }
 }

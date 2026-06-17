@@ -24,10 +24,16 @@
     }
 
     var lineLinkedEmpIds = ViewBag.LineLinkedEmpIds as ISet<int> ?? new HashSet<int>();
+    var telegramLinkedEmpIds = ViewBag.TelegramLinkedEmpIds as ISet<int> ?? new HashSet<int>();
 
     bool HasLineLink(ProjectTracking.Models.Employee emp)
     {
         return lineLinkedEmpIds.Contains(emp.EmpId);
+    }
+
+    bool HasTelegramLink(ProjectTracking.Models.Employee emp)
+    {
+        return telegramLinkedEmpIds.Contains(emp.EmpId);
     }
 }
 
@@ -68,7 +74,7 @@
                 <th>Position</th>
                 <th>Email</th>
                 <th width="120">Status</th>
-                <th width="150">LINE/Telegram</th>
+                <th width="190">LINE / Telegram</th>
                 <th width="180">Action</th>
             </tr>
         </thead>
@@ -129,9 +135,14 @@
                     </td>
 
                     <td class="text-center">
-                        <span class="employee-line-badge @(HasLineLink(emp) ? "is-linked" : "is-missing")">
-                            @(HasLineLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
-                        </span>
+                        <div class="employee-link-status-list">
+                            <span class="employee-line-badge @(HasLineLink(emp) ? "is-linked" : "is-missing")">
+                                LINE: @(HasLineLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
+                            </span>
+                            <span class="employee-line-badge @(HasTelegramLink(emp) ? "is-linked" : "is-missing")">
+                                Telegram: @(HasTelegramLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
+                            </span>
+                        </div>
                     </td>
 
                     <td class="text-center">
@@ -209,9 +220,16 @@
                         </div>
 
                         <div class="employee-line-inline">
-                            <span class="employee-line-label">LINE/Telegram</span>
+                            <span class="employee-line-label">LINE</span>
                             <span class="employee-line-text @(HasLineLink(emp) ? "is-linked" : "is-missing")">
                                 @(HasLineLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
+                            </span>
+                        </div>
+
+                        <div class="employee-line-inline">
+                            <span class="employee-line-label">Telegram</span>
+                            <span class="employee-line-text @(HasTelegramLink(emp) ? "is-linked" : "is-missing")">
+                                @(HasTelegramLink(emp) ? "LINK แล้ว" : "ยังไม่ลิงค์")
                             </span>
                         </div>
                     </div>
@@ -391,6 +409,12 @@
     gap: 8px;
     margin-top: 6px;
     min-width: 0;
+}
+
+.employee-link-status-list {
+    display: inline-grid;
+    gap: 6px;
+    justify-items: center;
 }
 
 .employee-line-label {

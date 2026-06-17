@@ -11,10 +11,15 @@
 }
 
 <div class="container meeting-create-wrap">
-    <div class="meeting-hero d-flex align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="meeting-hero__title">@ViewData["Title"]</h2>
-            <p class="meeting-hero__subtitle">ปรับรายละเอียด วันเวลา และผู้เข้าร่วมประชุม</p>
+    <div class="meeting-form-hero index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Meetings</span>
+            <h2 class="index-title">@ViewData["Title"]</h2>
+            <p class="index-subtitle">ปรับรายละเอียด วันเวลา และผู้เข้าร่วมประชุม</p>
+        </div>
+        <div class="index-actions">
+            <a class="btn btn-outline-light btn-pill" href="/Meetings/Show/@Model.Id">กลับรายละเอียด</a>
+            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
         </div>
     </div>
 
@@ -56,7 +61,7 @@
                         <textarea name="Description" class="form-control" rows="3">@Model.Description</textarea>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-6 col-lg-5">
                         <label class="form-label">วันที่</label>
 
                         <input type="text"
@@ -75,16 +80,20 @@
                         <div class="form-hint">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</div>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">เวลาเริ่ม</label>
-                        <input type="time" name="StartTime" class="form-control"
-                               value="@Model.StartTime.ToString(@"hh\:mm")" required />
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">เวลาสิ้นสุด</label>
-                        <input type="time" name="EndTime" class="form-control"
-                               value="@Model.EndTime.ToString(@"hh\:mm")" required />
+                    <div class="col-md-6 col-lg-4">
+                        <label class="form-label">เวลา</label>
+                        <div class="meeting-time-pair">
+                            <div class="meeting-time-field">
+                                <span>เริ่ม</span>
+                                <input type="time" name="StartTime" class="form-control"
+                                       value="@Model.StartTime.ToString(@"hh\:mm")" required />
+                            </div>
+                            <div class="meeting-time-field">
+                                <span>สิ้นสุด</span>
+                                <input type="time" name="EndTime" class="form-control"
+                                       value="@Model.EndTime.ToString(@"hh\:mm")" required />
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-12">

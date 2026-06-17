@@ -2491,8 +2491,48 @@ main.route-controller-meetings:is(.route-action-create, .route-action-edit, .rou
   color: #000 !important;
 }
 
+main.route-controller-meetings:is(.route-action-create, .route-action-edit) .meeting-form-hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .28), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border-color: rgba(148, 219, 225, .18);
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit) .meeting-form-hero
+  :is(.index-eyebrow, .index-title, .index-subtitle) {
+  color: #fff !important;
+}
+
 main.route-controller-meetings:is(.route-action-create, .route-action-edit) #timeHint {
   color: #dc3545 !important;
+}
+
+.route-controller-meetings .meeting-time-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 140px));
+  gap: 10px;
+  align-items: start;
+}
+
+.route-controller-meetings .meeting-time-field {
+  min-width: 0;
+}
+
+.route-controller-meetings .meeting-time-field > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #334155;
+  font-size: .82rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.route-controller-meetings .meeting-time-field .form-control {
+  width: 100%;
+  max-width: 140px;
+  min-height: 42px;
+  padding-inline: 10px;
 }
 
 .route-controller-meetings .btn-pill {
@@ -2699,21 +2739,49 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
 }
 
 .route-controller-meetings .meeting-row {
-  --meeting-row-bg-start: #ffffff;
-  --meeting-row-bg-end: #f8fafc;
-  --meeting-row-border: #d8e3ef;
-  background: linear-gradient(180deg, var(--meeting-row-bg-start), var(--meeting-row-bg-end)) !important;
-  border: 2px solid var(--meeting-row-border);
+  --meeting-event-bg-start: #ffffff;
+  --meeting-event-bg-end: #f8fafc;
+  --meeting-event-border: #d8e3ef;
+  background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
+  border: 2px solid var(--meeting-event-border);
   box-shadow: 0 8px 18px rgba(15, 35, 64, .06);
 }
 
-.route-controller-meetings .meeting-row.sun { --meeting-row-bg-end: #fff1f2; --meeting-row-border: #ef4444; }
-.route-controller-meetings .meeting-row.mon { --meeting-row-bg-end: #fffbeb; --meeting-row-border: #f59e0b; }
-.route-controller-meetings .meeting-row.tue { --meeting-row-bg-end: #fdf2f8; --meeting-row-border: #ec4899; }
-.route-controller-meetings .meeting-row.wed { --meeting-row-bg-end: #f0fdf4; --meeting-row-border: #22c55e; }
-.route-controller-meetings .meeting-row.thu { --meeting-row-bg-end: #fff7ed; --meeting-row-border: #f97316; }
-.route-controller-meetings .meeting-row.fri { --meeting-row-bg-end: #eff6ff; --meeting-row-border: #0ea5e9; }
-.route-controller-meetings .meeting-row.sat { --meeting-row-bg-end: #f5f3ff; --meeting-row-border: #8b5cf6; }
+.route-controller-meetings .fc-event.customer-event,
+.route-controller-meetings .meeting-row.customer-event {
+  --meeting-event-bg-end: #f0fdfa;
+  --meeting-event-border: #22c55e;
+}
+
+.route-controller-meetings .fc-event.team-event,
+.route-controller-meetings .meeting-row.team-event {
+  --meeting-event-bg-end: #eff6ff;
+  --meeting-event-border: #2563eb;
+}
+
+.route-controller-meetings .fc-event.executive-event,
+.route-controller-meetings .meeting-row.executive-event {
+  --meeting-event-bg-end: #fff7ed;
+  --meeting-event-border: #ef4444;
+}
+
+.route-controller-meetings .fc-event.manager-event,
+.route-controller-meetings .meeting-row.manager-event {
+  --meeting-event-bg-end: #f5f3ff;
+  --meeting-event-border: #8b5cf6;
+}
+
+.route-controller-meetings .fc-event.vendor-event,
+.route-controller-meetings .meeting-row.vendor-event {
+  --meeting-event-bg-end: #fffbeb;
+  --meeting-event-border: #f97316;
+}
+
+.route-controller-meetings .fc-event.other-event,
+.route-controller-meetings .meeting-row.other-event {
+  --meeting-event-bg-end: #f8fafc;
+  --meeting-event-border: #0ea5e9;
+}
 
 .route-controller-meetings .meeting-col {
   border-color: #e2e8f0;
@@ -2930,9 +2998,19 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
 @media (max-width: 768px) {
   .route-controller-meetings .meeting-header,
   .route-controller-meetings .meeting-hero,
+  .route-controller-meetings .meeting-form-hero,
   .route-controller-meetings .meeting-detail-hero {
     border-radius: 18px;
     padding: 18px;
+  }
+
+  .route-controller-meetings .meeting-time-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 300px;
+  }
+
+  .route-controller-meetings .meeting-time-field .form-control {
+    max-width: none;
   }
 
   .route-controller-meetings .meeting-detail-grid {

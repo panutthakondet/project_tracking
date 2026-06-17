@@ -94,8 +94,8 @@ namespace ProjectTracking.Services
                         LineSent: x.Any(n => n.Kind == CreatedLineKind
                             || n.Kind == CancelledLineKind
                             || n.Kind.StartsWith(UpdatedLineKindPrefix)
-                            || n.Kind.StartsWith("line_reminder_")
-                            || n.Kind == CreatedTelegramKind
+                            || n.Kind.StartsWith("line_reminder_")),
+                        TelegramSent: x.Any(n => n.Kind == CreatedTelegramKind
                             || n.Kind == CancelledTelegramKind
                             || n.Kind.StartsWith(UpdatedTelegramKindPrefix)
                             || n.Kind.StartsWith("telegram_reminder_"))));
@@ -1443,5 +1443,5 @@ ORDER BY ma.id;";
     }
 
     public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount);
-    public sealed record MeetingAttendeeNotificationStatus(bool EmailSent, bool LineSent);
+    public sealed record MeetingAttendeeNotificationStatus(bool EmailSent, bool LineSent, bool TelegramSent);
 }

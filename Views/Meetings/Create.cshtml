@@ -12,16 +12,6 @@
         width: 100%;
         max-width: 100%;
     }
-    .meeting-hero {
-        border-radius: 16px;
-        border: 1px solid rgba(0,0,0,.08);
-        background: linear-gradient(180deg, rgba(13,110,253,.08), rgba(13,110,253,0));
-        padding: 18px 18px 14px 18px;
-        margin-bottom: 14px;
-    }
-
-    .meeting-hero__title { margin: 0; line-height: 1.2; }
-    .meeting-hero__subtitle { margin: 6px 0 0 0; color: #6c757d; }
 
     .meeting-card {
         border-radius: 16px;
@@ -91,10 +81,14 @@
 </style>
 
 <div class="container meeting-create-wrap">
-    <div class="meeting-hero d-flex align-items-start justify-content-between gap-3">
-        <div>
-            <h2 class="meeting-hero__title">📌 @ViewData["Title"]</h2>
-            <p class="meeting-hero__subtitle">เลือกโครงการ (ถ้ามี) แล้วกรอกรายละเอียดการประชุม</p>
+    <div class="meeting-form-hero index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Meetings</span>
+            <h2 class="index-title">@ViewData["Title"]</h2>
+            <p class="index-subtitle">เลือกโครงการ ถ้ามี แล้วกรอกรายละเอียดการประชุม</p>
+        </div>
+        <div class="index-actions">
+            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
         </div>
     </div>
 
@@ -141,7 +135,7 @@
                         <small class="form-hint">@((ViewBag.ProjectHint as string) ?? "")</small>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-6 col-lg-5">
                         <label class="form-label">วันที่ <span class="req">*</span></label>
 
                         <input type="text"
@@ -160,14 +154,18 @@
                         <small class="form-hint">รูปแบบ วัน/เดือน/พ.ศ. เช่น 26/05/2569</small>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">เวลาเริ่ม <span class="req">*</span></label>
-                        <input type="time" name="StartTime" class="form-control" required />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">เวลาสิ้นสุด <span class="req">*</span></label>
-                        <input type="time" name="EndTime" class="form-control" required />
+                    <div class="col-md-6 col-lg-4">
+                        <label class="form-label">เวลา <span class="req">*</span></label>
+                        <div class="meeting-time-pair">
+                            <div class="meeting-time-field">
+                                <span>เริ่ม</span>
+                                <input type="time" name="StartTime" class="form-control" required />
+                            </div>
+                            <div class="meeting-time-field">
+                                <span>สิ้นสุด</span>
+                                <input type="time" name="EndTime" class="form-control" required />
+                            </div>
+                        </div>
                         <small class="form-hint" id="timeHint" style="display:none; color:#dc3545;">เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม</small>
                     </div>
 

@@ -679,15 +679,15 @@
     }
 
     .meeting-row {
-        --meeting-row-bg-start: #ffffff;
-        --meeting-row-bg-end: #f8fafc;
-        --meeting-row-border: #d8e3ef;
+        --meeting-event-bg-start: #ffffff;
+        --meeting-event-bg-end: #f8fafc;
+        --meeting-event-border: #d8e3ef;
         display: flex;
         gap: 18px;
-        background: linear-gradient(180deg, var(--meeting-row-bg-start), var(--meeting-row-bg-end));
+        background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end));
         border-radius: 16px;
         padding: 16px;
-        border: 2px solid var(--meeting-row-border);
+        border: 2px solid var(--meeting-event-border);
         align-items: stretch;
         height: 100%;
         box-shadow: 0 10px 22px rgba(15, 35, 64, .08);
@@ -699,13 +699,41 @@
         box-shadow: 0 16px 30px rgba(15, 35, 64, .14);
     }
 
-    .meeting-row.sun { --meeting-row-bg-end: #fff1f2; --meeting-row-border: var(--meeting-pink); }
-    .meeting-row.mon { --meeting-row-bg-end: #f0fdfa; --meeting-row-border: var(--meeting-teal-dark); }
-    .meeting-row.tue { --meeting-row-bg-end: #fdf4ff; --meeting-row-border: #d946ef; }
-    .meeting-row.wed { --meeting-row-bg-end: #f0fdf4; --meeting-row-border: #22c55e; }
-    .meeting-row.thu { --meeting-row-bg-end: #fff7ed; --meeting-row-border: var(--meeting-orange); }
-    .meeting-row.fri { --meeting-row-bg-end: #eff6ff; --meeting-row-border: var(--meeting-blue); }
-    .meeting-row.sat { --meeting-row-bg-end: #f5f3ff; --meeting-row-border: var(--meeting-purple); }
+    .fc-event.customer-event,
+    .meeting-row.customer-event {
+        --meeting-event-bg-end: #f0fdfa;
+        --meeting-event-border: #22c55e;
+    }
+
+    .fc-event.team-event,
+    .meeting-row.team-event {
+        --meeting-event-bg-end: #eff6ff;
+        --meeting-event-border: #238cf6;
+    }
+
+    .fc-event.executive-event,
+    .meeting-row.executive-event {
+        --meeting-event-bg-end: #fff7ed;
+        --meeting-event-border: var(--meeting-orange);
+    }
+
+    .fc-event.manager-event,
+    .meeting-row.manager-event {
+        --meeting-event-bg-end: #f5f3ff;
+        --meeting-event-border: var(--meeting-purple);
+    }
+
+    .fc-event.vendor-event,
+    .meeting-row.vendor-event {
+        --meeting-event-bg-end: #fffbeb;
+        --meeting-event-border: #d97706;
+    }
+
+    .fc-event.other-event,
+    .meeting-row.other-event {
+        --meeting-event-bg-end: #f8fafc;
+        --meeting-event-border: #64748b;
+    }
 
     .meeting-col {
         background: rgba(255, 255, 255, .82);
@@ -1079,6 +1107,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let eventCounter = 0;
 
+    function getMeetingAudienceClass(props) {
+        const audience = (
+            props?.meetingAudience ||
+            props?.audience ||
+            props?.meetingWith ||
+            props?.meeting_with ||
+            props?.meetingAudienceText ||
+            ''
+        ).trim().toLowerCase();
+
+        switch(audience) {
+            case 'ลูกค้า':
+            case 'customer':
+                return 'customer-event';
+
+            case 'ทีมงาน':
+            case 'team':
+            case 'internal':
+                return 'team-event';
+
+            case 'ผู้บริหาร':
+            case 'executive':
+                return 'executive-event';
+
+            case 'ผู้จัดการ':
+            case 'manager':
+                return 'manager-event';
+
+            case 'vendor':
+            case 'vendor / partner':
+            case 'partner':
+                return 'vendor-event';
+
+            case 'อื่นๆ':
+            case 'other':
+                return 'other-event';
+
+            default:
+                return 'other-event';
+        }
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: isCompactCalendar()
             ? 'listMonth'
@@ -1153,45 +1223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         eventClassNames: function(arg) {
-            const audience = (
-                arg.event.extendedProps?.meetingAudience ||
-                arg.event.extendedProps?.audience ||
-                arg.event.extendedProps?.meetingWith ||
-                arg.event.extendedProps?.meeting_with ||
-                ''
-            ).trim();
-
-            switch(audience.toLowerCase()) {
-                case 'ลูกค้า':
-                case 'customer':
-                    return ['customer-event'];
-
-                case 'ทีมงาน':
-                case 'team':
-                case 'internal':
-                    return ['team-event'];
-
-                case 'ผู้บริหาร':
-                case 'executive':
-                    return ['executive-event'];
-
-                case 'ผู้จัดการ':
-                case 'manager':
-                    return ['manager-event'];
-
-                case 'vendor':
-                case 'vendor / partner':
-                case 'partner':
-                    return ['vendor-event'];
-
-                case 'อื่นๆ':
-                case 'other':
-                    return ['other-event'];
-
-                default:
-                    console.log('Unknown meeting audience:', audience, arg.event.extendedProps);
-                    return ['other-event'];
-            }
+            return [getMeetingAudienceClass(arg.event.extendedProps || {})];
         },
 
         displayEventTime: false,
@@ -1428,12 +1460,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         const end = e.end ? formatThaiTime(new Date(e.end)) : '';
 
                         const div = document.createElement('div');
-                        const dayIndex = d.getDay(); // 0=Sun
-                        const dayClasses = ['sun','mon','tue','wed','thu','fri','sat'];
+                        const audienceClass = getMeetingAudienceClass(e.extendedProps || {});
 
-                        let rowClass = 'meeting-row ' + dayClasses[dayIndex];
-
-                        div.className = rowClass;
+                        div.className = `meeting-row ${audienceClass}`;
 
                         div.innerHTML = `
     <div class="meeting-col">
