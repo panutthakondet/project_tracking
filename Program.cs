@@ -193,6 +193,7 @@ var app = builder.Build();
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
+await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureMailboxTablesAsync(app.Services);
@@ -362,6 +363,46 @@ static async Task EnsureEntryIdColumnAsync(System.Data.Common.DbConnection conne
     {
         command.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN entry_id INT NULL;";
         await command.ExecuteNonQueryAsync();
+    }
+}
+
+static async Task EnsureMeetingStatusColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'meetings'
+              AND COLUMN_NAME = 'status';";
+
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (exists == 0)
+        {
+            command.CommandText = "ALTER TABLE `meetings` ADD COLUMN `status` varchar(20) NOT NULL DEFAULT 'ACTIVE';";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `meetings`
+            SET `status` = 'ACTIVE'
+            WHERE `status` IS NULL OR `status` = '';";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
     }
 }
 

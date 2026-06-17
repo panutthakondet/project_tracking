@@ -106,6 +106,15 @@
                         <div class="form-hint">เลือกประเภทของการประชุม</div>
                     </div>
 
+                    <div class="col-md-6">
+                        <label class="form-label">สถานะ</label>
+                        <select name="Status" class="form-select">
+                            <option value="ACTIVE" selected="@(!string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">ปกติ</option>
+                            <option value="CANCELLED" selected="@(string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">ยกเลิก</option>
+                        </select>
+                        <div class="form-hint">เมื่อเปลี่ยนเป็นยกเลิก ระบบจะแจ้งผู้เข้าร่วมทางอีเมลและ LINE</div>
+                    </div>
+
                     <div class="col-12">
                         <label class="form-label">ผู้เข้าร่วมประชุม</label>
                         <div class="meeting-attendee-picker" data-attendee-picker>

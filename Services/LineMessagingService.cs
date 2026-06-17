@@ -304,6 +304,9 @@ namespace ProjectTracking.Services
         private static string NotificationTitleColor(string title)
         {
             var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#DC2626";
+
             if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#2563EB";
 
@@ -319,6 +322,9 @@ namespace ProjectTracking.Services
         private static string NotificationBackgroundColor(string title)
         {
             var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#FEF2F2";
+
             if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#EFF6FF";
 
@@ -334,6 +340,9 @@ namespace ProjectTracking.Services
         private static string NotificationBorderColor(string title)
         {
             var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#FECACA";
+
             if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#BFDBFE";
 
@@ -349,6 +358,9 @@ namespace ProjectTracking.Services
         private static string NotificationActionColor(string title)
         {
             var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("ยกเลิกประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#DC2626";
+
             if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
                 return "#2563EB";
 

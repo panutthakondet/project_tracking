@@ -9,6 +9,8 @@ namespace ProjectTracking.Services
     {
         private static readonly int[] LineReminderDays = { 3, 2, 1, 0 };
         private const string CreatedEmailKind = "created_email";
+        private const string CancelledEmailKind = "cancelled_email";
+        private const string CancelledLineKind = "cancelled_line";
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly EmailService _emailService;
@@ -69,8 +71,8 @@ namespace ProjectTracking.Services
                 .ToDictionary(
                     x => x.Key,
                     x => new MeetingAttendeeNotificationStatus(
-                        EmailSent: x.Any(n => n.Kind == CreatedEmailKind),
-                        LineSent: x.Any(n => n.Kind.StartsWith("line_reminder_"))));
+                        EmailSent: x.Any(n => n.Kind == CreatedEmailKind || n.Kind == CancelledEmailKind),
+                        LineSent: x.Any(n => n.Kind == CancelledLineKind || n.Kind.StartsWith("line_reminder_"))));
         }
 
         public async Task<MeetingNotificationResult> SendCreatedEmailAsync(
@@ -126,6 +128,99 @@ namespace ProjectTracking.Services
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.Email);
+                }
+            }
+
+            return new MeetingNotificationResult(sent, skipped, failed);
+        }
+
+        public async Task<MeetingNotificationResult> SendCancelledNotificationsAsync(
+            int meetingId,
+            CancellationToken cancellationToken = default)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await EnsureNotificationTableAsync(db, cancellationToken);
+
+            var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
+            if (meeting == null)
+                return new MeetingNotificationResult(0, 0, 0);
+
+            var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
+            var sent = 0;
+            var skipped = 0;
+            var failed = 0;
+
+            var emailRecipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
+            foreach (var recipient in emailRecipients)
+            {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                try
+                {
+                    await _emailService.SendAsync(
+                        recipient.Email,
+                        $"ยกเลิกประชุม: {meeting.Title}",
+                        BuildCancelledEmailBody(meeting, recipient.DisplayName, detailUrl));
+
+                    await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken);
+                    sent++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    _logger.LogError(
+                        ex,
+                        "Failed to send meeting cancelled email. MeetingId={MeetingId}, AttendeeId={AttendeeId}, Email={Email}",
+                        meeting.Id,
+                        recipient.AttendeeId,
+                        recipient.Email);
+                }
+            }
+
+            if (!_lineMessagingService.IsConfigured)
+                return new MeetingNotificationResult(sent, skipped, failed);
+
+            var lineRecipients = await LoadLineRecipientsAsync(db, meetingId, cancellationToken);
+            foreach (var recipient in lineRecipients)
+            {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                try
+                {
+                    var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.EmpId,
+                        $"ยกเลิกประชุม: {meeting.Title}",
+                        BuildCancelledLineMessage(meeting, detailUrl),
+                        detailUrl,
+                        cancellationToken);
+
+                    if (lineSendCount > 0)
+                    {
+                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
+                        sent += lineSendCount;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    _logger.LogError(
+                        ex,
+                        "Failed to send meeting cancelled LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                        meeting.Id,
+                        recipient.AttendeeId,
+                        recipient.EmpId);
                 }
             }
 
@@ -331,7 +426,8 @@ SELECT
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id
 LEFT JOIN cnt_m_coop c ON c.coop_id = p.coop_id
-WHERE DATE(m.meeting_date) = @meetingDate;";
+WHERE DATE(m.meeting_date) = @meetingDate
+  AND COALESCE(UPPER(m.status), 'ACTIVE') <> 'CANCELLED';";
 
             return await db.Database
                 .SqlQueryRaw<MeetingDetails>(
@@ -355,7 +451,6 @@ FROM meeting_attendees ma
 JOIN employee e ON e.emp_id = ma.user_id
 JOIN login_user u ON u.user_id = e.login_user_id
 WHERE ma.meeting_id = @mid
-  AND COALESCE(LOWER(ma.status), '') <> 'rejected'
   AND u.email IS NOT NULL
   AND u.email <> ''
 ORDER BY ma.id;";
@@ -388,7 +483,6 @@ SELECT
 FROM meeting_attendees ma
 JOIN employee e ON e.emp_id = ma.user_id
 WHERE ma.meeting_id = @mid
-  AND COALESCE(LOWER(ma.status), '') <> 'rejected'
 ORDER BY ma.id;";
 
             var rows = await db.Database
@@ -427,6 +521,34 @@ ORDER BY ma.id;";
             var encodedDetailUrl = System.Net.WebUtility.HtmlEncode(detailUrl);
             sb.Append("<br/>");
             sb.Append($@"<a href=""{encodedDetailUrl}"" style=""display:inline-block;background:#0F766E;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:700;"">เปิดรายละเอียด Meeting</a><br/>");
+            sb.Append($@"ลิงก์รายละเอียด: <a href=""{encodedDetailUrl}"">{encodedDetailUrl}</a><br/>");
+
+            sb.Append("<br/><small>ProjectTracking</small>");
+            return sb.ToString();
+        }
+
+        private static string BuildCancelledEmailBody(MeetingDetails meeting, string displayName, string detailUrl)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"สวัสดี {System.Net.WebUtility.HtmlEncode(displayName)}<br/>");
+            sb.Append("<b>การประชุมนี้ถูกยกเลิกแล้ว</b><br/>");
+
+            if (!string.IsNullOrWhiteSpace(meeting.ProjectName))
+                sb.Append($"โครงการ: <b>{System.Net.WebUtility.HtmlEncode(meeting.ProjectName)}</b><br/>");
+
+            sb.Append($"หัวข้อ: <b>{System.Net.WebUtility.HtmlEncode(meeting.Title)}</b><br/>");
+            sb.Append($"วันที่: <b>{FormatThaiDate(meeting.StartAt)}</b><br/>");
+            sb.Append($"เวลา: <b>{meeting.StartAt:HH:mm} - {meeting.EndAt:HH:mm}</b><br/>");
+
+            if (!string.IsNullOrWhiteSpace(meeting.Location))
+                sb.Append($"สถานที่: {System.Net.WebUtility.HtmlEncode(meeting.Location)}<br/>");
+
+            if (!string.IsNullOrWhiteSpace(meeting.Description))
+                sb.Append($"รายละเอียด: {System.Net.WebUtility.HtmlEncode(meeting.Description)}<br/>");
+
+            var encodedDetailUrl = System.Net.WebUtility.HtmlEncode(detailUrl);
+            sb.Append("<br/>");
+            sb.Append($@"<a href=""{encodedDetailUrl}"" style=""display:inline-block;background:#DC2626;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:700;"">เปิดรายละเอียด Meeting</a><br/>");
             sb.Append($@"ลิงก์รายละเอียด: <a href=""{encodedDetailUrl}"">{encodedDetailUrl}</a><br/>");
 
             sb.Append("<br/><small>ProjectTracking</small>");
@@ -474,6 +596,30 @@ ORDER BY ma.id;";
                 : $"การประชุมนี้จะเริ่มในอีก {daysBefore} วัน");
 
             return sb.ToString();
+        }
+
+        private static string BuildCancelledLineMessage(MeetingDetails meeting, string? detailUrl)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("การประชุมนี้ถูกยกเลิกแล้ว");
+
+            if (!string.IsNullOrWhiteSpace(meeting.ProjectName))
+                sb.AppendLine($"โครงการ: {meeting.ProjectName}");
+
+            sb.AppendLine($"หัวข้อ: {meeting.Title}");
+            sb.AppendLine($"วันที่: {FormatThaiDate(meeting.StartAt)}");
+            sb.AppendLine($"เวลา: {meeting.StartAt:HH:mm} - {meeting.EndAt:HH:mm}");
+
+            if (!string.IsNullOrWhiteSpace(meeting.Location))
+                sb.AppendLine($"สถานที่: {meeting.Location}");
+
+            if (!string.IsNullOrWhiteSpace(meeting.Description))
+                sb.AppendLine($"รายละเอียด: {meeting.Description}");
+
+            if (!string.IsNullOrWhiteSpace(detailUrl))
+                sb.AppendLine($"ลิงก์รายละเอียด: {detailUrl}");
+
+            return sb.ToString().Trim();
         }
 
         private static EmailAttachment BuildCalendarAttachment(

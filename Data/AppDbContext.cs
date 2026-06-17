@@ -110,6 +110,12 @@ namespace ProjectTracking.Data
                     .HasColumnType("varchar(50)")
                     .IsRequired(false);
 
+                entity.Property(m => m.Status)
+                    .HasColumnName("status")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("ACTIVE")
+                    .IsRequired();
+
                 entity.Property(m => m.ProjectId)
                     .HasColumnType("int")
                     .IsRequired(false);

@@ -91,10 +91,29 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-warning fw-bold">@TempData["Error"]</div>
+    }
+
     <div class="meeting-detail-card">
         <div class="meeting-detail-card__header d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <strong>รายละเอียดการประชุม</strong>
-            <span class="badge bg-info">@ThaiDate(Model.MeetingDate)</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                @if (string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+                {
+                    <span class="badge bg-danger">ยกเลิก</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">ปกติ</span>
+                }
+                <span class="badge bg-info">@ThaiDate(Model.MeetingDate)</span>
+            </div>
         </div>
 
         <div class="meeting-detail-card__body">

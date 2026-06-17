@@ -37,6 +37,10 @@ namespace ProjectTracking.Models
         [MaxLength(50)]
         public string? MeetingAudience { get; set; }
 
+        [Column("status")]
+        [MaxLength(20)]
+        public string Status { get; set; } = "ACTIVE";
+
         [Column("created_by")]
         public int? CreatedBy { get; set; }
 

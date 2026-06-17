@@ -354,6 +354,7 @@ namespace ProjectTracking.Controllers
 
             model.UpdatedAt = model.CreatedAt;
             model.CreatedBy = await GetCurrentEntryIdAsync();
+            model.Status = NormalizeMeetingStatus(model.Status);
 
             var createdMeetingId = 0;
             await using var tx = await _context.Database.BeginTransactionAsync();
@@ -416,6 +417,12 @@ namespace ProjectTracking.Controllers
             if (meeting == null)
                 return NotFound();
 
+            var oldStatus = NormalizeMeetingStatus(meeting.Status);
+            var newStatus = NormalizeMeetingStatus(model.Status);
+            var shouldSendCancellationNotice =
+                oldStatus != "CANCELLED" &&
+                newStatus == "CANCELLED";
+
             meeting.Title = model.Title;
             meeting.Description = model.Description;
             meeting.MeetingDate = model.MeetingDate;
@@ -424,6 +431,7 @@ namespace ProjectTracking.Controllers
             meeting.Location = model.Location;
             meeting.MeetingAudience = model.MeetingAudience;
             meeting.ProjectId = model.ProjectId;
+            meeting.Status = newStatus;
             meeting.UpdatedAt = DateTime.Now;
 
             if (!meeting.CreatedBy.HasValue)
@@ -447,6 +455,31 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
+            if (shouldSendCancellationNotice)
+            {
+                try
+                {
+                    var result = await _meetingNotificationService.SendCancelledNotificationsAsync(meeting.Id);
+                    if (result.FailedCount > 0)
+                    {
+                        TempData["Error"] = $"บันทึกสถานะยกเลิกแล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ";
+                    }
+                    else if (result.SentCount > 0)
+                    {
+                        TempData["Success"] = $"บันทึกสถานะยกเลิกแล้ว และส่งแจ้งเตือนแล้ว {result.SentCount} รายการ";
+                    }
+                    else
+                    {
+                        TempData["Success"] = "บันทึกสถานะยกเลิกแล้ว";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Meeting was cancelled but cancellation notification failed. MeetingId={MeetingId}", meeting.Id);
+                    TempData["Error"] = "บันทึกสถานะยกเลิกแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
+                }
+            }
+
             return RedirectToAction("Show", new { id = meeting.Id });
         }
         public class MoveRequest
@@ -454,6 +487,12 @@ namespace ProjectTracking.Controllers
             public int id { get; set; }
             public string? start { get; set; }
             public string? end { get; set; }
+        }
+
+        private static string NormalizeMeetingStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized == "CANCELLED" ? "CANCELLED" : "ACTIVE";
         }
 
         [HttpPost]
