@@ -182,6 +182,7 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddHttpClient<LineMessagingService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
+builder.Services.AddScoped<MeetingNotificationService>();
 // Overdue email automation is disabled. We will replace it with in-app bell notifications.
 // Keep OverdueMailService registered for existing manual flows and future reference.
 builder.Services.AddHostedService<OverdueNotificationBackgroundService>();

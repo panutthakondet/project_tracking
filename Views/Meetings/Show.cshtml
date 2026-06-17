@@ -2,6 +2,7 @@
 
 @using ProjectTracking.Models
 @using Microsoft.AspNetCore.Http
+@using System.Globalization
 @{
     bool CanMenu(string key)
     {
@@ -12,12 +13,35 @@
         return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
+
+    string ThaiDate(DateTime value)
+        => value.ToString("ddddที่ d MMMM yyyy", new CultureInfo("th-TH"));
+
+    string ThaiDateTime(DateTime value)
+        => value.ToString("ddddที่ d MMMM yyyy HH:mm", new CultureInfo("th-TH"));
+
+    string? LinkHref(string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return null;
+
+        var candidate = trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+            ? $"https://{trimmed}"
+            : trimmed;
+
+        return Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                ? candidate
+                : null;
+    }
 }
 
 @{
     ViewData["Title"] = "รายละเอียดการประชุม";
     var attendees = ViewBag.Attendees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var attendeeList = attendees.ToList();
+    var coopName = ViewBag.CoopName as string;
     var projectName = ViewBag.ProjectName as string;
 }
 
@@ -70,54 +94,62 @@
     <div class="meeting-detail-card">
         <div class="meeting-detail-card__header d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <strong>รายละเอียดการประชุม</strong>
-            <span class="badge bg-info">@Model.MeetingDate.ToString("dd/MM/yyyy")</span>
+            <span class="badge bg-info">@ThaiDate(Model.MeetingDate)</span>
         </div>
 
         <div class="meeting-detail-card__body">
             <div class="meeting-detail-grid">
-                <div class="meeting-detail-item full meeting-detail-title-card">
-                    <div class="meeting-detail-label">หัวข้อประชุม</div>
-                    <div class="meeting-detail-value">@Model.Title</div>
-                </div>
-
-                <div class="meeting-detail-item meeting-detail-meta-card meeting-project-detail-card">
-                    <div class="meeting-detail-label">โครงการ</div>
-                    <div class="meeting-detail-value">
-                        @if (Model.ProjectId == null)
-                        {
-                            <span>ไม่ระบุโครงการ</span>
-                        }
-                        else
-                        {
-                            <span class="meeting-project-id">#@Model.ProjectId</span>
-                            <span class="meeting-project-name">@projectName</span>
-                        }
+                <div class="meeting-detail-item full meeting-detail-title-card meeting-detail-summary-block">
+                    <div class="row g-3 meeting-detail-summary-grid">
+                        <div class="col-md-6">
+                            <div class="meeting-detail-label">ชื่อสหกรณ์</div>
+                            <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="meeting-detail-label">ชื่อโครงการ</div>
+                            <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(projectName) ? "-" : projectName)</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="meeting-detail-label">หัวข้อประชุม</div>
+                            <div class="meeting-detail-value">@Model.Title</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="meeting-detail-label">รายละเอียด</div>
+                            <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="meeting-detail-label">วันที่</div>
+                            <div class="meeting-detail-value">@ThaiDate(Model.MeetingDate)</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="meeting-detail-label">เวลา</div>
+                            <div class="meeting-detail-value">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="meeting-detail-label">สถานที่</div>
+                            <div class="meeting-detail-value">
+                                @{
+                                    var locationHref = LinkHref(Model.Location);
+                                }
+                                @if (string.IsNullOrWhiteSpace(Model.Location))
+                                {
+                                    <span>-</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(locationHref))
+                                {
+                                    <a href="@locationHref" target="_blank" rel="noopener noreferrer">@Model.Location</a>
+                                }
+                                else
+                                {
+                                    <span>@Model.Location</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="meeting-detail-label">ประชุมกับ</div>
+                            <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.MeetingAudience) ? "-" : Model.MeetingAudience)</div>
+                        </div>
                     </div>
-                </div>
-
-                <div class="meeting-detail-item meeting-detail-meta-card">
-                    <div class="meeting-detail-label">วันที่</div>
-                    <div class="meeting-detail-value">@Model.MeetingDate.ToString("dd/MM/yyyy")</div>
-                </div>
-
-                <div class="meeting-detail-item meeting-detail-meta-card">
-                    <div class="meeting-detail-label">เวลา</div>
-                    <div class="meeting-detail-value">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
-                </div>
-
-                <div class="meeting-detail-item meeting-detail-meta-card">
-                    <div class="meeting-detail-label">สถานที่</div>
-                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.Location) ? "-" : Model.Location)</div>
-                </div>
-
-                <div class="meeting-detail-item meeting-detail-meta-card">
-                    <div class="meeting-detail-label">ประชุมกับ</div>
-                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.MeetingAudience) ? "-" : Model.MeetingAudience)</div>
-                </div>
-
-                <div class="meeting-detail-item full meeting-detail-description-card">
-                    <div class="meeting-detail-label">รายละเอียด</div>
-                    <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div>
                 </div>
             </div>
 
@@ -145,8 +177,15 @@
                                 {
                                     <div class="text-muted fw-semibold">@a.Position</div>
                                 }
+                                <div class="d-flex align-items-center gap-3 flex-wrap fw-semibold mt-1 small">
+                                    <span class="@(a.EmailSent ? "text-success" : "text-muted")">
+                                        @(a.EmailSent ? "ส่งอีเมลแล้ว" : "ยังไม่ส่งอีเมล")
+                                    </span>
+                                    <span class="@(a.LineSent ? "text-primary" : "text-muted")">
+                                        @(a.LineSent ? "ส่ง LINE แล้ว" : "ยังไม่ส่ง LINE")
+                                    </span>
+                                </div>
                             </div>
-                            <span class="badge bg-light text-dark">@a.Status</span>
                         </div>
                     }
                 </div>
@@ -155,7 +194,7 @@
             <div class="divider"></div>
 
             <div class="text-muted fw-semibold">
-                สร้างเมื่อ: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                สร้างเมื่อ: @ThaiDateTime(Model.CreatedAt)
             </div>
         </div>
     </div>

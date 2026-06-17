@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
@@ -16,10 +17,17 @@ namespace ProjectTracking.Controllers
     public class MeetingsController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly MeetingNotificationService _meetingNotificationService;
+        private readonly ILogger<MeetingsController> _logger;
 
-        public MeetingsController(AppDbContext context)
+        public MeetingsController(
+            AppDbContext context,
+            MeetingNotificationService meetingNotificationService,
+            ILogger<MeetingsController> logger)
         {
             _context = context;
+            _meetingNotificationService = meetingNotificationService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -233,7 +241,8 @@ namespace ProjectTracking.Controllers
             if (meeting == null)
                 return NotFound();
 
-            // Project name (optional)
+            // Project info (optional)
+            string? coopName = null;
             string? projectName = null;
             if (meeting.ProjectId.HasValue)
             {
@@ -242,11 +251,12 @@ namespace ProjectTracking.Controllers
                     .Include(p => p.Coop)
                     .Where(p => p.ProjectId == meeting.ProjectId.Value)
                     .FirstOrDefaultAsync();
-                projectName = project?.ProjectDisplayName;
+                coopName = project?.Coop?.CoopName;
+                projectName = project?.ProjectName;
             }
 
             // JOIN employee เพื่อเอาชื่อมาแสดง
-            var attendees = await (
+            var attendeeRows = await (
                 from a in _context.MeetingAttendees.AsNoTracking()
                 join e in _context.Employees.AsNoTracking()
                     on a.UserId equals e.EmpId into ej
@@ -255,17 +265,44 @@ namespace ProjectTracking.Controllers
                 orderby a.UserId
                 select new
                 {
+                    AttendeeId = a.Id,
                     EmpId = a.UserId,
                     EmpName = e != null ? e.EmpName : null,
-                    Position = e != null ? e.Position : null,
-                    Status = a.Status
+                    Position = e != null ? e.Position : null
                 }
             ).ToListAsync();
 
+            var notificationStatuses = await _meetingNotificationService.GetAttendeeNotificationStatusesAsync(id);
+            var attendees = attendeeRows.Select(a =>
+            {
+                notificationStatuses.TryGetValue(a.AttendeeId, out var status);
+                return new
+                {
+                    a.AttendeeId,
+                    a.EmpId,
+                    a.EmpName,
+                    a.Position,
+                    EmailSent = status?.EmailSent ?? false,
+                    LineSent = status?.LineSent ?? false
+                };
+            }).ToList();
+
+            ViewBag.CoopName = coopName;
             ViewBag.ProjectName = projectName;
             ViewBag.Attendees = attendees;
 
             return View(meeting);
+        }
+
+        [RequireMenu("Meetings.Show")]
+        [HttpGet]
+        public async Task<IActionResult> Calendar(int id)
+        {
+            var attachment = await _meetingNotificationService.BuildCalendarAttachmentAsync(id);
+            if (attachment == null)
+                return NotFound();
+
+            return File(attachment.Content, attachment.ContentType, attachment.FileName);
         }
 
         [RequireMenu("Meetings.Edit")]
@@ -318,11 +355,13 @@ namespace ProjectTracking.Controllers
             model.UpdatedAt = model.CreatedAt;
             model.CreatedBy = await GetCurrentEntryIdAsync();
 
+            var createdMeetingId = 0;
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
                 _context.Meetings.Add(model);
                 await _context.SaveChangesAsync();
+                createdMeetingId = model.Id;
 
                 if (users != null && users.Count > 0)
                 {
@@ -339,13 +378,33 @@ namespace ProjectTracking.Controllers
                 }
 
                 await tx.CommitAsync();
-                return RedirectToAction("Index");
             }
-            catch
+            catch (Exception ex)
             {
                 await tx.RollbackAsync();
+                _logger.LogError(ex, "Failed to create meeting");
                 throw;
             }
+
+            try
+            {
+                var emailResult = await _meetingNotificationService.SendCreatedEmailAsync(createdMeetingId);
+                if (emailResult.FailedCount > 0)
+                {
+                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ส่งอีเมลไม่สำเร็จ {emailResult.FailedCount} รายการ";
+                }
+                else if (emailResult.SentCount > 0)
+                {
+                    TempData["Success"] = $"สร้าง Meeting สำเร็จ และส่งอีเมลเชิญประชุมแล้ว {emailResult.SentCount} รายการ";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting was created but created-email notification failed. MeetingId={MeetingId}", createdMeetingId);
+                TempData["Error"] = "สร้าง Meeting สำเร็จ แต่ระบบส่งอีเมลเชิญประชุมไม่สำเร็จ";
+            }
+
+            return RedirectToAction("Index");
         }
 
         [RequireMenu("Meetings.Edit")]

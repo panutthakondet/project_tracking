@@ -255,7 +255,7 @@ namespace ProjectTracking.Services
                 {
                     type = "button",
                     style = "primary",
-                    color = "#0F766E",
+                    color = NotificationActionColor(title),
                     height = "sm",
                     margin = "md",
                     action = new
@@ -272,6 +272,10 @@ namespace ProjectTracking.Services
                 ["type"] = "box",
                 ["layout"] = "vertical",
                 ["paddingAll"] = "16px",
+                ["backgroundColor"] = NotificationBackgroundColor(title),
+                ["borderColor"] = NotificationBorderColor(title),
+                ["borderWidth"] = "1px",
+                ["cornerRadius"] = "12px",
                 ["contents"] = bubbleContents
             };
 
@@ -300,6 +304,9 @@ namespace ProjectTracking.Services
         private static string NotificationTitleColor(string title)
         {
             var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#2563EB";
+
             if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
                 return "#DC2626";
 
@@ -307,6 +314,51 @@ namespace ProjectTracking.Services
                 return "#D97706";
 
             return "#0F172A";
+        }
+
+        private static string NotificationBackgroundColor(string title)
+        {
+            var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#EFF6FF";
+
+            if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#FEF2F2";
+
+            if (normalized.StartsWith("งานเสี่ยงล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#FFFBEB";
+
+            return "#F8FAFC";
+        }
+
+        private static string NotificationBorderColor(string title)
+        {
+            var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#BFDBFE";
+
+            if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#FECACA";
+
+            if (normalized.StartsWith("งานเสี่ยงล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#FDE68A";
+
+            return "#E2E8F0";
+        }
+
+        private static string NotificationActionColor(string title)
+        {
+            var normalized = (title ?? "").Trim();
+            if (normalized.StartsWith("แจ้งเตือนประชุม", StringComparison.OrdinalIgnoreCase))
+                return "#2563EB";
+
+            if (normalized.StartsWith("งานล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#DC2626";
+
+            if (normalized.StartsWith("งานเสี่ยงล่าช้า", StringComparison.OrdinalIgnoreCase))
+                return "#D97706";
+
+            return "#0F766E";
         }
 
         private string? ToAbsoluteUrl(string? targetUrl)

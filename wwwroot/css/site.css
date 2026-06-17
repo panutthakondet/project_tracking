@@ -2467,6 +2467,21 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
   border-left: 5px solid var(--pt-accent);
 }
 
+.route-controller-meetings .meeting-detail-summary-block {
+  background: #ffffff;
+  border: 1px solid #dbe7f3;
+  border-left: 1px solid #dbe7f3;
+}
+
+.route-controller-meetings .meeting-detail-summary-block .meeting-detail-label,
+.route-controller-meetings .meeting-detail-summary-block .meeting-detail-value {
+  font-weight: 900;
+}
+
+.route-controller-meetings .meeting-detail-summary-block .meeting-detail-value a {
+  font-weight: 900;
+}
+
 .route-controller-meetings .meeting-detail-description-card {
   min-height: 148px;
 }

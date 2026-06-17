@@ -688,6 +688,15 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-warning fw-bold">@TempData["Error"]</div>
+    }
+
     <form id="antiForgeryForm" method="post">
         @Html.AntiForgeryToken()
     </form>

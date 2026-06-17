@@ -1394,7 +1394,7 @@ namespace ProjectTracking.Models
         public int MeetingId { get; set; }
         public int AttendeeId { get; set; }
 
-        // Kind is explicitly set by background services (e.g., "reminder_10m", "reminder_1d").
+        // Kind is explicitly set by meeting notification flows (e.g., "created_email", "line_reminder_3d").
         // Keep the default empty to avoid accidentally forcing an outdated enum value.
         public string Kind { get; set; } = string.Empty;
 
