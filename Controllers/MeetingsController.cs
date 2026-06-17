@@ -418,7 +418,34 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             var newStatus = NormalizeMeetingStatus(model.Status);
-            var shouldSendCancellationNotice = newStatus == "CANCELLED";
+            var oldStatus = NormalizeMeetingStatus(meeting.Status);
+            var selectedUserIds = (users ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToHashSet();
+
+            var existingAttendees = await _context.MeetingAttendees
+                .Where(a => a.MeetingId == meeting.Id)
+                .ToListAsync();
+
+            var existingUserIdsBeforeUpdate = existingAttendees
+                .Select(a => a.UserId)
+                .ToHashSet();
+
+            var detailsChanged =
+                !string.Equals(NormalizeText(meeting.Title), NormalizeText(model.Title), StringComparison.Ordinal)
+                || !string.Equals(NormalizeText(meeting.Description), NormalizeText(model.Description), StringComparison.Ordinal)
+                || meeting.MeetingDate.Date != model.MeetingDate.Date
+                || meeting.StartTime != model.StartTime
+                || meeting.EndTime != model.EndTime
+                || !string.Equals(NormalizeText(meeting.Location), NormalizeText(model.Location), StringComparison.Ordinal)
+                || !string.Equals(NormalizeText(meeting.MeetingAudience), NormalizeText(model.MeetingAudience), StringComparison.Ordinal)
+                || meeting.ProjectId != model.ProjectId;
+
+            var statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
+            var attendeesChanged = !existingUserIdsBeforeUpdate.SetEquals(selectedUserIds);
+            var shouldSendCancellationNotice = oldStatus != "CANCELLED" && newStatus == "CANCELLED";
+            var shouldSendUpdateNotice = newStatus != "CANCELLED" && (detailsChanged || statusChanged || attendeesChanged);
 
             meeting.Title = model.Title;
             meeting.Description = model.Description;
@@ -435,15 +462,6 @@ namespace ProjectTracking.Controllers
                 meeting.CreatedBy = await GetCurrentEntryIdAsync();
 
             // อัปเดตรายชื่อผู้เข้าร่วมโดยรักษา attendee_id เดิมไว้ เพื่อให้ log แจ้งเตือนยังตรวจซ้ำได้ถูกต้อง
-            var selectedUserIds = (users ?? new List<int>())
-                .Where(id => id > 0)
-                .Distinct()
-                .ToHashSet();
-
-            var existingAttendees = await _context.MeetingAttendees
-                .Where(a => a.MeetingId == meeting.Id)
-                .ToListAsync();
-
             var removeAttendees = existingAttendees
                 .Where(a => !selectedUserIds.Contains(a.UserId))
                 .ToList();
@@ -491,7 +509,7 @@ namespace ProjectTracking.Controllers
                     TempData["Error"] = "บันทึกสถานะยกเลิกแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
                 }
             }
-            else
+            else if (shouldSendUpdateNotice)
             {
                 try
                 {
@@ -515,6 +533,10 @@ namespace ProjectTracking.Controllers
                     TempData["Error"] = "บันทึกการแก้ไขแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
                 }
             }
+            else
+            {
+                TempData["Success"] = "บันทึกการแก้ไขแล้ว";
+            }
 
             return RedirectToAction("Show", new { id = meeting.Id });
         }
@@ -530,6 +552,9 @@ namespace ProjectTracking.Controllers
             var normalized = (status ?? "").Trim().ToUpperInvariant();
             return normalized == "CANCELLED" ? "CANCELLED" : "ACTIVE";
         }
+
+        private static string NormalizeText(string? value)
+            => (value ?? "").Trim();
 
         [HttpPost]
         public async Task<IActionResult> Move([FromBody] MoveRequest req)

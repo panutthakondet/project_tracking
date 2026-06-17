@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
@@ -139,7 +140,7 @@ namespace ProjectTracking.Services
 
             foreach (var recipient in recipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken))
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -155,7 +156,6 @@ namespace ProjectTracking.Services
                         BuildCreatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: new[] { attachment });
 
-                    await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -188,8 +188,9 @@ namespace ProjectTracking.Services
             var telegramAttachment = ToTelegramAttachment(attachment);
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
-            var emailKind = UniqueNotificationKind(UpdatedEmailKindPrefix);
-            var telegramKind = UniqueNotificationKind(UpdatedTelegramKindPrefix);
+            var emailKind = UpdatedNotificationKind(UpdatedEmailKindPrefix, meeting);
+            var lineKind = UpdatedNotificationKind(UpdatedLineKindPrefix, meeting);
+            var telegramKind = UpdatedNotificationKind(UpdatedTelegramKindPrefix, meeting);
             var sent = 0;
             var skipped = 0;
             var failed = 0;
@@ -197,6 +198,12 @@ namespace ProjectTracking.Services
             var emailRecipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
             foreach (var recipient in emailRecipients)
             {
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
                     await _emailService.SendAsync(
@@ -205,7 +212,6 @@ namespace ProjectTracking.Services
                         BuildUpdatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: attachment == null ? null : new[] { attachment });
 
-                    await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -223,10 +229,21 @@ namespace ProjectTracking.Services
             if (_lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsUpdate, cancellationToken))
             {
-                var lineKind = UniqueNotificationKind(UpdatedLineKindPrefix);
-                var lineRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+                var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
                 foreach (var recipient in lineRecipients)
                 {
+                    if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
                     try
                     {
                         var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
@@ -238,7 +255,6 @@ namespace ProjectTracking.Services
 
                         if (lineSendCount > 0)
                         {
-                            await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken);
                             sent += lineSendCount;
                         }
                         else
@@ -263,9 +279,21 @@ namespace ProjectTracking.Services
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsUpdate, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
-            var telegramRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            var telegramRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
             foreach (var recipient in telegramRecipients)
             {
+                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
                     var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
@@ -278,7 +306,6 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -320,14 +347,20 @@ namespace ProjectTracking.Services
 
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
-            var recipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            var recipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
             var sent = 0;
             var skipped = 0;
             var failed = 0;
 
             foreach (var recipient in recipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
+                if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -344,7 +377,6 @@ namespace ProjectTracking.Services
 
                     if (lineSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken);
                         sent += lineSendCount;
                     }
                     else
@@ -388,14 +420,20 @@ namespace ProjectTracking.Services
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
             var attachment = await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken);
             var telegramAttachment = ToTelegramAttachment(attachment);
-            var recipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            var recipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
             var sent = 0;
             var skipped = 0;
             var failed = 0;
 
             foreach (var recipient in recipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
+                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -413,7 +451,6 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -455,7 +492,7 @@ namespace ProjectTracking.Services
             var emailRecipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
             foreach (var recipient in emailRecipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -468,7 +505,6 @@ namespace ProjectTracking.Services
                         $"ยกเลิกประชุม: {meeting.Title}",
                         BuildCancelledEmailBody(meeting, recipient.DisplayName, detailUrl));
 
-                    await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -486,10 +522,16 @@ namespace ProjectTracking.Services
             if (_lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCancel, cancellationToken))
             {
-                var lineRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+                var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
                 foreach (var recipient in lineRecipients)
                 {
-                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
+                    if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
                     {
                         skipped++;
                         continue;
@@ -506,7 +548,6 @@ namespace ProjectTracking.Services
 
                         if (lineSendCount > 0)
                         {
-                            await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
                             sent += lineSendCount;
                         }
                         else
@@ -531,10 +572,16 @@ namespace ProjectTracking.Services
                 || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCancel, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
-            var telegramRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            var telegramRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
             foreach (var recipient in telegramRecipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
+                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -551,7 +598,6 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -610,14 +656,20 @@ namespace ProjectTracking.Services
 
                 foreach (var meeting in meetings)
                 {
-                    var recipients = await LoadTelegramRecipientsAsync(db, meeting.Id, cancellationToken);
+                    var recipients = await LoadMeetingRecipientsAsync(db, meeting.Id, cancellationToken);
                     if (recipients.Count == 0)
                         continue;
 
                     var kind = LineReminderKind(daysBefore);
                     foreach (var recipient in recipients)
                     {
-                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
+                        if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
                         {
                             skipped++;
                             continue;
@@ -638,7 +690,6 @@ namespace ProjectTracking.Services
 
                             if (lineSendCount > 0)
                             {
-                                await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
                                 sent += lineSendCount;
                             }
                             else
@@ -705,7 +756,7 @@ namespace ProjectTracking.Services
 
                 foreach (var meeting in meetings)
                 {
-                    var recipients = await LoadTelegramRecipientsAsync(db, meeting.Id, cancellationToken);
+                    var recipients = await LoadMeetingRecipientsAsync(db, meeting.Id, cancellationToken);
                     if (recipients.Count == 0)
                         continue;
 
@@ -713,7 +764,13 @@ namespace ProjectTracking.Services
                     var attachment = ToTelegramAttachment(await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken));
                     foreach (var recipient in recipients)
                     {
-                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
+                        if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
                         {
                             skipped++;
                             continue;
@@ -735,7 +792,6 @@ namespace ProjectTracking.Services
 
                             if (telegramSendCount > 0)
                             {
-                                await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
                                 sent += telegramSendCount;
                             }
                             else
@@ -782,7 +838,7 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
             await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
         }
 
-        private static async Task<bool> HasNotificationLogAsync(
+        private static async Task<bool> TryInsertNotificationLogAsync(
             AppDbContext db,
             int meetingId,
             int attendeeId,
@@ -790,34 +846,10 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
             CancellationToken cancellationToken)
         {
             const string sql = @"
-SELECT 1
-FROM meeting_email_notifications
-WHERE meeting_id = @mid
-  AND attendee_id = @aid
-  AND kind = @kind
-LIMIT 1";
-
-            return await db.Database
-                .SqlQueryRaw<int>(
-                    sql,
-                    new MySqlConnector.MySqlParameter("@mid", meetingId),
-                    new MySqlConnector.MySqlParameter("@aid", attendeeId),
-                    new MySqlConnector.MySqlParameter("@kind", kind))
-                .AnyAsync(cancellationToken);
-        }
-
-        private static async Task InsertNotificationLogAsync(
-            AppDbContext db,
-            int meetingId,
-            int attendeeId,
-            string kind,
-            CancellationToken cancellationToken)
-        {
-            const string sql = @"
-INSERT INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at)
+INSERT IGNORE INTO meeting_email_notifications(meeting_id, attendee_id, kind, sent_at)
 VALUES(@mid, @aid, @kind, NOW());";
 
-            await db.Database.ExecuteSqlRawAsync(
+            var affected = await db.Database.ExecuteSqlRawAsync(
                 sql,
                 new object[]
                 {
@@ -826,7 +858,33 @@ VALUES(@mid, @aid, @kind, NOW());";
                     new MySqlConnector.MySqlParameter("@kind", kind)
                 },
                 cancellationToken);
+
+            return affected > 0;
         }
+
+        private static Task<bool> HasActiveLineRecipientAsync(
+            AppDbContext db,
+            int empId,
+            CancellationToken cancellationToken)
+            => db.LineRecipients
+                .AsNoTracking()
+                .AnyAsync(x => x.IsActive
+                    && x.EmpId == empId
+                    && x.LineUserId != null
+                    && x.LineUserId != "",
+                    cancellationToken);
+
+        private static Task<bool> HasActiveTelegramRecipientAsync(
+            AppDbContext db,
+            int empId,
+            CancellationToken cancellationToken)
+            => db.TelegramRecipients
+                .AsNoTracking()
+                .AnyAsync(x => x.IsActive
+                    && x.EmpId == empId
+                    && x.TelegramChatId != null
+                    && x.TelegramChatId != "",
+                    cancellationToken);
 
         private static async Task<MeetingDetails?> LoadMeetingAsync(
             AppDbContext db,
@@ -845,7 +903,8 @@ SELECT
     ELSE CONCAT(c.coop_name, ' - ', p.project_name)
   END AS ProjectName,
   TIMESTAMP(m.meeting_date, m.start_time) AS StartAt,
-  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt
+  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt,
+  COALESCE(m.updated_at, m.created_at) AS UpdatedAt
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id
 LEFT JOIN cnt_m_coop c ON c.coop_id = p.coop_id
@@ -878,7 +937,8 @@ SELECT
     ELSE CONCAT(c.coop_name, ' - ', p.project_name)
   END AS ProjectName,
   TIMESTAMP(m.meeting_date, m.start_time) AS StartAt,
-  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt
+  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt,
+  COALESCE(m.updated_at, m.created_at) AS UpdatedAt
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id
 LEFT JOIN cnt_m_coop c ON c.coop_id = p.coop_id
@@ -949,7 +1009,7 @@ ORDER BY q.attendee_id;";
                 .ToList();
         }
 
-        private static async Task<List<TelegramRecipientInfo>> LoadTelegramRecipientsAsync(
+        private static async Task<List<MeetingRecipientInfo>> LoadMeetingRecipientsAsync(
             AppDbContext db,
             int meetingId,
             CancellationToken cancellationToken)
@@ -966,13 +1026,13 @@ WHERE ma.meeting_id = @mid
 ORDER BY ma.id;";
 
             var rows = await db.Database
-                .SqlQueryRaw<TelegramRecipientRow>(
+                .SqlQueryRaw<MeetingRecipientRow>(
                     sql,
                     new MySqlConnector.MySqlParameter("@mid", meetingId))
                 .ToListAsync(cancellationToken);
 
             return rows
-                .Select(x => new TelegramRecipientInfo(
+                .Select(x => new MeetingRecipientInfo(
                     x.attendee_id,
                     x.emp_id,
                     BuildDisplayName(x.emp_name, x.position)))
@@ -1253,8 +1313,21 @@ ORDER BY ma.id;";
         private static string TelegramReminderKind(int daysBefore)
             => $"telegram_reminder_{daysBefore}d";
 
-        private static string UniqueNotificationKind(string prefix)
-            => $"{prefix}_{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+        private static string UpdatedNotificationKind(string prefix, MeetingDetails meeting)
+        {
+            var updatedAt = meeting.UpdatedAt == default ? DateTime.UtcNow : meeting.UpdatedAt;
+            var raw = string.Join("|",
+                meeting.Id,
+                meeting.Title,
+                meeting.Description,
+                meeting.Location,
+                meeting.ProjectName,
+                meeting.StartAt.ToString("O", CultureInfo.InvariantCulture),
+                meeting.EndAt.ToString("O", CultureInfo.InvariantCulture));
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)))[..8];
+
+            return $"{prefix}_{updatedAt:yyyyMMddHHmmss}_{hash}";
+        }
 
         private string? ToAbsoluteUrl(string? targetUrl)
         {
@@ -1346,6 +1419,7 @@ ORDER BY ma.id;";
             public string? ProjectName { get; set; }
             public DateTime StartAt { get; set; }
             public DateTime EndAt { get; set; }
+            public DateTime UpdatedAt { get; set; }
         }
 
         private sealed class EmailRecipientRow
@@ -1356,7 +1430,7 @@ ORDER BY ma.id;";
             public string email { get; set; } = "";
         }
 
-        private sealed class TelegramRecipientRow
+        private sealed class MeetingRecipientRow
         {
             public int attendee_id { get; set; }
             public int emp_id { get; set; }
@@ -1365,7 +1439,7 @@ ORDER BY ma.id;";
         }
 
         private sealed record EmailRecipient(int AttendeeId, string DisplayName, string Email);
-        private sealed record TelegramRecipientInfo(int AttendeeId, int EmpId, string DisplayName);
+        private sealed record MeetingRecipientInfo(int AttendeeId, int EmpId, string DisplayName);
     }
 
     public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount);

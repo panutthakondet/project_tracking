@@ -112,6 +112,7 @@ namespace ProjectTracking.Services
             }
 
             var text = BuildNotificationText(title, message, absoluteUrl);
+            var caption = BuildNotificationCaption(title, message, absoluteUrl);
             var sent = 0;
             var failed = 0;
 
@@ -119,15 +120,19 @@ namespace ProjectTracking.Services
             {
                 try
                 {
-                    await SendMessageToChatAsync(chatId, text, absoluteUrl, cancellationToken, throwOnFailure: true);
                     if (attachment != null)
                     {
                         await SendDocumentToChatAsync(
                             chatId,
                             attachment,
-                            "ไฟล์ปฏิทิน (.ics)",
+                            caption,
+                            absoluteUrl,
                             cancellationToken,
                             throwOnFailure: true);
+                    }
+                    else
+                    {
+                        await SendMessageToChatAsync(chatId, text, absoluteUrl, cancellationToken, throwOnFailure: true);
                     }
 
                     sent++;
@@ -204,6 +209,7 @@ namespace ProjectTracking.Services
             string chatId,
             TelegramAttachment attachment,
             string? caption,
+            string? targetUrl,
             CancellationToken cancellationToken,
             bool throwOnFailure)
         {
@@ -211,7 +217,27 @@ namespace ProjectTracking.Services
             form.Add(new StringContent(chatId), "chat_id");
 
             if (!string.IsNullOrWhiteSpace(caption))
-                form.Add(new StringContent(caption), "caption");
+                form.Add(new StringContent(TrimTelegramCaption(caption)), "caption");
+
+            if (!string.IsNullOrWhiteSpace(targetUrl))
+            {
+                var replyMarkup = new
+                {
+                    inline_keyboard = new[]
+                    {
+                        new[]
+                        {
+                            new
+                            {
+                                text = "เปิดรายละเอียด",
+                                url = targetUrl
+                            }
+                        }
+                    }
+                };
+
+                form.Add(new StringContent(JsonSerializer.Serialize(replyMarkup, JsonOptions)), "reply_markup");
+            }
 
             using var fileContent = new ByteArrayContent(attachment.Content);
             fileContent.Headers.ContentType = new MediaTypeHeaderValue(
@@ -278,6 +304,26 @@ namespace ProjectTracking.Services
             return sb.ToString().Trim();
         }
 
+        private static string BuildNotificationCaption(string title, string? message, string? targetUrl)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(string.IsNullOrWhiteSpace(title) ? "แจ้งเตือนงาน" : title.Trim());
+
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                sb.AppendLine();
+                sb.AppendLine(message.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(targetUrl))
+            {
+                sb.AppendLine();
+                sb.Append("ลิงก์รายละเอียด: ").Append(targetUrl);
+            }
+
+            return sb.ToString().Trim();
+        }
+
         private string? ToAbsoluteUrl(string? targetUrl)
         {
             if (string.IsNullOrWhiteSpace(targetUrl))
@@ -307,6 +353,11 @@ namespace ProjectTracking.Services
         }
 
         private static string TrimTelegramText(string text, int maxLength = 4096)
+            => string.IsNullOrWhiteSpace(text)
+                ? "-"
+                : (text.Length <= maxLength ? text : text[..maxLength]);
+
+        private static string TrimTelegramCaption(string text, int maxLength = 1024)
             => string.IsNullOrWhiteSpace(text)
                 ? "-"
                 : (text.Length <= maxLength ? text : text[..maxLength]);
