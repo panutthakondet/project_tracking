@@ -8,16 +8,23 @@ namespace ProjectTracking.Services
     public class MeetingNotificationService
     {
         private static readonly int[] LineReminderDays = { 3, 2, 1, 0 };
+        private static readonly int[] TelegramReminderDays = { 3, 2, 1, 0 };
         private const string CreatedEmailKind = "created_email";
         private const string CreatedLineKind = "created_line";
+        private const string CreatedTelegramKind = "created_telegram";
         private const string CancelledEmailKind = "cancelled_email";
         private const string CancelledLineKind = "cancelled_line";
+        private const string CancelledTelegramKind = "cancelled_telegram";
         private const string UpdatedEmailKindPrefix = "updated_email";
         private const string UpdatedLineKindPrefix = "updated_line";
+        private const string UpdatedTelegramKindPrefix = "updated_telegram";
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly EmailService _emailService;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<MeetingNotificationService> _logger;
         private readonly string _appBaseUrl;
 
@@ -25,12 +32,18 @@ namespace ProjectTracking.Services
             IDbContextFactory<AppDbContext> dbFactory,
             EmailService emailService,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
             ILogger<MeetingNotificationService> logger)
         {
             _dbFactory = dbFactory;
             _emailService = emailService;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
             _appBaseUrl = (Environment.GetEnvironmentVariable("APP_BASE_URL")
                 ?? configuration["APP_BASE_URL"]
@@ -80,7 +93,11 @@ namespace ProjectTracking.Services
                         LineSent: x.Any(n => n.Kind == CreatedLineKind
                             || n.Kind == CancelledLineKind
                             || n.Kind.StartsWith(UpdatedLineKindPrefix)
-                            || n.Kind.StartsWith("line_reminder_"))));
+                            || n.Kind.StartsWith("line_reminder_")
+                            || n.Kind == CreatedTelegramKind
+                            || n.Kind == CancelledTelegramKind
+                            || n.Kind.StartsWith(UpdatedTelegramKindPrefix)
+                            || n.Kind.StartsWith("telegram_reminder_"))));
         }
 
         public async Task<MeetingNotificationResult> SendCreatedNotificationsAsync(
@@ -89,11 +106,12 @@ namespace ProjectTracking.Services
         {
             var emailResult = await SendCreatedEmailAsync(meetingId, cancellationToken);
             var lineResult = await SendCreatedLineAsync(meetingId, cancellationToken);
+            var telegramResult = await SendCreatedTelegramAsync(meetingId, cancellationToken);
 
             return new MeetingNotificationResult(
-                emailResult.SentCount + lineResult.SentCount,
-                emailResult.SkippedCount + lineResult.SkippedCount,
-                emailResult.FailedCount + lineResult.FailedCount);
+                emailResult.SentCount + lineResult.SentCount + telegramResult.SentCount,
+                emailResult.SkippedCount + lineResult.SkippedCount + telegramResult.SkippedCount,
+                emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount);
         }
 
         public async Task<MeetingNotificationResult> SendCreatedEmailAsync(
@@ -167,10 +185,11 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(0, 0, 0);
 
             var attachment = await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken);
+            var telegramAttachment = ToTelegramAttachment(attachment);
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
             var emailKind = UniqueNotificationKind(UpdatedEmailKindPrefix);
-            var lineKind = UniqueNotificationKind(UpdatedLineKindPrefix);
+            var telegramKind = UniqueNotificationKind(UpdatedTelegramKindPrefix);
             var sent = 0;
             var skipped = 0;
             var failed = 0;
@@ -201,25 +220,66 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_lineMessagingService.IsConfigured)
+            if (_lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsUpdate, cancellationToken))
+            {
+                var lineKind = UniqueNotificationKind(UpdatedLineKindPrefix);
+                var lineRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+                foreach (var recipient in lineRecipients)
+                {
+                    try
+                    {
+                        var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.EmpId,
+                            $"อัปเดตประชุม: {meeting.Title}",
+                            BuildUpdatedTelegramMessage(meeting, detailUrl, calendarUrl),
+                            detailUrl,
+                            cancellationToken);
+
+                        if (lineSendCount > 0)
+                        {
+                            await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken);
+                            sent += lineSendCount;
+                        }
+                        else
+                        {
+                            skipped++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        _logger.LogError(
+                            ex,
+                            "Failed to send meeting updated LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                            meeting.Id,
+                            recipient.AttendeeId,
+                            recipient.EmpId);
+                    }
+                }
+            }
+
+            if (!_telegramMessagingService.IsConfigured
+                || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsUpdate, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
-            var lineRecipients = await LoadLineRecipientsAsync(db, meetingId, cancellationToken);
-            foreach (var recipient in lineRecipients)
+            var telegramRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            foreach (var recipient in telegramRecipients)
             {
                 try
                 {
-                    var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
                         recipient.EmpId,
                         $"อัปเดตประชุม: {meeting.Title}",
-                        BuildUpdatedLineMessage(meeting, detailUrl, calendarUrl),
+                        BuildUpdatedTelegramMessage(meeting, detailUrl, calendarUrl),
                         detailUrl,
-                        cancellationToken);
+                        cancellationToken,
+                        telegramAttachment);
 
-                    if (lineSendCount > 0)
+                    if (telegramSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken);
-                        sent += lineSendCount;
+                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken);
+                        sent += telegramSendCount;
                     }
                     else
                     {
@@ -231,7 +291,7 @@ namespace ProjectTracking.Services
                     failed++;
                     _logger.LogError(
                         ex,
-                        "Failed to send meeting updated LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                        "Failed to send meeting updated Telegram. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.EmpId);
@@ -248,6 +308,9 @@ namespace ProjectTracking.Services
             if (!_lineMessagingService.IsConfigured)
                 return new MeetingNotificationResult(0, 0, 0);
 
+            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCreate, cancellationToken))
+                return new MeetingNotificationResult(0, 0, 0);
+
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
@@ -257,7 +320,7 @@ namespace ProjectTracking.Services
 
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
-            var recipients = await LoadLineRecipientsAsync(db, meetingId, cancellationToken);
+            var recipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
             var sent = 0;
             var skipped = 0;
             var failed = 0;
@@ -275,7 +338,7 @@ namespace ProjectTracking.Services
                     var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
                         recipient.EmpId,
                         $"เชิญประชุม: {meeting.Title}",
-                        BuildCreatedLineMessage(meeting, detailUrl, calendarUrl),
+                        BuildCreatedTelegramMessage(meeting, detailUrl, calendarUrl),
                         detailUrl,
                         cancellationToken);
 
@@ -295,6 +358,75 @@ namespace ProjectTracking.Services
                     _logger.LogError(
                         ex,
                         "Failed to send meeting created LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                        meeting.Id,
+                        recipient.AttendeeId,
+                        recipient.EmpId);
+                }
+            }
+
+            return new MeetingNotificationResult(sent, skipped, failed);
+        }
+
+        private async Task<MeetingNotificationResult> SendCreatedTelegramAsync(
+            int meetingId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!_telegramMessagingService.IsConfigured)
+                return new MeetingNotificationResult(0, 0, 0);
+
+            if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCreate, cancellationToken))
+                return new MeetingNotificationResult(0, 0, 0);
+
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await EnsureNotificationTableAsync(db, cancellationToken);
+
+            var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
+            if (meeting == null)
+                return new MeetingNotificationResult(0, 0, 0);
+
+            var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
+            var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
+            var attachment = await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken);
+            var telegramAttachment = ToTelegramAttachment(attachment);
+            var recipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            var sent = 0;
+            var skipped = 0;
+            var failed = 0;
+
+            foreach (var recipient in recipients)
+            {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                try
+                {
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        recipient.EmpId,
+                        $"เชิญประชุม: {meeting.Title}",
+                        BuildCreatedTelegramMessage(meeting, detailUrl, calendarUrl),
+                        detailUrl,
+                        cancellationToken,
+                        telegramAttachment);
+
+                    if (telegramSendCount > 0)
+                    {
+                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken);
+                        sent += telegramSendCount;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    _logger.LogError(
+                        ex,
+                        "Failed to send meeting created Telegram. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.EmpId);
@@ -351,13 +483,58 @@ namespace ProjectTracking.Services
                 }
             }
 
-            if (!_lineMessagingService.IsConfigured)
+            if (_lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCancel, cancellationToken))
+            {
+                var lineRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+                foreach (var recipient in lineRecipients)
+                {
+                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.EmpId,
+                            $"ยกเลิกประชุม: {meeting.Title}",
+                            BuildCancelledTelegramMessage(meeting, detailUrl),
+                            detailUrl,
+                            cancellationToken);
+
+                        if (lineSendCount > 0)
+                        {
+                            await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
+                            sent += lineSendCount;
+                        }
+                        else
+                        {
+                            skipped++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        _logger.LogError(
+                            ex,
+                            "Failed to send meeting cancelled LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                            meeting.Id,
+                            recipient.AttendeeId,
+                            recipient.EmpId);
+                    }
+                }
+            }
+
+            if (!_telegramMessagingService.IsConfigured
+                || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCancel, cancellationToken))
                 return new MeetingNotificationResult(sent, skipped, failed);
 
-            var lineRecipients = await LoadLineRecipientsAsync(db, meetingId, cancellationToken);
-            foreach (var recipient in lineRecipients)
+            var telegramRecipients = await LoadTelegramRecipientsAsync(db, meetingId, cancellationToken);
+            foreach (var recipient in telegramRecipients)
             {
-                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -365,17 +542,17 @@ namespace ProjectTracking.Services
 
                 try
                 {
-                    var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
                         recipient.EmpId,
                         $"ยกเลิกประชุม: {meeting.Title}",
-                        BuildCancelledLineMessage(meeting, detailUrl),
+                        BuildCancelledTelegramMessage(meeting, detailUrl),
                         detailUrl,
                         cancellationToken);
 
-                    if (lineSendCount > 0)
+                    if (telegramSendCount > 0)
                     {
-                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
-                        sent += lineSendCount;
+                        await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken);
+                        sent += telegramSendCount;
                     }
                     else
                     {
@@ -387,7 +564,7 @@ namespace ProjectTracking.Services
                     failed++;
                     _logger.LogError(
                         ex,
-                        "Failed to send meeting cancelled LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
+                        "Failed to send meeting cancelled Telegram. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
                         meeting.Id,
                         recipient.AttendeeId,
                         recipient.EmpId);
@@ -406,6 +583,18 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(0, 0, 0);
             }
 
+            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.AutoSend, cancellationToken))
+            {
+                _logger.LogInformation("Meeting LINE reminder skipped because LINE auto send is disabled.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
+            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsReminder, cancellationToken))
+            {
+                _logger.LogInformation("Meeting LINE reminder skipped because it is disabled in Line Notification settings.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
@@ -421,7 +610,7 @@ namespace ProjectTracking.Services
 
                 foreach (var meeting in meetings)
                 {
-                    var recipients = await LoadLineRecipientsAsync(db, meeting.Id, cancellationToken);
+                    var recipients = await LoadTelegramRecipientsAsync(db, meeting.Id, cancellationToken);
                     if (recipients.Count == 0)
                         continue;
 
@@ -438,8 +627,8 @@ namespace ProjectTracking.Services
                         {
                             var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
                                 recipient.EmpId,
-                                BuildLineTitle(daysBefore, meeting.Title),
-                                BuildLineMessage(
+                                BuildTelegramTitle(daysBefore, meeting.Title),
+                                BuildTelegramMessage(
                                     meeting,
                                     daysBefore,
                                     ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
@@ -468,6 +657,103 @@ namespace ProjectTracking.Services
                             _logger.LogError(
                                 ex,
                                 "Failed to send meeting LINE reminder. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
+                                meeting.Id,
+                                recipient.AttendeeId,
+                                recipient.EmpId,
+                                daysBefore);
+                        }
+                    }
+                }
+            }
+
+            return new MeetingNotificationResult(sent, skipped, failed);
+        }
+
+        public async Task<MeetingNotificationResult> SendTelegramRemindersAsync(
+            CancellationToken cancellationToken = default)
+        {
+            if (!_telegramMessagingService.IsConfigured)
+            {
+                _logger.LogDebug("Meeting Telegram reminder skipped because Telegram is not configured.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
+            if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.AutoSend, cancellationToken))
+            {
+                _logger.LogInformation("Meeting Telegram reminder skipped because Telegram auto send is disabled.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
+            if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsReminder, cancellationToken))
+            {
+                _logger.LogInformation("Meeting Telegram reminder skipped because it is disabled in Telegram Notification settings.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await EnsureNotificationTableAsync(db, cancellationToken);
+
+            var today = GetBangkokToday();
+            var sent = 0;
+            var skipped = 0;
+            var failed = 0;
+
+            foreach (var daysBefore in TelegramReminderDays)
+            {
+                var reminderDate = today.AddDays(daysBefore);
+                var meetings = await LoadMeetingsByDateAsync(db, reminderDate, cancellationToken);
+
+                foreach (var meeting in meetings)
+                {
+                    var recipients = await LoadTelegramRecipientsAsync(db, meeting.Id, cancellationToken);
+                    if (recipients.Count == 0)
+                        continue;
+
+                    var kind = TelegramReminderKind(daysBefore);
+                    var attachment = ToTelegramAttachment(await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken));
+                    foreach (var recipient in recipients)
+                    {
+                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        try
+                        {
+                            var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                                recipient.EmpId,
+                                BuildTelegramTitle(daysBefore, meeting.Title),
+                                BuildTelegramMessage(
+                                    meeting,
+                                    daysBefore,
+                                    ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
+                                    ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}"),
+                                ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
+                                cancellationToken,
+                                attachment);
+
+                            if (telegramSendCount > 0)
+                            {
+                                await InsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
+                                sent += telegramSendCount;
+                            }
+                            else
+                            {
+                                skipped++;
+                                _logger.LogDebug(
+                                    "Meeting Telegram reminder skipped because recipient has no active Telegram binding. MeetingId={MeetingId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
+                                    meeting.Id,
+                                    recipient.EmpId,
+                                    daysBefore);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            failed++;
+                            _logger.LogError(
+                                ex,
+                                "Failed to send meeting Telegram reminder. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
                                 meeting.Id,
                                 recipient.AttendeeId,
                                 recipient.EmpId,
@@ -509,7 +795,7 @@ FROM meeting_email_notifications
 WHERE meeting_id = @mid
   AND attendee_id = @aid
   AND kind = @kind
-LIMIT 1;";
+LIMIT 1";
 
             return await db.Database
                 .SqlQueryRaw<int>(
@@ -663,7 +949,7 @@ ORDER BY q.attendee_id;";
                 .ToList();
         }
 
-        private static async Task<List<LineRecipientInfo>> LoadLineRecipientsAsync(
+        private static async Task<List<TelegramRecipientInfo>> LoadTelegramRecipientsAsync(
             AppDbContext db,
             int meetingId,
             CancellationToken cancellationToken)
@@ -680,13 +966,13 @@ WHERE ma.meeting_id = @mid
 ORDER BY ma.id;";
 
             var rows = await db.Database
-                .SqlQueryRaw<LineRecipientRow>(
+                .SqlQueryRaw<TelegramRecipientRow>(
                     sql,
                     new MySqlConnector.MySqlParameter("@mid", meetingId))
                 .ToListAsync(cancellationToken);
 
             return rows
-                .Select(x => new LineRecipientInfo(
+                .Select(x => new TelegramRecipientInfo(
                     x.attendee_id,
                     x.emp_id,
                     BuildDisplayName(x.emp_name, x.position)))
@@ -777,7 +1063,7 @@ ORDER BY ma.id;";
             return sb.ToString();
         }
 
-        private static string BuildLineTitle(int daysBefore, string meetingTitle)
+        private static string BuildTelegramTitle(int daysBefore, string meetingTitle)
         {
             var prefix = daysBefore == 0
                 ? "แจ้งเตือนประชุมวันนี้"
@@ -786,12 +1072,12 @@ ORDER BY ma.id;";
             return $"{prefix}: {meetingTitle}";
         }
 
-        private static string BuildCreatedLineMessage(MeetingDetails meeting, string? detailUrl, string? calendarUrl)
+        private static string BuildCreatedTelegramMessage(MeetingDetails meeting, string? detailUrl, string? calendarUrl)
         {
             var sb = new StringBuilder();
             sb.AppendLine("คุณได้รับเชิญเข้าร่วมการประชุม");
 
-            AppendLineMeetingDetails(sb, meeting);
+            AppendTelegramMeetingDetails(sb, meeting);
 
             if (!string.IsNullOrWhiteSpace(detailUrl))
                 sb.AppendLine($"ลิงก์รายละเอียด: {detailUrl}");
@@ -802,12 +1088,12 @@ ORDER BY ma.id;";
             return sb.ToString().Trim();
         }
 
-        private static string BuildUpdatedLineMessage(MeetingDetails meeting, string? detailUrl, string? calendarUrl)
+        private static string BuildUpdatedTelegramMessage(MeetingDetails meeting, string? detailUrl, string? calendarUrl)
         {
             var sb = new StringBuilder();
             sb.AppendLine("มีการอัปเดตรายละเอียดการประชุม");
 
-            AppendLineMeetingDetails(sb, meeting);
+            AppendTelegramMeetingDetails(sb, meeting);
 
             if (!string.IsNullOrWhiteSpace(detailUrl))
                 sb.AppendLine($"ลิงก์รายละเอียด: {detailUrl}");
@@ -818,7 +1104,7 @@ ORDER BY ma.id;";
             return sb.ToString().Trim();
         }
 
-        private static string BuildLineMessage(
+        private static string BuildTelegramMessage(
             MeetingDetails meeting,
             int daysBefore,
             string? detailUrl,
@@ -826,7 +1112,7 @@ ORDER BY ma.id;";
         {
             var sb = new StringBuilder();
 
-            AppendLineMeetingDetails(sb, meeting);
+            AppendTelegramMeetingDetails(sb, meeting);
 
             if (!string.IsNullOrWhiteSpace(detailUrl))
                 sb.AppendLine($"ลิงก์รายละเอียด: {detailUrl}");
@@ -841,12 +1127,12 @@ ORDER BY ma.id;";
             return sb.ToString();
         }
 
-        private static string BuildCancelledLineMessage(MeetingDetails meeting, string? detailUrl)
+        private static string BuildCancelledTelegramMessage(MeetingDetails meeting, string? detailUrl)
         {
             var sb = new StringBuilder();
             sb.AppendLine("การประชุมนี้ถูกยกเลิกแล้ว");
 
-            AppendLineMeetingDetails(sb, meeting);
+            AppendTelegramMeetingDetails(sb, meeting);
 
             if (!string.IsNullOrWhiteSpace(detailUrl))
                 sb.AppendLine($"ลิงก์รายละเอียด: {detailUrl}");
@@ -854,7 +1140,7 @@ ORDER BY ma.id;";
             return sb.ToString().Trim();
         }
 
-        private static void AppendLineMeetingDetails(StringBuilder sb, MeetingDetails meeting)
+        private static void AppendTelegramMeetingDetails(StringBuilder sb, MeetingDetails meeting)
         {
             if (!string.IsNullOrWhiteSpace(meeting.ProjectName))
                 sb.AppendLine($"โครงการ: {meeting.ProjectName}");
@@ -868,6 +1154,13 @@ ORDER BY ma.id;";
 
             if (!string.IsNullOrWhiteSpace(meeting.Description))
                 sb.AppendLine($"รายละเอียด: {meeting.Description}");
+        }
+
+        private static TelegramAttachment? ToTelegramAttachment(EmailAttachment? attachment)
+        {
+            return attachment == null
+                ? null
+                : new TelegramAttachment(attachment.FileName, attachment.ContentType, attachment.Content);
         }
 
         private static EmailAttachment BuildCalendarAttachment(
@@ -956,6 +1249,9 @@ ORDER BY ma.id;";
 
         private static string LineReminderKind(int daysBefore)
             => $"line_reminder_{daysBefore}d";
+
+        private static string TelegramReminderKind(int daysBefore)
+            => $"telegram_reminder_{daysBefore}d";
 
         private static string UniqueNotificationKind(string prefix)
             => $"{prefix}_{DateTime.UtcNow:yyyyMMddHHmmssfff}";
@@ -1060,7 +1356,7 @@ ORDER BY ma.id;";
             public string email { get; set; } = "";
         }
 
-        private sealed class LineRecipientRow
+        private sealed class TelegramRecipientRow
         {
             public int attendee_id { get; set; }
             public int emp_id { get; set; }
@@ -1069,7 +1365,7 @@ ORDER BY ma.id;";
         }
 
         private sealed record EmailRecipient(int AttendeeId, string DisplayName, string Email);
-        private sealed record LineRecipientInfo(int AttendeeId, int EmpId, string DisplayName);
+        private sealed record TelegramRecipientInfo(int AttendeeId, int EmpId, string DisplayName);
     }
 
     public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount);

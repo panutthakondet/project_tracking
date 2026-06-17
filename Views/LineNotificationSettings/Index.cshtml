@@ -1,0 +1,429 @@
+@model ProjectTracking.ViewModels.LineNotificationSettingsViewModel
+@{
+    var notificationTitle = ViewData["NotificationTitle"] as string ?? "Line Notification";
+    var notificationChannel = ViewData["NotificationChannel"] as string ?? "LINE";
+    ViewData["Title"] = notificationTitle;
+    var groups = Model.Items
+        .GroupBy(x => x.Group)
+        .ToList();
+    var groupIndex = 0;
+}
+
+<style>
+    .line-notification-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .line-notification-hero {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .line-notification-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto auto auto;
+        gap: 10px;
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 18px;
+    }
+
+    .line-notification-search {
+        height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-weight: 700;
+        outline: none;
+    }
+
+    .line-notification-search:focus {
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 3px rgba(20, 184, 166, .16);
+    }
+
+    .line-notification-count {
+        color: #475569;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .line-notification-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .line-notification-group {
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    }
+
+    .line-notification-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(20, 184, 166, .13), rgba(31, 59, 99, .08));
+        border-bottom: 1px solid #c8ebe7;
+        padding: 12px 14px;
+        color: #0f3440;
+    }
+
+    .line-notification-group-title {
+        font-weight: 900;
+    }
+
+    .line-notification-group-count {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .line-notification-list {
+        padding: 10px;
+    }
+
+    .line-notification-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .line-notification-row:hover {
+        background: #f8fafc;
+    }
+
+    .line-notification-label {
+        color: #10233f;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .line-notification-desc {
+        color: #475569;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+        margin-top: 3px;
+    }
+
+    .line-notification-key {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        word-break: break-word;
+        margin-top: 2px;
+    }
+
+    .line-notification-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .line-notification-btn {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 900;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        min-width: 126px;
+    }
+
+    .line-notification-btn.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #14b8a6, #0f766e);
+    }
+
+    .line-notification-btn.muted {
+        color: #10233f;
+        background: #e5eaf0;
+    }
+
+    .line-notification-btn.light {
+        color: #0f766e;
+        background: #d9fbf5;
+    }
+
+    .line-notification-alert {
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-weight: 800;
+    }
+
+    .line-notification-alert.success {
+        color: #065f46;
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+    }
+
+    .line-notification-alert.error {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+
+    .line-toggle {
+        display: inline-grid;
+        grid-template-columns: auto minmax(36px, auto);
+        gap: 10px;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        margin: 0;
+        min-width: 98px;
+    }
+
+    .line-toggle input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .line-toggle-track {
+        width: 48px;
+        height: 26px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        position: relative;
+        transition: background .18s ease;
+    }
+
+    .line-toggle-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 5px rgba(15, 23, 42, .22);
+        transition: transform .18s ease;
+    }
+
+    .line-toggle input[type="checkbox"]:checked + .line-toggle-track {
+        background: #14b8a6;
+    }
+
+    .line-toggle input[type="checkbox"]:checked + .line-toggle-track .line-toggle-thumb {
+        transform: translateX(22px);
+    }
+
+    .line-toggle-text {
+        color: #334155;
+        font-weight: 900;
+    }
+
+    @@media (max-width: 900px) {
+        .line-notification-toolbar,
+        .line-notification-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .line-notification-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .line-notification-row {
+            grid-template-columns: 1fr;
+            align-items: start;
+        }
+    }
+</style>
+
+<div class="line-notification-page">
+    <div class="index-hero pt-form-hero line-notification-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">@notificationTitle</h2>
+            <p class="index-subtitle">เปิด/ปิดการส่ง @notificationChannel แยกตามหน้าจอและเหตุการณ์</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="line-notification-alert success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="line-notification-alert error">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Save" method="post" id="lineNotificationForm" class="card pt-form-card">
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <div class="line-notification-toolbar">
+                <input id="lineNotificationSearch"
+                       class="line-notification-search"
+                       type="search"
+                       placeholder="ค้นหาหน้าจอหรือ key..."
+                       autocomplete="off" />
+                <div id="lineNotificationCount" class="line-notification-count">เปิด @Model.EnabledCount รายการ</div>
+                <button type="button" id="enableVisible" class="line-notification-btn light">เปิดที่เห็น</button>
+                <button type="button" id="disableVisible" class="line-notification-btn muted">ปิดที่เห็น</button>
+            </div>
+
+            @{
+                var index = 0;
+            }
+
+            @if (groups.Count > 0)
+            {
+                <div class="line-notification-grid">
+                    @foreach (var group in groups)
+                    {
+                        var groupId = $"line_notification_group_{groupIndex++}";
+                        var groupItems = group.ToList();
+
+                        <section class="line-notification-group"
+                                 data-group-card
+                                 data-group-text="@($"{group.Key} {string.Join(" ", groupItems.Select(x => $"{x.Label} {x.Description} {x.FeatureKey}"))}".ToLowerInvariant())">
+                            <div class="line-notification-group-head">
+                                <div class="line-notification-group-title">@group.Key</div>
+                                <div class="line-notification-group-count">@groupItems.Count รายการ</div>
+                            </div>
+                            <div id="@groupId" class="line-notification-list">
+                                @foreach (var item in groupItems)
+                                {
+                                    <div class="line-notification-row"
+                                         data-setting-row
+                                         data-setting-text="@($"{item.Group} {item.Label} {item.Description} {item.FeatureKey}".ToLowerInvariant())">
+                                        <div>
+                                            <div class="line-notification-label">@item.Label</div>
+                                            <div class="line-notification-desc">@item.Description</div>
+                                            <div class="line-notification-key">@item.FeatureKey</div>
+                                        </div>
+                                        <label class="line-toggle">
+                                            <input type="hidden" name="Items[@index].FeatureKey" value="@item.FeatureKey" />
+                                            <input type="checkbox"
+                                                   name="Items[@index].IsEnabled"
+                                                   value="true"
+                                                   checked="@item.IsEnabled"
+                                                   data-line-toggle />
+                                            <span class="line-toggle-track">
+                                                <span class="line-toggle-thumb"></span>
+                                            </span>
+                                            <input type="hidden" name="Items[@index].IsEnabled" value="false" />
+                                            <span class="line-toggle-text">@(item.IsEnabled ? "เปิด" : "ปิด")</span>
+                                        </label>
+                                    </div>
+
+                                    index++;
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="line-notification-alert error">ยังไม่มีรายการตั้งค่า @notificationTitle</div>
+            }
+
+            <div class="line-notification-actions">
+                <a asp-controller="UserManagement" asp-action="Index" class="line-notification-btn muted">กลับ Settings</a>
+                <button type="submit" class="line-notification-btn primary">บันทึก</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const search = document.getElementById('lineNotificationSearch');
+        const count = document.getElementById('lineNotificationCount');
+        const enableVisible = document.getElementById('enableVisible');
+        const disableVisible = document.getElementById('disableVisible');
+        const rows = Array.from(document.querySelectorAll('[data-setting-row]'));
+        const groups = Array.from(document.querySelectorAll('[data-group-card]'));
+
+        function syncToggle(input) {
+            const text = input.closest('.line-toggle')?.querySelector('.line-toggle-text');
+            if (text) text.textContent = input.checked ? 'เปิด' : 'ปิด';
+        }
+
+        function updateCount() {
+            const inputs = rows.map(row => row.querySelector('[data-line-toggle]')).filter(Boolean);
+            const enabled = inputs.filter(input => input.checked).length;
+            count.textContent = `เปิด ${enabled} รายการ จาก ${inputs.length} รายการ`;
+        }
+
+        function visibleRows() {
+            return rows.filter(row => row.style.display !== 'none');
+        }
+
+        function applySearch() {
+            const term = (search?.value || '').trim().toLowerCase();
+
+            rows.forEach(row => {
+                const matched = !term || (row.dataset.settingText || '').includes(term);
+                row.style.display = matched ? '' : 'none';
+            });
+
+            groups.forEach(group => {
+                const hasVisibleRow = Array.from(group.querySelectorAll('[data-setting-row]'))
+                    .some(row => row.style.display !== 'none');
+                group.style.display = hasVisibleRow ? '' : 'none';
+            });
+        }
+
+        document.querySelectorAll('[data-line-toggle]').forEach(input => {
+            input.addEventListener('change', function () {
+                syncToggle(input);
+                updateCount();
+            });
+            syncToggle(input);
+        });
+
+        search?.addEventListener('input', applySearch);
+
+        enableVisible?.addEventListener('click', function () {
+            visibleRows().forEach(row => {
+                const input = row.querySelector('[data-line-toggle]');
+                if (input) {
+                    input.checked = true;
+                    syncToggle(input);
+                }
+            });
+            updateCount();
+        });
+
+        disableVisible?.addEventListener('click', function () {
+            visibleRows().forEach(row => {
+                const input = row.querySelector('[data-line-toggle]');
+                if (input) {
+                    input.checked = false;
+                    syncToggle(input);
+                }
+            });
+            updateCount();
+        });
+
+        applySearch();
+        updateCount();
+    })();
+</script>

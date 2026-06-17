@@ -16,6 +16,9 @@ namespace ProjectTracking.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<SupportOrdersController> _logger;
         private static readonly string[] SupportOrderStatuses = { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
         private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
@@ -33,12 +36,18 @@ namespace ProjectTracking.Controllers
             IWebHostEnvironment env,
             OverdueNotificationService notificationService,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<SupportOrdersController> logger)
         {
             _context = context;
             _env = env;
             _notificationService = notificationService;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
         }
 
@@ -312,7 +321,7 @@ namespace ProjectTracking.Controllers
             }
 
             await SyncNotificationsSafelyAsync();
-            await SendCreatedSupportLineSafelyAsync(order.OrderId);
+            await SendCreatedSupportTelegramSafelyAsync(order.OrderId);
 
             return RedirectToAction("Index", new { projectId = order.ProjectId });
         }
@@ -481,9 +490,14 @@ namespace ProjectTracking.Controllers
             }
         }
 
-        private async Task SendCreatedSupportLineSafelyAsync(int orderId)
+        private async Task SendCreatedSupportTelegramSafelyAsync(int orderId)
         {
-            if (!_lineMessagingService.IsConfigured)
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.SupportOrdersCreate, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.SupportOrdersCreate, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
                 return;
 
             try
@@ -513,31 +527,44 @@ namespace ProjectTracking.Controllers
                     return;
 
                 var title = "แจ้ง Support ใหม่:";
-                var message = BuildCreatedSupportLineMessage(order);
+                var message = BuildCreatedSupportTelegramMessage(order);
 
                 foreach (var recipient in recipientTargets)
                 {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.Key,
-                        title,
-                        message,
-                        recipient.Value,
-                        HttpContext.RequestAborted);
+                    if (sendLine)
+                    {
+                        await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.Key,
+                            title,
+                            message,
+                            recipient.Value,
+                            HttpContext.RequestAborted);
+                    }
+
+                    if (sendTelegram)
+                    {
+                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.Key,
+                            title,
+                            message,
+                            recipient.Value,
+                            HttpContext.RequestAborted);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Send created support LINE notification failed. OrderId={OrderId}", orderId);
+                _logger.LogWarning(ex, "Send created support Telegram notification failed. OrderId={OrderId}", orderId);
             }
         }
 
-        private static string BuildCreatedSupportLineMessage(ProjectSupportOrder order)
+        private static string BuildCreatedSupportTelegramMessage(ProjectSupportOrder order)
         {
             var project = order.Project;
             var rows = new List<string>
             {
                 $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
-                $"Project: {ProjectNameForLine(project)}",
+                $"Project: {ProjectNameForTelegram(project)}",
                 $"Support: {TextOrDash(order.OrderTitle)}",
                 $"รายละเอียด: {TextOrDash(order.OrderDetail)}",
                 $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
@@ -551,7 +578,7 @@ namespace ProjectTracking.Controllers
             return string.Join("\n", rows);
         }
 
-        private static string ProjectNameForLine(Project? project)
+        private static string ProjectNameForTelegram(Project? project)
             => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
 
         private static string TextOrDash(string? value)

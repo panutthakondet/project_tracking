@@ -67,11 +67,155 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 16px 18px;
+        gap: 18px;
+        padding: 18px 22px;
         color: #ffffff;
-        background: linear-gradient(135deg, #10233f 0%, #123b5c 58%, #0f766e 100%);
+        background:
+            linear-gradient(135deg, rgba(16, 35, 63, .96) 0%, rgba(18, 59, 92, .94) 58%, rgba(15, 118, 110, .92) 100%);
         border-bottom: 1px solid rgba(20, 184, 166, .36);
+        position: relative;
+        overflow: hidden;
+        min-height: 92px;
+    }
+
+    .calendar-card__toolbar::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(90deg, rgba(255, 255, 255, .10), transparent 42%),
+            repeating-linear-gradient(135deg, rgba(255,255,255,.10) 0 1px, transparent 1px 14px);
+        opacity: .42;
+        pointer-events: none;
+    }
+
+    .calendar-card__toolbar > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .calendar-heading {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .calendar-heading__date {
+        min-width: 220px;
+        min-height: 48px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        background: rgba(255,255,255,.95);
+        color: var(--meeting-navy);
+        box-shadow: 0 12px 26px rgba(4, 18, 38, .22);
+        font-size: .94rem;
+        font-weight: 900;
+        line-height: 1.25;
+        padding: 10px 14px;
+        white-space: nowrap;
+    }
+
+    .calendar-heading__eyebrow {
+        display: block;
+        color: rgba(255,255,255,.72);
+        font-size: .76rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .calendar-heading__title {
+        display: block;
+        color: #ffffff;
+        font-size: 1.25rem;
+        font-weight: 900;
+        line-height: 1.2;
+        margin-top: 2px;
+    }
+
+    .calendar-heading__subtitle {
+        display: block;
+        color: rgba(255,255,255,.78);
+        font-size: .88rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-top: 4px;
+    }
+
+    .calendar-heading__meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .calendar-heading__pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.28);
+        background: rgba(255,255,255,.13);
+        color: #ffffff;
+        font-size: .82rem;
+        font-weight: 900;
+        white-space: nowrap;
+        backdrop-filter: blur(8px);
+    }
+
+    .calendar-heading__action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        min-width: 118px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.45);
+        color: #ffffff !important;
+        background: rgba(255,255,255,.12);
+        box-shadow: 0 8px 18px rgba(4, 18, 38, .16);
+        font-size: .88rem;
+        font-weight: 900;
+        line-height: 1.15;
+        text-decoration: none;
+        white-space: nowrap;
+        backdrop-filter: blur(8px);
+    }
+
+    .calendar-heading__action.primary {
+        color: #062b2f !important;
+        border-color: transparent;
+        background: linear-gradient(135deg, #8df1e4, #23c7c8);
+    }
+
+    .calendar-heading__action:hover,
+    .calendar-heading__action:focus {
+        color: #ffffff !important;
+        filter: brightness(1.06);
+        transform: translateY(-1px);
+    }
+
+    .calendar-heading__action.primary:hover,
+    .calendar-heading__action.primary:focus {
+        color: #062b2f !important;
+    }
+
+    .calendar-heading__action:disabled {
+        color: rgba(255,255,255,.72) !important;
+        border-color: rgba(255,255,255,.28);
+        background: rgba(148, 163, 184, .22);
+        box-shadow: none;
+        filter: none;
+        transform: none;
+        cursor: not-allowed;
     }
 
     .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -96,6 +240,13 @@
     }
 
     .calendar-card__body { padding: 16px; background: #eef5fb; }
+    .calendar-scroll {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
 
     /* FullCalendar polish */
     .fc .fc-toolbar-title {
@@ -112,7 +263,7 @@
         padding: .35rem .65rem;
     }
     .fc .fc-button-primary {
-        background: linear-gradient(135deg, var(--meeting-teal), var(--meeting-teal-dark)) !important;
+        background: var(--meeting-teal) !important;
         border-color: transparent !important;
         color: #062b2f !important;
         font-weight: 800;
@@ -141,6 +292,24 @@
         font-weight: 700;
         font-size: 1rem;
         text-shadow: 0 1px 1px rgba(0,0,0,.15);
+    }
+
+    .fc .fc-day-head-weekday,
+    .fc .fc-day-head-date {
+        display: block;
+        color: #ffffff;
+        line-height: 1.2;
+    }
+
+    .fc .fc-day-head-weekday {
+        font-weight: 900;
+    }
+
+    .fc .fc-day-head-date {
+        margin-top: 2px;
+        font-size: .75rem;
+        font-weight: 800;
+        opacity: .82;
     }
 
     /* Header background color */
@@ -218,15 +387,15 @@
     }
 
     .fc .fc-day-today {
-        background: #c8f8ef !important;
-        box-shadow: inset 0 0 0 3px var(--meeting-teal-dark);
+        background: #eef8f7 !important;
+        box-shadow: none;
     }
 
     .fc .fc-day-today .fc-daygrid-day-frame {
         min-height: 100% !important;
         height: 100% !important;
-        background: linear-gradient(180deg, #d9fbf6 0%, #b9f2e8 100%) !important;
-        box-shadow: inset 0 0 0 2px rgba(15,118,110,.55);
+        background: transparent !important;
+        box-shadow: none;
     }
 
     .fc .fc-day-today .fc-daygrid-day-top,
@@ -235,9 +404,8 @@
         background: transparent !important;
     }
 
-    /* Circle highlight around today's date number */
     .fc .fc-day-today .fc-daygrid-day-number {
-        background: linear-gradient(135deg, var(--meeting-teal-dark), #0b4f4a);
+        background: var(--meeting-teal-dark);
         color: #ffffff !important;
         border-radius: 50%;
         width: 34px;
@@ -246,7 +414,7 @@
         align-items: center;
         justify-content: center;
         font-weight: 900;
-        box-shadow: 0 10px 20px rgba(15, 118, 110, .30);
+        box-shadow: 0 8px 18px rgba(15, 118, 110, .26);
     }
 
     .fc .fc-list {
@@ -258,7 +426,7 @@
     }
 
     .fc .fc-list-day-cushion {
-        background: linear-gradient(135deg, var(--meeting-navy), #0f766e) !important;
+        background: var(--meeting-navy) !important;
         color: #ffffff !important;
         font-weight: 900;
     }
@@ -273,11 +441,83 @@
         background: #ecfeff !important;
     }
 
-    .fc .fc-event {
+    .fc .fc-timegrid-axis,
+    .fc .fc-timegrid-slot-label {
         background: #f8fafc !important;
+        border-color: #d8e3ef !important;
+    }
+
+    .fc .fc-timegrid-slot-label-cushion {
+        color: #334155;
+        font-size: .75rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .fc .fc-timegrid-slot {
+        height: 46px;
+        border-color: #d8e3ef !important;
+    }
+
+    .fc .fc-timegrid-col {
+        background: #f7fbfc;
+    }
+
+    .fc .fc-timegrid-col.fc-day-today {
+        background: #f7fbfc !important;
+        box-shadow: none;
+    }
+
+    .fc .fc-timegrid-event {
         border-radius: 12px !important;
-        border: 1px solid var(--meeting-border) !important;
-        border-left: 6px solid var(--meeting-teal) !important;
+        padding: 7px 9px !important;
+        min-height: 46px;
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .12) !important;
+        overflow: hidden !important;
+    }
+
+    .fc .fc-timegrid-event .meeting-event-content {
+        display: block;
+    }
+
+    .fc .fc-timegrid-event .meeting-event-icon {
+        display: none;
+    }
+
+    .fc .fc-timegrid-event .meeting-event-title {
+        font-size: .75rem;
+        line-height: 1.25;
+    }
+
+    .fc .fc-timegrid-event .meeting-event-subtitle {
+        font-size: .68rem;
+        line-height: 1.25;
+    }
+
+    .fc .fc-timegrid-event .meeting-event-meta {
+        font-size: .67rem;
+        line-height: 1.25;
+        gap: 2px 6px;
+    }
+
+    .fc .fc-timegrid-now-indicator-line {
+        border-color: var(--meeting-pink) !important;
+        border-width: 2px 0 0 !important;
+    }
+
+    .fc .fc-timegrid-now-indicator-arrow {
+        border-color: var(--meeting-pink) !important;
+        border-top-color: transparent !important;
+        border-bottom-color: transparent !important;
+    }
+
+    .fc .fc-event {
+        --meeting-event-bg-start: #ffffff;
+        --meeting-event-bg-end: #f8fafc;
+        --meeting-event-border: var(--meeting-border);
+        background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
+        border-radius: 12px !important;
+        border: 2px solid var(--meeting-event-border) !important;
         padding: 8px 10px !important;
         font-size: 0.80rem;
         line-height: 1.4;
@@ -336,11 +576,9 @@
         font-size: .78rem;
         line-height: 1.35;
         font-weight: 900;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        word-break: break-word;
     }
 
     .meeting-event-subtitle,
@@ -350,8 +588,9 @@
         font-size: .72rem;
         line-height: 1.3;
         font-weight: 800;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        overflow: visible;
+        white-space: normal;
+        word-break: break-word;
     }
 
     .meeting-event-meta {
@@ -361,39 +600,33 @@
     }
 
     .fc-event.customer-event {
-        background: linear-gradient(135deg, #ecfeff, #dffbf7) !important;
-        border-color: #99f6e4 !important;
-        border-left-color: var(--meeting-teal-dark) !important;
+        --meeting-event-bg-end: #f0fdfa;
+        --meeting-event-border: #22c55e;
     }
 
     .fc-event.team-event {
-        background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
-        border-color: #bfdbfe !important;
-        border-left-color: var(--meeting-blue) !important;
+        --meeting-event-bg-end: #eff6ff;
+        --meeting-event-border: #238cf6;
     }
 
     .fc-event.executive-event {
-        background: linear-gradient(135deg, #fff7ed, #ffedd5) !important;
-        border-color: #fed7aa !important;
-        border-left-color: var(--meeting-orange) !important;
+        --meeting-event-bg-end: #fff7ed;
+        --meeting-event-border: var(--meeting-orange);
     }
 
     .fc-event.manager-event {
-        background: linear-gradient(135deg, #f5f3ff, #ede9fe) !important;
-        border-color: #ddd6fe !important;
-        border-left-color: var(--meeting-purple) !important;
+        --meeting-event-bg-end: #f5f3ff;
+        --meeting-event-border: var(--meeting-purple);
     }
 
     .fc-event.vendor-event {
-        background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
-        border-color: #fde68a !important;
-        border-left-color: #d97706 !important;
+        --meeting-event-bg-end: #fffbeb;
+        --meeting-event-border: #d97706;
     }
 
     .fc-event.other-event {
-        background: linear-gradient(135deg, #f8fafc, #eef2ff) !important;
-        border-color: #cbd5e1 !important;
-        border-left-color: #64748b !important;
+        --meeting-event-bg-end: #f8fafc;
+        --meeting-event-border: #64748b;
     }
 
     .fc-tooltip {
@@ -430,7 +663,7 @@
         gap: 12px;
         padding: 14px 16px;
         color: #ffffff;
-        background: linear-gradient(135deg, #10233f, #0f766e) !important;
+        background: #10233f !important;
         border: 0;
         font-weight: 900;
     }
@@ -446,13 +679,15 @@
     }
 
     .meeting-row {
+        --meeting-row-bg-start: #ffffff;
+        --meeting-row-bg-end: #f8fafc;
+        --meeting-row-border: #d8e3ef;
         display: flex;
         gap: 18px;
-        background: #ffffff;
+        background: linear-gradient(180deg, var(--meeting-row-bg-start), var(--meeting-row-bg-end));
         border-radius: 16px;
         padding: 16px;
-        border: 1px solid #d8e3ef;
-        border-left: 7px solid var(--meeting-teal);
+        border: 2px solid var(--meeting-row-border);
         align-items: stretch;
         height: 100%;
         box-shadow: 0 10px 22px rgba(15, 35, 64, .08);
@@ -464,13 +699,13 @@
         box-shadow: 0 16px 30px rgba(15, 35, 64, .14);
     }
 
-    .meeting-row.sun { border-left-color: var(--meeting-pink); background: linear-gradient(90deg, #fff1f2 0, #ffffff 30%); }
-    .meeting-row.mon { border-left-color: var(--meeting-teal-dark); background: linear-gradient(90deg, #ecfeff 0, #ffffff 30%); }
-    .meeting-row.tue { border-left-color: #d946ef; background: linear-gradient(90deg, #fdf2f8 0, #ffffff 30%); }
-    .meeting-row.wed { border-left-color: #22c55e; background: linear-gradient(90deg, #ecfdf5 0, #ffffff 30%); }
-    .meeting-row.thu { border-left-color: var(--meeting-orange); background: linear-gradient(90deg, #fff7ed 0, #ffffff 30%); }
-    .meeting-row.fri { border-left-color: var(--meeting-blue); background: linear-gradient(90deg, #eff6ff 0, #ffffff 30%); }
-    .meeting-row.sat { border-left-color: var(--meeting-purple); background: linear-gradient(90deg, #f5f3ff 0, #ffffff 30%); }
+    .meeting-row.sun { --meeting-row-bg-end: #fff1f2; --meeting-row-border: var(--meeting-pink); }
+    .meeting-row.mon { --meeting-row-bg-end: #f0fdfa; --meeting-row-border: var(--meeting-teal-dark); }
+    .meeting-row.tue { --meeting-row-bg-end: #fdf4ff; --meeting-row-border: #d946ef; }
+    .meeting-row.wed { --meeting-row-bg-end: #f0fdf4; --meeting-row-border: #22c55e; }
+    .meeting-row.thu { --meeting-row-bg-end: #fff7ed; --meeting-row-border: var(--meeting-orange); }
+    .meeting-row.fri { --meeting-row-bg-end: #eff6ff; --meeting-row-border: var(--meeting-blue); }
+    .meeting-row.sat { --meeting-row-bg-end: #f5f3ff; --meeting-row-border: var(--meeting-purple); }
 
     .meeting-col {
         background: rgba(255, 255, 255, .82);
@@ -492,8 +727,8 @@
         width: 36px;
         height: 36px;
         border-radius: 12px;
-        background: linear-gradient(135deg, var(--meeting-teal), var(--meeting-teal-dark));
-        color: #ffffff;
+        background: rgba(20, 184, 166, .16);
+        color: #062b2f;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -514,8 +749,8 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #238cf6, #14b8a6);
-        color: #ffffff;
+        background: rgba(20, 184, 166, .16);
+        color: #062b2f;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -562,6 +797,45 @@
     /* ============================
        Responsive Meeting Calendar
     ============================ */
+    @@media (min-width: 901px) and (max-width: 1199.98px) {
+        .calendar-card__body {
+            padding: 12px;
+        }
+
+        #calendar {
+            min-width: 1080px;
+        }
+
+        .fc .fc-daygrid-day-frame {
+            padding: 6px;
+            min-height: 140px;
+        }
+
+        .fc .fc-event {
+            padding: 6px 8px !important;
+            margin-bottom: 6px !important;
+        }
+
+        .meeting-event-content {
+            gap: 6px;
+        }
+
+        .meeting-event-icon {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .calendar-scroll {
+            overflow-x: visible;
+            padding-bottom: 0;
+        }
+
+        #calendar {
+            min-width: 0;
+        }
+    }
+
     @@media (max-width: 768px) {
 
         .meeting-page {
@@ -589,7 +863,33 @@
         .calendar-card__toolbar {
             flex-direction: column;
             align-items: stretch;
-            text-align: center;
+            text-align: left;
+            padding: 16px;
+            min-height: auto;
+        }
+
+        .calendar-heading__meta {
+            justify-content: flex-start;
+        }
+
+        .calendar-heading {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .calendar-heading__date {
+            min-width: 0;
+            width: auto;
+            white-space: normal;
+            text-align: left;
+        }
+
+        .calendar-heading__title {
+            font-size: 1.08rem;
+        }
+
+        .calendar-heading__subtitle {
+            font-size: .82rem;
         }
 
         .fc-toolbar {
@@ -662,32 +962,6 @@
 </style>
 
 <div class="container meeting-page">
-    <div class="meeting-header index-hero">
-        <div class="index-hero__content">
-            <span class="index-eyebrow">ProjectTracking</span>
-            <h2 class="meeting-title index-title">@ViewData["Title"]</h2>
-            <p class="meeting-subtitle index-subtitle">คลิกนัดเพื่อดูรายละเอียด</p>
-        </div>
-
-        <div class="toolbar-right index-actions">
-            <a class="btn btn-outline-light btn-pill" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
-                Dashboard
-            </a>
-            @if (CanMenu("Meetings.Create"))
-            {
-                <a class="btn btn-primary" href="/Meetings/Create" title="สร้างนัดประชุม">
-                    สร้างนัดประชุม
-                </a>
-            }
-            else
-            {
-                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์สร้างนัดประชุม">
-                    สร้างนัดประชุม
-                </button>
-            }
-        </div>
-    </div>
-
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success fw-bold">@TempData["Success"]</div>
@@ -703,12 +977,30 @@
 
     <div class="calendar-card">
         <div class="calendar-card__toolbar">
-            <div class="toolbar-left">
-                <strong style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:1.1rem;">📅</span>
-                    <span>Calendar</span>
-                </strong>
-                <span class="text-muted" style="font-size:.92rem;">ข้อมูลจากระบบ</span>
+            <div class="calendar-heading">
+                <span class="calendar-heading__date" id="calendarThaiDate">วันศุกร์ ที่ 19 มิถุนายน 2569</span>
+                <div>
+                    <span class="calendar-heading__eyebrow">Meetings Calendar</span>
+                    <strong class="calendar-heading__title">ปฏิทินประชุม</strong>
+                    <span class="calendar-heading__subtitle">ตารางนัดหมายทีม ลูกค้า และโครงการ</span>
+                </div>
+            </div>
+            <div class="calendar-heading__meta" aria-label="Calendar actions">
+                <a class="calendar-heading__action" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
+                    Dashboard
+                </a>
+                @if (CanMenu("Meetings.Create"))
+                {
+                    <a class="calendar-heading__action primary" href="/Meetings/Create" title="สร้างนัดประชุม">
+                        สร้างนัดประชุม
+                    </a>
+                }
+                else
+                {
+                    <button type="button" class="calendar-heading__action primary" disabled title="ไม่มีสิทธิ์สร้างนัดประชุม">
+                        สร้างนัดประชุม
+                    </button>
+                }
             </div>
         </div>
 
@@ -716,7 +1008,9 @@
         <div class="row">
             <!-- Calendar Full Width -->
             <div class="col-12">
-                <div id="calendar"></div>
+                <div class="calendar-scroll">
+                    <div id="calendar"></div>
+                </div>
             </div>
         </div>
 
@@ -741,17 +1035,80 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const calendarEl = document.getElementById('calendar');
+    const compactCalendarMedia = window.matchMedia('(max-width: 900px)');
+    const isCompactCalendar = () => compactCalendarMedia.matches;
+    const calendarThaiDateEl = document.getElementById('calendarThaiDate');
+    const thaiWeekdays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+    const thaiMonths = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const thaiMonthsShort = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const formatThaiDateFull = function (value) {
+        if (!value) return '';
+
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+
+        return `${thaiWeekdays[date.getDay()]} ที่ ${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
+    };
+
+    const formatThaiDateShort = function (value) {
+        if (!value) return '';
+
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+
+        return `${date.getDate()} ${thaiMonthsShort[date.getMonth()]} ${date.getFullYear() + 543}`;
+    };
+
+    const formatThaiTime = function (value) {
+        if (!value) return '';
+
+        return value.toLocaleTimeString('th-TH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }) + ' น.';
+    };
+
+    if (calendarThaiDateEl) {
+        const today = new Date();
+        calendarThaiDateEl.textContent = formatThaiDateFull(today);
+    }
 
     let eventCounter = 0;
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: window.matchMedia('(max-width: 768px)').matches
+        initialView: isCompactCalendar()
             ? 'listMonth'
             : 'dayGridMonth',
-        locale: 'en',
-        dayHeaderFormat: { weekday: 'long' },
+        locale: 'th',
+        dayHeaderContent: function(arg) {
+            const weekday = thaiWeekdays[arg.date.getDay()];
+            if (arg.view.type === 'dayGridMonth') {
+                return { html: `<span class="fc-day-head-weekday">${weekday}</span>` };
+            }
+
+            return {
+                html: `<span class="fc-day-head-weekday">${weekday}</span><span class="fc-day-head-date">${arg.date.getDate()} ${thaiMonthsShort[arg.date.getMonth()]}</span>`
+            };
+        },
         height: 'auto',
         firstDay: 0, // Sunday
+        allDaySlot: false,
+        nowIndicator: true,
+        expandRows: true,
+        slotDuration: '00:30:00',
+        slotLabelInterval: '01:00',
+        slotLabelContent: function(arg) {
+            return { html: `<span>${formatThaiTime(arg.date)}</span>` };
+        },
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
         editable: true,
         eventStartEditable: true,
         eventDurationEditable: true,
@@ -760,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', function () {
         headerToolbar: {
             left: 'prev,next',
             center: 'title',
-            right: window.matchMedia('(max-width: 768px)').matches
+            right: isCompactCalendar()
                 ? 'listMonth'
                 : 'dayGridMonth,timeGridWeek,timeGridDay'
         },
@@ -771,7 +1128,8 @@ document.addEventListener('DOMContentLoaded', function () {
             today: 'วันนี้',
             month: 'เดือน',
             week: 'สัปดาห์',
-            day: 'วัน'
+            day: 'วัน',
+            list: 'รายการ'
         },
 
         // ดึงข้อมูลจาก controller: /Meetings/List
@@ -845,25 +1203,16 @@ document.addEventListener('DOMContentLoaded', function () {
             let project = arg.event.title || '';
             let meetingTitle = props.title || props.meetingTitle || '';
 
-            function truncate(text, max) {
-                if (!text) return '';
-                return text.length > max ? text.substring(0, max) + '...' : text;
-            }
-
             function escapeHtml(text) {
                 const div = document.createElement('div');
                 div.textContent = text || '';
                 return div.innerHTML;
             }
 
-            function formatTime(value) {
-                return value ? value.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
-            }
-
-            const shortProject = eventCounter + '. ' + truncate(project, 30);
-            const shortMeeting = truncate(meetingTitle || '', 28);
-            const startText = formatTime(arg.event.start);
-            const endText = formatTime(arg.event.end);
+            const shortProject = eventCounter + '. ' + project;
+            const shortMeeting = meetingTitle || '';
+            const startText = formatThaiTime(arg.event.start);
+            const endText = formatThaiTime(arg.event.end);
             const timeText = startText ? `${startText}${endText ? ' - ' + endText : ''}` : '';
 
             // Add meetingWith extraction
@@ -922,7 +1271,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             container.innerHTML = `
-                <div class="meeting-event-content">
+                <div class="meeting-event-content ${arg.view.type.startsWith('timeGrid') ? 'is-timegrid' : ''}">
                     <div class="meeting-event-icon">${icon}</div>
                     <div class="meeting-event-text">
                         <div class="meeting-event-title">${escapeHtml(shortProject)}</div>
@@ -950,9 +1299,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const safeTitle = escapeHtml(info.event.title);
             const safeProject = props.projectName ? `📁 ${escapeHtml(props.projectName)}<br>` : '';
             const safeLocation = props.location ? `📍 ${escapeHtml(props.location)}<br>` : '';
-            const start = info.event.start ? info.event.start.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
-            const end = info.event.end ? info.event.end.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            const start = formatThaiTime(info.event.start);
+            const end = formatThaiTime(info.event.end);
             const time = start && end ? `⏰ ${start} - ${end}` : '';
+
+            const listTimeCell = info.el.querySelector('.fc-list-event-time');
+            if (listTimeCell && start) {
+                listTimeCell.textContent = end ? `${start} - ${end}` : start;
+            }
 
             const tooltip = document.createElement('div');
             tooltip.className = 'fc-tooltip';
@@ -978,10 +1332,71 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function getCalendarThaiTitle() {
+        const view = calendar.view;
+        const current = calendar.getDate();
+
+        if (view.type === 'dayGridMonth' || view.type === 'listMonth') {
+            const prefix = view.type === 'listMonth' ? 'รายการประชุม ' : '';
+            return `${prefix}${thaiMonths[current.getMonth()]} ${current.getFullYear() + 543}`;
+        }
+
+        if (view.type === 'timeGridDay') {
+            return formatThaiDateFull(current);
+        }
+
+        const start = new Date(view.currentStart || view.activeStart);
+        const end = new Date(view.currentEnd || view.activeEnd);
+        end.setDate(end.getDate() - 1);
+
+        return `${formatThaiDateShort(start)} - ${formatThaiDateShort(end)}`;
+    }
+
+    function syncCalendarThaiTitle() {
+        const titleEl = calendarEl.querySelector('.fc-toolbar-title');
+        if (titleEl) {
+            titleEl.textContent = getCalendarThaiTitle();
+        }
+    }
+
     calendar.render();
+    syncCalendarThaiTitle();
+
+    function syncCalendarResponsiveMode() {
+        if (isCompactCalendar()) {
+            calendar.setOption('headerToolbar', {
+                left: 'prev,next',
+                center: 'title',
+                right: 'listMonth'
+            });
+
+            if (calendar.view.type !== 'listMonth') {
+                calendar.changeView('listMonth');
+            }
+
+            return;
+        }
+
+        calendar.setOption('headerToolbar', {
+            left: 'prev,next',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        });
+
+        if (calendar.view.type === 'listMonth') {
+            calendar.changeView('dayGridMonth');
+        }
+    }
+
+    if (compactCalendarMedia.addEventListener) {
+        compactCalendarMedia.addEventListener('change', syncCalendarResponsiveMode);
+    } else if (compactCalendarMedia.addListener) {
+        compactCalendarMedia.addListener(syncCalendarResponsiveMode);
+    }
 
     calendar.on('datesSet', function() {
         eventCounter = 0;
+        syncCalendarThaiTitle();
     });
 
     loadMeetingList();
@@ -1003,14 +1418,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     const d = new Date(e.start);
                     if (d >= today) {
 
-                        const date = d.toLocaleDateString('th-TH');
+                        const date = formatThaiDateFull(d);
 
                         const project = e.extendedProps && e.extendedProps.projectName
                             ? e.extendedProps.projectName
                             : '-';
 
-                        const start = e.start ? new Date(e.start).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
-                        const end = e.end ? new Date(e.end).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+                        const start = e.start ? formatThaiTime(new Date(e.start)) : '';
+                        const end = e.end ? formatThaiTime(new Date(e.end)) : '';
 
                         const div = document.createElement('div');
                         const dayIndex = d.getDay(); // 0=Sun
@@ -1026,7 +1441,6 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="meeting-icon">📅</div>
             <div>
                 <div class="meeting-date">${date}</div>
-                <div class="meeting-day">${d.toLocaleDateString('th-TH', { weekday: 'long' })}</div>
                 <div class="meeting-time">⏰ ${start}${end ? ' - ' + end : ''}</div>
             </div>
         </div>

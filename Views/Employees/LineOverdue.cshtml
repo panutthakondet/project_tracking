@@ -1,7 +1,7 @@
 @model ProjectTracking.ViewModels.LineOverdueSelectionViewModel
 @using System.Globalization
 @{
-    ViewData["Title"] = "Send Overdue Line";
+    ViewData["Title"] = "Send Overdue Notification";
     var th = new CultureInfo("th-TH");
 
     string FormatDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
@@ -428,7 +428,7 @@
         <div class="index-hero__content">
             <span class="index-eyebrow">Employees</span>
             <h1 class="index-title">@ViewData["Title"]</h1>
-            <p class="index-subtitle">เลือกรายการงานเสี่ยงล่าช้า/งานล่าช้าเพื่อส่งแจ้งเตือน LINE</p>
+            <p class="index-subtitle">เลือกรายการงานเสี่ยงล่าช้า/งานล่าช้าเพื่อส่งแจ้งเตือน LINE/Telegram</p>
         </div>
         <div class="index-actions">
             <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
@@ -439,7 +439,7 @@
     <div class="actions">
         <button type="button" class="line-btn" id="selectAllButton">Select All</button>
         <button type="button" class="line-btn" id="clearButton">Clear</button>
-        <button type="submit" form="sendForm" class="line-btn warning">Send Selected Line</button>
+        <button type="submit" form="sendForm" class="line-btn warning">Send Selected</button>
     </div>
 
     @if (TempData["Success"] != null)
@@ -470,10 +470,10 @@
         <article class="kpi ready">
             <span>Ready</span>
             <strong>@Model.ReadyCount</strong>
-            <small>ผูก LINE แล้ว</small>
+            <small>ผูก LINE/Telegram แล้ว</small>
         </article>
         <article class="kpi missing">
-            <span>Missing LINE</span>
+            <span>Missing Channel</span>
             <strong>@Model.MissingLineCount</strong>
             <small>ยังส่งไม่ได้</small>
         </article>

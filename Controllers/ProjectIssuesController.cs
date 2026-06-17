@@ -29,6 +29,9 @@ namespace ProjectTracking.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly OverdueNotificationService _notificationService;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<ProjectIssuesController> _logger;
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
@@ -37,12 +40,18 @@ namespace ProjectTracking.Controllers
             IWebHostEnvironment env,
             OverdueNotificationService notificationService,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<ProjectIssuesController> logger)
         {
             _context = context;
             _env = env;
             _notificationService = notificationService;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
         }
 
@@ -294,7 +303,7 @@ namespace ProjectTracking.Controllers
             }
 
             await SyncNotificationsSafelyAsync();
-            await SendCreatedIssueLineSafelyAsync(model.IssueId);
+            await SendCreatedIssueTelegramSafelyAsync(model.IssueId);
 
             return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
         }
@@ -520,7 +529,7 @@ namespace ProjectTracking.Controllers
 
             await SyncNotificationsSafelyAsync();
             if (shouldNotifyBaFixed)
-                await SendFixedIssueLineToBaSafelyAsync(issue.IssueId);
+                await SendFixedIssueTelegramToBaSafelyAsync(issue.IssueId);
 
             return RedirectToAction(nameof(DevIndex), new { projectId = issue.ProjectId });
         }
@@ -902,9 +911,14 @@ namespace ProjectTracking.Controllers
             return ModelState.TryGetValue(key, out var state) && state.Errors.Count > 0;
         }
 
-        private async Task SendCreatedIssueLineSafelyAsync(int issueId)
+        private async Task SendCreatedIssueTelegramSafelyAsync(int issueId)
         {
-            if (!_lineMessagingService.IsConfigured)
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesCreate, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
                 return;
 
             try
@@ -934,27 +948,45 @@ namespace ProjectTracking.Controllers
                     return;
 
                 var title = "แจ้ง Issue ใหม่:";
-                var message = BuildCreatedIssueLineMessage(issue);
+                var message = BuildCreatedIssueTelegramMessage(issue);
 
                 foreach (var recipient in recipientTargets)
                 {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.Key,
-                        title,
-                        message,
-                        recipient.Value,
-                        HttpContext.RequestAborted);
+                    if (sendLine)
+                    {
+                        await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.Key,
+                            title,
+                            message,
+                            recipient.Value,
+                            HttpContext.RequestAborted);
+                    }
+
+                    if (sendTelegram)
+                    {
+                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                            recipient.Key,
+                            title,
+                            message,
+                            recipient.Value,
+                            HttpContext.RequestAborted);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Send created issue LINE notification failed. IssueId={IssueId}", issueId);
+                _logger.LogWarning(ex, "Send created issue Telegram notification failed. IssueId={IssueId}", issueId);
             }
         }
 
-        private async Task SendFixedIssueLineToBaSafelyAsync(int issueId)
+        private async Task SendFixedIssueTelegramToBaSafelyAsync(int issueId)
         {
-            if (!_lineMessagingService.IsConfigured)
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesFixed, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
                 return;
 
             try
@@ -972,26 +1004,40 @@ namespace ProjectTracking.Controllers
                 if (issue == null || !baEmpId.HasValue || baEmpId.Value <= 0)
                     return;
 
-                await _lineMessagingService.SendNotificationToEmployeeAsync(
-                    baEmpId.Value,
-                    "แจ้ง Issue แก้เสร็จ:",
-                    BuildFixedIssueLineMessage(issue),
-                    $"/ProjectIssues/Details/{issue.IssueId}",
-                    HttpContext.RequestAborted);
+                var message = BuildFixedIssueTelegramMessage(issue);
+                if (sendLine)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        baEmpId.Value,
+                        "แจ้ง Issue แก้เสร็จ:",
+                        message,
+                        $"/ProjectIssues/Details/{issue.IssueId}",
+                        HttpContext.RequestAborted);
+                }
+
+                if (sendTelegram)
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        baEmpId.Value,
+                        "แจ้ง Issue แก้เสร็จ:",
+                        message,
+                        $"/ProjectIssues/Details/{issue.IssueId}",
+                        HttpContext.RequestAborted);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Send fixed issue LINE notification failed. IssueId={IssueId}", issueId);
+                _logger.LogWarning(ex, "Send fixed issue Telegram notification failed. IssueId={IssueId}", issueId);
             }
         }
 
-        private static string BuildCreatedIssueLineMessage(ProjectIssue issue)
+        private static string BuildCreatedIssueTelegramMessage(ProjectIssue issue)
         {
             var project = issue.Project;
             var rows = new List<string>
             {
                 $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
-                $"Project: {ProjectNameForLine(project)}",
+                $"Project: {ProjectNameForTelegram(project)}",
                 $"Issue: {TextOrDash(issue.IssueName)}",
                 $"รายละเอียด: {TextOrDash(issue.IssueDetail)}",
                 $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
@@ -1005,13 +1051,13 @@ namespace ProjectTracking.Controllers
             return string.Join("\n", rows);
         }
 
-        private static string BuildFixedIssueLineMessage(ProjectIssue issue)
+        private static string BuildFixedIssueTelegramMessage(ProjectIssue issue)
         {
             var project = issue.Project;
             var rows = new List<string>
             {
                 $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
-                $"Project: {ProjectNameForLine(project)}",
+                $"Project: {ProjectNameForTelegram(project)}",
                 $"Issue: {TextOrDash(issue.IssueName)}",
                 $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
                 $"BA: {TextOrDash(project?.BA?.EmpName)}",
@@ -1024,7 +1070,7 @@ namespace ProjectTracking.Controllers
             return string.Join("\n", rows);
         }
 
-        private static string ProjectNameForLine(Project? project)
+        private static string ProjectNameForTelegram(Project? project)
             => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
 
         private static string TextOrDash(string? value)

@@ -61,6 +61,7 @@ namespace ProjectTracking.Data
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
         public DbSet<LineRecipient> LineRecipients { get; set; }
+        public DbSet<TelegramRecipient> TelegramRecipients { get; set; }
         public DbSet<WeeklyReport> WeeklyReports { get; set; }
         public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
         public DbSet<MailboxMessage> MailboxMessages { get; set; }
@@ -447,6 +448,52 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(x => new { x.EmpId, x.IsActive })
                     .HasDatabaseName("idx_line_recipients_emp");
+
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany()
+                    .HasForeignKey(x => x.EmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // =========================
+            // TELEGRAM RECIPIENTS
+            // =========================
+            modelBuilder.Entity<TelegramRecipient>(entity =>
+            {
+                entity.ToTable("telegram_recipients");
+                entity.HasKey(x => x.TelegramRecipientId);
+
+                entity.Property(x => x.TelegramRecipientId).HasColumnName("telegram_recipient_id");
+                entity.Property(x => x.UserId).HasColumnName("user_id").IsRequired(false);
+                entity.Property(x => x.EmpId).HasColumnName("emp_id").IsRequired(false);
+                entity.Property(x => x.RecipientType).HasColumnName("recipient_type").HasColumnType("varchar(20)").HasDefaultValue("USER").IsRequired();
+                entity.Property(x => x.TelegramUserId).HasColumnName("telegram_user_id").HasColumnType("varchar(100)").IsRequired(false);
+                entity.Property(x => x.TelegramChatId).HasColumnName("telegram_chat_id").HasColumnType("varchar(100)").IsRequired(false);
+                entity.Property(x => x.TelegramDisplayName).HasColumnName("telegram_display_name").HasColumnType("varchar(255)").IsRequired(false);
+                entity.Property(x => x.IsActive).HasColumnName("is_active").HasColumnType("tinyint(1)").HasDefaultValue(true);
+                entity.Property(x => x.LastStartedAt).HasColumnName("last_started_at").HasColumnType("datetime").IsRequired(false);
+                entity.Property(x => x.LastWebhookAt).HasColumnName("last_webhook_at").HasColumnType("datetime").IsRequired(false);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAddOrUpdate();
+
+                entity.HasIndex(x => x.TelegramUserId)
+                    .IsUnique()
+                    .HasDatabaseName("uq_telegram_recipients_user_id");
+
+                entity.HasIndex(x => x.TelegramChatId)
+                    .IsUnique()
+                    .HasDatabaseName("uq_telegram_recipients_chat_id");
+
+                entity.HasIndex(x => new { x.UserId, x.IsActive })
+                    .HasDatabaseName("idx_telegram_recipients_user");
+
+                entity.HasIndex(x => new { x.EmpId, x.IsActive })
+                    .HasDatabaseName("idx_telegram_recipients_emp");
 
                 entity.HasOne(x => x.User)
                     .WithMany()

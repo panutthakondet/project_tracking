@@ -13,18 +13,15 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly OverdueNotificationService _overdueNotificationService;
-        private readonly LineMessagingService _lineMessagingService;
         private readonly IConfiguration _configuration;
 
         public PhaseStatusReportController(
             AppDbContext context,
             OverdueNotificationService overdueNotificationService,
-            LineMessagingService lineMessagingService,
             IConfiguration configuration)
         {
             _context = context;
             _overdueNotificationService = overdueNotificationService;
-            _lineMessagingService = lineMessagingService;
             _configuration = configuration;
         }
 
@@ -172,7 +169,7 @@ namespace ProjectTracking.Controllers
         }
 
         // =====================================================
-        // 🔔 SEND LINE (กดปุ่มจากหน้า Report)
+        // 🔔 SEND notification (กดปุ่มจากหน้า Report)
         // =====================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -278,7 +275,13 @@ namespace ProjectTracking.Controllers
                 .Select(x => x.EmpId!.Value)
                 .Distinct()
                 .ToListAsync();
-            var hasLine = lineEmpIds.ToHashSet();
+            var telegramEmpIds = await _context.TelegramRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.EmpId.HasValue && x.TelegramChatId != null && x.TelegramChatId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var hasLine = lineEmpIds.Concat(telegramEmpIds).Distinct().ToHashSet();
 
             var items = new List<LineOverdueSelectionItemViewModel>();
 

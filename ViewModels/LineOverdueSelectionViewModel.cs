@@ -59,7 +59,7 @@ namespace ProjectTracking.ViewModels
             get
             {
                 if (Recipients.Count == 0)
-                    return _hasLineRecipient ? $"LINK {_recipientName}" : "LINE ยังไม่ลิงค์";
+                    return _hasLineRecipient ? $"LINK {_recipientName}" : "ยังไม่ลิงค์ LINE/Telegram";
 
                 var linked = Recipients
                     .Where(x => x.HasLineRecipient)
@@ -70,7 +70,7 @@ namespace ProjectTracking.ViewModels
 
                 return linked.Count > 0
                     ? $"LINK {string.Join(", ", linked)}"
-                    : "LINE ยังไม่ลิงค์";
+                    : "ยังไม่ลิงค์ LINE/Telegram";
             }
         }
         public int LineSendCount { get; set; }

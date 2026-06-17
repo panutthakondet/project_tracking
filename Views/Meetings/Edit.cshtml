@@ -112,7 +112,7 @@
                             <option value="ACTIVE" selected="@(!string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">ปกติ</option>
                             <option value="CANCELLED" selected="@(string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">ยกเลิก</option>
                         </select>
-                        <div class="form-hint">เมื่อเปลี่ยนเป็นยกเลิก ระบบจะแจ้งผู้เข้าร่วมทางอีเมลและ LINE</div>
+                        <div class="form-hint">เมื่อเปลี่ยนเป็นยกเลิก ระบบจะแจ้งผู้เข้าร่วมทางอีเมล, LINE และ Telegram</div>
                     </div>
 
                     <div class="col-12">

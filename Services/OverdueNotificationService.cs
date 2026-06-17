@@ -17,28 +17,37 @@ namespace ProjectTracking.Services
 
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<OverdueNotificationService> _logger;
         private readonly int _riskDays;
 
         public OverdueNotificationService(
             IDbContextFactory<AppDbContext> dbFactory,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
             ILogger<OverdueNotificationService> logger)
         {
             _dbFactory = dbFactory;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
             _riskDays = Math.Clamp(configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
         public async Task SyncAsync(CancellationToken cancellationToken = default)
-            => await SyncAsync(forceLineSend: false, cancellationToken);
+            => await SyncAsync(forceTelegramSend: false, cancellationToken);
 
-        public async Task SyncAndSendLineAsync(CancellationToken cancellationToken = default)
-            => await SyncAsync(forceLineSend: true, cancellationToken);
+        public async Task SyncAndSendTelegramAsync(CancellationToken cancellationToken = default)
+            => await SyncAsync(forceTelegramSend: true, cancellationToken);
 
-        private async Task SyncAsync(bool forceLineSend, CancellationToken cancellationToken = default)
+        private async Task SyncAsync(bool forceTelegramSend, CancellationToken cancellationToken = default)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -83,12 +92,12 @@ namespace ProjectTracking.Services
                 .ToDictionary(x => x.Key, x => SelectPrimaryNotification(x));
 
             var activeKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var lineQueue = new List<LineNotificationPayload>();
+            var telegramQueue = new List<TelegramNotificationPayload>();
 
-            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
-            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
-            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
-            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, lineQueue, forceLineSend, today, riskUntil, now, cancellationToken);
+            await SyncPhaseAssignsAsync(db, employees, existingByKey, activeKeys, telegramQueue, forceTelegramSend, today, riskUntil, now, cancellationToken);
+            await SyncIssuesAsync(db, employees, existingByKey, activeKeys, telegramQueue, forceTelegramSend, today, riskUntil, now, cancellationToken);
+            await SyncSupportOrdersAsync(db, employees, existingByKey, activeKeys, telegramQueue, forceTelegramSend, today, riskUntil, now, cancellationToken);
+            await SyncFollowupsAsync(db, employees, existingByKey, activeKeys, telegramQueue, forceTelegramSend, today, riskUntil, now, cancellationToken);
 
             foreach (var notification in existingNotifications.Where(x => !x.IsResolved))
             {
@@ -105,7 +114,7 @@ namespace ProjectTracking.Services
             }
 
             await db.SaveChangesAsync(cancellationToken);
-            await SendLineNotificationsAsync(lineQueue, cancellationToken);
+            await SendTelegramNotificationsAsync(telegramQueue, cancellationToken);
             _logger.LogInformation("Overdue notification sync completed. Active={ActiveCount}", activeKeys.Count);
         }
 
@@ -114,8 +123,8 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
-            IList<LineNotificationPayload> lineQueue,
-            bool forceLineSend,
+            IList<TelegramNotificationPayload> telegramQueue,
+            bool forceTelegramSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -180,8 +189,8 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
-                        lineQueue,
-                        forceLineSend,
+                        telegramQueue,
+                        forceTelegramSend,
                         sourceType: "ASSIGN_DUE",
                         sourceId: row.AssignId,
                         empId: recipient.EmpId,
@@ -199,8 +208,8 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
-            IList<LineNotificationPayload> lineQueue,
-            bool forceLineSend,
+            IList<TelegramNotificationPayload> telegramQueue,
+            bool forceTelegramSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -247,8 +256,8 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
-                        lineQueue,
-                        forceLineSend,
+                        telegramQueue,
+                        forceTelegramSend,
                         sourceType: "ISSUE_DUE",
                         sourceId: row.IssueId,
                         empId: recipient.EmpId,
@@ -266,8 +275,8 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
-            IList<LineNotificationPayload> lineQueue,
-            bool forceLineSend,
+            IList<TelegramNotificationPayload> telegramQueue,
+            bool forceTelegramSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -316,8 +325,8 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
-                        lineQueue,
-                        forceLineSend,
+                        telegramQueue,
+                        forceTelegramSend,
                         sourceType: "SUPPORT_DUE",
                         sourceId: row.OrderId,
                         empId: recipient.EmpId,
@@ -335,8 +344,8 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
-            IList<LineNotificationPayload> lineQueue,
-            bool forceLineSend,
+            IList<TelegramNotificationPayload> telegramQueue,
+            bool forceTelegramSend,
             DateTime today,
             DateTime riskUntil,
             DateTime now,
@@ -390,8 +399,8 @@ namespace ProjectTracking.Services
                         employees,
                         existingByKey,
                         activeKeys,
-                        lineQueue,
-                        forceLineSend,
+                        telegramQueue,
+                        forceTelegramSend,
                         sourceType: "FOLLOWUP_DUE",
                         sourceId: row.FollowupId,
                         empId: recipient.EmpId,
@@ -409,8 +418,8 @@ namespace ProjectTracking.Services
             IReadOnlyDictionary<int, EmployeeRecipient> employees,
             IReadOnlyDictionary<string, UserNotification> existingByKey,
             ISet<string> activeKeys,
-            IList<LineNotificationPayload> lineQueue,
-            bool forceLineSend,
+            IList<TelegramNotificationPayload> telegramQueue,
+            bool forceTelegramSend,
             string sourceType,
             int sourceId,
             int empId,
@@ -448,17 +457,17 @@ namespace ProjectTracking.Services
                 {
                     notification.IsRead = false;
                     notification.ReadAt = null;
-                    lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
+                    telegramQueue.Add(new TelegramNotificationPayload(empId, normalizedTitle, message, targetUrl));
                 }
-                else if (forceLineSend)
+                else if (forceTelegramSend)
                 {
-                    lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
+                    telegramQueue.Add(new TelegramNotificationPayload(empId, normalizedTitle, message, targetUrl));
                 }
 
                 return;
             }
 
-            lineQueue.Add(new LineNotificationPayload(empId, normalizedTitle, message, targetUrl));
+            telegramQueue.Add(new TelegramNotificationPayload(empId, normalizedTitle, message, targetUrl));
             db.UserNotifications.Add(new UserNotification
             {
                 RecipientUserId = employee?.LoginUserId,
@@ -476,26 +485,52 @@ namespace ProjectTracking.Services
             });
         }
 
-        private async Task SendLineNotificationsAsync(
-            IEnumerable<LineNotificationPayload> lineQueue,
+        private async Task SendTelegramNotificationsAsync(
+            IEnumerable<TelegramNotificationPayload> telegramQueue,
             CancellationToken cancellationToken)
         {
-            foreach (var notification in lineQueue
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.AutoSend, cancellationToken)
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.AutoSend, cancellationToken)
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.OverdueAuto, cancellationToken);
+
+            if (!sendLine && !sendTelegram)
+            {
+                _logger.LogInformation("Automatic overdue chat notifications skipped because LINE and Telegram are disabled or not configured.");
+                return;
+            }
+
+            foreach (var notification in telegramQueue
                 .GroupBy(x => $"{x.EmpId}:{x.Title}:{x.Message}:{x.TargetUrl}")
                 .Select(x => x.First()))
             {
                 try
                 {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        notification.EmpId,
-                        notification.Title,
-                        notification.Message,
-                        notification.TargetUrl,
-                        cancellationToken);
+                    if (sendLine)
+                    {
+                        await _lineMessagingService.SendNotificationToEmployeeAsync(
+                            notification.EmpId,
+                            notification.Title,
+                            notification.Message,
+                            notification.TargetUrl,
+                            cancellationToken);
+                    }
+
+                    if (sendTelegram)
+                    {
+                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                            notification.EmpId,
+                            notification.Title,
+                            notification.Message,
+                            notification.TargetUrl,
+                            cancellationToken);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "LINE notification failed for EmpId={EmpId}", notification.EmpId);
+                    _logger.LogWarning(ex, "Chat notification failed for EmpId={EmpId}", notification.EmpId);
                 }
             }
         }
@@ -713,6 +748,6 @@ namespace ProjectTracking.Services
 
         private sealed record EmployeeRecipient(int EmpId, string EmpName, int? LoginUserId);
         private sealed record NotificationRecipient(int EmpId, string TargetUrl);
-        private sealed record LineNotificationPayload(int EmpId, string Title, string? Message, string? TargetUrl);
+        private sealed record TelegramNotificationPayload(int EmpId, string Title, string? Message, string? TargetUrl);
     }
 }

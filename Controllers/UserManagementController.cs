@@ -738,6 +738,8 @@ namespace ProjectTracking.Controllers
                 "TestScenarioTemplates" => 210,
                 "TestTemplateGroups" => 220,
                 "UserManagement" => 230,
+                "LineNotificationSettings" => 235,
+                "TelegramNotificationSettings" => 236,
                 _ => 999
             };
         }
@@ -814,6 +816,8 @@ namespace ProjectTracking.Controllers
                 "TestScenarioTemplates" => "Template Test",
                 "TestTemplateGroups" => "กลุ่ม Template",
                 "UserManagement" => "ผู้ใช้งาน",
+                "LineNotificationSettings" => "Line Notification",
+                "TelegramNotificationSettings" => "Telegram Notification",
                 _ => controller
             };
 
@@ -821,7 +825,7 @@ namespace ProjectTracking.Controllers
             {
                 "Index" => "เข้าใช้งาน",
                 "ViewOnly" => "ดูรายงาน",
-                "LineOverdue" => "แจ้งเตือนงานล่าช้าทาง LINE",
+                "LineOverdue" => "แจ้งเตือนงานล่าช้า",
                 "View" => "ดูรายละเอียด",
                 "Show" => "ดูรายละเอียด",
                 "Create" => "เพิ่ม",

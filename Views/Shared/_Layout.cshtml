@@ -1828,6 +1828,10 @@
     var canFollowAtten = CanMenu("Attendance.Index")
                       || canFollowups;
 
+    var canSettings = CanMenu("UserManagement.Index")
+                   || CanMenu("LineNotificationSettings.Index")
+                   || CanMenu("TelegramNotificationSettings.Index");
+
     var followupAlertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
     var followupDoneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
     var followupAckCount = Convert.ToInt32(ViewBag?.FollowupAckCount ?? 0);
@@ -1932,7 +1936,7 @@
                                     }
                                     @if (CanMenu("Employees.LineOverdue"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="LineOverdue">แจ้งเตือนงานล่าช้าทาง LINE</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="LineOverdue">แจ้งเตือนงานล่าช้า</a></li>
                                     }
                                     @if (CanMenu("PhaseWorkload.Index"))
                                     {
@@ -2160,13 +2164,29 @@
                             </li>
                         }
 
-                        @if (CanMenu("UserManagement.Index"))
+                        @if (canSettings)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="UserManagement" ? "active-menu" : "")" asp-controller="UserManagement" asp-action="Index">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
                                     <span class="nav-label">Settings</span>
                                 </a>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Settings</h6></li>
+                                    @if (CanMenu("UserManagement.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">ผู้ใช้งาน</a></li>
+                                    }
+                                    @if (CanMenu("LineNotificationSettings.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="LineNotificationSettings" asp-action="Index">Line Notification</a></li>
+                                    }
+                                    @if (CanMenu("TelegramNotificationSettings.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TelegramNotificationSettings" asp-action="Index">Telegram Notification</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
 

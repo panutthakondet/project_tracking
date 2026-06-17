@@ -2269,6 +2269,148 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
   padding: 20px;
 }
 
+.route-controller-meetings .calendar-card__toolbar {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+  padding: 18px 22px;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(16, 35, 63, .96) 0%, rgba(18, 59, 92, .94) 58%, rgba(15, 118, 110, .92) 100%);
+  border-bottom: 1px solid rgba(20, 184, 166, .36);
+}
+
+.route-controller-meetings .calendar-card__toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .10), transparent 42%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.10) 0 1px, transparent 1px 14px);
+  opacity: .42;
+  pointer-events: none;
+}
+
+.route-controller-meetings .calendar-card__toolbar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.route-controller-meetings .calendar-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.route-controller-meetings .calendar-heading__date {
+  min-width: 220px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-radius: 16px;
+  color: #10233f;
+  background: rgba(255,255,255,.95);
+  box-shadow: 0 12px 26px rgba(4, 18, 38, .22);
+  font-size: .94rem;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.route-controller-meetings .calendar-heading__eyebrow {
+  display: block;
+  color: rgba(255,255,255,.72);
+  font-size: .76rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.route-controller-meetings .calendar-heading__title {
+  display: block;
+  color: #fff;
+  margin-top: 2px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.route-controller-meetings .calendar-heading__subtitle {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255,255,255,.78);
+  font-size: .88rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.route-controller-meetings .calendar-heading__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-controller-meetings .calendar-heading__pill {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255,255,255,.13);
+  backdrop-filter: blur(8px);
+  font-size: .82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.route-controller-meetings .calendar-card .fc .fc-header-toolbar {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px !important;
+  padding: 12px;
+  border: 1px solid #d8e3ef;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff, #eef8f7);
+  box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+}
+
+.route-controller-meetings .calendar-card .fc .fc-toolbar-chunk {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.route-controller-meetings .calendar-card .fc .fc-toolbar-title {
+  color: #10233f;
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+.route-controller-meetings .calendar-card .fc .fc-button-group {
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(15, 35, 64, .10);
+}
+
 .route-controller-meetings .section-title {
   color: #10233f;
   font-size: 18px;
@@ -2283,6 +2425,74 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 
 .route-controller-meetings .divider {
   background: #d8e3ef;
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) {
+  color: #000;
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show)
+  :is(.meeting-hero, .meeting-detail-hero) {
+  color: #000;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-color: #d8e3ef;
+}
+
+main.route-controller-meetings.route-action-show .meeting-detail-hero {
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(20, 184, 166, .28), transparent 28%),
+    linear-gradient(135deg, #10233f, #1f3b63);
+  border-color: rgba(148, 219, 225, .18);
+}
+
+main.route-controller-meetings.route-action-show .meeting-detail-hero
+  :is(.index-eyebrow, .index-title, .index-subtitle, .meeting-detail-title, .meeting-detail-subtitle) {
+  color: #fff !important;
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show)
+  :is(
+    .meeting-hero__title,
+    .meeting-hero__subtitle,
+    .meeting-detail-title,
+    .meeting-detail-subtitle,
+    .index-eyebrow,
+    .index-title,
+    .index-subtitle,
+    .meeting-card,
+    .meeting-card__header,
+    .meeting-card__body,
+    .meeting-detail-card,
+    .meeting-detail-card__header,
+    .meeting-detail-card__body,
+    .meeting-detail-item,
+    .meeting-attendee-card,
+    .meeting-attendee-picker,
+    .section-title,
+    .section-subtitle,
+    .form-hint,
+    .form-label,
+    label,
+    .meeting-detail-label,
+    .meeting-detail-value,
+    .meeting-project-text,
+    .meeting-project-name,
+    .meeting-attendee-empty,
+    .meeting-selected-attendee,
+    .meeting-selected-attendee > span,
+    .text-muted
+  ) {
+  color: #000 !important;
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show)
+  :is(.form-control, .form-select, input, textarea, select, option) {
+  color: #000 !important;
+}
+
+main.route-controller-meetings:is(.route-action-create, .route-action-edit) #timeHint {
+  color: #dc3545 !important;
 }
 
 .route-controller-meetings .btn-pill {
@@ -2300,6 +2510,45 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
   margin: 0;
 }
 
+main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn, button.btn, a.btn) {
+  --pt-action-color: #10233f;
+  --pt-action-bg: #ffffff;
+  --pt-action-border: #14b8a6;
+  color: #10233f !important;
+  background: #ffffff !important;
+  border-color: #14b8a6 !important;
+  box-shadow: 0 8px 18px rgba(15, 35, 64, .14);
+}
+
+main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn-primary, .btn-success) {
+  --pt-action-color: #062b2f;
+  --pt-action-bg: #8df1e4;
+  --pt-action-border: transparent;
+  color: #062b2f !important;
+  background: #8df1e4 !important;
+  border-color: transparent !important;
+}
+
+main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions .btn-danger {
+  --pt-action-color: #ffffff;
+  --pt-action-bg: #e11d48;
+  --pt-action-border: transparent;
+  color: #ffffff !important;
+  background: #e11d48 !important;
+  border-color: transparent !important;
+}
+
+main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn:disabled, .btn.disabled, button.btn:disabled) {
+  --pt-action-color: #334155;
+  --pt-action-bg: #e8f0f8;
+  --pt-action-border: #94a3b8;
+  color: #334155 !important;
+  background: #e8f0f8 !important;
+  border-color: #94a3b8 !important;
+  box-shadow: none;
+  opacity: 1 !important;
+}
+
 .route-controller-meetings .fc {
   color: #10233f;
 }
@@ -2310,7 +2559,7 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 }
 
 .route-controller-meetings .fc .fc-button-primary {
-  background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+  background: var(--pt-accent) !important;
   border-color: transparent !important;
   color: #062b2f !important;
   font-weight: 900 !important;
@@ -2354,15 +2603,15 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 }
 
 .route-controller-meetings .fc .fc-day-today {
-  background: #d8f8f3 !important;
-  box-shadow: inset 0 0 0 3px #0f766e;
+  background: #fff !important;
+  box-shadow: none;
 }
 
 .route-controller-meetings .fc .fc-day-today .fc-daygrid-day-frame {
   min-height: 100% !important;
   height: 100% !important;
-  background: linear-gradient(180deg, #e2fbf7 0%, #c5f3ed 100%) !important;
-  box-shadow: inset 0 0 0 2px rgba(15, 118, 110, .55);
+  background: transparent !important;
+  box-shadow: none;
 }
 
 .route-controller-meetings .fc .fc-day-today .fc-daygrid-day-top,
@@ -2372,29 +2621,72 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 }
 
 .route-controller-meetings .fc .fc-day-today .fc-daygrid-day-number {
-  background: linear-gradient(135deg, #0f766e, #0b4f4a);
+  background: #0f766e;
   color: #fff !important;
-  box-shadow: 0 10px 20px rgba(15, 118, 110, .30);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(15, 118, 110, .26);
 }
 
 .route-controller-meetings .fc .fc-event {
-  background: #f8fafc !important;
-  border: 1px solid #d8e3ef !important;
-  border-left: 5px solid var(--pt-accent) !important;
+  --meeting-event-bg-start: #ffffff;
+  --meeting-event-bg-end: #f8fafc;
+  --meeting-event-border: #d8e3ef;
+  background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
+  border: 2px solid var(--meeting-event-border) !important;
   color: #10233f !important;
   box-shadow: 0 6px 16px rgba(15, 35, 64, .08) !important;
 }
 
 .route-controller-meetings .fc .fc-event-title {
   color: #10233f !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
-.route-controller-meetings .fc-event.customer-event { border-left-color: #22c55e !important; }
-.route-controller-meetings .fc-event.team-event { border-left-color: #f59e0b !important; }
-.route-controller-meetings .fc-event.executive-event { border-left-color: #ef4444 !important; }
-.route-controller-meetings .fc-event.manager-event { border-left-color: #8b5cf6 !important; }
-.route-controller-meetings .fc-event.vendor-event { border-left-color: #f97316 !important; }
-.route-controller-meetings .fc-event.other-event { border-left-color: #0ea5e9 !important; }
+.route-controller-meetings .meeting-event-title,
+.route-controller-meetings .meeting-event-subtitle,
+.route-controller-meetings .meeting-event-meta {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: break-word;
+}
+
+.route-controller-meetings .fc-event.customer-event {
+  --meeting-event-bg-end: #f0fdfa;
+  --meeting-event-border: #22c55e;
+}
+
+.route-controller-meetings .fc-event.team-event {
+  --meeting-event-bg-end: #eff6ff;
+  --meeting-event-border: #2563eb;
+}
+
+.route-controller-meetings .fc-event.executive-event {
+  --meeting-event-bg-end: #fff7ed;
+  --meeting-event-border: #ef4444;
+}
+
+.route-controller-meetings .fc-event.manager-event {
+  --meeting-event-bg-end: #f5f3ff;
+  --meeting-event-border: #8b5cf6;
+}
+
+.route-controller-meetings .fc-event.vendor-event {
+  --meeting-event-bg-end: #fffbeb;
+  --meeting-event-border: #f97316;
+}
+
+.route-controller-meetings .fc-event.other-event {
+  --meeting-event-bg-end: #f8fafc;
+  --meeting-event-border: #0ea5e9;
+}
 
 .route-controller-meetings .fc-tooltip {
   background: #10233f;
@@ -2407,19 +2699,21 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 }
 
 .route-controller-meetings .meeting-row {
-  background: #f8fafc !important;
-  border: 1px solid #d8e3ef;
-  border-left: 5px solid var(--pt-accent);
+  --meeting-row-bg-start: #ffffff;
+  --meeting-row-bg-end: #f8fafc;
+  --meeting-row-border: #d8e3ef;
+  background: linear-gradient(180deg, var(--meeting-row-bg-start), var(--meeting-row-bg-end)) !important;
+  border: 2px solid var(--meeting-row-border);
   box-shadow: 0 8px 18px rgba(15, 35, 64, .06);
 }
 
-.route-controller-meetings .meeting-row.sun { border-left-color: #ef4444; }
-.route-controller-meetings .meeting-row.mon { border-left-color: #f59e0b; }
-.route-controller-meetings .meeting-row.tue { border-left-color: #ec4899; }
-.route-controller-meetings .meeting-row.wed { border-left-color: #22c55e; }
-.route-controller-meetings .meeting-row.thu { border-left-color: #f97316; }
-.route-controller-meetings .meeting-row.fri { border-left-color: #0ea5e9; }
-.route-controller-meetings .meeting-row.sat { border-left-color: #8b5cf6; }
+.route-controller-meetings .meeting-row.sun { --meeting-row-bg-end: #fff1f2; --meeting-row-border: #ef4444; }
+.route-controller-meetings .meeting-row.mon { --meeting-row-bg-end: #fffbeb; --meeting-row-border: #f59e0b; }
+.route-controller-meetings .meeting-row.tue { --meeting-row-bg-end: #fdf2f8; --meeting-row-border: #ec4899; }
+.route-controller-meetings .meeting-row.wed { --meeting-row-bg-end: #f0fdf4; --meeting-row-border: #22c55e; }
+.route-controller-meetings .meeting-row.thu { --meeting-row-bg-end: #fff7ed; --meeting-row-border: #f97316; }
+.route-controller-meetings .meeting-row.fri { --meeting-row-bg-end: #eff6ff; --meeting-row-border: #0ea5e9; }
+.route-controller-meetings .meeting-row.sat { --meeting-row-bg-end: #f5f3ff; --meeting-row-border: #8b5cf6; }
 
 .route-controller-meetings .meeting-col {
   border-color: #e2e8f0;
@@ -2463,8 +2757,8 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
 
 .route-controller-meetings .meeting-detail-title-card {
   min-height: 112px;
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-  border-left: 5px solid var(--pt-accent);
+  background: #ffffff;
+  border-color: rgba(20, 184, 166, .35);
 }
 
 .route-controller-meetings .meeting-detail-summary-block {
@@ -2653,6 +2947,47 @@ main td > .d-flex.justify-content-center .btn.btn-sm {
   .route-controller-meetings .calendar-card__body,
   .route-controller-meetings .meeting-detail-card__body {
     padding: 16px;
+  }
+
+  .route-controller-meetings .calendar-card__toolbar {
+    min-height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 16px;
+  }
+
+  .route-controller-meetings .calendar-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .route-controller-meetings .calendar-heading__date {
+    min-width: 0;
+    width: auto;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .route-controller-meetings .calendar-heading__title {
+    font-size: 1.08rem;
+  }
+
+  .route-controller-meetings .calendar-heading__subtitle {
+    font-size: .82rem;
+  }
+
+  .route-controller-meetings .calendar-heading__meta {
+    justify-content: flex-start;
+  }
+
+  .route-controller-meetings .calendar-card .fc .fc-header-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .route-controller-meetings .calendar-card .fc .fc-toolbar-chunk {
+    width: 100%;
   }
 
   .route-controller-meetings .meeting-attendee-picker__controls {

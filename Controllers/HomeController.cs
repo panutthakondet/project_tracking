@@ -953,13 +953,23 @@ namespace ProjectTracking.Controllers
                 .GroupBy(x => x.PhaseId)
                 .ToDictionary(x => x.Key, x => x.First());
 
-            var linkedEmpIds = await _context.LineRecipients
+            var lineLinkedEmpIds = await _context.LineRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive && x.EmpId.HasValue && x.LineUserId != null && x.LineUserId != "")
                 .Select(x => x.EmpId!.Value)
                 .Distinct()
                 .ToListAsync();
-            var linkedEmpIdSet = linkedEmpIds.ToHashSet();
+
+            var telegramLinkedEmpIds = await _context.TelegramRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.EmpId.HasValue && x.TelegramChatId != null && x.TelegramChatId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var linkedEmpIdSet = lineLinkedEmpIds
+                .Concat(telegramLinkedEmpIds)
+                .Distinct()
+                .ToHashSet();
             var items = new List<LineOverdueOverviewItem>();
             var affectedProjectIds = assigns
                 .Select(assign =>

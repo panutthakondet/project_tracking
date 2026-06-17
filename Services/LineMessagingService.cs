@@ -29,12 +29,12 @@ namespace ProjectTracking.Services
             _httpClient = httpClient;
             _dbFactory = dbFactory;
             _logger = logger;
-            _channelAccessToken = Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN")
+            _channelAccessToken = (Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN")
                 ?? configuration["LINE_CHANNEL_ACCESS_TOKEN"]
-                ?? "";
-            _channelSecret = Environment.GetEnvironmentVariable("LINE_CHANNEL_SECRET")
+                ?? "").Trim();
+            _channelSecret = (Environment.GetEnvironmentVariable("LINE_CHANNEL_SECRET")
                 ?? configuration["LINE_CHANNEL_SECRET"]
-                ?? "";
+                ?? "").Trim();
             _appBaseUrl = (Environment.GetEnvironmentVariable("APP_BASE_URL")
                 ?? configuration["APP_BASE_URL"]
                 ?? "").TrimEnd('/');
@@ -89,7 +89,6 @@ namespace ProjectTracking.Services
                 .AsNoTracking()
                 .Where(x => x.IsActive
                     && x.EmpId == empId
-                    && x.RecipientType == "USER"
                     && x.LineUserId != null
                     && x.LineUserId != "")
                 .Select(x => x.LineUserId!)
@@ -97,7 +96,10 @@ namespace ProjectTracking.Services
                 .ToListAsync(cancellationToken);
 
             if (lineUserIds.Count == 0)
+            {
+                _logger.LogInformation("LINE notification skipped because no active LINE user was linked to EmpId={EmpId}.", empId);
                 return 0;
+            }
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
             if (!string.IsNullOrWhiteSpace(targetUrl) && string.IsNullOrWhiteSpace(absoluteUrl))
@@ -110,29 +112,48 @@ namespace ProjectTracking.Services
 
             var text = BuildNotificationText(title, message, absoluteUrl);
             var flexMessage = BuildNotificationFlexMessage(title, message, absoluteUrl);
+            var sent = 0;
+            var failed = 0;
             foreach (var lineUserId in lineUserIds)
             {
                 try
                 {
                     await PushMessageAsync(lineUserId, flexMessage, cancellationToken);
+                    sent++;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "LINE Flex notification failed. Falling back to text for EmpId={EmpId}", empId);
-                    await PushTextAsync(lineUserId, text, cancellationToken);
+                    try
+                    {
+                        await PushTextAsync(lineUserId, text, cancellationToken, throwOnFailure: true);
+                        sent++;
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        failed++;
+                        _logger.LogError(fallbackEx, "LINE text notification fallback failed for EmpId={EmpId}", empId);
+                    }
                 }
             }
 
-            return lineUserIds.Count;
+            if (sent == 0 && failed > 0)
+                throw new InvalidOperationException($"LINE notification failed for all linked LINE users. EmpId={empId}, Failed={failed}");
+
+            return sent;
         }
 
-        public async Task PushTextAsync(string to, string text, CancellationToken cancellationToken = default)
+        public async Task PushTextAsync(
+            string to,
+            string text,
+            CancellationToken cancellationToken = default,
+            bool throwOnFailure = false)
         {
             await SendLineRequestAsync(PushEndpoint, new
             {
                 to,
                 messages = new[] { new { type = "text", text = TrimLineText(text) } }
-            }, cancellationToken);
+            }, cancellationToken, throwOnFailure);
         }
 
         private async Task PushMessageAsync(string to, object message, CancellationToken cancellationToken = default)

@@ -378,11 +378,11 @@
         <div class="index-hero__content">
             <span class="index-eyebrow">Dashboard</span>
             <h1 class="index-title">@ViewData["Title"]</h1>
-            <p class="index-subtitle">รายละเอียด Assigns ในโครงการที่มีงานเสี่ยงล่าช้า/ล่าช้า สำหรับภาพรวมแจ้งเตือน LINE</p>
+            <p class="index-subtitle">รายละเอียด Assigns ในโครงการที่มีงานเสี่ยงล่าช้า/ล่าช้า สำหรับภาพรวมแจ้งเตือน LINE/Telegram</p>
         </div>
         <div class="index-actions">
             <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Dashboard</a>
-            <a asp-controller="Employees" asp-action="LineOverdue" asp-route-type="ASSIGN_DUE" class="btn btn-outline-light">Send LINE Assigns</a>
+            <a asp-controller="Employees" asp-action="LineOverdue" asp-route-type="ASSIGN_DUE" class="btn btn-outline-light">Send Notification Assigns</a>
         </div>
     </section>
 

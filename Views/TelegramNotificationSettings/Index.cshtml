@@ -1,0 +1,7 @@
+@model ProjectTracking.ViewModels.LineNotificationSettingsViewModel
+@{
+    ViewData["NotificationTitle"] = "Telegram Notification";
+    ViewData["NotificationChannel"] = "Telegram";
+}
+
+@await Html.PartialAsync("~/Views/LineNotificationSettings/Index.cshtml", Model)

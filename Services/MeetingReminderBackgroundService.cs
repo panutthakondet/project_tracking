@@ -1,6 +1,6 @@
 namespace ProjectTracking.Services
 {
-    // Sends meeting reminders to LINE 3, 2, 1, and 0 days before the meeting.
+    // Sends meeting reminders to LINE and Telegram 3, 2, 1, and 0 days before the meeting.
     // Email is sent once immediately when a meeting is created, not by this background service.
     public class MeetingReminderBackgroundService : BackgroundService
     {
@@ -15,13 +15,15 @@ namespace ProjectTracking.Services
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
-            _interval = ParseInterval(configuration["MEETING_LINE_REMINDER_INTERVAL_MINUTES"]);
+            _interval = ParseInterval(
+                configuration["MEETING_TELEGRAM_REMINDER_INTERVAL_MINUTES"]
+                ?? configuration["MEETING_LINE_REMINDER_INTERVAL_MINUTES"]);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation(
-                "MeetingReminderBackgroundService started in LINE-only mode. Interval={Interval}",
+                "MeetingReminderBackgroundService started in chat notification mode. Interval={Interval}",
                 _interval);
 
             while (!stoppingToken.IsCancellationRequested)
@@ -37,12 +39,17 @@ namespace ProjectTracking.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<MeetingNotificationService>();
-                var result = await service.SendLineRemindersAsync(cancellationToken);
+                var lineResult = await service.SendLineRemindersAsync(cancellationToken);
+                var telegramResult = await service.SendTelegramRemindersAsync(cancellationToken);
+                var result = new MeetingNotificationResult(
+                    lineResult.SentCount + telegramResult.SentCount,
+                    lineResult.SkippedCount + telegramResult.SkippedCount,
+                    lineResult.FailedCount + telegramResult.FailedCount);
 
                 if (result.SentCount > 0 || result.FailedCount > 0)
                 {
                     _logger.LogInformation(
-                        "Meeting LINE reminder completed. Sent={SentCount}, Skipped={SkippedCount}, Failed={FailedCount}",
+                        "Meeting chat reminder completed. Sent={SentCount}, Skipped={SkippedCount}, Failed={FailedCount}",
                         result.SentCount,
                         result.SkippedCount,
                         result.FailedCount);
@@ -50,11 +57,11 @@ namespace ProjectTracking.Services
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Meeting LINE reminder cancelled");
+                _logger.LogInformation("Meeting chat reminder cancelled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Meeting LINE reminder failed");
+                _logger.LogError(ex, "Meeting chat reminder failed");
             }
         }
 

@@ -3,201 +3,374 @@
 @{
     ViewData["Title"] = "กิจกรรมทั้งหมด";
     var activities = Model?.ToList() ?? new List<ProjectTracking.ViewModels.HomeDashboardActivity>();
+
+    string ActivityTag(string? color) => (color ?? "").Trim().ToLowerInvariant() switch
+    {
+        "green" => "สำเร็จ",
+        "orange" => "กำลังดำเนินการ",
+        "pink" => "Issue",
+        "cyan" => "Follow-up",
+        "blue" => "Meeting",
+        "purple" => "Board",
+        "lime" => "งานใหม่",
+        _ => "Activity"
+    };
+
+    (string Main, string Detail) SplitTime(string? value)
+    {
+        var text = (value ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(text)) return ("-", "");
+
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length <= 1) return (text, "");
+
+        return (parts[0], string.Join(" ", parts.Skip(1)));
+    }
+
+    string AvatarPath(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "/images/Profile/profile.png" : value.Trim();
 }
 
-<div class="activity-page">
-    <div class="activity-page-header">
-        <div>
-            <h2>กิจกรรมทั้งหมด</h2>
-            <p>รวมความเคลื่อนไหวล่าสุดจาก Issues, Follow-up, Support และ Meetings</p>
+<div class="index-page activities-page">
+    <div class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">@ViewData["Title"]</h2>
+            <p class="index-subtitle">รวมความเคลื่อนไหวล่าสุดจากโครงการ งวดงาน งานที่มอบหมาย Issues, Follow-up, Support, Board และ Meetings</p>
         </div>
-        <a asp-controller="Home" asp-action="Index" class="back-link">กลับ Dashboard</a>
+        <div class="index-actions">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-light">กลับ Dashboard</a>
+        </div>
     </div>
 
-    <div class="activity-card">
+    <section class="activities-shell">
+        <div class="activities-toolbar">
+            <div>
+                <strong>รายการกิจกรรม</strong>
+                <span>ทั้งหมด @activities.Count รายการ</span>
+            </div>
+            <a asp-controller="Home" asp-action="Activities" class="activities-refresh">โหลดข้อมูลใหม่</a>
+        </div>
+
         @if (activities.Count == 0)
         {
-            <div class="activity-empty">ยังไม่มีกิจกรรมในระบบ</div>
+            <div class="activities-empty">
+                <strong>ยังไม่มีกิจกรรมในระบบ</strong>
+                <span>เมื่อมีการสร้างหรืออัปเดตงาน ระบบจะแสดงรายการล่าสุดที่นี่</span>
+            </div>
         }
         else
         {
-            foreach (var activity in activities)
-            {
-                var tag = activity.Color switch
+            <div class="activities-list">
+                @foreach (var activity in activities)
                 {
-                    "green" => "สำเร็จ",
-                    "orange" => "กำลังดำเนินการ",
-                    "pink" => "Issue",
-                    "cyan" => "Follow-up",
-                    "blue" => "Meeting",
-                    _ => "Activity"
-                };
+                    var time = SplitTime(activity.TimeText);
+                    var actor = string.IsNullOrWhiteSpace(activity.Actor) ? "ระบบ" : activity.Actor;
+                    var href = string.IsNullOrWhiteSpace(activity.Url) ? Url.Action("Activities", "Home") : activity.Url;
 
-                <a class="activity-item @activity.Color"
-                   href="@(string.IsNullOrWhiteSpace(activity.Url) ? "#" : activity.Url)">
-                    <img class="activity-avatar"
-                         src="@activity.AvatarPath"
-                         alt=""
-                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                    <span class="activity-main">
-                        <strong>@activity.Actor</strong>
-                        <small>@activity.Detail</small>
-                        @if (!string.IsNullOrWhiteSpace(activity.OwnerText))
-                        {
-                            <em>@activity.OwnerText</em>
-                        }
-                    </span>
-                    <span class="activity-meta">
-                        <b>@tag</b>
-                        <time>@activity.TimeText</time>
-                    </span>
-                </a>
-            }
+                    <a class="activities-item @activity.Color" href="@href">
+                        <span class="activities-avatar-wrap">
+                            <img class="activities-avatar js-profile-preview"
+                                 src="@AvatarPath(activity.AvatarPath)"
+                                 alt="@actor"
+                                 data-profile-name="@actor"
+                                 loading="lazy"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        </span>
+
+                        <span class="activities-main">
+                            <span class="activities-topline">
+                                <strong>@actor</strong>
+                                <b>@ActivityTag(activity.Color)</b>
+                            </span>
+                            <span class="activities-detail">@activity.Detail</span>
+                            @if (!string.IsNullOrWhiteSpace(activity.OwnerText))
+                            {
+                                <span class="activities-owner">@activity.OwnerText</span>
+                            }
+                        </span>
+
+                        <span class="activities-time" aria-label="@activity.TimeText">
+                            <strong>@time.Main</strong>
+                            @if (!string.IsNullOrWhiteSpace(time.Detail))
+                            {
+                                <small>@time.Detail</small>
+                            }
+                        </span>
+                    </a>
+                }
+            </div>
         }
-    </div>
+    </section>
 </div>
 
 <style>
-.activity-page {
-    padding: 18px 8px 32px;
-}
-
-.activity-page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 18px;
-}
-
-.activity-page-header h2 {
-    margin: 0;
-    color: #10213d;
-    font-size: 28px;
-    font-weight: 900;
-}
-
-.activity-page-header p {
-    margin: 6px 0 0;
-    color: #66738c;
-    font-weight: 700;
-}
-
-.back-link {
-    border-radius: 12px;
-    padding: 10px 16px;
-    color: #fff;
-    background: linear-gradient(135deg, #0fbfc8, #1289df);
-    text-decoration: none;
-    font-weight: 800;
-    box-shadow: 0 10px 22px rgba(18,137,223,.2);
-}
-
-.activity-card {
-    overflow: hidden;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 14px 32px rgba(15,23,42,.08);
-    border: 1px solid rgba(15,23,42,.08);
-}
-
-.activity-item {
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) 140px;
-    gap: 12px;
-    align-items: center;
-    min-height: 70px;
-    padding: 14px 18px;
-    color: #10213d;
-    text-decoration: none;
-    border-bottom: 1px solid rgba(15,23,42,.08);
-}
-
-.activity-item:hover {
-    background: #f7fbff;
-}
-
-.activity-item:last-child {
-    border-bottom: 0;
-}
-
-.activity-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: #edf4fb;
-    border: 2px solid rgba(15,23,42,.08);
-    box-shadow: 0 8px 16px rgba(15,23,42,.12);
-}
-
-.activity-item.green .activity-avatar { border-color: rgba(16,213,143,.65); }
-.activity-item.orange .activity-avatar { border-color: rgba(251,154,19,.65); }
-.activity-item.pink .activity-avatar { border-color: rgba(255,45,98,.65); }
-.activity-item.cyan .activity-avatar { border-color: rgba(10,208,200,.65); }
-.activity-item.blue .activity-avatar { border-color: rgba(22,136,245,.65); }
-.activity-item.purple .activity-avatar { border-color: rgba(139,77,244,.65); }
-
-.activity-main strong {
-    display: block;
-    font-size: 14px;
-    font-weight: 900;
-}
-
-.activity-main small {
-    display: block;
-    margin-top: 3px;
-    color: #5f6e87;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.activity-main em {
-    display: block;
-    margin-top: 3px;
-    color: #7d889d;
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 800;
-}
-
-.activity-meta {
-    display: grid;
-    gap: 4px;
-    justify-items: end;
-    color: #7d889d;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.activity-meta b {
-    color: #1b315c;
-}
-
-.activity-empty {
-    padding: 28px 18px;
-    color: #66738c;
-    font-weight: 800;
-    text-align: center;
-}
-
-@@media (max-width: 720px) {
-    .activity-page-header,
-    .activity-item {
-        grid-template-columns: 1fr;
+    .activities-page {
+        color: #10233f;
     }
 
-    .activity-page-header {
+    .activities-shell {
+        background: #ffffff;
+        border: 1px solid #d8e3ef;
+        border-radius: 22px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        overflow: hidden;
+    }
+
+    .activities-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px;
+        background: linear-gradient(180deg, #f8fafc, #eef6fb);
+        border-bottom: 1px solid #d8e3ef;
+    }
+
+    .activities-toolbar strong {
+        display: block;
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .activities-toolbar span {
+        display: block;
+        margin-top: 3px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .activities-refresh {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border: 1px solid rgba(20, 184, 166, .36);
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .10);
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .activities-refresh:hover,
+    .activities-refresh:focus {
+        color: #062b2f;
+        background: #d9fbf5;
+    }
+
+    .activities-list {
         display: grid;
+        gap: 0;
     }
 
-    .activity-item {
-        grid-template-columns: 36px minmax(0, 1fr);
+    .activities-item {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) minmax(104px, auto);
+        gap: 14px;
+        align-items: center;
+        min-height: 84px;
+        padding: 14px 18px;
+        color: #10233f;
+        text-decoration: none;
+        border-bottom: 1px solid #e5edf7;
+        border-left: 5px solid #0ea5e9;
+        background: #ffffff;
+        transition: background .16s ease, transform .16s ease, box-shadow .16s ease;
     }
 
-    .activity-meta {
-        grid-column: 2;
-        justify-items: start;
+    .activities-item:last-child {
+        border-bottom: 0;
     }
-}
+
+    .activities-item:hover,
+    .activities-item:focus {
+        background: #f8fafc;
+        transform: translateY(-1px);
+        box-shadow: inset 0 0 0 1px rgba(20, 184, 166, .18);
+    }
+
+    .activities-item.green { border-left-color: #16a34a; }
+    .activities-item.orange { border-left-color: #f59e0b; }
+    .activities-item.pink { border-left-color: #e11d48; }
+    .activities-item.cyan { border-left-color: #0891b2; }
+    .activities-item.blue { border-left-color: #2563eb; }
+    .activities-item.purple { border-left-color: #7c3aed; }
+    .activities-item.lime { border-left-color: #65a30d; }
+
+    .activities-avatar-wrap {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eef6fb;
+        box-shadow: inset 0 0 0 1px #d8e3ef;
+    }
+
+    .activities-avatar {
+        width: 40px;
+        height: 40px;
+        display: block;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #ffffff;
+        border: 2px solid #d8e3ef;
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .14);
+    }
+
+    .activities-item.green .activities-avatar { border-color: rgba(22, 163, 74, .62); }
+    .activities-item.orange .activities-avatar { border-color: rgba(245, 158, 11, .68); }
+    .activities-item.pink .activities-avatar { border-color: rgba(225, 29, 72, .62); }
+    .activities-item.cyan .activities-avatar { border-color: rgba(8, 145, 178, .62); }
+    .activities-item.blue .activities-avatar { border-color: rgba(37, 99, 235, .62); }
+    .activities-item.purple .activities-avatar { border-color: rgba(124, 58, 237, .62); }
+    .activities-item.lime .activities-avatar { border-color: rgba(101, 163, 13, .62); }
+
+    .activities-main {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+    }
+
+    .activities-topline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .activities-topline strong {
+        color: #10233f;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .activities-topline b {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .12);
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .activities-detail,
+    .activities-owner {
+        display: block;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .activities-owner {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .activities-time {
+        min-width: 92px;
+        display: grid;
+        gap: 2px;
+        justify-items: end;
+        align-content: center;
+        padding-left: 14px;
+        border-left: 1px solid #d8e3ef;
+        color: #64748b;
+        font-weight: 800;
+        line-height: 1.15;
+        text-align: right;
+    }
+
+    .activities-time strong {
+        color: #10233f;
+        font-size: 20px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .activities-time small {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+
+    .activities-empty {
+        display: grid;
+        gap: 6px;
+        justify-items: center;
+        padding: 34px 18px;
+        color: #10233f;
+        text-align: center;
+    }
+
+    .activities-empty strong {
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .activities-empty span {
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 768px) {
+        .activities-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .activities-refresh {
+            width: 100%;
+        }
+
+        .activities-item {
+            grid-template-columns: 48px minmax(0, 1fr);
+            align-items: start;
+            gap: 12px;
+            padding: 14px;
+        }
+
+        .activities-avatar-wrap {
+            width: 42px;
+            height: 42px;
+        }
+
+        .activities-avatar {
+            width: 36px;
+            height: 36px;
+        }
+
+        .activities-time {
+            grid-column: 2;
+            min-width: 0;
+            justify-items: start;
+            padding-left: 0;
+            border-left: 0;
+            text-align: left;
+        }
+
+        .activities-time strong {
+            font-size: 16px;
+        }
+    }
 </style>

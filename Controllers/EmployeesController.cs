@@ -13,17 +13,26 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmployeesController> _logger;
 
         public EmployeesController(
             AppDbContext context,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             IConfiguration configuration,
             ILogger<EmployeesController> logger)
         {
             _context = context;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _configuration = configuration;
             _logger = logger;
         }
@@ -42,7 +51,7 @@ namespace ProjectTracking.Controllers
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
-            ViewBag.LineLinkedEmpIds = (await _context.LineRecipients
+            var lineLinkedEmpIds = await _context.LineRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive
                     && x.EmpId.HasValue
@@ -51,7 +60,22 @@ namespace ProjectTracking.Controllers
                     && x.LineUserId != "")
                 .Select(x => x.EmpId!.Value)
                 .Distinct()
-                .ToListAsync())
+                .ToListAsync();
+
+            var telegramLinkedEmpIds = await _context.TelegramRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive
+                    && x.EmpId.HasValue
+                    && x.RecipientType == "USER"
+                    && x.TelegramChatId != null
+                    && x.TelegramChatId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.LineLinkedEmpIds = lineLinkedEmpIds
+                .Concat(telegramLinkedEmpIds)
+                .Distinct()
                 .ToHashSet();
 
             return View(employees);
@@ -176,9 +200,20 @@ namespace ProjectTracking.Controllers
         {
             try
             {
+                var sendLine = _lineMessagingService.IsConfigured
+                    && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.LineOverdueManual, HttpContext.RequestAborted);
+                var sendTelegram = _telegramMessagingService.IsConfigured
+                    && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.LineOverdueManual, HttpContext.RequestAborted);
+
+                if (!sendLine && !sendTelegram)
+                {
+                    TempData["Error"] = "ปิดการส่งแจ้งเตือนสำหรับหน้า Employees/LineOverdue อยู่ หรือยังไม่ได้ตั้งค่า token";
+                    return RedirectToAction(nameof(LineOverdue));
+                }
+
                 if (selectedKeys == null || selectedKeys.Count == 0)
                 {
-                    TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่ง LINE";
+                    TempData["Error"] = "กรุณาเลือกรายการที่ต้องการส่งแจ้งเตือน";
                     return RedirectToAction(nameof(LineOverdue));
                 }
 
@@ -195,12 +230,27 @@ namespace ProjectTracking.Controllers
                         try
                         {
                             var targetUrl = ToRequestAbsoluteUrl(recipient.TargetUrl);
-                            var deliveredCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                                recipient.EmpId,
-                                BuildSelectionLineTitle(item),
-                                item.Message,
-                                targetUrl,
-                                HttpContext.RequestAborted);
+                            var deliveredCount = 0;
+
+                            if (sendLine)
+                            {
+                                deliveredCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
+                                    recipient.EmpId,
+                                    BuildSelectionLineTitle(item),
+                                    item.Message,
+                                    targetUrl,
+                                    HttpContext.RequestAborted);
+                            }
+
+                            if (sendTelegram)
+                            {
+                                deliveredCount += await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                                    recipient.EmpId,
+                                    BuildSelectionLineTitle(item),
+                                    item.Message,
+                                    targetUrl,
+                                    HttpContext.RequestAborted);
+                            }
 
                             sentCount += deliveredCount;
                             if (deliveredCount > 0)
@@ -208,8 +258,8 @@ namespace ProjectTracking.Controllers
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", recipient.EmpId, item.Key);
-                            TempData["Error"] = "ส่ง LINE ไม่สำเร็จบางรายการ กรุณาตรวจสอบ token/LINE API หรือดู log เพิ่มเติม";
+                            _logger.LogWarning(ex, "Chat overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", recipient.EmpId, item.Key);
+                            TempData["Error"] = "ส่งแจ้งเตือนไม่สำเร็จบางรายการ กรุณาตรวจสอบ token/API หรือดู log เพิ่มเติม";
                         }
                     }
                 }
@@ -218,16 +268,16 @@ namespace ProjectTracking.Controllers
                     await _context.SaveChangesAsync();
 
                 var skippedCount = items.Sum(x => x.Recipients.Count(r => !r.HasLineRecipient));
-                TempData["Success"] = $"ส่ง LINE แล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
+                TempData["Success"] = $"ส่งแจ้งเตือนแล้ว {sentCount} ปลายทาง จาก {items.Count} รายการ";
                 if (skippedCount > 0)
-                    TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE";
+                    TempData["Error"] = $"มี {skippedCount} ปลายทางที่ยังไม่ได้ผูก LINE หรือ Telegram";
 
                 return RedirectToAction(nameof(LineOverdue));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "LINE overdue send action failed.");
-                TempData["Error"] = "ส่ง LINE ไม่สำเร็จ ระบบบันทึก error ไว้แล้ว กรุณาลองใหม่หรือตรวจสอบ log";
+                _logger.LogError(ex, "Chat overdue send action failed.");
+                TempData["Error"] = "ส่งแจ้งเตือนไม่สำเร็จ ระบบบันทึก error ไว้แล้ว กรุณาลองใหม่หรือตรวจสอบ log";
                 return RedirectToAction(nameof(LineOverdue));
             }
         }
@@ -276,7 +326,13 @@ namespace ProjectTracking.Controllers
                 .Select(x => x.EmpId!.Value)
                 .Distinct()
                 .ToListAsync();
-            var hasLine = lineEmpIds.ToHashSet();
+            var telegramEmpIds = await _context.TelegramRecipients
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.EmpId.HasValue && x.TelegramChatId != null && x.TelegramChatId != "")
+                .Select(x => x.EmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var hasLine = lineEmpIds.Concat(telegramEmpIds).Distinct().ToHashSet();
             var sendStats = await LoadLineSendStatsAsync();
 
             var items = new List<LineOverdueSelectionItemViewModel>();

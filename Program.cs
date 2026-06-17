@@ -180,6 +180,9 @@ builder.Services.Configure<EmailSettings>(options =>
 
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddHttpClient<LineMessagingService>();
+builder.Services.AddScoped<LineNotificationSettingsService>();
+builder.Services.AddHttpClient<TelegramMessagingService>();
+builder.Services.AddScoped<TelegramNotificationSettingsService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
@@ -195,7 +198,9 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
+await EnsureSystemConfigTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
+await EnsureTelegramRecipientTableAsync(app.Services);
 await EnsureMailboxTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
@@ -484,6 +489,80 @@ static async Task EnsureLineRecipientTableAsync(IServiceProvider services)
               UNIQUE KEY `uq_line_recipients_group_id` (`line_group_id`),
               KEY `idx_line_recipients_user` (`user_id`,`is_active`),
               KEY `idx_line_recipients_emp` (`emp_id`,`is_active`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTelegramRecipientTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `telegram_recipients` (
+              `telegram_recipient_id` int(11) NOT NULL AUTO_INCREMENT,
+              `user_id` int(11) DEFAULT NULL,
+              `emp_id` int(11) DEFAULT NULL,
+              `recipient_type` varchar(20) NOT NULL DEFAULT 'USER',
+              `telegram_user_id` varchar(100) DEFAULT NULL,
+              `telegram_chat_id` varchar(100) DEFAULT NULL,
+              `telegram_display_name` varchar(255) DEFAULT NULL,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `last_started_at` datetime DEFAULT NULL,
+              `last_webhook_at` datetime DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`telegram_recipient_id`),
+              UNIQUE KEY `uq_telegram_recipients_user_id` (`telegram_user_id`),
+              UNIQUE KEY `uq_telegram_recipients_chat_id` (`telegram_chat_id`),
+              KEY `idx_telegram_recipients_user` (`user_id`,`is_active`),
+              KEY `idx_telegram_recipients_emp` (`emp_id`,`is_active`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `system_config` (
+              `config_key` varchar(100) NOT NULL,
+              `config_value` varchar(500) DEFAULT NULL,
+              `description` varchar(500) DEFAULT NULL,
+              `updated_at` datetime DEFAULT NULL,
+              PRIMARY KEY (`config_key`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
         await command.ExecuteNonQueryAsync();

@@ -40,7 +40,7 @@ namespace ProjectTracking.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<OverdueNotificationService>();
-                await service.SyncAndSendLineAsync(cancellationToken);
+                await service.SyncAndSendTelegramAsync(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

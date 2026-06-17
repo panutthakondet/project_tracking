@@ -13,16 +13,25 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
+        private readonly TelegramMessagingService _telegramMessagingService;
+        private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<SupportOrdersDevController> _logger;
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         public SupportOrdersDevController(
             AppDbContext context,
             LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
+            TelegramMessagingService telegramMessagingService,
+            TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<SupportOrdersDevController> logger)
         {
             _context = context;
             _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
+            _telegramMessagingService = telegramMessagingService;
+            _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
         }
 
@@ -182,14 +191,19 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             if (shouldNotifyBaFixed)
-                await SendFixedSupportLineToBaSafelyAsync(dbOrder.OrderId);
+                await SendFixedSupportTelegramToBaSafelyAsync(dbOrder.OrderId);
 
             return RedirectToAction(nameof(Index), new { projectId = dbOrder.ProjectId });
         }
 
-        private async Task SendFixedSupportLineToBaSafelyAsync(int orderId)
+        private async Task SendFixedSupportTelegramToBaSafelyAsync(int orderId)
         {
-            if (!_lineMessagingService.IsConfigured)
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.SupportOrdersFixed, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.SupportOrdersFixed, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
                 return;
 
             try
@@ -207,26 +221,40 @@ namespace ProjectTracking.Controllers
                 if (order == null || !baEmpId.HasValue || baEmpId.Value <= 0)
                     return;
 
-                await _lineMessagingService.SendNotificationToEmployeeAsync(
-                    baEmpId.Value,
-                    "แจ้ง Support แก้เสร็จ:",
-                    BuildFixedSupportLineMessage(order),
-                    $"/SupportOrders/Details/{order.OrderId}",
-                    HttpContext.RequestAborted);
+                var message = BuildFixedSupportTelegramMessage(order);
+                if (sendLine)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        baEmpId.Value,
+                        "แจ้ง Support แก้เสร็จ:",
+                        message,
+                        $"/SupportOrders/Details/{order.OrderId}",
+                        HttpContext.RequestAborted);
+                }
+
+                if (sendTelegram)
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        baEmpId.Value,
+                        "แจ้ง Support แก้เสร็จ:",
+                        message,
+                        $"/SupportOrders/Details/{order.OrderId}",
+                        HttpContext.RequestAborted);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Send fixed support LINE notification failed. OrderId={OrderId}", orderId);
+                _logger.LogWarning(ex, "Send fixed support Telegram notification failed. OrderId={OrderId}", orderId);
             }
         }
 
-        private static string BuildFixedSupportLineMessage(ProjectSupportOrder order)
+        private static string BuildFixedSupportTelegramMessage(ProjectSupportOrder order)
         {
             var project = order.Project;
             var rows = new List<string>
             {
                 $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
-                $"Project: {ProjectNameForLine(project)}",
+                $"Project: {ProjectNameForTelegram(project)}",
                 $"Support: {TextOrDash(order.OrderTitle)}",
                 $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
                 $"BA: {TextOrDash(project?.BA?.EmpName)}",
@@ -239,7 +267,7 @@ namespace ProjectTracking.Controllers
             return string.Join("\n", rows);
         }
 
-        private static string ProjectNameForLine(Project? project)
+        private static string ProjectNameForTelegram(Project? project)
             => string.IsNullOrWhiteSpace(project?.ProjectName) ? "-" : project.ProjectName.Trim();
 
         private static string TextOrDash(string? value)
