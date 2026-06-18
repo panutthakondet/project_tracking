@@ -244,9 +244,8 @@ namespace ProjectTracking.Controllers
             if (project == null)
                 return "-";
 
-            var coop = project.Coop?.CoopName?.Trim();
-            var name = project.ProjectName?.Trim() ?? "";
-            return string.IsNullOrWhiteSpace(coop) ? name : $"{coop} - {name}";
+            var name = project.ProjectName?.Trim();
+            return string.IsNullOrWhiteSpace(name) ? "-" : name;
         }
 
         private static string CleanDetail(string? value)

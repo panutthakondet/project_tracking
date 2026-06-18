@@ -228,6 +228,23 @@
         font-size: .93rem;
     }
 
+    .open-work-label {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.45;
+        letter-spacing: 0;
+    }
+
+    .open-work-value {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+    }
+
     .open-work-owner-line {
         margin-top: 5px;
         color: #0f172a;
@@ -280,8 +297,9 @@
 
     .open-work-date {
         color: #0f172a;
-        font-size: .95rem;
+        font-size: 1rem;
         font-weight: 400;
+        line-height: 1.45;
     }
 
     .open-work-status-row {
@@ -423,29 +441,46 @@
                                                 <div class="open-work-card-head">
                                                     <div class="min-w-0">
                                                         <h3 class="open-work-title">@item.Title</h3>
-                                                        <p class="open-work-project">@item.ProjectName</p>
-                                                        <div class="open-work-owner-line">ผู้รับผิดชอบ: @item.OwnerName</div>
+                                                        <p class="open-work-project">
+                                                            <span class="open-work-label">โครงการ:</span>
+                                                            <span class="open-work-value">@item.ProjectName</span>
+                                                        </p>
+                                                        <div class="open-work-owner-line">
+                                                            <span class="open-work-label">ผู้รับผิดชอบ:</span>
+                                                            <span class="open-work-value">@item.OwnerName</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="open-work-people">
                                                     <span class="open-work-person">
-                                                        <img src="@item.OwnerAvatarPath"
+                                                        <img class="pt-owner-avatar"
+                                                             src="@item.OwnerAvatarPath"
                                                              alt="@item.OwnerName"
                                                              loading="lazy"
                                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                        <span><strong>เจ้าของงาน:</strong> @item.OwnerName</span>
+                                                        <span>
+                                                            <span class="open-work-label">เจ้าของงาน:</span>
+                                                            <span class="open-work-value">@item.OwnerName</span>
+                                                        </span>
                                                     </span>
                                                     <span class="open-work-person">
-                                                        <img src="@item.BaAvatarPath"
+                                                        <img class="pt-owner-avatar"
+                                                             src="@item.BaAvatarPath"
                                                              alt="@item.BaName"
                                                              loading="lazy"
                                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                        <span><strong>BA:</strong> @item.BaName</span>
+                                                        <span>
+                                                            <span class="open-work-label">BA:</span>
+                                                            <span class="open-work-value">@item.BaName</span>
+                                                        </span>
                                                     </span>
                                                 </div>
                                             </div>
                                             <div class="open-work-side">
-                                                <div class="open-work-date">@item.DateRangeText</div>
+                                                <div class="open-work-date">
+                                                    <span class="open-work-label">กำหนด:</span>
+                                                    <span class="open-work-value">@item.DateRangeText</span>
+                                                </div>
                                                 <div class="open-work-status-row">
                                                     <span class="open-work-severity @item.Severity">@SeverityText(item.Severity)</span>
                                                     <span class="open-work-status-text @TextTone(item.StatusText)">@item.StatusText</span>

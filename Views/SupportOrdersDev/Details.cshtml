@@ -246,7 +246,7 @@
         overflow-wrap: anywhere;
     }
 
-    .support-dev-info-line span {
+    .support-dev-info-line .support-dev-info-label {
         display: inline-block;
         margin-right: 6px;
         color: #000;
@@ -254,6 +254,13 @@
         font-weight: 700;
         line-height: inherit;
         text-transform: uppercase;
+    }
+
+    .support-dev-info-value {
+        color: #000;
+        font-size: inherit;
+        font-weight: 400 !important;
+        line-height: inherit;
     }
 
     .support-dev-text-box {
@@ -334,7 +341,8 @@
 
     .status-text {
         color: #000;
-        font-weight: 400;
+        font-weight: 400 !important;
+        font-size: inherit !important;
         white-space: nowrap;
     }
 
@@ -343,6 +351,54 @@
     .status-text.info,
     .status-text.danger,
     .status-text.muted { color: #000; }
+
+    .support-dev-details-page :is(
+        .support-dev-summary-card,
+        .support-dev-summary-label,
+        .support-dev-summary-value,
+        .support-dev-info-line,
+        .support-dev-info-label,
+        .support-dev-info-value,
+        .support-dev-text-box,
+        .support-dev-count,
+        .support-dev-empty
+    ) {
+        font-size: 1rem !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
+
+    .support-dev-details-page :is(
+        .support-dev-summary-label,
+        .support-dev-info-label,
+        .support-dev-panel h3,
+        .support-dev-gallery-head h3
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    .support-dev-summary-label {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .support-dev-details-page :is(
+        .support-dev-summary-value,
+        .support-dev-info-value,
+        .support-dev-text-box,
+        .status-text
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 400 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
 
     @@media (max-width: 991.98px) {
         .support-dev-hero-top,
@@ -406,20 +462,20 @@
 
     <section class="support-dev-summary-grid">
         <div class="support-dev-summary-card">
-            <small>Priority</small>
-            <b class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</b>
+            <span class="support-dev-summary-label">Priority</span>
+            <span class="support-dev-summary-value status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
         </div>
         <div class="support-dev-summary-card">
-            <small>Status</small>
-            <b class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</b>
+            <span class="support-dev-summary-label">Status</span>
+            <span class="support-dev-summary-value status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</span>
         </div>
         <div class="support-dev-summary-card">
-            <small>Dev Status</small>
-            <b class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</b>
+            <span class="support-dev-summary-label">Dev Status</span>
+            <span class="support-dev-summary-value status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
         </div>
         <div class="support-dev-summary-card">
-            <small>Images</small>
-            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+            <span class="support-dev-summary-label">Images</span>
+            <span class="support-dev-summary-value">@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</span>
         </div>
     </section>
 
@@ -427,13 +483,13 @@
         <article class="support-dev-panel">
             <h3>ข้อมูล Support</h3>
             <div class="support-dev-info-block">
-                <div class="support-dev-info-line"><span>Project:</span>@TextOrDash(order.Project?.ProjectDisplayName)</div>
-                <div class="support-dev-info-line"><span>Title:</span>@TextOrDash(order.OrderTitle)</div>
+                <div class="support-dev-info-line"><span class="support-dev-info-label">Project:</span><span class="support-dev-info-value">@TextOrDash(order.Project?.ProjectDisplayName)</span></div>
+                <div class="support-dev-info-line"><span class="support-dev-info-label">Title:</span><span class="support-dev-info-value">@TextOrDash(order.OrderTitle)</span></div>
                 <div class="support-dev-info-line">
-                    <span>Assign To:</span>@(order.Employee != null ? $"{order.Employee.EmpName} ({order.Employee.Position})" : "-")
+                    <span class="support-dev-info-label">Assign To:</span><span class="support-dev-info-value">@(order.Employee != null ? $"{order.Employee.EmpName} ({order.Employee.Position})" : "-")</span>
                 </div>
-                <div class="support-dev-info-line"><span>วันที่เริ่ม:</span>@DateText(order.StartDate)</div>
-                <div class="support-dev-info-line"><span>วันที่สิ้นสุด:</span>@DateText(order.EndDate)</div>
+                <div class="support-dev-info-line"><span class="support-dev-info-label">วันที่เริ่ม:</span><span class="support-dev-info-value">@DateText(order.StartDate)</span></div>
+                <div class="support-dev-info-line"><span class="support-dev-info-label">วันที่สิ้นสุด:</span><span class="support-dev-info-value">@DateText(order.EndDate)</span></div>
             </div>
         </article>
 

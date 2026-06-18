@@ -1098,7 +1098,7 @@ namespace ProjectTracking.Controllers
                     ProjectId = phase.ProjectId,
                     EmpId = assign.EmpId,
                     CoopName = project.Coop?.CoopName ?? "-",
-                    ProjectName = project.ProjectDisplayName,
+                    ProjectName = project.ProjectName,
                     PhaseName = phase.PhaseDisplayName,
                     PhasePeriodLabel = phase.PhasePeriodLabel,
                     Role = string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role!,

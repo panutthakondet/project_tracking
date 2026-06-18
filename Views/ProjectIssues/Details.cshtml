@@ -184,7 +184,7 @@
         overflow-wrap: anywhere;
     }
 
-    .issue-info-line span {
+    .issue-info-line .issue-info-label {
         display: inline-block;
         margin-right: 6px;
         color: #000;
@@ -192,6 +192,13 @@
         font-weight: 700;
         line-height: inherit;
         text-transform: uppercase;
+    }
+
+    .issue-info-value {
+        color: #000;
+        font-size: inherit;
+        font-weight: 400 !important;
+        line-height: inherit;
     }
 
     .issue-panel {
@@ -283,6 +290,53 @@
         text-align: center;
     }
 
+    .issue-detail-page :is(
+        .issue-summary-card,
+        .issue-summary-label,
+        .issue-summary-value,
+        .issue-info-line,
+        .issue-info-label,
+        .issue-info-value,
+        .issue-text-box,
+        .issue-empty
+    ) {
+        font-size: 1rem !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
+
+    .issue-detail-page :is(
+        .issue-summary-label,
+        .issue-info-label,
+        .issue-panel h3,
+        .issue-gallery-head h3,
+        .issue-detail-text-block h4
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    .issue-summary-label {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .issue-detail-page :is(
+        .issue-summary-value,
+        .issue-info-value,
+        .issue-text-box
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 400 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
+
     @@media (max-width: 991.98px) {
         .issue-hero-top,
         .issue-content-grid {
@@ -349,12 +403,12 @@
 
     <section class="issue-summary-grid">
         <div class="issue-summary-card">
-            <small>Reopen</small>
-            <b>@(issue?.IsReopen == true ? $"{issue.ReopenCount} ครั้ง" : "ไม่เคย Reopen")</b>
+            <span class="issue-summary-label">Reopen</span>
+            <span class="issue-summary-value">@(issue?.IsReopen == true ? $"{issue.ReopenCount} ครั้ง" : "ไม่เคย Reopen")</span>
         </div>
         <div class="issue-summary-card">
-            <small>Images</small>
-            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+            <span class="issue-summary-label">Images</span>
+            <span class="issue-summary-value">@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</span>
         </div>
     </section>
 
@@ -362,14 +416,14 @@
         <article class="issue-panel">
             <h3>ข้อมูล Issue</h3>
             <div class="issue-info-block">
-                <div class="issue-info-line"><span>Project:</span>@TextOrDash(issue?.Project?.ProjectDisplayName)</div>
-                <div class="issue-info-line"><span>Issue:</span>@(issue?.IssueName ?? "-")</div>
-                <div class="issue-info-line"><span>Owner:</span>@TextOrDash(issue?.Employee?.EmpName)</div>
-                <div class="issue-info-line"><span>Start Date:</span>@DateOrDash(issue?.StartDate)</div>
-                <div class="issue-info-line"><span>End Date:</span>@DateOrDash(issue?.EndDate)</div>
-                <div class="issue-info-line"><span>Issue Status:</span>@TextOrDash(issue?.IssueStatus)</div>
-                <div class="issue-info-line"><span>Dev Status:</span>@TextOrDash(issue?.DevStatus)</div>
-                <div class="issue-info-line"><span>Priority:</span>@TextOrDash(issue?.IssuePriority)</div>
+                <div class="issue-info-line"><span class="issue-info-label">Project:</span><span class="issue-info-value">@TextOrDash(issue?.Project?.ProjectDisplayName)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Issue:</span><span class="issue-info-value">@(issue?.IssueName ?? "-")</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Owner:</span><span class="issue-info-value">@TextOrDash(issue?.Employee?.EmpName)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Start Date:</span><span class="issue-info-value">@DateOrDash(issue?.StartDate)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">End Date:</span><span class="issue-info-value">@DateOrDash(issue?.EndDate)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Issue Status:</span><span class="issue-info-value">@TextOrDash(issue?.IssueStatus)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Dev Status:</span><span class="issue-info-value">@TextOrDash(issue?.DevStatus)</span></div>
+                <div class="issue-info-line"><span class="issue-info-label">Priority:</span><span class="issue-info-value">@TextOrDash(issue?.IssuePriority)</span></div>
             </div>
         </article>
 

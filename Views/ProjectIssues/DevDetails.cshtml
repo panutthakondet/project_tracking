@@ -208,7 +208,7 @@
         overflow-wrap: anywhere;
     }
 
-    .dev-info-line span {
+    .dev-info-line .dev-info-label {
         display: inline-block;
         margin-right: 6px;
         color: #000;
@@ -216,6 +216,13 @@
         font-weight: 700;
         line-height: inherit;
         text-transform: uppercase;
+    }
+
+    .dev-info-value {
+        color: #000;
+        font-size: inherit;
+        font-weight: 400 !important;
+        line-height: inherit;
     }
 
     .dev-text-box {
@@ -310,7 +317,8 @@
 
     .status-text {
         color: #000;
-        font-weight: 400;
+        font-weight: 400 !important;
+        font-size: inherit !important;
         white-space: nowrap;
     }
 
@@ -319,6 +327,55 @@
     .status-text.info,
     .status-text.danger,
     .status-text.muted { color: #000; }
+
+    .dev-detail-page :is(
+        .dev-summary-card,
+        .dev-summary-label,
+        .dev-summary-value,
+        .dev-info-line,
+        .dev-info-label,
+        .dev-info-value,
+        .dev-text-box,
+        .dev-count,
+        .dev-empty
+    ) {
+        font-size: 1rem !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
+
+    .dev-detail-page :is(
+        .dev-summary-label,
+        .dev-info-label,
+        .dev-panel h3,
+        .dev-gallery-head h3,
+        .dev-detail-text-block h4
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    .dev-summary-label {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .dev-detail-page :is(
+        .dev-summary-value,
+        .dev-info-value,
+        .dev-text-box,
+        .status-text
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 400 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
 
     @@media (max-width: 991.98px) {
         .dev-hero-top,
@@ -382,16 +439,16 @@
 
     <section class="dev-summary-grid">
         <div class="dev-summary-card">
-            <small>Issue Status</small>
-            <b class="status-text @StatusClass(issue.IssueStatus)">@TextOrDash(issue.IssueStatus)</b>
+            <span class="dev-summary-label">Issue Status</span>
+            <span class="dev-summary-value status-text @StatusClass(issue.IssueStatus)">@TextOrDash(issue.IssueStatus)</span>
         </div>
         <div class="dev-summary-card">
-            <small>Dev Status</small>
-            <b class="status-text @StatusClass(issue.DevStatus)">@TextOrDash(issue.DevStatus)</b>
+            <span class="dev-summary-label">Dev Status</span>
+            <span class="dev-summary-value status-text @StatusClass(issue.DevStatus)">@TextOrDash(issue.DevStatus)</span>
         </div>
         <div class="dev-summary-card">
-            <small>Images</small>
-            <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
+            <span class="dev-summary-label">Images</span>
+            <span class="dev-summary-value">@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</span>
         </div>
     </section>
 
@@ -399,13 +456,13 @@
         <article class="dev-panel">
             <h3>ข้อมูล Issue</h3>
             <div class="dev-info-block">
-                <div class="dev-info-line"><span>Project:</span>@TextOrDash(issue.Project?.ProjectDisplayName)</div>
-                <div class="dev-info-line"><span>Issue:</span>@TextOrDash(issue.IssueName)</div>
-                <div class="dev-info-line"><span>Owner:</span>@TextOrDash(issue.Employee?.EmpName)</div>
-                <div class="dev-info-line"><span>Start Date:</span>@DateOrDash(issue.StartDate)</div>
-                <div class="dev-info-line"><span>End Date:</span>@DateOrDash(issue.EndDate)</div>
+                <div class="dev-info-line"><span class="dev-info-label">Project:</span><span class="dev-info-value">@TextOrDash(issue.Project?.ProjectDisplayName)</span></div>
+                <div class="dev-info-line"><span class="dev-info-label">Issue:</span><span class="dev-info-value">@TextOrDash(issue.IssueName)</span></div>
+                <div class="dev-info-line"><span class="dev-info-label">Owner:</span><span class="dev-info-value">@TextOrDash(issue.Employee?.EmpName)</span></div>
+                <div class="dev-info-line"><span class="dev-info-label">Start Date:</span><span class="dev-info-value">@DateOrDash(issue.StartDate)</span></div>
+                <div class="dev-info-line"><span class="dev-info-label">End Date:</span><span class="dev-info-value">@DateOrDash(issue.EndDate)</span></div>
                 <div class="dev-info-line">
-                    <span>Priority:</span><b class="status-text @PriorityClass(issue.IssuePriority)">@TextOrDash(issue.IssuePriority)</b>
+                    <span class="dev-info-label">Priority:</span><span class="dev-info-value status-text @PriorityClass(issue.IssuePriority)">@TextOrDash(issue.IssuePriority)</span>
                 </div>
             </div>
         </article>

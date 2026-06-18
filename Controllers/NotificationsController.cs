@@ -168,7 +168,7 @@ namespace ProjectTracking.Controllers
             var lines = new List<string>
             {
                 $"Support order #{order.OrderId}",
-                $"Project: {order.Project?.ProjectDisplayName ?? "-"}",
+                $"Project: {ProjectDisplayName(order.Project)}",
                 $"AssignTo: {order.AssignTo?.ToString() ?? "-"} ({order.Employee?.EmpName ?? "-"})",
                 $"Status: {order.Status ?? "-"}",
                 $"DevStatus: {order.DevStatus ?? "-"}",
@@ -449,9 +449,8 @@ namespace ProjectTracking.Controllers
             if (project == null)
                 return "-";
 
-            var coop = project.Coop?.CoopName?.Trim();
-            var name = project.ProjectName?.Trim() ?? "";
-            return string.IsNullOrWhiteSpace(coop) ? name : $"{coop} - {name}";
+            var name = project.ProjectName?.Trim();
+            return string.IsNullOrWhiteSpace(name) ? "-" : name;
         }
 
         private static string CleanNotificationTitle(string? value)

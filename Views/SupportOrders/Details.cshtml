@@ -230,7 +230,7 @@
         overflow-wrap: anywhere;
     }
 
-    .support-info-line span {
+    .support-info-line .support-info-label {
         display: inline-block;
         margin-right: 6px;
         color: #000;
@@ -238,6 +238,13 @@
         font-weight: 700;
         line-height: inherit;
         text-transform: uppercase;
+    }
+
+    .support-info-value {
+        color: #000;
+        font-size: inherit;
+        font-weight: 400 !important;
+        line-height: inherit;
     }
 
     .support-text-box {
@@ -318,7 +325,8 @@
 
     .status-text {
         color: #000;
-        font-weight: 400;
+        font-weight: 400 !important;
+        font-size: inherit !important;
         white-space: nowrap;
     }
 
@@ -327,6 +335,54 @@
     .status-text.info,
     .status-text.danger,
     .status-text.muted { color: #000; }
+
+    .support-detail-page :is(
+        .support-summary-card,
+        .support-summary-label,
+        .support-summary-value,
+        .support-info-line,
+        .support-info-label,
+        .support-info-value,
+        .support-text-box,
+        .support-count,
+        .support-empty
+    ) {
+        font-size: 1rem !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
+
+    .support-detail-page :is(
+        .support-summary-label,
+        .support-info-label,
+        .support-panel h3,
+        .support-gallery-head h3
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+    }
+
+    .support-summary-label {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .support-detail-page :is(
+        .support-summary-value,
+        .support-info-value,
+        .support-text-box,
+        .status-text
+    ) {
+        color: #000 !important;
+        font-size: 1rem !important;
+        font-weight: 400 !important;
+        line-height: 1.45 !important;
+        letter-spacing: 0 !important;
+    }
 
     @@media (max-width: 991.98px) {
         .support-detail-hero-top,
@@ -392,24 +448,24 @@
 
     <section class="support-summary-grid">
         <div class="support-summary-card">
-            <small>Priority</small>
-            <b class="status-text @PriorityClass(Model.Priority)">@TextOrDash(Model.Priority)</b>
+            <span class="support-summary-label">Priority</span>
+            <span class="support-summary-value status-text @PriorityClass(Model.Priority)">@TextOrDash(Model.Priority)</span>
         </div>
         <div class="support-summary-card">
-            <small>Status</small>
-            <b class="status-text @StatusClass(Model.Status)">@TextOrDash(Model.Status)</b>
+            <span class="support-summary-label">Status</span>
+            <span class="support-summary-value status-text @StatusClass(Model.Status)">@TextOrDash(Model.Status)</span>
         </div>
         <div class="support-summary-card">
-            <small>Dev Status</small>
-            <b class="status-text @DevStatusClass(Model.DevStatus)">@TextOrDash(Model.DevStatus)</b>
+            <span class="support-summary-label">Dev Status</span>
+            <span class="support-summary-value status-text @DevStatusClass(Model.DevStatus)">@TextOrDash(Model.DevStatus)</span>
         </div>
         <div class="support-summary-card">
-            <small>วันที่เริ่ม</small>
-            <b>@DateText(Model.StartDate)</b>
+            <span class="support-summary-label">วันที่เริ่ม</span>
+            <span class="support-summary-value">@DateText(Model.StartDate)</span>
         </div>
         <div class="support-summary-card">
-            <small>วันที่สิ้นสุด</small>
-            <b>@DateText(Model.EndDate)</b>
+            <span class="support-summary-label">วันที่สิ้นสุด</span>
+            <span class="support-summary-value">@DateText(Model.EndDate)</span>
         </div>
     </section>
 
@@ -417,12 +473,12 @@
         <article class="support-panel">
             <h3>ข้อมูล Support</h3>
             <div class="support-info-block">
-                <div class="support-info-line"><span>Project:</span>@TextOrDash(Model.Project?.ProjectDisplayName)</div>
-                <div class="support-info-line"><span>Title:</span>@TextOrDash(Model.OrderTitle)</div>
+                <div class="support-info-line"><span class="support-info-label">Project:</span><span class="support-info-value">@TextOrDash(Model.Project?.ProjectDisplayName)</span></div>
+                <div class="support-info-line"><span class="support-info-label">Title:</span><span class="support-info-value">@TextOrDash(Model.OrderTitle)</span></div>
                 <div class="support-info-line">
-                    <span>Assign To:</span>@(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")
+                    <span class="support-info-label">Assign To:</span><span class="support-info-value">@(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")</span>
                 </div>
-                <div class="support-info-line"><span>Created:</span>@DateText(Model.CreatedAt)</div>
+                <div class="support-info-line"><span class="support-info-label">Created:</span><span class="support-info-value">@DateText(Model.CreatedAt)</span></div>
             </div>
         </article>
 

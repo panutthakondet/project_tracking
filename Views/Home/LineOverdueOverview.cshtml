@@ -21,6 +21,21 @@
 <style>
     .overdue-overview-page {
         padding: 4px 0 28px;
+        text-shadow: none;
+        text-rendering: auto;
+        -webkit-font-smoothing: auto;
+        -moz-osx-font-smoothing: auto;
+        font-variation-settings: normal;
+        -webkit-text-stroke: 0 transparent;
+    }
+
+    .overdue-overview-page :is(span, strong, b, label, select, button, input, .btn) {
+        text-shadow: none !important;
+        text-rendering: auto !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        font-variation-settings: normal !important;
+        -webkit-text-stroke: 0 transparent !important;
     }
 
     .overdue-overview-filter {
@@ -40,7 +55,7 @@
         min-height: 28px;
         margin-bottom: 8px;
         color: #10233f;
-        font-weight: 900;
+        font-weight: 700;
         line-height: 1.2;
         white-space: nowrap;
     }
@@ -64,7 +79,7 @@
         width: 100%;
         min-height: 48px;
         border-radius: 12px;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .overdue-overview-filter :is(.select2-container, .choices, .choices__inner, .ts-wrapper, .ts-control) {
@@ -90,13 +105,14 @@
     .overdue-overview-kpi span {
         display: block;
         color: #64748b;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .overdue-overview-kpi strong {
         display: block;
         color: #10233f;
         font-size: 2rem;
+        font-weight: 700;
         line-height: 1;
         margin-top: 8px;
     }
@@ -108,7 +124,7 @@
     .overdue-overview-note {
         margin: 0 0 12px;
         color: #64748b;
-        font-weight: 800;
+        font-weight: 700;
     }
 
     .overdue-overview-groups {
@@ -144,7 +160,7 @@
         display: block;
         color: #64748b;
         font-size: .84rem;
-        font-weight: 900;
+        font-weight: 700;
         text-transform: uppercase;
     }
 
@@ -152,7 +168,7 @@
         display: block;
         color: #0f766e;
         font-size: 1rem;
-        font-weight: 800;
+        font-weight: 700;
         line-height: 1.3;
         overflow-wrap: anywhere;
     }
@@ -174,13 +190,14 @@
         padding: 4px 10px;
         color: #475569;
         background: #fff;
-        font-weight: 900;
+        font-weight: 700;
         line-height: 1.2;
         white-space: nowrap;
     }
 
     .overdue-overview-group-stat b {
         color: #10233f;
+        font-weight: 700;
     }
 
     .overdue-overview-group-stat.danger b { color: #dc2626; }
@@ -206,6 +223,8 @@
         text-decoration: none;
         box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
         transition: transform .18s ease, box-shadow .18s ease;
+        font-size: 1rem;
+        line-height: 1.45;
     }
 
     .overdue-overview-card.danger {
@@ -240,18 +259,45 @@
     .overdue-overview-title {
         margin: 0;
         color: #10223e;
-        font-size: 1.08rem;
-        font-weight: 900;
-        line-height: 1.28;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
         overflow-wrap: anywhere;
     }
 
     .overdue-overview-project {
         margin: 5px 0 0;
         color: #0f172a;
-        font-size: .93rem;
+        font-size: 1rem;
         font-weight: 400;
-        line-height: 1.35;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-label {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.45;
+        letter-spacing: 0;
+    }
+
+    .overdue-overview-value {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .overdue-overview-field {
+        min-width: 0;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
     }
 
     .overdue-overview-people {
@@ -267,8 +313,9 @@
         border-radius: 14px;
         background: #f4f8ff;
         color: #0f172a;
-        font-size: .9rem;
+        font-size: 1rem;
         font-weight: 400;
+        line-height: 1.45;
     }
 
     .overdue-overview-people strong {
@@ -303,8 +350,9 @@
         gap: 6px 16px;
         margin-top: 8px;
         color: #0f172a;
-        font-size: .9rem;
+        font-size: 1rem;
         font-weight: 400;
+        line-height: 1.45;
     }
 
     .overdue-overview-meta strong {
@@ -315,46 +363,48 @@
     .overdue-overview-side {
         display: grid;
         gap: 7px;
-        justify-items: end;
-        text-align: right;
+        justify-items: start;
+        text-align: left;
     }
 
     .overdue-overview-date {
         color: #0f172a;
-        font-size: .95rem;
+        font-size: 1rem;
         font-weight: 400;
+        line-height: 1.45;
     }
 
     .overdue-overview-status-row {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
-        justify-content: flex-end;
+        justify-content: flex-start;
     }
 
     .overdue-overview-remark {
-        color: #64748b;
-        font-size: .9rem;
-        font-weight: 600;
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
         overflow-wrap: anywhere;
     }
 
     .overdue-overview-status {
-        font-size: .9rem;
-        font-weight: 600;
-        line-height: 1.2;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
         white-space: nowrap;
     }
 
-    .overdue-overview-status.done {
+    .overdue-overview-status.done .overdue-overview-value {
         color: #059669;
     }
 
-    .overdue-overview-status.warning {
+    .overdue-overview-status.warning .overdue-overview-value {
         color: #d97706;
     }
 
-    .overdue-overview-status.danger {
+    .overdue-overview-status.danger .overdue-overview-value {
         color: #e11d48;
     }
 
@@ -504,39 +554,68 @@
                                 <div class="overdue-overview-card-main">
                                     <div class="overdue-overview-card-head">
                                         <div class="min-w-0">
-                                            <h3 class="overdue-overview-title">@row.Role</h3>
-                                            <p class="overdue-overview-project">@row.ProjectName</p>
+                                            <h3 class="overdue-overview-title">
+                                                <span class="overdue-overview-label">งาน:</span>
+                                                <span class="overdue-overview-value">@row.Role</span>
+                                            </h3>
+                                            <p class="overdue-overview-project">
+                                                <span class="overdue-overview-label">โครงการ:</span>
+                                                <span class="overdue-overview-value">@row.ProjectName</span>
+                                            </p>
                                         </div>
                                     </div>
                                     <div class="overdue-overview-meta">
-                                        <span><strong>Phase:</strong> @row.PhaseName</span>
+                                        <span class="overdue-overview-field">
+                                            <span class="overdue-overview-label">Phase Name:</span>
+                                            <span class="overdue-overview-value">@row.PhaseName</span>
+                                        </span>
                                     </div>
                                     @if (!string.IsNullOrWhiteSpace(row.Remark) && row.Remark != "-")
                                     {
-                                        <div class="overdue-overview-remark">Remark: @row.Remark</div>
+                                        <div class="overdue-overview-remark">
+                                            <span class="overdue-overview-label">Remark:</span>
+                                            <span class="overdue-overview-value">@row.Remark</span>
+                                        </div>
                                     }
                                 </div>
                                 <div class="overdue-overview-side">
-                                    <div class="overdue-overview-date">Plan: @DateText(row.PlanStart) - @DateText(row.PlanEnd)</div>
-                                    <div class="overdue-overview-date">กำหนดงวดงาน: @DateText(row.PeriodEnd)</div>
+                                    <div class="overdue-overview-date">
+                                        <span class="overdue-overview-label">วันที่กำหนด:</span>
+                                        <span class="overdue-overview-value">@DateText(row.PlanStart) - @DateText(row.PlanEnd)</span>
+                                    </div>
+                                    <div class="overdue-overview-date">
+                                        <span class="overdue-overview-label">กำหนดงวดงาน:</span>
+                                        <span class="overdue-overview-value">@DateText(row.PeriodEnd)</span>
+                                    </div>
                                     <div class="overdue-overview-status-row">
-                                        <span class="overdue-overview-status @row.StatusTone">@row.StatusText</span>
+                                        <span class="overdue-overview-status @row.StatusTone">
+                                            <span class="overdue-overview-label">สถานะ:</span>
+                                            <span class="overdue-overview-value">@row.StatusText</span>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="overdue-overview-people">
                                     <span class="overdue-overview-person">
-                                        <img src="@row.OwnerAvatarPath"
+                                        <img class="pt-owner-avatar"
+                                             src="@row.OwnerAvatarPath"
                                              alt="@row.OwnerName"
                                              loading="lazy"
                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span><strong>ผู้รับผิดชอบ:</strong> @row.OwnerName</span>
+                                        <span>
+                                            <span class="overdue-overview-label">ผู้รับผิดชอบ:</span>
+                                            <span class="overdue-overview-value">@row.OwnerName</span>
+                                        </span>
                                     </span>
                                     <span class="overdue-overview-person">
-                                        <img src="@row.BaAvatarPath"
+                                        <img class="pt-owner-avatar"
+                                             src="@row.BaAvatarPath"
                                              alt="@row.BaName"
                                              loading="lazy"
                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span><strong>BA:</strong> @row.BaName</span>
+                                        <span>
+                                            <span class="overdue-overview-label">BA:</span>
+                                            <span class="overdue-overview-value">@row.BaName</span>
+                                        </span>
                                     </span>
                                 </div>
                             </a>

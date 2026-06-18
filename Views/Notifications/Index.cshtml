@@ -195,6 +195,23 @@
         font-size: .93rem;
     }
 
+    .notification-label {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.45;
+        letter-spacing: 0;
+    }
+
+    .notification-value {
+        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.45;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+    }
+
     .notification-owner-line {
         margin-top: 5px;
         color: #0f172a;
@@ -247,8 +264,9 @@
 
     .notification-date {
         color: #0f172a;
-        font-size: .95rem;
+        font-size: 1rem;
         font-weight: 400;
+        line-height: 1.45;
     }
 
     .notification-status-row {
@@ -401,29 +419,46 @@
                                                 <div class="notification-card-head">
                                                     <div class="min-w-0">
                                                         <h3 class="notification-title">@item.Title</h3>
-                                                        <p class="notification-project">@item.ProjectName</p>
-                                                        <div class="notification-owner-line">ผู้รับผิดชอบ: @item.OwnerName</div>
+                                                        <p class="notification-project">
+                                                            <span class="notification-label">โครงการ:</span>
+                                                            <span class="notification-value">@item.ProjectName</span>
+                                                        </p>
+                                                        <div class="notification-owner-line">
+                                                            <span class="notification-label">ผู้รับผิดชอบ:</span>
+                                                            <span class="notification-value">@item.OwnerName</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="notification-people">
                                                     <span class="notification-person">
-                                                        <img src="@item.OwnerAvatarPath"
+                                                        <img class="pt-owner-avatar"
+                                                             src="@item.OwnerAvatarPath"
                                                              alt="@item.OwnerName"
                                                              loading="lazy"
                                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                        <span><strong>เจ้าของงาน:</strong> @item.OwnerName</span>
+                                                        <span>
+                                                            <span class="notification-label">เจ้าของงาน:</span>
+                                                            <span class="notification-value">@item.OwnerName</span>
+                                                        </span>
                                                     </span>
                                                     <span class="notification-person">
-                                                        <img src="@item.BaAvatarPath"
+                                                        <img class="pt-owner-avatar"
+                                                             src="@item.BaAvatarPath"
                                                              alt="@item.BaName"
                                                              loading="lazy"
                                                              onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                        <span><strong>BA:</strong> @item.BaName</span>
+                                                        <span>
+                                                            <span class="notification-label">BA:</span>
+                                                            <span class="notification-value">@item.BaName</span>
+                                                        </span>
                                                     </span>
                                                 </div>
                                             </div>
                                             <div class="notification-side">
-                                                <div class="notification-date">@item.DateText</div>
+                                                <div class="notification-date">
+                                                    <span class="notification-label">กำหนด:</span>
+                                                    <span class="notification-value">@item.DateText</span>
+                                                </div>
                                                 <div class="notification-status-row">
                                                     <span class="notification-severity @item.Severity">@item.SeverityText</span>
                                                     <span class="notification-status-text @TextTone(item.StatusText)">@item.StatusText</span>
