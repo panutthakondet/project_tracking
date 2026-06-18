@@ -365,9 +365,14 @@ namespace ProjectTracking.Controllers
                 await _context.SaveChangesAsync();
                 createdMeetingId = model.Id;
 
-                if (users != null && users.Count > 0)
+                var selectedUserIds = (users ?? new List<int>())
+                    .Where(uid => uid > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (selectedUserIds.Count > 0)
                 {
-                    foreach (var uid in users)
+                    foreach (var uid in selectedUserIds)
                     {
                         _context.MeetingAttendees.Add(new MeetingAttendee
                         {

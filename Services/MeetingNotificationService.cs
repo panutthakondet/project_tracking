@@ -137,10 +137,17 @@ namespace ProjectTracking.Services
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var recipient in recipients)
             {
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!notifiedEmails.Add(recipient.Email.Trim()))
                 {
                     skipped++;
                     continue;
@@ -196,9 +203,16 @@ namespace ProjectTracking.Services
             var failed = 0;
 
             var emailRecipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
+            var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var recipient in emailRecipients)
             {
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!notifiedEmails.Add(recipient.Email.Trim()))
                 {
                     skipped++;
                     continue;
@@ -230,13 +244,21 @@ namespace ProjectTracking.Services
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsUpdate, cancellationToken))
             {
                 var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
+                var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var recipient in lineRecipients)
                 {
-                    if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                    var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
+                        recipient.EmpId,
+                        cancellationToken);
+                    if (lineUserIds.Count == 0)
                     {
                         skipped++;
                         continue;
                     }
+
+                    var unsentLineUserIds = lineUserIds
+                        .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
+                        .ToList();
 
                     if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken))
                     {
@@ -244,14 +266,21 @@ namespace ProjectTracking.Services
                         continue;
                     }
 
+                    if (unsentLineUserIds.Count == 0)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
                     try
                     {
-                        var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.EmpId,
+                        var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
+                            unsentLineUserIds,
                             $"อัปเดตประชุม: {meeting.Title}",
                             BuildUpdatedTelegramMessage(meeting, detailUrl, calendarUrl),
                             detailUrl,
-                            cancellationToken);
+                            cancellationToken,
+                            recipient.EmpId);
 
                         if (lineSendCount > 0)
                         {
@@ -280,13 +309,21 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(sent, skipped, failed);
 
             var telegramRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
+            var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var recipient in telegramRecipients)
             {
-                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
+                    recipient.EmpId,
+                    cancellationToken);
+                if (chatIds.Count == 0)
                 {
                     skipped++;
                     continue;
                 }
+
+                var unsentChatIds = chatIds
+                    .Where(chatId => notifiedTelegramChatIds.Add(chatId))
+                    .ToList();
 
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken))
                 {
@@ -294,15 +331,22 @@ namespace ProjectTracking.Services
                     continue;
                 }
 
+                if (unsentChatIds.Count == 0)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
-                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId,
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToChatIdsAsync(
+                        unsentChatIds,
                         $"อัปเดตประชุม: {meeting.Title}",
                         BuildUpdatedTelegramMessage(meeting, detailUrl, calendarUrl),
                         detailUrl,
                         cancellationToken,
-                        telegramAttachment);
+                        telegramAttachment,
+                        recipient.EmpId);
 
                     if (telegramSendCount > 0)
                     {
@@ -351,14 +395,22 @@ namespace ProjectTracking.Services
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var recipient in recipients)
             {
-                if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
+                    recipient.EmpId,
+                    cancellationToken);
+                if (lineUserIds.Count == 0)
                 {
                     skipped++;
                     continue;
                 }
+
+                var unsentLineUserIds = lineUserIds
+                    .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
+                    .ToList();
 
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
                 {
@@ -366,14 +418,21 @@ namespace ProjectTracking.Services
                     continue;
                 }
 
+                if (unsentLineUserIds.Count == 0)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
-                    var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId,
+                    var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
+                        unsentLineUserIds,
                         $"เชิญประชุม: {meeting.Title}",
                         BuildCreatedTelegramMessage(meeting, detailUrl, calendarUrl),
                         detailUrl,
-                        cancellationToken);
+                        cancellationToken,
+                        recipient.EmpId);
 
                     if (lineSendCount > 0)
                     {
@@ -424,14 +483,22 @@ namespace ProjectTracking.Services
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var recipient in recipients)
             {
-                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
+                    recipient.EmpId,
+                    cancellationToken);
+                if (chatIds.Count == 0)
                 {
                     skipped++;
                     continue;
                 }
+
+                var unsentChatIds = chatIds
+                    .Where(chatId => notifiedTelegramChatIds.Add(chatId))
+                    .ToList();
 
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
                 {
@@ -439,15 +506,22 @@ namespace ProjectTracking.Services
                     continue;
                 }
 
+                if (unsentChatIds.Count == 0)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
-                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId,
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToChatIdsAsync(
+                        unsentChatIds,
                         $"เชิญประชุม: {meeting.Title}",
                         BuildCreatedTelegramMessage(meeting, detailUrl, calendarUrl),
                         detailUrl,
                         cancellationToken,
-                        telegramAttachment);
+                        telegramAttachment,
+                        recipient.EmpId);
 
                     if (telegramSendCount > 0)
                     {
@@ -490,9 +564,16 @@ namespace ProjectTracking.Services
             var failed = 0;
 
             var emailRecipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
+            var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var recipient in emailRecipients)
             {
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (!notifiedEmails.Add(recipient.Email.Trim()))
                 {
                     skipped++;
                     continue;
@@ -523,13 +604,21 @@ namespace ProjectTracking.Services
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCancel, cancellationToken))
             {
                 var lineRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
+                var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var recipient in lineRecipients)
                 {
-                    if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                    var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
+                        recipient.EmpId,
+                        cancellationToken);
+                    if (lineUserIds.Count == 0)
                     {
                         skipped++;
                         continue;
                     }
+
+                    var unsentLineUserIds = lineUserIds
+                        .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
+                        .ToList();
 
                     if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
                     {
@@ -537,14 +626,21 @@ namespace ProjectTracking.Services
                         continue;
                     }
 
+                    if (unsentLineUserIds.Count == 0)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
                     try
                     {
-                        var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.EmpId,
+                        var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
+                            unsentLineUserIds,
                             $"ยกเลิกประชุม: {meeting.Title}",
                             BuildCancelledTelegramMessage(meeting, detailUrl),
                             detailUrl,
-                            cancellationToken);
+                            cancellationToken,
+                            recipient.EmpId);
 
                         if (lineSendCount > 0)
                         {
@@ -573,13 +669,21 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(sent, skipped, failed);
 
             var telegramRecipients = await LoadMeetingRecipientsAsync(db, meetingId, cancellationToken);
+            var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var recipient in telegramRecipients)
             {
-                if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
+                    recipient.EmpId,
+                    cancellationToken);
+                if (chatIds.Count == 0)
                 {
                     skipped++;
                     continue;
                 }
+
+                var unsentChatIds = chatIds
+                    .Where(chatId => notifiedTelegramChatIds.Add(chatId))
+                    .ToList();
 
                 if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
                 {
@@ -587,14 +691,22 @@ namespace ProjectTracking.Services
                     continue;
                 }
 
+                if (unsentChatIds.Count == 0)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 try
                 {
-                    var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        recipient.EmpId,
+                    var telegramSendCount = await _telegramMessagingService.SendNotificationToChatIdsAsync(
+                        unsentChatIds,
                         $"ยกเลิกประชุม: {meeting.Title}",
                         BuildCancelledTelegramMessage(meeting, detailUrl),
                         detailUrl,
-                        cancellationToken);
+                        cancellationToken,
+                        null,
+                        recipient.EmpId);
 
                     if (telegramSendCount > 0)
                     {
@@ -661,13 +773,21 @@ namespace ProjectTracking.Services
                         continue;
 
                     var kind = LineReminderKind(daysBefore);
+                    var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var recipient in recipients)
                     {
-                        if (!await HasActiveLineRecipientAsync(db, recipient.EmpId, cancellationToken))
+                        var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
+                            recipient.EmpId,
+                            cancellationToken);
+                        if (lineUserIds.Count == 0)
                         {
                             skipped++;
                             continue;
                         }
+
+                        var unsentLineUserIds = lineUserIds
+                            .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
+                            .ToList();
 
                         if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
                         {
@@ -675,10 +795,16 @@ namespace ProjectTracking.Services
                             continue;
                         }
 
+                        if (unsentLineUserIds.Count == 0)
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         try
                         {
-                            var lineSendCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
-                                recipient.EmpId,
+                            var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
+                                unsentLineUserIds,
                                 BuildTelegramTitle(daysBefore, meeting.Title),
                                 BuildTelegramMessage(
                                     meeting,
@@ -686,7 +812,8 @@ namespace ProjectTracking.Services
                                     ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
                                     ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}"),
                                 ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
-                                cancellationToken);
+                                cancellationToken,
+                                recipient.EmpId);
 
                             if (lineSendCount > 0)
                             {
@@ -762,13 +889,21 @@ namespace ProjectTracking.Services
 
                     var kind = TelegramReminderKind(daysBefore);
                     var attachment = ToTelegramAttachment(await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken));
+                    var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var recipient in recipients)
                     {
-                        if (!await HasActiveTelegramRecipientAsync(db, recipient.EmpId, cancellationToken))
+                        var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
+                            recipient.EmpId,
+                            cancellationToken);
+                        if (chatIds.Count == 0)
                         {
                             skipped++;
                             continue;
                         }
+
+                        var unsentChatIds = chatIds
+                            .Where(chatId => notifiedTelegramChatIds.Add(chatId))
+                            .ToList();
 
                         if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
                         {
@@ -776,10 +911,16 @@ namespace ProjectTracking.Services
                             continue;
                         }
 
+                        if (unsentChatIds.Count == 0)
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         try
                         {
-                            var telegramSendCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                                recipient.EmpId,
+                            var telegramSendCount = await _telegramMessagingService.SendNotificationToChatIdsAsync(
+                                unsentChatIds,
                                 BuildTelegramTitle(daysBefore, meeting.Title),
                                 BuildTelegramMessage(
                                     meeting,
@@ -788,7 +929,8 @@ namespace ProjectTracking.Services
                                     ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}"),
                                 ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
                                 cancellationToken,
-                                attachment);
+                                attachment,
+                                recipient.EmpId);
 
                             if (telegramSendCount > 0)
                             {
@@ -836,6 +978,53 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
             await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+
+            const string removeDuplicatesSql = @"
+DELETE n1
+FROM meeting_email_notifications n1
+JOIN meeting_email_notifications n2
+  ON n1.meeting_id = n2.meeting_id
+ AND n1.attendee_id = n2.attendee_id
+ AND n1.kind = n2.kind
+ AND n1.id > n2.id;";
+
+            await db.Database.ExecuteSqlRawAsync(removeDuplicatesSql, cancellationToken);
+
+            const string hasAnyIndexSql = @"
+SELECT COUNT(*) AS Value
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'meeting_email_notifications'
+  AND INDEX_NAME = 'uq_meeting_attendee_kind';";
+
+            const string hasUniqueIndexSql = @"
+SELECT COUNT(*) AS Value
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'meeting_email_notifications'
+  AND INDEX_NAME = 'uq_meeting_attendee_kind'
+  AND NON_UNIQUE = 0;";
+
+            var hasAnyIndex = await db.Database
+                .SqlQueryRaw<int>(hasAnyIndexSql)
+                .SingleAsync(cancellationToken);
+            var hasUniqueIndex = await db.Database
+                .SqlQueryRaw<int>(hasUniqueIndexSql)
+                .SingleAsync(cancellationToken);
+
+            if (hasUniqueIndex == 0)
+            {
+                if (hasAnyIndex > 0)
+                {
+                    await db.Database.ExecuteSqlRawAsync(
+                        "DROP INDEX uq_meeting_attendee_kind ON meeting_email_notifications;",
+                        cancellationToken);
+                }
+
+                await db.Database.ExecuteSqlRawAsync(
+                    "CREATE UNIQUE INDEX uq_meeting_attendee_kind ON meeting_email_notifications(meeting_id, attendee_id, kind);",
+                    cancellationToken);
+            }
         }
 
         private static async Task<bool> TryInsertNotificationLogAsync(

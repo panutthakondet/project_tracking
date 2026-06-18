@@ -84,8 +84,28 @@ namespace ProjectTracking.Services
             if (!IsConfigured)
                 return 0;
 
+            var lineUserIds = await GetActiveLineUserIdsForEmployeeAsync(empId, cancellationToken);
+            if (lineUserIds.Count == 0)
+            {
+                _logger.LogInformation("LINE notification skipped because no active LINE user was linked to EmpId={EmpId}.", empId);
+                return 0;
+            }
+
+            return await SendNotificationToLineUserIdsAsync(
+                lineUserIds,
+                title,
+                message,
+                targetUrl,
+                cancellationToken,
+                empId);
+        }
+
+        public async Task<List<string>> GetActiveLineUserIdsForEmployeeAsync(
+            int empId,
+            CancellationToken cancellationToken = default)
+        {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var lineUserIds = await db.LineRecipients
+            return await db.LineRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive
                     && x.EmpId == empId
@@ -94,12 +114,26 @@ namespace ProjectTracking.Services
                 .Select(x => x.LineUserId!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
+        }
 
-            if (lineUserIds.Count == 0)
-            {
-                _logger.LogInformation("LINE notification skipped because no active LINE user was linked to EmpId={EmpId}.", empId);
+        public async Task<int> SendNotificationToLineUserIdsAsync(
+            IEnumerable<string> lineUserIds,
+            string title,
+            string? message,
+            string? targetUrl,
+            CancellationToken cancellationToken = default,
+            int? empIdForLog = null)
+        {
+            if (!IsConfigured)
                 return 0;
-            }
+
+            var targets = lineUserIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            if (targets.Count == 0)
+                return 0;
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
             if (!string.IsNullOrWhiteSpace(targetUrl) && string.IsNullOrWhiteSpace(absoluteUrl))
@@ -114,7 +148,7 @@ namespace ProjectTracking.Services
             var flexMessage = BuildNotificationFlexMessage(title, message, absoluteUrl);
             var sent = 0;
             var failed = 0;
-            foreach (var lineUserId in lineUserIds)
+            foreach (var lineUserId in targets)
             {
                 try
                 {
@@ -123,7 +157,7 @@ namespace ProjectTracking.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "LINE Flex notification failed. Falling back to text for EmpId={EmpId}", empId);
+                    _logger.LogWarning(ex, "LINE Flex notification failed. Falling back to text for EmpId={EmpId}", empIdForLog);
                     try
                     {
                         await PushTextAsync(lineUserId, text, cancellationToken, throwOnFailure: true);
@@ -132,13 +166,13 @@ namespace ProjectTracking.Services
                     catch (Exception fallbackEx)
                     {
                         failed++;
-                        _logger.LogError(fallbackEx, "LINE text notification fallback failed for EmpId={EmpId}", empId);
+                        _logger.LogError(fallbackEx, "LINE text notification fallback failed for EmpId={EmpId}", empIdForLog);
                     }
                 }
             }
 
             if (sent == 0 && failed > 0)
-                throw new InvalidOperationException($"LINE notification failed for all linked LINE users. EmpId={empId}, Failed={failed}");
+                throw new InvalidOperationException($"LINE notification failed for all linked LINE users. EmpId={empIdForLog}, Failed={failed}");
 
             return sent;
         }

@@ -83,8 +83,31 @@ namespace ProjectTracking.Services
             if (!IsConfigured)
                 return 0;
 
+            var chatIds = await GetActiveTelegramChatIdsForEmployeeAsync(empId, cancellationToken);
+            if (chatIds.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Telegram notification skipped because no active Telegram chat was linked to EmpId={EmpId}.",
+                    empId);
+                return 0;
+            }
+
+            return await SendNotificationToChatIdsAsync(
+                chatIds,
+                title,
+                message,
+                targetUrl,
+                cancellationToken,
+                attachment,
+                empId);
+        }
+
+        public async Task<List<string>> GetActiveTelegramChatIdsForEmployeeAsync(
+            int empId,
+            CancellationToken cancellationToken = default)
+        {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-            var chatIds = await db.TelegramRecipients
+            return await db.TelegramRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive
                     && x.EmpId == empId
@@ -93,14 +116,27 @@ namespace ProjectTracking.Services
                 .Select(x => x.TelegramChatId!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
+        }
 
-            if (chatIds.Count == 0)
-            {
-                _logger.LogInformation(
-                    "Telegram notification skipped because no active Telegram chat was linked to EmpId={EmpId}.",
-                    empId);
+        public async Task<int> SendNotificationToChatIdsAsync(
+            IEnumerable<string> chatIds,
+            string title,
+            string? message,
+            string? targetUrl,
+            CancellationToken cancellationToken = default,
+            TelegramAttachment? attachment = null,
+            int? empIdForLog = null)
+        {
+            if (!IsConfigured)
                 return 0;
-            }
+
+            var targets = chatIds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            if (targets.Count == 0)
+                return 0;
 
             var absoluteUrl = ToAbsoluteUrl(targetUrl);
             if (!string.IsNullOrWhiteSpace(targetUrl) && string.IsNullOrWhiteSpace(absoluteUrl))
@@ -116,7 +152,7 @@ namespace ProjectTracking.Services
             var sent = 0;
             var failed = 0;
 
-            foreach (var chatId in chatIds)
+            foreach (var chatId in targets)
             {
                 try
                 {
@@ -143,13 +179,13 @@ namespace ProjectTracking.Services
                     _logger.LogError(
                         ex,
                         "Telegram notification failed for EmpId={EmpId}, ChatId={ChatId}",
-                        empId,
+                        empIdForLog,
                         MaskId(chatId));
                 }
             }
 
             if (sent == 0 && failed > 0)
-                throw new InvalidOperationException($"Telegram notification failed for all linked chats. EmpId={empId}, Failed={failed}");
+                throw new InvalidOperationException($"Telegram notification failed for all linked chats. EmpId={empIdForLog}, Failed={failed}");
 
             return sent;
         }
