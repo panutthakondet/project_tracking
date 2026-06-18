@@ -62,7 +62,10 @@ bool GetEnvBoolOrDefault(string key, bool defaultValue = false)
 // Services
 // ==================================================
 builder.Services
-    .AddControllersWithViews()
+    .AddControllersWithViews(options =>
+    {
+        options.MaxModelBindingCollectionSize = 10000;
+    })
     .AddSessionStateTempDataProvider();
 
 builder.Services.AddHttpContextAccessor();
@@ -73,6 +76,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 209715200; // 200 MB
+    options.ValueCountLimit = 10000;
 });
 
 // ==================================================
