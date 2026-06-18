@@ -39,24 +39,24 @@
     <input asp-for="DevStatus" type="hidden" />
 
     <div class="mb-3">
-        <label>Project</label>
+        <label>โครงการ</label>
         <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectDisplayName : ViewBag.SelectedProjectName)" readonly />
     </div>
 
     <div class="mb-3">
-        <label>Title</label>
+        <label>หัวข้องาน</label>
         <input asp-for="OrderTitle" class="form-control" />
         <span asp-validation-for="OrderTitle" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label>Detail</label>
+        <label>รายละเอียดงาน</label>
         <textarea asp-for="OrderDetail" class="form-control"></textarea>
         <span asp-validation-for="OrderDetail" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label>Priority</label>
+        <label>ความสำคัญ</label>
         <select asp-for="Priority" class="form-select">
             <option value="LOW">LOW</option>
             <option value="MEDIUM">MEDIUM</option>
@@ -66,7 +66,7 @@
     </div>
 
     <div class="mb-3">
-        <label>Status</label>
+        <label>สถานะ</label>
         <select asp-for="Status" asp-items="ViewBag.StatusList" class="form-select"></select>
         <span asp-validation-for="Status" class="text-danger"></span>
     </div>
@@ -94,14 +94,14 @@
     </div>
 
     <div class="mb-3">
-        <label>Assign To</label>
+        <label>ผู้รับผิดชอบ</label>
         <select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
-            <option value="">-- Select Employee --</option>
+            <option value="">-- เลือกผู้รับผิดชอบ --</option>
         </select>
     </div>
 
     <div class="mb-3">
-        <label>Current Images</label>
+        <label>รูปประกอบปัจจุบัน</label>
         <div>
             @if (supportOrder.Images != null && supportOrder.Images.Any())
             {
@@ -111,27 +111,27 @@
                         <img src="@Url.Content("~" + img.FilePath)" style="width:150px" class="border mb-1" />
                         <div>
                             <input type="checkbox" name="deleteImageIds" value="@img.ImageId" />
-                            <small class="text-danger">Delete</small>
+                            <small class="text-danger">ลบ</small>
                         </div>
                     </div>
                 }
             }
             else
             {
-                <p class="text-muted">No images uploaded.</p>
+                <p class="text-muted">ยังไม่มีรูปประกอบ</p>
             }
         </div>
     </div>
 
     <div class="mb-3">
-        <label>Upload New Images (BA can add or replace)</label>
+        <label>เพิ่มรูปประกอบ</label>
         <input type="file" name="files" multiple class="form-control" />
-        <small class="text-muted">You can upload multiple images. Mark existing images as Delete to remove them.</small>
+        <small class="text-muted">เลือกได้หลายรูป ติ๊กที่รูปเดิมเพื่อลบรูปนั้นออก</small>
     </div>
 
     <div class="pt-form-actions">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a asp-action="Index" asp-route-projectId="@supportOrder.ProjectId" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">บันทึก</button>
+        <a asp-action="Index" asp-route-projectId="@supportOrder.ProjectId" class="btn btn-outline-secondary">ยกเลิก</a>
     </div>
 
 </form>

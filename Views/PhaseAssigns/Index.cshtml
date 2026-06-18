@@ -168,8 +168,8 @@ thead .sticky-col { z-index: 5; }
                asp-action="Index"
                asp-route-projectId="@selectedProject.ProjectId"
                class="btn btn-outline-secondary"
-               title="กลับไปจัดการ Phase">
-                Project Phases
+               title="กลับไปจัดการแผนงานและงวดงาน">
+                แผนงานและงวดงาน
             </a>
 
             <button id="RequirementCardDetailButton"
@@ -178,7 +178,7 @@ thead .sticky-col { z-index: 5; }
                     data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
                     data-project-field-id="hiddenProjectSelect"
                     title="เปิดดูรายละเอียด Project Board">
-                🔎 Project Board
+                รายละเอียด Project Board
             </button>
 
             @if (CanMenu("ProjectIssues.Index"))
@@ -187,14 +187,14 @@ thead .sticky-col { z-index: 5; }
                    asp-action="Index"
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-outline-danger"
-                   title="เปิด Issue ของโครงการนี้">
-                    Project Issues
+                   title="เปิดปัญหาของโครงการนี้">
+                    ปัญหาโครงการ
                 </a>
             }
             else
             {
-                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปิด Project Issues">
-                    Project Issues
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปิดปัญหาโครงการ">
+                    ปัญหาโครงการ
                 </button>
             }
 
@@ -204,13 +204,13 @@ thead .sticky-col { z-index: 5; }
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-primary"
                    title="เพิ่มการมอบหมายงาน">
-                    Add Assign
+                    เพิ่มการมอบหมาย
                 </a>
             }
             else
             {
                 <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มการมอบหมายงาน">
-                    Add Assign
+                    เพิ่มการมอบหมาย
                 </button>
             }
         </div>
@@ -272,6 +272,7 @@ thead .sticky-col { z-index: 5; }
                 }
             }
         </select>
+
     </div>
 </form>
 
@@ -477,7 +478,7 @@ thead .sticky-col { z-index: 5; }
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 4px;
+        margin-bottom: 8px;
     }
 
     .assign-card-index {
@@ -520,10 +521,49 @@ thead .sticky-col { z-index: 5; }
     }
 
     .assign-card-phase {
+        display: block;
         color: #334155;
         font-size: .95rem;
         font-weight: 400;
         line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-phase-part {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 0;
+        padding: 0;
+        color: #0f172a;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        font-size: .9rem;
+        font-weight: 400;
+        line-height: 1.35;
+    }
+
+    .assign-phase-part strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .assign-phase-name {
+        color: #334155;
+        font-weight: 400;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-phase-name-label {
+        color: #0f172a;
+        font-weight: 900;
+    }
+
+    .assign-phase-name-value {
+        display: inline;
+        color: #0f172a;
+        font-weight: 400;
         overflow-wrap: anywhere;
     }
 
@@ -565,6 +605,51 @@ thead .sticky-col { z-index: 5; }
         font-weight: 400;
         line-height: 1.38;
         overflow-wrap: anywhere;
+    }
+
+    .assign-card-people {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 10px 18px;
+        margin: 10px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #0f172a;
+        font-size: .95rem;
+        font-weight: 400;
+    }
+
+    .assign-card-person {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        color: #0f172a;
+        font-weight: 400;
+        line-height: 1.25;
+    }
+
+    .assign-card-person img {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 auto;
+        border: 1px solid #dbe6f3;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #fff;
+    }
+
+    .assign-card-person span {
+        overflow-wrap: anywhere;
+    }
+
+    .assign-card-person strong {
+        color: #0f172a;
+        font-weight: 600;
     }
 
     .assign-card-role .text-dark,
@@ -710,48 +795,70 @@ thead .sticky-col { z-index: 5; }
             var lastLog = a.Logs?.OrderByDescending(l => l.RoundNo).FirstOrDefault();
             var statusText = lastLog?.Status == "PASS" ? "ผ่าน" : lastLog != null ? "แก้ไข และนำเสนอใหม่" : null;
             var badgeClass = lastLog?.Status == "PASS" ? "bg-success" : lastLog != null ? "bg-warning text-dark" : "";
+            var phaseOrder = ReadNestedInt(a, "ProjectPhase", "PhaseOrder")
+                          ?? ReadNestedInt(a, "Phase", "PhaseOrder")
+                          ?? ReadNestedInt(a, "PhaseOrder");
+            var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
+                           ?? ReadNestedInt(a, "Phase", "PeriodOrder");
             <div class="assign-card @(a.WorkStatus == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
                 <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
-                        <img class="pt-owner-avatar" src="@ProfileImage(a.Employee)" alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                         <div class="min-w-0">
                             <div class="assign-title-line">
                                 <span class="drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
                                 <span class="assign-card-index">#@row</span>
+                                @if (phaseOrder.HasValue)
+                                {
+                                    <span class="assign-phase-part"><strong>ส่วนที่</strong> @phaseOrder</span>
+                                }
+                                @if (periodOrder.HasValue)
+                                {
+                                    <span class="assign-phase-part"><strong>งวดที่</strong> @periodOrder</span>
+                                }
+                                @if (!phaseOrder.HasValue && !periodOrder.HasValue)
+                                {
+                                    <span class="assign-phase-part">-</span>
+                                }
                             </div>
-                            @if (a.Employee != null)
-                            {
-                                <span class="assign-card-emp">@a.Employee.EmpName</span>
-                            }
-                            else
-                            {
-                                <span class="assign-card-emp">-</span>
-                            }
-                            <div class="assign-card-phase">@GetPhasePeriodSafe(a) · @GetPhaseNameSafe(a)</div>
+                            <div class="assign-card-phase">
+                                <span class="assign-phase-name-label">ชื่องวดงาน:</span>
+                                <span class="assign-phase-name-value">@GetPhaseNameSafe(a)</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="assign-card-dates">
                         <span class="assign-meta-text">
-                            <strong>Plan Date:</strong>
+                            <strong>กำหนดวันที่:</strong>
                             @(a.PlanStart?.ToString("dd MMM yyyy", th) ?? "-")
                             -
                             @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
                         <span class="assign-meta-text">
-                            <strong>กำหนดส่งงวดงาน:</strong>
+                            <strong>กำหนดส่งวันที่:</strong>
                             @(a.Phase?.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")
                         </span>
                     </div>
-                    <div class="assign-card-role"><strong>Role:</strong> <span class="text-dark">@a.Role</span></div>
+                    <div class="assign-card-role"><strong>งานที่รับผิดชอบ:</strong> <span class="text-dark">@a.Role</span></div>
                     <div class="assign-card-remark">
-                        <div><b>Assign:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
-                        <div class="text-muted"><b>Log:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
+                        <div><b>หมายเหตุ:</b> @(string.IsNullOrWhiteSpace(a.Remark) ? "-" : a.Remark)</div>
+                        <div class="text-muted"><b>บันทึกการนำเสนองาน:</b> @(lastLog == null || string.IsNullOrWhiteSpace(lastLog.Remark) ? "-" : lastLog.Remark)</div>
+                    </div>
+
+                    <div class="assign-card-people">
+                        <span class="assign-card-person">
+                            <img class="pt-owner-avatar"
+                                 src="@ProfileImage(a.Employee)"
+                                 alt="@(a.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                                 loading="lazy"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                            <span><strong>ผู้รับผิดชอบ:</strong> @(a.Employee?.EmpName ?? "-")</span>
+                        </span>
                     </div>
 
                     <div class="assign-status-grid">
                         <div class="assign-status-row">
-                            <small>Work</small>
+                            <small>สถานะงาน:</small>
                             @if (a.WorkStatus == "DONE")
                             {
                                 <span class="badge bg-success">เสร็จสิ้น</span>
@@ -771,14 +878,14 @@ thead .sticky-col { z-index: 5; }
                         {
                             <a asp-action="Edit" asp-route-id="@a.AssignId"
                                class="btn btn-sm btn-outline-primary"
-                               title="แก้ไขข้อมูล (Edit)">
-                                Edit
+                               title="แก้ไขข้อมูล">
+                                แก้ไข
                             </a>
                         }
                         else
                         {
                             <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                Edit
+                                แก้ไข
                             </button>
                         }
 
@@ -790,16 +897,16 @@ thead .sticky-col { z-index: 5; }
                                 <input type="hidden" name="id" value="@a.AssignId" />
                                 <button type="submit"
                                         class="btn btn-sm btn-outline-danger"
-                                        title="ลบข้อมูล (Delete)"
+                                        title="ลบการ์ด"
                                         onclick="return confirm('ยืนยันการลบ Assign นี้?');">
-                                    Delete
+                                    ลบการ์ด
                                 </button>
                             </form>
                         }
                         else
                         {
                             <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                Delete
+                                ลบการ์ด
                             </button>
                         }
 
@@ -808,14 +915,14 @@ thead .sticky-col { z-index: 5; }
                         {
                             <button type="button"
                                     class="btn btn-sm btn-success"
-                                    title="บันทึกผล: ผ่านงาน (PASS)"
+                                    title="บันทึกผล: ผ่าน"
                                     onclick="openLogModal(@a.AssignId, 'PASS')">
-                                PASS
+                                ผ่าน
                             </button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก PASS">PASS</button>
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกผ่าน">ผ่าน</button>
                         }
 
                         @* ===== REWORK ===== *@
@@ -823,14 +930,14 @@ thead .sticky-col { z-index: 5; }
                         {
                             <button type="button"
                                     class="btn btn-sm btn-warning"
-                                    title="บันทึกผล: แก้ไขใหม่ (REWORK)"
+                                    title="บันทึกผล: ปรับปรุง"
                                     onclick="openLogModal(@a.AssignId, 'REWORK')">
-                                REWORK
+                                ปรับปรุง
                             </button>
                         }
                         else
                         {
-                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึก REWORK">REWORK</button>
+                            <button class="btn btn-sm btn-secondary" disabled title="ไม่มีสิทธิ์บันทึกปรับปรุง">ปรับปรุง</button>
                         }
                     </div>
                 </aside>
@@ -858,7 +965,7 @@ else
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="logModalTitle">บันทึกผล (PASS / REWORK)</h5>
+        <h5 class="modal-title" id="logModalTitle">บันทึกผล (ผ่าน / ปรับปรุง)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
       </div>
       <div class="modal-body">
@@ -1051,7 +1158,7 @@ function openLogModal(assignId, status) {
     counter.textContent = '0 / 1000';
 
     const isPass = __logStatus === 'PASS';
-    title.textContent = isPass ? 'บันทึกผล PASS - ผ่านงาน' : 'บันทึกผล REWORK - แก้ไขใหม่';
+    title.textContent = isPass ? 'บันทึกผลผ่าน' : 'บันทึกผลปรับปรุง';
 
     submitButton.disabled = false;
     submitButton.textContent = 'บันทึก';

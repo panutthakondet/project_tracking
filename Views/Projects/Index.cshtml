@@ -40,6 +40,13 @@
         "DONE" => 3,
         _ => 4
     };
+    string ProjectStatusText(string? status) => NormalizeProjectStatus(status) switch
+    {
+        "PLAN" => "วางแผน",
+        "IN_PROGRESS" => "กำลังดำเนินการ",
+        "DONE" => "เสร็จสิ้น",
+        _ => string.IsNullOrWhiteSpace(status) ? "-" : status!
+    };
     var orderedProjects = projects
         .OrderBy(x => ProjectSortOrder(x.Status))
         .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
@@ -59,7 +66,7 @@
            asp-action="Index"
            class="btn btn-outline-info"
            title="ดูสถานะโครงการ">
-            Project Status
+            สถานะโครงการ
         </a>
 
         @if (CanMenu("ProjectIssues.Index"))
@@ -68,58 +75,58 @@
                asp-action="Index"
                class="btn btn-outline-danger"
                title="ดูปัญหาโครงการ">
-                Project Issues
+                ปัญหาโครงการ
             </a>
         }
         else
         {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Project Issues">
-                Project Issues
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูปัญหาโครงการ">
+                ปัญหาโครงการ
             </button>
         }
 
         @if (CanMenu("SupportOrders.Index"))
         {
             <a asp-controller="SupportOrders"
-               asp-action="Index"
-               class="btn btn-outline-warning"
-               title="ดูงาน Support Orders">
-                Support Orders
+           asp-action="Index"
+           class="btn btn-outline-warning"
+               title="ดูงาน Support">
+                งาน Support
             </a>
         }
         else
         {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Support Orders">
-                Support Orders
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูงาน Support">
+                งาน Support
             </button>
         }
 
         @if (CanMenu("TestScenarios.Index"))
         {
             <a asp-controller="TestScenarios"
-               asp-action="Index"
-               class="btn btn-outline-primary"
-               title="ดู Test Scenarios">
-                Test Scenarios
+           asp-action="Index"
+           class="btn btn-outline-primary"
+               title="ดูข้อมูลทดสอบ">
+                ข้อมูลทดสอบ
             </a>
         }
         else
         {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Test Scenarios">
-                Test Scenarios
+            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูข้อมูลทดสอบ">
+                ข้อมูลทดสอบ
             </button>
         }
 
         @if (CanMenu("Projects.Create"))
         {
             <a asp-action="Create" class="btn btn-primary" title="เพิ่มโครงการ">
-                Add Project
+                เพิ่มโครงการ
             </a>
         }
         else
         {
             <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มโครงการ">
-                Add Project
+                เพิ่มโครงการ
             </button>
         }
     </div>
@@ -176,12 +183,12 @@
                 </div>
 
                 <div class="project-filter-row">
-                    <label class="form-label fw-bold">📌 Status</label>
+                    <label class="form-label fw-bold">🔄 สถานะ</label>
                     <select id="statusFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
-                        <option value="PLAN">PLAN</option>
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="DONE">DONE</option>
+                        <option value="PLAN">วางแผน</option>
+                        <option value="IN_PROGRESS">กำลังดำเนินการ</option>
+                        <option value="DONE">เสร็จสิ้น</option>
                     </select>
                 </div>
             </div>
@@ -195,17 +202,17 @@
         <thead class="table-dark text-center">
             <tr>
                 <th class="sticky-col-1 col-id">#</th>
-                <th class="sticky-col-2 col-name">Project Name</th>
-                <th class="col-ba">Business Analyst</th>
-                <th class="col-system">System</th>
-                <th class="col-db">Database</th>
-                <th class="col-test">Test Account</th>
-                <th class="col-url">Remote / URL</th>
-                <th class="col-date">Start</th>
-                <th class="col-date">End</th>
-                <th class="col-status">Status</th>
+                <th class="sticky-col-2 col-name">ชื่อโครงการ</th>
+                <th class="col-ba">BA</th>
+                <th class="col-system">ระบบ</th>
+                <th class="col-db">ฐานข้อมูล</th>
+                <th class="col-test">ทะเบียนทดสอบ</th>
+                <th class="col-url">รีโมท / URL</th>
+                <th class="col-date">วันที่เริ่ม</th>
+                <th class="col-date">วันที่สิ้นสุด</th>
+                <th class="col-status">สถานะ</th>
                 <th class="col-mini">Figma</th>
-                <th class="col-action">Action</th>
+                <th class="col-action">จัดการ</th>
             </tr>
         </thead>
 
@@ -213,7 +220,7 @@
         @if (!orderedProjects.Any())
         {
             <tr>
-                <td colspan="12" class="text-center text-muted">— No project data —</td>
+                <td colspan="12" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
             </tr>
         }
         else
@@ -231,16 +238,19 @@
                     data-status="@((p.Status ?? "").ToLower())">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
-                    <td class="sticky-col-2 col-name fw-semibold">
-                        @projectDisplayName
+                    <td class="sticky-col-2 col-name">
+                        <div class="project-name-stack">
+                            <div class="project-coop-name">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</div>
+                            <div class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</div>
+                        </div>
                     </td>
 
                     <td class="col-ba text-center">
                         @if (p.BA != null)
                         {
-                            <span class="pt-owner-chip is-compact justify-content-center">
+                            <span class="project-person is-table">
                                 <img class="pt-owner-avatar" src="@ProfileImage(p.BA)" alt="@p.BA.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                <span>@p.BA.EmpName</span>
+                                <span><strong>BA:</strong> @p.BA.EmpName</span>
                             </span>
                         }
                         else
@@ -292,7 +302,7 @@
                                 : p.Status == "IN_PROGRESS"
                                     ? "bg-info"
                                     : "bg-warning text-dark")">
-                            @p.Status
+                            @ProjectStatusText(p.Status)
                         </span>
                     </td>
 
@@ -335,7 +345,7 @@
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Project Issues">🐞</button>
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูปัญหาโครงการ">🐞</button>
                             }
                             @if (CanMenu("SupportOrders.Index"))
                             {
@@ -343,11 +353,11 @@
                                    asp-action="Index"
                                    asp-route-projectId="@p.ProjectId"
                                    class="btn btn-sm btn-outline-warning"
-                                   title="ดู Support Orders">🛠</a>
+                                   title="ดูงาน Support">🛠</a>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Support Orders">🛠</button>
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูงาน Support">🛠</button>
                             }
                             @if (CanMenu("TestScenarios.Index"))
                             {
@@ -355,11 +365,11 @@
                                    asp-action="Index"
                                    asp-route-projectId="@p.ProjectId"
                                    class="btn btn-sm btn-outline-primary"
-                                   title="ดู Test Scenarios">🧪</a>
+                                   title="ดูข้อมูลทดสอบ">🧪</a>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดู Test Scenarios">🧪</button>
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูข้อมูลทดสอบ">🧪</button>
                             }
                             @if (CanMenu("Projects.Delete"))
                             {
@@ -411,14 +421,21 @@
                 <div class="project-card-header">
                     <div class="project-header-content">
                         <div class="project-card-topline">
-                            <span class="pt-owner-chip">
-                                <img class="pt-owner-avatar"
-                                     src="@ProfileImage(p.BA)"
-                                     alt="@(p.BA?.EmpName ?? "Business Analyst")"
-                                     loading="lazy"
-                                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                <span class="pt-owner-meta">
-                                    <span class="pt-owner-name">@(p.BA?.EmpName ?? "-")</span>
+                            <span class="project-row-number">@mobileRow</span>
+                        </div>
+
+                        <div class="project-title-row">
+                            <div class="project-title-stack">
+                                <div class="project-title-line">
+                                    <span class="project-title-label">สหกรณ์:</span>
+                                    <span class="project-coop-name">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</span>
+                                </div>
+                                <div class="project-title-line">
+                                    <span class="project-title-label">โครงการ:</span>
+                                    <span class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</span>
+                                </div>
+                                <div class="project-title-line project-status-line">
+                                    <span class="project-title-label">สถานะ:</span>
                                     <span class="project-status">
                                         <span class="badge rounded-pill px-3 py-2
                                             @(p.Status == "DONE"
@@ -426,18 +443,9 @@
                                                 : p.Status == "IN_PROGRESS"
                                                     ? "bg-info"
                                                     : "bg-warning text-dark")">
-                                            @p.Status
+                                            @ProjectStatusText(p.Status)
                                         </span>
                                     </span>
-                                </span>
-                            </span>
-                        </div>
-
-                        <div class="project-title-row">
-                            <span class="project-row-number">@mobileRow</span>
-                            <div class="project-title-stack">
-                                <div class="project-name">
-                                    @projectDisplayName
                                 </div>
                             </div>
                         </div>
@@ -446,7 +454,7 @@
 
                 <div class="project-info">
                     <div class="project-info-row project-system-row">
-                        <span class="project-label">System</span>
+                        <span class="project-label">ระบบ</span>
 
                         <span class="project-system-value">
                             @if (!string.IsNullOrEmpty(p.LinkName))
@@ -477,23 +485,23 @@
                         </span>
                     </div>
 
-                    <div class="project-info-row">
-                        <span class="project-label">Database</span>
-                        <span>@(p.DatabaseName ?? "-")</span>
+                    <div class="project-info-row project-db-row">
+                        <span class="project-label">ฐานข้อมูล</span>
+                        <span class="project-value">@(p.DatabaseName ?? "-")</span>
                     </div>
 
-                    <div class="project-info-row">
-                        <span class="project-label">Test</span>
-                        <span class="text-break text-end">
+                    <div class="project-info-row project-test-row">
+                        <span class="project-label">ทะเบียนทดสอบ</span>
+                        <span class="project-value text-break">
                             @(string.IsNullOrWhiteSpace(p.TestAccount)
                                 ? "-"
                                 : p.TestAccount)
                         </span>
                     </div>
 
-                    <div class="project-info-row">
-                        <span class="project-label">Remote</span>
-                        <span class="text-break text-end">
+                    <div class="project-info-row project-remote-row">
+                        <span class="project-label">รีโมท</span>
+                        <span class="project-value text-break">
                             @(string.IsNullOrWhiteSpace(p.RemoteUrl)
                                 ? "-"
                                 : p.RemoteUrl)
@@ -502,14 +510,25 @@
 
                     <div class="project-info-row project-date-row">
                         <div class="project-date-item">
-                            <span class="project-date-label">Start</span>
+                            <span class="project-date-label">วันที่เริ่ม</span>
                             <span class="project-date-value">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                         </div>
                         <div class="project-date-item">
-                            <span class="project-date-label">End</span>
+                            <span class="project-date-label">วันที่สิ้นสุด</span>
                             <span class="project-date-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="project-people">
+                    <span class="project-person">
+                        <img class="pt-owner-avatar"
+                             src="@ProfileImage(p.BA)"
+                             alt="@(p.BA?.EmpName ?? "Business Analyst")"
+                             loading="lazy"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        <span><strong>BA:</strong> @(p.BA?.EmpName ?? "-")</span>
+                    </span>
                 </div>
 
                 <div class="project-actions">
@@ -668,6 +687,63 @@
     border-radius: 14px;
     font-weight: 700;
 }
+
+.project-people {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px 18px;
+    margin: 8px 0 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #0f172a;
+    font-size: .88rem;
+    font-weight: 400;
+}
+
+.project-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: #0f172a;
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+.project-person img {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border: 1px solid #dbe6f3;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+}
+
+.project-person span {
+    overflow-wrap: anywhere;
+}
+
+.project-person strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.project-person.is-table {
+    justify-content: flex-start;
+    max-width: 100%;
+    text-align: left;
+}
+
+.project-person.is-table img {
+    width: 36px;
+    height: 36px;
+}
+
 #coopFilterDropdown,
 #projectFilterDropdown,
 #baFilterDropdown,
@@ -690,7 +766,7 @@
 /* Project name column wider */
 .col-name{ width:320px; min-width:320px; }
 
-.col-ba{ width:140px; min-width:140px; }
+.col-ba{ width:190px; min-width:190px; }
 
 .col-system{ width:120px; min-width:120px; }
 .col-db{ width:120px; min-width:120px; }
@@ -756,33 +832,35 @@ thead .sticky-col-2{
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 10px 28px;
+    gap: 4px 16px;
 }
 
 .project-date-item {
     min-width: 0;
     display: inline-flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 4px;
 }
 
 .project-date-label {
-    color: #64748b;
-    font-size: .9rem;
-    font-weight: 800;
+    color: #0f172a;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: none;
 }
 
 .project-date-value {
     color: #0f172a;
-    font-weight: 800;
+    font-size: .88rem;
+    font-weight: 400;
+    line-height: 1.35;
     white-space: nowrap;
 }
 
 .project-title-row {
-    display:grid;
-    grid-template-columns:34px minmax(0, 1fr);
-    align-items:start;
-    gap:10px;
+    display: block;
+    min-width: 0;
 }
 
 .project-row-number {
@@ -794,7 +872,7 @@ thead .sticky-col-2{
     color:#10233f;
     background:#eaf3ff;
     border:1px solid #cfe2f6;
-    font-size:.92rem;
+    font-size:.86rem;
     font-weight:800;
     line-height:1;
 }
@@ -803,21 +881,73 @@ thead .sticky-col-2{
     min-width:0;
     display:flex;
     flex-direction:column;
-    gap:6px;
+    gap:5px;
 }
 
-.project-name {
+.project-title-line {
+    min-width: 0;
+    display: block;
+    color: #0f172a;
+    font-size: .92rem;
+    line-height: 1.42;
+    overflow-wrap: anywhere;
+}
+
+.project-title-label {
+    color: #0f172a;
+    font-weight: 900;
+}
+
+.project-name-stack {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.project-coop-name {
     color:#0f172a;
-    font-size:1.08rem;
-    font-weight:700;
-    line-height:1.35;
+    font-size:.92rem;
+    font-weight:400;
+    line-height:inherit;
+    overflow-wrap:anywhere;
+}
+
+.project-project-name {
+    color:#0f172a;
+    font-size:.92rem;
+    font-weight:400;
+    line-height:inherit;
     overflow-wrap:anywhere;
 }
 
 .project-status {
-    display:flex;
+    display:inline-flex;
     align-items:center;
     margin-top:0;
+    vertical-align:middle;
+}
+
+.project-status .badge {
+    font-size: .82rem !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    padding: 0 !important;
+}
+
+main.route-controller-projects .project-card .project-status .badge {
+    display: inline !important;
+    font-size: .82rem !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.project-status-line {
+    line-height: 1.2;
 }
 
 .pt-owner-meta {
@@ -850,7 +980,7 @@ thead .sticky-col-2{
     .project-card-topline {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 12px;
         min-width: 0;
         margin-bottom: 10px;
@@ -861,86 +991,21 @@ thead .sticky-col-2{
         flex: 1 1 auto;
     }
 
-    .project-name {
-        font-size: 1.08rem;
-        font-weight: 700;
+    .project-coop-name {
+        font-size: .9rem;
+        font-weight: 400;
+        line-height: 1.45;
+        color: #0f172a;
+    }
+
+    .project-project-name {
+        font-size: .9rem;
         line-height: 1.45;
         color: #0f172a;
     }
 
     .project-status {
         margin-top: 0;
-    }
-
-    .project-info {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 10px;
-    }
-
-    .project-info-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 14px;
-        font-size: .94rem;
-        padding: 10px 14px;
-        background: #f8fafc;
-        border-radius: 14px;
-        border: 1px solid #e5e7eb;
-        word-break: break-word;
-    }
-
-    .project-system-row {
-        align-items: flex-start;
-    }
-
-    .project-system-value {
-        flex: 1 1 auto;
-        min-width: 0;
-        color: #0f172a;
-        text-align: left;
-        line-height: 1.55;
-        word-break: normal;
-        overflow-wrap: break-word;
-    }
-
-    .project-system-value a {
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .project-date-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        align-items: stretch;
-    }
-
-    .project-date-item {
-        min-width: 0;
-        display: grid;
-        gap: 2px;
-    }
-
-    .project-date-label {
-        color: #64748b;
-        font-size: .78rem;
-        font-weight: 800;
-    }
-
-    .project-date-value {
-        color: #0f172a;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .project-label {
-        color: #64748b;
-        min-width: 80px;
-        font-weight: 700;
-        font-size: .82rem;
     }
 
     .project-mobile-cards .project-actions {
@@ -1010,12 +1075,92 @@ thead .sticky-col-2{
     box-shadow: 0 4px 12px rgba(15,23,42,.06);
 }
 
+.project-card-header {
+    margin-bottom: 8px;
+}
+
+.project-card-topline {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 12px;
+}
+
+.project-title-row {
+    display: block;
+    min-width: 0;
+}
+
+.project-row-number {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: .88rem;
+    font-weight: 700;
+}
+
+.project-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.project-info-row {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.project-system-value,
+.project-value {
+    min-width: 0;
+    color: #0f172a;
+    font-size: .88rem;
+    font-weight: 400;
+    line-height: 1.38;
+    text-align: left !important;
+    overflow-wrap: anywhere;
+}
+
+.project-system-value a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.project-label {
+    display: inline-flex;
+    min-width: 0;
+    color: #0f172a;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.38;
+    text-transform: none;
+}
+
+.project-label::after,
+.project-date-label::after {
+    content: ":";
+}
+
+.project-date-row {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
 .project-card:hover {
     transform: translateY(-2px);
     border-color: #3b82f6;
     box-shadow: 0 12px 24px rgba(15,23,42,.12);
 }
-
 
 </style>
 
@@ -1048,6 +1193,7 @@ window.applyProjectFilter = function () {
     localStorage.setItem("projects.selectedStatus", selectedStatus);
 
     // mobile cards (หน้าที่ใช้งานจริง)
+    let visibleCardNo = 1;
     document.querySelectorAll(".project-card").forEach(card => {
 
         const projectName = (
@@ -1081,9 +1227,15 @@ window.applyProjectFilter = function () {
         const visible = matchCoop && matchProject && matchBa && matchStatus;
 
         card.style.display = visible ? "block" : "none";
+
+        if (visible) {
+            const numberEl = card.querySelector(".project-row-number");
+            if (numberEl) numberEl.textContent = String(visibleCardNo++);
+        }
     });
 
     // desktop table (กันไว้)
+    let visibleRowNo = 1;
     document.querySelectorAll("#projectTable tbody tr").forEach(row => {
 
         const projectName = (
@@ -1117,6 +1269,11 @@ window.applyProjectFilter = function () {
         const visible = matchCoop && matchProject && matchBa && matchStatus;
 
         row.style.display = visible ? "table-row" : "none";
+
+        if (visible) {
+            const numberCell = row.querySelector(".col-id");
+            if (numberCell) numberCell.textContent = String(visibleRowNo++);
+        }
     });
 };
 

@@ -190,65 +190,120 @@
         font-weight: 900;
     }
 
-    .phase-period {
-        color: #334155;
-        font-size: .9rem;
-        font-weight: 400;
+    .phase-sequence {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
     }
 
     .phase-name-row {
-        color: #10233f;
-        font-size: 18px;
-        font-weight: 900;
-        line-height: 1.35;
+        display: block;
+        color: #0f172a;
+        font-size: .93rem;
+        line-height: 1.38;
         overflow-wrap: anywhere;
     }
 
-    .phase-detail {
+    .phase-name-label {
+        color: #0f172a;
+        font-weight: 900;
+    }
+
+    .phase-name-value {
+        display: inline;
         color: #0f172a;
         font-weight: 400;
-        line-height: 1.55;
-        margin-top: 12px;
         overflow-wrap: anywhere;
     }
 
-    .phase-meta {
+    .phase-period {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 0;
+        padding: 0;
+        color: #0f172a;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        font-size: .9rem;
+        font-weight: 400;
+        line-height: 1.35;
+    }
+
+    .phase-period strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .phase-info-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 12px;
+        gap: 4px 16px;
         margin-top: 14px;
     }
 
-    .phase-meta-pill {
+    .phase-info-box {
+        min-width: 0;
         display: inline-flex;
-        align-items: center;
-        min-height: 30px;
-        padding: 6px 10px;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px;
+        padding: 0;
         color: #0f172a;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        font-size: 13px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        overflow-wrap: anywhere;
+    }
+
+    .phase-info-label {
+        color: #0f172a;
+        font-size: .92rem;
+        font-weight: 700;
+        line-height: 1.35;
+        text-transform: none;
+    }
+
+    .phase-info-label::after,
+    .phase-status-row small::after {
+        content: ":";
+    }
+
+    .phase-info-value {
+        color: #0f172a;
+        font-size: .92rem;
         font-weight: 400;
+        line-height: 1.35;
     }
 
     .phase-status-grid {
-        display: grid;
-        gap: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 10px;
     }
 
     .phase-status-row {
-        display: grid;
-        grid-template-columns: 86px minmax(0, 1fr);
+        min-width: 0;
+        display: inline-flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
     }
 
     .phase-status-row small {
-        color: #334155;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
+        color: #0f172a;
+        font-size: .92rem;
+        font-weight: 700;
+        line-height: 1.35;
+        text-transform: none;
     }
 
     .phase-status-row .badge {
@@ -308,14 +363,20 @@
 
     .phase-selected-ba {
         margin-top: 12px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: 0;
         display: inline-flex;
         align-items: center;
         gap: 10px;
         max-width: 100%;
+    }
+
+    .phase-selected-ba .pt-owner-chip {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
     }
 
     .phase-selected-ba-label {
@@ -344,6 +405,7 @@
             flex-wrap: nowrap;
             justify-content: flex-start;
         }
+
     }
 
     @@media (max-width: 575.98px) {
@@ -372,7 +434,7 @@
                asp-action="Index"
                class="btn btn-outline-secondary"
                title="กลับไปหน้ารายการโครงการ">
-                Projects
+                โครงการ
             </a>
 
             <button id="RequirementCardDetailButton"
@@ -381,7 +443,7 @@
                     data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
                     data-project-field-id="hiddenProjectSelect"
                     title="เปิดดูรายละเอียด Project Board">
-                🔎 Project Board
+                รายละเอียด Project Board
             </button>
 
             @if (CanMenu("ProjectPhases.Create"))
@@ -390,7 +452,7 @@
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-primary"
                    title="เพิ่มส่วนงาน">
-                    Add Phases
+                    เพิ่มส่วนงาน
                 </a>
 
                 @if (selectedProject.RequirementCardId != null)
@@ -404,21 +466,21 @@
                         <button type="submit"
                                 class="btn btn-outline-success"
                                 title="ดึงข้อมูลส่วนงาน/งวดงานจาก Project Board Card">
-                            Import Project Board
+                            นำเข้า Project Board
                         </button>
                     </form>
                 }
                 else
                 {
-                    <button class="btn btn-outline-secondary" disabled title="Project นี้ยังไม่ได้ผูก Project Board Card">
-                        Import Project Board
+                    <button class="btn btn-outline-secondary" disabled title="โครงการนี้ยังไม่ได้ผูก Project Board Card">
+                        นำเข้า Project Board
                     </button>
                 }
             }
             else
             {
                 <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มส่วนงาน">
-                    Add Section
+                    เพิ่มส่วนงาน
                 </button>
             }
 
@@ -428,14 +490,14 @@
                    asp-action="Index"
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-outline-info"
-                   title="จัดการ Assign">
-                    Assign
+                   title="มอบงาน">
+                    มอบงาน
                 </a>
             }
             else
             {
-                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เข้าหน้า Assign">
-                    Assign
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์มอบงาน">
+                    มอบงาน
                 </button>
             }
         </div>
@@ -518,9 +580,9 @@
                     <th style="width:90px;">ส่วนที่</th>
                     <th style="width:90px;">งวดที่</th>
                     <th style="min-width:260px;">ชื่อส่วนงาน</th>
-                    <th style="width:280px;">Plan Date</th>
-                    <th style="width:180px;">กำหนดส่งงวดงาน</th>
-                    <th style="width:160px;">Status</th>
+                    <th style="width:280px;">กำหนดวันที่</th>
+                    <th style="width:180px;">กำหนดส่งวันที่</th>
+                    <th style="width:160px;">สถานะงาน</th>
                     <th style="width:320px;">Action</th>
                 </tr>
             </thead>
@@ -596,13 +658,13 @@
                                    asp-route-id="@phase.PhaseId"
                                    class="btn btn-sm btn-outline-primary me-1"
                                    title="แก้ไขส่วนงาน">
-                                    ✏️ Edit
+                                    แก้ไข
                                 </a>
                             }
                             else
                             {
                                 <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                    ✏️ Edit
+                                    แก้ไข
                                 </button>
                             }
 
@@ -613,14 +675,14 @@
                                    asp-route-projectId="@selectedProject.ProjectId"
                                    asp-route-phaseId="@phase.PhaseId"
                                    class="btn btn-sm btn-outline-info me-1"
-                                   title="จัดการ Assign">
-                                    👥 Assign
+                                   title="มอบงาน">
+                                    มอบงาน
                                 </a>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์เข้าหน้า Assign">
-                                    👥 Assign
+                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์มอบงาน">
+                                    มอบงาน
                                 </button>
                             }
 
@@ -638,14 +700,14 @@
                                             class="btn btn-sm btn-outline-danger"
                                             title="ลบส่วนงาน"
                                             onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
-                                        🗑 Delete
+                                        ลบการ์ด
                                     </button>
                                 </form>
                             }
                             else
                             {
                                 <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                    🗑 Delete
+                                    ลบการ์ด
                                 </button>
                             }
                         </td>
@@ -685,34 +747,40 @@ else
                     </div>
 
                     <div class="min-w-0 flex-grow-1">
-                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <div class="phase-sequence">
                             <span class="phase-no">#@displayNo</span>
-                            <span class="phase-period">ส่วนที่ @phase.PhaseOrder</span>
-                            <span class="phase-period">งวดที่ @phase.PeriodOrder</span>
+                            <span class="phase-period"><strong>ส่วนที่</strong> @phase.PhaseOrder</span>
+                            <span class="phase-period"><strong>งวดที่</strong> @phase.PeriodOrder</span>
                         </div>
 
-                        <div class="phase-name-row">@phase.PhaseName</div>
                     </div>
                 </div>
 
-                <div class="phase-detail">
-                    แผนงาน ส่วนงาน และงวดงานของโครงการที่เลือก
+                <div class="phase-name-row">
+                    <span class="phase-name-label">ชื่องวดงาน:</span>
+                    <span class="phase-name-value">@phase.PhaseName</span>
                 </div>
 
-                <div class="phase-meta">
-                    <span class="phase-meta-pill">Plan Date: @DateRange(phase.PlanStart, phase.PlanEnd)</span>
-                    <span class="phase-meta-pill">กำหนดส่งงวดงาน: @(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                <div class="phase-info-grid">
+                    <div class="phase-info-box">
+                        <span class="phase-info-label">กำหนดวันที่</span>
+                        <span class="phase-info-value">@DateRange(phase.PlanStart, phase.PlanEnd)</span>
+                    </div>
+                    <div class="phase-info-box">
+                        <span class="phase-info-label">กำหนดส่งวันที่</span>
+                        <span class="phase-info-value">@(phase.PeriodEndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                    </div>
                 </div>
 
                 <div class="phase-status-grid">
                     <div class="phase-status-row">
-                        <small>Type</small>
+                        <small>ประเภท</small>
                         <span class="badge @(phase.PhaseType == "SUPPORT" ? "bg-warning text-dark" : "bg-info text-dark")">
                             @PhaseTypeText(phase.PhaseType)
                         </span>
                     </div>
                     <div class="phase-status-row">
-                        <small>Status</small>
+                        <small>สถานะงาน</small>
                         <span class="badge @PhaseStatusClass(status)">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
                     </div>
                 </div>
@@ -725,13 +793,13 @@ else
                         <a asp-action="Edit"
                            asp-route-id="@phase.PhaseId"
                            class="btn btn-outline-primary btn-sm">
-                            Edit
+                            แก้ไข
                         </a>
                     }
                     else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
-                            Edit
+                            แก้ไข
                         </button>
                     }
 
@@ -742,14 +810,14 @@ else
                            asp-route-projectId="@selectedProject.ProjectId"
                            asp-route-phaseId="@phase.PhaseId"
                            class="btn btn-outline-success btn-sm"
-                           title="เพิ่ม Assign ให้ส่วนงานนี้">
-                            Add Assigns
+                           title="มอบงาน">
+                            มอบงาน
                         </a>
                     }
                     else
                     {
-                        <button class="btn btn-outline-secondary btn-sm" disabled title="ไม่มีสิทธิ์เพิ่ม Assign">
-                            Add Assigns
+                        <button class="btn btn-outline-secondary btn-sm" disabled title="ไม่มีสิทธิ์มอบงาน">
+                            มอบงาน
                         </button>
                     }
 
@@ -766,14 +834,14 @@ else
                             <button type="submit"
                                     class="btn btn-outline-danger btn-sm"
                                     onclick="return confirm('ยืนยันการลบส่วนงานนี้?');">
-                                Delete
+                                ลบการ์ด
                             </button>
                         </form>
                     }
                     else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
-                            Delete
+                            ลบการ์ด
                         </button>
                     }
                 </div>

@@ -49,7 +49,7 @@
                         class="btn btn-outline-primary project-board-card-detail"
                         data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
                         data-project-field-id="ProjectId">
-                    🔎 ดูรายละเอียด Project Board
+                    ดูรายละเอียด Project Board
                 </button>
             </div>
 
@@ -58,13 +58,13 @@
                 <!-- ================= EMPLOYEE ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        👤 Employee
+                        ผู้รับผิดชอบ
                     </label>
                     <select asp-for="EmpId"
                             asp-items="ViewBag.Employees"
                             class="form-select"
                             required>
-                        <option value="">-- Select Employee --</option>
+                        <option value="">-- เลือกผู้รับผิดชอบ --</option>
                     </select>
                     <span asp-validation-for="EmpId"
                           class="text-danger"></span>
@@ -73,13 +73,13 @@
                 <!-- ================= SECTION / PERIOD ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        🧩 ส่วนงาน / งวดงาน
+                        ส่วนงาน / งวดงาน
                     </label>
                     <select asp-for="PhaseId"
                             asp-items="ViewBag.Phases"
                             class="form-select"
                             required>
-                        <option value="">-- Select Section / Period --</option>
+                        <option value="">-- เลือกส่วนงาน / งวดงาน --</option>
                     </select>
                     <span asp-validation-for="PhaseId" class="text-danger"></span>
                 </div>
@@ -87,22 +87,22 @@
                 <!-- ================= ROLE ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        🎯 Role
+                        งานที่รับผิดชอบ
                     </label>
                     <input asp-for="Role"
                            type="text"
                            class="form-control"
-                           placeholder="Role / หน้าที่" />
+                           placeholder="ระบุงานที่รับผิดชอบ" />
                     <span asp-validation-for="Role" class="text-danger"></span>
                     <small class="text-muted">
-                        * Role จะเปลี่ยนตามชื่อส่วนงานอัตโนมัติ (ถ้ายังไม่ได้แก้เอง) และสามารถแก้ไขเองได้
+                        * งานที่รับผิดชอบจะเปลี่ยนตามชื่อส่วนงานอัตโนมัติ ถ้ายังไม่ได้แก้เอง และสามารถแก้ไขเองได้
                     </small>
                 </div>
 
                 <!-- ================= PLAN START ================= -->
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">
-                        📅 Plan Start
+                        กำหนดวันที่เริ่ม
                     </label>
                     <input asp-for="PlanStart"
                            type="text"
@@ -115,7 +115,7 @@
                 <!-- ================= PLAN END ================= -->
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">
-                        📅 Plan End
+                        กำหนดวันที่สิ้นสุด
                     </label>
                     <input asp-for="PlanEnd"
                            type="text"
@@ -128,15 +128,15 @@
                 <!-- ================= WORK STATUS ================= -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        📌 Status
+                        สถานะงาน
                     </label>
                     <select asp-for="WorkStatus"
                             class="form-select">
                         <option value="IN_PROGRESS">
-                            🟡 กำลังดำเนินการ
+                            กำลังดำเนินการ
                         </option>
                         <option value="DONE">
-                            ✅ เสร็จสิ้น
+                            เสร็จสิ้น
                         </option>
                     </select>
                 </div>
@@ -144,7 +144,7 @@
                 <!-- ================= REMARK ================= -->
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">
-                        📝 Remark
+                        หมายเหตุ
                     </label>
                     <textarea asp-for="Remark"
                               class="form-control"
@@ -159,13 +159,13 @@
             <div class="pt-form-actions">
                 <button type="submit"
                         class="btn btn-primary">
-                    💾 Save Changes
+                    บันทึกการแก้ไข
                 </button>
 
                 <a asp-action="Index"
                    asp-route-projectId="@ViewBag.ProjectId"
                    class="btn btn-outline-secondary">
-                    ↩ Back
+                    กลับ
                 </a>
             </div>
 

@@ -84,7 +84,7 @@
     .support-eyebrow {
         color: rgba(216, 230, 247, .86);
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 900 !important;
         letter-spacing: .08em;
         text-transform: uppercase;
         margin-bottom: 4px;
@@ -94,7 +94,7 @@
         margin: 0;
         color: #fff;
         font-size: clamp(24px, 3vw, 34px);
-        font-weight: 900;
+        font-weight: 900 !important;
         line-height: 1.22;
         overflow-wrap: anywhere;
     }
@@ -118,15 +118,18 @@
     }
 
     .support-detail-actions .btn {
-        min-width: 136px;
+        min-width: max-content;
+        max-width: 100%;
         min-height: 42px;
         border-radius: 999px !important;
         font-size: .95rem;
         font-weight: 900;
-        padding: .58rem 1.1rem;
+        line-height: 1.25;
+        padding: .58rem 1.35rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        text-align: center;
         white-space: nowrap;
         box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
     }
@@ -170,15 +173,16 @@
     .support-summary-card small {
         display: block;
         margin-bottom: 6px;
-        color: #64748b;
+        color: #000;
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 900 !important;
         text-transform: uppercase;
     }
 
     .support-summary-card b {
-        color: #10233f;
+        color: #000;
         font-size: 16px;
+        font-weight: 400;
         line-height: 1.35;
         word-break: break-word;
     }
@@ -193,6 +197,7 @@
     .support-bottom-stack {
         display: grid;
         gap: 16px;
+        margin-bottom: 18px;
     }
 
     .support-panel {
@@ -201,44 +206,43 @@
 
     .support-panel h3 {
         margin: 0 0 12px;
-        color: #10233f;
+        color: #000;
         font-size: 18px;
         font-weight: 900;
     }
 
-    .support-info-grid {
+    .support-info-block {
         display: grid;
-        gap: 12px;
-    }
-
-    .support-info-row {
-        display: grid;
-        grid-template-columns: 130px minmax(0, 1fr);
-        gap: 12px;
-        align-items: start;
-        padding: 12px 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 18px;
+        padding: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
         background: #f8fafc;
     }
 
-    .support-info-label {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
+    .support-info-line {
+        min-width: 0;
+        color: #000;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
     }
 
-    .support-info-value {
-        color: #10233f;
-        font-weight: 900;
-        line-height: 1.45;
-        word-break: break-word;
+    .support-info-line span {
+        display: inline-block;
+        margin-right: 6px;
+        color: #000;
+        font-size: inherit;
+        font-weight: 700;
+        line-height: inherit;
+        text-transform: uppercase;
     }
 
     .support-text-box {
         min-height: 150px;
-        color: #24364d;
+        color: #000;
         font-weight: 400;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -305,23 +309,24 @@
     .support-empty {
         border: 1px dashed #cbd5e1;
         border-radius: 14px;
-        color: #64748b;
+        color: #000;
         background: #f8fafc;
         padding: 18px;
         text-align: center;
-        font-weight: 800;
+        font-weight: 400;
     }
 
     .status-text {
-        font-weight: 900;
+        color: #000;
+        font-weight: 400;
         white-space: nowrap;
     }
 
-    .status-text.success { color: #0f8f5f; }
-    .status-text.warning { color: #b7790b; }
-    .status-text.info { color: #0f6fa8; }
-    .status-text.danger { color: #d6294f; }
-    .status-text.muted { color: #64748b; }
+    .status-text.success,
+    .status-text.warning,
+    .status-text.info,
+    .status-text.danger,
+    .status-text.muted { color: #000; }
 
     @@media (max-width: 991.98px) {
         .support-detail-hero-top,
@@ -337,16 +342,21 @@
         .support-summary-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+
+        .support-info-block {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (max-width: 575.98px) {
-        .support-summary-grid,
-        .support-info-row {
+        .support-summary-grid {
             grid-template-columns: 1fr;
         }
 
         .support-detail-actions .btn {
+            min-width: 0;
             width: 100%;
+            white-space: normal;
         }
     }
 </style>
@@ -403,6 +413,30 @@
         </div>
     </section>
 
+    <section class="support-bottom-stack">
+        <article class="support-panel">
+            <h3>ข้อมูล Support</h3>
+            <div class="support-info-block">
+                <div class="support-info-line"><span>Project:</span>@TextOrDash(Model.Project?.ProjectDisplayName)</div>
+                <div class="support-info-line"><span>Title:</span>@TextOrDash(Model.OrderTitle)</div>
+                <div class="support-info-line">
+                    <span>Assign To:</span>@(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")
+                </div>
+                <div class="support-info-line"><span>Created:</span>@DateText(Model.CreatedAt)</div>
+            </div>
+        </article>
+
+        <article class="support-panel">
+            <h3>รายละเอียดงาน</h3>
+            <div class="support-text-box">@TextOrDash(Model.OrderDetail)</div>
+        </article>
+
+        <article class="support-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="support-text-box">@TextOrDash(Model.DevDetail)</div>
+        </article>
+    </section>
+
     <section class="support-content-grid">
         <article class="support-panel">
             <div class="support-gallery-head">
@@ -456,42 +490,6 @@
             {
                 <div class="support-empty">ไม่มีรูปหลังแก้</div>
             }
-        </article>
-    </section>
-
-    <section class="support-bottom-stack">
-        <article class="support-panel">
-            <h3>ข้อมูล Support</h3>
-            <div class="support-info-grid">
-                <div class="support-info-row">
-                    <div class="support-info-label">Project</div>
-                    <div class="support-info-value">@TextOrDash(Model.Project?.ProjectDisplayName)</div>
-                </div>
-                <div class="support-info-row">
-                    <div class="support-info-label">Title</div>
-                    <div class="support-info-value">@TextOrDash(Model.OrderTitle)</div>
-                </div>
-                <div class="support-info-row">
-                    <div class="support-info-label">Assign To</div>
-                    <div class="support-info-value">
-                        @(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")
-                    </div>
-                </div>
-                <div class="support-info-row">
-                    <div class="support-info-label">Created</div>
-                    <div class="support-info-value">@DateText(Model.CreatedAt)</div>
-                </div>
-            </div>
-        </article>
-
-        <article class="support-panel">
-            <h3>รายละเอียดงาน</h3>
-            <div class="support-text-box">@TextOrDash(Model.OrderDetail)</div>
-        </article>
-
-        <article class="support-panel">
-            <h3>รายละเอียดการแก้ไข</h3>
-            <div class="support-text-box">@TextOrDash(Model.DevDetail)</div>
         </article>
     </section>
 </div>

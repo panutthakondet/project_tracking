@@ -54,7 +54,7 @@
     .issue-eyebrow {
         color: rgba(216, 230, 247, .86);
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 900 !important;
         letter-spacing: .08em;
         text-transform: uppercase;
         margin-bottom: 4px;
@@ -62,7 +62,7 @@
 
     .issue-title {
         font-size: clamp(24px, 3vw, 34px);
-        font-weight: 900;
+        font-weight: 900 !important;
         line-height: 1.22;
         margin: 0;
         overflow-wrap: anywhere;
@@ -79,15 +79,18 @@
     }
 
     .issue-hero-actions .btn {
-        min-width: 136px;
+        min-width: max-content;
+        max-width: 100%;
         min-height: 42px;
         border-radius: 999px !important;
         font-size: .95rem;
         font-weight: 900;
-        padding: .58rem 1.1rem;
+        line-height: 1.25;
+        padding: .58rem 1.35rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        text-align: center;
         white-space: nowrap;
         box-shadow: 0 8px 18px rgba(20, 184, 166, .14);
     }
@@ -130,16 +133,17 @@
 
     .issue-summary-card small {
         display: block;
-        color: #64748b;
+        color: #000;
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 900 !important;
         text-transform: uppercase;
         margin-bottom: 6px;
     }
 
     .issue-summary-card b {
-        color: #10233f;
+        color: #000;
         font-size: 16px;
+        font-weight: 400;
         line-height: 1.35;
         word-break: break-word;
     }
@@ -158,36 +162,36 @@
     .issue-detail-bottom {
         display: grid;
         gap: 16px;
+        margin-bottom: 18px;
     }
 
-    .issue-info-grid {
+    .issue-info-block {
         display: grid;
-        gap: 12px;
-    }
-
-    .issue-info-row {
-        display: grid;
-        grid-template-columns: 130px minmax(0, 1fr);
-        gap: 12px;
-        align-items: start;
-        padding: 12px 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 18px;
+        padding: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
         background: #f8fafc;
     }
 
-    .issue-info-label {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
+    .issue-info-line {
+        min-width: 0;
+        color: #000;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
     }
 
-    .issue-info-value {
-        color: #10233f;
-        font-weight: 900;
-        line-height: 1.45;
-        word-break: break-word;
+    .issue-info-line span {
+        display: inline-block;
+        margin-right: 6px;
+        color: #000;
+        font-size: inherit;
+        font-weight: 700;
+        line-height: inherit;
+        text-transform: uppercase;
     }
 
     .issue-panel {
@@ -195,7 +199,7 @@
     }
 
     .issue-panel h3 {
-        color: #10233f;
+        color: #000;
         font-size: 18px;
         font-weight: 900;
         margin: 0 0 12px;
@@ -203,7 +207,8 @@
 
     .issue-text-box {
         min-height: 150px;
-        color: #24364d;
+        color: #000;
+        font-weight: 400;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
@@ -211,6 +216,20 @@
         line-height: 1.65;
         white-space: pre-wrap;
         word-break: break-word;
+    }
+
+    .issue-detail-text-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .issue-detail-text-block h4 {
+        margin: 0 0 8px;
+        color: #000;
+        font-size: 14px;
+        font-weight: 900;
     }
 
     .issue-gallery-head {
@@ -257,10 +276,10 @@
     .issue-empty {
         border: 1px dashed #cbd5e1;
         border-radius: 14px;
-        color: #64748b;
+        color: #000;
         background: #f8fafc;
         padding: 18px;
-        font-weight: 700;
+        font-weight: 400;
         text-align: center;
     }
 
@@ -278,6 +297,11 @@
         .issue-summary-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+
+        .issue-info-block,
+        .issue-detail-text-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (max-width: 575.98px) {
@@ -286,13 +310,11 @@
         }
 
         .issue-hero-actions .btn {
+            min-width: 0;
             width: 100%;
+            white-space: normal;
         }
 
-        .issue-info-row {
-            grid-template-columns: 1fr;
-            gap: 4px;
-        }
     }
 </style>
 
@@ -334,6 +356,32 @@
             <small>Images</small>
             <b>@beforeImages.Count ก่อนแก้ / @afterImages.Count หลังแก้</b>
         </div>
+    </section>
+
+    <section class="issue-detail-bottom">
+        <article class="issue-panel">
+            <h3>ข้อมูล Issue</h3>
+            <div class="issue-info-block">
+                <div class="issue-info-line"><span>Project:</span>@TextOrDash(issue?.Project?.ProjectDisplayName)</div>
+                <div class="issue-info-line"><span>Issue:</span>@(issue?.IssueName ?? "-")</div>
+                <div class="issue-info-line"><span>Owner:</span>@TextOrDash(issue?.Employee?.EmpName)</div>
+                <div class="issue-info-line"><span>Start Date:</span>@DateOrDash(issue?.StartDate)</div>
+                <div class="issue-info-line"><span>End Date:</span>@DateOrDash(issue?.EndDate)</div>
+                <div class="issue-info-line"><span>Issue Status:</span>@TextOrDash(issue?.IssueStatus)</div>
+                <div class="issue-info-line"><span>Dev Status:</span>@TextOrDash(issue?.DevStatus)</div>
+                <div class="issue-info-line"><span>Priority:</span>@TextOrDash(issue?.IssuePriority)</div>
+            </div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>รายละเอียดปัญหา</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.IssueDetail) ? "-" : issue.IssueDetail)</div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>รายละเอียดการแก้ไข</h3>
+            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
+        </article>
     </section>
 
     <section class="issue-content-grid">
@@ -387,44 +435,6 @@
             {
                 <div class="issue-empty">ไม่มีรูปหลังแก้</div>
             }
-        </article>
-    </section>
-
-    <section class="issue-detail-bottom">
-        <article class="issue-panel">
-            <h3>ข้อมูล Issue</h3>
-            <div class="issue-info-grid">
-                <div class="issue-info-row">
-                    <div class="issue-info-label">Issue</div>
-                    <div class="issue-info-value">@(issue?.IssueName ?? "-")</div>
-                </div>
-                <div class="issue-info-row">
-                    <div class="issue-info-label">Project</div>
-                    <div class="issue-info-value">@TextOrDash(issue?.Project?.ProjectDisplayName)</div>
-                </div>
-                <div class="issue-info-row">
-                    <div class="issue-info-label">Owner</div>
-                    <div class="issue-info-value">@TextOrDash(issue?.Employee?.EmpName)</div>
-                </div>
-                <div class="issue-info-row">
-                    <div class="issue-info-label">Start Date</div>
-                    <div class="issue-info-value">@DateOrDash(issue?.StartDate)</div>
-                </div>
-                <div class="issue-info-row">
-                    <div class="issue-info-label">End Date</div>
-                    <div class="issue-info-value">@DateOrDash(issue?.EndDate)</div>
-                </div>
-            </div>
-        </article>
-
-        <article class="issue-panel">
-            <h3>รายละเอียดปัญหา</h3>
-            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.IssueDetail) ? "-" : issue.IssueDetail)</div>
-        </article>
-
-        <article class="issue-panel">
-            <h3>รายละเอียดการแก้ไข</h3>
-            <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
         </article>
     </section>
 </div>

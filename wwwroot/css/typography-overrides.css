@@ -16,8 +16,9 @@
 html,
 body {
   font-family: var(--pt-readable-thai-font) !important;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  text-rendering: auto;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 html body :where(*):not(svg):not(svg *) {
@@ -25,6 +26,9 @@ html body :where(*):not(svg):not(svg *) {
   font-stretch: normal !important;
   letter-spacing: 0 !important;
   text-shadow: none !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
 }
 
 html body :is(
@@ -55,8 +59,7 @@ html body :is(
   [class*="status"],
   [class*="badge"],
   [class*="count"],
-  [class*="total"],
-  [class*="value"]
+  [class*="total"]
 ) {
   font-weight: 700 !important;
 }
@@ -147,8 +150,9 @@ html body .v2-sidebar * {
   font-family: var(--pt-readable-thai-font) !important;
   font-stretch: normal !important;
   letter-spacing: 0 !important;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  text-rendering: auto;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
   text-shadow: none !important;
 }
 
@@ -558,7 +562,7 @@ html body main.route-controller-projectissues .dev-detail-page :is(
   .dev-panel h3,
   .dev-gallery-head h3
 ) {
-  font-weight: 900 !important;
+  font-weight: 700 !important;
 }
 
 html body main.route-controller-projectissues .dev-detail-page :is(
@@ -662,7 +666,870 @@ html body .dev-detail-page :is(
 ) {
   color: #10233f !important;
   font-size: 13px !important;
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Index cards: keep every visible field label bold while values stay light. */
+html body main.route-controller-projectissues .issue-filter-form label,
+html body main.route-controller-projectissues .dev-filter-card label,
+html body main.route-controller-supportorders .support-filter-card label,
+html body main.route-controller-supportordersdev .support-dev-filter label,
+html body main.route-controller-projectissues .issue-card .issue-title > strong,
+html body main.route-controller-projectissues .issue-card .issue-detail > strong,
+html body main.route-controller-projectissues .issue-card .issue-meta strong,
+html body main.route-controller-projectissues .issue-card .issue-card-person strong,
+html body main.route-controller-projectissues .issue-card .issue-status-item > small,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-name > strong,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-detail > strong,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-meta strong,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-person strong,
+html body main.route-controller-projectissues .dev-issue-card .dev-status-row > small,
+html body main.route-controller-supportorders .support-order-card .support-order-title > strong,
+html body main.route-controller-supportorders .support-order-card .support-project-name > strong,
+html body main.route-controller-supportorders .support-order-card .support-detail > strong,
+html body main.route-controller-supportorders .support-order-card .support-meta-text strong,
+html body main.route-controller-supportorders .support-order-card .support-card-person strong,
+html body main.route-controller-supportorders .support-order-card .support-status-row > small,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-order-title > strong,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-project > strong,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-detail > strong,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-pill strong,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-card-person strong,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-status-row > small {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Final label/value pass: labels and table headers stay bold, displayed data stays light. */
+html body :is(
+  td,
+  dd,
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .form-control-plaintext,
+  .pt-readonly-field,
+  .text-muted,
+  .small,
+  [class$="-value"],
+  [class*="-value"],
+  [class*="__value"],
+  [class$="-detail"],
+  [class*="-detail"],
+  [class*="__detail"],
+  [class$="-meta"],
+  [class*="-meta"],
+  [class*="__meta"],
+  [class$="-description"],
+  [class*="-description"],
+  [class*="__description"],
+  [class$="-subtitle"],
+  [class*="-subtitle"],
+  [class*="__subtitle"],
+  [class$="-remark"],
+  [class*="-remark"],
+  [class*="__remark"],
+  [class$="-note"],
+  [class*="-note"],
+  [class*="__note"],
+  [class$="-readonly"],
+  [class*="-readonly"],
+  [class*="__readonly"]
+):not(th):not(label):not(.label):not(.form-label):not([class*="-label"]):not([class*="__label"]):not([class*="Label"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]):not([class*="title"]):not([class*="Title"]):not([class*="heading"]):not([class*="Heading"]):not([class*="eyebrow"]):not([class*="Eyebrow"]):not([class*="count"]):not([class*="Count"]):not([class*="total"]):not([class*="Total"]) {
+  font-weight: 400 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body :is(
+  th,
+  thead th,
+  label,
+  dt,
+  .label,
+  .form-label,
+  .control-label,
+  .field-label,
+  .info-label,
+  .detail-label,
+  .meta-label,
+  .summary-label,
+  .card-label,
+  .filter-label,
+  [class$="-label"],
+  [class*="-label"],
+  [class*="__label"],
+  [class*="Label"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Keep Thai text crisp: avoid ultra-heavy synthetic weights that can look fuzzy. */
+html body main :is(
+  .pt-form-card,
+  .pt-card,
+  .card,
+  .card-body,
+  .index-hero,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .support-card,
+  .support-dev-card,
+  .followup-card,
+  .notification-card,
+  .open-work-card,
+  .scenario-card,
+  .template-card,
+  .meeting-card,
+  .document-card,
+  .report-card,
+  .mail-card,
+  .weekly-card,
+  .activity-card,
+  .recent-activity-card,
+  .rb-card,
+  .requirement-card-popup
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  th,
+  label,
+  dt,
+  strong,
+  b,
+  .form-label,
+  .control-label,
+  .label,
+  [class*="-label"],
+  [class*="__label"],
+  [class*="Label"],
+  [class*="-title"],
+  [class*="__title"],
+  [class*="Title"],
+  [class*="-heading"],
+  [class*="__heading"],
+  [class*="Heading"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main :is(.btn, .badge, .status-text) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Projects / ProjectPhases / PhaseAssigns typography normalization. */
+html body main:is(
+  .route-controller-projects,
+  .route-controller-projectphases,
+  .route-controller-phaseassigns
+) :is(
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  td,
+  dd,
+  .form-control,
+  .form-select,
+  .form-control-plaintext,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field,
+  .pt-readonly-field,
+  .project-card-detail,
+  .project-card-meta,
+  .project-card-system,
+  .project-card-dates,
+  .phase-detail,
+  .phase-period,
+  .phase-meta-pill,
+  .assign-card-phase,
+  .assign-card-dates,
+  .assign-card-role,
+  .assign-card-remark,
+  .assign-meta-text,
+  .phase-report-muted,
+  .phase-report-phase-text,
+  .assign-report-muted,
+  .assign-report-phase-text,
+  .cell-sub,
+  .text-value,
+  [class$="-value"],
+  [class*="-value"],
+  [class*="__value"],
+  [class$="-detail"],
+  [class*="-detail"],
+  [class*="__detail"],
+  [class$="-meta"],
+  [class*="-meta"],
+  [class*="__meta"],
+  [class$="-remark"],
+  [class*="-remark"],
+  [class*="__remark"],
+  [class$="-note"],
+  [class*="-note"],
+  [class*="__note"]
+):not(th):not(label):not(.label):not(.form-label):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]):not([class*="-label"]):not([class*="__label"]):not([class*="Label"]):not([class*="-title"]):not([class*="__title"]):not([class*="Title"]):not([class*="-name"]):not([class*="__name"]):not([class*="Name"]) {
+  font-weight: 400 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projects,
+  .route-controller-projectphases,
+  .route-controller-phaseassigns
+) :is(
+  th,
+  thead th,
+  label,
+  dt,
+  .label,
+  .form-label,
+  .control-label,
+  .project-card-label,
+  .phase-card-label,
+  .assign-card-label,
+  .phase-status-row small,
+  .assign-status-row small,
+  .phase-selected-ba-label,
+  .field label,
+  .project-group-label,
+  .phase-report-filter label,
+  .assign-report-filter label,
+  .phase-report-kpi span,
+  .assign-report-kpi span,
+  .phase-report-group-title span,
+  .assign-report-group-title span,
+  .phase-report-group-stat,
+  .assign-report-group-stat,
+  [class$="-label"],
+  [class*="-label"],
+  [class*="__label"],
+  [class*="Label"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projects,
+  .route-controller-projectphases,
+  .route-controller-phaseassigns
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b,
+  .index-title,
+  .index-eyebrow,
+  .card-title,
+  .project-card-title,
+  .project-card-name,
+  .phase-name-row,
+  .phase-no,
+  .phase-card-drag,
+  .phase-report-title,
+  .phase-report-group-title strong,
+  .assign-card-emp,
+  .assign-card-index,
+  .assign-card .drag-handle,
+  .assign-title-line,
+  .assign-report-title,
+  .assign-report-group-title strong,
+  .cell-title,
+  .project-group-name,
+  .kpi strong
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projects,
+  .route-controller-projectphases,
+  .route-controller-phaseassigns
+) :is(.btn, .badge, .status-text, .report-btn) {
+  font-weight: 700 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projects:is(.route-action-create, .route-action-edit) .pt-form-card :is(label, .form-label) {
+  color: #0f172a !important;
+  font-size: .95rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+html body main.route-controller-projects:is(.route-action-create, .route-action-edit) .pt-form-card :is(
+  .form-control,
+  .form-select,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .form-text,
+  .text-danger
+) {
+  font-size: .95rem !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+html body main.route-controller-projects:is(.route-action-create, .route-action-edit) .pt-form-card :is(.form-control, .form-select, .pt-search-select__input) {
+  min-height: 46px !important;
+}
+
+/* ProjectIssues / SupportOrders: align label-value rhythm with PhaseAssigns. */
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-panel,
+  .dev-panel,
+  .support-panel,
+  .support-dev-panel,
+  .pt-form-card
+) {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html body main.route-controller-projectissues .issue-card .issue-title,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-name,
+html body main.route-controller-supportorders .support-order-card .support-order-title,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-order-title {
+  color: #0f172a !important;
+  font-size: .98rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projectissues :is(
+  .issue-detail-page .issue-title,
+  .issue-create-title,
+  .issue-view-title,
+  .dev-title,
+  .dev-detail-title,
+  .dev-edit-title
+),
+html body main.route-controller-supportorders :is(
+  .support-detail-title,
+  .support-title
+),
+html body main.route-controller-supportordersdev :is(
+  .support-dev-title,
+  .support-dev-edit-title
+) {
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-eyebrow,
+  .dev-eyebrow,
+  .support-eyebrow,
+  .support-dev-eyebrow
+) {
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-detail,
+  .issue-view-detail,
+  .dev-issue-detail,
+  .support-detail,
+  .support-dev-detail,
+  .issue-text-box,
+  .dev-text-box,
+  .support-text-box,
+  .support-dev-readonly,
+  .support-dev-info,
+  .support-dev-text-box,
+  .issue-help-box,
+  .issue-edit-note
+) {
+  color: #0f172a !important;
+  font-size: .93rem !important;
+  font-weight: 400 !important;
+  line-height: 1.42 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-meta,
+  .issue-view-meta,
+  .dev-issue-meta,
+  .support-meta,
+  .support-dev-meta,
+  .support-meta-text,
+  .support-dev-pill,
+  .issue-info-line,
+  .dev-info-line,
+  .support-info-line,
+  .support-dev-info-line,
+  .issue-summary-card b,
+  .dev-summary-card b,
+  .support-summary-card b,
+  .support-dev-summary-card b
+) {
+  color: #0f172a !important;
+  font-size: .92rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-card-people,
+  .issue-card-person,
+  .dev-issue-people,
+  .dev-issue-person,
+  .support-card-people,
+  .support-card-person,
+  .support-dev-card-people,
+  .support-dev-card-person
+) {
+  color: #0f172a !important;
+  font-size: .95rem !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  label,
+  .form-label,
+  .control-label,
+  .issue-title strong,
+  .issue-detail strong,
+  .issue-meta strong,
+  .issue-card-person strong,
+  .issue-info-line span,
+  .dev-issue-meta strong,
+  .dev-issue-person strong,
+  .dev-status-row small,
+  .dev-info-label,
+  .support-order-title strong,
+  .support-project-name strong,
+  .support-detail strong,
+  .support-meta-text strong,
+  .support-card-person strong,
+  .support-info-line span,
+  .support-status-row small,
+  .support-dev-order-title strong,
+  .support-dev-project strong,
+  .support-dev-detail strong,
+  .support-dev-pill strong,
+  .support-dev-card-person strong,
+  .support-dev-status-row small,
+  .support-dev-info-label,
+  .issue-status-item small,
+  .issue-status-row small,
+  .issue-info-label,
+  .support-info-label,
+  .issue-summary-card small,
+  .dev-summary-card small,
+  .support-summary-card small,
+  .support-dev-summary-card small
+) {
+  color: #0f172a !important;
+  font-size: .92rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .issue-panel h3,
+  .dev-panel h3,
+  .support-panel h3,
+  .support-dev-panel h3,
+  .issue-gallery-head h3,
+  .support-gallery-head h3,
+  .dev-gallery-head h3,
+  .support-dev-gallery-head h3,
+  .issue-detail-text-block h4,
+  .dev-detail-text-block h4,
+  .support-detail-text-block h4,
+  .support-dev-detail-text-block h4,
+  .issue-edit-section-title
+) {
+  color: #0f172a !important;
+  font-size: .98rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .form-control-plaintext,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .pt-readonly-field,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field
+) {
+  color: #0f172a !important;
+  font-size: .95rem !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main:is(
+  .route-controller-projectissues,
+  .route-controller-supportorders,
+  .route-controller-supportordersdev
+) :is(
+  .badge,
+  .btn,
+  .status-text,
+  .reopen-badge,
+  .view-badge
+) {
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Hard final pass for list-card label/value weights. */
+html body main.route-controller-projectissues .issue-card .issue-title,
+html body main.route-controller-projectissues .dev-issue-card .dev-issue-name,
+html body main.route-controller-supportorders .support-order-card .support-order-title,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-order-title {
+  color: #0f172a !important;
+  font-size: 1.06rem !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projectissues .issue-card :is(
+  .issue-detail,
+  .issue-meta,
+  .issue-card-person,
+  .issue-card-person span
+),
+html body main.route-controller-projectissues .dev-issue-card :is(
+  .dev-issue-detail,
+  .dev-issue-meta,
+  .dev-issue-person,
+  .dev-issue-person span
+),
+html body main.route-controller-supportorders .support-order-card :is(
+  .support-project-name,
+  .support-detail,
+  .support-meta,
+  .support-meta-text,
+  .support-card-person,
+  .support-card-person span
+),
+html body main.route-controller-supportordersdev .support-dev-card :is(
+  .support-dev-project,
+  .support-dev-detail,
+  .support-dev-meta,
+  .support-dev-pill,
+  .support-dev-card-person,
+  .support-dev-card-person span
+) {
+  color: #0f172a !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projectissues .issue-card :is(
+  .issue-title > strong,
+  .issue-detail > strong,
+  .issue-meta strong,
+  .issue-card-person strong,
+  .issue-status-item > small
+),
+html body main.route-controller-projectissues .dev-issue-card :is(
+  .dev-issue-name > strong,
+  .dev-issue-detail > strong,
+  .dev-issue-meta strong,
+  .dev-issue-person strong,
+  .dev-status-row > small
+),
+html body main.route-controller-supportorders .support-order-card :is(
+  .support-order-title > strong,
+  .support-project-name > strong,
+  .support-detail > strong,
+  .support-meta-text strong,
+  .support-card-person strong,
+  .support-status-row > small
+),
+html body main.route-controller-supportordersdev .support-dev-card :is(
+  .support-dev-order-title > strong,
+  .support-dev-project > strong,
+  .support-dev-detail > strong,
+  .support-dev-pill strong,
+  .support-dev-card-person strong,
+  .support-dev-status-row > small
+) {
+  color: #0f172a !important;
   font-weight: 900 !important;
-  font-variation-settings: "wght" 900 !important;
-  -webkit-text-stroke: .18px currentColor;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projectissues .issue-card .issue-status-item > .badge,
+html body main.route-controller-projectissues .dev-issue-card .dev-status-row > .badge,
+html body main.route-controller-supportorders .support-order-card .support-status-row > .badge,
+html body main.route-controller-supportordersdev .support-dev-card .support-dev-status-row > .badge,
+html body main.route-controller-projectissues .issue-card .reopen-badge {
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+/* Final direct label/value classes for ProjectIssues and SupportOrders cards. */
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) .pt-list-label {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) .pt-list-value {
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) :is(
+  .issue-title,
+  .dev-issue-name,
+  .support-order-title,
+  .support-dev-order-title,
+  .issue-detail,
+  .dev-issue-detail,
+  .support-detail,
+  .support-dev-detail,
+  .support-project-name,
+  .support-dev-project,
+  .issue-meta,
+  .dev-issue-meta,
+  .support-meta,
+  .support-dev-meta,
+  .issue-card-person,
+  .dev-issue-person,
+  .support-card-person,
+  .support-dev-card-person
+) {
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) :is(
+  .issue-title,
+  .dev-issue-name,
+  .support-order-title,
+  .support-dev-order-title,
+  .issue-detail,
+  .dev-issue-detail,
+  .support-detail,
+  .support-dev-detail,
+  .support-project-name,
+  .support-dev-project,
+  .issue-meta,
+  .dev-issue-meta,
+  .support-meta,
+  .support-dev-meta,
+  .issue-card-people,
+  .dev-issue-people,
+  .support-card-people,
+  .support-dev-card-people,
+  .issue-status-grid,
+  .dev-status-grid,
+  .support-status-grid,
+  .support-dev-status-grid
+) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+}
+
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) :is(
+  .support-detail,
+  .support-dev-detail,
+  .issue-detail,
+  .dev-issue-detail
+) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Final font-size normalization for ProjectIssues and SupportOrders list cards. */
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) :is(
+  .issue-title,
+  .dev-issue-name,
+  .support-order-title,
+  .support-dev-order-title,
+  .issue-detail,
+  .dev-issue-detail,
+  .support-detail,
+  .support-dev-detail,
+  .support-project-name,
+  .support-dev-project,
+  .issue-meta,
+  .dev-issue-meta,
+  .support-meta,
+  .support-dev-meta,
+  .support-meta-text,
+  .support-dev-pill,
+  .issue-card-people,
+  .dev-issue-people,
+  .support-card-people,
+  .support-dev-card-people,
+  .issue-card-person,
+  .dev-issue-person,
+  .support-card-person,
+  .support-dev-card-person,
+  .issue-status-grid,
+  .dev-status-grid,
+  .support-status-grid,
+  .support-dev-status-grid,
+  .issue-status-item,
+  .dev-status-row,
+  .support-status-row,
+  .support-dev-status-row,
+  .pt-list-label,
+  .pt-list-value,
+  .badge,
+  small
+) {
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+}
+
+html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) :is(
+  .issue-card-index,
+  .dev-issue-no,
+  .support-no,
+  .support-dev-no
+) {
+  font-size: 1rem !important;
 }

@@ -3240,6 +3240,13 @@ main.route-controller-projectissues :is(
   line-height: 1.35 !important;
 }
 
+main:is(.route-controller-projectissues, .route-controller-supportorders) .pt-readonly-field {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding: 0 14px !important;
+  box-sizing: border-box;
+}
+
 main.route-controller-projectissues :is(
   .issue-hero-actions .btn,
   .issue-create-hero .btn,

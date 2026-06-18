@@ -54,7 +54,7 @@
                         class="btn btn-outline-primary project-board-card-detail"
                         data-detail-project-url-template="@requirementProjectCardDetailUrlTemplate"
                         data-project-field-id="ProjectId">
-                    🔎 ดูรายละเอียด Project Board
+                    ดูรายละเอียด Project Board
                 </button>
             </div>
 
@@ -62,17 +62,17 @@
 
                 <!-- Phase Name -->
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">🧩 ชื่อส่วนงาน</label>
+                    <label class="form-label fw-semibold">ชื่องวดงาน</label>
                     <input asp-for="PhaseName"
                            class="form-control"
-                           placeholder="ระบุชื่อส่วนงาน" />
+                           placeholder="ระบุชื่องวดงาน" />
                     <span asp-validation-for="PhaseName"
                           class="text-danger"></span>
                 </div>
 
                 <!-- Phase Order -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">🔢 ส่วนที่</label>
+                    <label class="form-label fw-semibold">ส่วนที่</label>
                     <input asp-for="PhaseOrder"
                            type="number"
                            class="form-control" />
@@ -82,7 +82,7 @@
 
                 <!-- Period Order -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">📦 งวดที่</label>
+                    <label class="form-label fw-semibold">งวดที่</label>
                     <input asp-for="PeriodOrder"
                            type="number"
                            class="form-control" />
@@ -92,7 +92,7 @@
 
                 <!-- Phase Type -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">🏷 ประเภทส่วนงาน</label>
+                    <label class="form-label fw-semibold">ประเภท</label>
                     <select asp-for="PhaseType"
                             asp-items="ViewBag.PhaseTypeList"
                             class="form-select"
@@ -102,7 +102,7 @@
 
                 <!-- Phase Status -->
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">📌 สถานะงวดงาน</label>
+                    <label class="form-label fw-semibold">สถานะงาน</label>
                     <select asp-for="PhaseStatus" class="form-select">
                         <option value="วางแผน">วางแผน</option>
                         <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
@@ -124,7 +124,7 @@
 
                 <!-- Plan Start -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">📅 Plan Start</label>
+                    <label class="form-label fw-semibold">กำหนดวันที่เริ่ม</label>
                     <input asp-for="PlanStart"
                            type="text"
                            class="form-control thai-date"
@@ -135,7 +135,7 @@
 
                 <!-- Plan End -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">📅 Plan End</label>
+                    <label class="form-label fw-semibold">กำหนดวันที่สิ้นสุด</label>
                     <input asp-for="PlanEnd"
                            type="text"
                            class="form-control thai-date"
@@ -146,7 +146,7 @@
 
                 <!-- Period Due -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">🏁 กำหนดส่งงวดงาน</label>
+                    <label class="form-label fw-semibold">กำหนดส่งวันที่</label>
                     <input asp-for="ActualEnd"
                            type="text"
                            class="form-control thai-date"
@@ -160,13 +160,13 @@
             <div class="pt-form-actions">
                 <button type="submit"
                         class="btn btn-primary">
-                    💾 Save Changes
+                    บันทึกการแก้ไข
                 </button>
 
                 <a asp-action="Index"
                    asp-route-projectId="@(Model?.ProjectId ?? 0)"
                    class="btn btn-outline-secondary">
-                    ↩ Back
+                    กลับ
                 </a>
             </div>
 
@@ -180,7 +180,7 @@
 
     <partial name="_ValidationScriptsPartial" />
 
-    <!-- 🔥 Copy Previous Dates Script (Safe Version) -->
+    <!-- Copy Previous Dates Script (Safe Version) -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
 

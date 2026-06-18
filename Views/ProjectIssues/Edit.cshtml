@@ -142,7 +142,7 @@
 
             <div class="row g-3">
                 <div class="col-12">
-                    <label class="form-label fw-semibold">📁 Project</label>
+                    <label class="form-label fw-semibold">โครงการ</label>
                     <div class="pt-readonly-field">@projectName</div>
                 </div>
 
@@ -164,7 +164,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="AssignTo" class="form-label fw-semibold">👤 เจ้าของงาน</label>
+                    <label asp-for="AssignTo" class="form-label fw-semibold">เจ้าของงาน</label>
                     <select asp-for="AssignTo"
                             asp-items="ViewBag.Employees"
                             class="form-select">
@@ -174,7 +174,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="IssueStatus" class="form-label fw-semibold">📌 สถานะการตรวจ (Tester/BA)</label>
+                    <label asp-for="IssueStatus" class="form-label fw-semibold">สถานะการตรวจ (Tester/BA)</label>
                     <select asp-for="IssueStatus"
                             asp-items="ViewBag.StatusList"
                             class="form-select"></select>
@@ -182,7 +182,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="IssuePriority" class="form-label fw-semibold">⚡ ความสำคัญ</label>
+                    <label asp-for="IssuePriority" class="form-label fw-semibold">ความสำคัญ</label>
                     <select asp-for="IssuePriority"
                             class="form-select">
                         <option value="NORMAL">Normal</option>
@@ -192,7 +192,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="StartDate" class="form-label fw-semibold">📅 วันที่เริ่ม</label>
+                    <label asp-for="StartDate" class="form-label fw-semibold">วันที่เริ่ม</label>
                     <input asp-for="StartDate"
                            type="text"
                            class="form-control thai-date"
@@ -203,7 +203,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="EndDate" class="form-label fw-semibold">🏁 วันที่สิ้นสุด</label>
+                    <label asp-for="EndDate" class="form-label fw-semibold">วันที่สิ้นสุด</label>
                     <input asp-for="EndDate"
                            type="text"
                            class="form-control thai-date"
@@ -214,17 +214,17 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">🔁 Reopen Status</label>
+                    <label class="form-label fw-semibold">สถานะ Reopen</label>
                     <div class="pt-readonly-field">@(issue.IsReopen ? "REOPEN" : "NORMAL")</div>
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">🔢 Reopen Count</label>
+                    <label class="form-label fw-semibold">จำนวน Reopen</label>
                     <div class="pt-readonly-field">@issue.ReopenCount ครั้ง</div>
                 </div>
 
                 <div class="col-md-8">
-                    <label class="form-label fw-semibold">ℹ️ หมายเหตุการนับ Reopen</label>
+                    <label class="form-label fw-semibold">หมายเหตุการนับ Reopen</label>
                     <div class="issue-edit-note">
                         BA/Tester ใช้ OPEN เมื่อเปิดหรือส่งกลับรอแก้, FAIL เมื่อทดสอบไม่ผ่าน, PASS เมื่อทดสอบผ่าน และ REJECT เมื่อไม่รับเป็นปัญหา ส่วน WIP/FIXED มาจากฝั่งโปรแกรมเมอร์
                     </div>
@@ -265,7 +265,7 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label fw-semibold">📎 เพิ่มรูปประกอบ</label>
+                    <label class="form-label fw-semibold">เพิ่มรูปประกอบ</label>
                     <input type="file"
                            name="newImages"
                            class="form-control"
@@ -280,7 +280,7 @@
             <div class="pt-form-actions">
                 <button type="submit"
                         class="btn btn-primary">
-                    💾 Save Changes
+                    บันทึก
                 </button>
 
                 <a asp-action="Details"
@@ -292,7 +292,7 @@
                 <a asp-action="Index"
                    asp-route-projectId="@issue.ProjectId"
                    class="btn btn-outline-secondary">
-                    ↩ Back
+                    กลับ
                 </a>
             </div>
         </form>

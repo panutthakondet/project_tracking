@@ -59,6 +59,16 @@
     string DateText(DateTime? date) => date.HasValue ? date.Value.ToString("dd MMM yyyy", th) : "-";
     string PeriodText(DateTime? start, DateTime? end) =>
         !start.HasValue && !end.HasValue ? "-" : $"{DateText(start)} - {DateText(end)}";
+    string ProfileImage(ProjectTracking.Models.Employee? employee)
+    {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+        return path;
+    }
 }
 
 <style>
@@ -82,7 +92,7 @@
     .support-dev-title {
         margin: 0;
         font-size: clamp(24px, 3vw, 34px);
-        font-weight: 900;
+        font-weight: 700;
         line-height: 1.25;
     }
 
@@ -160,87 +170,173 @@
     }
 
     .support-dev-head {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
+        display: block;
         margin-bottom: 10px;
     }
 
     .support-dev-no {
         flex: 0 0 auto;
-        min-width: 46px;
-        min-height: 32px;
+        min-width: 2.75rem;
+        height: 2rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         color: #062b2f;
         background: rgba(20, 184, 166, .18);
         border-radius: 999px;
-        font-weight: 900;
+        font-weight: 700;
+    }
+
+    .support-dev-title-wrap {
+        min-width: 0;
+    }
+
+    .support-dev-title-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
     }
 
     .support-dev-order-title {
         display: block;
-        color: #10233f;
-        font-size: 18px;
-        font-weight: 900;
+        color: #0f172a;
+        font-size: .98rem;
+        font-weight: 700;
         line-height: 1.35;
         overflow-wrap: anywhere;
     }
 
     .support-dev-project {
         margin-top: 4px;
-        color: #64748b;
-        font-weight: 800;
+        color: #0f172a;
+        font-size: .93rem;
+        font-weight: 400;
         line-height: 1.35;
         overflow-wrap: anywhere;
     }
 
     .support-dev-detail {
-        color: #475569;
+        color: #0f172a;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: .93rem;
         font-weight: 400;
-        line-height: 1.55;
-        margin: 12px 0;
-        white-space: pre-wrap;
+        line-height: 1.45;
+        margin: .25rem 0 0;
         overflow-wrap: anywhere;
+    }
+
+    .support-dev-order-title strong,
+    .support-dev-project strong,
+    .support-dev-detail strong {
+        color: #0f172a;
+        font-weight: 700;
     }
 
     .support-dev-meta {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 12px;
+        gap: 4px 16px;
+        color: #0f172a;
+        font-size: .92rem;
+        line-height: 1.35;
+        margin-top: 8px;
+        margin-bottom: 6px;
     }
 
     .support-dev-pill {
         display: inline-flex;
         align-items: center;
-        min-height: 30px;
-        padding: 6px 10px;
-        color: #475569;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 999px;
-        font-size: 13px;
+        gap: 4px;
+        min-height: 0;
+        padding: 0;
+        color: #0f172a;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        font-size: .92rem;
         font-weight: 400;
     }
 
-    .support-dev-status-grid {
-        display: grid;
+    .support-dev-pill strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    .support-dev-card-people {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 10px 18px;
+        margin: 10px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #0f172a;
+        font-size: .95rem;
+        font-weight: 400;
+    }
+
+    .support-dev-card-person {
+        display: inline-flex;
+        align-items: center;
         gap: 10px;
+        min-width: 0;
+        color: #0f172a;
+        font-weight: 400;
+        line-height: 1.25;
+    }
+
+    .support-dev-card-person img {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 auto;
+        border: 1px solid #dbe6f3;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #fff;
+    }
+
+    .support-dev-card-person span {
+        overflow-wrap: anywhere;
+    }
+
+    .support-dev-card-person strong {
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    .support-dev-status-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 10px;
+        width: 100%;
     }
 
     .support-dev-status-row {
-        display: grid;
-        grid-template-columns: 86px minmax(0, 1fr);
+        min-width: 0;
+        display: inline-flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
     }
 
     .support-dev-status-row small {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 900;
-        text-transform: uppercase;
+        color: #0f172a;
+        font-size: .92rem;
+        font-weight: 700;
+        text-transform: none;
+    }
+
+    .support-dev-status-row small::after {
+        content: ":";
     }
 
     .support-dev-status-row .badge {
@@ -297,7 +393,7 @@
     <form method="get" class="support-dev-filter">
         <div class="row g-3 align-items-end">
             <div class="col-12">
-                <label class="form-label fw-semibold">📁 โครงการ</label>
+                <label class="form-label fw-semibold">โครงการ</label>
                 <select name="projectId" class="form-select" onchange="this.form.submit()">
                     <option value="">-- เลือกโครงการ --</option>
                     @foreach (var p in (SelectList)ViewBag.ProjectList)
@@ -335,32 +431,43 @@
                 <article class="support-dev-card @PriorityTone(item.Priority)">
                     <section class="support-dev-main">
                         <div class="support-dev-head">
-                            <span class="support-dev-no">#@no</span>
-                            <div class="min-w-0">
-                                <span class="support-dev-order-title">@TextOrDash(item.OrderTitle)</span>
-                                <div class="support-dev-project">@TextOrDash(item.Project?.ProjectDisplayName)</div>
+                            <div class="support-dev-title-wrap">
+                                <div class="support-dev-title-line">
+                                    <span class="support-dev-no">#@no</span>
+                                </div>
+                                <span class="support-dev-order-title"><span class="pt-list-label">หัวข้องาน:</span> <span class="pt-list-value">@TextOrDash(item.OrderTitle)</span></span>
+                                <div class="support-dev-project"><span class="pt-list-label">โครงการ:</span> <span class="pt-list-value">@TextOrDash(item.Project?.ProjectDisplayName)</span></div>
+                                <p class="support-dev-detail"><span class="pt-list-label">รายละเอียดงาน:</span> <span class="pt-list-value">@TextOrDash(item.OrderDetail)</span></p>
                             </div>
                         </div>
 
-                        <div class="support-dev-detail">@TextOrDash(item.OrderDetail)</div>
-
                         <div class="support-dev-meta">
-                            <span class="support-dev-pill">วันที่กำหนด: @PeriodText(item.StartDate, item.EndDate)</span>
-                            <span class="support-dev-pill">ผู้รับผิดชอบ: @TextOrDash(item.Employee?.EmpName)</span>
+                            <span class="support-dev-pill"><span class="pt-list-label">วันที่กำหนด:</span> <span class="pt-list-value">@PeriodText(item.StartDate, item.EndDate)</span></span>
+                        </div>
+
+                        <div class="support-dev-card-people">
+                            <span class="support-dev-card-person">
+                                <img class="pt-owner-avatar"
+                                     src="@ProfileImage(item.Employee)"
+                                     alt="@(item.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                                     loading="lazy"
+                                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                <span><span class="pt-list-label">ผู้รับผิดชอบ:</span> <span class="pt-list-value">@TextOrDash(item.Employee?.EmpName)</span></span>
+                            </span>
                         </div>
 
                         <div class="support-dev-status-grid">
                             <div class="support-dev-status-row">
-                                <small>Priority</small>
-                                <span class="badge @PriorityClass(item.Priority)">@TextOrDash(item.Priority)</span>
+                                <small class="pt-list-label">ความสำคัญ</small>
+                                <span class="badge @PriorityClass(item.Priority) pt-list-value">@TextOrDash(item.Priority)</span>
                             </div>
                             <div class="support-dev-status-row">
-                                <small>Status</small>
-                                <span class="badge @StatusClass(item.Status)">@TextOrDash(item.Status)</span>
+                                <small class="pt-list-label">สถานะ</small>
+                                <span class="badge @StatusClass(item.Status) pt-list-value">@TextOrDash(item.Status)</span>
                             </div>
                             <div class="support-dev-status-row">
-                                <small>Dev</small>
-                                <span class="badge @DevStatusClass(item.DevStatus)">@TextOrDash(item.DevStatus)</span>
+                                <small class="pt-list-label">สถานะ Dev</small>
+                                <span class="badge @DevStatusClass(item.DevStatus) pt-list-value">@TextOrDash(item.DevStatus)</span>
                             </div>
                         </div>
                     </section>
@@ -370,26 +477,26 @@
                             @if (CanMenu("SupportOrdersDev.Details"))
                             {
                                 <a asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-secondary" title="ดูรายละเอียด">
-                                    View
+                                    ดูรายละเอียด
                                 </a>
                             }
                             else
                             {
                                 <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูรายละเอียด">
-                                    View
+                                    ดูรายละเอียด
                                 </button>
                             }
 
                             @if (CanMenu("SupportOrdersDev.Edit"))
                             {
                                 <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-primary" title="แก้ไข/แก้บั๊ก">
-                                    Fix
+                                    แก้ไข
                                 </a>
                             }
                             else
                             {
                                 <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                    Fix
+                                    แก้ไข
                                 </button>
                             }
                         </div>
