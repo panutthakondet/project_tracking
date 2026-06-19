@@ -73,20 +73,6 @@
     .type-issue { color: #e11d48; }
     .type-support { color: #f59e0b; }
     .type-followup { color: #2563eb; }
-    .recipient-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
-    .recipient-option {
-        display: flex;
-        gap: 12px;
-        border: 1px solid #d9e4f2;
-        border-radius: 16px;
-        padding: 12px 14px;
-        background: #fbfdff;
-        cursor: pointer;
-        min-height: 72px;
-    }
-    .recipient-option input { width: 18px; margin-top: 4px; }
-    .recipient-name { color: #10233f; font-weight: 1000; line-height: 1.25; }
-    .recipient-position { color: #64748b; font-weight: 800; font-size: .86rem; line-height: 1.25; margin-top: 3px; }
     .weekly-actions {
         display: flex;
         flex-wrap: wrap;
@@ -209,23 +195,9 @@
         </div>
 
         <div class="weekly-panel">
-            <h3>เลือกผู้รับรายงาน</h3>
-            <div class="recipient-grid">
-                @foreach (var user in Model.Users)
-                {
-                    <label class="recipient-option">
-                        <input type="checkbox" name="SelectedUserIds" value="@user.UserId" />
-                        <span>
-                            <span class="recipient-name">@user.DisplayName</span>
-                            <span class="recipient-position">@user.Position (@user.Username)</span>
-                        </span>
-                    </label>
-                }
-            </div>
-
             <div class="weekly-actions">
                 <button class="weekly-btn dark" type="submit" name="submitAction" value="draft">บันทึกร่าง</button>
-                <button class="weekly-btn primary" type="submit" name="submitAction" value="send">ส่งให้ Project Manager</button>
+                <button class="weekly-btn primary" type="submit" name="submitAction" value="send">ส่งรายงาน</button>
             </div>
         </div>
     </form>

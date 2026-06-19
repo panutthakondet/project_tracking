@@ -60,12 +60,11 @@ namespace ProjectTracking.Data
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
+        public DbSet<NotificationSendLog> NotificationSendLogs { get; set; }
         public DbSet<LineRecipient> LineRecipients { get; set; }
         public DbSet<TelegramRecipient> TelegramRecipients { get; set; }
         public DbSet<WeeklyReport> WeeklyReports { get; set; }
         public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
-        public DbSet<MailboxMessage> MailboxMessages { get; set; }
-        public DbSet<MailboxRecipient> MailboxRecipients { get; set; }
         public DbSet<RequirementBoardColumn> RequirementBoardColumns { get; set; }
         public DbSet<RequirementCard> RequirementCards { get; set; }
         public DbSet<RequirementCardAttachment> RequirementCardAttachments { get; set; }
@@ -197,6 +196,56 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(x => x.MeetingId)
                     .HasDatabaseName("idx_meeting");
+            });
+
+            modelBuilder.Entity<NotificationSendLog>(entity =>
+            {
+                entity.ToTable("notification_send_logs");
+                entity.HasKey(x => x.LogId);
+
+                entity.Property(x => x.LogId)
+                    .HasColumnName("log_id");
+
+                entity.Property(x => x.Channel)
+                    .HasColumnName("channel")
+                    .HasColumnType("varchar(20)")
+                    .IsRequired();
+
+                entity.Property(x => x.RecipientEmpId)
+                    .HasColumnName("recipient_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RecipientAddress)
+                    .HasColumnName("recipient_address")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Title)
+                    .HasColumnName("title")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.Message)
+                    .HasColumnName("message")
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
+                entity.Property(x => x.TargetUrl)
+                    .HasColumnName("target_url")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.SentAt)
+                    .HasColumnName("sent_at")
+                    .HasColumnType("datetime")
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.Channel, x.SentAt })
+                    .HasDatabaseName("idx_notification_send_logs_channel_sent");
+
+                entity.HasIndex(x => x.RecipientEmpId)
+                    .HasDatabaseName("idx_notification_send_logs_emp");
             });
 
             // =========================
@@ -551,49 +600,6 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.HasIndex(x => x.ReportId).HasDatabaseName("idx_weekly_report_attachments_report");
-            });
-
-            modelBuilder.Entity<MailboxMessage>(entity =>
-            {
-                entity.ToTable("mailbox_messages");
-                entity.HasKey(x => x.MessageId);
-
-                entity.Property(x => x.MessageId).HasColumnName("message_id");
-                entity.Property(x => x.ReportId).HasColumnName("report_id").IsRequired(false);
-                entity.Property(x => x.Subject).HasColumnName("subject").HasColumnType("varchar(255)").IsRequired();
-                entity.Property(x => x.Body).HasColumnName("body").HasColumnType("text").IsRequired(false);
-                entity.Property(x => x.MessageType).HasColumnName("message_type").HasColumnType("varchar(50)").HasDefaultValue("GENERAL").IsRequired();
-                entity.Property(x => x.SenderUserId).HasColumnName("sender_user_id").IsRequired(false);
-                entity.Property(x => x.SenderEmpId).HasColumnName("sender_emp_id").IsRequired(false);
-                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.HasIndex(x => new { x.SenderUserId, x.CreatedAt }).HasDatabaseName("idx_mailbox_messages_sender");
-                entity.HasIndex(x => x.ReportId).HasDatabaseName("idx_mailbox_messages_report");
-
-                entity.HasMany(x => x.Recipients)
-                    .WithOne(x => x.Message)
-                    .HasForeignKey(x => x.MessageId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<MailboxRecipient>(entity =>
-            {
-                entity.ToTable("mailbox_recipients");
-                entity.HasKey(x => x.RecipientId);
-
-                entity.Property(x => x.RecipientId).HasColumnName("recipient_id");
-                entity.Property(x => x.MessageId).HasColumnName("message_id").IsRequired();
-                entity.Property(x => x.RecipientUserId).HasColumnName("recipient_user_id").IsRequired();
-                entity.Property(x => x.RecipientEmpId).HasColumnName("recipient_emp_id").IsRequired(false);
-                entity.Property(x => x.IsRead).HasColumnName("is_read").HasColumnType("tinyint(1)").HasDefaultValue(false);
-                entity.Property(x => x.ReadAt).HasColumnName("read_at").HasColumnType("datetime").IsRequired(false);
-                entity.Property(x => x.IsDeleted).HasColumnName("is_deleted").HasColumnType("tinyint(1)").HasDefaultValue(false);
-                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.HasIndex(x => new { x.RecipientUserId, x.IsRead, x.IsDeleted, x.CreatedAt })
-                    .HasDatabaseName("idx_mailbox_recipients_user");
-                entity.HasIndex(x => x.MessageId)
-                    .HasDatabaseName("idx_mailbox_recipients_message");
             });
 
             // =========================

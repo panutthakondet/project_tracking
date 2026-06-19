@@ -1,0 +1,581 @@
+@model ProjectTracking.ViewModels.NotificationSendLogPageViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Notification Send Logs";
+    var thaiCulture = new CultureInfo("th-TH");
+    var selectedUser = Model.SelectedEmpId.HasValue
+        ? Model.Users.FirstOrDefault(x => x.EmpId == Model.SelectedEmpId.Value)
+        : null;
+    string FormatLogDate(DateTime value)
+        => value.Date == DateTime.Today
+            ? "วันนี้"
+            : value.Date == DateTime.Today.AddDays(-1)
+                ? "เมื่อวาน"
+                : value.ToString("dd MMM yyyy", thaiCulture);
+    string FormatLogTime(DateTime value)
+        => value.ToString("HH.mm น.", thaiCulture);
+    string ChannelClass(string channel)
+        => channel == "EMAIL" ? "mail" : channel == "TELEGRAM" ? "telegram" : "line";
+}
+
+<style>
+    body.notification-send-log-screen {
+        overflow: hidden;
+    }
+
+    body.notification-send-log-screen .v2-page {
+        height: 100dvh;
+        box-sizing: border-box;
+        overflow: hidden;
+        padding: 22px !important;
+    }
+
+    body.notification-send-log-screen .v2-page > .container,
+    body.notification-send-log-screen .v2-page main {
+        height: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    body.notification-send-log-screen .v2-page main {
+        padding-bottom: 0 !important;
+    }
+
+    .send-log-page {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        height: 100%;
+        min-height: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .send-log-shell {
+        display: grid;
+        grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: stretch;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .send-log-panel {
+        background: #ffffff;
+        border: 1px solid #dbe6ee;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+        overflow: hidden;
+    }
+
+    .send-log-side-panel,
+    .send-log-main-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .send-log-left-head,
+    .send-log-main-head {
+        padding: 16px;
+        border-bottom: 1px solid #e3edf4;
+        background: #f8fafc;
+    }
+
+    .send-log-title {
+        color: #10233f;
+        font-size: 20px;
+        font-weight: 900;
+        line-height: 1.25;
+        margin: 0;
+    }
+
+    .send-log-subtitle {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    .send-log-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e3edf4;
+        background: #ffffff;
+        flex: 0 0 auto;
+    }
+
+    .send-log-tab {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 1px solid #dbe6ee;
+        border-radius: 8px;
+        color: #334155;
+        text-decoration: none;
+        font-weight: 900;
+        background: #f8fafc;
+    }
+
+    .send-log-tab.active {
+        color: #ffffff;
+        background: #06c755;
+        border-color: #06c755;
+    }
+
+    .send-log-tab-count {
+        min-width: 28px;
+        height: 24px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px;
+        background: rgba(15, 23, 42, .08);
+        font-size: 12px;
+    }
+
+    .send-log-tab.active .send-log-tab-count {
+        background: rgba(255, 255, 255, .22);
+    }
+
+    .send-log-user-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 8px;
+    }
+
+    .send-log-user {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .send-log-user:hover,
+    .send-log-user.active {
+        background: #eafff1;
+    }
+
+    .send-log-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #d8f8e3;
+        background: #eef2f7;
+    }
+
+    .send-log-user-name {
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .send-log-user-meta {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.35;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .send-log-count {
+        min-width: 34px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px;
+        border-radius: 999px;
+        color: #047857;
+        background: #d1fae5;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .send-log-all {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        margin: 8px;
+        padding: 10px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+        background: #f8fafc;
+    }
+
+    .send-log-all.active {
+        background: #eafff1;
+    }
+
+    .send-log-all-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        background: #06c755;
+        font-weight: 900;
+    }
+
+    .send-log-main-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .send-log-selected-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .send-log-selected-text {
+        min-width: 0;
+    }
+
+    .send-log-selected-name {
+        color: #10233f;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .send-log-selected-meta {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .send-log-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 18px;
+        background: #eef7f0;
+    }
+
+    .send-log-item {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .send-log-date-divider {
+        display: flex;
+        justify-content: center;
+        margin: 10px 0 18px;
+    }
+
+    .send-log-date-divider span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 5px 16px;
+        border-radius: 999px;
+        color: #64748b;
+        background: rgba(15, 23, 42, .08);
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .send-log-bubble {
+        width: min(100%, 760px);
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, .08);
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .06);
+        overflow: hidden;
+    }
+
+    .send-log-content {
+        min-width: 0;
+        width: min(100%, 760px);
+    }
+
+    .send-log-bubble-head {
+        padding: 12px 14px 8px;
+    }
+
+    .send-log-log-title {
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .send-log-time {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+        text-align: right;
+        padding: 4px 2px 12px;
+        width: 100%;
+    }
+
+    .send-log-message {
+        color: #334155;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.5;
+        padding: 0 14px 12px;
+        white-space: pre-line;
+        word-break: break-word;
+    }
+
+    .send-log-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 9px 14px;
+        background: #f8fafc;
+        border-top: 1px solid #e3edf4;
+    }
+
+    .send-log-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
+        color: #334155;
+        background: #e2e8f0;
+    }
+
+    .send-log-pill.line {
+        color: #047857;
+        background: #d1fae5;
+    }
+
+    .send-log-pill.telegram {
+        color: #0369a1;
+        background: #e0f2fe;
+    }
+
+    .send-log-pill.mail {
+        color: #7c3aed;
+        background: #ede9fe;
+    }
+
+    .send-log-link {
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 900;
+        text-decoration: none;
+    }
+
+    .send-log-empty {
+        min-height: 360px;
+        display: grid;
+        place-items: center;
+        color: #64748b;
+        font-weight: 800;
+        text-align: center;
+        padding: 24px;
+    }
+
+    @@media (max-width: 980px) {
+        body.notification-send-log-screen {
+            overflow: auto;
+        }
+
+        body.notification-send-log-screen .v2-page,
+        body.notification-send-log-screen .v2-page > .container,
+        body.notification-send-log-screen .v2-page main {
+            height: auto;
+            overflow: visible;
+        }
+
+        .send-log-page {
+            height: auto;
+            overflow: visible;
+        }
+
+        .send-log-shell {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+
+        .send-log-user-list,
+        .send-log-list {
+            max-height: 70vh;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .send-log-tabs {
+            grid-template-columns: 1fr;
+        }
+
+        .send-log-main-summary {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+    }
+</style>
+
+<div class="send-log-page">
+    <div class="send-log-shell">
+        <aside class="send-log-panel send-log-side-panel">
+            <div class="send-log-left-head">
+                <h1 class="send-log-title">Users</h1>
+                <div class="send-log-subtitle">เลือกผู้รับเพื่อดู Log การส่งสำเร็จ</div>
+            </div>
+
+            <a class="send-log-all @(Model.SelectedEmpId == null ? "active" : "")"
+               asp-controller="NotificationSendLogs"
+               asp-action="Index"
+               asp-route-channel="@Model.SelectedChannel">
+                <span class="send-log-all-icon">ALL</span>
+                <span>
+                    <span class="send-log-user-name">ทั้งหมด</span>
+                    <span class="send-log-user-meta">@Model.SelectedChannelLabel logs</span>
+                </span>
+                <span class="send-log-count">@Model.TotalCount</span>
+            </a>
+
+            <div class="send-log-user-list">
+                @foreach (var user in Model.Users)
+                {
+                    <a class="send-log-user @(Model.SelectedEmpId == user.EmpId ? "active" : "")"
+                       asp-controller="NotificationSendLogs"
+                       asp-action="Index"
+                       asp-route-channel="@Model.SelectedChannel"
+                       asp-route-empId="@user.EmpId">
+                        <img class="send-log-avatar"
+                             src="@user.AvatarPath"
+                             alt="@user.Name"
+                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        <span>
+                            <span class="send-log-user-name">@user.Name</span>
+                            <span class="send-log-user-meta">@user.Username · @user.Position</span>
+                        </span>
+                        <span class="send-log-count">@user.Count</span>
+                    </a>
+                }
+            </div>
+        </aside>
+
+        <main class="send-log-panel send-log-main-panel">
+            <div class="send-log-main-head">
+                <div class="send-log-main-summary">
+                    <div class="send-log-selected-user">
+                        @if (selectedUser != null)
+                        {
+                            <img class="send-log-avatar"
+                                 src="@selectedUser.AvatarPath"
+                                 alt="@selectedUser.Name"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                        }
+                        else
+                        {
+                            <span class="send-log-all-icon">ALL</span>
+                        }
+                        <div class="send-log-selected-text">
+                            <div class="send-log-selected-name">@(selectedUser?.Name ?? "Log การส่งสำเร็จทั้งหมด")</div>
+                            <div class="send-log-selected-meta">@Model.SelectedChannelLabel · แสดงล่าสุด @Model.Logs.Count รายการ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="send-log-tabs" aria-label="Notification channels">
+                @foreach (var tab in Model.Tabs)
+                {
+                    <a class="send-log-tab @(tab.Channel == Model.SelectedChannel ? "active" : "")"
+                       asp-controller="NotificationSendLogs"
+                       asp-action="Index"
+                       asp-route-channel="@tab.Channel"
+                       asp-route-empId="@Model.SelectedEmpId">
+                        <span>@tab.Label</span>
+                        <span class="send-log-tab-count">@tab.Count</span>
+                    </a>
+                }
+            </nav>
+
+            <section class="send-log-list">
+                @if (Model.Logs.Count == 0)
+                {
+                    <div class="send-log-empty">
+                        <div>ยังไม่มี Log การส่งสำเร็จในช่องทางนี้</div>
+                    </div>
+                }
+                else
+                {
+                    DateTime? lastDate = null;
+                    @foreach (var item in Model.Logs)
+                    {
+                        if (!lastDate.HasValue || lastDate.Value.Date != item.SentAt.Date)
+                        {
+                            lastDate = item.SentAt.Date;
+                            <div class="send-log-date-divider">
+                                <span>@FormatLogDate(item.SentAt)</span>
+                            </div>
+                        }
+                        <article class="send-log-item">
+                            <img class="send-log-avatar"
+                                 src="@item.AvatarPath"
+                                 alt="@item.RecipientName"
+                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                            <div class="send-log-content">
+                                <div class="send-log-bubble">
+                                    <div class="send-log-bubble-head">
+                                        <div class="send-log-log-title">@item.Title</div>
+                                    </div>
+                                    <div class="send-log-message">@item.Message</div>
+                                    <div class="send-log-footer">
+                                        <span class="send-log-pill @ChannelClass(item.Channel)">@item.Channel</span>
+                                        <span class="send-log-pill">@item.RecipientName</span>
+                                        <span class="send-log-pill">@item.RecipientAddress</span>
+                                        @if (!string.IsNullOrWhiteSpace(item.TargetUrl))
+                                        {
+                                            <a class="send-log-link" href="@item.TargetUrl">เปิดรายละเอียด</a>
+                                        }
+                                    </div>
+                                </div>
+                                <time class="send-log-time">@FormatLogTime(item.SentAt)</time>
+                            </div>
+                        </article>
+                    }
+                }
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    document.body.classList.add('notification-send-log-screen');
+</script>

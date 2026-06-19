@@ -167,7 +167,6 @@ namespace ProjectTracking.Controllers
             var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin);
 
             var unreadNotificationCount = 0;
-            var unreadMailboxCount = 0;
 
             if (currentUserId.HasValue)
             {
@@ -193,14 +192,9 @@ namespace ProjectTracking.Controllers
                         .Distinct()
                         .CountAsync();
 
-                unreadMailboxCount = await _context.MailboxRecipients
-                    .AsNoTracking()
-                    .Where(mail => mail.RecipientUserId == currentUserId.Value && !mail.IsRead && !mail.IsDeleted)
-                    .CountAsync();
             }
 
             ViewBag.UnreadNotificationCount = unreadNotificationCount;
-            ViewBag.UnreadMailboxCount = unreadMailboxCount;
             ViewBag.OnlineUsers = await LoadOnlineUsersAsync();
 
             ViewBag.TotalProjectCount = dashboard.TotalProjectCount;

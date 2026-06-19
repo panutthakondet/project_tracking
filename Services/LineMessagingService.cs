@@ -153,6 +153,14 @@ namespace ProjectTracking.Services
                 try
                 {
                     await PushMessageAsync(lineUserId, flexMessage, cancellationToken);
+                    await LogNotificationSendSuccessAsync(
+                        "LINE",
+                        empIdForLog,
+                        lineUserId,
+                        title,
+                        message,
+                        absoluteUrl,
+                        cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -161,6 +169,14 @@ namespace ProjectTracking.Services
                     try
                     {
                         await PushTextAsync(lineUserId, text, cancellationToken, throwOnFailure: true);
+                        await LogNotificationSendSuccessAsync(
+                            "LINE",
+                            empIdForLog,
+                            lineUserId,
+                            title,
+                            message,
+                            absoluteUrl,
+                            cancellationToken);
                         sent++;
                     }
                     catch (Exception fallbackEx)
@@ -232,6 +248,46 @@ namespace ProjectTracking.Services
                 if (throwOnFailure)
                     throw new InvalidOperationException($"LINE API request failed. Status={(int)response.StatusCode}, Body={body}");
             }
+        }
+
+        private async Task LogNotificationSendSuccessAsync(
+            string channel,
+            int? recipientEmpId,
+            string? recipientAddress,
+            string title,
+            string? message,
+            string? targetUrl,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var db = await _dbFactory.CreateDbContextAsync();
+                db.NotificationSendLogs.Add(new NotificationSendLog
+                {
+                    Channel = channel,
+                    RecipientEmpId = recipientEmpId,
+                    RecipientAddress = TrimForLog(recipientAddress, 255),
+                    Title = TrimForLog(title, 255) ?? "",
+                    Message = message,
+                    TargetUrl = TrimForLog(targetUrl, 500),
+                    SentAt = DateTime.Now
+                });
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to write notification send log. Channel={Channel}, EmpId={EmpId}", channel, recipientEmpId);
+            }
+        }
+
+        private static string? TrimForLog(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+            return value.Length <= maxLength ? value : value[..maxLength];
         }
 
         private string BuildNotificationText(string title, string? message, string? targetUrl)

@@ -740,6 +740,7 @@ namespace ProjectTracking.Controllers
                 "UserManagement" => 230,
                 "LineNotificationSettings" => 235,
                 "TelegramNotificationSettings" => 236,
+                "NotificationSendLogs" => 237,
                 _ => 999
             };
         }
@@ -818,6 +819,7 @@ namespace ProjectTracking.Controllers
                 "UserManagement" => "ผู้ใช้งาน",
                 "LineNotificationSettings" => "Line Notification",
                 "TelegramNotificationSettings" => "Telegram Notification",
+                "NotificationSendLogs" => "Notification Send Logs",
                 _ => controller
             };
 

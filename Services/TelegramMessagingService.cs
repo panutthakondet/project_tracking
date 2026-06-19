@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Models;
 
 namespace ProjectTracking.Services
 {
@@ -172,6 +173,14 @@ namespace ProjectTracking.Services
                         await SendMessageToChatAsync(chatId, text, absoluteUrl, cancellationToken, throwOnFailure: true);
                     }
 
+                    await LogNotificationSendSuccessAsync(
+                        "TELEGRAM",
+                        empIdForLog,
+                        chatId,
+                        title,
+                        message,
+                        absoluteUrl,
+                        cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -375,6 +384,46 @@ namespace ProjectTracking.Services
             }
 
             return 0;
+        }
+
+        private async Task LogNotificationSendSuccessAsync(
+            string channel,
+            int? recipientEmpId,
+            string? recipientAddress,
+            string title,
+            string? message,
+            string? targetUrl,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var db = await _dbFactory.CreateDbContextAsync();
+                db.NotificationSendLogs.Add(new NotificationSendLog
+                {
+                    Channel = channel,
+                    RecipientEmpId = recipientEmpId,
+                    RecipientAddress = TrimForLog(recipientAddress, 255),
+                    Title = TrimForLog(title, 255) ?? "",
+                    Message = message,
+                    TargetUrl = TrimForLog(targetUrl, 500),
+                    SentAt = DateTime.Now
+                });
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to write notification send log. Channel={Channel}, EmpId={EmpId}", channel, recipientEmpId);
+            }
+        }
+
+        private static string? TrimForLog(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+            return value.Length <= maxLength ? value : value[..maxLength];
         }
 
         private string TelegramEndpoint(string method)

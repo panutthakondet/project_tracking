@@ -58,8 +58,7 @@ namespace ProjectTracking.Controllers
                     WeekEnd = weekEnd,
                     Subject = $"สรุปรายงานประจำสัปดาห์ {weekStart:dd/MM/yyyy} - {weekEnd:dd/MM/yyyy}"
                 },
-                PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId),
-                Users = await LoadUserOptionsAsync(excludeUserId: identity.User.UserId)
+                PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId)
             };
 
             return View("Form", model);
@@ -77,10 +76,9 @@ namespace ProjectTracking.Controllers
 
             NormalizeReportInput(model.Report);
 
-            if (!ValidateReport(model.Report, submitAction, model.SelectedUserIds))
+            if (!ValidateReport(model.Report))
             {
                 model.PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId);
-                model.Users = await LoadUserOptionsAsync(excludeUserId: identity.User.UserId);
                 return View("Form", model);
             }
 
@@ -97,16 +95,6 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             await SaveAttachmentsAsync(model.Report.ReportId, files, identity.User.UserId);
-
-            if (submitAction == "send")
-            {
-                await SendReportMessageAsync(
-                    model.Report,
-                    model.SelectedUserIds,
-                    subjectPrefix: "ส่งรายงานสรุปประจำสัปดาห์",
-                    body: model.Report.Summary,
-                    nextStatus: "SENT_TO_PM");
-            }
 
             TempData["Success"] = submitAction == "send"
                 ? "ส่งรายงานให้ Project Manager แล้ว"
@@ -131,8 +119,7 @@ namespace ProjectTracking.Controllers
             var model = new WeeklyReportFormViewModel
             {
                 Report = report,
-                PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId),
-                Users = await LoadUserOptionsAsync(excludeUserId: identity.User.UserId)
+                PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId)
             };
 
             return View("Form", model);
@@ -157,11 +144,10 @@ namespace ProjectTracking.Controllers
 
             NormalizeReportInput(model.Report);
 
-            if (!ValidateReport(model.Report, submitAction, model.SelectedUserIds))
+            if (!ValidateReport(model.Report))
             {
                 model.Report = report;
                 model.PendingItems = await LoadPendingWorkAsync(identity.Employee?.EmpId);
-                model.Users = await LoadUserOptionsAsync(excludeUserId: identity.User.UserId);
                 return View("Form", model);
             }
 
@@ -178,13 +164,6 @@ namespace ProjectTracking.Controllers
                 report.Status = "SENT_TO_PM";
                 report.SentToPmAt = DateTime.Now;
                 await _context.SaveChangesAsync();
-
-                await SendReportMessageAsync(
-                    report,
-                    model.SelectedUserIds,
-                    subjectPrefix: "ส่งรายงานสรุปประจำสัปดาห์",
-                    body: report.Summary,
-                    nextStatus: "SENT_TO_PM");
             }
             else
             {
@@ -212,11 +191,6 @@ namespace ProjectTracking.Controllers
             if (report == null) return NotFound();
 
             var canView = report.CreatedByUserId == identity.User.UserId
-                || await _context.MailboxMessages
-                    .AsNoTracking()
-                    .Where(x => x.ReportId == id)
-                    .SelectMany(x => x.Recipients)
-                    .AnyAsync(x => x.RecipientUserId == identity.User.UserId)
                 || IsAdmin();
 
             if (!canView) return Forbid();
@@ -224,52 +198,10 @@ namespace ProjectTracking.Controllers
             var model = new WeeklyReportDetailsViewModel
             {
                 Report = report,
-                Users = await LoadUserOptionsAsync(excludeUserId: identity.User.UserId),
                 CanEditDraft = CanEditReport(report, identity.User.UserId)
             };
 
             return View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Forward(int reportId, int[] selectedUserIds, string? messageBody)
-        {
-            var identity = await GetCurrentIdentityAsync();
-            if (identity.User == null) return RedirectToAction("Login", "Auth");
-
-            var report = await _context.WeeklyReports.FirstOrDefaultAsync(x => x.ReportId == reportId);
-            if (report == null) return NotFound();
-
-            var canForward = report.CreatedByUserId == identity.User.UserId
-                || await _context.MailboxMessages
-                    .AsNoTracking()
-                    .Where(x => x.ReportId == reportId)
-                    .SelectMany(x => x.Recipients)
-                    .AnyAsync(x => x.RecipientUserId == identity.User.UserId)
-                || IsAdmin();
-
-            if (!canForward) return Forbid();
-
-            if (selectedUserIds == null || selectedUserIds.Length == 0)
-            {
-                TempData["Error"] = "กรุณาเลือกผู้รับรายงาน";
-                return RedirectToAction(nameof(Details), new { id = reportId });
-            }
-
-            report.Status = "SENT_TO_BDM";
-            report.SentToBdmAt = DateTime.Now;
-            report.UpdatedAt = DateTime.Now;
-
-            await SendReportMessageAsync(
-                report,
-                selectedUserIds,
-                subjectPrefix: "ส่งต่อรายงานสรุปที่ตรวจแล้ว",
-                body: messageBody,
-                nextStatus: "SENT_TO_BDM");
-
-            TempData["Success"] = "ส่งต่อรายงานเรียบร้อย";
-            return RedirectToAction(nameof(Details), new { id = reportId });
         }
 
         public async Task<IActionResult> DownloadAttachment(int id)
@@ -285,11 +217,6 @@ namespace ProjectTracking.Controllers
             if (attachment == null) return NotFound();
 
             var canView = attachment.Report?.CreatedByUserId == identity.User.UserId
-                || await _context.MailboxMessages
-                    .AsNoTracking()
-                    .Where(x => x.ReportId == attachment.ReportId)
-                    .SelectMany(x => x.Recipients)
-                    .AnyAsync(x => x.RecipientUserId == identity.User.UserId)
                 || IsAdmin();
 
             if (!canView) return Forbid();
@@ -328,60 +255,6 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Edit), new { id = reportId });
-        }
-
-        private async Task SendReportMessageAsync(
-            WeeklyReport report,
-            int[] selectedUserIds,
-            string subjectPrefix,
-            string? body,
-            string nextStatus)
-        {
-            var identity = await GetCurrentIdentityAsync();
-            if (identity.User == null) return;
-
-            var recipientIds = selectedUserIds
-                .Where(x => x > 0 && x != identity.User.UserId)
-                .Distinct()
-                .ToList();
-
-            if (recipientIds.Count == 0) return;
-
-            var recipients = await _context.LoginUsers
-                .AsNoTracking()
-                .Where(x => recipientIds.Contains(x.UserId) && x.Status == "ACTIVE")
-                .ToListAsync();
-
-            if (recipients.Count == 0) return;
-
-            var message = new MailboxMessage
-            {
-                ReportId = report.ReportId,
-                Subject = $"{subjectPrefix}: {report.Subject}",
-                Body = body,
-                MessageType = "WEEKLY_REPORT",
-                SenderUserId = identity.User.UserId,
-                SenderEmpId = identity.Employee?.EmpId,
-                CreatedAt = DateTime.Now
-            };
-
-            foreach (var recipient in recipients)
-            {
-                var empId = await ResolveUserEmpIdAsync(recipient);
-                message.Recipients.Add(new MailboxRecipient
-                {
-                    RecipientUserId = recipient.UserId,
-                    RecipientEmpId = empId,
-                    IsRead = false,
-                    IsDeleted = false,
-                    CreatedAt = DateTime.Now
-                });
-            }
-
-            report.Status = nextStatus;
-            report.UpdatedAt = DateTime.Now;
-            _context.MailboxMessages.Add(message);
-            await _context.SaveChangesAsync();
         }
 
         private async Task SaveAttachmentsAsync(int reportId, List<IFormFile>? files, int userId)
@@ -532,41 +405,6 @@ namespace ProjectTracking.Controllers
                 .ToList();
         }
 
-        private async Task<List<UserOptionViewModel>> LoadUserOptionsAsync(int? excludeUserId = null)
-        {
-            var users = await _context.LoginUsers
-                .AsNoTracking()
-                .Where(x => x.Status == "ACTIVE")
-                .ToListAsync();
-
-            var empIds = users.Where(x => x.EmpId.HasValue).Select(x => x.EmpId!.Value).ToHashSet();
-            var userIds = users.Select(x => x.UserId).ToHashSet();
-
-            var employees = await _context.Employees
-                .AsNoTracking()
-                .Where(x => empIds.Contains(x.EmpId) || (x.LoginUserId.HasValue && userIds.Contains(x.LoginUserId.Value)))
-                .ToListAsync();
-
-            return users
-                .Where(x => !excludeUserId.HasValue || x.UserId != excludeUserId.Value)
-                .Select(user =>
-                {
-                    var employee = employees.FirstOrDefault(e => user.EmpId.HasValue && e.EmpId == user.EmpId.Value)
-                        ?? employees.FirstOrDefault(e => e.LoginUserId == user.UserId);
-                    return new UserOptionViewModel
-                    {
-                        UserId = user.UserId,
-                        EmpId = employee?.EmpId,
-                        Username = user.Username,
-                        DisplayName = employee?.EmpName ?? user.Username,
-                        Position = employee?.Position
-                    };
-                })
-                .OrderBy(x => GetPositionOrder(x.Position))
-                .ThenBy(x => x.DisplayName)
-                .ToList();
-        }
-
         private async Task<(LoginUser? User, Employee? Employee)> GetCurrentIdentityAsync()
         {
             var userId = CurrentUserId();
@@ -584,28 +422,14 @@ namespace ProjectTracking.Controllers
             return (user, employee);
         }
 
-        private async Task<int?> ResolveUserEmpIdAsync(LoginUser user)
-        {
-            if (user.EmpId.HasValue) return user.EmpId.Value;
-
-            return await _context.Employees
-                .AsNoTracking()
-                .Where(x => x.LoginUserId == user.UserId)
-                .Select(x => (int?)x.EmpId)
-                .FirstOrDefaultAsync();
-        }
-
         private bool CanEditReport(WeeklyReport report, int userId)
             => report.CreatedByUserId == userId
                 && string.Equals(report.Status, "DRAFT", StringComparison.OrdinalIgnoreCase);
 
-        private bool ValidateReport(WeeklyReport report, string submitAction, int[] selectedUserIds)
+        private bool ValidateReport(WeeklyReport report)
         {
             if (string.IsNullOrWhiteSpace(report.Subject))
                 ModelState.AddModelError("Report.Subject", "กรุณากรอกหัวข้อรายงาน");
-
-            if (submitAction == "send" && (selectedUserIds == null || selectedUserIds.Length == 0))
-                ModelState.AddModelError("SelectedUserIds", "กรุณาเลือกผู้รับรายงาน");
 
             if (report.WeekStart.HasValue && report.WeekEnd.HasValue && report.WeekEnd.Value.Date < report.WeekStart.Value.Date)
                 ModelState.AddModelError("Report.WeekEnd", "วันที่สิ้นสุดสัปดาห์ต้องไม่น้อยกว่าวันเริ่มต้น");

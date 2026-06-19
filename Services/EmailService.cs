@@ -10,6 +10,8 @@ using System.IO;
 using System.Linq;
 using System;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using ProjectTracking.Data;
 
 namespace ProjectTracking.Services
 {
@@ -30,11 +32,16 @@ namespace ProjectTracking.Services
     public class EmailService
     {
         private readonly EmailSettings _settings;
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
         private readonly ILogger<EmailService>? _logger;
 
-        public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService>? logger = null)
+        public EmailService(
+            IOptions<EmailSettings> settings,
+            IDbContextFactory<AppDbContext> dbFactory,
+            ILogger<EmailService>? logger = null)
         {
             _settings = settings.Value;
+            _dbFactory = dbFactory;
             _logger = logger;
         }
 
@@ -194,6 +201,61 @@ namespace ProjectTracking.Services
             }
 
             await smtp.SendMailAsync(mail);
+            await LogEmailSendSuccessAsync(mail, body);
+        }
+
+        private async Task LogEmailSendSuccessAsync(MailMessage mail, string? body)
+        {
+            try
+            {
+                await using var db = await _dbFactory.CreateDbContextAsync();
+                var addresses = AllRecipients(mail).ToList();
+                var empIdByEmail = await db.LoginUsers
+                    .AsNoTracking()
+                    .Where(x => x.Email != null && addresses.Contains(x.Email))
+                    .GroupBy(x => x.Email!)
+                    .ToDictionaryAsync(
+                        x => x.Key.ToLower(),
+                        x => x.Select(user => user.EmpId).FirstOrDefault(empId => empId.HasValue));
+
+                foreach (var address in addresses)
+                {
+                    empIdByEmail.TryGetValue(address.ToLowerInvariant(), out var empId);
+                    db.NotificationSendLogs.Add(new NotificationSendLog
+                    {
+                        Channel = "EMAIL",
+                        RecipientEmpId = empId,
+                        RecipientAddress = TrimForLog(address, 255),
+                        Title = TrimForLog(mail.Subject, 255) ?? "",
+                        Message = body,
+                        TargetUrl = null,
+                        SentAt = DateTime.Now
+                    });
+                }
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to write email notification send log. Subject={Subject}", mail.Subject);
+            }
+        }
+
+        private static IEnumerable<string> AllRecipients(MailMessage mail)
+            => mail.To
+                .Concat(mail.CC)
+                .Concat(mail.Bcc)
+                .Select(x => x.Address)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        private static string? TrimForLog(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+            return value.Length <= maxLength ? value : value[..maxLength];
         }
 
         // =====================================================
