@@ -4,6 +4,8 @@ using ProjectTracking.Data;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace ProjectTracking.Controllers
 {
@@ -140,7 +142,7 @@ namespace ProjectTracking.Controllers
                 RecipientAddress = string.IsNullOrWhiteSpace(log.RecipientAddress) ? "-" : log.RecipientAddress!,
                 AvatarPath = employee?.AvatarPath ?? DefaultProfileImagePath,
                 Title = string.IsNullOrWhiteSpace(log.Title) ? "-" : log.Title,
-                Message = string.IsNullOrWhiteSpace(log.Message) ? "-" : log.Message!,
+                Message = ToPlainText(log.Message),
                 TargetUrl = log.TargetUrl,
                 SentAt = log.SentAt
             };
@@ -155,6 +157,26 @@ namespace ProjectTracking.Controllers
                 "TELEGRAM" => "TELEGRAM",
                 _ => "LINE"
             };
+        }
+
+        private static string ToPlainText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "-";
+
+            var text = value.Trim();
+            text = Regex.Replace(text, @"<\s*br\s*/?\s*>", "\n", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"</\s*(p|div|li|tr|h[1-6])\s*>", "\n", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"<\s*/?\s*(p|div|li|tr|td|th|h[1-6])\b[^>]*>", " ", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"<\s*a\b[^>]*>", "", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"</\s*a\s*>", "", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"<[^>]+>", "", RegexOptions.IgnoreCase);
+            text = WebUtility.HtmlDecode(text);
+            text = Regex.Replace(text, @"[ \t]{2,}", " ");
+            text = Regex.Replace(text, @"[ \t]*\n[ \t]*", "\n");
+            text = Regex.Replace(text, @"\n{3,}", "\n\n");
+
+            return string.IsNullOrWhiteSpace(text) ? "-" : text.Trim();
         }
 
         private static string ProfileImage(string? profileImagePath)

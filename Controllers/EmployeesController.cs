@@ -228,27 +228,14 @@ namespace ProjectTracking.Controllers
                         try
                         {
                             var targetUrl = ToRequestAbsoluteUrl(recipient.TargetUrl);
-                            var deliveredCount = 0;
-
-                            if (sendLine)
-                            {
-                                deliveredCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
-                                    recipient.EmpId,
-                                    BuildSelectionLineTitle(item),
-                                    item.Message,
-                                    targetUrl,
-                                    HttpContext.RequestAborted);
-                            }
-
-                            if (sendTelegram)
-                            {
-                                deliveredCount += await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                                    recipient.EmpId,
-                                    BuildSelectionLineTitle(item),
-                                    item.Message,
-                                    targetUrl,
-                                    HttpContext.RequestAborted);
-                            }
+                            var deliveredCount = await SendChatNotificationToEmployeeSafelyAsync(
+                                recipient.EmpId,
+                                BuildSelectionLineTitle(item),
+                                item.Message,
+                                targetUrl,
+                                sendLine,
+                                sendTelegram,
+                                item.Key);
 
                             sentCount += deliveredCount;
                             if (deliveredCount > 0)
@@ -278,6 +265,54 @@ namespace ProjectTracking.Controllers
                 TempData["Error"] = "ส่งแจ้งเตือนไม่สำเร็จ ระบบบันทึก error ไว้แล้ว กรุณาลองใหม่หรือตรวจสอบ log";
                 return RedirectToAction(nameof(LineOverdue));
             }
+        }
+
+        private async Task<int> SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string? targetUrl,
+            bool sendLine,
+            bool sendTelegram,
+            string itemKey)
+        {
+            var deliveredCount = 0;
+
+            if (sendLine)
+            {
+                try
+                {
+                    deliveredCount += await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", empId, itemKey);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    deliveredCount += await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram overdue send failed. EmpId={EmpId}, ItemKey={ItemKey}", empId, itemKey);
+                }
+            }
+
+            return deliveredCount;
         }
 
         private string? ToRequestAbsoluteUrl(string? targetUrl)

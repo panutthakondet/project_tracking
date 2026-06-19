@@ -506,32 +506,49 @@ namespace ProjectTracking.Services
                 .GroupBy(x => $"{x.EmpId}:{x.Title}:{x.Message}:{x.TargetUrl}")
                 .Select(x => x.First()))
             {
-                try
-                {
-                    if (sendLine)
-                    {
-                        await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            notification.EmpId,
-                            notification.Title,
-                            notification.Message,
-                            notification.TargetUrl,
-                            cancellationToken);
-                    }
+                if (sendLine)
+                    await SendLineNotificationSafelyAsync(notification, cancellationToken);
 
-                    if (sendTelegram)
-                    {
-                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                            notification.EmpId,
-                            notification.Title,
-                            notification.Message,
-                            notification.TargetUrl,
-                            cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Chat notification failed for EmpId={EmpId}", notification.EmpId);
-                }
+                if (sendTelegram)
+                    await SendTelegramNotificationSafelyAsync(notification, cancellationToken);
+            }
+        }
+
+        private async Task SendLineNotificationSafelyAsync(
+            TelegramNotificationPayload notification,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _lineMessagingService.SendNotificationToEmployeeAsync(
+                    notification.EmpId,
+                    notification.Title,
+                    notification.Message,
+                    notification.TargetUrl,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Automatic LINE notification failed for EmpId={EmpId}", notification.EmpId);
+            }
+        }
+
+        private async Task SendTelegramNotificationSafelyAsync(
+            TelegramNotificationPayload notification,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                    notification.EmpId,
+                    notification.Title,
+                    notification.Message,
+                    notification.TargetUrl,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Automatic Telegram notification failed for EmpId={EmpId}", notification.EmpId);
             }
         }
 

@@ -222,29 +222,64 @@ namespace ProjectTracking.Controllers
                     return;
 
                 var message = BuildFixedSupportTelegramMessage(order);
-                if (sendLine)
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        baEmpId.Value,
-                        "แจ้ง Support แก้เสร็จ:",
-                        message,
-                        $"/SupportOrders/Details/{order.OrderId}",
-                        HttpContext.RequestAborted);
-                }
-
-                if (sendTelegram)
-                {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        baEmpId.Value,
-                        "แจ้ง Support แก้เสร็จ:",
-                        message,
-                        $"/SupportOrders/Details/{order.OrderId}",
-                        HttpContext.RequestAborted);
-                }
+                await SendChatNotificationToEmployeeSafelyAsync(
+                    baEmpId.Value,
+                    "แจ้ง Support แก้เสร็จ:",
+                    message,
+                    $"/SupportOrders/Details/{order.OrderId}",
+                    sendLine,
+                    sendTelegram,
+                    "fixed support",
+                    order.OrderId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Send fixed support Telegram notification failed. OrderId={OrderId}", orderId);
+            }
+        }
+
+        private async Task SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string targetUrl,
+            bool sendLine,
+            bool sendTelegram,
+            string context,
+            int sourceId)
+        {
+            if (sendLine)
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
             }
         }
 

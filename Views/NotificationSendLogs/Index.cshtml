@@ -16,6 +16,7 @@
         => value.ToString("HH.mm น.", thaiCulture);
     string ChannelClass(string channel)
         => channel == "EMAIL" ? "mail" : channel == "TELEGRAM" ? "telegram" : "line";
+    var selectedThemeClass = $"send-log-theme-{ChannelClass(Model.SelectedChannel)}";
 }
 
 <style>
@@ -42,6 +43,17 @@
     }
 
     .send-log-page {
+        --send-log-accent: #06c755;
+        --send-log-accent-strong: #047857;
+        --send-log-accent-soft: #eafff1;
+        --send-log-surface: #eef7f0;
+        --send-log-pill-bg: #d1fae5;
+        --send-log-pill-text: #047857;
+        --send-log-border: #baf2cc;
+        font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: geometricPrecision;
         width: 100%;
         max-width: none;
         margin: 0;
@@ -49,6 +61,41 @@
         min-height: 0;
         padding: 0;
         overflow: hidden;
+    }
+
+    .send-log-theme-mail {
+        --send-log-accent: #7c3aed;
+        --send-log-accent-strong: #5b21b6;
+        --send-log-accent-soft: #f3edff;
+        --send-log-surface: #f5f1ff;
+        --send-log-pill-bg: #ede9fe;
+        --send-log-pill-text: #6d28d9;
+        --send-log-border: #ddd6fe;
+    }
+
+    .send-log-theme-line {
+        --send-log-accent: #06c755;
+        --send-log-accent-strong: #047857;
+        --send-log-accent-soft: #eafff1;
+        --send-log-surface: #eef7f0;
+        --send-log-pill-bg: #d1fae5;
+        --send-log-pill-text: #047857;
+        --send-log-border: #baf2cc;
+    }
+
+    .send-log-theme-telegram {
+        --send-log-accent: #229ed9;
+        --send-log-accent-strong: #0369a1;
+        --send-log-accent-soft: #e8f6ff;
+        --send-log-surface: #eef8ff;
+        --send-log-pill-bg: #dff3ff;
+        --send-log-pill-text: #0369a1;
+        --send-log-border: #bae6fd;
+    }
+
+    .send-log-page * {
+        letter-spacing: 0;
+        text-shadow: none;
     }
 
     .send-log-shell {
@@ -62,7 +109,7 @@
 
     .send-log-panel {
         background: #ffffff;
-        border: 1px solid #dbe6ee;
+        border: 1px solid var(--send-log-border);
         border-radius: 8px;
         box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
         overflow: hidden;
@@ -79,13 +126,13 @@
     .send-log-main-head {
         padding: 16px;
         border-bottom: 1px solid #e3edf4;
-        background: #f8fafc;
+        background: linear-gradient(180deg, #ffffff 0%, var(--send-log-accent-soft) 100%);
     }
 
     .send-log-title {
         color: #10233f;
         font-size: 20px;
-        font-weight: 900;
+        font-weight: 800;
         line-height: 1.25;
         margin: 0;
     }
@@ -93,7 +140,7 @@
     .send-log-subtitle {
         color: #64748b;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         margin-top: 4px;
     }
 
@@ -108,6 +155,8 @@
     }
 
     .send-log-tab {
+        --tab-accent: #64748b;
+        --tab-soft: #f8fafc;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 8px;
@@ -115,17 +164,34 @@
         min-height: 42px;
         padding: 8px 10px;
         border: 1px solid #dbe6ee;
+        border-left: 4px solid var(--tab-accent);
         border-radius: 8px;
         color: #334155;
         text-decoration: none;
-        font-weight: 900;
-        background: #f8fafc;
+        font-weight: 700;
+        background: var(--tab-soft);
+    }
+
+    .send-log-tab.mail {
+        --tab-accent: #7c3aed;
+        --tab-soft: #fbf8ff;
+    }
+
+    .send-log-tab.line {
+        --tab-accent: #06c755;
+        --tab-soft: #f3fff7;
+    }
+
+    .send-log-tab.telegram {
+        --tab-accent: #229ed9;
+        --tab-soft: #f3fbff;
     }
 
     .send-log-tab.active {
         color: #ffffff;
-        background: #06c755;
-        border-color: #06c755;
+        background: var(--send-log-accent);
+        border-color: var(--send-log-accent);
+        border-left-color: var(--send-log-accent-strong);
     }
 
     .send-log-tab-count {
@@ -136,11 +202,14 @@
         align-items: center;
         justify-content: center;
         padding: 0 8px;
+        color: var(--tab-accent);
         background: rgba(15, 23, 42, .08);
         font-size: 12px;
+        font-weight: 700;
     }
 
     .send-log-tab.active .send-log-tab-count {
+        color: #ffffff;
         background: rgba(255, 255, 255, .22);
     }
 
@@ -164,7 +233,7 @@
 
     .send-log-user:hover,
     .send-log-user.active {
-        background: #eafff1;
+        background: var(--send-log-accent-soft);
     }
 
     .send-log-avatar {
@@ -172,14 +241,14 @@
         height: 48px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #d8f8e3;
+        border: 2px solid var(--send-log-border);
         background: #eef2f7;
     }
 
     .send-log-user-name {
         color: #0f172a;
         font-size: 14px;
-        font-weight: 900;
+        font-weight: 700;
         line-height: 1.25;
         white-space: nowrap;
         overflow: hidden;
@@ -189,7 +258,7 @@
     .send-log-user-meta {
         color: #64748b;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         line-height: 1.35;
         margin-top: 2px;
         white-space: nowrap;
@@ -205,10 +274,10 @@
         justify-content: center;
         padding: 0 8px;
         border-radius: 999px;
-        color: #047857;
-        background: #d1fae5;
+        color: var(--send-log-pill-text);
+        background: var(--send-log-pill-bg);
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 700;
     }
 
     .send-log-all {
@@ -225,7 +294,7 @@
     }
 
     .send-log-all.active {
-        background: #eafff1;
+        background: var(--send-log-accent-soft);
     }
 
     .send-log-all-icon {
@@ -235,8 +304,8 @@
         display: grid;
         place-items: center;
         color: #ffffff;
-        background: #06c755;
-        font-weight: 900;
+        background: var(--send-log-accent);
+        font-weight: 800;
     }
 
     .send-log-main-summary {
@@ -260,7 +329,7 @@
     .send-log-selected-name {
         color: #10233f;
         font-size: 18px;
-        font-weight: 900;
+        font-weight: 800;
         line-height: 1.25;
         white-space: nowrap;
         overflow: hidden;
@@ -270,7 +339,7 @@
     .send-log-selected-meta {
         color: #64748b;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
     }
 
     .send-log-list {
@@ -278,7 +347,7 @@
         min-height: 0;
         overflow: auto;
         padding: 18px;
-        background: #eef7f0;
+        background: var(--send-log-surface);
     }
 
     .send-log-item {
@@ -301,16 +370,17 @@
         padding: 5px 16px;
         border-radius: 999px;
         color: #64748b;
-        background: rgba(15, 23, 42, .08);
+        background: rgba(255, 255, 255, .7);
+        border: 1px solid var(--send-log-border);
         font-size: 14px;
-        font-weight: 900;
+        font-weight: 700;
     }
 
     .send-log-bubble {
         width: min(100%, 760px);
         border-radius: 8px;
         background: #ffffff;
-        border: 1px solid rgba(15, 23, 42, .08);
+        border: 1px solid var(--send-log-border);
         box-shadow: 0 8px 18px rgba(15, 35, 64, .06);
         overflow: hidden;
     }
@@ -322,12 +392,13 @@
 
     .send-log-bubble-head {
         padding: 12px 14px 8px;
+        border-left: 4px solid var(--send-log-accent);
     }
 
     .send-log-log-title {
         color: #0f172a;
         font-size: 14px;
-        font-weight: 900;
+        font-weight: 700;
         line-height: 1.35;
         word-break: break-word;
     }
@@ -335,7 +406,7 @@
     .send-log-time {
         color: #64748b;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 500;
         white-space: nowrap;
         text-align: right;
         padding: 4px 2px 12px;
@@ -345,7 +416,7 @@
     .send-log-message {
         color: #334155;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 400;
         line-height: 1.5;
         padding: 0 14px 12px;
         white-space: pre-line;
@@ -358,7 +429,7 @@
         gap: 8px;
         align-items: center;
         padding: 9px 14px;
-        background: #f8fafc;
+        background: var(--send-log-accent-soft);
         border-top: 1px solid #e3edf4;
     }
 
@@ -369,7 +440,7 @@
         padding: 3px 8px;
         border-radius: 999px;
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 600;
         color: #334155;
         background: #e2e8f0;
     }
@@ -390,9 +461,9 @@
     }
 
     .send-log-link {
-        color: #0f766e;
+        color: var(--send-log-accent-strong);
         font-size: 12px;
-        font-weight: 900;
+        font-weight: 700;
         text-decoration: none;
     }
 
@@ -401,7 +472,7 @@
         display: grid;
         place-items: center;
         color: #64748b;
-        font-weight: 800;
+        font-weight: 600;
         text-align: center;
         padding: 24px;
     }
@@ -447,7 +518,7 @@
     }
 </style>
 
-<div class="send-log-page">
+<div class="send-log-page @selectedThemeClass">
     <div class="send-log-shell">
         <aside class="send-log-panel send-log-side-panel">
             <div class="send-log-left-head">
@@ -515,7 +586,7 @@
             <nav class="send-log-tabs" aria-label="Notification channels">
                 @foreach (var tab in Model.Tabs)
                 {
-                    <a class="send-log-tab @(tab.Channel == Model.SelectedChannel ? "active" : "")"
+                    <a class="send-log-tab @ChannelClass(tab.Channel) @(tab.Channel == Model.SelectedChannel ? "active" : "")"
                        asp-controller="NotificationSendLogs"
                        asp-action="Index"
                        asp-route-channel="@tab.Channel"

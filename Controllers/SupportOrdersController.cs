@@ -547,25 +547,15 @@ namespace ProjectTracking.Controllers
 
                 foreach (var recipient in recipientTargets)
                 {
-                    if (sendLine)
-                    {
-                        await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.Key,
-                            title,
-                            message,
-                            recipient.Value,
-                            HttpContext.RequestAborted);
-                    }
-
-                    if (sendTelegram)
-                    {
-                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.Key,
-                            title,
-                            message,
-                            recipient.Value,
-                            HttpContext.RequestAborted);
-                    }
+                    await SendChatNotificationToEmployeeSafelyAsync(
+                        recipient.Key,
+                        title,
+                        message,
+                        recipient.Value,
+                        sendLine,
+                        sendTelegram,
+                        "created support",
+                        order.OrderId);
                 }
             }
             catch (Exception ex)
@@ -602,29 +592,64 @@ namespace ProjectTracking.Controllers
                 var message = BuildBaResultSupportTelegramMessage(order);
                 var targetUrl = $"/SupportOrdersDev/Details/{order.OrderId}";
 
-                if (sendLine)
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        order.AssignTo.Value,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-
-                if (sendTelegram)
-                {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        order.AssignTo.Value,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
+                await SendChatNotificationToEmployeeSafelyAsync(
+                    order.AssignTo.Value,
+                    title,
+                    message,
+                    targetUrl,
+                    sendLine,
+                    sendTelegram,
+                    "BA result support",
+                    order.OrderId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Send BA result support Telegram notification failed. OrderId={OrderId}", orderId);
+            }
+        }
+
+        private async Task SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string targetUrl,
+            bool sendLine,
+            bool sendTelegram,
+            string context,
+            int sourceId)
+        {
+            if (sendLine)
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
             }
         }
 

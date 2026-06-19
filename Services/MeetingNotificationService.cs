@@ -10,6 +10,7 @@ namespace ProjectTracking.Services
     {
         private static readonly int[] LineReminderDays = { 3, 2, 1, 0 };
         private static readonly int[] TelegramReminderDays = { 3, 2, 1, 0 };
+        private static readonly SemaphoreSlim NotificationTableEnsureLock = new(1, 1);
         private const string CreatedEmailKind = "created_email";
         private const string CreatedLineKind = "created_line";
         private const string CreatedTelegramKind = "created_telegram";
@@ -105,14 +106,30 @@ namespace ProjectTracking.Services
             int meetingId,
             CancellationToken cancellationToken = default)
         {
-            var emailResult = await SendCreatedEmailAsync(meetingId, cancellationToken);
-            var lineResult = await SendCreatedLineAsync(meetingId, cancellationToken);
-            var telegramResult = await SendCreatedTelegramAsync(meetingId, cancellationToken);
+            var emailTask = SendChannelSafelyAsync(
+                "Email",
+                meetingId,
+                () => SendCreatedEmailAsync(meetingId, cancellationToken));
+            var lineTask = SendChannelSafelyAsync(
+                "LINE",
+                meetingId,
+                () => SendCreatedLineAsync(meetingId, cancellationToken));
+            var telegramTask = SendChannelSafelyAsync(
+                "Telegram",
+                meetingId,
+                () => SendCreatedTelegramAsync(meetingId, cancellationToken));
+
+            await Task.WhenAll(emailTask, lineTask, telegramTask);
+
+            var emailResult = await emailTask;
+            var lineResult = await lineTask;
+            var telegramResult = await telegramTask;
 
             return new MeetingNotificationResult(
                 emailResult.SentCount + lineResult.SentCount + telegramResult.SentCount,
                 emailResult.SkippedCount + lineResult.SkippedCount + telegramResult.SkippedCount,
-                emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount);
+                emailResult.FailedCount + lineResult.FailedCount + telegramResult.FailedCount,
+                BuildNotificationBreakdown(emailResult, lineResult, telegramResult));
         }
 
         public async Task<MeetingNotificationResult> SendCreatedEmailAsync(
@@ -124,19 +141,20 @@ namespace ProjectTracking.Services
 
             var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
             if (meeting == null)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 0, 1, "ไม่พบ Meeting");
 
             var recipients = await LoadEmailRecipientsAsync(db, meetingId, cancellationToken);
             if (recipients.Count == 0)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 1, 0, "ไม่มี email ของผู้เข้าร่วม");
 
             var attachment = await BuildCalendarAttachmentAsync(meeting.Id, cancellationToken);
             if (attachment == null)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 0, 1, "สร้างไฟล์ calendar ไม่สำเร็จ");
 
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var failureReasons = new List<string>();
             var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var recipient in recipients)
@@ -169,6 +187,7 @@ namespace ProjectTracking.Services
                 catch (Exception ex)
                 {
                     failed++;
+                    AddFailureReason(failureReasons, ex.Message);
                     _logger.LogError(
                         ex,
                         "Failed to send meeting created email. MeetingId={MeetingId}, AttendeeId={AttendeeId}, Email={Email}",
@@ -178,7 +197,7 @@ namespace ProjectTracking.Services
                 }
             }
 
-            return new MeetingNotificationResult(sent, skipped, failed);
+            return new MeetingNotificationResult(sent, skipped, failed, BuildDetail(failureReasons));
         }
 
         public async Task<MeetingNotificationResult> SendUpdatedNotificationsAsync(
@@ -381,17 +400,17 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken = default)
         {
             if (!_lineMessagingService.IsConfigured)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 1, 0, "LINE ยังไม่ได้ตั้งค่า");
 
             if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsCreate, cancellationToken))
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 1, 0, "LINE Meetings.Create ปิดอยู่");
 
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
             var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
             if (meeting == null)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 0, 1, "ไม่พบ Meeting");
 
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
@@ -399,7 +418,12 @@ namespace ProjectTracking.Services
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var missingRecipientCount = 0;
+            var failureReasons = new List<string>();
             var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
+
+            if (recipients.Count == 0)
+                return new MeetingNotificationResult(0, 1, 0, "ไม่มีผู้เข้าร่วมสำหรับ LINE");
 
             foreach (var recipient in recipients)
             {
@@ -415,6 +439,7 @@ namespace ProjectTracking.Services
                 if (lineUserIds.Count == 0)
                 {
                     skipped++;
+                    missingRecipientCount++;
                     continue;
                 }
 
@@ -451,6 +476,7 @@ namespace ProjectTracking.Services
                 catch (Exception ex)
                 {
                     failed++;
+                    AddFailureReason(failureReasons, ex.Message);
                     _logger.LogError(
                         ex,
                         "Failed to send meeting created LINE. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
@@ -460,7 +486,13 @@ namespace ProjectTracking.Services
                 }
             }
 
-            return new MeetingNotificationResult(sent, skipped, failed);
+            return new MeetingNotificationResult(
+                sent,
+                skipped,
+                failed,
+                BuildDetail(
+                    missingRecipientCount > 0 ? $"ไม่มี LINE user id {missingRecipientCount} คน" : null,
+                    BuildDetail(failureReasons)));
         }
 
         private async Task<MeetingNotificationResult> SendCreatedTelegramAsync(
@@ -468,17 +500,17 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken = default)
         {
             if (!_telegramMessagingService.IsConfigured)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 1, 0, "Telegram ยังไม่ได้ตั้งค่า bot");
 
             if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsCreate, cancellationToken))
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 1, 0, "Telegram Meetings.Create ปิดอยู่");
 
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
             var meeting = await LoadMeetingAsync(db, meetingId, cancellationToken);
             if (meeting == null)
-                return new MeetingNotificationResult(0, 0, 0);
+                return new MeetingNotificationResult(0, 0, 1, "ไม่พบ Meeting");
 
             var detailUrl = ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}";
             var calendarUrl = ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}";
@@ -488,7 +520,12 @@ namespace ProjectTracking.Services
             var sent = 0;
             var skipped = 0;
             var failed = 0;
+            var missingRecipientCount = 0;
+            var failureReasons = new List<string>();
             var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
+
+            if (recipients.Count == 0)
+                return new MeetingNotificationResult(0, 1, 0, "ไม่มีผู้เข้าร่วมสำหรับ Telegram");
 
             foreach (var recipient in recipients)
             {
@@ -504,6 +541,7 @@ namespace ProjectTracking.Services
                 if (chatIds.Count == 0)
                 {
                     skipped++;
+                    missingRecipientCount++;
                     continue;
                 }
 
@@ -541,6 +579,7 @@ namespace ProjectTracking.Services
                 catch (Exception ex)
                 {
                     failed++;
+                    AddFailureReason(failureReasons, ex.Message);
                     _logger.LogError(
                         ex,
                         "Failed to send meeting created Telegram. MeetingId={MeetingId}, AttendeeId={AttendeeId}, EmpId={EmpId}",
@@ -550,7 +589,13 @@ namespace ProjectTracking.Services
                 }
             }
 
-            return new MeetingNotificationResult(sent, skipped, failed);
+            return new MeetingNotificationResult(
+                sent,
+                skipped,
+                failed,
+                BuildDetail(
+                    missingRecipientCount > 0 ? $"ไม่มี Telegram chat id {missingRecipientCount} คน" : null,
+                    BuildDetail(failureReasons)));
         }
 
         public async Task<MeetingNotificationResult> SendCancelledNotificationsAsync(
@@ -977,7 +1022,10 @@ namespace ProjectTracking.Services
 
         private static async Task EnsureNotificationTableAsync(AppDbContext db, CancellationToken cancellationToken)
         {
-            const string sql = @"
+            await NotificationTableEnsureLock.WaitAsync(cancellationToken);
+            try
+            {
+                const string sql = @"
 CREATE TABLE IF NOT EXISTS meeting_email_notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   meeting_id INT NOT NULL,
@@ -988,9 +1036,9 @@ CREATE TABLE IF NOT EXISTS meeting_email_notifications (
   KEY idx_meeting (meeting_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
-            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
 
-            const string removeDuplicatesSql = @"
+                const string removeDuplicatesSql = @"
 DELETE n1
 FROM meeting_email_notifications n1
 JOIN meeting_email_notifications n2
@@ -999,42 +1047,47 @@ JOIN meeting_email_notifications n2
  AND n1.kind = n2.kind
  AND n1.id > n2.id;";
 
-            await db.Database.ExecuteSqlRawAsync(removeDuplicatesSql, cancellationToken);
+                await db.Database.ExecuteSqlRawAsync(removeDuplicatesSql, cancellationToken);
 
-            const string hasAnyIndexSql = @"
+                const string hasAnyIndexSql = @"
 SELECT COUNT(*) AS Value
 FROM INFORMATION_SCHEMA.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = 'meeting_email_notifications'
-  AND INDEX_NAME = 'uq_meeting_attendee_kind';";
+  AND INDEX_NAME = 'uq_meeting_attendee_kind'";
 
-            const string hasUniqueIndexSql = @"
+                const string hasUniqueIndexSql = @"
 SELECT COUNT(*) AS Value
 FROM INFORMATION_SCHEMA.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = 'meeting_email_notifications'
   AND INDEX_NAME = 'uq_meeting_attendee_kind'
-  AND NON_UNIQUE = 0;";
+  AND NON_UNIQUE = 0";
 
-            var hasAnyIndex = await db.Database
-                .SqlQueryRaw<int>(hasAnyIndexSql)
-                .SingleAsync(cancellationToken);
-            var hasUniqueIndex = await db.Database
-                .SqlQueryRaw<int>(hasUniqueIndexSql)
-                .SingleAsync(cancellationToken);
+                var hasAnyIndex = await db.Database
+                    .SqlQueryRaw<int>(hasAnyIndexSql)
+                    .SingleAsync(cancellationToken);
+                var hasUniqueIndex = await db.Database
+                    .SqlQueryRaw<int>(hasUniqueIndexSql)
+                    .SingleAsync(cancellationToken);
 
-            if (hasUniqueIndex == 0)
-            {
-                if (hasAnyIndex > 0)
+                if (hasUniqueIndex == 0)
                 {
+                    if (hasAnyIndex > 0)
+                    {
+                        await db.Database.ExecuteSqlRawAsync(
+                            "DROP INDEX uq_meeting_attendee_kind ON meeting_email_notifications;",
+                            cancellationToken);
+                    }
+
                     await db.Database.ExecuteSqlRawAsync(
-                        "DROP INDEX uq_meeting_attendee_kind ON meeting_email_notifications;",
+                        "CREATE UNIQUE INDEX uq_meeting_attendee_kind ON meeting_email_notifications(meeting_id, attendee_id, kind);",
                         cancellationToken);
                 }
-
-                await db.Database.ExecuteSqlRawAsync(
-                    "CREATE UNIQUE INDEX uq_meeting_attendee_kind ON meeting_email_notifications(meeting_id, attendee_id, kind);",
-                    cancellationToken);
+            }
+            finally
+            {
+                NotificationTableEnsureLock.Release();
             }
         }
 
@@ -1061,6 +1114,66 @@ VALUES(@mid, @aid, @kind, NOW());";
 
             return affected > 0;
         }
+
+        private static string BuildNotificationBreakdown(
+            MeetingNotificationResult emailResult,
+            MeetingNotificationResult lineResult,
+            MeetingNotificationResult telegramResult)
+        {
+            var parts = new[]
+            {
+                FormatNotificationBreakdown("Email", emailResult),
+                FormatNotificationBreakdown("LINE", lineResult),
+                FormatNotificationBreakdown("Telegram", telegramResult)
+            };
+
+            return string.Join(" | ", parts);
+        }
+
+        private async Task<MeetingNotificationResult> SendChannelSafelyAsync(
+            string channel,
+            int meetingId,
+            Func<Task<MeetingNotificationResult>> sendAsync)
+        {
+            try
+            {
+                return await sendAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Meeting created notification channel failed. Channel={Channel}, MeetingId={MeetingId}",
+                    channel,
+                    meetingId);
+
+                return new MeetingNotificationResult(0, 0, 1, $"{channel} error: {ex.Message}");
+            }
+        }
+
+        private static string FormatNotificationBreakdown(string channel, MeetingNotificationResult result)
+        {
+            var text = $"{channel}: ส่ง {result.SentCount}, ข้าม {result.SkippedCount}, ไม่สำเร็จ {result.FailedCount}";
+            return string.IsNullOrWhiteSpace(result.Detail)
+                ? text
+                : $"{text} ({result.Detail})";
+        }
+
+        private static void AddFailureReason(List<string> reasons, string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                return;
+
+            var normalized = reason.Trim();
+            if (!reasons.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+                reasons.Add(normalized);
+        }
+
+        private static string BuildDetail(params string?[] parts)
+            => string.Join("; ", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()));
+
+        private static string BuildDetail(IReadOnlyCollection<string> parts)
+            => string.Join("; ", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Take(3));
 
         private static Task<bool> HasNotificationLogAsync(
             AppDbContext db,
@@ -1655,6 +1768,6 @@ ORDER BY ma.id;";
         private sealed record MeetingRecipientInfo(int AttendeeId, int EmpId, string DisplayName);
     }
 
-    public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount);
+    public sealed record MeetingNotificationResult(int SentCount, int SkippedCount, int FailedCount, string Detail = "");
     public sealed record MeetingAttendeeNotificationStatus(bool EmailSent, bool LineSent, bool TelegramSent);
 }

@@ -408,13 +408,21 @@ namespace ProjectTracking.Controllers
             try
             {
                 var notifyResult = await _meetingNotificationService.SendCreatedNotificationsAsync(createdMeetingId);
-                if (notifyResult.FailedCount > 0)
-                {
-                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ";
-                }
-                else if (notifyResult.SentCount > 0)
+                if (notifyResult.SentCount > 0)
                 {
                     TempData["Success"] = $"สร้าง Meeting สำเร็จ และส่งแจ้งเตือนแล้ว {notifyResult.SentCount} รายการ";
+                    if (notifyResult.FailedCount > 0)
+                    {
+                        TempData["Error"] = string.IsNullOrWhiteSpace(notifyResult.Detail)
+                            ? $"มีบางรายการส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ"
+                            : $"มีบางรายการส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ ({notifyResult.Detail})";
+                    }
+                }
+                else if (notifyResult.FailedCount > 0)
+                {
+                    TempData["Error"] = string.IsNullOrWhiteSpace(notifyResult.Detail)
+                        ? $"สร้าง Meeting สำเร็จ แต่ส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ"
+                        : $"สร้าง Meeting สำเร็จ แต่ส่งแจ้งเตือนไม่สำเร็จ {notifyResult.FailedCount} รายการ ({notifyResult.Detail})";
                 }
                 else if (notifyResult.SkippedCount > 0)
                 {

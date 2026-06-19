@@ -981,25 +981,15 @@ namespace ProjectTracking.Controllers
 
                 foreach (var recipient in recipientTargets)
                 {
-                    if (sendLine)
-                    {
-                        await _lineMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.Key,
-                            title,
-                            message,
-                            recipient.Value,
-                            HttpContext.RequestAborted);
-                    }
-
-                    if (sendTelegram)
-                    {
-                        await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                            recipient.Key,
-                            title,
-                            message,
-                            recipient.Value,
-                            HttpContext.RequestAborted);
-                    }
+                    await SendChatNotificationToEmployeeSafelyAsync(
+                        recipient.Key,
+                        title,
+                        message,
+                        recipient.Value,
+                        sendLine,
+                        sendTelegram,
+                        "created issue",
+                        issue.IssueId);
                 }
             }
             catch (Exception ex)
@@ -1034,25 +1024,15 @@ namespace ProjectTracking.Controllers
                     return;
 
                 var message = BuildFixedIssueTelegramMessage(issue);
-                if (sendLine)
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        baEmpId.Value,
-                        "แจ้ง Issue แก้เสร็จ:",
-                        message,
-                        $"/ProjectIssues/Details/{issue.IssueId}",
-                        HttpContext.RequestAborted);
-                }
-
-                if (sendTelegram)
-                {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        baEmpId.Value,
-                        "แจ้ง Issue แก้เสร็จ:",
-                        message,
-                        $"/ProjectIssues/Details/{issue.IssueId}",
-                        HttpContext.RequestAborted);
-                }
+                await SendChatNotificationToEmployeeSafelyAsync(
+                    baEmpId.Value,
+                    "แจ้ง Issue แก้เสร็จ:",
+                    message,
+                    $"/ProjectIssues/Details/{issue.IssueId}",
+                    sendLine,
+                    sendTelegram,
+                    "fixed issue",
+                    issue.IssueId);
             }
             catch (Exception ex)
             {
@@ -1088,29 +1068,64 @@ namespace ProjectTracking.Controllers
                 var message = BuildBaResultIssueTelegramMessage(issue);
                 var targetUrl = $"/ProjectIssues/DevDetails/{issue.IssueId}";
 
-                if (sendLine)
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        issue.AssignTo,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-
-                if (sendTelegram)
-                {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        issue.AssignTo,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
+                await SendChatNotificationToEmployeeSafelyAsync(
+                    issue.AssignTo,
+                    title,
+                    message,
+                    targetUrl,
+                    sendLine,
+                    sendTelegram,
+                    "BA result issue",
+                    issue.IssueId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Send BA result issue Telegram notification failed. IssueId={IssueId}", issueId);
+            }
+        }
+
+        private async Task SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string targetUrl,
+            bool sendLine,
+            bool sendTelegram,
+            string context,
+            int sourceId)
+        {
+            if (sendLine)
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
             }
         }
 

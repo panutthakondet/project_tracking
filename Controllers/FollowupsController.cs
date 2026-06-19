@@ -710,29 +710,64 @@ namespace ProjectTracking.Controllers
                     nextFollowupDate);
                 var targetUrl = $"/Followups/Details/{followup.FollowupId}";
 
-                if (sendLine)
-                {
-                    await _lineMessagingService.SendNotificationToEmployeeAsync(
-                        recipientEmpId.Value,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
-
-                if (sendTelegram)
-                {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
-                        recipientEmpId.Value,
-                        title,
-                        message,
-                        targetUrl,
-                        HttpContext.RequestAborted);
-                }
+                await SendChatNotificationToEmployeeSafelyAsync(
+                    recipientEmpId.Value,
+                    title,
+                    message,
+                    targetUrl,
+                    sendLine,
+                    sendTelegram,
+                    "follow-up",
+                    followup.FollowupId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, logMessage, followupId);
+            }
+        }
+
+        private async Task SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string targetUrl,
+            bool sendLine,
+            bool sendTelegram,
+            string context,
+            int sourceId)
+        {
+            if (sendLine)
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram notification failed. Context={Context}, SourceId={SourceId}, EmpId={EmpId}", context, sourceId, empId);
+                }
             }
         }
 

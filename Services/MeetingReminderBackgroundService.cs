@@ -39,8 +39,8 @@ namespace ProjectTracking.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<MeetingNotificationService>();
-                var lineResult = await service.SendLineRemindersAsync(cancellationToken);
-                var telegramResult = await service.SendTelegramRemindersAsync(cancellationToken);
+                var lineResult = await SendLineRemindersSafelyAsync(service, cancellationToken);
+                var telegramResult = await SendTelegramRemindersSafelyAsync(service, cancellationToken);
                 var result = new MeetingNotificationResult(
                     lineResult.SentCount + telegramResult.SentCount,
                     lineResult.SkippedCount + telegramResult.SkippedCount,
@@ -62,6 +62,36 @@ namespace ProjectTracking.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Meeting chat reminder failed");
+            }
+        }
+
+        private async Task<MeetingNotificationResult> SendLineRemindersSafelyAsync(
+            MeetingNotificationService service,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await service.SendLineRemindersAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting LINE reminder failed");
+                return new MeetingNotificationResult(0, 0, 1, ex.Message);
+            }
+        }
+
+        private async Task<MeetingNotificationResult> SendTelegramRemindersSafelyAsync(
+            MeetingNotificationService service,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await service.SendTelegramRemindersAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting Telegram reminder failed");
+                return new MeetingNotificationResult(0, 0, 1, ex.Message);
             }
         }
 
