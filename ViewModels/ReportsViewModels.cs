@@ -153,6 +153,58 @@ namespace ProjectTracking.ViewModels
         public string MonthName { get; set; } = "";
     }
 
+    public class PendingWorkReportViewModel
+    {
+        public DateTime GeneratedAt { get; set; }
+        public string GeneratedBy { get; set; } = "";
+        public DateTime Today { get; set; }
+        public DateTime HorizonDate { get; set; }
+        public int? ProjectId { get; set; }
+        public int? EmpId { get; set; }
+        public string WorkType { get; set; } = "";
+        public string Section { get; set; } = "";
+        public List<ProjectReportOptionViewModel> ProjectOptions { get; set; } = new();
+        public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public PendingWorkSummaryViewModel Summary { get; set; } = new();
+        public List<PendingWorkReportRowViewModel> Rows { get; set; } = new();
+    }
+
+    public class PendingWorkSummaryViewModel
+    {
+        public int Total { get; set; }
+        public int Overdue { get; set; }
+        public int Upcoming { get; set; }
+        public int Projects { get; set; }
+        public int Owners { get; set; }
+        public int Assigns { get; set; }
+        public int Issues { get; set; }
+        public int SupportOrders { get; set; }
+    }
+
+    public class PendingWorkReportRowViewModel
+    {
+        public int Seq { get; set; }
+        public string Section { get; set; } = "";
+        public string SectionText { get; set; } = "";
+        public string Tone { get; set; } = "";
+        public string WorkType { get; set; } = "";
+        public string WorkTypeText { get; set; } = "";
+        public int? ProjectId { get; set; }
+        public string CoopName { get; set; } = "";
+        public string ProjectName { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Detail { get; set; } = "";
+        public int? OwnerEmpId { get; set; }
+        public string OwnerName { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string Priority { get; set; } = "";
+        public DateTime? StartDate { get; set; }
+        public DateTime? DueDate { get; set; }
+        public int OverdueDays { get; set; }
+        public int DaysUntilDue { get; set; }
+        public string TargetUrl { get; set; } = "";
+    }
+
     public class ProjectReportOptionViewModel
     {
         public int ProjectId { get; set; }

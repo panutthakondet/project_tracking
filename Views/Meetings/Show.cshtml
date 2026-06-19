@@ -1,6 +1,7 @@
 @model ProjectTracking.Models.Meeting
 
 @using ProjectTracking.Models
+@using ProjectTracking.ViewModels
 @using Microsoft.AspNetCore.Http
 @using System.Globalization
 @{
@@ -39,7 +40,8 @@
 
 @{
     ViewData["Title"] = "รายละเอียดการประชุม";
-    var attendees = ViewBag.Attendees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var attendees = ViewBag.Attendees as IEnumerable<MeetingShowAttendeeViewModel>
+        ?? Enumerable.Empty<MeetingShowAttendeeViewModel>();
     var attendeeList = attendees.ToList();
     var coopName = ViewBag.CoopName as string;
     var projectName = ViewBag.ProjectName as string;

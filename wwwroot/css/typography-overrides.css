@@ -7,6 +7,8 @@
   --pt-detail-color: #0f172a;
   --pt-detail-muted: #334155;
   --pt-label-color: #64748b;
+  --pt-data-font-size: 1rem;
+  --pt-data-line-height: 1.45;
   --pt-readable-thai-font: "Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif;
   --pt-font-family: var(--pt-readable-thai-font);
   --bs-body-font-family: var(--pt-readable-thai-font);
@@ -1532,4 +1534,456 @@ html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-ca
   .support-dev-no
 ) {
   font-size: 1rem !important;
+}
+
+/* System data surfaces: keep regular app data at one readable size.
+   This intentionally avoids dashboards, calendars, print/view-only reports, and hero titles. */
+html body main :is(
+  .pt-form-card,
+  .pt-card,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-detail-page,
+  .dev-detail-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .overdue-overview-card,
+  .line-overdue-card,
+  .open-work-card,
+  .notification-card,
+  .activities-item,
+  .followup-card,
+  .followup-history-card,
+  .followup-dashboard-card,
+  .employee-card,
+  .meeting-detail-card,
+  .meeting-attendee-card,
+  .mail-card,
+  .sent-card,
+  .rb-card,
+  .requirement-card-popup,
+  .line-notification-page,
+  .telegram-notification-page
+) :is(
+  p,
+  li,
+  dd,
+  td,
+  label,
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  small,
+  .small,
+  .text-muted,
+  .form-control,
+  .form-select,
+  .form-label,
+  .form-control-plaintext,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .search-dropdown-field .form-control,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field,
+  .choices__inner,
+  .choices__input,
+  .choices__list,
+  .ts-control,
+  .ts-dropdown,
+  .pt-list-label,
+  .pt-list-value,
+  .status-text,
+  [class$="-label"],
+  [class*="-label"],
+  [class*="__label"],
+  [class$="-value"],
+  [class*="-value"],
+  [class*="__value"],
+  [class$="-detail"],
+  [class*="-detail"],
+  [class*="__detail"],
+  [class$="-meta"],
+  [class*="-meta"],
+  [class*="__meta"],
+  [class$="-project"],
+  [class*="-project"],
+  [class*="__project"],
+  [class$="-date"],
+  [class*="-date"],
+  [class*="__date"],
+  [class$="-person"],
+  [class*="-person"],
+  [class*="__person"],
+  [class$="-owner"],
+  [class*="-owner"],
+  [class*="__owner"],
+  [class$="-remark"],
+  [class*="-remark"],
+  [class*="__remark"],
+  [class$="-note"],
+  [class*="-note"],
+  [class*="__note"],
+  [class$="-description"],
+  [class*="-description"],
+  [class*="__description"],
+  [class$="-subtitle"],
+  [class*="-subtitle"],
+  [class*="__subtitle"],
+  [class$="-readonly"],
+  [class*="-readonly"],
+  [class*="__readonly"]
+):not(.btn):not(.badge):not(.index-title):not(.index-subtitle):not(.index-eyebrow):not([class*="icon"]):not([class*="Icon"]) {
+  font-size: var(--pt-data-font-size) !important;
+  line-height: var(--pt-data-line-height) !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main :is(
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-panel,
+  .dev-panel,
+  .support-panel,
+  .support-dev-panel,
+  .overdue-overview-card,
+  .line-overdue-card,
+  .open-work-card,
+  .notification-card,
+  .activities-item,
+  .followup-card,
+  .followup-history-card,
+  .followup-dashboard-card,
+  .employee-card,
+  .meeting-detail-card,
+  .meeting-attendee-card,
+  .mail-card,
+  .sent-card,
+  .rb-card,
+  .requirement-card-popup
+) :is(
+  h3,
+  h4,
+  h5,
+  h6,
+  .card-title,
+  [class$="-title"],
+  [class*="-title"],
+  [class*="__title"],
+  [class$="-name"],
+  [class*="-name"],
+  [class*="__name"]
+):not(.index-title):not(.btn):not(.badge):not([class*="icon"]):not([class*="Icon"]) {
+  font-size: var(--pt-data-font-size) !important;
+  line-height: var(--pt-data-line-height) !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main :is(
+  .pt-form-card,
+  .pt-card,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-detail-page,
+  .dev-detail-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .overdue-overview-card,
+  .line-overdue-card,
+  .open-work-card,
+  .notification-card,
+  .activities-item,
+  .followup-card,
+  .followup-history-card,
+  .followup-dashboard-card,
+  .employee-card,
+  .meeting-detail-card,
+  .meeting-attendee-card,
+  .mail-card,
+  .sent-card,
+  .rb-card,
+  .requirement-card-popup,
+  .line-notification-page,
+  .telegram-notification-page
+) :is(
+  label,
+  dt,
+  th,
+  .form-label,
+  .pt-list-label,
+  [class$="-label"],
+  [class*="-label"],
+  [class*="__label"],
+  [class*="Label"]
+):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+html body main :is(
+  .pt-form-card,
+  .pt-card,
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-detail-page,
+  .dev-detail-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .overdue-overview-card,
+  .line-overdue-card,
+  .open-work-card,
+  .notification-card,
+  .activities-item,
+  .followup-card,
+  .followup-history-card,
+  .followup-dashboard-card,
+  .employee-card,
+  .meeting-detail-card,
+  .meeting-attendee-card,
+  .mail-card,
+  .sent-card,
+  .rb-card,
+  .requirement-card-popup,
+  .line-notification-page,
+  .telegram-notification-page
+) :is(
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea,
+  select,
+  option,
+  optgroup,
+  .form-control,
+  .form-select,
+  .form-control-plaintext,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  .pt-search-select__empty,
+  .search-dropdown-field .form-control,
+  .select2-container .select2-selection__rendered,
+  .select2-container .select2-selection__choice,
+  .select2-results__option,
+  .select2-search__field,
+  .choices__inner,
+  .choices__input,
+  .choices__list,
+  .ts-control,
+  .ts-dropdown,
+  .pt-list-value,
+  .status-text,
+  [class$="-value"],
+  [class*="-value"],
+  [class*="__value"],
+  [class$="-detail"],
+  [class*="-detail"],
+  [class*="__detail"],
+  [class$="-meta"],
+  [class*="-meta"],
+  [class*="__meta"],
+  [class$="-remark"],
+  [class*="-remark"],
+  [class*="__remark"],
+  [class$="-note"],
+  [class*="-note"],
+  [class*="__note"],
+  [class$="-description"],
+  [class*="-description"],
+  [class*="__description"],
+  [class$="-subtitle"],
+  [class*="-subtitle"],
+  [class*="__subtitle"],
+  [class$="-readonly"],
+  [class*="-readonly"],
+  [class*="__readonly"]
+):not(.btn):not(.badge):not([class*="-label"]):not([class*="__label"]):not([class*="Label"]) {
+  font-weight: 400 !important;
+}
+
+html body main :is(
+  .project-card,
+  .phase-card,
+  .assign-card,
+  .issue-card,
+  .dev-issue-card,
+  .support-order-card,
+  .support-dev-card,
+  .issue-detail-page,
+  .dev-detail-page,
+  .support-detail-page,
+  .support-dev-details-page,
+  .overdue-overview-card,
+  .line-overdue-card,
+  .open-work-card,
+  .notification-card,
+  .activities-item
+) :is(
+  [class$="-value"],
+  [class*="-value"],
+  [class*="__value"],
+  [class$="-detail"],
+  [class*="-detail"],
+  [class*="__detail"],
+  [class$="-meta"],
+  [class*="-meta"],
+  [class*="__meta"],
+  [class$="-description"],
+  [class*="-description"],
+  [class*="__description"],
+  [class$="-readonly"],
+  [class*="-readonly"],
+  [class*="__readonly"]
+) :is(b, strong):not(.pt-list-label):not([class*="-label"]):not([class*="__label"]):not([class*="Label"]) {
+  font-weight: 400 !important;
+}
+
+/* Details pages need high specificity because their page-level style blocks load after this file. */
+html body main.route-controller-projectissues :is(.issue-detail-page, .dev-detail-page) :is(
+  .issue-summary-card,
+  .dev-summary-card,
+  .issue-summary-card small,
+  .dev-summary-card small,
+  .issue-summary-card b,
+  .dev-summary-card b,
+  .issue-summary-label,
+  .dev-summary-label,
+  .issue-summary-value,
+  .dev-summary-value,
+  .issue-info-line,
+  .dev-info-line,
+  .issue-info-label,
+  .dev-info-label,
+  .issue-info-value,
+  .dev-info-value,
+  .issue-text-box,
+  .dev-text-box,
+  .issue-empty,
+  .dev-empty,
+  .dev-count,
+  .status-text
+),
+html body main.route-controller-supportorders .support-detail-page :is(
+  .support-summary-card,
+  .support-summary-card small,
+  .support-summary-card b,
+  .support-summary-label,
+  .support-summary-value,
+  .support-info-line,
+  .support-info-label,
+  .support-info-value,
+  .support-text-box,
+  .support-empty,
+  .support-count,
+  .status-text
+),
+html body main.route-controller-supportordersdev .support-dev-details-page :is(
+  .support-dev-summary-card,
+  .support-dev-summary-card small,
+  .support-dev-summary-card b,
+  .support-dev-summary-label,
+  .support-dev-summary-value,
+  .support-dev-info-line,
+  .support-dev-info-label,
+  .support-dev-info-value,
+  .support-dev-text-box,
+  .support-dev-empty,
+  .support-dev-count,
+  .status-text
+) {
+  font-size: var(--pt-data-font-size) !important;
+  line-height: var(--pt-data-line-height) !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  font-variation-settings: normal !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+
+html body main.route-controller-projectissues :is(.issue-detail-page, .dev-detail-page) :is(
+  .issue-summary-card small,
+  .dev-summary-card small,
+  .issue-summary-label,
+  .dev-summary-label,
+  .issue-info-label,
+  .dev-info-label,
+  .issue-panel h3,
+  .dev-panel h3,
+  .issue-gallery-head h3,
+  .dev-gallery-head h3,
+  .issue-detail-text-block h4,
+  .dev-detail-text-block h4
+),
+html body main.route-controller-supportorders .support-detail-page :is(
+  .support-summary-card small,
+  .support-summary-label,
+  .support-info-label,
+  .support-panel h3,
+  .support-gallery-head h3
+),
+html body main.route-controller-supportordersdev .support-dev-details-page :is(
+  .support-dev-summary-card small,
+  .support-dev-summary-label,
+  .support-dev-info-label,
+  .support-dev-panel h3,
+  .support-dev-gallery-head h3
+) {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+}
+
+html body main.route-controller-projectissues :is(.issue-detail-page, .dev-detail-page) :is(
+  .issue-summary-card b,
+  .dev-summary-card b,
+  .issue-summary-value,
+  .dev-summary-value,
+  .issue-info-value,
+  .dev-info-value,
+  .issue-text-box,
+  .dev-text-box,
+  .status-text
+),
+html body main.route-controller-supportorders .support-detail-page :is(
+  .support-summary-card b,
+  .support-summary-value,
+  .support-info-value,
+  .support-text-box,
+  .status-text
+),
+html body main.route-controller-supportordersdev .support-dev-details-page :is(
+  .support-dev-summary-card b,
+  .support-dev-summary-value,
+  .support-dev-info-value,
+  .support-dev-text-box,
+  .status-text
+) {
+  color: #0f172a !important;
+  font-weight: 400 !important;
 }

@@ -272,16 +272,27 @@ namespace ProjectTracking.Controllers
                 }
             ).ToListAsync();
 
-            var notificationStatuses = await _meetingNotificationService.GetAttendeeNotificationStatusesAsync(id);
+            IReadOnlyDictionary<int, MeetingAttendeeNotificationStatus> notificationStatuses;
+            try
+            {
+                notificationStatuses = await _meetingNotificationService.GetAttendeeNotificationStatusesAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load meeting attendee notification statuses. MeetingId={MeetingId}", id);
+                notificationStatuses = new Dictionary<int, MeetingAttendeeNotificationStatus>();
+                TempData["Error"] = "โหลดสถานะการส่งแจ้งเตือนผู้เข้าร่วมไม่สำเร็จ";
+            }
+
             var attendees = attendeeRows.Select(a =>
             {
                 notificationStatuses.TryGetValue(a.AttendeeId, out var status);
-                return new
+                return new MeetingShowAttendeeViewModel
                 {
-                    a.AttendeeId,
-                    a.EmpId,
-                    a.EmpName,
-                    a.Position,
+                    AttendeeId = a.AttendeeId,
+                    EmpId = a.EmpId,
+                    EmpName = a.EmpName,
+                    Position = a.Position,
                     EmailSent = status?.EmailSent ?? false,
                     LineSent = status?.LineSent ?? false,
                     TelegramSent = status?.TelegramSent ?? false

@@ -1,7 +1,13 @@
 @model ProjectTracking.Models.ProjectFollowup
+@using System.Globalization
 
 @{
     ViewData["Title"] = "รายละเอียดงานติดตาม";
+    var th = new CultureInfo("th-TH");
+
+    string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    string ThaiDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string ThaiDateTime(DateTime? value) => value?.ToString("dd MMM yyyy HH:mm", th) ?? "-";
 }
 
 <div class="index-hero pt-form-hero">
@@ -19,26 +25,37 @@
     box-shadow: 0 8px 24px rgba(15,23,42,.06);
 }
 
-.info-box {
+.followup-info-block {
     background: #f8fafc;
     border: 1px solid #e5e7eb;
     border-radius: 18px;
-    padding: 14px 18px;
-    height: 100%;
+    padding: 16px 18px;
+    display: grid;
+    gap: 10px;
 }
 
-.info-label {
-    font-size: .82rem;
-    color: #64748b;
-    margin-bottom: 4px;
-    font-weight: 600;
+.followup-info-line {
+    min-width: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
-.info-value {
+.followup-info-label {
+    color: #0f172a;
     font-size: 1rem;
     font-weight: 700;
+    line-height: inherit;
+    margin-right: 6px;
+}
+
+.followup-info-value {
     color: #0f172a;
-    word-break: break-word;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: inherit;
+    overflow-wrap: anywhere;
 }
 
 .history-card {
@@ -84,75 +101,58 @@
 }
 
 @@media (max-width:768px){
-    .info-box {
-        margin-bottom: 12px;
+    .followup-info-block {
+        padding: 14px;
     }
 }
 </style>
 
 <div class="card mb-4 followup-detail-card border-0">
     <div class="card-body">
-        <div class="row">
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Project</div>
-                    <div class="info-value">@Model.Project?.ProjectDisplayName</div>
-                </div>
+        <div class="followup-info-block">
+            <div class="followup-info-line">
+                <span class="followup-info-label">โครงการ:</span>
+                <span class="followup-info-value">@TextOrDash(Model.Project?.ProjectDisplayName)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Owner</div>
-                    <div class="info-value">@Model.Owner?.EmpName</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">ผู้รับผิดชอบ:</span>
+                <span class="followup-info-value">@TextOrDash(Model.Owner?.EmpName)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Task</div>
-                    <div class="info-value">@Model.TaskTitle</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">งาน:</span>
+                <span class="followup-info-value">@TextOrDash(Model.TaskTitle)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Partner</div>
-                    <div class="info-value">@Model.PartnerName</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">คู่ติดต่อ:</span>
+                <span class="followup-info-value">@TextOrDash(Model.PartnerName)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Next Follow‑up</div>
-                    <div class="info-value">@Model.NextFollowupDate?.ToString("dd/MM/yyyy")</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">วันที่ติดตามถัดไป:</span>
+                <span class="followup-info-value">@ThaiDate(Model.NextFollowupDate)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Last Contact</div>
-                    <div class="info-value">
-                        @if(Model.LastContactDate != null)
-                        {
-                            @Model.LastContactDate?.ToString("dd/MM/yyyy HH:mm")
-                        }
-                    </div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">ติดต่อล่าสุด:</span>
+                <span class="followup-info-value">@ThaiDateTime(Model.LastContactDate)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Contact Type</div>
-                    <div class="info-value">@Model.LastContactType</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">ประเภทการติดต่อ:</span>
+                <span class="followup-info-value">@TextOrDash(Model.LastContactType)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Created</div>
-                    <div class="info-value">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">สร้างเมื่อ:</span>
+                <span class="followup-info-value">@ThaiDateTime(Model.CreatedAt)</span>
             </div>
-            <div class="col-12 mb-3">
-                <div class="info-box">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">
-                        <span class="badge bg-primary px-3 py-2">@Model.Status</span>
-                    </div>
-                </div>
+
+            <div class="followup-info-line">
+                <span class="followup-info-label">สถานะ:</span>
+                <span class="followup-info-value">@TextOrDash(Model.Status)</span>
             </div>
         </div>
     </div>
@@ -170,7 +170,7 @@
         <div class="history-card">
             <div class="history-header">
                 <div class="history-date">
-                    @log.ContactDate.ToString("dd/MM/yyyy HH:mm")
+                    @log.ContactDate.ToString("dd MMM yyyy HH:mm", th)
                 </div>
 
                 <div class="history-type">
@@ -187,7 +187,7 @@
 else
 {
     <div class="text-center text-muted py-4">
-        No history found
+        ไม่พบประวัติการติดตาม
     </div>
 }
 </div>
@@ -197,6 +197,6 @@ else
     <a asp-action="Index"
        asp-route-projectId="@Model.ProjectId"
        class="btn btn-outline-secondary">
-        ← Back
+        กลับ
     </a>
 </div>

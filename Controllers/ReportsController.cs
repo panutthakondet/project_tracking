@@ -80,6 +80,17 @@ namespace ProjectTracking.Controllers
                     },
                     new()
                     {
+                        Group = "Project Phases",
+                        Title = "Pending & Next 2 Weeks Work",
+                        Description = "รายงาน List งานค้าง และงานที่จะทำใน 2 สัปดาห์ข้างหน้า รวม Assign Issue และ Support",
+                        Controller = "Reports",
+                        Action = "PendingWork",
+                        PermissionKey = "Reports.Index",
+                        Icon = "/images/menu-icons/workload.svg",
+                        Tone = "orange"
+                    },
+                    new()
+                    {
                         Group = "Test Scenario",
                         Title = "Test Scenario Report",
                         Description = "รายงาน Test Scenario ตามโครงการ กลุ่มทดสอบ สถานะ และระดับความสำคัญ",
@@ -146,6 +157,12 @@ namespace ProjectTracking.Controllers
             };
 
             return View(model);
+        }
+
+        [RequireMenu("Reports.Index")]
+        public async Task<IActionResult> PendingWork(int? projectId, int? empId, string? workType, string? section)
+        {
+            return View(await BuildPendingWorkReportAsync(projectId, empId, workType, section));
         }
 
         [RequireMenu("Reports.Executive")]
@@ -292,6 +309,312 @@ namespace ProjectTracking.Controllers
             };
 
             return View(model);
+        }
+
+        private async Task<PendingWorkReportViewModel> BuildPendingWorkReportAsync(int? projectId, int? empId, string? workType, string? section)
+        {
+            var today = DateTime.Today;
+            var horizonDate = today.AddDays(14);
+            var username = HttpContext.Session.GetString("Username") ?? "-";
+            var selectedWorkType = Norm(workType);
+            var selectedSection = Norm(section);
+
+            var projects = await _context.Projects
+                .Include(p => p.Coop)
+                .AsNoTracking()
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+
+            var projectOptions = projects
+                .Select(p => new ProjectReportOptionViewModel
+                {
+                    ProjectId = p.ProjectId,
+                    ProjectName = p.ProjectDisplayName,
+                    CoopName = p.Coop?.CoopName ?? ""
+                })
+                .ToList();
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .OrderBy(e => e.EmpName)
+                .Select(e => new EmployeeReportOptionViewModel
+                {
+                    EmpId = e.EmpId,
+                    EmpName = e.EmpName ?? "-"
+                })
+                .ToListAsync();
+
+            var assigns = await _context.PhaseAssigns
+                .Include(a => a.Employee)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.Project)
+                    .ThenInclude(p => p!.BA)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var issues = await _context.ProjectIssues
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(i => i.Employee)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var supportOrders = await _context.ProjectSupportOrders
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(o => o.Employee)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var rows = new List<PendingWorkReportRowViewModel>();
+
+            foreach (var assign in assigns.Where(a => Norm(a.WorkStatus) != "DONE"))
+            {
+                var phase = assign.Phase;
+                var project = phase?.Project;
+                var startDate = assign.PlanStart ?? phase?.PlanStart;
+                var dueDate = assign.PlanEnd ?? phase?.PlanEnd ?? phase?.PeriodEndDate;
+                var rowSection = PendingWorkSection(today, horizonDate, startDate, dueDate);
+                if (string.IsNullOrWhiteSpace(rowSection))
+                {
+                    continue;
+                }
+
+                rows.Add(new PendingWorkReportRowViewModel
+                {
+                    Section = rowSection,
+                    SectionText = PendingSectionText(rowSection),
+                    Tone = PendingTone(today, dueDate, rowSection),
+                    WorkType = "ASSIGN",
+                    WorkTypeText = "Assign",
+                    ProjectId = project?.ProjectId,
+                    CoopName = project?.Coop?.CoopName ?? "",
+                    ProjectName = project?.ProjectName ?? "-",
+                    Title = string.IsNullOrWhiteSpace(assign.Role) ? $"Assign #{assign.AssignId}" : assign.Role!,
+                    Detail = phase == null ? "-" : $"{phase.PhasePeriodLabel}: {phase.PhaseName}",
+                    OwnerEmpId = assign.EmpId,
+                    OwnerName = assign.Employee?.EmpName ?? "-",
+                    Status = string.IsNullOrWhiteSpace(assign.WorkStatus) ? "-" : assign.WorkStatus!,
+                    Priority = "-",
+                    StartDate = startDate,
+                    DueDate = dueDate,
+                    OverdueDays = DaysOverdue(today, dueDate),
+                    DaysUntilDue = DaysUntil(today, dueDate),
+                    TargetUrl = project?.ProjectId == null ? "/PhaseAssigns/Index" : $"/PhaseAssigns/Index?projectId={project.ProjectId}"
+                });
+            }
+
+            foreach (var issue in issues.Where(i => !IsIssueResolved(i)))
+            {
+                var startDate = issue.StartDate ?? issue.CreatedAt;
+                var dueDate = issue.EndDate;
+                var rowSection = PendingWorkSection(today, horizonDate, startDate, dueDate);
+                if (string.IsNullOrWhiteSpace(rowSection))
+                {
+                    continue;
+                }
+
+                rows.Add(new PendingWorkReportRowViewModel
+                {
+                    Section = rowSection,
+                    SectionText = PendingSectionText(rowSection),
+                    Tone = IsHighPriority(issue.IssuePriority) ? "danger" : PendingTone(today, dueDate, rowSection),
+                    WorkType = "ISSUE",
+                    WorkTypeText = "Issue",
+                    ProjectId = issue.ProjectId,
+                    CoopName = issue.Project?.Coop?.CoopName ?? "",
+                    ProjectName = issue.Project?.ProjectName ?? "-",
+                    Title = string.IsNullOrWhiteSpace(issue.IssueName) ? $"Issue #{issue.IssueId}" : issue.IssueName,
+                    Detail = CleanReportText(issue.IssueDetail),
+                    OwnerEmpId = issue.AssignTo,
+                    OwnerName = issue.Employee?.EmpName ?? "-",
+                    Status = $"Issue: {TextOrDash(issue.IssueStatus)} / Dev: {TextOrDash(issue.DevStatus)}",
+                    Priority = TextOrDash(issue.IssuePriority),
+                    StartDate = startDate,
+                    DueDate = dueDate,
+                    OverdueDays = DaysOverdue(today, dueDate),
+                    DaysUntilDue = DaysUntil(today, dueDate),
+                    TargetUrl = $"/ProjectIssues/Details/{issue.IssueId}"
+                });
+            }
+
+            foreach (var order in supportOrders.Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus)))
+            {
+                var startDate = order.StartDate ?? order.CreatedAt;
+                var dueDate = order.EndDate;
+                var rowSection = PendingWorkSection(today, horizonDate, startDate, dueDate);
+                if (string.IsNullOrWhiteSpace(rowSection))
+                {
+                    continue;
+                }
+
+                rows.Add(new PendingWorkReportRowViewModel
+                {
+                    Section = rowSection,
+                    SectionText = PendingSectionText(rowSection),
+                    Tone = IsHighPriority(order.Priority) ? "danger" : PendingTone(today, dueDate, rowSection),
+                    WorkType = "SUPPORT",
+                    WorkTypeText = "Support",
+                    ProjectId = order.ProjectId,
+                    CoopName = order.Project?.Coop?.CoopName ?? "",
+                    ProjectName = order.Project?.ProjectName ?? "-",
+                    Title = string.IsNullOrWhiteSpace(order.OrderTitle) ? $"Support #{order.OrderId}" : order.OrderTitle!,
+                    Detail = CleanReportText(order.OrderDetail),
+                    OwnerEmpId = order.AssignTo,
+                    OwnerName = order.Employee?.EmpName ?? "-",
+                    Status = $"Status: {TextOrDash(order.Status)} / Dev: {TextOrDash(order.DevStatus)}",
+                    Priority = TextOrDash(order.Priority),
+                    StartDate = startDate,
+                    DueDate = dueDate,
+                    OverdueDays = DaysOverdue(today, dueDate),
+                    DaysUntilDue = DaysUntil(today, dueDate),
+                    TargetUrl = $"/SupportOrders/Details/{order.OrderId}"
+                });
+            }
+
+            rows = rows
+                .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
+                .Where(r => !empId.HasValue || r.OwnerEmpId == empId.Value)
+                .Where(r => string.IsNullOrWhiteSpace(selectedWorkType) || r.WorkType == selectedWorkType)
+                .Where(r => string.IsNullOrWhiteSpace(selectedSection) || r.Section == selectedSection)
+                .OrderBy(r => PendingSectionOrder(r.Section))
+                .ThenBy(r => r.DueDate ?? r.StartDate ?? DateTime.MaxValue)
+                .ThenBy(r => r.ProjectName)
+                .ThenBy(r => PendingWorkTypeOrder(r.WorkType))
+                .ThenBy(r => r.WorkTypeText)
+                .ThenBy(r => r.Title)
+                .ToList();
+
+            var seq = 1;
+            foreach (var row in rows)
+            {
+                row.Seq = seq++;
+            }
+
+            return new PendingWorkReportViewModel
+            {
+                GeneratedAt = DateTime.Now,
+                GeneratedBy = username,
+                Today = today,
+                HorizonDate = horizonDate,
+                ProjectId = projectId,
+                EmpId = empId,
+                WorkType = selectedWorkType,
+                Section = selectedSection,
+                ProjectOptions = projectOptions,
+                EmployeeOptions = employees,
+                Summary = new PendingWorkSummaryViewModel
+                {
+                    Total = rows.Count,
+                    Overdue = rows.Count(r => r.Section == "OVERDUE"),
+                    Upcoming = rows.Count(r => r.Section == "UPCOMING"),
+                    Projects = rows.Where(r => r.ProjectId.HasValue).Select(r => r.ProjectId!.Value).Distinct().Count(),
+                    Owners = rows.Where(r => r.OwnerEmpId.HasValue).Select(r => r.OwnerEmpId!.Value).Distinct().Count(),
+                    Assigns = rows.Count(r => r.WorkType == "ASSIGN"),
+                    Issues = rows.Count(r => r.WorkType == "ISSUE"),
+                    SupportOrders = rows.Count(r => r.WorkType == "SUPPORT")
+                },
+                Rows = rows
+            };
+        }
+
+        private static string PendingWorkSection(DateTime today, DateTime horizonDate, DateTime? startDate, DateTime? dueDate)
+        {
+            if (dueDate.HasValue && dueDate.Value.Date < today.Date)
+            {
+                return "OVERDUE";
+            }
+
+            var start = (startDate ?? dueDate)?.Date;
+            var end = (dueDate ?? startDate)?.Date;
+
+            if (!start.HasValue || !end.HasValue)
+            {
+                return "";
+            }
+
+            return start.Value <= horizonDate.Date && end.Value >= today.Date
+                ? "UPCOMING"
+                : "";
+        }
+
+        private static string PendingSectionText(string section)
+        {
+            return Norm(section) switch
+            {
+                "OVERDUE" => "งานค้าง",
+                "UPCOMING" => "งานที่จะทำใน 2 สัปดาห์",
+                _ => "-"
+            };
+        }
+
+        private static int PendingSectionOrder(string section)
+        {
+            return Norm(section) switch
+            {
+                "OVERDUE" => 0,
+                "UPCOMING" => 1,
+                _ => 9
+            };
+        }
+
+        private static int PendingWorkTypeOrder(string workType)
+        {
+            return Norm(workType) switch
+            {
+                "ASSIGN" => 0,
+                "ISSUE" => 1,
+                "SUPPORT" => 2,
+                _ => 9
+            };
+        }
+
+        private static string PendingTone(DateTime today, DateTime? dueDate, string section)
+        {
+            if (Norm(section) == "OVERDUE")
+            {
+                return "danger";
+            }
+
+            if (dueDate.HasValue && dueDate.Value.Date <= today.Date.AddDays(3))
+            {
+                return "warning";
+            }
+
+            return "info";
+        }
+
+        private static int DaysUntil(DateTime today, DateTime? dueDate)
+        {
+            return dueDate.HasValue
+                ? (dueDate.Value.Date - today.Date).Days
+                : 0;
+        }
+
+        private static string TextOrDash(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+        }
+
+        private static string CleanReportText(string? value, int maxLength = 140)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "-";
+            }
+
+            var cleaned = string.Join(" ", value
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            return cleaned.Length <= maxLength
+                ? cleaned
+                : cleaned[..maxLength].TrimEnd() + "...";
         }
 
         private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync()

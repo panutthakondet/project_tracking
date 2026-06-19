@@ -1,0 +1,600 @@
+@model ProjectTracking.ViewModels.PendingWorkReportViewModel
+@using System.Globalization
+
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var report = Model ?? new ProjectTracking.ViewModels.PendingWorkReportViewModel();
+
+    string DateText(DateTime? value)
+    {
+        return value?.ToString("dd MMM yyyy", th) ?? "-";
+    }
+
+    string SectionName(string? section)
+    {
+        return (section ?? "").Trim().ToUpperInvariant() switch
+        {
+            "OVERDUE" => "งานค้าง",
+            "UPCOMING" => "งานที่จะทำใน 2 สัปดาห์ข้างหน้า",
+            _ => "ทั้งหมด"
+        };
+    }
+
+    int SectionOrder(string? section)
+    {
+        return (section ?? "").Trim().ToUpperInvariant() switch
+        {
+            "OVERDUE" => 0,
+            "UPCOMING" => 1,
+            _ => 9
+        };
+    }
+
+    int WorkTypeOrder(string? type)
+    {
+        return (type ?? "").Trim().ToUpperInvariant() switch
+        {
+            "ASSIGN" => 0,
+            "ISSUE" => 1,
+            "SUPPORT" => 2,
+            _ => 9
+        };
+    }
+
+    string SectionCssClass(string? section)
+    {
+        return string.Equals((section ?? "").Trim(), "UPCOMING", StringComparison.OrdinalIgnoreCase)
+            ? "report-section section-upcoming"
+            : "report-section";
+    }
+
+    string DueText(ProjectTracking.ViewModels.PendingWorkReportRowViewModel row)
+    {
+        if (row.Section == "OVERDUE")
+        {
+            return row.OverdueDays > 0 ? $"ค้าง {row.OverdueDays:N0} วัน" : "ค้าง";
+        }
+
+        if (row.DueDate.HasValue)
+        {
+            return row.DaysUntilDue == 0 ? "ครบกำหนดวันนี้" : $"อีก {row.DaysUntilDue:N0} วัน";
+        }
+
+        return "-";
+    }
+
+    var sectionOptions = new[]
+    {
+        new { Value = "", Text = "ทั้งหมด" },
+        new { Value = "OVERDUE", Text = "งานค้าง" },
+        new { Value = "UPCOMING", Text = "งานที่จะทำใน 2 สัปดาห์" }
+    };
+
+    var workTypeOptions = new[]
+    {
+        new { Value = "", Text = "ทุกประเภท" },
+        new { Value = "ASSIGN", Text = "Assign" },
+        new { Value = "ISSUE", Text = "Issue" },
+        new { Value = "SUPPORT", Text = "Support" }
+    };
+
+    var sectionGroups = report.Rows
+        .GroupBy(x => x.Section)
+        .OrderBy(x => SectionOrder(x.Key))
+        .Select(sectionGroup => new
+        {
+            Section = sectionGroup.Key,
+            Count = sectionGroup.Count(),
+            WorkTypeGroups = sectionGroup
+                .GroupBy(x => x.WorkType)
+                .OrderBy(x => WorkTypeOrder(x.Key))
+                .ThenBy(x => x.First().WorkTypeText)
+                .Select(workTypeGroup => new
+                {
+                    WorkType = workTypeGroup.Key,
+                    WorkTypeText = workTypeGroup.First().WorkTypeText,
+                    Count = workTypeGroup.Count(),
+                    CoopGroups = workTypeGroup
+                        .GroupBy(x => string.IsNullOrWhiteSpace(x.CoopName) ? "ไม่ระบุสหกรณ์" : x.CoopName)
+                        .OrderBy(x => x.Key)
+                        .Select(coopGroup => new
+                        {
+                            CoopName = coopGroup.Key,
+                            Count = coopGroup.Count(),
+                            Rows = coopGroup
+                                .OrderBy(x => x.DueDate ?? x.StartDate ?? DateTime.MaxValue)
+                                .ThenBy(x => x.ProjectName)
+                                .ThenBy(x => x.Title)
+                                .ToList()
+                        })
+                        .ToList()
+                })
+                .ToList()
+        })
+        .ToList();
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>Pending & Next 2 Weeks Work</title>
+    <style>
+        @@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap");
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 16px;
+            color: #10233f;
+            background: #fff;
+            font-family: "Prompt", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            text-rendering: auto;
+            -webkit-font-smoothing: auto;
+        }
+        body :where(*):not(svg):not(svg *) {
+            font-family: "Prompt", "Noto Sans Thai", Tahoma, Arial, sans-serif !important;
+            letter-spacing: 0 !important;
+            text-shadow: none !important;
+            font-variation-settings: normal !important;
+            -webkit-text-stroke: 0 transparent !important;
+        }
+        .report-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 13px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+        .print-header {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            background: #102443;
+        }
+        .print-header h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .print-header div {
+            color: rgba(255,255,255,.86);
+            font-weight: 400;
+            line-height: 1.55;
+        }
+        .filter-panel {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.1fr) minmax(200px, .8fr) minmax(150px, .55fr) minmax(190px, .7fr) auto auto;
+            align-items: end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid #d8e3ef;
+            background: #f8fbff;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .field select {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 400;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .kpi {
+            padding: 10px;
+            border: 1px solid #d8e3ef;
+            border-left: 4px solid #14b8a6;
+            background: #fff;
+        }
+        .kpi.danger { border-left-color: #ef4444; }
+        .kpi.warning { border-left-color: #f59e0b; }
+        .kpi.info { border-left-color: #258cfb; }
+        .kpi span,
+        .kpi small {
+            display: block;
+            color: #64748b;
+            font-weight: 400;
+        }
+        .kpi strong {
+            display: block;
+            margin: 5px 0;
+            color: #10233f;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 14px 0 8px;
+            color: #10233f;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .section-title small {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 400;
+        }
+        .coop-group {
+            margin: 10px 0 14px;
+            border: 1px solid #d8e3ef;
+            background: #fff;
+        }
+        .coop-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 10px;
+            color: #0f172a;
+            background: #f8fbff;
+            border-bottom: 1px solid #d8e3ef;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .coop-title small {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 400;
+        }
+        .work-type-group {
+            padding: 8px 10px 10px;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .work-type-group:last-child {
+            border-bottom: 0;
+        }
+        .work-type-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 0 7px;
+            color: #0f766e;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .work-type-title small {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 400;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 0;
+        }
+        th {
+            padding: 7px 6px;
+            color: #fff;
+            background: #102443;
+            border: 1px solid rgba(255,255,255,.18);
+            font-weight: 700;
+            text-align: center;
+        }
+        td {
+            padding: 7px 6px;
+            border: 1px solid #d8e3ef;
+            line-height: 1.45;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+            font-weight: 400;
+        }
+        tr:nth-child(even) td { background: #f8fbff; }
+        .text-center { text-align: center; }
+        .cell-label {
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .cell-muted {
+            color: #64748b;
+            font-weight: 400;
+        }
+        .cell-title {
+            display: block;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .cell-detail {
+            display: block;
+            margin-top: 3px;
+            color: #334155;
+            font-weight: 400;
+        }
+        .tone {
+            display: inline;
+            font-weight: 700;
+        }
+        .tone.danger { color: #dc2626; }
+        .tone.warning { color: #d97706; }
+        .tone.info { color: #0f766e; }
+        .work-link {
+            color: #0f766e;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .work-link:hover {
+            text-decoration: underline;
+        }
+        .empty {
+            padding: 18px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+            font-weight: 700;
+        }
+        @@page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        @@media (max-width: 1100px) {
+            .filter-panel,
+            .kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @@media print {
+            body { padding: 0; }
+            .report-actions,
+            .filter-panel { display: none; }
+            .section-upcoming {
+                break-before: page;
+                page-break-before: always;
+            }
+            .print-header {
+                color: #000 !important;
+                background: #fff !important;
+                border: 1px solid #000 !important;
+            }
+            .print-header h1,
+            .print-header div {
+                color: #000 !important;
+            }
+            th {
+                color: #000 !important;
+                background: #fff !important;
+                border-color: #000 !important;
+            }
+            thead { display: table-header-group; }
+            tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .section-title,
+            .coop-title,
+            .work-type-title {
+                break-after: avoid-page;
+                page-break-after: avoid;
+            }
+            .coop-group {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+            table {
+                break-before: avoid-page;
+                page-break-before: avoid;
+            }
+            a { color: #10233f; text-decoration: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-actions">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-action="Index" class="report-btn">Report Center</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+    </div>
+
+    <header class="print-header">
+        <h1>รายงานงานค้าง และงานที่จะทำใน 2 สัปดาห์ข้างหน้า</h1>
+        <div>
+            ช่วงวันที่ @DateText(report.Today) - @DateText(report.HorizonDate)<br />
+            ข้อมูล ณ @report.GeneratedAt.ToString("dd MMM yyyy HH:mm", th) | ผู้พิมพ์: @(string.IsNullOrWhiteSpace(report.GeneratedBy) ? "-" : report.GeneratedBy)
+        </div>
+    </header>
+
+    <form method="get" asp-action="PendingWork" class="filter-panel">
+        <div class="field">
+            <label for="projectId">โครงการ</label>
+            <select id="projectId" name="projectId">
+                <option value="">ทุกโครงการ</option>
+                @foreach (var project in report.ProjectOptions)
+                {
+                    <option value="@project.ProjectId" selected="@(report.ProjectId == project.ProjectId ? "selected" : null)">
+                        @project.ProjectName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="empId">ผู้รับผิดชอบ</label>
+            <select id="empId" name="empId">
+                <option value="">ทุกคน</option>
+                @foreach (var employee in report.EmployeeOptions)
+                {
+                    <option value="@employee.EmpId" selected="@(report.EmpId == employee.EmpId ? "selected" : null)">
+                        @employee.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="workType">ประเภทงาน</label>
+            <select id="workType" name="workType">
+                @foreach (var option in workTypeOptions)
+                {
+                    <option value="@option.Value" selected="@(string.Equals(report.WorkType, option.Value, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @option.Text
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="section">หมวดงาน</label>
+            <select id="section" name="section">
+                @foreach (var option in sectionOptions)
+                {
+                    <option value="@option.Value" selected="@(string.Equals(report.Section, option.Value, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @option.Text
+                    </option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="report-btn primary">ค้นหา</button>
+        <a asp-action="PendingWork" class="report-btn">ล้างค่า</a>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi">
+            <span>ทั้งหมด</span>
+            <strong>@report.Summary.Total.ToString("N0")</strong>
+            <small>รายการในรายงาน</small>
+        </article>
+        <article class="kpi danger">
+            <span>งานค้าง</span>
+            <strong>@report.Summary.Overdue.ToString("N0")</strong>
+            <small>เลยกำหนดและยังไม่ปิด</small>
+        </article>
+        <article class="kpi info">
+            <span>2 สัปดาห์</span>
+            <strong>@report.Summary.Upcoming.ToString("N0")</strong>
+            <small>อยู่ในช่วง @DateText(report.Today) - @DateText(report.HorizonDate)</small>
+        </article>
+        <article class="kpi">
+            <span>โครงการ</span>
+            <strong>@report.Summary.Projects.ToString("N0")</strong>
+            <small>โครงการที่เกี่ยวข้อง</small>
+        </article>
+        <article class="kpi">
+            <span>ผู้รับผิดชอบ</span>
+            <strong>@report.Summary.Owners.ToString("N0")</strong>
+            <small>คนที่มีงานในรายงาน</small>
+        </article>
+        <article class="kpi warning">
+            <span>Issue / Support</span>
+            <strong>@((report.Summary.Issues + report.Summary.SupportOrders).ToString("N0"))</strong>
+            <small>Issue @report.Summary.Issues.ToString("N0") / Support @report.Summary.SupportOrders.ToString("N0")</small>
+        </article>
+    </section>
+
+    @if (!report.Rows.Any())
+    {
+        <div class="empty">ไม่พบงานตามเงื่อนไขที่เลือก</div>
+    }
+    else
+    {
+        foreach (var sectionGroup in sectionGroups)
+        {
+            <section class="@SectionCssClass(sectionGroup.Section)">
+                <h2 class="section-title">
+                    <span>@SectionName(sectionGroup.Section)</span>
+                    <small>@sectionGroup.Count.ToString("N0") รายการ</small>
+                </h2>
+                @foreach (var workTypeGroup in sectionGroup.WorkTypeGroups)
+                {
+                    <div class="work-type-group">
+                        <h3 class="work-type-title">
+                            <span>ประเภทงาน: @workTypeGroup.WorkTypeText</span>
+                            <small>@workTypeGroup.Count.ToString("N0") รายการ</small>
+                        </h3>
+                        @foreach (var coopGroup in workTypeGroup.CoopGroups)
+                        {
+                            <div class="coop-group">
+                                <div class="coop-title">
+                                    <span>สหกรณ์: @coopGroup.CoopName</span>
+                                    <small>@coopGroup.Count.ToString("N0") รายการ</small>
+                                </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width:38px;">#</th>
+                                            <th style="width:190px;">โครงการ</th>
+                                            <th>งาน / รายละเอียด</th>
+                                            <th style="width:135px;">ผู้รับผิดชอบ</th>
+                                            <th style="width:128px;">วันที่</th>
+                                            <th style="width:130px;">สถานะ</th>
+                                            <th style="width:72px;">ลิงก์</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in coopGroup.Rows)
+                                        {
+                                            <tr>
+                                                <td class="text-center">@row.Seq</td>
+                                                <td>@(string.IsNullOrWhiteSpace(row.ProjectName) ? "-" : row.ProjectName)</td>
+                                                <td>
+                                                    <span class="cell-title">@row.Title</span>
+                                                    <span class="cell-detail">@row.Detail</span>
+                                                </td>
+                                                <td>@(string.IsNullOrWhiteSpace(row.OwnerName) ? "-" : row.OwnerName)</td>
+                                                <td>
+                                                    <span class="cell-label">เริ่ม:</span> <span>@DateText(row.StartDate)</span><br />
+                                                    <span class="cell-label">กำหนด:</span> <span>@DateText(row.DueDate)</span><br />
+                                                    <span class="tone @row.Tone">@DueText(row)</span>
+                                                </td>
+                                                <td>
+                                                    <span>@row.Status</span>
+                                                    @if (!string.IsNullOrWhiteSpace(row.Priority) && row.Priority != "-")
+                                                    {
+                                                        <br />
+                                                        <span class="cell-label">ความสำคัญ:</span> <span>@row.Priority</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (!string.IsNullOrWhiteSpace(row.TargetUrl))
+                                                    {
+                                                        <a class="work-link" href="@row.TargetUrl" target="_blank" rel="noopener noreferrer">เปิด</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="cell-muted">-</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    }
+</body>
+</html>
