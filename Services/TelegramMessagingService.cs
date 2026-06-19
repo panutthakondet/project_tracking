@@ -12,6 +12,7 @@ namespace ProjectTracking.Services
 
     public class TelegramMessagingService
     {
+        private const int MaxTelegramAttempts = 3;
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
@@ -249,46 +250,54 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken,
             bool throwOnFailure)
         {
-            using var form = new MultipartFormDataContent();
-            form.Add(new StringContent(chatId), "chat_id");
-
-            if (!string.IsNullOrWhiteSpace(caption))
-                form.Add(new StringContent(TrimTelegramCaption(caption)), "caption");
-
-            if (!string.IsNullOrWhiteSpace(targetUrl))
+            for (var attempt = 1; attempt <= MaxTelegramAttempts; attempt++)
             {
-                var replyMarkup = new
+                using var form = new MultipartFormDataContent();
+                form.Add(new StringContent(chatId), "chat_id");
+
+                if (!string.IsNullOrWhiteSpace(caption))
+                    form.Add(new StringContent(TrimTelegramCaption(caption)), "caption");
+
+                if (!string.IsNullOrWhiteSpace(targetUrl))
                 {
-                    inline_keyboard = new[]
+                    var replyMarkup = new
                     {
-                        new[]
+                        inline_keyboard = new[]
                         {
-                            new
+                            new[]
                             {
-                                text = "เปิดรายละเอียด",
-                                url = targetUrl
+                                new
+                                {
+                                    text = "เปิดรายละเอียด",
+                                    url = targetUrl
+                                }
                             }
                         }
-                    }
-                };
+                    };
 
-                form.Add(new StringContent(JsonSerializer.Serialize(replyMarkup, JsonOptions)), "reply_markup");
-            }
+                    form.Add(new StringContent(JsonSerializer.Serialize(replyMarkup, JsonOptions)), "reply_markup");
+                }
 
-            using var fileContent = new ByteArrayContent(attachment.Content);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
-                string.IsNullOrWhiteSpace(attachment.ContentType)
-                    ? "application/octet-stream"
-                    : attachment.ContentType);
-            form.Add(fileContent, "document", string.IsNullOrWhiteSpace(attachment.FileName) ? "attachment.ics" : attachment.FileName);
+                using var fileContent = new ByteArrayContent(attachment.Content);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                    string.IsNullOrWhiteSpace(attachment.ContentType)
+                        ? "application/octet-stream"
+                        : attachment.ContentType);
+                form.Add(fileContent, "document", string.IsNullOrWhiteSpace(attachment.FileName) ? "attachment.ics" : attachment.FileName);
 
-            using var response = await _httpClient.PostAsync(TelegramEndpoint("sendDocument"), form, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
+                using var response = await _httpClient.PostAsync(TelegramEndpoint("sendDocument"), form, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                    return;
+
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (await TryDelayForTelegramRateLimitAsync(response, body, attempt, cancellationToken))
+                    continue;
+
                 _logger.LogWarning("Telegram document request failed. Status={StatusCode}, Body={Body}", response.StatusCode, body);
                 if (throwOnFailure)
                     throw new InvalidOperationException($"Telegram document request failed. Status={(int)response.StatusCode}, Body={body}");
+
+                return;
             }
         }
 
@@ -298,20 +307,74 @@ namespace ProjectTracking.Services
             CancellationToken cancellationToken,
             bool throwOnFailure)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, TelegramEndpoint(method));
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(payload, JsonOptions),
-                Encoding.UTF8,
-                "application/json");
-
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            for (var attempt = 1; attempt <= MaxTelegramAttempts; attempt++)
             {
+                using var request = new HttpRequestMessage(HttpMethod.Post, TelegramEndpoint(method));
+                request.Content = new StringContent(
+                    JsonSerializer.Serialize(payload, JsonOptions),
+                    Encoding.UTF8,
+                    "application/json");
+
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                    return;
+
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                if (await TryDelayForTelegramRateLimitAsync(response, body, attempt, cancellationToken))
+                    continue;
+
                 _logger.LogWarning("Telegram API request failed. Method={Method}, Status={StatusCode}, Body={Body}", method, response.StatusCode, body);
                 if (throwOnFailure)
                     throw new InvalidOperationException($"Telegram API request failed. Method={method}, Status={(int)response.StatusCode}, Body={body}");
+
+                return;
             }
+        }
+
+        private async Task<bool> TryDelayForTelegramRateLimitAsync(
+            HttpResponseMessage response,
+            string body,
+            int attempt,
+            CancellationToken cancellationToken)
+        {
+            if ((int)response.StatusCode != 429 || attempt >= MaxTelegramAttempts)
+                return false;
+
+            var retryAfter = ReadTelegramRetryAfter(body);
+            if (retryAfter <= 0)
+                retryAfter = 1;
+
+            _logger.LogWarning(
+                "Telegram rate limit hit. Retrying after {RetryAfterSeconds}s. Attempt={Attempt}/{MaxAttempts}",
+                retryAfter,
+                attempt,
+                MaxTelegramAttempts);
+
+            await Task.Delay(TimeSpan.FromSeconds(retryAfter), cancellationToken);
+            return true;
+        }
+
+        private static int ReadTelegramRetryAfter(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return 0;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("parameters", out var parameters)
+                    && parameters.TryGetProperty("retry_after", out var retryAfter)
+                    && retryAfter.TryGetInt32(out var seconds))
+                {
+                    return seconds;
+                }
+            }
+            catch (JsonException)
+            {
+                return 0;
+            }
+
+            return 0;
         }
 
         private string TelegramEndpoint(string method)

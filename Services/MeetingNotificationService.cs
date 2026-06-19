@@ -141,7 +141,7 @@ namespace ProjectTracking.Services
 
             foreach (var recipient in recipients)
             {
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken))
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -163,6 +163,7 @@ namespace ProjectTracking.Services
                         BuildCreatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: new[] { attachment });
 
+                    await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedEmailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -206,7 +207,7 @@ namespace ProjectTracking.Services
             var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var recipient in emailRecipients)
             {
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken))
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -226,6 +227,7 @@ namespace ProjectTracking.Services
                         BuildUpdatedEmailBody(meeting, recipient.DisplayName, detailUrl),
                         attachments: attachment == null ? null : new[] { attachment });
 
+                    await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, emailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -247,6 +249,12 @@ namespace ProjectTracking.Services
                 var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var recipient in lineRecipients)
                 {
+                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
                     var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
                         recipient.EmpId,
                         cancellationToken);
@@ -259,12 +267,6 @@ namespace ProjectTracking.Services
                     var unsentLineUserIds = lineUserIds
                         .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
                         .ToList();
-
-                    if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken))
-                    {
-                        skipped++;
-                        continue;
-                    }
 
                     if (unsentLineUserIds.Count == 0)
                     {
@@ -284,6 +286,7 @@ namespace ProjectTracking.Services
 
                         if (lineSendCount > 0)
                         {
+                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, lineKind, cancellationToken);
                             sent += lineSendCount;
                         }
                         else
@@ -312,6 +315,12 @@ namespace ProjectTracking.Services
             var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var recipient in telegramRecipients)
             {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
@@ -324,12 +333,6 @@ namespace ProjectTracking.Services
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken))
-                {
-                    skipped++;
-                    continue;
-                }
 
                 if (unsentChatIds.Count == 0)
                 {
@@ -350,6 +353,7 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
+                        await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, telegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -399,6 +403,12 @@ namespace ProjectTracking.Services
 
             foreach (var recipient in recipients)
             {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
@@ -411,12 +421,6 @@ namespace ProjectTracking.Services
                 var unsentLineUserIds = lineUserIds
                     .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
                     .ToList();
-
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken))
-                {
-                    skipped++;
-                    continue;
-                }
 
                 if (unsentLineUserIds.Count == 0)
                 {
@@ -436,6 +440,7 @@ namespace ProjectTracking.Services
 
                     if (lineSendCount > 0)
                     {
+                        await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedLineKind, cancellationToken);
                         sent += lineSendCount;
                     }
                     else
@@ -487,6 +492,12 @@ namespace ProjectTracking.Services
 
             foreach (var recipient in recipients)
             {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
@@ -499,12 +510,6 @@ namespace ProjectTracking.Services
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken))
-                {
-                    skipped++;
-                    continue;
-                }
 
                 if (unsentChatIds.Count == 0)
                 {
@@ -525,6 +530,7 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
+                        await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CreatedTelegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -567,7 +573,7 @@ namespace ProjectTracking.Services
             var notifiedEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var recipient in emailRecipients)
             {
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken))
                 {
                     skipped++;
                     continue;
@@ -586,6 +592,7 @@ namespace ProjectTracking.Services
                         $"ยกเลิกประชุม: {meeting.Title}",
                         BuildCancelledEmailBody(meeting, recipient.DisplayName, detailUrl));
 
+                    await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledEmailKind, cancellationToken);
                     sent++;
                 }
                 catch (Exception ex)
@@ -607,6 +614,12 @@ namespace ProjectTracking.Services
                 var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var recipient in lineRecipients)
                 {
+                    if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
                     var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
                         recipient.EmpId,
                         cancellationToken);
@@ -619,12 +632,6 @@ namespace ProjectTracking.Services
                     var unsentLineUserIds = lineUserIds
                         .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
                         .ToList();
-
-                    if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken))
-                    {
-                        skipped++;
-                        continue;
-                    }
 
                     if (unsentLineUserIds.Count == 0)
                     {
@@ -644,6 +651,7 @@ namespace ProjectTracking.Services
 
                         if (lineSendCount > 0)
                         {
+                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledLineKind, cancellationToken);
                             sent += lineSendCount;
                         }
                         else
@@ -672,6 +680,12 @@ namespace ProjectTracking.Services
             var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var recipient in telegramRecipients)
             {
+                if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                     recipient.EmpId,
                     cancellationToken);
@@ -684,12 +698,6 @@ namespace ProjectTracking.Services
                 var unsentChatIds = chatIds
                     .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                     .ToList();
-
-                if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken))
-                {
-                    skipped++;
-                    continue;
-                }
 
                 if (unsentChatIds.Count == 0)
                 {
@@ -710,6 +718,7 @@ namespace ProjectTracking.Services
 
                     if (telegramSendCount > 0)
                     {
+                        await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, CancelledTelegramKind, cancellationToken);
                         sent += telegramSendCount;
                     }
                     else
@@ -776,6 +785,12 @@ namespace ProjectTracking.Services
                     var notifiedLineUserIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var recipient in recipients)
                     {
+                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         var lineUserIds = await _lineMessagingService.GetActiveLineUserIdsForEmployeeAsync(
                             recipient.EmpId,
                             cancellationToken);
@@ -788,12 +803,6 @@ namespace ProjectTracking.Services
                         var unsentLineUserIds = lineUserIds
                             .Where(lineUserId => notifiedLineUserIds.Add(lineUserId))
                             .ToList();
-
-                        if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
-                        {
-                            skipped++;
-                            continue;
-                        }
 
                         if (unsentLineUserIds.Count == 0)
                         {
@@ -817,6 +826,7 @@ namespace ProjectTracking.Services
 
                             if (lineSendCount > 0)
                             {
+                                await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
                                 sent += lineSendCount;
                             }
                             else
@@ -892,6 +902,12 @@ namespace ProjectTracking.Services
                     var notifiedTelegramChatIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var recipient in recipients)
                     {
+                        if (await HasNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         var chatIds = await _telegramMessagingService.GetActiveTelegramChatIdsForEmployeeAsync(
                             recipient.EmpId,
                             cancellationToken);
@@ -904,12 +920,6 @@ namespace ProjectTracking.Services
                         var unsentChatIds = chatIds
                             .Where(chatId => notifiedTelegramChatIds.Add(chatId))
                             .ToList();
-
-                        if (!await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken))
-                        {
-                            skipped++;
-                            continue;
-                        }
 
                         if (unsentChatIds.Count == 0)
                         {
@@ -934,6 +944,7 @@ namespace ProjectTracking.Services
 
                             if (telegramSendCount > 0)
                             {
+                                await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
                                 sent += telegramSendCount;
                             }
                             else
@@ -1050,6 +1061,19 @@ VALUES(@mid, @aid, @kind, NOW());";
 
             return affected > 0;
         }
+
+        private static Task<bool> HasNotificationLogAsync(
+            AppDbContext db,
+            int meetingId,
+            int attendeeId,
+            string kind,
+            CancellationToken cancellationToken)
+            => db.MeetingEmailNotifications
+                .AsNoTracking()
+                .AnyAsync(x => x.MeetingId == meetingId
+                    && x.AttendeeId == attendeeId
+                    && x.Kind == kind,
+                    cancellationToken);
 
         private static Task<bool> HasActiveLineRecipientAsync(
             AppDbContext db,

@@ -376,10 +376,11 @@ namespace ProjectTracking.Controllers
                 await _context.SaveChangesAsync();
                 createdMeetingId = model.Id;
 
-                var selectedUserIds = (users ?? new List<int>())
-                    .Where(uid => uid > 0)
-                    .Distinct()
-                    .ToList();
+                var selectedUserIds = ReadSelectedMeetingUsers(users);
+                _logger.LogInformation(
+                    "Creating meeting with {AttendeeCount} attendee(s). RawUsers={RawUsers}",
+                    selectedUserIds.Count,
+                    string.Join(",", selectedUserIds));
 
                 if (selectedUserIds.Count > 0)
                 {
@@ -415,6 +416,10 @@ namespace ProjectTracking.Controllers
                 {
                     TempData["Success"] = $"สร้าง Meeting สำเร็จ และส่งแจ้งเตือนแล้ว {notifyResult.SentCount} รายการ";
                 }
+                else if (notifyResult.SkippedCount > 0)
+                {
+                    TempData["Error"] = $"สร้าง Meeting สำเร็จ แต่ไม่มีรายการแจ้งเตือนที่ส่งออก ({notifyResult.SkippedCount} รายการถูกข้าม: อาจเคยส่งแล้วหรือยังไม่ได้ผูก Email/LINE/Telegram)";
+                }
             }
             catch (Exception ex)
             {
@@ -423,6 +428,28 @@ namespace ProjectTracking.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        private List<int> ReadSelectedMeetingUsers(List<int>? boundUsers)
+        {
+            var userIds = new List<int>();
+
+            if (boundUsers != null)
+                userIds.AddRange(boundUsers);
+
+            if (Request.HasFormContentType)
+            {
+                foreach (var raw in Request.Form["users"])
+                {
+                    if (int.TryParse(raw, out var userId))
+                        userIds.Add(userId);
+                }
+            }
+
+            return userIds
+                .Where(uid => uid > 0)
+                .Distinct()
+                .ToList();
         }
 
         [RequireMenu("Meetings.Edit")]
