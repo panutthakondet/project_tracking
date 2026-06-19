@@ -98,6 +98,7 @@
             <th style="width:60px; text-align:center;">No.</th>
             <th style="text-align:center;">Task</th>
             <th style="text-align:center;">Partner</th>
+            <th style="text-align:center;">ผู้สั่งงาน</th>
             <th style="text-align:center;">Owner</th>
             <th style="text-align:center;">Next Follow-up</th>
             <th style="text-align:center;">Last Contact</th>
@@ -125,6 +126,7 @@
             <td>@no</td>
             <td>@item.TaskTitle</td>
             <td>@item.PartnerName</td>
+            <td>@(item.CreatedByEmployee?.EmpName ?? "-")</td>
             <td>@item.Owner?.EmpName</td>
             <td>@item.NextFollowupDate?.ToString("dd/MM/yyyy")</td>
             <td>
@@ -279,6 +281,11 @@
             <div class="followup-info-row">
                 <span class="followup-label">Owner</span>
                 <span>@item.Owner?.EmpName</span>
+            </div>
+
+            <div class="followup-info-row">
+                <span class="followup-label">ผู้สั่งงาน</span>
+                <span>@(item.CreatedByEmployee?.EmpName ?? "-")</span>
             </div>
 
             <div class="followup-info-row">

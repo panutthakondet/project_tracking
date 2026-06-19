@@ -202,6 +202,7 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
+await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);
@@ -452,6 +453,57 @@ static async Task EnsureUserNotificationTableAsync(IServiceProvider services)
               KEY `idx_user_notifications_source` (`source_type`,`source_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectFollowupCreatedByColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_followups';";
+
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_followups'
+              AND COLUMN_NAME = 'created_by_emp_id';";
+
+        var hasCreatedBy = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasCreatedBy)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project_followups`
+                  ADD COLUMN `created_by_emp_id` int(11) NULL AFTER `owner_emp_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `project_followups`
+            SET `status` = 'OPEN'
+            WHERE `status` = 'IN_PROGRESS';";
         await command.ExecuteNonQueryAsync();
     }
     finally

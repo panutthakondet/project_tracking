@@ -326,7 +326,7 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectId = issue.ProjectId;
             ViewBag.ProjectName = issue.Project?.ProjectDisplayName;
             ViewBag.Employees = GetEmployeeList(issue.AssignTo);
-            ViewBag.StatusList = GetStatusList(issue.IssueStatus);
+            ViewBag.StatusList = GetStatusList(issue.IssueStatus, includeOpen: false);
 
             return View(issue);
         }
@@ -349,21 +349,32 @@ namespace ProjectTracking.Controllers
             ApplyIssueDateInput(model);
             ValidateIssueDateRange(model, requireDates: true);
 
+            var oldStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
+            var newStatus = NormalizeTesterIssueStatus(model.IssueStatus, oldStatus);
+            var currentDevStatus = NormalizeProgrammerDevStatus(issue.DevStatus);
+            var shouldNotifyAssigneeBaResult =
+                !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase)
+                && IsBaResultStatus(newStatus);
+            if (RequiresFixedDevStatusForBaResult(newStatus) && currentDevStatus != "FIXED")
+            {
+                ModelState.AddModelError(
+                    nameof(ProjectIssue.IssueStatus),
+                    "ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewBag.ProjectId = model.ProjectId;
                 ViewBag.ProjectName = await GetProjectDisplayNameAsync(model.ProjectId);
                 ViewBag.Employees = GetEmployeeList(model.AssignTo);
-                ViewBag.StatusList = GetStatusList(model.IssueStatus);
+                ViewBag.StatusList = GetStatusList(model.IssueStatus, includeOpen: false);
+                model.DevStatus = issue.DevStatus;
                 model.Images = await _context.ProjectIssueImages
                     .AsNoTracking()
                     .Where(x => x.IssueId == model.IssueId)
                     .ToListAsync();
                 return View(model);
             }
-
-            var oldStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
-            var newStatus = NormalizeTesterIssueStatus(model.IssueStatus, oldStatus);
 
             issue.IssueName = model.IssueName;
             issue.IssueDetail = model.IssueDetail;   // BA detail
@@ -457,6 +468,8 @@ namespace ProjectTracking.Controllers
             }
 
             await SyncNotificationsSafelyAsync();
+            if (shouldNotifyAssigneeBaResult)
+                await SendBaResultIssueTelegramToAssigneeSafelyAsync(issue.IssueId);
 
             return RedirectToAction(nameof(Index), new { projectId = issue.ProjectId });
         }
@@ -754,10 +767,14 @@ namespace ProjectTracking.Controllers
             );
         }
 
-        private SelectList GetStatusList(string? selected = null)
+        private SelectList GetStatusList(string? selected = null, bool includeOpen = true)
         {
             var selectedValue = (selected ?? "").Trim().ToUpperInvariant();
             var statuses = TesterIssueStatuses.ToList();
+            if (!includeOpen)
+            {
+                statuses.RemoveAll(x => x.Value == "OPEN");
+            }
 
             if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
             {
@@ -808,6 +825,18 @@ namespace ProjectTracking.Controllers
             if (value == "TODO" || value == "DOING" || value == "BLOCK")
                 return "WIP";
             return ProgrammerDevStatuses.Any(x => x.Value == value) ? value : "WIP";
+        }
+
+        private static bool RequiresFixedDevStatusForBaResult(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            return value == "PASS" || value == "FAIL";
+        }
+
+        private static bool IsBaResultStatus(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            return value == "PASS" || value == "FAIL" || value == "REJECT";
         }
 
         private void ApplyIssueDateInput(ProjectIssue model)
@@ -1031,6 +1060,60 @@ namespace ProjectTracking.Controllers
             }
         }
 
+        private async Task SendBaResultIssueTelegramToAssigneeSafelyAsync(int issueId)
+        {
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.ProjectIssuesBaResult, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
+                return;
+
+            try
+            {
+                var issue = await _context.ProjectIssues
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.IssueId == issueId);
+
+                if (issue == null || issue.AssignTo <= 0)
+                    return;
+
+                var title = $"แจ้งผลตรวจ Issue: {TextOrDash(issue.IssueStatus)}";
+                var message = BuildBaResultIssueTelegramMessage(issue);
+                var targetUrl = $"/ProjectIssues/DevDetails/{issue.IssueId}";
+
+                if (sendLine)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        issue.AssignTo,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+
+                if (sendTelegram)
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        issue.AssignTo,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send BA result issue Telegram notification failed. IssueId={IssueId}", issueId);
+            }
+        }
+
         private static string BuildCreatedIssueTelegramMessage(ProjectIssue issue)
         {
             var project = issue.Project;
@@ -1063,6 +1146,25 @@ namespace ProjectTracking.Controllers
                 $"BA: {TextOrDash(project?.BA?.EmpName)}",
                 $"Dev Status: {TextOrDash(issue.DevStatus)}",
                 $"รายละเอียดการแก้ไข: {TextOrDash(issue.DevDetail)}",
+                $"วันที่เริ่ม: {DateText(issue.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(issue.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string BuildBaResultIssueTelegramMessage(ProjectIssue issue)
+        {
+            var project = issue.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForTelegram(project)}",
+                $"Issue: {TextOrDash(issue.IssueName)}",
+                $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Status: {TextOrDash(issue.IssueStatus)} / Dev {TextOrDash(issue.DevStatus)}",
+                $"รายละเอียดปัญหา: {TextOrDash(issue.IssueDetail)}",
                 $"วันที่เริ่ม: {DateText(issue.StartDate)}",
                 $"วันที่สิ้นสุด: {DateText(issue.EndDate)}"
             };

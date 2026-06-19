@@ -35,7 +35,6 @@
     string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "OPEN",
-        "IN_PROGRESS" => "IN_PROGRESS",
         "DONE" => "DONE",
         "ACK" => "ACK",
         _ => TextOrDash(status)
@@ -44,14 +43,12 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "warning",
-        "IN_PROGRESS" => "info",
         "DONE" => "success",
         "ACK" => "muted",
         _ => "muted"
     };
 
     var openCount = followups.Count(x => string.Equals(x.Status, "OPEN", StringComparison.OrdinalIgnoreCase));
-    var progressCount = followups.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
     var doneCount = followups.Count(x => string.Equals(x.Status, "DONE", StringComparison.OrdinalIgnoreCase));
     var ackCount = followups.Count(x => string.Equals(x.Status, "ACK", StringComparison.OrdinalIgnoreCase));
     var overdueCount = followups.Count(x => !IsClosed(x.Status) && x.NextFollowupDate?.Date < today);
@@ -491,11 +488,6 @@
             <strong>@openCount</strong>
             <small>รอติดตาม</small>
         </article>
-        <article class="kpi info">
-            <span>In Progress</span>
-            <strong>@progressCount</strong>
-            <small>กำลังติดตาม</small>
-        </article>
         <article class="kpi">
             <span>Done</span>
             <strong>@doneCount</strong>
@@ -526,6 +518,7 @@
                 <col class="col-task" />
                 <col class="col-partner" />
                 <col class="col-owner" />
+                <col class="col-owner" />
                 <col class="col-status" />
                 <col class="col-date" />
             </colgroup>
@@ -534,6 +527,7 @@
                     <th>Seq</th>
                     <th>Follow-up</th>
                     <th>Partner</th>
+                    <th>ผู้สั่งงาน</th>
                     <th>Owner</th>
                     <th>Status</th>
                     <th>Dates / Contact</th>
@@ -554,7 +548,7 @@
                 {
                     var seq = 1;
                     <tr class="project-group-row">
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="project-group-name">
                                 <div>
                                     <span class="project-group-label">Project</span>
@@ -575,6 +569,7 @@
                                 <div class="cell-sub">Created: @DateTimeText(followup.CreatedAt)</div>
                             </td>
                             <td>@TextOrDash(followup.PartnerName)</td>
+                            <td>@TextOrDash(followup.CreatedByEmployee?.EmpName)</td>
                             <td>@TextOrDash(followup.Owner?.EmpName)</td>
                             <td class="text-center">
                                 <span class="status-text @StatusClass(followup.Status)">@StatusText(followup.Status)</span>

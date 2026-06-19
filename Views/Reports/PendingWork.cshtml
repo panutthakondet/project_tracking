@@ -182,7 +182,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(220px, 1.1fr) minmax(200px, .8fr) minmax(150px, .55fr) minmax(190px, .7fr) auto auto;
+            grid-template-columns: minmax(220px, 1.1fr) minmax(180px, .75fr) minmax(180px, .75fr) minmax(140px, .55fr) minmax(170px, .65fr) auto auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -454,6 +454,18 @@
             </select>
         </div>
         <div class="field">
+            <label for="baEmpId">BA</label>
+            <select id="baEmpId" name="baEmpId">
+                <option value="">ทุกคน</option>
+                @foreach (var ba in report.BaOptions)
+                {
+                    <option value="@ba.EmpId" selected="@(report.BaEmpId == ba.EmpId ? "selected" : null)">
+                        @ba.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
             <label for="workType">ประเภทงาน</label>
             <select id="workType" name="workType">
                 @foreach (var option in workTypeOptions)
@@ -518,6 +530,7 @@
     }
     else
     {
+        var displaySeq = 1;
         foreach (var sectionGroup in sectionGroups)
         {
             <section class="@SectionCssClass(sectionGroup.Section)">
@@ -546,6 +559,7 @@
                                             <th style="width:190px;">โครงการ</th>
                                             <th>งาน / รายละเอียด</th>
                                             <th style="width:135px;">ผู้รับผิดชอบ</th>
+                                            <th style="width:125px;">BA</th>
                                             <th style="width:128px;">วันที่</th>
                                             <th style="width:130px;">สถานะ</th>
                                             <th style="width:72px;">ลิงก์</th>
@@ -555,13 +569,14 @@
                                         @foreach (var row in coopGroup.Rows)
                                         {
                                             <tr>
-                                                <td class="text-center">@row.Seq</td>
+                                                <td class="text-center">@(displaySeq++)</td>
                                                 <td>@(string.IsNullOrWhiteSpace(row.ProjectName) ? "-" : row.ProjectName)</td>
                                                 <td>
                                                     <span class="cell-title">@row.Title</span>
                                                     <span class="cell-detail">@row.Detail</span>
                                                 </td>
                                                 <td>@(string.IsNullOrWhiteSpace(row.OwnerName) ? "-" : row.OwnerName)</td>
+                                                <td>@(string.IsNullOrWhiteSpace(row.BaName) ? "-" : row.BaName)</td>
                                                 <td>
                                                     <span class="cell-label">เริ่ม:</span> <span>@DateText(row.StartDate)</span><br />
                                                     <span class="cell-label">กำหนด:</span> <span>@DateText(row.DueDate)</span><br />

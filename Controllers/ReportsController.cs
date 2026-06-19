@@ -160,9 +160,9 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Index")]
-        public async Task<IActionResult> PendingWork(int? projectId, int? empId, string? workType, string? section)
+        public async Task<IActionResult> PendingWork(int? projectId, int? empId, int? baEmpId, string? workType, string? section)
         {
-            return View(await BuildPendingWorkReportAsync(projectId, empId, workType, section));
+            return View(await BuildPendingWorkReportAsync(projectId, empId, baEmpId, workType, section));
         }
 
         [RequireMenu("Reports.Executive")]
@@ -311,7 +311,7 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private async Task<PendingWorkReportViewModel> BuildPendingWorkReportAsync(int? projectId, int? empId, string? workType, string? section)
+        private async Task<PendingWorkReportViewModel> BuildPendingWorkReportAsync(int? projectId, int? empId, int? baEmpId, string? workType, string? section)
         {
             var today = DateTime.Today;
             var horizonDate = today.AddDays(14);
@@ -321,6 +321,7 @@ namespace ProjectTracking.Controllers
 
             var projects = await _context.Projects
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
                 .AsNoTracking()
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -333,6 +334,18 @@ namespace ProjectTracking.Controllers
                     ProjectName = p.ProjectDisplayName,
                     CoopName = p.Coop?.CoopName ?? ""
                 })
+                .ToList();
+
+            var baOptions = projects
+                .Where(p => p.BaEmpId.HasValue)
+                .Select(p => new EmployeeReportOptionViewModel
+                {
+                    EmpId = p.BaEmpId!.Value,
+                    EmpName = p.BA?.EmpName ?? $"BA #{p.BaEmpId.Value}"
+                })
+                .GroupBy(x => x.EmpId)
+                .Select(x => x.First())
+                .OrderBy(x => x.EmpName)
                 .ToList();
 
             var employees = await _context.Employees
@@ -359,6 +372,8 @@ namespace ProjectTracking.Controllers
             var issues = await _context.ProjectIssues
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.Coop)
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.BA)
                 .Include(i => i.Employee)
                 .AsNoTracking()
                 .ToListAsync();
@@ -366,6 +381,8 @@ namespace ProjectTracking.Controllers
             var supportOrders = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.BA)
                 .Include(o => o.Employee)
                 .AsNoTracking()
                 .ToListAsync();
@@ -398,6 +415,8 @@ namespace ProjectTracking.Controllers
                     Detail = phase == null ? "-" : $"{phase.PhasePeriodLabel}: {phase.PhaseName}",
                     OwnerEmpId = assign.EmpId,
                     OwnerName = assign.Employee?.EmpName ?? "-",
+                    BaEmpId = project?.BaEmpId,
+                    BaName = project?.BA?.EmpName ?? "-",
                     Status = string.IsNullOrWhiteSpace(assign.WorkStatus) ? "-" : assign.WorkStatus!,
                     Priority = "-",
                     StartDate = startDate,
@@ -432,6 +451,8 @@ namespace ProjectTracking.Controllers
                     Detail = CleanReportText(issue.IssueDetail),
                     OwnerEmpId = issue.AssignTo,
                     OwnerName = issue.Employee?.EmpName ?? "-",
+                    BaEmpId = issue.Project?.BaEmpId,
+                    BaName = issue.Project?.BA?.EmpName ?? "-",
                     Status = $"Issue: {TextOrDash(issue.IssueStatus)} / Dev: {TextOrDash(issue.DevStatus)}",
                     Priority = TextOrDash(issue.IssuePriority),
                     StartDate = startDate,
@@ -466,6 +487,8 @@ namespace ProjectTracking.Controllers
                     Detail = CleanReportText(order.OrderDetail),
                     OwnerEmpId = order.AssignTo,
                     OwnerName = order.Employee?.EmpName ?? "-",
+                    BaEmpId = order.Project?.BaEmpId,
+                    BaName = order.Project?.BA?.EmpName ?? "-",
                     Status = $"Status: {TextOrDash(order.Status)} / Dev: {TextOrDash(order.DevStatus)}",
                     Priority = TextOrDash(order.Priority),
                     StartDate = startDate,
@@ -479,6 +502,7 @@ namespace ProjectTracking.Controllers
             rows = rows
                 .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
                 .Where(r => !empId.HasValue || r.OwnerEmpId == empId.Value)
+                .Where(r => !baEmpId.HasValue || r.BaEmpId == baEmpId.Value)
                 .Where(r => string.IsNullOrWhiteSpace(selectedWorkType) || r.WorkType == selectedWorkType)
                 .Where(r => string.IsNullOrWhiteSpace(selectedSection) || r.Section == selectedSection)
                 .OrderBy(r => PendingSectionOrder(r.Section))
@@ -503,10 +527,12 @@ namespace ProjectTracking.Controllers
                 HorizonDate = horizonDate,
                 ProjectId = projectId,
                 EmpId = empId,
+                BaEmpId = baEmpId,
                 WorkType = selectedWorkType,
                 Section = selectedSection,
                 ProjectOptions = projectOptions,
                 EmployeeOptions = employees,
+                BaOptions = baOptions,
                 Summary = new PendingWorkSummaryViewModel
                 {
                     Total = rows.Count,

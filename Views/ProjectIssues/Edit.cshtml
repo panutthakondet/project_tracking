@@ -343,7 +343,17 @@
         formatThaiDateInput(document.getElementById('StartDate'));
         formatThaiDateInput(document.getElementById('EndDate'));
 
-        document.querySelector('form').addEventListener('submit', function () {
+        document.querySelector('form').addEventListener('submit', function (event) {
+            const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
+            const issueStatus = (document.getElementById('IssueStatus')?.value || '').trim().toUpperCase();
+
+            if (devStatus !== 'FIXED' && (issueStatus === 'PASS' || issueStatus === 'FAIL')) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                alert('ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED');
+                return;
+            }
+
             document.querySelectorAll('.thai-date').forEach(input => {
                 input.value = convertThaiDateToIso(input.value);
             });

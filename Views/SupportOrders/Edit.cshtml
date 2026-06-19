@@ -38,6 +38,8 @@
     <input asp-for="ProjectId" type="hidden" />
     <input asp-for="DevStatus" type="hidden" />
 
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
     <div class="mb-3">
         <label>โครงการ</label>
         <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectDisplayName : ViewBag.SelectedProjectName)" readonly />
@@ -182,7 +184,17 @@
         formatThaiDateInput(document.getElementById('StartDate'));
         formatThaiDateInput(document.getElementById('EndDate'));
 
-        document.querySelector('form').addEventListener('submit', function () {
+        document.querySelector('form').addEventListener('submit', function (event) {
+            const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
+            const status = (document.getElementById('Status')?.value || '').trim().toUpperCase();
+
+            if (devStatus !== 'FIXED' && (status === 'PASS' || status === 'FAIL')) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                alert('ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED');
+                return;
+            }
+
             document.querySelectorAll('.thai-date').forEach(input => {
                 input.value = convertThaiDateToIso(input.value);
             });

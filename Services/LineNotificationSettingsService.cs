@@ -14,8 +14,13 @@ namespace ProjectTracking.Services
         public const string MeetingsReminder = "Meetings.Reminder";
         public const string ProjectIssuesCreate = "ProjectIssues.Create";
         public const string ProjectIssuesFixed = "ProjectIssues.Fixed";
+        public const string ProjectIssuesBaResult = "ProjectIssues.BaResult";
         public const string SupportOrdersCreate = "SupportOrders.Create";
         public const string SupportOrdersFixed = "SupportOrders.Fixed";
+        public const string SupportOrdersBaResult = "SupportOrders.BaResult";
+        public const string FollowupsCreate = "Followups.Create";
+        public const string FollowupsAck = "Followups.Ack";
+        public const string FollowupsOwnerUpdate = "Followups.OwnerUpdate";
         public const string LineOverdueManual = "Employees.LineOverdue";
         public const string OverdueAuto = "Overdue.Auto";
 
@@ -29,8 +34,13 @@ namespace ProjectTracking.Services
                 new(MeetingsReminder, "Meetings", "Meeting Reminder", "ส่ง LINE เตือนประชุมล่วงหน้า 3, 2, 1, 0 วัน"),
                 new(ProjectIssuesCreate, "ProjectIssues", "Create ProjectIssues", "ส่ง LINE ถึง BA และผู้รับผิดชอบเมื่อสร้าง Issue"),
                 new(ProjectIssuesFixed, "ProjectIssues", "FIXED ProjectIssues", "ส่ง LINE ถึง BA เมื่อ Dev เปลี่ยน Issue เป็น FIXED"),
+                new(ProjectIssuesBaResult, "ProjectIssues", "BA Result ProjectIssues", "ส่ง LINE ถึงผู้รับผิดชอบเมื่อ BA เปลี่ยน Issue เป็น PASS/FAIL/REJECT"),
                 new(SupportOrdersCreate, "SupportOrders", "Create SupportOrders", "ส่ง LINE ถึง BA และผู้รับผิดชอบเมื่อสร้าง Support"),
                 new(SupportOrdersFixed, "SupportOrders", "FIXED SupportOrders", "ส่ง LINE ถึง BA เมื่อ Dev เปลี่ยน Support เป็น FIXED"),
+                new(SupportOrdersBaResult, "SupportOrders", "BA Result SupportOrders", "ส่ง LINE ถึงผู้รับผิดชอบเมื่อ BA เปลี่ยน Support เป็น PASS/FAIL/REJECT"),
+                new(FollowupsCreate, "Followups", "Create Followups", "ส่ง LINE ถึง Owner เมื่อสร้าง Follow-up"),
+                new(FollowupsAck, "Followups", "ACK Followups", "ส่ง LINE ถึง Owner เมื่อผู้สั่งงานเปลี่ยน Follow-up เป็น ACK"),
+                new(FollowupsOwnerUpdate, "Followups", "Owner Update Followups", "ส่ง LINE ถึงผู้สั่งงานเมื่อ Owner บันทึก Log หรือ Done"),
                 new(LineOverdueManual, "LineOverdue", "Manual LineOverdue", "ส่ง LINE จากหน้า Employees/LineOverdue"),
                 new(OverdueAuto, "LineOverdue", "Auto Overdue", "ส่ง LINE อัตโนมัติสำหรับงานเสี่ยงล่าช้า/งานล่าช้า")
             };

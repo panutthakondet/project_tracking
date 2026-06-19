@@ -31,6 +31,12 @@ namespace ProjectTracking.Models
         [ForeignKey("OwnerEmpId")]
         public Employee? Owner { get; set; }
 
+        [Column("created_by_emp_id")]
+        public int? CreatedByEmpId { get; set; }
+
+        [ForeignKey("CreatedByEmpId")]
+        public Employee? CreatedByEmployee { get; set; }
+
         [Column("status")]
         public string Status { get; set; } = "OPEN";
 

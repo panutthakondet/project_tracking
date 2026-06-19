@@ -161,10 +161,12 @@ namespace ProjectTracking.ViewModels
         public DateTime HorizonDate { get; set; }
         public int? ProjectId { get; set; }
         public int? EmpId { get; set; }
+        public int? BaEmpId { get; set; }
         public string WorkType { get; set; } = "";
         public string Section { get; set; } = "";
         public List<ProjectReportOptionViewModel> ProjectOptions { get; set; } = new();
         public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public List<EmployeeReportOptionViewModel> BaOptions { get; set; } = new();
         public PendingWorkSummaryViewModel Summary { get; set; } = new();
         public List<PendingWorkReportRowViewModel> Rows { get; set; } = new();
     }
@@ -196,6 +198,8 @@ namespace ProjectTracking.ViewModels
         public string Detail { get; set; } = "";
         public int? OwnerEmpId { get; set; }
         public string OwnerName { get; set; } = "";
+        public int? BaEmpId { get; set; }
+        public string BaName { get; set; } = "";
         public string Status { get; set; } = "";
         public string Priority { get; set; } = "";
         public DateTime? StartDate { get; set; }

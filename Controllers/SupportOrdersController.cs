@@ -350,7 +350,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProjectName = order.Project?.ProjectDisplayName;
 
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
-            ViewBag.StatusList = GetStatusList(order.Status);
+            ViewBag.StatusList = GetStatusList(order.Status, includeOpen: false);
 
             return View(order);
         }
@@ -366,16 +366,6 @@ namespace ProjectTracking.Controllers
             if (id != order.OrderId)
                 return NotFound();
 
-            ApplySupportDateInput(order);
-            ValidateSupportDateRange(order);
-
-            if (!ModelState.IsValid)
-            {
-                await PopulateSupportOrderFormAsync(order);
-                ViewBag.StatusList = GetStatusList(order.Status);
-                return View(order);
-            }
-
             // โหลดข้อมูลเดิมก่อน เพื่อกันค่า DevStatus หาย
             var existingOrder = await _context.ProjectSupportOrders
                 .AsNoTracking()
@@ -384,10 +374,34 @@ namespace ProjectTracking.Controllers
             if (existingOrder == null)
                 return NotFound();
 
+            ApplySupportDateInput(order);
+            ValidateSupportDateRange(order);
+
+            var nextStatus = NormalizeSupportStatus(order.Status);
+            var currentDevStatus = NormalizeSupportDevStatus(existingOrder.DevStatus);
+            var oldStatus = NormalizeSupportStatus(existingOrder.Status);
+            var shouldNotifyAssigneeBaResult =
+                !string.Equals(oldStatus, nextStatus, StringComparison.OrdinalIgnoreCase)
+                && IsBaResultStatus(nextStatus);
+            if (RequiresFixedDevStatusForBaResult(nextStatus) && currentDevStatus != "FIXED")
+            {
+                ModelState.AddModelError(
+                    nameof(ProjectSupportOrder.Status),
+                    "ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                order.DevStatus = existingOrder.DevStatus;
+                await PopulateSupportOrderFormAsync(order);
+                ViewBag.StatusList = GetStatusList(order.Status, includeOpen: false);
+                return View(order);
+            }
+
             order.CreatedBy = existingOrder.CreatedBy;
             order.CreatedAt = DateTime.Now;
-            order.Status = NormalizeSupportStatus(order.Status);
-            order.DevStatus = NormalizeSupportDevStatus(existingOrder.DevStatus);
+            order.Status = nextStatus;
+            order.DevStatus = currentDevStatus;
 
             if (order.Status == "OPEN" || order.Status == "FAIL")
             {
@@ -450,6 +464,8 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             await SyncNotificationsSafelyAsync();
+            if (shouldNotifyAssigneeBaResult)
+                await SendBaResultSupportTelegramToAssigneeSafelyAsync(order.OrderId);
 
             return RedirectToAction("Index", new { projectId = order.ProjectId });
         }
@@ -558,6 +574,60 @@ namespace ProjectTracking.Controllers
             }
         }
 
+        private async Task SendBaResultSupportTelegramToAssigneeSafelyAsync(int orderId)
+        {
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.SupportOrdersBaResult, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.SupportOrdersBaResult, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
+                return;
+
+            try
+            {
+                var order = await _context.ProjectSupportOrders
+                    .AsNoTracking()
+                    .Include(x => x.Employee)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.Coop)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.BA)
+                    .FirstOrDefaultAsync(x => x.OrderId == orderId);
+
+                if (order == null || !order.AssignTo.HasValue || order.AssignTo.Value <= 0)
+                    return;
+
+                var title = $"แจ้งผลตรวจ Support: {TextOrDash(order.Status)}";
+                var message = BuildBaResultSupportTelegramMessage(order);
+                var targetUrl = $"/SupportOrdersDev/Details/{order.OrderId}";
+
+                if (sendLine)
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        order.AssignTo.Value,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+
+                if (sendTelegram)
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        order.AssignTo.Value,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Send BA result support Telegram notification failed. OrderId={OrderId}", orderId);
+            }
+        }
+
         private static string BuildCreatedSupportTelegramMessage(ProjectSupportOrder order)
         {
             var project = order.Project;
@@ -571,6 +641,25 @@ namespace ProjectTracking.Controllers
                 $"BA: {TextOrDash(project?.BA?.EmpName)}",
                 $"Priority: {TextOrDash(order.Priority)}",
                 $"Status: {TextOrDash(order.Status)} / Dev {TextOrDash(order.DevStatus)}",
+                $"วันที่เริ่ม: {DateText(order.StartDate)}",
+                $"วันที่สิ้นสุด: {DateText(order.EndDate)}"
+            };
+
+            return string.Join("\n", rows);
+        }
+
+        private static string BuildBaResultSupportTelegramMessage(ProjectSupportOrder order)
+        {
+            var project = order.Project;
+            var rows = new List<string>
+            {
+                $"สหกรณ์: {TextOrDash(project?.Coop?.CoopName)}",
+                $"Project: {ProjectNameForTelegram(project)}",
+                $"Support: {TextOrDash(order.OrderTitle)}",
+                $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
+                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"Status: {TextOrDash(order.Status)} / Dev {TextOrDash(order.DevStatus)}",
+                $"รายละเอียดงาน: {TextOrDash(order.OrderDetail)}",
                 $"วันที่เริ่ม: {DateText(order.StartDate)}",
                 $"วันที่สิ้นสุด: {DateText(order.EndDate)}"
             };
@@ -756,10 +845,26 @@ namespace ProjectTracking.Controllers
             return SupportDevStatuses.Contains(normalized) ? normalized : "WIP";
         }
 
-        private SelectList GetStatusList(string? selected = null)
+        private static bool RequiresFixedDevStatusForBaResult(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized == "PASS" || normalized == "FAIL";
+        }
+
+        private static bool IsBaResultStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized == "PASS" || normalized == "FAIL" || normalized == "REJECT";
+        }
+
+        private SelectList GetStatusList(string? selected = null, bool includeOpen = true)
         {
             var selectedValue = NormalizeSupportStatus(selected);
             var statuses = TesterSupportStatuses.ToList();
+            if (!includeOpen)
+            {
+                statuses.RemoveAll(x => x.Value == "OPEN");
+            }
 
             if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
             {
