@@ -821,15 +821,13 @@ namespace ProjectTracking.Controllers
         private static bool IsIssueDoneForSelection(string? issueStatus, string? devStatus)
         {
             var issue = Norm(issueStatus);
-            var dev = Norm(devStatus);
-            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
+            return issue is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsSupportDoneForSelection(string? status, string? devStatus)
         {
             var normalized = Norm(status);
-            var dev = Norm(devStatus);
-            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
+            return normalized is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsFollowupOpenForSelection(string? status)

@@ -32,6 +32,8 @@ namespace ProjectTracking.Controllers
             var yearEnd = new DateTime(today.Year, 12, 31);
 
             string Norm(string? s) => (s ?? "").Trim().ToUpperInvariant();
+            bool IsIssueClosed(string? status)
+                => Norm(status) is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
 
             // ✅ await ทีละตัว
             var issues = await _context.ProjectIssues
@@ -108,8 +110,8 @@ namespace ProjectTracking.Controllers
             // ================= ISSUES (TODAY) =================
             int total = issues.Count;
             int open = issues.Count(x => Norm(x.IssueStatus) == "OPEN");
-            int wip = issues.Count(x => Norm(x.IssueStatus) == "WIP");
-            int fixedCount = issues.Count(x => Norm(x.IssueStatus) == "FIXED");
+            int wip = issues.Count(x => Norm(x.DevStatus) == "WIP" && !IsIssueClosed(x.IssueStatus));
+            int fixedCount = issues.Count(x => Norm(x.DevStatus) == "FIXED" && !IsIssueClosed(x.IssueStatus));
             int reopenTotal = issues.Sum(x => x.ReopenCount);
 
             double reopenRate = total == 0
@@ -144,8 +146,10 @@ namespace ProjectTracking.Controllers
             }
 
             int openY = existedYesterday.Count(x => GetStatusAsOfYesterday(x) == "OPEN");
-            int wipY = existedYesterday.Count(x => GetStatusAsOfYesterday(x) == "WIP");
-            int fixedY = existedYesterday.Count(x => GetStatusAsOfYesterday(x) == "FIXED");
+            int wipY = existedYesterday.Count(x =>
+                Norm(x.DevStatus) == "WIP" && !IsIssueClosed(GetStatusAsOfYesterday(x)));
+            int fixedY = existedYesterday.Count(x =>
+                Norm(x.DevStatus) == "FIXED" && !IsIssueClosed(GetStatusAsOfYesterday(x)));
 
             int reopenTotalY = existedYesterday.Sum(issue =>
             {
@@ -357,15 +361,13 @@ namespace ProjectTracking.Controllers
                 ReopenRateYesterday = reopenRateY,
 
                 // ===== STATUS DONUT (Today) =====
-                StatusLabels = new List<string> { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" },
+                StatusLabels = new List<string> { "OPEN", "PASS", "FAIL", "REJECT" },
                 StatusCounts = new List<int>
                 {
                     issues.Count(x => Norm(x.IssueStatus) == "OPEN"),
-                    issues.Count(x => Norm(x.IssueStatus) == "WIP"),
-                    issues.Count(x => Norm(x.IssueStatus) == "FIXED"),
-                    issues.Count(x => Norm(x.IssueStatus) == "REJECT"),
                     issues.Count(x => Norm(x.IssueStatus) == "PASS"),
-                    issues.Count(x => Norm(x.IssueStatus) == "FAIL")
+                    issues.Count(x => Norm(x.IssueStatus) == "FAIL"),
+                    issues.Count(x => Norm(x.IssueStatus) == "REJECT")
                 },
 
                 // ===== PRIORITY DONUT (Today) =====
@@ -418,6 +420,8 @@ namespace ProjectTracking.Controllers
             var yearEnd = new DateTime(today.Year, 12, 31);
 
             static string Norm(string? s) => (s ?? "").Trim().ToUpperInvariant();
+            static bool IsIssueClosed(string? status)
+                => Norm(status) is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
             static string Csv(string? value)
             {
                 value ??= "";
@@ -444,9 +448,10 @@ namespace ProjectTracking.Controllers
             sb.AppendLine("Category,Name,Count");
             sb.AppendLine($"Issue,Total,{issues.Count}");
             sb.AppendLine($"Issue,Open,{issues.Count(x => Norm(x.IssueStatus) == "OPEN")}");
-            sb.AppendLine($"Issue,WIP,{issues.Count(x => Norm(x.IssueStatus) == "WIP")}");
-            sb.AppendLine($"Issue,Fixed,{issues.Count(x => Norm(x.IssueStatus) == "FIXED")}");
-            sb.AppendLine($"Issue,Reopen,{issues.Count(x => x.IsReopen)}");
+            sb.AppendLine($"Issue,Wait BA,{issues.Count(x => Norm(x.DevStatus) == "FIXED" && !IsIssueClosed(x.IssueStatus))}");
+            sb.AppendLine($"Issue,Pass,{issues.Count(x => Norm(x.IssueStatus) == "PASS")}");
+            sb.AppendLine($"Issue,Reject,{issues.Count(x => Norm(x.IssueStatus) == "REJECT")}");
+            sb.AppendLine($"Issue,FAIL,{issues.Sum(x => x.ReopenCount)}");
             sb.AppendLine($"IssuePriority,Urgent,{issues.Count(x => Norm(x.IssuePriority) == "URGENT")}");
             sb.AppendLine($"IssuePriority,Normal,{issues.Count(x => Norm(x.IssuePriority) == "NORMAL")}");
             sb.AppendLine($"Phase,Total,{phasesInYear.Count}");

@@ -17,17 +17,23 @@ namespace ProjectTracking.Controllers
     public class PhaseAssignsController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly LineMessagingService _lineMessagingService;
+        private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<PhaseAssignsController> _logger;
 
         public PhaseAssignsController(
             AppDbContext context,
+            LineMessagingService lineMessagingService,
+            LineNotificationSettingsService lineNotificationSettings,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
             ILogger<PhaseAssignsController> logger)
         {
             _context = context;
+            _lineMessagingService = lineMessagingService;
+            _lineNotificationSettings = lineNotificationSettings;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
@@ -313,7 +319,7 @@ namespace ProjectTracking.Controllers
             model.EntryId = await GetCurrentEntryIdAsync();
             _context.PhaseAssigns.Add(model);
             await _context.SaveChangesAsync();
-            await SendCreatedPhaseAssignTelegramSafelyAsync(model.AssignId);
+            await SendCreatedPhaseAssignNotificationSafelyAsync(model.AssignId);
 
             return RedirectToAction(nameof(Index), new { projectId = phase!.ProjectId });
         }
@@ -1345,10 +1351,14 @@ namespace ProjectTracking.Controllers
                 model.EmpId);
         }
 
-        private async Task SendCreatedPhaseAssignTelegramSafelyAsync(int assignId)
+        private async Task SendCreatedPhaseAssignNotificationSafelyAsync(int assignId)
         {
-            if (!_telegramMessagingService.IsConfigured
-                || !await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted))
+            var sendLine = _lineMessagingService.IsConfigured
+                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted);
+            var sendTelegram = _telegramMessagingService.IsConfigured
+                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.PhaseAssignsCreate, HttpContext.RequestAborted);
+
+            if (!sendLine && !sendTelegram)
                 return;
 
             try
@@ -1375,17 +1385,61 @@ namespace ProjectTracking.Controllers
 
                 foreach (var recipient in recipients)
                 {
-                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                    await SendChatNotificationToEmployeeSafelyAsync(
                         recipient.Key,
                         title,
                         message,
                         recipient.Value,
-                        HttpContext.RequestAborted);
+                        sendLine,
+                        sendTelegram);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Send created phase assign Telegram notification failed. AssignId={AssignId}", assignId);
+                _logger.LogWarning(ex, "Send created phase assign notification failed. AssignId={AssignId}", assignId);
+            }
+        }
+
+        private async Task SendChatNotificationToEmployeeSafelyAsync(
+            int empId,
+            string title,
+            string message,
+            string targetUrl,
+            bool sendLine,
+            bool sendTelegram)
+        {
+            if (sendLine)
+            {
+                try
+                {
+                    await _lineMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "LINE phase assign notification failed. EmpId={EmpId}", empId);
+                }
+            }
+
+            if (sendTelegram)
+            {
+                try
+                {
+                    await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                        empId,
+                        title,
+                        message,
+                        targetUrl,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Telegram phase assign notification failed. EmpId={EmpId}", empId);
+                }
             }
         }
 

@@ -36,6 +36,12 @@ namespace ProjectTracking.Models
         [Column("dev_detail", TypeName = "text")]
         public string? DevDetail { get; set; }
 
+        [Column("is_reopen", TypeName = "tinyint(1)")]
+        public bool IsReopen { get; set; } = false;
+
+        [Column("reopen_count", TypeName = "int")]
+        public int ReopenCount { get; set; } = 0;
+
         [Column("created_by")]
         public int? CreatedBy { get; set; }
 

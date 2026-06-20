@@ -40,8 +40,6 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "bg-secondary",
-        "WIP" => "bg-warning text-dark",
-        "FIXED" => "bg-info text-dark",
         "FAIL" => "bg-danger",
         "PASS" => "bg-success",
         "REJECT" => "bg-dark",
@@ -480,6 +478,10 @@
                             <div class="support-status-row">
                                 <small class="pt-list-label">สถานะ Dev</small>
                                 <span class="badge @DevStatusClass(item.DevStatus) pt-list-value">@TextOrDash(item.DevStatus)</span>
+                            </div>
+                            <div class="support-status-row">
+                                <small class="pt-list-label">จำนวน FAIL</small>
+                                <span class="badge @(item.ReopenCount > 0 ? "bg-warning text-dark" : "bg-success") pt-list-value">@item.ReopenCount ครั้ง</span>
                             </div>
                         </div>
                     </section>

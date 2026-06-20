@@ -16,6 +16,7 @@ namespace ProjectTracking.Controllers
         private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
+        private readonly OverdueNotificationService _notificationService;
         private readonly ILogger<SupportOrdersDevController> _logger;
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
@@ -25,6 +26,7 @@ namespace ProjectTracking.Controllers
             LineNotificationSettingsService lineNotificationSettings,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
+            OverdueNotificationService notificationService,
             ILogger<SupportOrdersDevController> logger)
         {
             _context = context;
@@ -32,6 +34,7 @@ namespace ProjectTracking.Controllers
             _lineNotificationSettings = lineNotificationSettings;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -115,10 +118,14 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.OrderId == id)
                 .ToListAsync();
 
+            ViewBag.CurrentDevStatus = order.DevStatus;
+            order.DevStatus = "FIXED";
+
             return View(order);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrdersDev.Edit")]
         public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> afterFiles, List<int> deleteImageIds)
         {
@@ -190,10 +197,23 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
+            await SyncNotificationsSafelyAsync();
             if (shouldNotifyBaFixed)
                 await SendFixedSupportTelegramToBaSafelyAsync(dbOrder.OrderId);
 
             return RedirectToAction(nameof(Index), new { projectId = dbOrder.ProjectId });
+        }
+
+        private async Task SyncNotificationsSafelyAsync()
+        {
+            try
+            {
+                await _notificationService.SyncAsync(HttpContext.RequestAborted);
+            }
+            catch
+            {
+                // Notification sync should not block the main save flow.
+            }
         }
 
         private async Task SendFixedSupportTelegramToBaSafelyAsync(int orderId)

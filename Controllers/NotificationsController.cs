@@ -161,7 +161,7 @@ namespace ProjectTracking.Controllers
             var hasAssignee = order.AssignTo.HasValue;
             var hasEndDate = order.EndDate.HasValue;
             var status = (order.Status ?? "").Trim().ToUpperInvariant();
-            var isDone = status is "FIXED" or "PASS" or "REJECT" or "DONE";
+            var isDone = status is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
             var isDueOrRisk = hasEndDate && order.EndDate!.Value.Date <= today.AddDays(3);
             var shouldNotify = hasAssignee && hasEndDate && isDueOrRisk && !isDone;
 

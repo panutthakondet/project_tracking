@@ -249,9 +249,8 @@ namespace ProjectTracking.Controllers
         private static string NormalizeIssueState(string? issueStatus, string? devStatus)
         {
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
-            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
 
-            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED"
+            return issue is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
                 ? "DONE"
                 : "IN_PROGRESS";
         }
@@ -259,9 +258,8 @@ namespace ProjectTracking.Controllers
         private static string NormalizeSupportState(string? status, string? devStatus)
         {
             var orderStatus = (status ?? "").Trim().ToUpperInvariant();
-            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
 
-            return orderStatus is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED"
+            return orderStatus is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
                 ? "DONE"
                 : "IN_PROGRESS";
         }

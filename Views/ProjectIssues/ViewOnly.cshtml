@@ -25,10 +25,15 @@
 
     var totalIssues = issues.Count;
     var openCount = issues.Count(x => string.Equals(x.IssueStatus, "OPEN", StringComparison.OrdinalIgnoreCase));
-    var wipCount = issues.Count(x => string.Equals(x.IssueStatus, "WIP", StringComparison.OrdinalIgnoreCase));
-    var fixedCount = issues.Count(x =>
-        string.Equals(x.IssueStatus, "FIXED", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
+    var devWipCount = issues.Count(x =>
+        string.Equals(x.DevStatus, "WIP", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(x.IssueStatus, "REJECT", StringComparison.OrdinalIgnoreCase));
+    var waitBaCount = issues.Count(x =>
+        string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(x.IssueStatus, "REJECT", StringComparison.OrdinalIgnoreCase));
+    var passCount = issues.Count(x => string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
     var urgentCount = issues.Count(x => string.Equals(x.IssuePriority, "URGENT", StringComparison.OrdinalIgnoreCase));
     var totalReopen = issues.Sum(x => x.ReopenCount);
 
@@ -571,14 +576,19 @@
             <small>Issue ที่ยังเปิด</small>
         </article>
         <article class="kpi info">
-            <span>WIP</span>
-            <strong>@wipCount</strong>
-            <small>กำลังดำเนินการ</small>
+            <span>Dev WIP</span>
+            <strong>@devWipCount</strong>
+            <small>Dev กำลังแก้</small>
         </article>
         <article class="kpi">
-            <span>Fixed / Pass</span>
-            <strong>@fixedCount</strong>
-            <small>แก้ไขแล้วหรือผ่าน</small>
+            <span>รอ BA ตรวจ</span>
+            <strong>@waitBaCount</strong>
+            <small>Dev ส่ง FIXED แล้ว</small>
+        </article>
+        <article class="kpi">
+            <span>Pass</span>
+            <strong>@passCount</strong>
+            <small>ตรวจผ่านแล้ว</small>
         </article>
         <article class="kpi danger">
             <span>Urgent</span>
@@ -586,9 +596,9 @@
             <small>ความสำคัญเร่งด่วน</small>
         </article>
         <article class="kpi warning">
-            <span>Reopen</span>
+            <span>จำนวน FAIL</span>
             <strong>@totalReopen</strong>
-            <small>จำนวน reopen รวม</small>
+            <small>จำนวน FAIL รวม</small>
         </article>
     </section>
 
@@ -614,7 +624,7 @@
                     <th>Issue</th>
                     <th>Detail</th>
                     <th>Owner</th>
-                    <th>Status / Priority</th>
+                    <th>สถานะ / จำนวน FAIL</th>
                     <th>Dates / Images</th>
                 </tr>
             </thead>
@@ -634,10 +644,15 @@
                 {
                     var row = 1;
                     var groupOpen = projectGroup.Count(x => string.Equals(x.IssueStatus, "OPEN", StringComparison.OrdinalIgnoreCase));
-                    var groupWip = projectGroup.Count(x => string.Equals(x.IssueStatus, "WIP", StringComparison.OrdinalIgnoreCase));
-                    var groupFixed = projectGroup.Count(x =>
-                        string.Equals(x.IssueStatus, "FIXED", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
+                    var groupDevWip = projectGroup.Count(x =>
+                        string.Equals(x.DevStatus, "WIP", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(x.IssueStatus, "REJECT", StringComparison.OrdinalIgnoreCase));
+                    var groupWaitBa = projectGroup.Count(x =>
+                        string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(x.IssueStatus, "REJECT", StringComparison.OrdinalIgnoreCase));
+                    var groupPass = projectGroup.Count(x => string.Equals(x.IssueStatus, "PASS", StringComparison.OrdinalIgnoreCase));
                     var groupDevFixed = projectGroup.Count(x => string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
                     var groupReopen = projectGroup.Sum(x => x.ReopenCount);
                     <tr class="project-group-row">
@@ -649,10 +664,11 @@
                                     <div class="cell-sub">BA: @projectGroup.Key.BAName</div>
                                     <div class="project-group-stats">
                                         <span>Open <b>@groupOpen</b></span>
-                                        <span>WIP <b>@groupWip</b></span>
-                                        <span>Fixed/Pass <b>@groupFixed</b></span>
+                                        <span>Dev WIP <b>@groupDevWip</b></span>
+                                        <span>รอ BA ตรวจ <b>@groupWaitBa</b></span>
+                                        <span>Pass <b>@groupPass</b></span>
                                         <span>Dev Fixed <b>@groupDevFixed</b></span>
-                                        <span>Reopen <b>@groupReopen</b></span>
+                                        <span>FAIL <b>@groupReopen</b></span>
                                     </div>
                                 </div>
                                 <span class="project-group-count">@projectGroup.Count() รายการ</span>
@@ -710,7 +726,7 @@
                                         <span class="status-text @PriorityClass(issue.IssuePriority)">@PriorityText(issue.IssuePriority)</span>
                                     </div>
                                     <div class="meta-line">
-                                        <span class="meta-label">Reopen</span>
+                                        <span class="meta-label">จำนวน FAIL</span>
                                         <span class="status-text @(issue.ReopenCount > 0 ? "warning" : "success")">
                                             @(issue.ReopenCount > 0 ? issue.ReopenCount.ToString() : "-")
                                         </span>

@@ -20,7 +20,7 @@ namespace ProjectTracking.Controllers
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<SupportOrdersController> _logger;
-        private static readonly string[] SupportOrderStatuses = { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
+        private static readonly string[] SupportOrderStatuses = { "OPEN", "PASS", "FAIL", "REJECT" };
         private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
         private static readonly CultureInfo ThaiCulture = new("th-TH");
         private static readonly (string Value, string Text)[] TesterSupportStatuses =
@@ -239,6 +239,8 @@ namespace ProjectTracking.Controllers
                 ProjectId = projectId,
                 Status = "OPEN",
                 DevStatus = "WIP",
+                IsReopen = false,
+                ReopenCount = 0,
                 Priority = "MEDIUM"
             };
 
@@ -285,8 +287,23 @@ namespace ProjectTracking.Controllers
             order.CreatedAt = DateTime.Now;
             order.Status = "OPEN";
             order.DevStatus = "WIP";
+            order.IsReopen = false;
+            order.ReopenCount = 0;
 
             _context.ProjectSupportOrders.Add(order);
+            await _context.SaveChangesAsync();
+
+            _context.ProjectSupportOrderStatusHistories.Add(new ProjectSupportOrderStatusHistory
+            {
+                OrderId = order.OrderId,
+                OldStatus = null,
+                NewStatus = order.Status ?? "OPEN",
+                IsReopen = order.IsReopen,
+                ReopenCount = order.ReopenCount,
+                ChangedAt = order.CreatedAt ?? DateTime.Now,
+                ChangedByEmpId = order.CreatedBy ?? order.AssignTo
+            });
+
             await _context.SaveChangesAsync();
 
             // upload images
@@ -350,7 +367,10 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProjectName = order.Project?.ProjectDisplayName;
 
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
-            ViewBag.StatusList = GetStatusList(order.Status, includeOpen: false);
+            ViewBag.CurrentStatus = order.Status;
+            ViewBag.CurrentDevStatus = order.DevStatus;
+            ViewBag.StatusList = GetStatusList("PASS", includeOpen: false);
+            order.Status = "PASS";
 
             return View(order);
         }
@@ -368,7 +388,6 @@ namespace ProjectTracking.Controllers
 
             // โหลดข้อมูลเดิมก่อน เพื่อกันค่า DevStatus หาย
             var existingOrder = await _context.ProjectSupportOrders
-                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.OrderId == order.OrderId);
 
             if (existingOrder == null)
@@ -380,9 +399,11 @@ namespace ProjectTracking.Controllers
             var nextStatus = NormalizeSupportStatus(order.Status);
             var currentDevStatus = NormalizeSupportDevStatus(existingOrder.DevStatus);
             var oldStatus = NormalizeSupportStatus(existingOrder.Status);
+            var statusChanged = !string.Equals(oldStatus, nextStatus, StringComparison.OrdinalIgnoreCase);
+            var shouldNotifyFailRound = nextStatus == "FAIL" && currentDevStatus == "FIXED";
             var shouldNotifyAssigneeBaResult =
-                !string.Equals(oldStatus, nextStatus, StringComparison.OrdinalIgnoreCase)
-                && IsBaResultStatus(nextStatus);
+                (statusChanged && IsBaResultStatus(nextStatus))
+                || shouldNotifyFailRound;
             if (RequiresFixedDevStatusForBaResult(nextStatus) && currentDevStatus != "FIXED")
             {
                 ModelState.AddModelError(
@@ -394,22 +415,47 @@ namespace ProjectTracking.Controllers
             {
                 order.DevStatus = existingOrder.DevStatus;
                 await PopulateSupportOrderFormAsync(order);
+                ViewBag.CurrentStatus = existingOrder.Status;
+                ViewBag.CurrentDevStatus = existingOrder.DevStatus;
                 ViewBag.StatusList = GetStatusList(order.Status, includeOpen: false);
                 return View(order);
             }
 
-            order.CreatedBy = existingOrder.CreatedBy;
-            order.CreatedAt = DateTime.Now;
-            order.Status = nextStatus;
-            order.DevStatus = currentDevStatus;
+            existingOrder.OrderTitle = order.OrderTitle;
+            existingOrder.OrderDetail = order.OrderDetail;
+            existingOrder.Priority = order.Priority;
+            existingOrder.Status = nextStatus;
+            existingOrder.DevStatus = currentDevStatus;
+            existingOrder.StartDate = order.StartDate;
+            existingOrder.EndDate = order.EndDate;
+            existingOrder.AssignTo = order.AssignTo;
 
-            if (order.Status == "OPEN" || order.Status == "FAIL")
+            if (existingOrder.Status == "OPEN" || existingOrder.Status == "FAIL")
             {
-                order.DevStatus = "WIP";
+                existingOrder.DevStatus = "WIP";
             }
 
-            _context.ProjectSupportOrders.Update(order);
-            await _context.SaveChangesAsync();
+            if (shouldNotifyFailRound)
+            {
+                existingOrder.IsReopen = true;
+                existingOrder.ReopenCount += 1;
+            }
+
+            if (statusChanged || shouldNotifyFailRound)
+            {
+                var changedByEmpId = await GetCurrentEntryIdAsync();
+
+                _context.ProjectSupportOrderStatusHistories.Add(new ProjectSupportOrderStatusHistory
+                {
+                    OrderId = existingOrder.OrderId,
+                    OldStatus = oldStatus,
+                    NewStatus = nextStatus,
+                    IsReopen = existingOrder.IsReopen,
+                    ReopenCount = existingOrder.ReopenCount,
+                    ChangedAt = DateTime.Now,
+                    ChangedByEmpId = changedByEmpId ?? existingOrder.AssignTo
+                });
+            }
 
             // ===== Delete BA images =====
             if (deleteImageIds != null && deleteImageIds.Count > 0)
@@ -467,13 +513,14 @@ namespace ProjectTracking.Controllers
             if (shouldNotifyAssigneeBaResult)
                 await SendBaResultSupportTelegramToAssigneeSafelyAsync(order.OrderId);
 
-            return RedirectToAction("Index", new { projectId = order.ProjectId });
+            return RedirectToAction("Index", new { projectId = existingOrder.ProjectId });
         }
 
         // =========================
         // DELETE
         // =========================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrders.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -857,7 +904,7 @@ namespace ProjectTracking.Controllers
         private static string NormalizeSupportStatus(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
-            if (normalized == "WAIT_TEST") return "FIXED";
+            if (normalized == "WAIT_TEST") return "OPEN";
             if (normalized == "DONE") return "PASS";
             return SupportOrderStatuses.Contains(normalized) ? normalized : "OPEN";
         }
@@ -891,35 +938,12 @@ namespace ProjectTracking.Controllers
                 statuses.RemoveAll(x => x.Value == "OPEN");
             }
 
-            if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
-            {
-                statuses.Insert(1, ("WIP", "WIP - โปรแกรมเมอร์กำลังแก้ (สถานะจากระบบ)"));
-            }
-            else if (selectedValue == "FIXED" && statuses.All(x => x.Value != selectedValue))
-            {
-                statuses.Insert(1, ("FIXED", "FIXED - โปรแกรมเมอร์แก้เสร็จแล้ว (รอ BA ตรวจ)"));
-            }
-
             return new SelectList(
                 statuses.Select(x => new { x.Value, x.Text }),
                 "Value",
                 "Text",
                 selectedValue
             );
-        }
-
-        private static string GetSupportStatusFromDevStatus(string devStatus, string currentStatus)
-        {
-            var normalizedStatus = NormalizeSupportStatus(currentStatus);
-            if (normalizedStatus == "PASS" || normalizedStatus == "REJECT")
-                return normalizedStatus;
-
-            return devStatus switch
-            {
-                "WIP" => "WIP",
-                "FIXED" => "FIXED",
-                _ => "OPEN"
-            };
         }
     }
 }

@@ -63,7 +63,7 @@ namespace ProjectTracking.Services
         private static TimeSpan ParseRunAt(string? value)
         {
             var normalized = string.IsNullOrWhiteSpace(value)
-                ? "09:00"
+                ? "07:00"
                 : value.Trim().Replace('.', ':');
 
             if (TimeSpan.TryParse(normalized, out var parsed)
@@ -73,7 +73,7 @@ namespace ProjectTracking.Services
                 return new TimeSpan(parsed.Hours, parsed.Minutes, 0);
             }
 
-            return new TimeSpan(9, 0, 0);
+            return new TimeSpan(7, 0, 0);
         }
     }
 }

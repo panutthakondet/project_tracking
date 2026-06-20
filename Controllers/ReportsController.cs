@@ -104,7 +104,7 @@ namespace ProjectTracking.Controllers
                     {
                         Group = "Issues",
                         Title = "Issues Report",
-                        Description = "รายงานปัญหาโครงการ สถานะ Issue ลำดับความสำคัญ และการ Reopen",
+                        Description = "รายงานปัญหาโครงการ สถานะ Issue/Dev ลำดับความสำคัญ และจำนวน FAIL",
                         Controller = "ProjectIssues",
                         Action = "ViewOnly",
                         Icon = "/images/menu-icons/issues.svg",
@@ -453,7 +453,7 @@ namespace ProjectTracking.Controllers
                     OwnerName = issue.Employee?.EmpName ?? "-",
                     BaEmpId = issue.Project?.BaEmpId,
                     BaName = issue.Project?.BA?.EmpName ?? "-",
-                    Status = $"Issue: {TextOrDash(issue.IssueStatus)} / Dev: {TextOrDash(issue.DevStatus)}",
+                    Status = $"Issue: {TextOrDash(issue.IssueStatus)} / Dev: {TextOrDash(issue.DevStatus)} / จำนวน FAIL: {issue.ReopenCount}",
                     Priority = TextOrDash(issue.IssuePriority),
                     StartDate = startDate,
                     DueDate = dueDate,
@@ -489,7 +489,7 @@ namespace ProjectTracking.Controllers
                     OwnerName = order.Employee?.EmpName ?? "-",
                     BaEmpId = order.Project?.BaEmpId,
                     BaName = order.Project?.BA?.EmpName ?? "-",
-                    Status = $"Status: {TextOrDash(order.Status)} / Dev: {TextOrDash(order.DevStatus)}",
+                    Status = $"Status: {TextOrDash(order.Status)} / Dev: {TextOrDash(order.DevStatus)} / จำนวน FAIL: {order.ReopenCount}",
                     Priority = TextOrDash(order.Priority),
                     StartDate = startDate,
                     DueDate = dueDate,
@@ -1169,15 +1169,12 @@ namespace ProjectTracking.Controllers
         private static bool IsIssueResolved(ProjectIssue issue)
         {
             var issueStatus = Norm(issue.IssueStatus);
-            var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "FIXED" or "PASS" or "REJECT" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED"
-                || devStatus is "FIXED" or "DONE" or "RESOLVED";
+            return issueStatus is "PASS" or "REJECT" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED";
         }
 
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) is "FIXED" or "PASS" or "REJECT" or "DONE"
-                || Norm(devStatus) == "FIXED";
+            return Norm(status) is "PASS" or "REJECT" or "DONE" or "CLOSED" or "CLOSE" or "RESOLVED";
         }
 
         private static bool IsHighPriority(string? priority)

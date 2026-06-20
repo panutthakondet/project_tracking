@@ -21,6 +21,8 @@
 
     string startDateText = ThaiDateText(startDate);
     string endDateText = ThaiDateText(endDate);
+    string currentIssueStatus = (ViewBag.CurrentIssueStatus as string) ?? issue.IssueStatus ?? "-";
+    string currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? issue.DevStatus ?? "-";
 }
 
 <style>
@@ -111,6 +113,33 @@
         font-weight: 700;
         line-height: 1.55;
     }
+
+    .issue-current-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .issue-current-status__badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #e0f2fe;
+        color: #075985;
+        font-weight: 900;
+    }
+
+    .issue-current-status__badge--dev {
+        background: #fef3c7;
+        color: #92400e;
+    }
 </style>
 
 <div class="index-hero pt-form-hero">
@@ -175,6 +204,12 @@
 
                 <div class="col-md-4">
                     <label asp-for="IssueStatus" class="form-label fw-semibold">สถานะการตรวจ (Tester/BA)</label>
+                    <div class="issue-current-status">
+                        <span>สถานะปัจจุบัน</span>
+                        <span class="issue-current-status__badge">@currentIssueStatus</span>
+                        <span>Dev Status</span>
+                        <span class="issue-current-status__badge issue-current-status__badge--dev">@currentDevStatus</span>
+                    </div>
                     <select asp-for="IssueStatus"
                             asp-items="ViewBag.StatusList"
                             class="form-select"></select>
@@ -214,19 +249,19 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">สถานะ Reopen</label>
-                    <div class="pt-readonly-field">@(issue.IsReopen ? "REOPEN" : "NORMAL")</div>
+                    <label class="form-label fw-semibold">สถานะ FAIL</label>
+                    <div class="pt-readonly-field">@(issue.ReopenCount > 0 ? "เคย FAIL" : "ยังไม่เคย FAIL")</div>
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">จำนวน Reopen</label>
+                    <label class="form-label fw-semibold">จำนวน FAIL</label>
                     <div class="pt-readonly-field">@issue.ReopenCount ครั้ง</div>
                 </div>
 
                 <div class="col-md-8">
-                    <label class="form-label fw-semibold">หมายเหตุการนับ Reopen</label>
+                    <label class="form-label fw-semibold">หมายเหตุการนับจำนวน FAIL</label>
                     <div class="issue-edit-note">
-                        BA/Tester ใช้ OPEN เมื่อเปิดหรือส่งกลับรอแก้, FAIL เมื่อทดสอบไม่ผ่าน, PASS เมื่อทดสอบผ่าน และ REJECT เมื่อไม่รับเป็นปัญหา ส่วน WIP/FIXED มาจากฝั่งโปรแกรมเมอร์
+                        จำนวน FAIL จะนับเมื่อ Dev ส่งงานเป็น FIXED แล้ว BA ตรวจไม่ผ่านและบันทึกเป็น FAIL โดย Dev Status จะถูกเปลี่ยนกลับเป็น WIP เพื่อให้แก้อีกรอบ
                     </div>
                 </div>
 

@@ -18,6 +18,7 @@
     var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var imageCounts = ViewBag.ImageCounts as IDictionary<int, int> ?? new Dictionary<int, int>();
     var today = DateTime.Today;
+    var totalFail = orders.Sum(x => x.ReopenCount);
     var coopList = projects
         .Select(x => x.Coop?.CoopName)
         .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -37,15 +38,12 @@
     bool IsClosed(string? status, string? devStatus)
     {
         var s = (status ?? "").Trim().ToUpperInvariant();
-        var d = (devStatus ?? "").Trim().ToUpperInvariant();
-        return s == "PASS" || s == "REJECT" || d == "FIXED";
+        return s == "PASS" || s == "REJECT" || s == "DONE" || s == "CLOSED" || s == "RESOLVED";
     }
 
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "warning",
-        "WIP" => "warning",
-        "FIXED" => "info",
         "FAIL" => "danger",
         "PASS" => "success",
         "REJECT" => "muted",
@@ -72,7 +70,10 @@
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
     var openCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus));
-    var fixedCount = orders.Count(x => IsClosed(x.Status, x.DevStatus));
+    var waitingBaCount = orders.Count(x =>
+        !IsClosed(x.Status, x.DevStatus) &&
+        string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
+    var closedCount = orders.Count(x => IsClosed(x.Status, x.DevStatus));
     var overdueCount = orders.Count(x => !IsClosed(x.Status, x.DevStatus) && x.EndDate?.Date < today);
     var urgentCount = orders.Count(x =>
         string.Equals(x.Priority, "URGENT", StringComparison.OrdinalIgnoreCase) ||
@@ -584,9 +585,14 @@
             <small>ยังไม่ปิดงาน</small>
         </article>
         <article class="kpi">
-            <span>Fixed / Closed</span>
-            <strong>@fixedCount</strong>
-            <small>แก้ไขหรือปิดแล้ว</small>
+            <span>รอ BA ตรวจ</span>
+            <strong>@waitingBaCount</strong>
+            <small>Dev FIXED แล้ว รอตรวจผล</small>
+        </article>
+        <article class="kpi success">
+            <span>Closed</span>
+            <strong>@closedCount</strong>
+            <small>PASS / REJECT</small>
         </article>
         <article class="kpi danger">
             <span>Overdue</span>
@@ -597,6 +603,11 @@
             <span>High Priority</span>
             <strong>@urgentCount</strong>
             <small>HIGH / URGENT</small>
+        </article>
+        <article class="kpi warning">
+            <span>จำนวน FAIL</span>
+            <strong>@totalFail</strong>
+            <small>จำนวน FAIL รวม</small>
         </article>
     </section>
 
@@ -642,12 +653,13 @@
                 {
                     var seq = 1;
                     var groupOpen = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus));
-                    var groupFixed = projectGroup.Count(x =>
-                        string.Equals(x.Status, "FIXED", StringComparison.OrdinalIgnoreCase) ||
+                    var groupWaitingBa = projectGroup.Count(x =>
+                        !IsClosed(x.Status, x.DevStatus) &&
                         string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
                     var groupDone = projectGroup.Count(x => IsClosed(x.Status, x.DevStatus));
                     var groupDevFixed = projectGroup.Count(x => string.Equals(x.DevStatus, "FIXED", StringComparison.OrdinalIgnoreCase));
                     var groupOverdue = projectGroup.Count(x => !IsClosed(x.Status, x.DevStatus) && x.EndDate?.Date < today);
+                    var groupFail = projectGroup.Sum(x => x.ReopenCount);
                     <tr class="project-group-row">
                         <td colspan="6">
                             <div class="project-group-name">
@@ -657,10 +669,11 @@
                                     <div class="cell-sub">BA: @projectGroup.Key.BAName</div>
                                     <div class="project-group-stats">
                                         <span>Open <b>@groupOpen</b></span>
-                                        <span>Fixed <b>@groupFixed</b></span>
+                                        <span>รอ BA ตรวจ <b>@groupWaitingBa</b></span>
                                         <span>Closed <b>@groupDone</b></span>
                                         <span>Dev Fixed <b>@groupDevFixed</b></span>
                                         <span>Overdue <b>@groupOverdue</b></span>
+                                        <span>FAIL <b>@groupFail</b></span>
                                     </div>
                                 </div>
                                 <span class="project-group-count">@projectGroup.Count() รายการ</span>
@@ -711,6 +724,12 @@
                                     <div class="meta-line">
                                         <span class="meta-label">Dev</span>
                                         <span class="status-text @DevStatusClass(order.DevStatus)">@TextOrDash(order.DevStatus)</span>
+                                    </div>
+                                    <div class="meta-line">
+                                        <span class="meta-label">จำนวน FAIL</span>
+                                        <span class="status-text @(order.ReopenCount > 0 ? "warning" : "success")">
+                                            @(order.ReopenCount > 0 ? order.ReopenCount.ToString() : "-")
+                                        </span>
                                     </div>
                                 </div>
                             </td>

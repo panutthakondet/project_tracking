@@ -10,6 +10,7 @@
     var devStatusItems = ViewBag.DevStatusList as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
     var fixImages = Model.FixImages?.ToList() ?? new List<ProjectIssueFixImage>();
     var projectName = Model.Project?.ProjectDisplayName ?? $"Project #{Model.ProjectId}";
+    var currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? Model.DevStatus ?? "-";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateOrDash(DateTime? value) => value?.ToString("dd/MM/yyyy") ?? "-";
@@ -127,6 +128,28 @@
         line-height: 1.35;
     }
 
+    .dev-current-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .dev-current-status__badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #fef3c7;
+        color: #92400e;
+        font-weight: 900;
+    }
+
     .pt-search-select__input {
         height: 52px;
         padding-top: .72rem !important;
@@ -199,19 +222,21 @@
 
                 <div class="col-md-4">
                     <label asp-for="DevStatus" class="form-label fw-semibold">🧑‍💻 สถานะการแก้ไข (Programmer)</label>
-                    <select asp-for="DevStatus"
-                            asp-items="devStatusItems"
-                            class="form-select"
-                            data-placeholder="🔍 พิมพ์ค้นหา Dev Status...">
-                        <option value="">-- เลือกสถานะการแก้ไข --</option>
-                    </select>
+                    <div class="dev-current-status">
+                        <span>Dev Status ปัจจุบัน</span>
+                        <span class="dev-current-status__badge">@TextOrDash(currentDevStatus)</span>
+                    </div>
+                    <input type="hidden" asp-for="DevStatus" value="FIXED" />
+                    <div class="pt-readonly-field dev-edit-status-field">
+                        <span class="dev-status-text success">FIXED - แก้เสร็จ / ส่งตรวจ</span>
+                    </div>
                     <span asp-validation-for="DevStatus" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-8">
                     <label class="form-label fw-semibold">ℹ️ หมายเหตุ</label>
                     <div class="dev-edit-note">
-                        โปรแกรมเมอร์ใช้ WIP เมื่อลงมือแก้ และ FIXED เมื่อแก้เสร็จเพื่อส่งกลับให้ BA/Tester ตรวจ
+                        โปรแกรมเมอร์ลงรายละเอียดการแก้ไขและใช้ FIXED เพื่อส่งกลับให้ BA/Tester ตรวจ
                     </div>
                 </div>
 

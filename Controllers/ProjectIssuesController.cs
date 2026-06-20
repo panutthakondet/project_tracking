@@ -172,7 +172,7 @@ namespace ProjectTracking.Controllers
                 .ThenBy(i => i.IssueId)
                 .ToListAsync();
 
-            ViewBag.StatusList = new[] { "OPEN", "WIP", "FIXED", "REJECT", "PASS", "FAIL" };
+            ViewBag.StatusList = new[] { "OPEN", "PASS", "FAIL", "REJECT" };
             ViewBag.SelectedStatus = status ?? "";
             ViewBag.DevStatusList = new[] { "WIP", "FIXED" };
             ViewBag.SelectedDevStatus = devStatus ?? "";
@@ -326,7 +326,10 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectId = issue.ProjectId;
             ViewBag.ProjectName = issue.Project?.ProjectDisplayName;
             ViewBag.Employees = GetEmployeeList(issue.AssignTo);
-            ViewBag.StatusList = GetStatusList(issue.IssueStatus, includeOpen: false);
+            ViewBag.CurrentIssueStatus = issue.IssueStatus;
+            ViewBag.CurrentDevStatus = issue.DevStatus;
+            ViewBag.StatusList = GetStatusList("PASS", includeOpen: false);
+            issue.IssueStatus = "PASS";
 
             return View(issue);
         }
@@ -352,9 +355,11 @@ namespace ProjectTracking.Controllers
             var oldStatus = (issue.IssueStatus ?? "").Trim().ToUpperInvariant();
             var newStatus = NormalizeTesterIssueStatus(model.IssueStatus, oldStatus);
             var currentDevStatus = NormalizeProgrammerDevStatus(issue.DevStatus);
+            var statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
+            var shouldCountFailRound = newStatus == "FAIL" && currentDevStatus == "FIXED";
             var shouldNotifyAssigneeBaResult =
-                !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase)
-                && IsBaResultStatus(newStatus);
+                (statusChanged && IsBaResultStatus(newStatus))
+                || shouldCountFailRound;
             if (RequiresFixedDevStatusForBaResult(newStatus) && currentDevStatus != "FIXED")
             {
                 ModelState.AddModelError(
@@ -367,6 +372,8 @@ namespace ProjectTracking.Controllers
                 ViewBag.ProjectId = model.ProjectId;
                 ViewBag.ProjectName = await GetProjectDisplayNameAsync(model.ProjectId);
                 ViewBag.Employees = GetEmployeeList(model.AssignTo);
+                ViewBag.CurrentIssueStatus = issue.IssueStatus;
+                ViewBag.CurrentDevStatus = issue.DevStatus;
                 ViewBag.StatusList = GetStatusList(model.IssueStatus, includeOpen: false);
                 model.DevStatus = issue.DevStatus;
                 model.Images = await _context.ProjectIssueImages
@@ -390,10 +397,7 @@ namespace ProjectTracking.Controllers
                 _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
             }
 
-            bool wasFixed = oldStatus == "FIXED" || oldStatus == "PASS" || oldStatus == "REJECT";
-            bool reopened = newStatus == "OPEN" || newStatus == "FAIL";
-
-            if (wasFixed && reopened)
+            if (shouldCountFailRound)
             {
                 issue.IsReopen = true;
                 issue.ReopenCount += 1;
@@ -402,8 +406,8 @@ namespace ProjectTracking.Controllers
                 _context.Entry(issue).Property(x => x.ReopenCount).IsModified = true;
             }
 
-            // ✅ insert history เฉพาะตอน status เปลี่ยนจริง
-            if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+            // Insert history when the status changes, or when BA fails another fixed round.
+            if (statusChanged || shouldCountFailRound)
             {
                 var changedByEmpId = await GetCurrentEntryIdAsync();
 
@@ -489,7 +493,9 @@ namespace ProjectTracking.Controllers
 
             if (issue == null) return NotFound();
 
-            ViewBag.DevStatusList = GetDevStatusList(issue.DevStatus);
+            ViewBag.CurrentDevStatus = issue.DevStatus;
+            ViewBag.DevStatusList = GetDevStatusList("FIXED");
+            issue.DevStatus = "FIXED";
             return View(issue);
         }
 
@@ -776,15 +782,6 @@ namespace ProjectTracking.Controllers
                 statuses.RemoveAll(x => x.Value == "OPEN");
             }
 
-            if (selectedValue == "WIP" && statuses.All(x => x.Value != selectedValue))
-            {
-                statuses.Insert(1, ("WIP", "WIP - โปรแกรมเมอร์กำลังแก้ (สถานะจากระบบ)"));
-            }
-            else if (selectedValue == "FIXED" && statuses.All(x => x.Value != selectedValue))
-            {
-                statuses.Insert(1, ("FIXED", "FIXED - โปรแกรมเมอร์แก้เสร็จแล้ว (รอ BA ตรวจ)"));
-            }
-
             return new SelectList(
                 statuses.Select(x => new { x.Value, x.Text }),
                 "Value",
@@ -809,13 +806,8 @@ namespace ProjectTracking.Controllers
             var value = (status ?? "").Trim().ToUpperInvariant();
             if (TesterIssueStatuses.Any(x => x.Value == value))
                 return value;
-            if (value == "WIP" || value == "FIXED")
-                return value;
 
             var fallbackValue = (fallback ?? "OPEN").Trim().ToUpperInvariant();
-            if (fallbackValue == "WIP" || fallbackValue == "FIXED")
-                return fallbackValue;
-
             return TesterIssueStatuses.Any(x => x.Value == fallbackValue) ? fallbackValue : "OPEN";
         }
 

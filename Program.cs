@@ -211,6 +211,13 @@ await EnsureWeeklyReportTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 
+if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
+{
+    await PrintStatusCleanupSummaryAsync(app.Services);
+    Console.WriteLine("ProjectIssues and SupportOrders status cleanup completed.");
+    return;
+}
+
 // allow large upload requests
 app.Use(async (context, next) =>
 {
@@ -767,37 +774,142 @@ static async Task EnsureSupportOrderStatusValuesAsync(IServiceProvider services)
         }
 
         command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_support_order'
+              AND COLUMN_NAME = 'is_reopen';";
+
+        var hasIsReopen = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasIsReopen)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project_support_order`
+                  ADD COLUMN `is_reopen` tinyint(1) NOT NULL DEFAULT 0 AFTER `dev_detail`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project_support_order'
+              AND COLUMN_NAME = 'reopen_count';";
+
+        var hasReopenCount = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasReopenCount)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project_support_order`
+                  ADD COLUMN `reopen_count` int NOT NULL DEFAULT 0 AFTER `is_reopen`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
             ALTER TABLE `project_support_order`
               MODIFY COLUMN `status` varchar(20) NULL DEFAULT 'OPEN',
-              MODIFY COLUMN `dev_status` varchar(20) NULL DEFAULT 'TODO';";
+              MODIFY COLUMN `dev_status` varchar(20) NULL DEFAULT 'WIP';";
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
             UPDATE `project_support_order`
             SET `status` = CASE
-                WHEN `status` = 'WAIT_TEST' THEN 'FIXED'
-                WHEN `status` = 'DONE' THEN 'PASS'
-                WHEN `status` = 'CLOSE' THEN 'PASS'
-                WHEN `status` = 'IN_PROGRESS' THEN 'WIP'
+                WHEN `status` IN ('OPEN', 'PASS', 'FAIL', 'REJECT') THEN `status`
+                WHEN `status` IN ('WAIT_TEST', 'WIP', 'FIXED', 'IN_PROGRESS', 'TODO', 'DOING', 'BLOCK') THEN 'OPEN'
+                WHEN `status` IN ('DONE', 'CLOSE', 'CLOSED', 'RESOLVED') THEN 'PASS'
                 WHEN `status` IS NULL OR `status` = '' THEN 'OPEN'
-                ELSE `status`
+                ELSE 'OPEN'
             END;";
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
             UPDATE `project_support_order`
             SET `dev_status` = CASE
-                WHEN `dev_status` = 'IN_PROGRESS' THEN 'WIP'
-                WHEN `dev_status` IN ('TODO', 'DOING', 'BLOCK') THEN 'WIP'
+                WHEN `dev_status` = 'FIXED' THEN 'FIXED'
+                WHEN `dev_status` IN ('TODO', 'DOING', 'BLOCK', 'IN_PROGRESS', 'OPEN', 'FAIL', 'PASS', 'REJECT') THEN 'WIP'
                 WHEN `dev_status` IS NULL OR `dev_status` = '' THEN 'WIP'
-                ELSE `dev_status`
+                ELSE 'WIP'
             END;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order`
+            SET `is_reopen` = CASE
+                    WHEN COALESCE(`reopen_count`, 0) > 0 THEN 1
+                    ELSE COALESCE(`is_reopen`, 0)
+                END,
+                `reopen_count` = COALESCE(`reopen_count`, 0);";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order`
+            SET `dev_status` = 'FIXED'
+            WHERE `status` = 'PASS'
+              AND `dev_status` <> 'FIXED';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order`
+            SET `dev_status` = 'WIP'
+            WHERE `status` = 'FAIL'
+              AND `dev_status` <> 'WIP';";
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
             ALTER TABLE `project_support_order`
               MODIFY COLUMN `status` varchar(20) NOT NULL DEFAULT 'OPEN',
-              MODIFY COLUMN `dev_status` varchar(20) NOT NULL DEFAULT 'TODO';";
+              MODIFY COLUMN `dev_status` varchar(20) NOT NULL DEFAULT 'WIP';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_support_order_status_histories` (
+              `id` int NOT NULL AUTO_INCREMENT,
+              `order_id` int NOT NULL,
+              `old_status` varchar(20) NULL,
+              `new_status` varchar(20) NOT NULL DEFAULT 'OPEN',
+              `is_reopen` tinyint(1) NOT NULL DEFAULT 0,
+              `reopen_count` int NOT NULL DEFAULT 0,
+              `changed_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `changed_by_emp_id` int NULL,
+              PRIMARY KEY (`id`),
+              KEY `IX_project_support_order_status_histories_order_id` (`order_id`),
+              KEY `IX_project_support_order_status_histories_changed_at` (`changed_at`),
+              KEY `IX_project_support_order_status_histories_order_id_changed_at` (`order_id`, `changed_at`),
+              CONSTRAINT `FK_support_order_status_histories_order`
+                FOREIGN KEY (`order_id`) REFERENCES `project_support_order` (`order_id`)
+                ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `project_support_order_status_histories`
+                (`order_id`, `old_status`, `new_status`, `is_reopen`, `reopen_count`, `changed_at`, `changed_by_emp_id`)
+            SELECT
+                o.`order_id`,
+                NULL,
+                COALESCE(o.`status`, 'OPEN'),
+                COALESCE(o.`is_reopen`, 0),
+                COALESCE(o.`reopen_count`, 0),
+                COALESCE(o.`created_at`, NOW()),
+                o.`created_by`
+            FROM `project_support_order` o
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM `project_support_order_status_histories` h
+                WHERE h.`order_id` = o.`order_id`
+            );";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_support_order` o
+            LEFT JOIN (
+                SELECT `order_id`, COUNT(*) AS `fail_count`
+                FROM `project_support_order_status_histories`
+                WHERE `new_status` = 'FAIL'
+                GROUP BY `order_id`
+            ) h ON h.`order_id` = o.`order_id`
+            SET o.`reopen_count` = COALESCE(h.`fail_count`, 0),
+                o.`is_reopen` = CASE WHEN COALESCE(h.`fail_count`, 0) > 0 THEN 1 ELSE 0 END;";
         await command.ExecuteNonQueryAsync();
     }
     finally
@@ -830,13 +942,187 @@ static async Task EnsureIssueDevStatusValuesAsync(IServiceProvider services)
         if (!tableExists) return;
 
         command.CommandText = @"
+            ALTER TABLE `ProjectIssues`
+              MODIFY COLUMN `IssueStatus` varchar(20) NULL DEFAULT 'OPEN',
+              MODIFY COLUMN `DevStatus` varchar(20) NULL DEFAULT 'WIP';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
             UPDATE `ProjectIssues`
-            SET `DevStatus` = CASE
-                WHEN `DevStatus` IN ('TODO', 'DOING', 'BLOCK') THEN 'WIP'
-                WHEN `DevStatus` IS NULL OR `DevStatus` = '' THEN 'WIP'
-                ELSE `DevStatus`
+            SET `IssueStatus` = CASE
+                WHEN `IssueStatus` IN ('OPEN', 'PASS', 'FAIL', 'REJECT') THEN `IssueStatus`
+                WHEN `IssueStatus` IN ('WAIT_TEST', 'WIP', 'FIXED', 'IN_PROGRESS', 'TODO', 'DOING', 'BLOCK') THEN 'OPEN'
+                WHEN `IssueStatus` IN ('DONE', 'CLOSE', 'CLOSED', 'RESOLVED') THEN 'PASS'
+                WHEN `IssueStatus` IS NULL OR `IssueStatus` = '' THEN 'OPEN'
+                ELSE 'OPEN'
             END;";
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `ProjectIssues`
+            SET `DevStatus` = CASE
+                WHEN `DevStatus` = 'FIXED' THEN 'FIXED'
+                WHEN `DevStatus` IN ('TODO', 'DOING', 'BLOCK', 'IN_PROGRESS', 'OPEN', 'FAIL', 'PASS', 'REJECT') THEN 'WIP'
+                WHEN `DevStatus` IS NULL OR `DevStatus` = '' THEN 'WIP'
+                ELSE 'WIP'
+            END;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `ProjectIssues`
+            SET `DevStatus` = 'FIXED'
+            WHERE `IssueStatus` = 'PASS'
+              AND `DevStatus` <> 'FIXED';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `ProjectIssues`
+            SET `DevStatus` = 'WIP'
+            WHERE `IssueStatus` = 'FAIL'
+              AND `DevStatus` <> 'WIP';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `ProjectIssueStatusHistories`
+                (`IssueId`, `OldStatus`, `NewStatus`, `IsReopen`, `ReopenCount`, `ChangedAt`, `ChangedByEmpId`)
+            SELECT
+                i.`IssueId`,
+                NULL,
+                COALESCE(i.`IssueStatus`, 'OPEN'),
+                COALESCE(i.`IsReopen`, 0),
+                COALESCE(i.`ReopenCount`, 0),
+                COALESCE(i.`CreatedAt`, NOW()),
+                i.`created_by`
+            FROM `ProjectIssues` i
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM `ProjectIssueStatusHistories` h
+                WHERE h.`IssueId` = i.`IssueId`
+            );";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `ProjectIssues` i
+            LEFT JOIN (
+                SELECT `IssueId`, COUNT(*) AS `fail_count`
+                FROM `ProjectIssueStatusHistories`
+                WHERE `NewStatus` = 'FAIL'
+                GROUP BY `IssueId`
+            ) h ON h.`IssueId` = i.`IssueId`
+            SET i.`ReopenCount` = COALESCE(h.`fail_count`, 0),
+                i.`IsReopen` = CASE WHEN COALESCE(h.`fail_count`, 0) > 0 THEN 1 ELSE 0 END;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `ProjectIssues`
+              MODIFY COLUMN `IssueStatus` varchar(20) NOT NULL DEFAULT 'OPEN',
+              MODIFY COLUMN `DevStatus` varchar(20) NOT NULL DEFAULT 'WIP';";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task PrintStatusCleanupSummaryAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+            SELECT
+                (SELECT COUNT(*) FROM `ProjectIssues`
+                 WHERE `IssueStatus` NOT IN ('OPEN', 'PASS', 'FAIL', 'REJECT')
+                    OR `IssueStatus` IS NULL
+                    OR `IssueStatus` = '') AS InvalidIssueStatus,
+                (SELECT COUNT(*) FROM `ProjectIssues`
+                 WHERE `DevStatus` NOT IN ('WIP', 'FIXED')
+                    OR `DevStatus` IS NULL
+                    OR `DevStatus` = '') AS InvalidIssueDevStatus,
+                (SELECT COUNT(*) FROM `project_support_order`
+                 WHERE `status` NOT IN ('OPEN', 'PASS', 'FAIL', 'REJECT')
+                    OR `status` IS NULL
+                    OR `status` = '') AS InvalidSupportStatus,
+                (SELECT COUNT(*) FROM `project_support_order`
+                 WHERE `dev_status` NOT IN ('WIP', 'FIXED')
+                    OR `dev_status` IS NULL
+                    OR `dev_status` = '') AS InvalidSupportDevStatus,
+                (SELECT COUNT(*) FROM `project_support_order_status_histories`) AS SupportStatusHistoryRows,
+                (SELECT COUNT(*) FROM `project_support_order` o
+                 WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM `project_support_order_status_histories` h
+                    WHERE h.`order_id` = o.`order_id`
+                 )) AS SupportOrdersWithoutHistory,
+                (SELECT COUNT(*) FROM `ProjectIssues` i
+                 WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM `ProjectIssueStatusHistories` h
+                    WHERE h.`IssueId` = i.`IssueId`
+                 )) AS ProjectIssuesWithoutHistory,
+                (SELECT COUNT(*) FROM `ProjectIssues`
+                 WHERE `IssueStatus` = 'PASS'
+                   AND `DevStatus` <> 'FIXED') AS ProjectIssuesPassDevNotFixed,
+                (SELECT COUNT(*) FROM `ProjectIssues`
+                 WHERE `IssueStatus` = 'FAIL'
+                   AND `DevStatus` <> 'WIP') AS ProjectIssuesFailDevNotWip,
+                (SELECT COUNT(*) FROM `project_support_order`
+                 WHERE `status` = 'PASS'
+                   AND `dev_status` <> 'FIXED') AS SupportOrdersPassDevNotFixed,
+                (SELECT COUNT(*) FROM `project_support_order`
+                 WHERE `status` = 'FAIL'
+                   AND `dev_status` <> 'WIP') AS SupportOrdersFailDevNotWip,
+                (SELECT COUNT(*) FROM `ProjectIssues` i
+                 WHERE COALESCE(i.`ReopenCount`, 0) <> (
+                    SELECT COUNT(*)
+                    FROM `ProjectIssueStatusHistories` h
+                    WHERE h.`IssueId` = i.`IssueId`
+                      AND h.`NewStatus` = 'FAIL'
+                 )) AS ProjectIssuesFailCountMismatch,
+                (SELECT COUNT(*) FROM `project_support_order` o
+                 WHERE COALESCE(o.`reopen_count`, 0) <> (
+                    SELECT COUNT(*)
+                    FROM `project_support_order_status_histories` h
+                    WHERE h.`order_id` = o.`order_id`
+                      AND h.`new_status` = 'FAIL'
+                 )) AS SupportOrdersFailCountMismatch,
+                (SELECT COUNT(*) FROM `ProjectIssues`
+                 WHERE COALESCE(`IsReopen`, 0) <> CASE WHEN COALESCE(`ReopenCount`, 0) > 0 THEN 1 ELSE 0 END
+                ) AS ProjectIssuesIsReopenMismatch,
+                (SELECT COUNT(*) FROM `project_support_order`
+                 WHERE COALESCE(`is_reopen`, 0) <> CASE WHEN COALESCE(`reopen_count`, 0) > 0 THEN 1 ELSE 0 END
+                ) AS SupportOrdersIsReopenMismatch;";
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            Console.WriteLine($"Invalid ProjectIssues.IssueStatus: {reader.GetInt64(0)}");
+            Console.WriteLine($"Invalid ProjectIssues.DevStatus: {reader.GetInt64(1)}");
+            Console.WriteLine($"Invalid SupportOrders.Status: {reader.GetInt64(2)}");
+            Console.WriteLine($"Invalid SupportOrders.DevStatus: {reader.GetInt64(3)}");
+            Console.WriteLine($"SupportOrders status history rows: {reader.GetInt64(4)}");
+            Console.WriteLine($"SupportOrders without status history: {reader.GetInt64(5)}");
+            Console.WriteLine($"ProjectIssues without status history: {reader.GetInt64(6)}");
+            Console.WriteLine($"ProjectIssues PASS but DevStatus not FIXED: {reader.GetInt64(7)}");
+            Console.WriteLine($"ProjectIssues FAIL but DevStatus not WIP: {reader.GetInt64(8)}");
+            Console.WriteLine($"SupportOrders PASS but DevStatus not FIXED: {reader.GetInt64(9)}");
+            Console.WriteLine($"SupportOrders FAIL but DevStatus not WIP: {reader.GetInt64(10)}");
+            Console.WriteLine($"ProjectIssues FAIL count mismatch: {reader.GetInt64(11)}");
+            Console.WriteLine($"SupportOrders FAIL count mismatch: {reader.GetInt64(12)}");
+            Console.WriteLine($"ProjectIssues IsReopen mismatch: {reader.GetInt64(13)}");
+            Console.WriteLine($"SupportOrders IsReopen mismatch: {reader.GetInt64(14)}");
+        }
     }
     finally
     {

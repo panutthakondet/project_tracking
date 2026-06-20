@@ -28,8 +28,6 @@
     string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
         "OPEN" => "muted",
-        "WIP" => "warning",
-        "FIXED" => "info",
         "FAIL" => "danger",
         "PASS" => "success",
         "REJECT" => "muted",
@@ -458,6 +456,10 @@
         <div class="support-summary-card">
             <span class="support-summary-label">Dev Status</span>
             <span class="support-summary-value status-text @DevStatusClass(Model.DevStatus)">@TextOrDash(Model.DevStatus)</span>
+        </div>
+        <div class="support-summary-card">
+            <span class="support-summary-label">จำนวน FAIL</span>
+            <span class="support-summary-value">@((Model.ReopenCount > 0 ? $"{Model.ReopenCount} ครั้ง" : "0 ครั้ง"))</span>
         </div>
         <div class="support-summary-card">
             <span class="support-summary-label">วันที่เริ่ม</span>

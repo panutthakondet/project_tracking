@@ -403,8 +403,8 @@
 
     <section class="issue-summary-grid">
         <div class="issue-summary-card">
-            <span class="issue-summary-label">Reopen</span>
-            <span class="issue-summary-value">@(issue?.IsReopen == true ? $"{issue.ReopenCount} ครั้ง" : "ไม่เคย Reopen")</span>
+            <span class="issue-summary-label">จำนวน FAIL</span>
+            <span class="issue-summary-value">@((issue?.ReopenCount ?? 0) > 0 ? $"{issue?.ReopenCount} ครั้ง" : "0 ครั้ง")</span>
         </div>
         <div class="issue-summary-card">
             <span class="issue-summary-label">Images</span>

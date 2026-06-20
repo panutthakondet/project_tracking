@@ -239,7 +239,7 @@ namespace ProjectTracking.Services
 
             foreach (var row in rows)
             {
-                if (IsIssueDone(row.IssueStatus, row.DevStatus))
+                if (IsIssueClosed(row.IssueStatus))
                     continue;
 
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
@@ -257,11 +257,13 @@ namespace ProjectTracking.Services
                     row.StartDate,
                     row.EndDate);
                 var recipients = new List<NotificationRecipient>();
+                var isWaitingBaReview = IsIssueWaitingBaReview(row.IssueStatus, row.DevStatus);
 
                 if (row.Project?.BaEmpId.HasValue == true)
                     recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/ProjectIssues/Details/{row.IssueId}"));
 
-                recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevDetails/{row.IssueId}"));
+                if (!isWaitingBaReview)
+                    recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevDetails/{row.IssueId}"));
 
                 foreach (var recipient in UniqueRecipients(recipients))
                 {
@@ -306,7 +308,7 @@ namespace ProjectTracking.Services
 
             foreach (var row in rows)
             {
-                if (IsSupportDone(row.Status, row.DevStatus))
+                if (IsSupportClosed(row.Status))
                     continue;
 
                 if (!TryBuildDueState(row.EndDate, today, riskUntil, out var severity, out var dueText, out var stateText))
@@ -325,11 +327,12 @@ namespace ProjectTracking.Services
                     row.StartDate,
                     row.EndDate);
                 var recipients = new List<NotificationRecipient>();
+                var isWaitingBaReview = IsSupportWaitingBaReview(row.Status, row.DevStatus);
 
                 if (row.Project?.BaEmpId.HasValue == true)
                     recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/SupportOrders/Details/{row.OrderId}"));
 
-                if (row.AssignTo.HasValue)
+                if (!isWaitingBaReview && row.AssignTo.HasValue)
                     recipients.Add(new NotificationRecipient(row.AssignTo.Value, $"/SupportOrdersDev/Details/{row.OrderId}"));
 
                 foreach (var recipient in UniqueRecipients(recipients))
@@ -832,11 +835,16 @@ namespace ProjectTracking.Services
                 ? value
                 : value[..maxLength];
 
-        private static bool IsIssueDone(string? issueStatus, string? devStatus)
+        private static bool IsIssueClosed(string? issueStatus)
         {
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
+            return issue is "PASS" or "REJECT" or "DONE";
+        }
+
+        private static bool IsIssueWaitingBaReview(string? issueStatus, string? devStatus)
+        {
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
+            return !IsIssueClosed(issueStatus) && dev == "FIXED";
         }
 
         private static bool IsDone(string? status)
@@ -846,11 +854,16 @@ namespace ProjectTracking.Services
             return normalized == "DONE" || raw is "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
         }
 
-        private static bool IsSupportDone(string? status, string? devStatus)
+        private static bool IsSupportClosed(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized is "PASS" or "REJECT" or "DONE";
+        }
+
+        private static bool IsSupportWaitingBaReview(string? status, string? devStatus)
+        {
             var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
+            return !IsSupportClosed(status) && dev == "FIXED";
         }
 
         private static bool IsFollowupOpen(string? status)

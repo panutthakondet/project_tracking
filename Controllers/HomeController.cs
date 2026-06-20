@@ -706,8 +706,7 @@ namespace ProjectTracking.Controllers
             var issueMetrics = new List<HomeDashboardMetric>
             {
                 CreateMetric("OPEN", issues.Count(i => Norm(i.IssueStatus) == "OPEN"), issues.Count, "warning"),
-                CreateMetric("WIP", issues.Count(i => Norm(i.IssueStatus) == "WIP"), issues.Count, "info"),
-                CreateMetric("FIXED", issues.Count(i => Norm(i.IssueStatus) == "FIXED"), issues.Count, "cyan"),
+                CreateMetric("WAIT BA", issues.Count(i => Norm(i.DevStatus) == "FIXED" && !IsIssueResolved(i)), issues.Count, "cyan"),
                 CreateMetric("FAIL", issues.Count(i => Norm(i.IssueStatus) == "FAIL"), issues.Count, "danger"),
                 CreateMetric("PASS", issues.Count(i => Norm(i.IssueStatus) == "PASS"), issues.Count, "lime"),
                 CreateMetric("REJECT", issues.Count(i => Norm(i.IssueStatus) == "REJECT"), issues.Count, "violet")
@@ -716,8 +715,7 @@ namespace ProjectTracking.Controllers
             var supportMetrics = new List<HomeDashboardMetric>
             {
                 CreateMetric("OPEN", supportOrders.Count(o => Norm(o.Status) == "OPEN"), supportOrders.Count, "warning"),
-                CreateMetric("WIP", supportOrders.Count(o => Norm(o.Status) == "WIP"), supportOrders.Count, "info"),
-                CreateMetric("FIXED", supportOrders.Count(o => Norm(o.Status) == "FIXED"), supportOrders.Count, "cyan"),
+                CreateMetric("WAIT BA", supportOrders.Count(o => Norm(o.DevStatus) == "FIXED" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "cyan"),
                 CreateMetric("FAIL", supportOrders.Count(o => Norm(o.Status) == "FAIL"), supportOrders.Count, "danger"),
                 CreateMetric("PASS", supportOrders.Count(o => Norm(o.Status) == "PASS"), supportOrders.Count, "lime"),
                 CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
@@ -1248,17 +1246,13 @@ namespace ProjectTracking.Controllers
         private static bool IsLineOverdueIssueDone(string? issueStatus, string? devStatus)
         {
             var issue = Norm(issueStatus);
-            var dev = Norm(devStatus);
-            return issue is "FIXED" or "PASS" or "REJECT"
-                || dev == "FIXED";
+            return issue is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsLineOverdueSupportDone(string? status, string? devStatus)
         {
             var normalized = Norm(status);
-            var dev = Norm(devStatus);
-            return normalized is "FIXED" or "PASS" or "REJECT" or "DONE"
-                || dev == "FIXED";
+            return normalized is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsLineOverdueFollowupOpen(string? status)
@@ -1894,7 +1888,9 @@ namespace ProjectTracking.Controllers
                     var progress = CalculateWatchProjectProgress(project.Status, projectPhases, projectAssigns);
                     var openIssues = projectIssues.Count(i => !IsIssueResolved(i));
                     var urgentIssues = projectIssues.Count(i => !IsIssueResolved(i) && IsHighPriority(i.IssuePriority));
-                    var reopenedIssues = projectIssues.Count(i => !IsIssueResolved(i) && (i.IsReopen || i.ReopenCount > 0));
+                    var failedIssueRounds = projectIssues
+                        .Where(i => !IsIssueResolved(i))
+                        .Sum(i => i.ReopenCount);
                     var overduePhases = projectPhases.Count(p => p.PlanEnd?.Date < today && !IsPhaseDone(p.PhaseStatus));
                     var upcomingPhases = projectPhases.Count(p =>
                         p.PlanEnd?.Date >= today &&
@@ -1946,10 +1942,10 @@ namespace ProjectTracking.Controllers
                         reasons.Add($"Issue เปิด {openIssues}");
                     }
 
-                    if (reopenedIssues > 0)
+                    if (failedIssueRounds > 0)
                     {
-                        score += reopenedIssues * 2;
-                        reasons.Add($"Reopen {reopenedIssues}");
+                        score += failedIssueRounds * 2;
+                        reasons.Add($"FAIL {failedIssueRounds}");
                     }
 
                     if (overdueFollowups > 0)
@@ -2338,17 +2334,13 @@ namespace ProjectTracking.Controllers
         private static bool IsIssueResolved(DashboardIssueRow issue)
         {
             var issueStatus = Norm(issue.IssueStatus);
-            var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "FIXED" or "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
-                || devStatus is "FIXED" or "DONE" or "RESOLVED";
+            return issueStatus is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsIssueInProgress(DashboardIssueRow issue)
         {
-            var issueStatus = Norm(issue.IssueStatus);
             var devStatus = Norm(issue.DevStatus);
-            return issueStatus is "WIP" or "IN_PROGRESS" or "DOING"
-                || devStatus is "WIP" or "DOING" or "IN_PROGRESS";
+            return devStatus is "WIP" or "DOING" or "IN_PROGRESS";
         }
 
         private static bool IsHighPriority(string? priority)
@@ -2363,14 +2355,12 @@ namespace ProjectTracking.Controllers
 
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
-            return Norm(status) is "FIXED" or "PASS" or "REJECT" or "DONE"
-                || Norm(devStatus) == "FIXED";
+            return Norm(status) is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsSupportOrderInProgress(DashboardSupportOrderRow order)
         {
-            return Norm(order.Status) is "WIP" or "IN_PROGRESS" or "DOING"
-                || Norm(order.DevStatus) is "WIP" or "IN_PROGRESS" or "DOING";
+            return Norm(order.DevStatus) is "WIP" or "IN_PROGRESS" or "DOING";
         }
 
         private static string SupportOrderActivityColor(string? status, string? devStatus)
@@ -2378,12 +2368,17 @@ namespace ProjectTracking.Controllers
             var normalizedStatus = Norm(status);
             var normalizedDevStatus = Norm(devStatus);
 
-            if (normalizedStatus is "FIXED" or "PASS" or "REJECT" or "DONE" || normalizedDevStatus == "FIXED")
+            if (normalizedStatus is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED")
             {
                 return "green";
             }
 
-            if (normalizedStatus == "WIP" || normalizedDevStatus is "WIP" or "IN_PROGRESS")
+            if (normalizedDevStatus == "FIXED")
+            {
+                return "cyan";
+            }
+
+            if (normalizedDevStatus is "WIP" or "IN_PROGRESS")
             {
                 return "orange";
             }

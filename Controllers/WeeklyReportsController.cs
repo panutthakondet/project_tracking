@@ -482,15 +482,13 @@ namespace ProjectTracking.Controllers
         private static bool IsIssueDone(string? issueStatus, string? devStatus)
         {
             var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
-            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return issue is "FIXED" or "PASS" or "REJECT" || dev == "FIXED";
+            return issue is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsSupportDone(string? status, string? devStatus)
         {
             var support = (status ?? "").Trim().ToUpperInvariant();
-            var dev = (devStatus ?? "").Trim().ToUpperInvariant();
-            return support is "FIXED" or "PASS" or "REJECT" or "DONE" || dev == "FIXED";
+            return support is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsClosedPhase(string? phaseStatus)

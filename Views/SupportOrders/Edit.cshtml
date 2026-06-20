@@ -19,7 +19,38 @@
 
     string startDateText = ThaiDateText(startDate);
     string endDateText = ThaiDateText(endDate);
+    string currentStatus = (ViewBag.CurrentStatus as string) ?? supportOrder.Status ?? "-";
+    string currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? supportOrder.DevStatus ?? "-";
 }
+
+<style>
+    .support-current-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .support-current-status__badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #e0f2fe;
+        color: #075985;
+        font-weight: 900;
+    }
+
+    .support-current-status__badge--dev {
+        background: #fef3c7;
+        color: #92400e;
+    }
+</style>
 
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
@@ -34,9 +65,11 @@
 <form asp-action="Edit" asp-route-id="@supportOrder.OrderId" asp-route-projectId="@supportOrder.ProjectId" method="post" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
 
-    <input asp-for="OrderId" type="hidden" />
-    <input asp-for="ProjectId" type="hidden" />
-    <input asp-for="DevStatus" type="hidden" />
+	    <input asp-for="OrderId" type="hidden" />
+	    <input asp-for="ProjectId" type="hidden" />
+	    <input asp-for="DevStatus" type="hidden" />
+	    <input asp-for="IsReopen" type="hidden" />
+	    <input asp-for="ReopenCount" type="hidden" />
 
     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -67,11 +100,32 @@
         </select>
     </div>
 
-    <div class="mb-3">
-        <label>สถานะ</label>
-        <select asp-for="Status" asp-items="ViewBag.StatusList" class="form-select"></select>
-        <span asp-validation-for="Status" class="text-danger"></span>
-    </div>
+	    <div class="mb-3">
+	        <label>สถานะ</label>
+	        <div class="support-current-status">
+	            <span>สถานะปัจจุบัน</span>
+	            <span class="support-current-status__badge">@currentStatus</span>
+	            <span>Dev Status</span>
+	            <span class="support-current-status__badge support-current-status__badge--dev">@currentDevStatus</span>
+	        </div>
+	        <select asp-for="Status" asp-items="ViewBag.StatusList" class="form-select"></select>
+	        <span asp-validation-for="Status" class="text-danger"></span>
+		    </div>
+
+	    <div class="row g-3 mb-3">
+	        <div class="col-md-4">
+	            <label class="form-label fw-semibold">สถานะ FAIL</label>
+	            <div class="form-control bg-light">@(supportOrder.ReopenCount > 0 ? "เคย FAIL" : "ยังไม่เคย FAIL")</div>
+	        </div>
+	        <div class="col-md-4">
+	            <label class="form-label fw-semibold">จำนวน FAIL</label>
+	            <div class="form-control bg-light">@supportOrder.ReopenCount ครั้ง</div>
+	        </div>
+	        <div class="col-md-4">
+	            <label class="form-label fw-semibold">หมายเหตุ</label>
+	            <div class="form-control bg-light">นับเมื่อ Dev FIXED แล้ว BA บันทึก FAIL</div>
+	        </div>
+	    </div>
 
     <div class="row g-3 mb-3">
         <div class="col-md-6">

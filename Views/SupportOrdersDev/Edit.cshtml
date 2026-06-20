@@ -11,6 +11,7 @@
     var afterImages = order.FixImages?
         .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
         .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+    var currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? order.DevStatus ?? "-";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
@@ -28,7 +29,7 @@
     {
         "OPEN" => "muted",
         "WIP" => "warning",
-        "FIXED" => "info",
+        "FIXED" => "success",
         "FAIL" => "danger",
         "PASS" => "success",
         "REJECT" => "muted",
@@ -67,6 +68,28 @@
         min-height: 46px;
         border-radius: 14px;
         font-weight: 800;
+    }
+
+    .support-dev-current-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .support-dev-current-status__badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #fef3c7;
+        color: #92400e;
+        font-weight: 900;
     }
 
     .support-dev-edit-page textarea.form-control {
@@ -154,11 +177,14 @@
 
                     <div class="col-md-4">
                         <label>Dev Status</label>
-                        <select asp-for="DevStatus" class="form-select">
-                            <option value="">-- Select Status --</option>
-                            <option value="WIP">WIP - กำลังแก้</option>
-                            <option value="FIXED">FIXED</option>
-                        </select>
+                        <div class="support-dev-current-status">
+                            <span>Dev Status ปัจจุบัน</span>
+                            <span class="support-dev-current-status__badge">@TextOrDash(currentDevStatus)</span>
+                        </div>
+                        <input type="hidden" asp-for="DevStatus" value="FIXED" />
+                        <div class="support-dev-readonly">
+                            <span class="status-text success">FIXED - แก้เสร็จ / ส่งตรวจ</span>
+                        </div>
                     </div>
                 </div>
 

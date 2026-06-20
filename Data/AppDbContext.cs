@@ -36,6 +36,7 @@ namespace ProjectTracking.Data
         public DbSet<ProjectSupportOrder> ProjectSupportOrders { get; set; }
         public DbSet<ProjectSupportImage> ProjectSupportImages { get; set; }
         public DbSet<ProjectSupportFixImage> ProjectSupportFixImages { get; set; }
+        public DbSet<ProjectSupportOrderStatusHistory> ProjectSupportOrderStatusHistories { get; set; }
 
         // ===== Test Scenarios =====
         public DbSet<TestScenario> TestScenarios { get; set; }
@@ -1124,7 +1125,7 @@ namespace ProjectTracking.Data
                 entity.Property(i => i.DevStatus)
                     .HasColumnName("DevStatus")
                     .HasColumnType("varchar(20)")
-                    .HasDefaultValue("TODO")
+                    .HasDefaultValue("WIP")
                     .IsRequired();
 
                 // BEFORE IMAGES
@@ -1195,6 +1196,64 @@ namespace ProjectTracking.Data
                 entity.HasOne(x => x.Issue)
                     .WithMany() // ไม่บังคับให้มี navigation ใน ProjectIssue
                     .HasForeignKey(x => x.IssueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // SUPPORT ORDER STATUS HISTORY
+            // =========================
+            modelBuilder.Entity<ProjectSupportOrderStatusHistory>(entity =>
+            {
+                entity.ToTable("project_support_order_status_histories");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                    .HasColumnName("id");
+
+                entity.Property(x => x.OrderId)
+                    .HasColumnName("order_id")
+                    .IsRequired();
+
+                entity.Property(x => x.OldStatus)
+                    .HasColumnName("old_status")
+                    .HasColumnType("varchar(20)")
+                    .HasMaxLength(20)
+                    .IsRequired(false);
+
+                entity.Property(x => x.NewStatus)
+                    .HasColumnName("new_status")
+                    .HasColumnType("varchar(20)")
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.IsReopen)
+                    .HasColumnName("is_reopen")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.ReopenCount)
+                    .HasColumnName("reopen_count")
+                    .HasColumnType("int")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.ChangedAt)
+                    .HasColumnName("changed_at")
+                    .HasColumnType("datetime")
+                    .IsRequired();
+
+                entity.Property(x => x.ChangedByEmpId)
+                    .HasColumnName("changed_by_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.HasIndex(x => x.OrderId);
+                entity.HasIndex(x => x.ChangedAt);
+                entity.HasIndex(x => new { x.OrderId, x.ChangedAt });
+
+                entity.HasOne(x => x.Order)
+                    .WithMany()
+                    .HasForeignKey(x => x.OrderId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

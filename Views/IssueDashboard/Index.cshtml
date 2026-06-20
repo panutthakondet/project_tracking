@@ -309,21 +309,21 @@ canvas{display:block;}
 
         <div class="kpi c-wip">
             <div class="trend @trendClass(Model?.Wip ?? 0, Model?.WipYesterday ?? 0)">@fmtDiffInt(Model?.Wip ?? 0, Model?.WipYesterday ?? 0)</div>
-            <small>WIP</small>
+            <small>Dev WIP</small>
             <h3>@(Model?.Wip ?? 0)</h3>
             <div class="kpi-sub">@pct(Model?.Wip ?? 0, Model?.Total ?? 0).ToString("0.#")%</div>
         </div>
 
         <div class="kpi c-fixed">
             <div class="trend @trendClass(Model?.Fixed ?? 0, Model?.FixedYesterday ?? 0)">@fmtDiffInt(Model?.Fixed ?? 0, Model?.FixedYesterday ?? 0)</div>
-            <small>Fixed</small>
+            <small>รอ BA ตรวจ</small>
             <h3>@(Model?.Fixed ?? 0)</h3>
             <div class="kpi-sub">@pct(Model?.Fixed ?? 0, Model?.Total ?? 0).ToString("0.#")%</div>
         </div>
 
         <div class="kpi c-reopen">
             <div class="trend @trendClass(Model?.ReopenRate ?? 0, Model?.ReopenRateYesterday ?? 0)">@fmtDiffPp(Model?.ReopenRate ?? 0, Model?.ReopenRateYesterday ?? 0)</div>
-            <small>Reopen %</small>
+            <small>FAIL %</small>
             <h3>@((Model?.ReopenRate ?? 0).ToString("0.#"))%</h3>
             <div class="kpi-sub">จาก Total</div>
         </div>
@@ -437,7 +437,7 @@ canvas{display:block;}
     function getStatusColor(label){
         const key = normalizeStatusLabel(label);
         const map = {
-            'OPEN':'#ff0000','WIP':'#ffd166','FIXED':'#06d6a0','REJECT':'#adb5bd','PASS':'#06d6a0','FAIL':'#ff4d6d'
+            'OPEN':'#ff0000','PASS':'#06d6a0','FAIL':'#ff4d6d','REJECT':'#adb5bd'
         };
         return map[key] || '#adb5bd';
     }

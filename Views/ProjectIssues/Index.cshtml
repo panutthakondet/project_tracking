@@ -371,16 +371,14 @@ else
                 reopenCount <= 3 ? "bg-warning text-dark" :
                 "bg-danger";
 
-            string reopenText =
-                reopenCount == 0 ? "ปกติ" :
-                reopenCount == 1 ? "ส่งกลับ 1 ครั้ง" :
-                reopenCount <= 3 ? $"ส่งกลับ {reopenCount} ครั้ง" :
+            string failCountText =
+                reopenCount == 0 ? "0 ครั้ง" :
+                reopenCount == 1 ? "FAIL 1 ครั้ง" :
+                reopenCount <= 3 ? $"FAIL {reopenCount} ครั้ง" :
                 $"วิกฤต ({reopenCount})";
 
             string statusClass =
                 i.IssueStatus == "OPEN" ? "bg-warning text-dark" :
-                i.IssueStatus == "WIP" ? "bg-info text-dark" :
-                i.IssueStatus == "FIXED" ? "bg-success" :
                 i.IssueStatus == "PASS" ? "bg-primary" :
                 i.IssueStatus == "FAIL" ? "bg-danger" :
                 i.IssueStatus == "REJECT" ? "bg-dark" :
@@ -402,8 +400,8 @@ else
                                 @if (i.IsReopen)
                                 {
                                     <span class="badge @reopenClass reopen-badge pt-list-value"
-                                          title="ถูกส่งกลับมาแก้ @reopenCount ครั้ง">
-                                        @reopenText
+                                          title="จำนวน FAIL @reopenCount ครั้ง">
+                                        @failCountText
                                     </span>
                                 }
                             </span>
@@ -440,6 +438,10 @@ else
                             <span class="badge @(urgent ? "bg-danger" : "bg-secondary") pt-list-value">
                                 @(urgent ? "URGENT" : "NORMAL")
                             </span>
+                        </div>
+                        <div class="issue-status-item">
+                            <small class="pt-list-label">จำนวน FAIL</small>
+                            <span class="badge @reopenClass pt-list-value">@reopenCount ครั้ง</span>
                         </div>
                     </div>
                 </div>

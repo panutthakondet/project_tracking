@@ -12,6 +12,7 @@ namespace ProjectTracking.Services
         public const string MeetingsUpdate = "Meetings.Update";
         public const string MeetingsCancel = "Meetings.Cancel";
         public const string MeetingsReminder = "Meetings.Reminder";
+        public const string PhaseAssignsCreate = "PhaseAssigns.Create";
         public const string ProjectIssuesCreate = "ProjectIssues.Create";
         public const string ProjectIssuesFixed = "ProjectIssues.Fixed";
         public const string ProjectIssuesBaResult = "ProjectIssues.BaResult";
@@ -32,6 +33,7 @@ namespace ProjectTracking.Services
                 new(MeetingsUpdate, "Meetings", "Edit Meetings", "ส่ง LINE เมื่อแก้ไข Meeting"),
                 new(MeetingsCancel, "Meetings", "Cancel Meetings", "ส่ง LINE เมื่อเปลี่ยนสถานะ Meeting เป็นยกเลิก"),
                 new(MeetingsReminder, "Meetings", "Meeting Reminder", "ส่ง LINE เตือนประชุมล่วงหน้า 3, 2, 1, 0 วัน"),
+                new(PhaseAssignsCreate, "PhaseAssigns", "Create PhaseAssigns", "ส่ง LINE ถึง BA และผู้รับผิดชอบเมื่อสร้าง Assign"),
                 new(ProjectIssuesCreate, "ProjectIssues", "Create ProjectIssues", "ส่ง LINE ถึง BA และผู้รับผิดชอบเมื่อสร้าง Issue"),
                 new(ProjectIssuesFixed, "ProjectIssues", "FIXED ProjectIssues", "ส่ง LINE ถึง BA เมื่อ Dev เปลี่ยน Issue เป็น FIXED"),
                 new(ProjectIssuesBaResult, "ProjectIssues", "BA Result ProjectIssues", "ส่ง LINE ถึงผู้รับผิดชอบเมื่อ BA เปลี่ยน Issue เป็น PASS/FAIL/REJECT"),
