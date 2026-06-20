@@ -150,12 +150,13 @@ namespace ProjectTracking.Controllers
 
         private static string NormalizeChannel(string? channel)
         {
-            var normalized = (channel ?? "LINE").Trim().ToUpperInvariant();
+            var normalized = (channel ?? "TELEGRAM").Trim().ToUpperInvariant();
             return normalized switch
             {
                 "MAIL" or "EMAIL" => "EMAIL",
                 "TELEGRAM" => "TELEGRAM",
-                _ => "LINE"
+                "LINE" => "LINE",
+                _ => "TELEGRAM"
             };
         }
 
