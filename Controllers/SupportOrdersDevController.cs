@@ -135,9 +135,8 @@ namespace ProjectTracking.Controllers
             if (dbOrder == null)
                 return NotFound();
 
-            var oldDevStatus = NormalizeSupportDevStatus(dbOrder.DevStatus);
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
-            var shouldNotifyBaFixed = oldDevStatus != "FIXED" && nextDevStatus == "FIXED";
+            var shouldNotifyBaFixed = nextDevStatus == "FIXED";
             dbOrder.DevStatus = nextDevStatus;
             dbOrder.DevDetail = order.DevDetail;
 

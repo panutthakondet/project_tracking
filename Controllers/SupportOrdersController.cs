@@ -401,9 +401,7 @@ namespace ProjectTracking.Controllers
             var oldStatus = NormalizeSupportStatus(existingOrder.Status);
             var statusChanged = !string.Equals(oldStatus, nextStatus, StringComparison.OrdinalIgnoreCase);
             var shouldNotifyFailRound = nextStatus == "FAIL" && currentDevStatus == "FIXED";
-            var shouldNotifyAssigneeBaResult =
-                (statusChanged && IsBaResultStatus(nextStatus))
-                || shouldNotifyFailRound;
+            var shouldNotifyAssigneeBaResult = IsBaResultStatus(nextStatus);
             if (RequiresFixedDevStatusForBaResult(nextStatus) && currentDevStatus != "FIXED")
             {
                 ModelState.AddModelError(

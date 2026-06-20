@@ -357,9 +357,7 @@ namespace ProjectTracking.Controllers
             var currentDevStatus = NormalizeProgrammerDevStatus(issue.DevStatus);
             var statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
             var shouldCountFailRound = newStatus == "FAIL" && currentDevStatus == "FIXED";
-            var shouldNotifyAssigneeBaResult =
-                (statusChanged && IsBaResultStatus(newStatus))
-                || shouldCountFailRound;
+            var shouldNotifyAssigneeBaResult = IsBaResultStatus(newStatus);
             if (RequiresFixedDevStatusForBaResult(newStatus) && currentDevStatus != "FIXED")
             {
                 ModelState.AddModelError(
@@ -512,9 +510,8 @@ namespace ProjectTracking.Controllers
             var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
-            var oldDev = NormalizeProgrammerDevStatus(issue.DevStatus);
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
-            var shouldNotifyBaFixed = oldDev != "FIXED" && newDev == "FIXED";
+            var shouldNotifyBaFixed = newDev == "FIXED";
 
             issue.DevStatus = newDev;
             issue.DevDetail = model.DevDetail;   // developer fix detail
