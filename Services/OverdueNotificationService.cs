@@ -42,12 +42,12 @@ namespace ProjectTracking.Services
         }
 
         public async Task SyncAsync(CancellationToken cancellationToken = default)
-            => await SyncAsync(forceTelegramSend: false, cancellationToken);
+            => await SyncAsync(forceTelegramSend: false, sendChatNotifications: false, cancellationToken);
 
         public async Task SyncAndSendTelegramAsync(CancellationToken cancellationToken = default)
-            => await SyncAsync(forceTelegramSend: true, cancellationToken);
+            => await SyncAsync(forceTelegramSend: true, sendChatNotifications: true, cancellationToken);
 
-        private async Task SyncAsync(bool forceTelegramSend, CancellationToken cancellationToken = default)
+        private async Task SyncAsync(bool forceTelegramSend, bool sendChatNotifications, CancellationToken cancellationToken = default)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -114,8 +114,22 @@ namespace ProjectTracking.Services
             }
 
             await db.SaveChangesAsync(cancellationToken);
-            await SendTelegramNotificationsAsync(telegramQueue, cancellationToken);
-            _logger.LogInformation("Overdue notification sync completed. Active={ActiveCount}", activeKeys.Count);
+            if (sendChatNotifications)
+            {
+                await SendTelegramNotificationsAsync(telegramQueue, cancellationToken);
+            }
+            else if (telegramQueue.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Automatic overdue chat notifications skipped during manual sync. Queued={QueuedCount}",
+                    telegramQueue.Count);
+            }
+
+            _logger.LogInformation(
+                "Overdue notification sync completed. Active={ActiveCount}, ChatQueued={ChatQueuedCount}, ChatSendEnabled={ChatSendEnabled}",
+                activeKeys.Count,
+                telegramQueue.Count,
+                sendChatNotifications);
         }
 
         private async Task SyncPhaseAssignsAsync(
@@ -489,6 +503,14 @@ namespace ProjectTracking.Services
             IEnumerable<TelegramNotificationPayload> telegramQueue,
             CancellationToken cancellationToken)
         {
+            var notifications = telegramQueue
+                .GroupBy(x => $"{x.EmpId}:{x.Title}:{x.Message}:{x.TargetUrl}")
+                .Select(x => x.First())
+                .ToList();
+
+            if (notifications.Count == 0)
+                return;
+
             var sendLine = _lineMessagingService.IsConfigured
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.AutoSend, cancellationToken)
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
@@ -502,55 +524,135 @@ namespace ProjectTracking.Services
                 return;
             }
 
-            foreach (var notification in telegramQueue
-                .GroupBy(x => $"{x.EmpId}:{x.Title}:{x.Message}:{x.TargetUrl}")
-                .Select(x => x.First()))
+            var sentToday = await LoadTodaySuccessfulAutoSendKeysAsync(sendLine, sendTelegram, cancellationToken);
+
+            foreach (var notification in notifications)
             {
                 if (sendLine)
-                    await SendLineNotificationSafelyAsync(notification, cancellationToken);
+                {
+                    var key = BuildSendLogKey("LINE", notification);
+                    if (sentToday.Contains(key))
+                    {
+                        _logger.LogInformation(
+                            "Automatic LINE notification skipped because it was already sent today. EmpId={EmpId}, Title={Title}",
+                            notification.EmpId,
+                            notification.Title);
+                    }
+                    else if (await SendLineNotificationSafelyAsync(notification, cancellationToken))
+                    {
+                        sentToday.Add(key);
+                    }
+                }
 
                 if (sendTelegram)
-                    await SendTelegramNotificationSafelyAsync(notification, cancellationToken);
+                {
+                    var key = BuildSendLogKey("TELEGRAM", notification);
+                    if (sentToday.Contains(key))
+                    {
+                        _logger.LogInformation(
+                            "Automatic Telegram notification skipped because it was already sent today. EmpId={EmpId}, Title={Title}",
+                            notification.EmpId,
+                            notification.Title);
+                    }
+                    else if (await SendTelegramNotificationSafelyAsync(notification, cancellationToken))
+                    {
+                        sentToday.Add(key);
+                    }
+                }
             }
         }
 
-        private async Task SendLineNotificationSafelyAsync(
+        private async Task<HashSet<string>> LoadTodaySuccessfulAutoSendKeysAsync(
+            bool includeLine,
+            bool includeTelegram,
+            CancellationToken cancellationToken)
+        {
+            var channels = new List<string>(capacity: 2);
+            if (includeLine)
+                channels.Add("LINE");
+            if (includeTelegram)
+                channels.Add("TELEGRAM");
+
+            if (channels.Count == 0)
+                return new HashSet<string>(StringComparer.Ordinal);
+
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
+
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            var logs = await db.NotificationSendLogs
+                .AsNoTracking()
+                .Where(x => x.SentAt >= today
+                    && x.SentAt < tomorrow
+                    && x.RecipientEmpId.HasValue
+                    && channels.Contains(x.Channel))
+                .Select(x => new
+                {
+                    x.Channel,
+                    EmpId = x.RecipientEmpId!.Value,
+                    x.Title,
+                    x.Message,
+                    x.TargetUrl
+                })
+                .ToListAsync(cancellationToken);
+
+            return logs
+                .Select(x => BuildSendLogKey(x.Channel, x.EmpId, x.Title, x.Message, x.TargetUrl))
+                .ToHashSet(StringComparer.Ordinal);
+        }
+
+        private async Task<bool> SendLineNotificationSafelyAsync(
             TelegramNotificationPayload notification,
             CancellationToken cancellationToken)
         {
             try
             {
-                await _lineMessagingService.SendNotificationToEmployeeAsync(
+                var sentCount = await _lineMessagingService.SendNotificationToEmployeeAsync(
                     notification.EmpId,
                     notification.Title,
                     notification.Message,
                     notification.TargetUrl,
                     cancellationToken);
+                return sentCount > 0;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Automatic LINE notification failed for EmpId={EmpId}", notification.EmpId);
+                return false;
             }
         }
 
-        private async Task SendTelegramNotificationSafelyAsync(
+        private async Task<bool> SendTelegramNotificationSafelyAsync(
             TelegramNotificationPayload notification,
             CancellationToken cancellationToken)
         {
             try
             {
-                await _telegramMessagingService.SendNotificationToEmployeeAsync(
+                var sentCount = await _telegramMessagingService.SendNotificationToEmployeeAsync(
                     notification.EmpId,
                     notification.Title,
                     notification.Message,
                     notification.TargetUrl,
                     cancellationToken);
+                return sentCount > 0;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Automatic Telegram notification failed for EmpId={EmpId}", notification.EmpId);
+                return false;
             }
         }
+
+        private static string BuildSendLogKey(string channel, TelegramNotificationPayload notification)
+            => BuildSendLogKey(channel, notification.EmpId, notification.Title, notification.Message, notification.TargetUrl);
+
+        private static string BuildSendLogKey(string channel, int empId, string title, string? message, string? targetUrl)
+            => string.Join('\u001f',
+                channel.Trim().ToUpperInvariant(),
+                empId.ToString(CultureInfo.InvariantCulture),
+                Trim(title, 255) ?? "",
+                message ?? "",
+                targetUrl == null ? "" : Trim(targetUrl, 500));
 
         private static void ResolveDuplicateNotifications(IEnumerable<UserNotification> notifications, DateTime now)
         {
