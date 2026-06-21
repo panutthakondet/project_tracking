@@ -23,13 +23,18 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(string? channel = null, int? empId = null)
         {
             var selectedChannel = NormalizeChannel(channel);
+            var today = DateTime.Today;
+            var tomorrow = today.AddDays(1);
             var employees = await LoadUsersAsync();
             var employeeById = employees.ToDictionary(x => x.EmpId);
 
-            var tabs = await BuildTabsAsync();
+            var tabs = await BuildTabsAsync(today, tomorrow);
             var countRows = await _context.NotificationSendLogs
                 .AsNoTracking()
-                .Where(x => x.Channel == selectedChannel && x.RecipientEmpId.HasValue)
+                .Where(x => x.Channel == selectedChannel
+                    && x.RecipientEmpId.HasValue
+                    && x.SentAt >= today
+                    && x.SentAt < tomorrow)
                 .GroupBy(x => x.RecipientEmpId!.Value)
                 .Select(x => new
                 {
@@ -77,10 +82,11 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private async Task<List<NotificationSendLogTabViewModel>> BuildTabsAsync()
+        private async Task<List<NotificationSendLogTabViewModel>> BuildTabsAsync(DateTime today, DateTime tomorrow)
         {
             var counts = await _context.NotificationSendLogs
                 .AsNoTracking()
+                .Where(x => x.SentAt >= today && x.SentAt < tomorrow)
                 .GroupBy(x => x.Channel)
                 .Select(x => new { Channel = x.Key, Count = x.Count() })
                 .ToListAsync(HttpContext.RequestAborted);

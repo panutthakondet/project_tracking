@@ -523,7 +523,7 @@
         <aside class="send-log-panel send-log-side-panel">
             <div class="send-log-left-head">
                 <h1 class="send-log-title">Users</h1>
-                <div class="send-log-subtitle">เลือกผู้รับเพื่อดู Log การส่งสำเร็จ</div>
+                <div class="send-log-subtitle">เลือกผู้รับเพื่อดู Log การส่งสำเร็จ จำนวนแสดงเฉพาะวันนี้</div>
             </div>
 
             <a class="send-log-all @(Model.SelectedEmpId == null ? "active" : "")"
@@ -533,7 +533,7 @@
                 <span class="send-log-all-icon">ALL</span>
                 <span>
                     <span class="send-log-user-name">ทั้งหมด</span>
-                    <span class="send-log-user-meta">@Model.SelectedChannelLabel logs</span>
+                    <span class="send-log-user-meta">@Model.SelectedChannelLabel logs วันนี้</span>
                 </span>
                 <span class="send-log-count">@Model.TotalCount</span>
             </a>
@@ -577,7 +577,7 @@
                         }
                         <div class="send-log-selected-text">
                             <div class="send-log-selected-name">@(selectedUser?.Name ?? "Log การส่งสำเร็จทั้งหมด")</div>
-                            <div class="send-log-selected-meta">@Model.SelectedChannelLabel · แสดงล่าสุด @Model.Logs.Count รายการ</div>
+                            <div class="send-log-selected-meta">@Model.SelectedChannelLabel · จำนวน badge เป็นของวันนี้ · แสดงล่าสุด @Model.Logs.Count รายการ</div>
                         </div>
                     </div>
                 </div>
