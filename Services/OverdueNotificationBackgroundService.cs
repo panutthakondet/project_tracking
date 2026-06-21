@@ -21,10 +21,21 @@ namespace ProjectTracking.Services
         {
             _logger.LogInformation("OverdueNotificationBackgroundService started. RunAt={RunAt}", _runAt);
 
+            var startedAt = GetBangkokNow();
+            if (startedAt.TimeOfDay >= _runAt)
+            {
+                _logger.LogInformation(
+                    "Overdue notification run time has already passed today. Running startup sync now. StartedAt={StartedAt}, RunAt={RunAt}",
+                    startedAt,
+                    _runAt);
+                await RunOnceAsync(stoppingToken);
+            }
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                var nextRun = NextRunAt(DateTime.Now, _runAt);
-                var delay = nextRun - DateTime.Now;
+                var now = GetBangkokNow();
+                var nextRun = NextRunAt(now, _runAt);
+                var delay = nextRun - now;
                 if (delay < TimeSpan.Zero)
                     delay = TimeSpan.Zero;
 
@@ -58,6 +69,31 @@ namespace ProjectTracking.Services
             return next <= now
                 ? next.AddDays(1)
                 : next;
+        }
+
+        private static DateTime GetBangkokNow()
+        {
+            try
+            {
+                var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+                }
+                catch
+                {
+                    return DateTime.Now;
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return DateTime.Now;
+            }
         }
 
         private static TimeSpan ParseRunAt(string? value)

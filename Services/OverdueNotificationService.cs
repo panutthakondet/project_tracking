@@ -51,9 +51,9 @@ namespace ProjectTracking.Services
         {
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
 
-            var today = DateTime.Today;
+            var now = GetBangkokNow();
+            var today = now.Date;
             var riskUntil = today.AddDays(_riskDays);
-            var now = DateTime.Now;
 
             var userEmpLinks = await db.LoginUsers
                 .AsNoTracking()
@@ -579,7 +579,7 @@ namespace ProjectTracking.Services
             if (channels.Count == 0)
                 return new HashSet<string>(StringComparer.Ordinal);
 
-            var today = DateTime.Today;
+            var today = GetBangkokNow().Date;
             var tomorrow = today.AddDays(1);
 
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
@@ -726,6 +726,31 @@ namespace ProjectTracking.Services
             severity = "WARNING";
             stateText = $"เสี่ยงล่าช้า เหลือ {(due - today).Days:N0} วัน";
             return true;
+        }
+
+        private static DateTime GetBangkokNow()
+        {
+            try
+            {
+                var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+                }
+                catch
+                {
+                    return DateTime.Now;
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return DateTime.Now;
+            }
         }
 
         private static string SeverityTitle(string severity)
