@@ -6,7 +6,7 @@ namespace ProjectTracking.Services
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MeetingReminderBackgroundService> _logger;
-        private readonly TimeSpan _interval;
+        private readonly TimeSpan _runAt;
 
         public MeetingReminderBackgroundService(
             IServiceScopeFactory scopeFactory,
@@ -15,21 +15,36 @@ namespace ProjectTracking.Services
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
-            _interval = ParseInterval(
-                configuration["MEETING_TELEGRAM_REMINDER_INTERVAL_MINUTES"]
-                ?? configuration["MEETING_LINE_REMINDER_INTERVAL_MINUTES"]);
+            _runAt = ParseRunAt(configuration["MEETING_NOTIFICATION_RUN_AT"]);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation(
-                "MeetingReminderBackgroundService started in chat notification mode. Interval={Interval}",
-                _interval);
+                "MeetingReminderBackgroundService started in scheduled chat notification mode. RunAt={RunAt}",
+                _runAt);
+
+            var startedAt = GetBangkokNow();
+            if (startedAt.TimeOfDay >= _runAt)
+            {
+                _logger.LogInformation(
+                    "Meeting reminder run time has already passed today. Running startup sync now. StartedAt={StartedAt}, RunAt={RunAt}",
+                    startedAt,
+                    _runAt);
+                await RunOnceAsync(stoppingToken);
+            }
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var now = GetBangkokNow();
+                var nextRun = NextRunAt(now, _runAt);
+                var delay = nextRun - now;
+                if (delay < TimeSpan.Zero)
+                    delay = TimeSpan.Zero;
+
+                _logger.LogInformation("Next meeting reminder sync scheduled at {NextRun}", nextRun);
+                await Task.Delay(delay, stoppingToken);
                 await RunOnceAsync(stoppingToken);
-                await Task.Delay(_interval, stoppingToken);
             }
         }
 
@@ -95,12 +110,53 @@ namespace ProjectTracking.Services
             }
         }
 
-        private static TimeSpan ParseInterval(string? value)
+        private static DateTime NextRunAt(DateTime now, TimeSpan runAt)
         {
-            if (int.TryParse(value, out var minutes) && minutes > 0)
-                return TimeSpan.FromMinutes(Math.Clamp(minutes, 1, 1440));
+            var next = now.Date.Add(runAt);
+            return next <= now
+                ? next.AddDays(1)
+                : next;
+        }
 
-            return TimeSpan.FromMinutes(5);
+        private static DateTime GetBangkokNow()
+        {
+            try
+            {
+                var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var bangkokTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, bangkokTimeZone);
+                }
+                catch
+                {
+                    return DateTime.Now;
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return DateTime.Now;
+            }
+        }
+
+        private static TimeSpan ParseRunAt(string? value)
+        {
+            var normalized = string.IsNullOrWhiteSpace(value)
+                ? "06:00"
+                : value.Trim().Replace('.', ':');
+
+            if (TimeSpan.TryParse(normalized, out var parsed)
+                && parsed >= TimeSpan.Zero
+                && parsed < TimeSpan.FromDays(1))
+            {
+                return new TimeSpan(parsed.Hours, parsed.Minutes, 0);
+            }
+
+            return new TimeSpan(6, 0, 0);
         }
     }
 }
