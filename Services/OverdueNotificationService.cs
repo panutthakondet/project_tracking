@@ -515,10 +515,8 @@ namespace ProjectTracking.Services
                 return;
 
             var sendLine = _lineMessagingService.IsConfigured
-                && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.AutoSend, cancellationToken)
                 && await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.OverdueAuto, cancellationToken);
             var sendTelegram = _telegramMessagingService.IsConfigured
-                && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.AutoSend, cancellationToken)
                 && await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.OverdueAuto, cancellationToken);
 
             if (!sendLine && !sendTelegram)

@@ -795,12 +795,6 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(0, 0, 0);
             }
 
-            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.AutoSend, cancellationToken))
-            {
-                _logger.LogInformation("Meeting LINE reminder skipped because LINE auto send is disabled.");
-                return new MeetingNotificationResult(0, 0, 0);
-            }
-
             if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsReminder, cancellationToken))
             {
                 _logger.LogInformation("Meeting LINE reminder skipped because it is disabled in Line Notification settings.");
@@ -914,12 +908,6 @@ namespace ProjectTracking.Services
             if (!_telegramMessagingService.IsConfigured)
             {
                 _logger.LogDebug("Meeting Telegram reminder skipped because Telegram is not configured.");
-                return new MeetingNotificationResult(0, 0, 0);
-            }
-
-            if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.AutoSend, cancellationToken))
-            {
-                _logger.LogInformation("Meeting Telegram reminder skipped because Telegram auto send is disabled.");
                 return new MeetingNotificationResult(0, 0, 0);
             }
 

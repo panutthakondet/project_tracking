@@ -7,7 +7,6 @@ namespace ProjectTracking.Services
 {
     public static class LineNotificationFeatures
     {
-        public const string AutoSend = "Auto.Send";
         public const string MeetingsAuto = "Meetings.Auto";
         public const string MeetingsCreate = "Meetings.Create";
         public const string MeetingsUpdate = "Meetings.Update";
@@ -29,7 +28,6 @@ namespace ProjectTracking.Services
         public static readonly IReadOnlyList<LineNotificationFeatureDefinition> All =
             new List<LineNotificationFeatureDefinition>
             {
-                new(AutoSend, "Auto", "ส่งออโต้", "เปิด/ปิดการส่ง LINE อัตโนมัติทั้งหมด"),
                 new(MeetingsAuto, "Auto", "Auto Meetings", "ส่ง LINE อัตโนมัติสำหรับเตือนประชุมล่วงหน้า"),
                 new(MeetingsCreate, "Meetings", "Create Meetings", "ส่ง LINE เมื่อสร้าง Meeting"),
                 new(MeetingsUpdate, "Meetings", "Edit Meetings", "ส่ง LINE เมื่อแก้ไข Meeting"),
@@ -46,7 +44,7 @@ namespace ProjectTracking.Services
                 new(FollowupsAck, "Followups", "ACK Followups", "ส่ง LINE ถึง Owner เมื่อผู้สั่งงานเปลี่ยน Follow-up เป็น ACK"),
                 new(FollowupsOwnerUpdate, "Followups", "Owner Update Followups", "ส่ง LINE ถึงผู้สั่งงานเมื่อ Owner บันทึก Log หรือ Done"),
                 new(LineOverdueManual, "LineOverdue", "Manual LineOverdue", "ส่ง LINE จากหน้า Employees/LineOverdue"),
-                new(OverdueAuto, "LineOverdue", "Auto Overdue", "ส่ง LINE อัตโนมัติสำหรับงานเสี่ยงล่าช้า/งานล่าช้า")
+                new(OverdueAuto, "Auto", "Auto Overdue", "ส่ง LINE อัตโนมัติสำหรับงานเสี่ยงล่าช้า/งานล่าช้า")
             };
 
         public static string ConfigKey(string featureKey)
