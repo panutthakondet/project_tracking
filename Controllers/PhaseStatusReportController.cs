@@ -199,7 +199,7 @@ namespace ProjectTracking.Controllers
             return result;
         }
 
-        private bool IsLineDueRow(VwPhaseOwnerStatus row)
+        private bool IsLineDueRow(VwPhaseOwnerStatus row, int riskDays)
         {
             if (IsDone(null, row.PhaseStatus))
                 return false;
@@ -207,7 +207,6 @@ namespace ProjectTracking.Controllers
             if ((row.OverdueDays ?? 0) > 0)
                 return true;
 
-            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
             var today = DateTime.Today;
             return row.PlanEnd.HasValue
                 && row.PlanEnd.Value.Date >= today
@@ -260,7 +259,7 @@ namespace ProjectTracking.Controllers
         private async Task<List<LineOverdueSelectionItemViewModel>> BuildLineOverdueSelectionItemsAsync()
         {
             var today = DateTime.Today;
-            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskDays = await GetOverdueRiskDaysAsync();
             var riskUntil = today.AddDays(riskDays);
 
             var employeeRows = await _context.Employees
@@ -680,6 +679,20 @@ namespace ProjectTracking.Controllers
         private static string Norm(string? value)
         {
             return (value ?? "").Trim().ToUpperInvariant();
+        }
+
+        private async Task<int> GetOverdueRiskDaysAsync()
+        {
+            var value = await _context.SystemConfigs
+                .AsNoTracking()
+                .Where(x => x.ConfigKey == "OVERDUE_NOTIFICATION_RISK_DAYS")
+                .Select(x => x.ConfigValue)
+                .FirstOrDefaultAsync();
+
+            if (int.TryParse(value, out var riskDays))
+                return Math.Clamp(riskDays, 0, 30);
+
+            return Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
         private static int StatusRank(string? status)

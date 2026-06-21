@@ -21,7 +21,7 @@ namespace ProjectTracking.Services
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<OverdueNotificationService> _logger;
-        private readonly int _riskDays;
+        private readonly int _defaultRiskDays;
 
         public OverdueNotificationService(
             IDbContextFactory<AppDbContext> dbFactory,
@@ -38,7 +38,7 @@ namespace ProjectTracking.Services
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
             _logger = logger;
-            _riskDays = Math.Clamp(configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            _defaultRiskDays = Math.Clamp(configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
         public async Task SyncAsync(CancellationToken cancellationToken = default)
@@ -53,7 +53,8 @@ namespace ProjectTracking.Services
 
             var now = GetBangkokNow();
             var today = now.Date;
-            var riskUntil = today.AddDays(_riskDays);
+            var riskDays = await GetRiskDaysAsync(db, cancellationToken);
+            var riskUntil = today.AddDays(riskDays);
 
             var userEmpLinks = await db.LoginUsers
                 .AsNoTracking()
@@ -724,6 +725,20 @@ namespace ProjectTracking.Services
             severity = "WARNING";
             stateText = $"เสี่ยงล่าช้า เหลือ {(due - today).Days:N0} วัน";
             return true;
+        }
+
+        private async Task<int> GetRiskDaysAsync(AppDbContext db, CancellationToken cancellationToken)
+        {
+            var value = await db.SystemConfigs
+                .AsNoTracking()
+                .Where(x => x.ConfigKey == "OVERDUE_NOTIFICATION_RISK_DAYS")
+                .Select(x => x.ConfigValue)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (int.TryParse(value, out var parsed))
+                return Math.Clamp(parsed, 0, 30);
+
+            return _defaultRiskDays;
         }
 
         private static DateTime GetBangkokNow()

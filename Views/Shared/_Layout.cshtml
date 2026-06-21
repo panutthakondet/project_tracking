@@ -1831,7 +1831,8 @@
     var canSettings = CanMenu("UserManagement.Index")
                    || CanMenu("LineNotificationSettings.Index")
                    || CanMenu("TelegramNotificationSettings.Index")
-                   || CanMenu("NotificationSendLogs.Index");
+                   || CanMenu("NotificationSendLogs.Index")
+                   || CanMenu("SystemConfigs.Index");
 
     var followupAlertCount = Convert.ToInt32(ViewBag?.FollowupAlertCount ?? 0);
     var followupDoneCount = Convert.ToInt32(ViewBag?.FollowupDoneCount ?? 0);
@@ -2168,7 +2169,7 @@
                         @if (canSettings)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
                                     <span class="nav-label">Settings</span>
@@ -2190,6 +2191,10 @@
                                     @if (CanMenu("NotificationSendLogs.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="NotificationSendLogs" asp-action="Index">Notification Send Logs</a></li>
+                                    }
+                                    @if (CanMenu("SystemConfigs.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="SystemConfigs" asp-action="Index">System Config</a></li>
                                     }
                                 </ul>
                             </li>

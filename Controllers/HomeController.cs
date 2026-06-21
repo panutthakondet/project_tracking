@@ -936,7 +936,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardAssignRow> assigns,
             DateTime today)
         {
-            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskDays = await GetOverdueRiskDaysAsync();
             var riskUntil = today.AddDays(riskDays);
             var projectById = projects
                 .GroupBy(x => x.ProjectId)
@@ -1027,7 +1027,7 @@ namespace ProjectTracking.Controllers
         private async Task<LineOverdueOverviewDetailViewModel> BuildLineOverdueOverviewDetailAsync(string? coopName, int? projectId, int? empId, string? status)
         {
             var today = DateTime.Today;
-            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskDays = await GetOverdueRiskDaysAsync();
             var riskUntil = today.AddDays(riskDays);
             var statusFilter = Norm(status);
 
@@ -2649,6 +2649,20 @@ namespace ProjectTracking.Controllers
             public DateTime? CheckinTime { get; set; }
             public DateTime? CheckoutTime { get; set; }
             public decimal DistanceKm { get; set; }
+        }
+
+        private async Task<int> GetOverdueRiskDaysAsync()
+        {
+            var value = await _context.SystemConfigs
+                .AsNoTracking()
+                .Where(x => x.ConfigKey == "OVERDUE_NOTIFICATION_RISK_DAYS")
+                .Select(x => x.ConfigValue)
+                .FirstOrDefaultAsync();
+
+            if (int.TryParse(value, out var riskDays))
+                return Math.Clamp(riskDays, 0, 30);
+
+            return Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
         private sealed class DashboardTimeSummary

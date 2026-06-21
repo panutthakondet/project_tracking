@@ -667,6 +667,16 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
 
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `system_config` (`config_key`, `config_value`, `description`, `updated_at`)
+            VALUES
+              ('MEETING_NOTIFICATION_RUN_AT', '06:00', 'Meeting Auto - เวลาส่งแจ้งเตือนประชุมอัตโนมัติ เวลาไทย', NOW()),
+              ('OVERDUE_NOTIFICATION_RISK_DAYS', '7', 'Overdue Auto - จำนวนวันล่วงหน้าที่ถือว่าเสี่ยงล่าช้า', NOW()),
+              ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
+            ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";
+
+        await command.ExecuteNonQueryAsync();
     }
     finally
     {

@@ -334,7 +334,7 @@ namespace ProjectTracking.Controllers
         private async Task<List<LineOverdueSelectionItemViewModel>> BuildLineOverdueSelectionItemsAsync()
         {
             var today = DateTime.Today;
-            var riskDays = Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+            var riskDays = await GetOverdueRiskDaysAsync();
             var riskUntil = today.AddDays(riskDays);
 
             var employeeRows = await _context.Employees
@@ -851,6 +851,20 @@ namespace ProjectTracking.Controllers
 
         private static string Norm(string? value)
             => (value ?? "").Trim().ToUpperInvariant();
+
+        private async Task<int> GetOverdueRiskDaysAsync()
+        {
+            var value = await _context.SystemConfigs
+                .AsNoTracking()
+                .Where(x => x.ConfigKey == "OVERDUE_NOTIFICATION_RISK_DAYS")
+                .Select(x => x.ConfigValue)
+                .FirstOrDefaultAsync();
+
+            if (int.TryParse(value, out var riskDays))
+                return Math.Clamp(riskDays, 0, 30);
+
+            return Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+        }
 
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 

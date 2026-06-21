@@ -1,0 +1,575 @@
+@model ProjectTracking.ViewModels.SystemConfigPageViewModel
+@{
+    ViewData["Title"] = "System Config";
+    var groups = Model.Items.GroupBy(x => x.Group).ToList();
+    var index = 0;
+}
+
+<style>
+    .system-config-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        color: #111827;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    .system-config-page * {
+        letter-spacing: 0;
+        text-shadow: none;
+    }
+
+    .system-config-hero {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .system-config-panel {
+        background: #ffffff;
+        border: 1px solid #d8e3ef;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .system-config-alert {
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .system-config-alert.success {
+        color: #065f46;
+        background: #d1fae5;
+        border: 1px solid #a7f3d0;
+    }
+
+    .system-config-alert.error {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+
+    .system-config-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #d8e3ef;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    .system-config-search-wrap {
+        position: relative;
+    }
+
+    .system-config-search-mark {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        width: 10px;
+        height: 10px;
+        border: 2px solid #0ea5e9;
+        border-radius: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .system-config-search-mark::after {
+        content: "";
+        position: absolute;
+        right: -6px;
+        bottom: -5px;
+        width: 7px;
+        height: 2px;
+        border-radius: 999px;
+        background: #0ea5e9;
+        transform: rotate(45deg);
+    }
+
+    .system-config-search {
+        width: 100%;
+        height: 44px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0 14px 0 38px;
+        color: #10233f;
+        font-size: 14px;
+        font-weight: 600;
+        outline: none;
+    }
+
+    .system-config-search:focus {
+        border-color: #0ea5e9;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, .14);
+    }
+
+    .system-config-count {
+        color: #334155;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        background: #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 14px;
+    }
+
+    .system-config-groups {
+        display: grid;
+        gap: 14px;
+    }
+
+    .system-config-group {
+        --group-color: #0ea5e9;
+        --group-soft: #eff6ff;
+        --group-border: #bfdbfe;
+        --group-ring: rgba(14, 165, 233, .16);
+        border: 1px solid var(--group-border);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    .system-config-group.theme-meeting {
+        --group-color: #2563eb;
+        --group-soft: #eff6ff;
+        --group-border: #bfdbfe;
+        --group-ring: rgba(37, 99, 235, .16);
+    }
+
+    .system-config-group.theme-overdue {
+        --group-color: #dc2626;
+        --group-soft: #fff1f2;
+        --group-border: #fecdd3;
+        --group-ring: rgba(220, 38, 38, .14);
+    }
+
+    .system-config-group.theme-line {
+        --group-color: #16a34a;
+        --group-soft: #f0fdf4;
+        --group-border: #bbf7d0;
+        --group-ring: rgba(22, 163, 74, .14);
+    }
+
+    .system-config-group.theme-telegram {
+        --group-color: #0284c7;
+        --group-soft: #f0f9ff;
+        --group-border: #bae6fd;
+        --group-ring: rgba(2, 132, 199, .14);
+    }
+
+    .system-config-group.theme-attendance {
+        --group-color: #7c3aed;
+        --group-soft: #f5f3ff;
+        --group-border: #ddd6fe;
+        --group-ring: rgba(124, 58, 237, .14);
+    }
+
+    .system-config-group.theme-system {
+        --group-color: #475569;
+        --group-soft: #f8fafc;
+        --group-border: #cbd5e1;
+        --group-ring: rgba(71, 85, 105, .14);
+    }
+
+    .system-config-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: var(--group-soft);
+        border-bottom: 1px solid var(--group-border);
+        padding: 12px 14px;
+    }
+
+    .system-config-group-title-wrap {
+        min-width: 0;
+    }
+
+    .system-config-group-title {
+        color: #10233f;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .system-config-group-subtitle {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 3px;
+    }
+
+    .system-config-group-count {
+        color: var(--group-color);
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        background: #ffffff;
+        border: 1px solid var(--group-border);
+        border-radius: 999px;
+        padding: 7px 12px;
+    }
+
+    .system-config-list {
+        display: grid;
+        gap: 0;
+    }
+
+    .system-config-list-head {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.25fr) minmax(150px, .55fr) minmax(320px, 1.8fr) minmax(150px, .6fr);
+        gap: 16px;
+        padding: 10px 14px;
+        background: #fbfdff;
+        border-bottom: 1px solid #e5edf5;
+    }
+
+    .system-config-head-cell {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .system-config-row {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.25fr) minmax(150px, .55fr) minmax(320px, 1.8fr) minmax(150px, .6fr);
+        gap: 16px;
+        align-items: start;
+        padding: 12px 14px;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .system-config-row:last-child {
+        border-bottom: 0;
+    }
+
+    .system-config-row:hover {
+        background: #fbfdff;
+    }
+
+    .system-config-label {
+        display: none;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .system-config-key {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 42px;
+        color: #10233f;
+        background: #f8fafc;
+        border: 1px solid #d8e3ef;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    .system-config-updated {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .system-config-input,
+    .system-config-textarea {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        color: #10233f;
+        background: #ffffff;
+        font-size: 14px;
+        font-weight: 600;
+        outline: none;
+        transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .system-config-input {
+        height: 42px;
+        padding: 0 12px;
+        text-align: center;
+    }
+
+    .system-config-textarea {
+        min-height: 42px;
+        height: 66px;
+        padding: 9px 12px;
+        resize: vertical;
+        line-height: 1.35;
+    }
+
+    .system-config-input:focus,
+    .system-config-textarea:focus {
+        border-color: var(--group-color);
+        box-shadow: 0 0 0 3px var(--group-ring);
+    }
+
+    .system-config-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin: 16px -16px -16px;
+        padding: 12px 16px;
+        background: #ffffff;
+        border-top: 1px solid #d8e3ef;
+    }
+
+    .system-config-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        min-width: 126px;
+    }
+
+    .system-config-btn.primary {
+        color: #fff;
+        background: #0f766e;
+    }
+
+    .system-config-btn.muted {
+        color: #10233f;
+        background: #e5eaf0;
+    }
+
+    @@media (max-width: 1100px) {
+        .system-config-list-head {
+            display: none;
+        }
+
+        .system-config-row {
+            grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
+        }
+
+        .system-config-label {
+            display: block;
+        }
+
+        .system-config-col.description,
+        .system-config-col.updated {
+            grid-column: 1 / -1;
+        }
+
+        .system-config-updated {
+            justify-content: flex-start;
+        }
+    }
+
+    @@media (max-width: 700px) {
+        .system-config-panel {
+            padding: 12px;
+        }
+
+        .system-config-toolbar,
+        .system-config-row {
+            grid-template-columns: 1fr;
+        }
+
+        .system-config-count {
+            white-space: normal;
+        }
+
+        .system-config-group-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .system-config-actions {
+            flex-direction: column;
+            align-items: stretch;
+            margin: 14px -12px -12px;
+        }
+    }
+</style>
+
+<div class="system-config-page">
+    <div class="index-hero pt-form-hero system-config-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">System Config</h2>
+            <p class="index-subtitle">จัดการค่ากลางของระบบ เช่น Auto Meetings, Auto Overdue และ Notification</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="system-config-alert success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="system-config-alert error">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Save" method="post" class="system-config-panel">
+        @Html.AntiForgeryToken()
+
+        <div class="system-config-toolbar">
+            <div class="system-config-search-wrap">
+                <span class="system-config-search-mark" aria-hidden="true"></span>
+                <input id="systemConfigSearch"
+                       class="system-config-search"
+                       type="search"
+                       placeholder="ค้นหา config key, value หรือ description..."
+                       autocomplete="off" />
+            </div>
+            <div id="systemConfigCount" class="system-config-count">ทั้งหมด @Model.TotalCount รายการ</div>
+        </div>
+
+        @if (groups.Count > 0)
+        {
+            <div class="system-config-groups">
+                @foreach (var group in groups)
+                {
+                    var groupItems = group.ToList();
+                    var groupClass = group.Key switch
+                    {
+                        "Auto Meetings" => "theme-meeting",
+                        "Auto Overdue" => "theme-overdue",
+                        "LINE Notification" => "theme-line",
+                        "Telegram Notification" => "theme-telegram",
+                        "Attendance" => "theme-attendance",
+                        _ => "theme-system"
+                    };
+                    var subtitle = group.Key switch
+                    {
+                        "Auto Meetings" => "เวลาส่งแจ้งเตือนประชุมอัตโนมัติ",
+                        "Auto Overdue" => "เวลาส่งและจำนวนวันที่ใช้ตรวจงานล่าช้า/เสี่ยงล่าช้า",
+                        "LINE Notification" => "เปิด/ปิดการส่ง LINE ตามเหตุการณ์",
+                        "Telegram Notification" => "เปิด/ปิดการส่ง Telegram ตามเหตุการณ์",
+                        "Attendance" => "ค่ากลางสำหรับการลงเวลา",
+                        _ => "ค่ากลางอื่นของระบบ"
+                    };
+
+                    <section class="system-config-group @groupClass" data-config-group>
+                        <div class="system-config-group-head">
+                            <div class="system-config-group-title-wrap">
+                                <div class="system-config-group-title">@group.Key</div>
+                                <div class="system-config-group-subtitle">@subtitle</div>
+                            </div>
+                            <div class="system-config-group-count">@groupItems.Count รายการ</div>
+                        </div>
+                        <div class="system-config-list">
+                            <div class="system-config-list-head">
+                                <div class="system-config-head-cell">Config Key</div>
+                                <div class="system-config-head-cell">Value</div>
+                                <div class="system-config-head-cell">Description</div>
+                                <div class="system-config-head-cell">Updated</div>
+                            </div>
+                            @foreach (var item in groupItems)
+                            {
+                                <div class="system-config-row"
+                                     data-config-row
+                                     data-config-text="@($"{item.Group} {item.ConfigKey} {item.ConfigValue} {item.Description}".ToLowerInvariant())">
+                                    <div class="system-config-col key">
+                                        <span class="system-config-label">Config Key</span>
+                                        <input type="hidden" name="Items[@index].ConfigKey" value="@item.ConfigKey" />
+                                        <div class="system-config-key">@item.ConfigKey</div>
+                                    </div>
+                                    <div class="system-config-col value">
+                                        <label class="system-config-label" for="config_value_@index">Value</label>
+                                        <input id="config_value_@index"
+                                               class="system-config-input"
+                                               name="Items[@index].ConfigValue"
+                                               value="@item.ConfigValue"
+                                               autocomplete="off" />
+                                    </div>
+                                    <div class="system-config-col description">
+                                        <label class="system-config-label" for="config_description_@index">Description</label>
+                                        <textarea id="config_description_@index"
+                                                  class="system-config-textarea"
+                                                  name="Items[@index].Description">@item.Description</textarea>
+                                    </div>
+                                    <div class="system-config-col updated">
+                                        <span class="system-config-label">Updated</span>
+                                        <div class="system-config-updated">
+                                            @(item.UpdatedAt.HasValue ? item.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")
+                                        </div>
+                                    </div>
+                                </div>
+
+                                index++;
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="system-config-alert error">ยังไม่มีรายการใน system_config</div>
+        }
+
+        <div class="system-config-actions">
+            <a asp-controller="UserManagement" asp-action="Index" class="system-config-btn muted">กลับ Settings</a>
+            <button type="submit" class="system-config-btn primary">บันทึก</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const search = document.getElementById('systemConfigSearch');
+        const count = document.getElementById('systemConfigCount');
+        const rows = Array.from(document.querySelectorAll('[data-config-row]'));
+        const groups = Array.from(document.querySelectorAll('[data-config-group]'));
+
+        function applySearch() {
+            const term = (search?.value || '').trim().toLowerCase();
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const matched = !term || (row.dataset.configText || '').includes(term);
+                row.style.display = matched ? '' : 'none';
+                if (matched) visibleCount++;
+            });
+
+            groups.forEach(group => {
+                const hasVisibleRow = Array.from(group.querySelectorAll('[data-config-row]'))
+                    .some(row => row.style.display !== 'none');
+                group.style.display = hasVisibleRow ? '' : 'none';
+            });
+
+            if (count) count.textContent = `แสดง ${visibleCount} รายการ จาก ${rows.length} รายการ`;
+        }
+
+        search?.addEventListener('input', applySearch);
+        applySearch();
+    })();
+</script>
