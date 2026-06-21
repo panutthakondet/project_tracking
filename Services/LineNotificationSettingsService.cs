@@ -8,6 +8,7 @@ namespace ProjectTracking.Services
     public static class LineNotificationFeatures
     {
         public const string AutoSend = "Auto.Send";
+        public const string MeetingsAuto = "Meetings.Auto";
         public const string MeetingsCreate = "Meetings.Create";
         public const string MeetingsUpdate = "Meetings.Update";
         public const string MeetingsCancel = "Meetings.Cancel";
@@ -29,6 +30,7 @@ namespace ProjectTracking.Services
             new List<LineNotificationFeatureDefinition>
             {
                 new(AutoSend, "Auto", "ส่งออโต้", "เปิด/ปิดการส่ง LINE อัตโนมัติทั้งหมด"),
+                new(MeetingsAuto, "Auto", "Auto Meetings", "ส่ง LINE อัตโนมัติสำหรับเตือนประชุมล่วงหน้า"),
                 new(MeetingsCreate, "Meetings", "Create Meetings", "ส่ง LINE เมื่อสร้าง Meeting"),
                 new(MeetingsUpdate, "Meetings", "Edit Meetings", "ส่ง LINE เมื่อแก้ไข Meeting"),
                 new(MeetingsCancel, "Meetings", "Cancel Meetings", "ส่ง LINE เมื่อเปลี่ยนสถานะ Meeting เป็นยกเลิก"),

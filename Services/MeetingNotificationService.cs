@@ -807,6 +807,12 @@ namespace ProjectTracking.Services
                 return new MeetingNotificationResult(0, 0, 0);
             }
 
+            if (!await _lineNotificationSettings.IsEnabledAsync(LineNotificationFeatures.MeetingsAuto, cancellationToken))
+            {
+                _logger.LogInformation("Meeting LINE reminder skipped because LINE meeting auto send is disabled.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
             await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
             await EnsureNotificationTableAsync(db, cancellationToken);
 
@@ -920,6 +926,12 @@ namespace ProjectTracking.Services
             if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsReminder, cancellationToken))
             {
                 _logger.LogInformation("Meeting Telegram reminder skipped because it is disabled in Telegram Notification settings.");
+                return new MeetingNotificationResult(0, 0, 0);
+            }
+
+            if (!await _telegramNotificationSettings.IsEnabledAsync(TelegramNotificationFeatures.MeetingsAuto, cancellationToken))
+            {
+                _logger.LogInformation("Meeting Telegram reminder skipped because Telegram meeting auto send is disabled.");
                 return new MeetingNotificationResult(0, 0, 0);
             }
 
