@@ -305,9 +305,10 @@
                            name="newImages"
                            class="form-control"
                            multiple
-                           accept="image/*" />
+                           accept="image/*"
+                           data-paste-image-upload />
                     <small class="text-muted d-block mt-2">
-                        เลือกได้หลายรูป ระบบจะบันทึกเป็นรูปก่อนแก้ของ Issue นี้
+                        เลือกได้หลายรูป หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง
                     </small>
                 </div>
             </div>
@@ -336,6 +337,7 @@
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
     <script>
         function convertThaiDateToIso(value) {
             if (!value || !value.trim()) return '';

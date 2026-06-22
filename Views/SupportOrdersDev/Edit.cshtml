@@ -229,7 +229,10 @@
 
                 <div class="mb-3">
                     <label>Upload After Fix Images</label>
-                    <input type="file" name="afterFiles" class="form-control" multiple />
+                    <input type="file" name="afterFiles" class="form-control" multiple accept="image/*" data-paste-image-upload />
+                    <small class="text-muted d-block mt-2">
+                        เลือกได้หลายรูป หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง
+                    </small>
                 </div>
 
                 <div class="mb-3">
@@ -269,3 +272,8 @@
         </div>
     </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
+}
