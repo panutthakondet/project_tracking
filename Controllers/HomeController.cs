@@ -835,6 +835,7 @@ namespace ProjectTracking.Controllers
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
             var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
+            var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             int? ProjectBaEmpId(int? projectId)
             {
@@ -910,6 +911,7 @@ namespace ProjectTracking.Controllers
                 YearlyTaskAxisMax = yearlyTaskAxisMax,
                 WatchProjects = watchProjects,
                 TeamWorkload = teamWorkload,
+                TaskOverview = taskOverview,
                 OpenIssueSupportCount = openIssueSupportCount,
                 OpenIssueSupportItems = openIssueSupportItems,
                 MonthWorkHours = timeSummary.MonthWorkHours,
@@ -2182,6 +2184,102 @@ namespace ProjectTracking.Controllers
                     AvatarPath = row.AvatarPath
                 })
                 .ToList();
+        }
+
+        private static List<ProjectTaskOverviewMember> BuildDashboardTaskOverview(
+            IReadOnlyList<DashboardAssignRow> assigns,
+            IReadOnlyList<DashboardPhaseRow> phases,
+            IReadOnlyList<DashboardIssueRow> issues,
+            IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            Func<int?, string> employeeName,
+            Func<int?, string> employeeAvatar,
+            DateTime today)
+        {
+            var phaseById = phases
+                .GroupBy(p => p.PhaseId)
+                .ToDictionary(g => g.Key, g => g.First());
+            var assignGroups = assigns
+                .GroupBy(a => a.EmpId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var openIssueCounts = issues
+                .Where(i => Norm(i.IssueStatus) == "OPEN")
+                .GroupBy(i => i.EmpId)
+                .ToDictionary(g => g.Key, g => g.Count());
+            var openSupportCounts = supportOrders
+                .Where(o => o.AssignTo.HasValue && Norm(o.Status) == "OPEN")
+                .GroupBy(o => o.AssignTo!.Value)
+                .ToDictionary(g => g.Key, g => g.Count());
+            var memberIds = assignGroups.Keys
+                .Union(openIssueCounts.Keys)
+                .Union(openSupportCounts.Keys);
+
+            var rows = memberIds
+                .Select(empId =>
+                {
+                    assignGroups.TryGetValue(empId, out var memberAssigns);
+                    memberAssigns ??= new List<DashboardAssignRow>();
+
+                    var done = memberAssigns.Count(IsDashboardAssignDone);
+                    var delay = memberAssigns.Count(assign => IsDashboardAssignDelayed(assign, phaseById, today));
+                    var inProgress = Math.Max(0, memberAssigns.Count - done - delay);
+                    openIssueCounts.TryGetValue(empId, out var openIssues);
+                    openSupportCounts.TryGetValue(empId, out var openSupport);
+                    var total = memberAssigns.Count + openIssues + openSupport;
+
+                    return new ProjectTaskOverviewMember
+                    {
+                        EmpId = empId,
+                        Name = employeeName(empId),
+                        AvatarPath = employeeAvatar(empId),
+                        DoneCount = done,
+                        InProgressCount = inProgress,
+                        DelayCount = delay,
+                        OpenIssueCount = openIssues,
+                        OpenSupportCount = openSupport,
+                        TotalCount = total
+                    };
+                })
+                .Where(x => x.TotalCount > 0)
+                .OrderByDescending(x => x.TotalCount)
+                .ThenBy(x => x.Name)
+                .ToList();
+
+            var maxTotal = Math.Max(1, rows.Select(x => x.TotalCount).DefaultIfEmpty(0).Max());
+
+            foreach (var row in rows)
+            {
+                row.TotalHeightPercent = Math.Clamp((int)Math.Round(row.TotalCount * 100m / maxTotal), 24, 100);
+                row.DoneHeightPercent = Percent(row.DoneCount, row.TotalCount);
+                row.InProgressHeightPercent = Percent(row.InProgressCount, row.TotalCount);
+                row.DelayHeightPercent = Percent(row.DelayCount, row.TotalCount);
+                row.OpenIssueHeightPercent = Percent(row.OpenIssueCount, row.TotalCount);
+                row.OpenSupportHeightPercent = Percent(row.OpenSupportCount, row.TotalCount);
+            }
+
+            return rows;
+        }
+
+        private static bool IsDashboardAssignDone(DashboardAssignRow assign)
+        {
+            return Norm(assign.WorkStatus) == "DONE";
+        }
+
+        private static bool IsDashboardAssignDelayed(
+            DashboardAssignRow assign,
+            IReadOnlyDictionary<int, DashboardPhaseRow> phaseById,
+            DateTime today)
+        {
+            var dueDate = assign.PlanEnd
+                ?? (phaseById.TryGetValue(assign.PhaseId, out var phase) ? phase.PlanEnd : null);
+
+            return !IsDashboardAssignDone(assign)
+                && dueDate.HasValue
+                && dueDate.Value.Date < today;
+        }
+
+        private static int Percent(int count, int total)
+        {
+            return total <= 0 ? 0 : (int)Math.Round(count * 100m / total);
         }
 
         private static List<HomeDashboardOpenWorkItem> BuildOpenIssueSupportItems(

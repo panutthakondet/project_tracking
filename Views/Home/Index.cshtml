@@ -238,6 +238,28 @@
     var issueOverviewLegend = dashboard.IssueMetrics;
     var supportOverviewLegend = dashboard.SupportMetrics;
     var lineOverdueLegend = dashboard.LineOverdueMetrics;
+    var taskOverviewTotalEmployees = dashboard.TaskOverview.Count;
+    var taskOverviewTotalTasks = dashboard.TaskOverview.Sum(x => x.TotalCount);
+    var taskOverviewDoneTasks = dashboard.TaskOverview.Sum(x => x.DoneCount);
+    var taskOverviewWorkingTasks = dashboard.TaskOverview.Sum(x => x.InProgressCount);
+    var taskOverviewDelayTasks = dashboard.TaskOverview.Sum(x => x.DelayCount);
+    var taskOverviewOpenIssueTasks = dashboard.TaskOverview.Sum(x => x.OpenIssueCount);
+    var taskOverviewOpenSupportTasks = dashboard.TaskOverview.Sum(x => x.OpenSupportCount);
+    var taskOverviewMaxValue = dashboard.TaskOverview.Count == 0
+        ? 0
+        : dashboard.TaskOverview.Max(x => new[] { x.DoneCount, x.InProgressCount, x.DelayCount, x.OpenIssueCount, x.OpenSupportCount }.Max());
+    var taskOverviewAxisMax = Math.Max(25, (int)Math.Ceiling(taskOverviewMaxValue / 5m) * 5);
+    var taskOverviewAxisStep = Math.Max(1, taskOverviewAxisMax / 5);
+    var taskOverviewAxisTicks = Enumerable.Range(0, 6)
+        .Select(i => taskOverviewAxisMax - (i * taskOverviewAxisStep))
+        .ToList();
+    var taskOverviewFirstChartCount = (int)Math.Ceiling(dashboard.TaskOverview.Count / 2m);
+    var taskOverviewGroups = dashboard.TaskOverview
+        .Select((member, index) => new { Member = member, Index = index })
+        .GroupBy(x => x.Index < taskOverviewFirstChartCount ? 0 : 1)
+        .Select(group => group.Select(x => x.Member).ToList())
+        .Where(group => group.Count > 0)
+        .ToList();
     var timeTrackingMetrics = new List<HomeDashboardMetric>
     {
         new()
@@ -505,6 +527,107 @@
                     </div>
                 </div>
             </div>
+        </article>
+
+        <article class="glass-panel panel-owner-overview">
+            <div class="panel-head dashboard-card-head">
+                <div class="dashboard-card-title">
+                    <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
+                    <span>
+                        <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
+                        <em>สรุป PhaseAssigns พร้อม Issues และ Support ที่ยัง OPEN</em>
+                    </span>
+                </div>
+                <a asp-controller="ProjectStatus" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
+            </div>
+
+            <div class="owner-overview-legend">
+                <span><i class="done"></i>เสร็จแล้ว</span>
+                <span><i class="working"></i>กำลังทำ</span>
+                <span><i class="stuck"></i>ล่าช้า</span>
+                <span><i class="issue-open"></i>Issues OPEN</span>
+                <span><i class="support-open"></i>Support OPEN</span>
+            </div>
+
+            @if (dashboard.TaskOverview.Count == 0)
+            {
+                <p class="empty-state">ยังไม่มีข้อมูลงานสำหรับแสดงผล</p>
+            }
+            else
+            {
+                <div class="owner-overview-plots">
+                    @foreach (var chartMembers in taskOverviewGroups)
+                    {
+                        <div class="owner-overview-chart-wrap">
+                            <div class="owner-overview-y-axis" aria-hidden="true">
+                                <span class="owner-overview-y-title">จำนวนงาน</span>
+                                @foreach (var tick in taskOverviewAxisTicks)
+                                {
+                                    var tickPosition = Math.Round((taskOverviewAxisMax - tick) * 100m / taskOverviewAxisMax, 3);
+                                    <span style="--tick:@tickPosition.ToString("0.###", CultureInfo.InvariantCulture);">@tick</span>
+                                }
+                            </div>
+                            <div class="owner-overview-scroll">
+                                <div class="owner-overview-chart" style="--owner-count:@chartMembers.Count; --owner-min-width:@(Math.Max(1, chartMembers.Count) * 132)px;">
+                                    @foreach (var member in chartMembers)
+                                    {
+                                        var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                        var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                        var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                        var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                        var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+
+                                        <div class="owner-overview-item" title="@member.Name">
+                                            <div class="owner-overview-bars" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน">
+                                                <span class="owner-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
+                                                      title="เสร็จแล้ว @member.DoneCount งาน"
+                                                      style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.DoneCount</em><i></i>
+                                                </span>
+                                                <span class="owner-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
+                                                      title="กำลังทำ @member.InProgressCount งาน"
+                                                      style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.InProgressCount</em><i></i>
+                                                </span>
+                                                <span class="owner-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
+                                                      title="ล่าช้า @member.DelayCount งาน"
+                                                      style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.DelayCount</em><i></i>
+                                                </span>
+                                                <span class="owner-bar issue-open @(member.OpenIssueCount == 0 ? "is-zero" : "")"
+                                                      title="Issues OPEN @member.OpenIssueCount งาน"
+                                                      style="--bar-height:@openIssueHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.OpenIssueCount</em><i></i>
+                                                </span>
+                                                <span class="owner-bar support-open @(member.OpenSupportCount == 0 ? "is-zero" : "")"
+                                                      title="Support OPEN @member.OpenSupportCount งาน"
+                                                      style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.OpenSupportCount</em><i></i>
+                                                </span>
+                                            </div>
+                                            <div class="owner-overview-member">
+                                                <small>รวม @member.TotalCount งาน</small>
+                                                <img src="@member.AvatarPath" alt="@member.Name" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                                <b>@member.Name</b>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="owner-overview-footer">
+                    <span>รวม <b>@taskOverviewTotalEmployees</b> คน</span>
+                    <span>งานทั้งหมด <b>@taskOverviewTotalTasks</b> งาน</span>
+                    <span class="done"><i></i>เสร็จแล้ว <b>@taskOverviewDoneTasks</b></span>
+                    <span class="working"><i></i>กำลังทำ <b>@taskOverviewWorkingTasks</b></span>
+                    <span class="stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b></span>
+                    <span class="issue-open"><i></i>Issues OPEN <b>@taskOverviewOpenIssueTasks</b></span>
+                    <span class="support-open"><i></i>Support OPEN <b>@taskOverviewOpenSupportTasks</b></span>
+                </div>
+            }
         </article>
 
         <article class="glass-panel compact-panel panel-line-overdue">
@@ -1876,6 +1999,7 @@
 
 .panel-wide { order:1; grid-column:span 24; min-height:278px; container-type:inline-size; }
 .compact-panel { min-height:198px; }
+.panel-owner-overview { order:2; grid-column:span 24 !important; min-height:590px; }
 .panel-project-status { order:2; grid-column:span 9; min-height:278px; }
 .panel-task { order:3; grid-column:span 24; min-height:230px; }
 .panel-line-overdue { order:4; grid-column:span 24; min-height:310px; }
@@ -1884,7 +2008,252 @@
 .panel-team { order:7; grid-column:span 24; min-height:285px; }
 .panel-activity { order:8; grid-column:span 24; min-height:270px; }
 .panel-meetings { order:9; grid-column:span 24; min-height:280px; }
-.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-owner-overview):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+
+.panel-owner-overview {
+    padding:20px 24px 18px;
+    border-radius:18px;
+    border:1px solid rgba(58,148,219,.4);
+    background:
+        linear-gradient(180deg, rgba(14,36,75,.95), rgba(7,22,50,.98)),
+        radial-gradient(circle at 86% 12%, rgba(14,165,233,.17), transparent 32%);
+}
+
+.owner-overview-legend {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px 16px;
+    margin:2px 0 12px;
+    color:#c5d5f1;
+    font-size:12px;
+    font-weight:900;
+}
+
+.owner-overview-legend span,
+.owner-overview-footer span {
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+}
+
+.owner-overview-legend i,
+.owner-overview-footer i {
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    display:inline-block;
+}
+
+.owner-overview-legend .done,
+.owner-overview-footer .done i { background:#19c979; }
+.owner-overview-legend .working,
+.owner-overview-footer .working i { background:#ffb444; }
+.owner-overview-legend .stuck,
+.owner-overview-footer .stuck i { background:#e9435a; }
+.owner-overview-legend .issue-open,
+.owner-overview-footer .issue-open i { background:#8b5cf6; }
+.owner-overview-legend .support-open,
+.owner-overview-footer .support-open i { background:#0ea5e9; }
+
+.owner-overview-plots {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+}
+
+.owner-overview-chart-wrap {
+    --owner-bar-area: 132px;
+    --owner-member-area: 118px;
+    position:relative;
+    display:grid;
+    grid-template-columns:70px minmax(0, 1fr);
+    gap:10px;
+    padding-top:24px;
+    min-height:calc(var(--owner-bar-area) + var(--owner-member-area) + 18px);
+}
+
+.owner-overview-y-axis {
+    position:relative;
+    height:var(--owner-bar-area);
+    min-height:var(--owner-bar-area);
+    color:#8ea7cc;
+    font-size:12px;
+    font-weight:800;
+}
+
+.owner-overview-y-title {
+    position:absolute;
+    left:0;
+    top:-22px;
+    transform:none;
+    white-space:nowrap;
+    letter-spacing:0;
+    color:#9fb3d4;
+    font-size:11px;
+    line-height:1;
+}
+
+.owner-overview-y-axis > span:not(.owner-overview-y-title) {
+    position:absolute;
+    right:10px;
+    top:calc(var(--tick) * 1%);
+    transform:translateY(-50%);
+    line-height:1;
+    text-align:right;
+}
+
+.owner-overview-scroll {
+    min-width:0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:0 0 10px;
+}
+
+.owner-overview-scroll::-webkit-scrollbar { height:8px; }
+.owner-overview-scroll::-webkit-scrollbar-thumb {
+    border-radius:999px;
+    background:rgba(125,220,255,.28);
+}
+
+.owner-overview-chart {
+    position:relative;
+    width:max(100%, var(--owner-min-width));
+    min-width:var(--owner-min-width);
+    height:calc(var(--owner-bar-area) + var(--owner-member-area));
+    display:grid;
+    grid-template-columns:repeat(var(--owner-count), minmax(118px, 1fr));
+    gap:18px;
+    align-items:start;
+    padding:0 18px;
+    border:1px solid rgba(148,190,230,.36);
+    border-radius:12px;
+    background:
+        linear-gradient(90deg, rgba(184,214,243,.72) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
+        linear-gradient(rgba(184,214,243,.72) 1px, transparent 1px) 0 var(--owner-bar-area) / 100% 1px no-repeat,
+        repeating-linear-gradient(to bottom, rgba(117,146,185,.2) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat,
+        linear-gradient(180deg, rgba(8,24,54,.64), rgba(7,22,50,.48));
+}
+
+.owner-overview-item {
+    min-width:0;
+    height:100%;
+    display:grid;
+    grid-template-rows:var(--owner-bar-area) var(--owner-member-area);
+    align-items:end;
+    justify-items:center;
+    gap:0;
+}
+
+.owner-overview-bars {
+    width:min(100%, 112px);
+    height:calc(var(--owner-bar-area) - 34px);
+    align-self:end;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:4px;
+}
+
+.owner-bar {
+    position:relative;
+    width:clamp(13px, 1.05vw, 19px);
+    height:var(--bar-height);
+    min-height:4px;
+    border-radius:8px 8px 0 0;
+    display:block;
+}
+
+.owner-bar.is-zero {
+    min-height:3px;
+    opacity:.78;
+}
+
+.owner-bar em {
+    position:absolute;
+    left:50%;
+    bottom:calc(100% + 8px);
+    transform:translateX(-50%);
+    color:#eaf4ff;
+    font-size:10px;
+    line-height:1;
+    font-style:normal;
+    font-weight:900;
+    padding:2px 4px;
+    border-radius:999px;
+    background:rgba(5,15,35,.86);
+    border:1px solid rgba(148,190,230,.28);
+    text-shadow:0 1px 2px rgba(2,8,23,.75);
+}
+
+.owner-bar i {
+    display:block;
+    width:100%;
+    height:100%;
+    min-height:inherit;
+    border-radius:inherit;
+    box-shadow:0 10px 18px rgba(2,8,23,.24);
+}
+
+.owner-bar.done i { background:linear-gradient(180deg, #35dc91, #12b86d); }
+.owner-bar.working i { background:linear-gradient(180deg, #ffc85d, #f2a832); }
+.owner-bar.stuck i { background:linear-gradient(180deg, #f45b6a, #dc4655); }
+.owner-bar.issue-open i { background:linear-gradient(180deg, #a78bfa, #7c3aed); }
+.owner-bar.support-open i { background:linear-gradient(180deg, #38bdf8, #0ea5e9); }
+
+.owner-overview-member {
+    width:100%;
+    min-height:102px;
+    display:grid;
+    grid-template-rows:auto 38px auto;
+    justify-items:center;
+    align-content:start;
+    gap:2px;
+    padding:5px 6px 7px;
+    margin-top:10px;
+    border-radius:12px;
+    background:rgba(8,24,54,.58);
+    border:1px solid rgba(99,162,223,.22);
+}
+
+.owner-overview-member small {
+    color:#9fb3d4;
+    font-size:10px;
+    font-weight:800;
+}
+
+.owner-overview-member img {
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid rgba(34,197,235,.6);
+}
+
+.owner-overview-member b {
+    max-width:100%;
+    color:#f8fbff;
+    font-size:11px;
+    line-height:1.18;
+    font-weight:900;
+    text-align:center;
+    overflow-wrap:anywhere;
+}
+
+.owner-overview-footer {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px 14px;
+    margin-top:10px;
+    padding:8px 12px;
+    border-radius:11px;
+    color:#c5d5f1;
+    background:rgba(8,24,54,.72);
+    border:1px solid rgba(99,162,223,.2);
+    font-size:12px;
+    font-weight:800;
+}
 
 .panel-task {
     padding:20px 24px 20px;
@@ -5405,7 +5774,7 @@
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-owner-overview):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 12; }
     .panel-task { grid-column:1 / -1; }
     .panel-line-overdue,
     .panel-issues,
@@ -5625,7 +5994,7 @@
     .panel-task,
     .panel-time,
     .panel-team,
-    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
+    .dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-owner-overview):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:1 / -1; }
 
     .panel-meetings {
         padding:18px;

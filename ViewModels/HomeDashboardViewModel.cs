@@ -49,6 +49,7 @@ namespace ProjectTracking.ViewModels
         public int YearlyTaskAxisMax { get; set; } = 4;
         public List<HomeDashboardWatchProject> WatchProjects { get; set; } = new();
         public List<HomeDashboardWorkload> TeamWorkload { get; set; } = new();
+        public List<ProjectTaskOverviewMember> TaskOverview { get; set; } = new();
         public int OpenIssueSupportCount { get; set; }
         public List<HomeDashboardOpenWorkItem> OpenIssueSupportItems { get; set; } = new();
 
