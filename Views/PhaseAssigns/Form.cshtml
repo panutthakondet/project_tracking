@@ -13,59 +13,68 @@
     <title>บันทึกภายใน</title>
 
     <style>
-        @@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap");
+        @@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
         @@page {
             size: A4 portrait;
-            margin-top: 25mm;
-            margin-right: 20mm;
-            margin-bottom: 20mm;
-            margin-left: 30mm;
+            margin-top: 14mm;
+            margin-right: 16mm;
+            margin-bottom: 12mm;
+            margin-left: 18mm;
         }
 
+        * { box-sizing: border-box; }
+
         body {
-            font-family: "Prompt", Tahoma, Arial;
-            font-size: 16pt;
-            line-height: 1.1;
+            margin: 0;
+            color: #111;
+            background: #fff;
+            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-size: 14pt;
+            font-weight: 400;
+            line-height: 1.36;
         }
 
         .header {
             display: flex;
             align-items: center;
-            margin-bottom: 4px;
+            gap: 10px;
+            margin-bottom: 2px;
         }
 
         .logo {
-            width: 100px;
+            width: 70px;
+            flex: 0 0 auto;
         }
 
         .company {
-            margin-left: 10px;
-            font-size: 14pt;
+            font-size: 9.5pt;
+            line-height: 1.25;
         }
 
         .company b {
-            font-size: 16pt;
+            font-size: 10.5pt;
+            font-weight: 700;
         }
 
         .title {
             text-align: center;
             font-size: 18pt;
-            font-weight: bold;
+            font-weight: 500;
             margin: 10px 0 6px;
         }
 
         .date {
-            text-align: right;
+            text-align: center;
             margin-bottom: 8px;
         }
 
         .row {
-            margin-bottom: 0;
-            line-height: 1.0;
+            margin-bottom: 3px;
+            line-height: 1.28;
         }
 
         .label {
-            font-weight: bold;
+            font-weight: 600;
         }
 
         .line {
@@ -77,16 +86,17 @@
 
         .text-value {
             padding-left: 4px;
+            font-weight: 400;
         }
 
         .section {
-            margin-top: 4px;
+            margin-top: 8px;
         }
 
         .comment-line {
             border-bottom: 1px dotted #000;
-            height: 18px;
-            margin-bottom: 4px;
+            height: 24px;
+            margin-bottom: 6px;
         }
 
 
@@ -97,8 +107,8 @@
         .sign-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 14px;
-            font-size: 16pt;
+            margin-top: 18px;
+            font-size: 14pt;
 
             page-break-inside: avoid;
             break-inside: avoid;
@@ -109,19 +119,20 @@
             padding: 10px 8px;
             text-align: center;
             vertical-align: middle;
-            height: 85px;
+            height: 95px;
+            font-weight: 400;
         }
 
         .sign-full {
-            height: 95px;
+            height: 105px;
         }
     
         /* Crisp typography normalization for standalone pages. */
-        :root { --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
+        :root { --pt-readable-thai-font: "TH Sarabun New", "Sarabun", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
         html, body {
             font-family: var(--pt-readable-thai-font) !important;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
+            text-rendering: auto;
+            -webkit-font-smoothing: auto;
         }
         body :where(*):not(svg):not(svg *) {
             font-family: var(--pt-readable-thai-font) !important;
@@ -129,11 +140,11 @@
             letter-spacing: 0 !important;
             text-shadow: none !important;
         }
-        body :is(h1, h2, h3, h4, h5, h6, th, label, strong, b, .report-btn, .btn, .badge, .status-text, .cell-title, .project-group-name, [class*="title"], [class*="heading"], [class*="eyebrow"], [class*="status"], [class*="badge"], [class*="count"], [class*="total"], [class*="value"]) {
-            font-weight: 700 !important;
-        }
-        body :is(p, li, td, small, em, time, .cell-sub, .detail-block div, .meta-label, .meta-value, .empty, [class*="detail"], [class*="meta"], [class*="subtitle"], [class*="description"], [class*="desc"], [class*="remark"], [class*="note"], [class*="empty"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
-            font-weight: 400 !important;
+
+        hr {
+            margin: 2px 0 8px;
+            border: 0;
+            border-top: 1px solid #111;
         }
 </style>
 </head>

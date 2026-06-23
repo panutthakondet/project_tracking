@@ -45,12 +45,20 @@
     var taskOverviewDoneTasks = statusPage.TaskOverview.Sum(x => x.DoneCount);
     var taskOverviewWorkingTasks = statusPage.TaskOverview.Sum(x => x.InProgressCount);
     var taskOverviewDelayTasks = statusPage.TaskOverview.Sum(x => x.DelayCount);
+    var taskOverviewOpenIssueTasks = statusPage.TaskOverview.Sum(x => x.OpenIssueCount);
+    var taskOverviewOpenSupportTasks = statusPage.TaskOverview.Sum(x => x.OpenSupportCount);
     var taskOverviewDonePercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDoneTasks * 100m / taskOverviewTotalTasks, 2);
     var taskOverviewWorkingPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewWorkingTasks * 100m / taskOverviewTotalTasks, 2);
     var taskOverviewDelayPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDelayTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewAxisMax = 25;
+    var taskOverviewOpenIssuePercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewOpenIssueTasks * 100m / taskOverviewTotalTasks, 2);
+    var taskOverviewOpenSupportPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewOpenSupportTasks * 100m / taskOverviewTotalTasks, 2);
+    var taskOverviewMaxValue = statusPage.TaskOverview.Count == 0
+        ? 0
+        : statusPage.TaskOverview.Max(x => new[] { x.DoneCount, x.InProgressCount, x.DelayCount, x.OpenIssueCount, x.OpenSupportCount }.Max());
+    var taskOverviewAxisMax = Math.Max(25, (int)Math.Ceiling(taskOverviewMaxValue / 5m) * 5);
+    var taskOverviewAxisStep = Math.Max(1, taskOverviewAxisMax / 5);
     var taskOverviewAxisTicks = Enumerable.Range(0, 6)
-        .Select(i => taskOverviewAxisMax - (i * 5))
+        .Select(i => taskOverviewAxisMax - (i * taskOverviewAxisStep))
         .ToList();
     var taskOverviewFirstChartCount = (int)Math.Ceiling(statusPage.TaskOverview.Count / 2m);
     var taskOverviewGroups = statusPage.TaskOverview
@@ -204,6 +212,8 @@
                     <span><i class="done"></i>เสร็จแล้ว</span>
                     <span><i class="working"></i>กำลังทำ</span>
                     <span><i class="stuck"></i>ล่าช้า</span>
+                    <span><i class="issue-open"></i>Issues OPEN</span>
+                    <span><i class="support-open"></i>Support OPEN</span>
                 </div>
 
                 @if (statusPage.TaskOverview.Count == 0)
@@ -225,14 +235,16 @@
                                     }
                                 </div>
                                 <div class="task-overview-scroll">
-                                    <div class="task-overview-chart" style="--task-count:@chartMembers.Count; --task-min-width:@(Math.Max(1, chartMembers.Count) * 106)px;">
+                                    <div class="task-overview-chart" style="--task-count:@chartMembers.Count; --task-min-width:@(Math.Max(1, chartMembers.Count) * 132)px;">
                                         @foreach (var member in chartMembers)
                                         {
                                             var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
                                             var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
                                             var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                            var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                            var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
                                             <div class="task-overview-item" title="@member.Name">
-                                                <div class="task-stack-frame" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน">
+                                                <div class="task-stack-frame" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน">
                                                     <span class="task-single-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
                                                           title="เสร็จแล้ว @member.DoneCount งาน"
                                                           style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
@@ -249,6 +261,18 @@
                                                           title="ล่าช้า @member.DelayCount งาน"
                                                           style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                         <em>@member.DelayCount</em>
+                                                        <i></i>
+                                                    </span>
+                                                    <span class="task-single-bar issue-open @(member.OpenIssueCount == 0 ? "is-zero" : "")"
+                                                          title="Issues OPEN @member.OpenIssueCount งาน"
+                                                          style="--bar-height:@openIssueHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                        <em>@member.OpenIssueCount</em>
+                                                        <i></i>
+                                                    </span>
+                                                    <span class="task-single-bar support-open @(member.OpenSupportCount == 0 ? "is-zero" : "")"
+                                                          title="Support OPEN @member.OpenSupportCount งาน"
+                                                          style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                        <em>@member.OpenSupportCount</em>
                                                         <i></i>
                                                     </span>
                                                 </div>
@@ -277,6 +301,8 @@
                         <span class="footer-status footer-status--done"><i></i>เสร็จแล้ว <b>@taskOverviewDoneTasks</b> งาน (@PercentText(taskOverviewDonePercent)%)</span>
                         <span class="footer-status footer-status--working"><i></i>กำลังทำ <b>@taskOverviewWorkingTasks</b> งาน (@PercentText(taskOverviewWorkingPercent)%)</span>
                         <span class="footer-status footer-status--stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b> งาน (@PercentText(taskOverviewDelayPercent)%)</span>
+                        <span class="footer-status footer-status--issue-open"><i></i>Issues OPEN <b>@taskOverviewOpenIssueTasks</b> งาน (@PercentText(taskOverviewOpenIssuePercent)%)</span>
+                        <span class="footer-status footer-status--support-open"><i></i>Support OPEN <b>@taskOverviewOpenSupportTasks</b> งาน (@PercentText(taskOverviewOpenSupportPercent)%)</span>
                     </div>
                 }
             </article>
@@ -1224,6 +1250,16 @@
             background: #e9435a;
         }
 
+        .task-chart-legend .issue-open,
+        .task-stack .issue-open {
+            background: #7c3aed;
+        }
+
+        .task-chart-legend .support-open,
+        .task-stack .support-open {
+            background: #0ea5e9;
+        }
+
         .task-overview-scroll {
             height: 276px;
             overflow-x: auto;
@@ -2046,6 +2082,14 @@
         .footer-status--stuck i,
         .week-foot-status.stuck i {
             background: #e9435a;
+        }
+
+        .footer-status--issue-open i {
+            background: #7c3aed;
+        }
+
+        .footer-status--support-open i {
+            background: #0ea5e9;
         }
 
         .week-task-card {
@@ -3603,6 +3647,14 @@
             background: linear-gradient(180deg, #f45b6a 0%, #dc4655 100%);
         }
 
+        .task-overview-card .task-single-bar.issue-open i {
+            background: linear-gradient(180deg, #9f7aea 0%, #7c3aed 100%);
+        }
+
+        .task-overview-card .task-single-bar.support-open i {
+            background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+        }
+
         .task-overview-card .task-member-card {
             width: 100%;
             min-height: 108px;
@@ -3933,7 +3985,7 @@
             width: max(100%, var(--task-min-width));
             min-width: var(--task-min-width) !important;
             height: calc(var(--task-bar-area) + var(--task-member-area));
-            grid-template-columns: repeat(var(--task-count), minmax(94px, 1fr));
+            grid-template-columns: repeat(var(--task-count), minmax(118px, 1fr));
             justify-content: start;
             gap: 12px;
             padding: 0 12px;
@@ -3941,12 +3993,12 @@
         }
 
         .task-overview-card .task-overview-plots .task-stack-frame {
-            width: min(100%, 82px);
+            width: min(100%, 112px);
             height: calc(var(--task-bar-area) - 24px);
         }
 
         .task-overview-card .task-overview-plots .task-single-bar {
-            width: clamp(16px, 1.25vw, 24px);
+            width: clamp(13px, 1.05vw, 19px);
         }
 
         .task-overview-card .task-overview-plots .task-member-card {

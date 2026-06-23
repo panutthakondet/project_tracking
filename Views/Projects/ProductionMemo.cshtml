@@ -56,16 +56,16 @@
             margin: 0;
             color: #111;
             background: #fff;
-            font-family: "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
             font-size: 14pt;
             font-weight: 400;
-            line-height: 1.28;
+            line-height: 1.36;
             text-rendering: auto;
             -webkit-font-smoothing: auto;
         }
 
         body :where(*):not(svg):not(svg *) {
-            font-family: "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif !important;
+            font-family: "TH Sarabun New", "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif !important;
             letter-spacing: 0 !important;
             text-shadow: none !important;
             -webkit-text-stroke: 0 transparent !important;
@@ -153,7 +153,7 @@
             display: flex;
             align-items: flex-start;
             gap: 6px;
-            margin-bottom: 1px;
+            margin-bottom: 3px;
         }
 
         .memo-label {
@@ -182,55 +182,55 @@
         }
 
         .memo-stack {
-            margin-bottom: 3px;
+            margin-bottom: 5px;
         }
 
         .memo-stack-label {
             font-weight: 600;
-            line-height: 1.18;
+            line-height: 1.28;
         }
 
         .memo-stack-value {
             margin-left: 32px;
-            line-height: 1.18;
+            line-height: 1.28;
         }
 
         .phase-list {
             margin: 1px 0 6px 32px;
-            font-size: 13pt;
-            line-height: 1.2;
+            font-size: inherit;
+            line-height: 1.3;
         }
 
         .phase-line {
-            margin-bottom: 5px;
+            margin-bottom: 7px;
         }
 
         .phase-title {
-            line-height: 1.18;
+            line-height: 1.28;
         }
 
         .phase-meta {
             margin-left: 24px;
-            line-height: 1.15;
+            line-height: 1.24;
         }
 
         .owner-list {
             margin: 1px 0 10px 32px;
-            font-size: 13pt;
-            line-height: 1.2;
+            font-size: inherit;
+            line-height: 1.3;
         }
 
         .owner-line {
-            margin-bottom: 1px;
+            margin-bottom: 3px;
         }
 
         .comment-lines {
-            margin: 16px 0 18px;
+            margin: 18px 0 20px;
         }
 
         .comment-line {
             position: relative;
-            height: 22px;
+            height: 24px;
             border-bottom: 1px dotted #000;
         }
 
@@ -296,13 +296,8 @@
 
         <section class="detail-block">
             <div class="memo-stack">
-                <div class="memo-stack-label">ชื่อสหกรณ์</div>
-                <div class="memo-stack-value">@coopName</div>
-            </div>
-
-            <div class="memo-stack">
-                <div class="memo-stack-label">โครงการ</div>
-                <div class="memo-stack-value">@projectName</div>
+                <div class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</div>
+                <div class="memo-stack-value">@DateText(Model.StartDate) - @DateText(Model.EndDate)</div>
             </div>
 
             <div class="memo-stack">
@@ -317,7 +312,6 @@
                         var due = phase.PeriodEndDate ?? phase.PlanEnd;
                         <div class="phase-line">
                             <div class="phase-title">@PhaseTitle(phase)</div>
-                            <div class="phase-meta">วันที่กำหนดแผนงาน @ShortDateText(phase.PlanStart) - @ShortDateText(phase.PlanEnd)</div>
                             <div class="phase-meta">วันที่กำหนดส่งงาน @ShortDateText(due) @DurationText(phase.DurationDays)</div>
                         </div>
                     }
@@ -326,11 +320,6 @@
                 {
                     <div class="phase-line">-</div>
                 }
-            </div>
-
-            <div class="memo-stack">
-                <div class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</div>
-                <div class="memo-stack-value">@DateText(Model.StartDate) - @DateText(Model.EndDate)</div>
             </div>
         </section>
 

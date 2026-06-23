@@ -108,6 +108,35 @@ namespace ProjectTracking.Controllers
                     .ToList();
             }
 
+            var openIssueCountsQuery = _context.ProjectIssues
+                .AsNoTracking()
+                .Where(issue => issue.IssueStatus.ToUpper() == "OPEN");
+
+            var openSupportCountsQuery = _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Where(order => order.AssignTo.HasValue
+                    && order.Status != null
+                    && order.Status.ToUpper() == "OPEN");
+
+            if (selectedProjectId.HasValue)
+            {
+                openIssueCountsQuery = openIssueCountsQuery
+                    .Where(issue => issue.ProjectId == selectedProjectId.Value);
+
+                openSupportCountsQuery = openSupportCountsQuery
+                    .Where(order => order.ProjectId == selectedProjectId.Value);
+            }
+
+            var openIssueCounts = await openIssueCountsQuery
+                .GroupBy(issue => issue.AssignTo)
+                .Select(group => new { EmpId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(x => x.EmpId, x => x.Count);
+
+            var openSupportCounts = await openSupportCountsQuery
+                .GroupBy(order => order.AssignTo!.Value)
+                .Select(group => new { EmpId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(x => x.EmpId, x => x.Count);
+
             var totalProjects = projects.Count;
             var doneProjects = projects.Count(p => IsProjectDone(p));
             var delayedProjects = projects.Count(p => IsProjectDelayed(p, today));
@@ -146,7 +175,7 @@ namespace ProjectTracking.Controllers
                 WeekRangeText = $"{weekStart.ToString("dd MMM", th)} - {weekEnd.ToString("dd MMM yyyy", th)}",
                 StatusMetrics = statusMetrics,
                 ProjectStatusChart = BuildConicGradient(statusMetrics),
-                TaskOverview = BuildTaskOverview(assigns, today),
+                TaskOverview = BuildTaskOverview(assigns, employees, openIssueCounts, openSupportCounts, today),
                 ThisWeekTasks = BuildThisWeekTasks(assigns, weekStart, weekEnd, today, th)
             };
 
@@ -194,26 +223,46 @@ namespace ProjectTracking.Controllers
             return $"conic-gradient({string.Join(", ", parts)})";
         }
 
-        private static List<ProjectTaskOverviewMember> BuildTaskOverview(List<AssignRow> assigns, DateTime today)
+        private static List<ProjectTaskOverviewMember> BuildTaskOverview(
+            List<AssignRow> assigns,
+            List<EmployeeRow> employees,
+            IReadOnlyDictionary<int, int> openIssueCounts,
+            IReadOnlyDictionary<int, int> openSupportCounts,
+            DateTime today)
         {
-            var grouped = assigns
+            var assignGroups = assigns
                 .GroupBy(x => x.EmpId)
-                .Select(group =>
+                .ToDictionary(x => x.Key, x => x.ToList());
+            var employeesById = employees.ToDictionary(x => x.EmpId);
+            var memberIds = assignGroups.Keys
+                .Union(openIssueCounts.Keys)
+                .Union(openSupportCounts.Keys);
+
+            var grouped = memberIds
+                .Select(empId =>
                 {
-                    var rows = group.ToList();
+                    assignGroups.TryGetValue(empId, out var rows);
+                    rows ??= new List<AssignRow>();
+                    employeesById.TryGetValue(empId, out var employee);
+
                     var done = rows.Count(IsAssignDone);
                     var delay = rows.Count(x => IsAssignDelayed(x, today));
                     var inProgress = Math.Max(0, rows.Count - done - delay);
+                    openIssueCounts.TryGetValue(empId, out var openIssues);
+                    openSupportCounts.TryGetValue(empId, out var openSupport);
+                    var total = rows.Count + openIssues + openSupport;
 
                     return new ProjectTaskOverviewMember
                     {
-                        EmpId = group.Key,
-                        Name = rows.First().EmployeeName,
-                        AvatarPath = CleanProfilePath(rows.First().AvatarPath),
+                        EmpId = empId,
+                        Name = rows.FirstOrDefault()?.EmployeeName ?? employee?.Name ?? "-",
+                        AvatarPath = CleanProfilePath(rows.FirstOrDefault()?.AvatarPath ?? employee?.AvatarPath),
                         DoneCount = done,
                         InProgressCount = inProgress,
                         DelayCount = delay,
-                        TotalCount = rows.Count
+                        OpenIssueCount = openIssues,
+                        OpenSupportCount = openSupport,
+                        TotalCount = total
                     };
                 })
                 .Where(x => x.TotalCount > 0)
@@ -229,6 +278,8 @@ namespace ProjectTracking.Controllers
                 row.DoneHeightPercent = Percent(row.DoneCount, row.TotalCount);
                 row.InProgressHeightPercent = Percent(row.InProgressCount, row.TotalCount);
                 row.DelayHeightPercent = Percent(row.DelayCount, row.TotalCount);
+                row.OpenIssueHeightPercent = Percent(row.OpenIssueCount, row.TotalCount);
+                row.OpenSupportHeightPercent = Percent(row.OpenSupportCount, row.TotalCount);
             }
 
             return grouped;

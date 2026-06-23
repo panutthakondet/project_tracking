@@ -46,11 +46,15 @@ namespace ProjectTracking.ViewModels
         public int DoneCount { get; set; }
         public int InProgressCount { get; set; }
         public int DelayCount { get; set; }
+        public int OpenIssueCount { get; set; }
+        public int OpenSupportCount { get; set; }
         public int TotalCount { get; set; }
         public int TotalHeightPercent { get; set; }
         public int DoneHeightPercent { get; set; }
         public int InProgressHeightPercent { get; set; }
         public int DelayHeightPercent { get; set; }
+        public int OpenIssueHeightPercent { get; set; }
+        public int OpenSupportHeightPercent { get; set; }
     }
 
     public class ProjectOrgMember
