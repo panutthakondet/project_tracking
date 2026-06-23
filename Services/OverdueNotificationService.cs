@@ -654,7 +654,22 @@ namespace ProjectTracking.Services
                 empId.ToString(CultureInfo.InvariantCulture),
                 Trim(title, 255) ?? "",
                 message ?? "",
-                targetUrl == null ? "" : Trim(targetUrl, 500));
+                NormalizeTargetUrlForSendLogKey(targetUrl));
+
+        private static string NormalizeTargetUrlForSendLogKey(string? targetUrl)
+        {
+            if (string.IsNullOrWhiteSpace(targetUrl))
+                return "";
+
+            var trimmed = Trim(targetUrl, 500);
+            if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                return uri.PathAndQuery;
+            }
+
+            return trimmed;
+        }
 
         private static void ResolveDuplicateNotifications(IEnumerable<UserNotification> notifications, DateTime now)
         {

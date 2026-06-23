@@ -855,17 +855,41 @@ namespace ProjectTracking.Services
                             continue;
                         }
 
+                        var detailPath = $"/Meetings/Show/{meeting.Id}";
+                        var calendarPath = $"/Meetings/Calendar/{meeting.Id}";
+                        var detailUrlForLog = ToAbsoluteUrl(detailPath);
+                        var detailUrl = detailUrlForLog ?? detailPath;
+                        var calendarUrl = ToAbsoluteUrl(calendarPath) ?? calendarPath;
+                        var title = BuildTelegramTitle(daysBefore, meeting.Title);
+                        var message = BuildTelegramMessage(meeting, daysBefore, detailUrl, calendarUrl);
+
+                        if (await HasNotificationSendLogTodayAsync(
+                            db,
+                            "LINE",
+                            recipient.EmpId,
+                            title,
+                            message,
+                            detailUrlForLog,
+                            today,
+                            cancellationToken))
+                        {
+                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
+                            skipped++;
+                            _logger.LogInformation(
+                                "Meeting LINE reminder skipped because NotificationSendLogs already has a successful send today. MeetingId={MeetingId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
+                                meeting.Id,
+                                recipient.EmpId,
+                                daysBefore);
+                            continue;
+                        }
+
                         try
                         {
                             var lineSendCount = await _lineMessagingService.SendNotificationToLineUserIdsAsync(
                                 unsentLineUserIds,
-                                BuildTelegramTitle(daysBefore, meeting.Title),
-                                BuildTelegramMessage(
-                                    meeting,
-                                    daysBefore,
-                                    ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
-                                    ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}"),
-                                ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
+                                title,
+                                message,
+                                detailUrl,
                                 cancellationToken,
                                 recipient.EmpId);
 
@@ -972,17 +996,41 @@ namespace ProjectTracking.Services
                             continue;
                         }
 
+                        var detailPath = $"/Meetings/Show/{meeting.Id}";
+                        var calendarPath = $"/Meetings/Calendar/{meeting.Id}";
+                        var detailUrlForLog = ToAbsoluteUrl(detailPath);
+                        var detailUrl = detailUrlForLog ?? detailPath;
+                        var calendarUrl = ToAbsoluteUrl(calendarPath) ?? calendarPath;
+                        var title = BuildTelegramTitle(daysBefore, meeting.Title);
+                        var message = BuildTelegramMessage(meeting, daysBefore, detailUrl, calendarUrl);
+
+                        if (await HasNotificationSendLogTodayAsync(
+                            db,
+                            "TELEGRAM",
+                            recipient.EmpId,
+                            title,
+                            message,
+                            detailUrlForLog,
+                            today,
+                            cancellationToken))
+                        {
+                            await TryInsertNotificationLogAsync(db, meeting.Id, recipient.AttendeeId, kind, cancellationToken);
+                            skipped++;
+                            _logger.LogInformation(
+                                "Meeting Telegram reminder skipped because NotificationSendLogs already has a successful send today. MeetingId={MeetingId}, EmpId={EmpId}, DaysBefore={DaysBefore}",
+                                meeting.Id,
+                                recipient.EmpId,
+                                daysBefore);
+                            continue;
+                        }
+
                         try
                         {
                             var telegramSendCount = await _telegramMessagingService.SendNotificationToChatIdsAsync(
                                 unsentChatIds,
-                                BuildTelegramTitle(daysBefore, meeting.Title),
-                                BuildTelegramMessage(
-                                    meeting,
-                                    daysBefore,
-                                    ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
-                                    ToAbsoluteUrl($"/Meetings/Calendar/{meeting.Id}") ?? $"/Meetings/Calendar/{meeting.Id}"),
-                                ToAbsoluteUrl($"/Meetings/Show/{meeting.Id}") ?? $"/Meetings/Show/{meeting.Id}",
+                                title,
+                                message,
+                                detailUrl,
                                 cancellationToken,
                                 attachment,
                                 recipient.EmpId);
@@ -1187,6 +1235,42 @@ VALUES(@mid, @aid, @kind, NOW());";
                     && x.AttendeeId == attendeeId
                     && x.Kind == kind,
                     cancellationToken);
+
+        private static Task<bool> HasNotificationSendLogTodayAsync(
+            AppDbContext db,
+            string channel,
+            int empId,
+            string title,
+            string? message,
+            string? targetUrl,
+            DateTime today,
+            CancellationToken cancellationToken)
+        {
+            var tomorrow = today.AddDays(1);
+            var normalizedChannel = channel.Trim().ToUpperInvariant();
+            var normalizedTitle = TrimForLog(title, 255) ?? "";
+            var normalizedTargetUrl = TrimForLog(targetUrl, 500);
+
+            return db.NotificationSendLogs
+                .AsNoTracking()
+                .AnyAsync(x => x.SentAt >= today
+                    && x.SentAt < tomorrow
+                    && x.Channel == normalizedChannel
+                    && x.RecipientEmpId == empId
+                    && x.Title == normalizedTitle
+                    && x.Message == message
+                    && x.TargetUrl == normalizedTargetUrl,
+                    cancellationToken);
+        }
+
+        private static string? TrimForLog(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            value = value.Trim();
+            return value.Length <= maxLength ? value : value[..maxLength];
+        }
 
         private static Task<bool> HasActiveLineRecipientAsync(
             AppDbContext db,
