@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using ProjectTracking.Data;
+using System.Globalization;
 
 namespace ProjectTracking.Services
 {
@@ -7,6 +9,10 @@ namespace ProjectTracking.Services
     // Email is sent once immediately when a meeting is created, not by this background service.
     public class MeetingReminderBackgroundService : BackgroundService
     {
+        private const string LastAutoRunDateConfigKey = "MEETING_NOTIFICATION_LAST_AUTO_RUN_DATE";
+        private const string LastAutoRunDateDescription = "Last Bangkok date the automatic meeting reminder scheduler ran.";
+        private const string RunDateFormat = "yyyy-MM-dd";
+
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MeetingReminderBackgroundService> _logger;
         private readonly TimeSpan _defaultRunAt;
@@ -35,7 +41,7 @@ namespace ProjectTracking.Services
                     "Meeting reminder run time has already passed today. Running startup sync now. StartedAt={StartedAt}, RunAt={RunAt}",
                     startedAt,
                     runAt);
-                await RunOnceAsync(stoppingToken);
+                await RunOnceForDateAsync(startedAt.Date, "startup", stoppingToken);
             }
 
             while (!stoppingToken.IsCancellationRequested)
@@ -49,7 +55,80 @@ namespace ProjectTracking.Services
 
                 _logger.LogInformation("Next meeting reminder sync scheduled at {NextRun}", nextRun);
                 await Task.Delay(delay, stoppingToken);
-                await RunOnceAsync(stoppingToken);
+                await RunOnceForDateAsync(nextRun.Date, "scheduled", stoppingToken);
+            }
+        }
+
+        private async Task RunOnceForDateAsync(DateTime runDate, string reason, CancellationToken cancellationToken)
+        {
+            if (!await TryMarkAutoRunDateAsync(runDate, cancellationToken))
+            {
+                _logger.LogInformation(
+                    "Meeting chat reminder skipped because it already ran today. Reason={Reason}, RunDate={RunDate}",
+                    reason,
+                    runDate.ToString(RunDateFormat, CultureInfo.InvariantCulture));
+                return;
+            }
+
+            await RunOnceAsync(cancellationToken);
+        }
+
+        private async Task<bool> TryMarkAutoRunDateAsync(DateTime runDate, CancellationToken cancellationToken)
+        {
+            var runDateText = runDate.ToString(RunDateFormat, CultureInfo.InvariantCulture);
+
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var affected = await db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE system_config
+                SET config_value = @runDate,
+                    description = @description,
+                    updated_at = NOW()
+                WHERE config_key = @configKey
+                  AND (config_value IS NULL OR config_value <> @runDate);
+                """,
+                new object[]
+                {
+                    new MySqlParameter("@runDate", runDateText),
+                    new MySqlParameter("@description", LastAutoRunDateDescription),
+                    new MySqlParameter("@configKey", LastAutoRunDateConfigKey)
+                },
+                cancellationToken);
+
+            if (affected > 0)
+                return true;
+
+            var alreadyMarked = await db.SystemConfigs
+                .AsNoTracking()
+                .AnyAsync(x => x.ConfigKey == LastAutoRunDateConfigKey
+                    && x.ConfigValue == runDateText,
+                    cancellationToken);
+
+            if (alreadyMarked)
+                return false;
+
+            try
+            {
+                affected = await db.Database.ExecuteSqlRawAsync(
+                    """
+                    INSERT INTO system_config(config_key, config_value, description, updated_at)
+                    VALUES(@configKey, @runDate, @description, NOW());
+                    """,
+                    new object[]
+                    {
+                        new MySqlParameter("@configKey", LastAutoRunDateConfigKey),
+                        new MySqlParameter("@runDate", runDateText),
+                        new MySqlParameter("@description", LastAutoRunDateDescription)
+                    },
+                    cancellationToken);
+
+                return affected > 0;
+            }
+            catch (MySqlException ex) when (ex.Number == 1062)
+            {
+                return await TryMarkAutoRunDateAsync(runDate, cancellationToken);
             }
         }
 
