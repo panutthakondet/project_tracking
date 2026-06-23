@@ -770,7 +770,7 @@
             cursor: pointer;
             list-style: none;
             color: #20324c;
-            font-weight: 900;
+            font-weight: 700;
             user-select: none;
         }
 
@@ -830,7 +830,7 @@
             margin: 0;
             color: #10213a;
             font-size: .98rem;
-            font-weight: 900;
+            font-weight: 700;
             line-height: 1.25;
         }
 
@@ -844,7 +844,7 @@
             background: transparent;
             color: #64748b;
             font-size: .96rem;
-            font-weight: 900;
+            font-weight: 700;
         }
 
         .rb-column-drag-hint {
@@ -946,7 +946,8 @@
         .rb-card-cover {
             width: 100%;
             height: var(--rb-card-cover-height);
-            object-fit: fill;
+            object-fit: contain;
+            object-position: center;
             background: #dbe8f5;
         }
 
@@ -976,7 +977,7 @@
             background: var(--rb-label-color, #22c7b8);
             color: var(--rb-label-text, #10213a);
             font-size: .74rem;
-            font-weight: 900;
+            font-weight: 500;
             line-height: 1.6;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -987,7 +988,7 @@
             max-width: 100%;
             min-height: var(--rb-card-label-height);
             padding: 1px 8px;
-            font-size: var(--rb-card-label-font-size);
+            font-size: min(var(--rb-card-label-font-size), .64rem);
             line-height: 1.35;
         }
 
@@ -995,9 +996,22 @@
             margin: 0;
             color: #10213a;
             font-size: var(--rb-card-title-size);
-            font-weight: 900;
-            line-height: 1.28;
+            font-weight: 300;
+            line-height: 1.32;
             word-break: break-word;
+        }
+
+        .rb-column-title,
+        .rb-column-count,
+        .rb-card-label,
+        .rb-card-title {
+            letter-spacing: 0;
+            text-shadow: none;
+            -webkit-text-stroke: 0 transparent;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-synthesis: none;
+            font-variation-settings: normal;
         }
 
         .rb-add-card {
@@ -1014,6 +1028,16 @@
             min-height: 36px;
             padding: 0 4px;
             font-size: .94rem;
+        }
+
+        .rb-add-list-column summary,
+        .rb-add-card summary {
+            letter-spacing: 0;
+            text-shadow: none;
+            -webkit-text-stroke: 0 transparent;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-variation-settings: normal;
         }
 
         .rb-add-card form {
@@ -1363,7 +1387,7 @@
             align-items: center;
             justify-content: center;
             color: #0f766e;
-            font-weight: 900;
+            font-weight: 500;
         }
 
         .rb-file-thumb-link {
@@ -1380,7 +1404,7 @@
 
         .rb-file-name {
             color: #10213a;
-            font-weight: 900;
+            font-weight: 500;
             word-break: break-word;
         }
 
@@ -1415,7 +1439,7 @@
         .rb-file-upload-card .form-control {
             min-height: 46px;
             border-radius: 12px;
-            font-weight: 800;
+            font-weight: 400;
         }
 
         .rb-file-upload-card input[type="file"]::file-selector-button {
@@ -1425,7 +1449,25 @@
             border-radius: 10px;
             background: #dff8f5;
             color: #0f766e;
-            font-weight: 900;
+            font-weight: 500;
+        }
+
+        .rb-file-upload-card,
+        .rb-file-upload-card .form-control,
+        .rb-file-upload-card input[type="file"]::file-selector-button,
+        .rb-file-name,
+        .rb-file-info,
+        .rb-file-thumb,
+        .rb-file-actions .rb-btn,
+        .rb-modal-actions .rb-btn,
+        .rb-field-label[data-attachment-heading] {
+            letter-spacing: 0;
+            text-shadow: none;
+            -webkit-text-stroke: 0 transparent;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-synthesis: none;
+            font-variation-settings: normal;
         }
 
         .rb-modal-actions {
@@ -1882,11 +1924,13 @@
                                         @foreach (var label in cardLabels)
                                         {
                                             <span class="rb-card-label"
-                                                  style="--rb-label-color: @label.ColorHex;"
+                                                  style="--rb-label-color: @label.ColorHex; font-size: .72rem !important; font-weight: 500 !important; line-height: 1.24 !important;"
                                                   title="@label.LabelName">@label.LabelName</span>
                                         }
                                     </div>
-                                    <h3 class="rb-card-title" data-card-title>@card.Title</h3>
+                                    <div class="rb-card-title"
+                                         data-card-title
+                                         style="font-family: 'Prompt', system-ui, -apple-system, 'Segoe UI', 'Noto Sans Thai', 'Noto Sans', Arial, sans-serif !important; font-weight: 300 !important; font-variation-settings: 'wght' 300 !important; color: #0f172a !important;">@card.Title</div>
                                 </div>
                             </article>
                         }
