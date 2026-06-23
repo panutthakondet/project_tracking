@@ -20,6 +20,8 @@ namespace ProjectTracking.Controllers
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<SupportOrdersController> _logger;
+        private const string FilterProjectIdKey = "SupportOrders.Filter.ProjectId";
+        private const string FilterEmpIdKey = "SupportOrders.Filter.EmpId";
         private static readonly string[] SupportOrderStatuses = { "OPEN", "PASS", "FAIL", "REJECT" };
         private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
         private static readonly CultureInfo ThaiCulture = new("th-TH");
@@ -55,8 +57,10 @@ namespace ProjectTracking.Controllers
         // LIST
         // =========================
         [RequireMenu("SupportOrders.Index")]
-        public async Task<IActionResult> Index(int? projectId)
+        public async Task<IActionResult> Index(int? projectId, int? empId)
         {
+            (projectId, empId) = ResolveIndexFilters(projectId, empId);
+
             // send project list to dropdown
             var projectList = await _context.Projects
                 .AsNoTracking()
@@ -64,6 +68,7 @@ namespace ProjectTracking.Controllers
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
+            ViewBag.Projects = projectList;
             ViewBag.ProjectList = new SelectList(projectList, "ProjectId", "ProjectDisplayName", projectId);
 
             var query = _context.ProjectSupportOrders
@@ -79,16 +84,27 @@ namespace ProjectTracking.Controllers
                 query = query.Where(o => o.ProjectId == projectId.Value);
             }
 
+            if (empId.HasValue && empId.Value > 0)
+            {
+                query = query.Where(o => o.AssignTo == empId.Value);
+            }
+
             // send selected project name to view
+            Project? selectedProject = null;
             if (projectId.HasValue && projectId.Value > 0)
             {
-                var project = await _context.Projects
+                selectedProject = await _context.Projects
                     .AsNoTracking()
                     .Include(p => p.Coop)
                     .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
 
-                ViewBag.SelectedProjectName = project?.ProjectDisplayName;
+                ViewBag.SelectedProjectName = selectedProject?.ProjectDisplayName;
             }
+
+            ViewBag.SelectedProject = selectedProject;
+            ViewBag.SelectedEmpId = empId;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.EmpList = await BuildOwnerListAsync(projectId, empId);
 
             var orders = await query
                 .OrderByDescending(o => o.OrderId)
@@ -369,8 +385,7 @@ namespace ProjectTracking.Controllers
             ViewBag.EmployeeList = new SelectList(_context.Employees, "EmpId", "EmpName", order.AssignTo);
             ViewBag.CurrentStatus = order.Status;
             ViewBag.CurrentDevStatus = order.DevStatus;
-            ViewBag.StatusList = GetStatusList("PASS", includeOpen: false);
-            order.Status = "PASS";
+            ViewBag.StatusList = GetStatusList(order.Status);
 
             return View(order);
         }
@@ -415,7 +430,7 @@ namespace ProjectTracking.Controllers
                 await PopulateSupportOrderFormAsync(order);
                 ViewBag.CurrentStatus = existingOrder.Status;
                 ViewBag.CurrentDevStatus = existingOrder.DevStatus;
-                ViewBag.StatusList = GetStatusList(order.Status, includeOpen: false);
+                ViewBag.StatusList = GetStatusList(order.Status);
                 return View(order);
             }
 
@@ -507,9 +522,12 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
-            await SyncNotificationsSafelyAsync();
-            if (shouldNotifyAssigneeBaResult)
-                await SendBaResultSupportTelegramToAssigneeSafelyAsync(order.OrderId);
+            if (nextStatus != "OPEN")
+            {
+                await SyncNotificationsSafelyAsync();
+                if (shouldNotifyAssigneeBaResult)
+                    await SendBaResultSupportTelegramToAssigneeSafelyAsync(order.OrderId);
+            }
 
             return RedirectToAction("Index", new { projectId = existingOrder.ProjectId });
         }
@@ -877,6 +895,91 @@ namespace ProjectTracking.Controllers
                     .Where(x => x.OrderId == order.OrderId)
                     .ToListAsync();
             }
+        }
+
+        private async Task<SelectList> BuildOwnerListAsync(int? projectId, int? selectedEmpId)
+        {
+            var query = _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Include(o => o.Employee)
+                .Where(o => o.AssignTo.HasValue
+                    && o.Employee != null
+                    && o.Employee.EmpName != null
+                    && o.Employee.EmpName != "");
+
+            if (projectId.HasValue && projectId.Value > 0)
+            {
+                query = query.Where(o => o.ProjectId == projectId.Value);
+            }
+
+            var owners = await query
+                .Select(o => new
+                {
+                    EmpId = o.AssignTo!.Value,
+                    EmpName = o.Employee!.EmpName!
+                })
+                .Distinct()
+                .OrderBy(x => x.EmpName)
+                .ToListAsync();
+
+            return new SelectList(owners, "EmpId", "EmpName", selectedEmpId);
+        }
+
+        private (int? ProjectId, int? EmpId) ResolveIndexFilters(int? projectId, int? empId)
+        {
+            var hasProjectQuery = Request.Query.ContainsKey("projectId");
+            var hasEmpQuery = Request.Query.ContainsKey("empId");
+            var storedProjectId = HttpContext.Session.GetInt32(FilterProjectIdKey);
+            var projectChangedByQuery = false;
+
+            if (!hasProjectQuery)
+            {
+                projectId = storedProjectId;
+            }
+            else if (projectId.HasValue && projectId.Value > 0)
+            {
+                projectChangedByQuery = storedProjectId.HasValue && storedProjectId.Value != projectId.Value;
+                HttpContext.Session.SetInt32(FilterProjectIdKey, projectId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove(FilterProjectIdKey);
+                HttpContext.Session.Remove(FilterEmpIdKey);
+                empId = null;
+            }
+
+            if (!projectId.HasValue || projectId.Value <= 0)
+            {
+                HttpContext.Session.Remove(FilterEmpIdKey);
+                return (projectId, null);
+            }
+
+            if (!hasEmpQuery)
+            {
+                if (projectChangedByQuery)
+                {
+                    HttpContext.Session.Remove(FilterEmpIdKey);
+                    empId = null;
+                }
+                else
+                {
+                    empId = HttpContext.Session.GetInt32(FilterEmpIdKey);
+                }
+            }
+            else
+            {
+                if (empId.HasValue && empId.Value > 0)
+                {
+                    HttpContext.Session.SetInt32(FilterEmpIdKey, empId.Value);
+                }
+                else
+                {
+                    HttpContext.Session.Remove(FilterEmpIdKey);
+                    empId = null;
+                }
+            }
+
+            return (projectId, empId);
         }
 
         private async Task<int?> GetCurrentEntryIdAsync()

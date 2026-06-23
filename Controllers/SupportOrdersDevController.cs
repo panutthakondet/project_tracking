@@ -18,6 +18,13 @@ namespace ProjectTracking.Controllers
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly OverdueNotificationService _notificationService;
         private readonly ILogger<SupportOrdersDevController> _logger;
+        private const string FilterProjectIdKey = "SupportOrdersDev.Filter.ProjectId";
+        private const string FilterEmpIdKey = "SupportOrdersDev.Filter.EmpId";
+        private static readonly (string Value, string Text)[] SupportDevStatuses =
+        {
+            ("WIP", "WIP - กำลังแก้"),
+            ("FIXED", "FIXED - แก้เสร็จ / ส่งตรวจ")
+        };
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         public SupportOrdersDevController(
@@ -42,34 +49,52 @@ namespace ProjectTracking.Controllers
         // Programmer Order List
         // =========================
         [RequireMenu("SupportOrdersDev.Index")]
-        public async Task<IActionResult> Index(int? projectId)
+        public async Task<IActionResult> Index(int? projectId, int? empId)
         {
+            (projectId, empId) = ResolveIndexFilters(projectId, empId);
+
             var query = _context.ProjectSupportOrders
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .AsQueryable();
 
-            if (projectId.HasValue)
+            if (projectId.HasValue && projectId.Value > 0)
             {
-                query = query.Where(o => o.ProjectId == projectId);
+                query = query.Where(o => o.ProjectId == projectId.Value);
+            }
+
+            if (empId.HasValue && empId.Value > 0)
+            {
+                query = query.Where(o => o.AssignTo == empId.Value);
             }
 
             var orders = await query
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
 
-            ViewBag.ProjectList = new SelectList(
-                await _context.Projects
+            var projectList = await _context.Projects
                     .AsNoTracking()
                     .Include(p => p.Coop)
                     .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                     .ThenBy(p => p.ProjectName)
-                    .ToListAsync(),
+                    .ToListAsync();
+
+            ViewBag.Projects = projectList;
+            ViewBag.ProjectList = new SelectList(
+                projectList,
                 "ProjectId",
                 "ProjectDisplayName",
                 projectId
             );
+
+            ViewBag.SelectedProject = projectId.HasValue && projectId.Value > 0
+                ? projectList.FirstOrDefault(p => p.ProjectId == projectId.Value)
+                : null;
+
+            ViewBag.SelectedEmpId = empId;
+            ViewBag.SelectedProjectId = projectId;
+            ViewBag.EmpList = await BuildOwnerListAsync(projectId, empId);
 
             return View(orders);
         }
@@ -105,6 +130,8 @@ namespace ProjectTracking.Controllers
         {
             var order = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(o => o.Employee)
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
             if (order == null)
@@ -119,7 +146,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.CurrentDevStatus = order.DevStatus;
-            order.DevStatus = "FIXED";
+            ViewBag.DevStatusList = GetDevStatusList(order.DevStatus);
 
             return View(order);
         }
@@ -130,12 +157,39 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> afterFiles, List<int> deleteImageIds)
         {
             var dbOrder = await _context.ProjectSupportOrders
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(o => o.Employee)
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
             if (dbOrder == null)
                 return NotFound();
 
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
+            if (nextDevStatus == "WIP")
+            {
+                ModelState.AddModelError(
+                    nameof(ProjectSupportOrder.DevStatus),
+                    "ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                dbOrder.Images = await _context.ProjectSupportImages
+                    .Where(x => x.OrderId == id)
+                    .ToListAsync();
+
+                dbOrder.FixImages = await _context.ProjectSupportFixImages
+                    .Where(x => x.OrderId == id)
+                    .ToListAsync();
+
+                ViewBag.CurrentDevStatus = dbOrder.DevStatus;
+                ViewBag.DevStatusList = GetDevStatusList(order.DevStatus);
+                dbOrder.DevStatus = order.DevStatus;
+                dbOrder.DevDetail = order.DevDetail;
+                return View(dbOrder);
+            }
+
             var shouldNotifyBaFixed = nextDevStatus == "FIXED";
             dbOrder.DevStatus = nextDevStatus;
             dbOrder.DevDetail = order.DevDetail;
@@ -330,12 +384,108 @@ namespace ProjectTracking.Controllers
         private static string DateText(DateTime? value)
             => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
 
+        private async Task<SelectList> BuildOwnerListAsync(int? projectId, int? selectedEmpId)
+        {
+            var query = _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Include(o => o.Employee)
+                .Where(o => o.AssignTo.HasValue
+                    && o.Employee != null
+                    && o.Employee.EmpName != null
+                    && o.Employee.EmpName != "");
+
+            if (projectId.HasValue && projectId.Value > 0)
+            {
+                query = query.Where(o => o.ProjectId == projectId.Value);
+            }
+
+            var owners = await query
+                .Select(o => new
+                {
+                    EmpId = o.AssignTo!.Value,
+                    EmpName = o.Employee!.EmpName!
+                })
+                .Distinct()
+                .OrderBy(x => x.EmpName)
+                .ToListAsync();
+
+            return new SelectList(owners, "EmpId", "EmpName", selectedEmpId);
+        }
+
+        private (int? ProjectId, int? EmpId) ResolveIndexFilters(int? projectId, int? empId)
+        {
+            var hasProjectQuery = Request.Query.ContainsKey("projectId");
+            var hasEmpQuery = Request.Query.ContainsKey("empId");
+            var storedProjectId = HttpContext.Session.GetInt32(FilterProjectIdKey);
+            var projectChangedByQuery = false;
+
+            if (!hasProjectQuery)
+            {
+                projectId = storedProjectId;
+            }
+            else if (projectId.HasValue && projectId.Value > 0)
+            {
+                projectChangedByQuery = storedProjectId.HasValue && storedProjectId.Value != projectId.Value;
+                HttpContext.Session.SetInt32(FilterProjectIdKey, projectId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove(FilterProjectIdKey);
+                HttpContext.Session.Remove(FilterEmpIdKey);
+                empId = null;
+            }
+
+            if (!projectId.HasValue || projectId.Value <= 0)
+            {
+                HttpContext.Session.Remove(FilterEmpIdKey);
+                return (projectId, null);
+            }
+
+            if (!hasEmpQuery)
+            {
+                if (projectChangedByQuery)
+                {
+                    HttpContext.Session.Remove(FilterEmpIdKey);
+                    empId = null;
+                }
+                else
+                {
+                    empId = HttpContext.Session.GetInt32(FilterEmpIdKey);
+                }
+            }
+            else
+            {
+                if (empId.HasValue && empId.Value > 0)
+                {
+                    HttpContext.Session.SetInt32(FilterEmpIdKey, empId.Value);
+                }
+                else
+                {
+                    HttpContext.Session.Remove(FilterEmpIdKey);
+                    empId = null;
+                }
+            }
+
+            return (projectId, empId);
+        }
+
         private static string NormalizeSupportDevStatus(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
             if (normalized == "IN_PROGRESS" || normalized == "TODO" || normalized == "DOING" || normalized == "BLOCK")
                 return "WIP";
             return normalized == "FIXED" ? "FIXED" : "WIP";
+        }
+
+        private SelectList GetDevStatusList(string? selected = null)
+        {
+            var selectedValue = NormalizeSupportDevStatus(selected);
+            return new SelectList(
+                SupportDevStatuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selectedValue
+            );
         }
     }
 }

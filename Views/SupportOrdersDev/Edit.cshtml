@@ -25,17 +25,16 @@
         _ => "muted"
     };
 
-    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    string StatusTone(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "OPEN" => "muted",
-        "WIP" => "warning",
-        "FIXED" => "success",
-        "FAIL" => "danger",
-        "PASS" => "success",
-        "REJECT" => "muted",
-        _ => "muted"
+        "OPEN" => "status-field--open",
+        "WIP" => "status-field--wip",
+        "FIXED" => "status-field--fixed",
+        "FAIL" => "status-field--fail",
+        "PASS" => "status-field--pass",
+        "REJECT" => "status-field--reject",
+        _ => "status-field--neutral"
     };
-
 }
 
 <style>
@@ -70,28 +69,6 @@
         font-weight: 800;
     }
 
-    .support-dev-current-status {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 8px;
-        color: #64748b;
-        font-size: .9rem;
-        font-weight: 800;
-    }
-
-    .support-dev-current-status__badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #fef3c7;
-        color: #92400e;
-        font-weight: 900;
-    }
-
     .support-dev-edit-page textarea.form-control {
         min-height: 130px;
         border-radius: 14px;
@@ -108,6 +85,48 @@
     .status-text.info { color: #0f6fa8; }
     .status-text.danger { color: #d6294f; }
     .status-text.muted { color: #64748b; }
+
+    .pt-form-card .status-field {
+        font-weight: 900 !important;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .pt-form-card .status-field.status-field--open {
+        color: #9a3412 !important;
+        background-color: #ffedd5 !important;
+        border-color: #fdba74 !important;
+    }
+
+    .pt-form-card .status-field.status-field--pass,
+    .pt-form-card .status-field.status-field--fixed {
+        color: #166534 !important;
+        background-color: #dcfce7 !important;
+        border-color: #86efac !important;
+    }
+
+    .pt-form-card .status-field.status-field--fail {
+        color: #be123c !important;
+        background-color: #ffe4e6 !important;
+        border-color: #fda4af !important;
+    }
+
+    .pt-form-card .status-field.status-field--reject {
+        color: #334155 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .pt-form-card .status-field.status-field--wip {
+        color: #854d0e !important;
+        background-color: #fef3c7 !important;
+        border-color: #fde68a !important;
+    }
+
+    .pt-form-card .status-field.status-field--neutral {
+        color: #475569 !important;
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+    }
 
     .support-dev-gallery {
         display: flex;
@@ -143,6 +162,8 @@
         <input type="hidden" asp-for="OrderId" />
         <input type="hidden" asp-for="ProjectId" />
 
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
         <div class="card shadow-sm pt-form-card">
             <div class="card-body">
                 <div class="mb-3">
@@ -162,6 +183,27 @@
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
+                        <label>เจ้าของงาน</label>
+                        <div class="support-dev-readonly">@TextOrDash(order.Employee?.EmpName)</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>Status</label>
+                        <div class="support-dev-readonly status-field @StatusTone(order.Status)">@TextOrDash(order.Status)</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label>Dev Status</label>
+                        <select asp-for="DevStatus"
+                                asp-items="ViewBag.DevStatusList"
+                                class="form-select status-field @StatusTone(order.DevStatus)"
+                                data-status-tone></select>
+                        <span asp-validation-for="DevStatus" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
                         <label>Priority</label>
                         <div class="support-dev-readonly">
                             <span class="status-text @PriorityClass(order.Priority)">@TextOrDash(order.Priority)</span>
@@ -169,32 +211,11 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label>Status</label>
-                        <div class="support-dev-readonly">
-                            <span class="status-text @StatusClass(order.Status)">@TextOrDash(order.Status)</span>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label>Dev Status</label>
-                        <div class="support-dev-current-status">
-                            <span>Dev Status ปัจจุบัน</span>
-                            <span class="support-dev-current-status__badge">@TextOrDash(currentDevStatus)</span>
-                        </div>
-                        <input type="hidden" asp-for="DevStatus" value="FIXED" />
-                        <div class="support-dev-readonly">
-                            <span class="status-text success">FIXED - แก้เสร็จ / ส่งตรวจ</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
                         <label>วันที่เริ่ม</label>
                         <div class="support-dev-readonly">@DateText(order.StartDate)</div>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label>วันที่สิ้นสุด</label>
                         <div class="support-dev-readonly">@DateText(order.EndDate)</div>
                     </div>
@@ -276,4 +297,87 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
+    <script>
+        const statusToneClasses = [
+            'status-field--open',
+            'status-field--pass',
+            'status-field--fail',
+            'status-field--reject',
+            'status-field--wip',
+            'status-field--fixed',
+            'status-field--neutral'
+        ];
+
+        function statusToneClass(value) {
+            switch ((value || '').trim().toUpperCase()) {
+                case 'OPEN': return 'status-field--open';
+                case 'PASS': return 'status-field--pass';
+                case 'FAIL': return 'status-field--fail';
+                case 'REJECT': return 'status-field--reject';
+                case 'WIP': return 'status-field--wip';
+                case 'FIXED': return 'status-field--fixed';
+                default: return 'status-field--neutral';
+            }
+        }
+
+        function statusToneTargets(select) {
+            const wrapper = select?.nextElementSibling?.classList?.contains('pt-search-select')
+                ? select.nextElementSibling
+                : null;
+            return [
+                select,
+                wrapper?.querySelector('.pt-search-select__input')
+            ].filter(Boolean);
+        }
+
+        function applyStatusTone(select) {
+            if (!select) return;
+            const toneClass = statusToneClass(select.value);
+            statusToneTargets(select).forEach(target => {
+                target.classList.add('status-field');
+                target.classList.remove(...statusToneClasses);
+                target.classList.add(toneClass);
+            });
+        }
+
+        function applyAllStatusTones() {
+            document.querySelectorAll('[data-status-tone]').forEach(select => applyStatusTone(select));
+        }
+
+        document.querySelectorAll('[data-status-tone]').forEach(select => {
+            select.addEventListener('change', () => setTimeout(() => applyStatusTone(select), 0));
+        });
+        applyAllStatusTones();
+        setTimeout(applyAllStatusTones, 0);
+        setTimeout(applyAllStatusTones, 100);
+
+        new MutationObserver(applyAllStatusTones)
+            .observe(document.body, { childList: true, subtree: true });
+
+        document.querySelector('form').addEventListener('submit', function (event) {
+            const currentDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
+            const nextDevStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
+            if (nextDevStatus === 'WIP') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                alert('ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ');
+                return;
+            }
+
+            const devStatusText = currentDevStatus.toUpperCase() === nextDevStatus
+                ? `${nextDevStatus} (คงเดิม)`
+                : `${currentDevStatus} -> ${nextDevStatus}`;
+
+            const confirmed = confirm([
+                'กำลังบันทึกการเปลี่ยนแปลงข้อมูลงาน Support Dev',
+                `Dev Status: ${devStatusText}`,
+                'ยืนยันการบันทึกหรือไม่?'
+            ].join('\n'));
+
+            if (!confirmed) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        }, true);
+    </script>
 }

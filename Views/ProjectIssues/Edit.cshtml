@@ -23,6 +23,20 @@
     string endDateText = ThaiDateText(endDate);
     string currentIssueStatus = (ViewBag.CurrentIssueStatus as string) ?? issue.IssueStatus ?? "-";
     string currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? issue.DevStatus ?? "-";
+
+    string StatusTone(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "OPEN" => "status-field--open",
+            "PASS" => "status-field--pass",
+            "FAIL" => "status-field--fail",
+            "REJECT" => "status-field--reject",
+            "WIP" => "status-field--wip",
+            "FIXED" => "status-field--fixed",
+            _ => "status-field--neutral"
+        };
+    }
 }
 
 <style>
@@ -114,31 +128,46 @@
         line-height: 1.55;
     }
 
-    .issue-current-status {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 8px;
-        color: #64748b;
-        font-size: .9rem;
-        font-weight: 800;
+    .pt-form-card .status-field {
+        font-weight: 900 !important;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
     }
 
-    .issue-current-status__badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #e0f2fe;
-        color: #075985;
-        font-weight: 900;
+    .pt-form-card .status-field.status-field--open {
+        color: #9a3412 !important;
+        background-color: #ffedd5 !important;
+        border-color: #fdba74 !important;
     }
 
-    .issue-current-status__badge--dev {
-        background: #fef3c7;
-        color: #92400e;
+    .pt-form-card .status-field.status-field--pass,
+    .pt-form-card .status-field.status-field--fixed {
+        color: #166534 !important;
+        background-color: #dcfce7 !important;
+        border-color: #86efac !important;
+    }
+
+    .pt-form-card .status-field.status-field--fail {
+        color: #be123c !important;
+        background-color: #ffe4e6 !important;
+        border-color: #fda4af !important;
+    }
+
+    .pt-form-card .status-field.status-field--reject {
+        color: #334155 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .pt-form-card .status-field.status-field--wip {
+        color: #854d0e !important;
+        background-color: #fef3c7 !important;
+        border-color: #fde68a !important;
+    }
+
+    .pt-form-card .status-field.status-field--neutral {
+        color: #475569 !important;
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
     }
 </style>
 
@@ -156,8 +185,7 @@
         <form asp-action="Edit"
               asp-route-id="@issue.IssueId"
               method="post"
-              enctype="multipart/form-data"
-              onsubmit="return confirm('บันทึกการแก้ไข Issue นี้หรือไม่?');">
+              enctype="multipart/form-data">
 
             @Html.AntiForgeryToken()
 
@@ -204,16 +232,19 @@
 
                 <div class="col-md-4">
                     <label asp-for="IssueStatus" class="form-label fw-semibold">สถานะการตรวจ (Tester/BA)</label>
-                    <div class="issue-current-status">
-                        <span>สถานะปัจจุบัน</span>
-                        <span class="issue-current-status__badge">@currentIssueStatus</span>
-                        <span>Dev Status</span>
-                        <span class="issue-current-status__badge issue-current-status__badge--dev">@currentDevStatus</span>
-                    </div>
                     <select asp-for="IssueStatus"
                             asp-items="ViewBag.StatusList"
-                            class="form-select"></select>
+                            class="form-select status-field @StatusTone(issue.IssueStatus)"
+                            data-status-tone></select>
                     <span asp-validation-for="IssueStatus" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Dev Status</label>
+                    <input type="text"
+                           class="form-control status-field @StatusTone(currentDevStatus)"
+                           value="@currentDevStatus"
+                           readonly />
                 </div>
 
                 <div class="col-md-4">
@@ -380,7 +411,65 @@
         formatThaiDateInput(document.getElementById('StartDate'));
         formatThaiDateInput(document.getElementById('EndDate'));
 
+        const statusToneClasses = [
+            'status-field--open',
+            'status-field--pass',
+            'status-field--fail',
+            'status-field--reject',
+            'status-field--wip',
+            'status-field--fixed',
+            'status-field--neutral'
+        ];
+
+        function statusToneClass(value) {
+            switch ((value || '').trim().toUpperCase()) {
+                case 'OPEN': return 'status-field--open';
+                case 'PASS': return 'status-field--pass';
+                case 'FAIL': return 'status-field--fail';
+                case 'REJECT': return 'status-field--reject';
+                case 'WIP': return 'status-field--wip';
+                case 'FIXED': return 'status-field--fixed';
+                default: return 'status-field--neutral';
+            }
+        }
+
+        function statusToneTargets(select) {
+            const wrapper = select?.nextElementSibling?.classList?.contains('pt-search-select')
+                ? select.nextElementSibling
+                : null;
+            return [
+                select,
+                wrapper?.querySelector('.pt-search-select__input')
+            ].filter(Boolean);
+        }
+
+        function applyStatusTone(select) {
+            if (!select) return;
+            const toneClass = statusToneClass(select.value);
+            statusToneTargets(select).forEach(target => {
+                target.classList.add('status-field');
+                target.classList.remove(...statusToneClasses);
+                target.classList.add(toneClass);
+            });
+        }
+
+        function applyAllStatusTones() {
+            document.querySelectorAll('[data-status-tone]').forEach(select => applyStatusTone(select));
+        }
+
+        document.querySelectorAll('[data-status-tone]').forEach(select => {
+            select.addEventListener('change', () => setTimeout(() => applyStatusTone(select), 0));
+        });
+        applyAllStatusTones();
+        setTimeout(applyAllStatusTones, 0);
+        setTimeout(applyAllStatusTones, 100);
+
+        new MutationObserver(applyAllStatusTones)
+            .observe(document.body, { childList: true, subtree: true });
+
         document.querySelector('form').addEventListener('submit', function (event) {
+            const currentIssueStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentIssueStatus));
+            const currentDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
             const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
             const issueStatus = (document.getElementById('IssueStatus')?.value || '').trim().toUpperCase();
 
@@ -388,6 +477,26 @@
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 alert('ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED');
+                return;
+            }
+
+            const issueStatusText = currentIssueStatus.toUpperCase() === issueStatus
+                ? `${issueStatus} (คงเดิม)`
+                : `${currentIssueStatus} -> ${issueStatus}`;
+            const devStatusText = currentDevStatus.toUpperCase() === devStatus
+                ? `${devStatus} (คงเดิม)`
+                : `${currentDevStatus} -> ${devStatus}`;
+
+            const confirmed = confirm([
+                'กำลังบันทึกการเปลี่ยนแปลงข้อมูล Project Issue',
+                `สถานะ Issue: ${issueStatusText}`,
+                `Dev Status: ${devStatusText}`,
+                'ยืนยันการบันทึกหรือไม่?'
+            ].join('\n'));
+
+            if (!confirmed) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
                 return;
             }
 

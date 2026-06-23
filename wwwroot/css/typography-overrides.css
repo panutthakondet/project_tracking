@@ -1987,3 +1987,35 @@ html body main.route-controller-supportordersdev .support-dev-details-page :is(
   color: #0f172a !important;
   font-weight: 400 !important;
 }
+
+/* Global helper/placeholder text inside fields should stay visually secondary. */
+html body main :is(
+  input,
+  textarea,
+  .form-control,
+  .pt-search-select__input,
+  .select2-search__field,
+  .choices__input,
+  .rb-input,
+  .rb-textarea,
+  .weekly-textarea
+)::placeholder {
+  color: #94a3b8 !important;
+  opacity: .58 !important;
+  font-weight: 500 !important;
+}
+
+html body main :is(
+  .status-field__desc,
+  .rb-description-placeholder
+) {
+  color: inherit !important;
+  opacity: .58 !important;
+  font-weight: 500 !important;
+}
+
+html body main [data-placeholder]:empty::before {
+  color: inherit !important;
+  opacity: .58 !important;
+  font-weight: 500 !important;
+}

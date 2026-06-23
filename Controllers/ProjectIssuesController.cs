@@ -33,6 +33,10 @@ namespace ProjectTracking.Controllers
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
         private readonly ILogger<ProjectIssuesController> _logger;
+        private const string FilterProjectIdKey = "ProjectIssues.Filter.ProjectId";
+        private const string FilterEmpNameKey = "ProjectIssues.Filter.EmpName";
+        private const string DevFilterProjectIdKey = "ProjectIssuesDev.Filter.ProjectId";
+        private const string DevFilterEmpNameKey = "ProjectIssuesDev.Filter.EmpName";
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         public ProjectIssuesController(
@@ -61,6 +65,8 @@ namespace ProjectTracking.Controllers
         [RequireMenu("ProjectIssues.Index")]
         public async Task<IActionResult> Index(int? projectId, string? empName)
         {
+            (projectId, empName) = ResolveIndexFilters(projectId, empName, FilterProjectIdKey, FilterEmpNameKey);
+
             await LoadDropdown(projectId, empName);
 
             if (!projectId.HasValue)
@@ -76,6 +82,8 @@ namespace ProjectTracking.Controllers
         [RequireMenu("ProjectIssues.DevIndex")]
         public async Task<IActionResult> DevIndex(int? projectId, string? empName)
         {
+            (projectId, empName) = ResolveIndexFilters(projectId, empName, DevFilterProjectIdKey, DevFilterEmpNameKey);
+
             await LoadDropdown(projectId, empName);
 
             if (!projectId.HasValue)
@@ -328,8 +336,7 @@ namespace ProjectTracking.Controllers
             ViewBag.Employees = GetEmployeeList(issue.AssignTo);
             ViewBag.CurrentIssueStatus = issue.IssueStatus;
             ViewBag.CurrentDevStatus = issue.DevStatus;
-            ViewBag.StatusList = GetStatusList("PASS", includeOpen: false);
-            issue.IssueStatus = "PASS";
+            ViewBag.StatusList = GetStatusList(issue.IssueStatus);
 
             return View(issue);
         }
@@ -372,7 +379,7 @@ namespace ProjectTracking.Controllers
                 ViewBag.Employees = GetEmployeeList(model.AssignTo);
                 ViewBag.CurrentIssueStatus = issue.IssueStatus;
                 ViewBag.CurrentDevStatus = issue.DevStatus;
-                ViewBag.StatusList = GetStatusList(model.IssueStatus, includeOpen: false);
+                ViewBag.StatusList = GetStatusList(model.IssueStatus);
                 model.DevStatus = issue.DevStatus;
                 model.Images = await _context.ProjectIssueImages
                     .AsNoTracking()
@@ -469,9 +476,12 @@ namespace ProjectTracking.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            await SyncNotificationsSafelyAsync();
-            if (shouldNotifyAssigneeBaResult)
-                await SendBaResultIssueTelegramToAssigneeSafelyAsync(issue.IssueId);
+            if (newStatus != "OPEN")
+            {
+                await SyncNotificationsSafelyAsync();
+                if (shouldNotifyAssigneeBaResult)
+                    await SendBaResultIssueTelegramToAssigneeSafelyAsync(issue.IssueId);
+            }
 
             return RedirectToAction(nameof(Index), new { projectId = issue.ProjectId });
         }
@@ -492,8 +502,7 @@ namespace ProjectTracking.Controllers
             if (issue == null) return NotFound();
 
             ViewBag.CurrentDevStatus = issue.DevStatus;
-            ViewBag.DevStatusList = GetDevStatusList("FIXED");
-            issue.DevStatus = "FIXED";
+            ViewBag.DevStatusList = GetDevStatusList(issue.DevStatus);
             return View(issue);
         }
 
@@ -507,10 +516,31 @@ namespace ProjectTracking.Controllers
         {
             if (id != model.IssueId) return NotFound();
 
-            var issue = await _context.ProjectIssues.FirstOrDefaultAsync(i => i.IssueId == id);
+            var issue = await _context.ProjectIssues
+                .Include(i => i.Employee)
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.Coop)
+                .Include(i => i.FixImages)
+                .FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
+            if (newDev == "WIP")
+            {
+                ModelState.AddModelError(
+                    nameof(ProjectIssue.DevStatus),
+                    "ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.CurrentDevStatus = issue.DevStatus;
+                ViewBag.DevStatusList = GetDevStatusList(model.DevStatus);
+                issue.DevStatus = model.DevStatus;
+                issue.DevDetail = model.DevDetail;
+                return View(issue);
+            }
+
             var shouldNotifyBaFixed = newDev == "FIXED";
 
             issue.DevStatus = newDev;
@@ -615,6 +645,68 @@ namespace ProjectTracking.Controllers
                 .ThenByDescending(i => i.IssuePriority == "URGENT")
                 .ThenBy(i => i.IssueId)
                 .ToListAsync();
+        }
+
+        private (int? ProjectId, string? EmpName) ResolveIndexFilters(
+            int? projectId,
+            string? empName,
+            string projectKey,
+            string empNameKey)
+        {
+            var hasProjectQuery = Request.Query.ContainsKey("projectId");
+            var hasEmpQuery = Request.Query.ContainsKey("empName");
+            var storedProjectId = HttpContext.Session.GetInt32(projectKey);
+            var projectChangedByQuery = false;
+
+            if (!hasProjectQuery)
+            {
+                projectId = storedProjectId;
+            }
+            else if (projectId.HasValue && projectId.Value > 0)
+            {
+                projectChangedByQuery = storedProjectId.HasValue && storedProjectId.Value != projectId.Value;
+                HttpContext.Session.SetInt32(projectKey, projectId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove(projectKey);
+                HttpContext.Session.Remove(empNameKey);
+                empName = null;
+            }
+
+            if (!projectId.HasValue || projectId.Value <= 0)
+            {
+                HttpContext.Session.Remove(empNameKey);
+                return (projectId, null);
+            }
+
+            if (!hasEmpQuery)
+            {
+                if (projectChangedByQuery)
+                {
+                    HttpContext.Session.Remove(empNameKey);
+                    empName = null;
+                }
+                else
+                {
+                    empName = HttpContext.Session.GetString(empNameKey);
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(empName))
+                {
+                    empName = empName.Trim();
+                    HttpContext.Session.SetString(empNameKey, empName);
+                }
+                else
+                {
+                    HttpContext.Session.Remove(empNameKey);
+                    empName = null;
+                }
+            }
+
+            return (projectId, empName);
         }
 
         // =====================================================

@@ -17,7 +17,47 @@
 
     string startDateText = ThaiDateText(startDate);
     string endDateText = ThaiDateText(endDate);
+    var projectName = (ViewBag.SelectedProjectName as string) ?? (projectId > 0 ? $"Project #{projectId}" : "-");
 }
+
+<style>
+    .pt-form-card .status-field {
+        font-weight: 900 !important;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .pt-form-card .status-field.status-field--open {
+        color: #9a3412 !important;
+        background-color: #ffedd5 !important;
+        border-color: #fdba74 !important;
+    }
+
+    .pt-form-card .status-field.status-field--pass,
+    .pt-form-card .status-field.status-field--fixed {
+        color: #166534 !important;
+        background-color: #dcfce7 !important;
+        border-color: #86efac !important;
+    }
+
+    .pt-form-card .status-field.status-field--fail {
+        color: #be123c !important;
+        background-color: #ffe4e6 !important;
+        border-color: #fda4af !important;
+    }
+
+    .pt-form-card .status-field.status-field--reject {
+        color: #334155 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .pt-form-card .status-field.status-field--wip {
+        color: #854d0e !important;
+        background-color: #fef3c7 !important;
+        border-color: #fde68a !important;
+    }
+
+</style>
 
 <div class="index-hero pt-form-hero">
     <div class="index-hero__content">
@@ -34,45 +74,68 @@
 
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-<div class="mb-3">
-<label>โครงการ</label>
-<input asp-for="ProjectId" type="hidden" />
-<input type="text" class="form-control" value="@ViewBag.SelectedProjectName" readonly />
-<span asp-validation-for="ProjectId" class="text-danger"></span>
-</div>
-
 <input type="hidden" asp-for="DevStatus" value="WIP" />
 <input type="hidden" asp-for="Status" value="OPEN" />
 
-<div class="mb-3">
-<label>หัวข้องาน</label>
-<input asp-for="OrderTitle" class="form-control"/>
+<div class="row g-3">
+<div class="col-12">
+<label class="form-label fw-semibold">โครงการ</label>
+<input asp-for="ProjectId" type="hidden" />
+<div class="pt-readonly-field">@projectName</div>
+<span asp-validation-for="ProjectId" class="text-danger"></span>
 </div>
 
-<div class="mb-3">
-<label>รายละเอียดงาน</label>
-<textarea asp-for="OrderDetail" class="form-control"></textarea>
+<div class="col-12">
+<label asp-for="OrderTitle" class="form-label fw-semibold">หัวข้องาน</label>
+<input asp-for="OrderTitle"
+       class="form-control"
+       placeholder="ระบุหัวข้องาน" />
+<span asp-validation-for="OrderTitle" class="text-danger"></span>
 </div>
 
-<div class="mb-3">
-<label>ความสำคัญ</label>
+<div class="col-12">
+<label asp-for="OrderDetail" class="form-label fw-semibold">รายละเอียดงาน</label>
+<textarea asp-for="OrderDetail"
+          class="form-control"
+          rows="6"
+          placeholder="อธิบายรายละเอียดงาน Support"></textarea>
+<span asp-validation-for="OrderDetail" class="text-danger"></span>
+</div>
+
+<div class="col-md-4">
+<label asp-for="AssignTo" class="form-label fw-semibold">เจ้าของงาน</label>
+<select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
+<option value="">-- เลือกเจ้าของงาน --</option>
+</select>
+<span asp-validation-for="AssignTo" class="text-danger"></span>
+</div>
+
+<div class="col-md-4">
+<label class="form-label fw-semibold">สถานะ</label>
+<div class="pt-readonly-field status-field status-field--open">
+OPEN <span class="status-field__desc">- เปิดงาน / รอแก้</span>
+</div>
+<span asp-validation-for="Status" class="text-danger"></span>
+</div>
+
+<div class="col-md-4">
+<label class="form-label fw-semibold">Dev Status</label>
+<div class="pt-readonly-field status-field status-field--wip">WIP</div>
+</div>
+
+<div class="col-md-4">
+<label asp-for="Priority" class="form-label fw-semibold">ความสำคัญ</label>
 <select asp-for="Priority" class="form-select">
 <option>LOW</option>
 <option>MEDIUM</option>
 <option>HIGH</option>
 <option>URGENT</option>
 </select>
+<span asp-validation-for="Priority" class="text-danger"></span>
 </div>
 
-<div class="mb-3">
-<label>สถานะ</label>
-<div class="pt-readonly-field">OPEN - เปิดงาน / รอแก้</div>
-<span asp-validation-for="Status" class="text-danger"></span>
-</div>
-
-<div class="row g-3 mb-3">
-<div class="col-md-6">
-<label>วันที่เริ่ม</label>
+<div class="col-md-4">
+<label asp-for="StartDate" class="form-label fw-semibold">วันที่เริ่ม</label>
 <input asp-for="StartDate"
        type="text"
        class="form-control thai-date"
@@ -82,8 +145,8 @@
 <span asp-validation-for="StartDate" class="text-danger"></span>
 </div>
 
-<div class="col-md-6">
-<label>วันที่สิ้นสุด</label>
+<div class="col-md-4">
+<label asp-for="EndDate" class="form-label fw-semibold">วันที่สิ้นสุด</label>
 <input asp-for="EndDate"
        type="text"
        class="form-control thai-date"
@@ -92,18 +155,11 @@
        required />
 <span asp-validation-for="EndDate" class="text-danger"></span>
 </div>
-</div>
 
-<div class="mb-3">
-<label>ผู้รับผิดชอบ</label>
-<select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
-<option value="">-- เลือกผู้รับผิดชอบ --</option>
-</select>
+<div class="col-12">
+<label class="form-label fw-semibold">แนบรูปประกอบ</label>
+<input type="file" name="files" multiple class="form-control" accept="image/*" />
 </div>
-
-<div class="mb-3">
-<label>แนบรูปประกอบ</label>
-<input type="file" name="files" multiple class="form-control"/>
 </div>
 
 <div class="pt-form-actions">

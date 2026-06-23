@@ -14,9 +14,11 @@
             .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     }
 
-    var selectedProjectId = Context.Request.Query["projectId"].ToString();
-    var hasSelectedProject = !string.IsNullOrWhiteSpace(selectedProjectId);
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var hasSelectedProject = selectedProject != null;
     var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
+    var empList = ViewBag.EmpList as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
     var th = new System.Globalization.CultureInfo("th-TH");
 
     string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
@@ -405,14 +407,36 @@
         </div>
     </div>
 
-    <form method="get" class="support-filter-card">
+    <form method="get" id="supportFilterForm" class="support-filter-card">
         <div class="row g-3 align-items-end">
-            <div class="col-12">
+            <div class="col-md-6">
                 <label class="form-label">โครงการ</label>
-                <select name="projectId" class="form-select" asp-items="ViewBag.ProjectList" onchange="this.form.submit()">
+                <select id="projectSelect"
+                        name="projectId"
+                        class="form-select"
+                        onchange="supportOrdersProjectChanged(this)">
                     <option value="">-- เลือกโครงการ --</option>
+                    @foreach (var p in projects.OrderBy(x => x.Coop?.CoopName ?? "").ThenBy(x => x.ProjectName))
+                    {
+                        <option value="@p.ProjectId" selected="@(selectedProject?.ProjectId == p.ProjectId)">
+                            @p.ProjectDisplayName
+                        </option>
+                    }
                 </select>
             </div>
+            @if (hasSelectedProject)
+            {
+                <div class="col-md-6">
+                    <label class="form-label">เจ้าของงาน</label>
+                    <select id="supportOwnerSelect" name="empId" class="form-select" onchange="supportOrdersOwnerChanged(this)">
+                        <option value="">-- ทั้งหมด --</option>
+                        @foreach (var emp in empList)
+                        {
+                            <option value="@emp.Value" selected="@(emp.Selected ? "selected" : null)">@emp.Text</option>
+                        }
+                    </select>
+                </div>
+            }
         </div>
     </form>
 
@@ -543,4 +567,29 @@ function createOrder() {
 
     window.location.href = '/SupportOrders/Create?projectId=' + encodeURIComponent(projectId);
 }
+
+function supportOrdersGo(projectId, empId) {
+    var url = new URL('/SupportOrders', window.location.origin);
+    if (projectId) url.searchParams.set('projectId', projectId);
+    if (empId) url.searchParams.set('empId', empId);
+    window.location.href = url.pathname + url.search;
+}
+
+function supportOrdersProjectChanged(select) {
+    supportOrdersGo(select ? select.value : '', '');
+}
+
+function supportOrdersOwnerChanged(select) {
+    var projectSelect = document.getElementById('projectSelect');
+    supportOrdersGo(projectSelect ? projectSelect.value : '', select ? select.value : '');
+}
+
+(function () {
+    var projectSelect = document.getElementById('projectSelect');
+    if (!projectSelect || projectSelect.dataset.supportOrdersReady === 'true') return;
+    projectSelect.dataset.supportOrdersReady = 'true';
+    projectSelect.addEventListener('change', function () {
+        supportOrdersProjectChanged(projectSelect);
+    });
+})();
 </script>

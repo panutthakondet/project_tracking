@@ -1,6 +1,7 @@
 
 
 @model ProjectTracking.Models.ProjectSupportOrder
+@using System.Linq
 
 @{
     ViewData["Title"] = "แก้ไขงานสนับสนุน";
@@ -8,6 +9,8 @@
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
     var supportOrder = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
+    var beforeImages = supportOrder.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectSupportImage>();
+    var projectName = (ViewBag.SelectedProjectName as string) ?? supportOrder.Project?.ProjectDisplayName ?? $"Project #{supportOrder.ProjectId}";
 
     string ThaiDateText(DateTime? value)
     {
@@ -21,34 +24,151 @@
     string endDateText = ThaiDateText(endDate);
     string currentStatus = (ViewBag.CurrentStatus as string) ?? supportOrder.Status ?? "-";
     string currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? supportOrder.DevStatus ?? "-";
+
+    string StatusTone(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "OPEN" => "status-field--open",
+            "PASS" => "status-field--pass",
+            "FAIL" => "status-field--fail",
+            "REJECT" => "status-field--reject",
+            "WIP" => "status-field--wip",
+            "FIXED" => "status-field--fixed",
+            _ => "status-field--neutral"
+        };
+    }
 }
 
 <style>
-    .support-current-status {
+    .support-edit-gallery-head {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
         align-items: center;
-        margin-bottom: 8px;
-        color: #64748b;
-        font-size: .9rem;
-        font-weight: 800;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
-    .support-current-status__badge {
+    .support-edit-section-title {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .support-edit-count {
         display: inline-flex;
         align-items: center;
-        min-height: 28px;
-        padding: 4px 10px;
+        justify-content: center;
+        min-height: 30px;
+        padding: 5px 12px;
         border-radius: 999px;
-        background: #e0f2fe;
-        color: #075985;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .14);
+        font-size: .84rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .support-edit-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .support-edit-image-card {
+        border: 1px solid #d8e3ef;
+        background: #f8fafc;
+        border-radius: 14px;
+        padding: 8px;
+        overflow: hidden;
+    }
+
+    .support-edit-image-card img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+        display: block;
+        transition: transform .15s, box-shadow .15s;
+    }
+
+    .support-edit-image-card a:hover img {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(15, 35, 64, .15);
+    }
+
+    .support-edit-delete-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        color: #be123c;
+        font-size: 13px;
         font-weight: 900;
     }
 
-    .support-current-status__badge--dev {
-        background: #fef3c7;
-        color: #92400e;
+    .support-edit-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 14px;
+    }
+
+    .support-edit-note {
+        border-radius: 14px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        padding: 12px 14px;
+        font-weight: 700;
+        line-height: 1.55;
+    }
+
+    .pt-form-card .status-field {
+        font-weight: 900 !important;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .pt-form-card .status-field.status-field--open {
+        color: #9a3412 !important;
+        background-color: #ffedd5 !important;
+        border-color: #fdba74 !important;
+    }
+
+    .pt-form-card .status-field.status-field--pass,
+    .pt-form-card .status-field.status-field--fixed {
+        color: #166534 !important;
+        background-color: #dcfce7 !important;
+        border-color: #86efac !important;
+    }
+
+    .pt-form-card .status-field.status-field--fail {
+        color: #be123c !important;
+        background-color: #ffe4e6 !important;
+        border-color: #fda4af !important;
+    }
+
+    .pt-form-card .status-field.status-field--reject {
+        color: #334155 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .pt-form-card .status-field.status-field--wip {
+        color: #854d0e !important;
+        background-color: #fef3c7 !important;
+        border-color: #fde68a !important;
+    }
+
+    .pt-form-card .status-field.status-field--neutral {
+        color: #475569 !important;
+        background-color: #f8fafc !important;
+        border-color: #cbd5e1 !important;
     }
 </style>
 
@@ -62,135 +182,181 @@
 
 <div class="card shadow-sm pt-form-card">
     <div class="card-body">
-<form asp-action="Edit" asp-route-id="@supportOrder.OrderId" asp-route-projectId="@supportOrder.ProjectId" method="post" enctype="multipart/form-data">
-    @Html.AntiForgeryToken()
+        <form asp-action="Edit"
+              asp-route-id="@supportOrder.OrderId"
+              asp-route-projectId="@supportOrder.ProjectId"
+              method="post"
+              enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
 
-	    <input asp-for="OrderId" type="hidden" />
-	    <input asp-for="ProjectId" type="hidden" />
-	    <input asp-for="DevStatus" type="hidden" />
-	    <input asp-for="IsReopen" type="hidden" />
-	    <input asp-for="ReopenCount" type="hidden" />
+            <input asp-for="OrderId" type="hidden" />
+            <input asp-for="ProjectId" type="hidden" />
+            <input asp-for="DevStatus" type="hidden" />
+            <input asp-for="IsReopen" type="hidden" />
+            <input asp-for="ReopenCount" type="hidden" />
 
-    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-    <div class="mb-3">
-        <label>โครงการ</label>
-        <input type="text" class="form-control" value="@(string.IsNullOrEmpty(ViewBag.SelectedProjectName) ? supportOrder.Project?.ProjectDisplayName : ViewBag.SelectedProjectName)" readonly />
-    </div>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-semibold">โครงการ</label>
+                    <div class="pt-readonly-field">@projectName</div>
+                </div>
 
-    <div class="mb-3">
-        <label>หัวข้องาน</label>
-        <input asp-for="OrderTitle" class="form-control" />
-        <span asp-validation-for="OrderTitle" class="text-danger"></span>
-    </div>
+                <div class="col-12">
+                    <label asp-for="OrderTitle" class="form-label fw-semibold">หัวข้องาน</label>
+                    <input asp-for="OrderTitle"
+                           class="form-control"
+                           placeholder="ระบุหัวข้องาน" />
+                    <span asp-validation-for="OrderTitle" class="text-danger"></span>
+                </div>
 
-    <div class="mb-3">
-        <label>รายละเอียดงาน</label>
-        <textarea asp-for="OrderDetail" class="form-control"></textarea>
-        <span asp-validation-for="OrderDetail" class="text-danger"></span>
-    </div>
+                <div class="col-12">
+                    <label asp-for="OrderDetail" class="form-label fw-semibold">รายละเอียดงาน</label>
+                    <textarea asp-for="OrderDetail"
+                              class="form-control"
+                              rows="6"
+                              placeholder="อธิบายรายละเอียดงาน Support"></textarea>
+                    <span asp-validation-for="OrderDetail" class="text-danger"></span>
+                </div>
 
-    <div class="mb-3">
-        <label>ความสำคัญ</label>
-        <select asp-for="Priority" class="form-select">
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-            <option value="URGENT">URGENT</option>
-        </select>
-    </div>
+                <div class="col-md-4">
+                    <label asp-for="AssignTo" class="form-label fw-semibold">เจ้าของงาน</label>
+                    <select asp-for="AssignTo"
+                            asp-items="ViewBag.EmployeeList"
+                            class="form-select">
+                        <option value="">-- เลือกเจ้าของงาน --</option>
+                    </select>
+                    <span asp-validation-for="AssignTo" class="text-danger"></span>
+                </div>
 
-	    <div class="mb-3">
-	        <label>สถานะ</label>
-	        <div class="support-current-status">
-	            <span>สถานะปัจจุบัน</span>
-	            <span class="support-current-status__badge">@currentStatus</span>
-	            <span>Dev Status</span>
-	            <span class="support-current-status__badge support-current-status__badge--dev">@currentDevStatus</span>
-	        </div>
-	        <select asp-for="Status" asp-items="ViewBag.StatusList" class="form-select"></select>
-	        <span asp-validation-for="Status" class="text-danger"></span>
-		    </div>
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label fw-semibold">สถานะการตรวจ (Tester/BA)</label>
+                    <select asp-for="Status"
+                            asp-items="ViewBag.StatusList"
+                            class="form-select status-field @StatusTone(supportOrder.Status)"
+                            data-status-tone></select>
+                    <span asp-validation-for="Status" class="text-danger"></span>
+                </div>
 
-	    <div class="row g-3 mb-3">
-	        <div class="col-md-4">
-	            <label class="form-label fw-semibold">สถานะ FAIL</label>
-	            <div class="form-control bg-light">@(supportOrder.ReopenCount > 0 ? "เคย FAIL" : "ยังไม่เคย FAIL")</div>
-	        </div>
-	        <div class="col-md-4">
-	            <label class="form-label fw-semibold">จำนวน FAIL</label>
-	            <div class="form-control bg-light">@supportOrder.ReopenCount ครั้ง</div>
-	        </div>
-	        <div class="col-md-4">
-	            <label class="form-label fw-semibold">หมายเหตุ</label>
-	            <div class="form-control bg-light">นับเมื่อ Dev FIXED แล้ว BA บันทึก FAIL</div>
-	        </div>
-	    </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Dev Status</label>
+                    <input type="text"
+                           class="form-control status-field @StatusTone(currentDevStatus)"
+                           value="@currentDevStatus"
+                           readonly />
+                </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <label>วันที่เริ่ม</label>
-            <input asp-for="StartDate"
-                   type="text"
-                   class="form-control thai-date"
-                   value="@startDateText"
-                   placeholder="01/01/2569" />
-            <span asp-validation-for="StartDate" class="text-danger"></span>
-        </div>
+                <div class="col-md-4">
+                    <label asp-for="Priority" class="form-label fw-semibold">ความสำคัญ</label>
+                    <select asp-for="Priority" class="form-select">
+                        <option value="LOW">LOW</option>
+                        <option value="MEDIUM">MEDIUM</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="URGENT">URGENT</option>
+                    </select>
+                    <span asp-validation-for="Priority" class="text-danger"></span>
+                </div>
 
-        <div class="col-md-6">
-            <label>วันที่สิ้นสุด</label>
-            <input asp-for="EndDate"
-                   type="text"
-                   class="form-control thai-date"
-                   value="@endDateText"
-                   placeholder="01/01/2569" />
-            <span asp-validation-for="EndDate" class="text-danger"></span>
-        </div>
-    </div>
+                <div class="col-md-4">
+                    <label asp-for="StartDate" class="form-label fw-semibold">วันที่เริ่ม</label>
+                    <input asp-for="StartDate"
+                           type="text"
+                           class="form-control thai-date"
+                           value="@startDateText"
+                           placeholder="วัน/เดือน/พ.ศ." />
+                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                </div>
 
-    <div class="mb-3">
-        <label>ผู้รับผิดชอบ</label>
-        <select asp-for="AssignTo" asp-items="ViewBag.EmployeeList" class="form-select">
-            <option value="">-- เลือกผู้รับผิดชอบ --</option>
-        </select>
-    </div>
+                <div class="col-md-4">
+                    <label asp-for="EndDate" class="form-label fw-semibold">วันที่สิ้นสุด</label>
+                    <input asp-for="EndDate"
+                           type="text"
+                           class="form-control thai-date"
+                           value="@endDateText"
+                           placeholder="วัน/เดือน/พ.ศ." />
+                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                </div>
 
-    <div class="mb-3">
-        <label>รูปประกอบปัจจุบัน</label>
-        <div>
-            @if (supportOrder.Images != null && supportOrder.Images.Any())
-            {
-                foreach (var img in supportOrder.Images)
-                {
-                    <div class="d-inline-block text-center me-2 mb-2">
-                        <img src="@Url.Content("~" + img.FilePath)" style="width:150px" class="border mb-1" />
-                        <div>
-                            <input type="checkbox" name="deleteImageIds" value="@img.ImageId" />
-                            <small class="text-danger">ลบ</small>
-                        </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">สถานะ FAIL</label>
+                    <div class="pt-readonly-field">@(supportOrder.ReopenCount > 0 ? "เคย FAIL" : "ยังไม่เคย FAIL")</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">จำนวน FAIL</label>
+                    <div class="pt-readonly-field">@supportOrder.ReopenCount ครั้ง</div>
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">หมายเหตุการนับจำนวน FAIL</label>
+                    <div class="support-edit-note">
+                        จำนวน FAIL จะนับเมื่อ Dev ส่งงานเป็น FIXED แล้ว BA ตรวจไม่ผ่านและบันทึกเป็น FAIL โดย Dev Status จะถูกเปลี่ยนกลับเป็น WIP เพื่อให้แก้อีกรอบ
                     </div>
-                }
-            }
-            else
-            {
-                <p class="text-muted">ยังไม่มีรูปประกอบ</p>
-            }
-        </div>
-    </div>
+                </div>
 
-    <div class="mb-3">
-        <label>เพิ่มรูปประกอบ</label>
-        <input type="file" name="files" multiple class="form-control" accept="image/*" data-paste-image-upload />
-        <small class="text-muted">เลือกได้หลายรูป หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง</small>
-    </div>
+                <div class="col-12">
+                    <div class="support-edit-gallery-head">
+                        <h3 class="support-edit-section-title">รูปประกอบก่อนแก้</h3>
+                        <span class="support-edit-count">@beforeImages.Count รูป</span>
+                    </div>
 
-    <div class="pt-form-actions">
-        <button type="submit" class="btn btn-primary">บันทึก</button>
-        <a asp-action="Index" asp-route-projectId="@supportOrder.ProjectId" class="btn btn-outline-secondary">ยกเลิก</a>
-    </div>
+                    @if (beforeImages.Any())
+                    {
+                        <div class="support-edit-gallery">
+                            @foreach (var img in beforeImages)
+                            {
+                                <div class="support-edit-image-card">
+                                    <a href="@Url.Content("~" + img.FilePath)" target="_blank" rel="noopener">
+                                        <img src="@Url.Content("~" + img.FilePath)" alt="@img.FileName" />
+                                    </a>
 
-</form>
+                                    <div class="support-edit-delete-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="deleteImageIds"
+                                               value="@img.ImageId"
+                                               id="del_@img.ImageId" />
+                                        <label for="del_@img.ImageId">ลบรูปนี้</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="support-edit-empty">ยังไม่มีรูปประกอบก่อนแก้</div>
+                    }
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">เพิ่มรูปประกอบ</label>
+                    <input type="file"
+                           name="files"
+                           multiple
+                           class="form-control"
+                           accept="image/*"
+                           data-paste-image-upload />
+                    <small class="text-muted d-block mt-2">
+                        เลือกได้หลายรูป หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง
+                    </small>
+                </div>
+            </div>
+
+            <div class="pt-form-actions">
+                <button type="submit" class="btn btn-primary">บันทึก</button>
+                <a asp-action="Details"
+                   asp-route-id="@supportOrder.OrderId"
+                   class="btn btn-outline-secondary">
+                    ดูรายละเอียด
+                </a>
+                <a asp-action="Index"
+                   asp-route-projectId="@supportOrder.ProjectId"
+                   class="btn btn-outline-secondary">
+                    กลับ
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -239,7 +405,65 @@
         formatThaiDateInput(document.getElementById('StartDate'));
         formatThaiDateInput(document.getElementById('EndDate'));
 
+        const statusToneClasses = [
+            'status-field--open',
+            'status-field--pass',
+            'status-field--fail',
+            'status-field--reject',
+            'status-field--wip',
+            'status-field--fixed',
+            'status-field--neutral'
+        ];
+
+        function statusToneClass(value) {
+            switch ((value || '').trim().toUpperCase()) {
+                case 'OPEN': return 'status-field--open';
+                case 'PASS': return 'status-field--pass';
+                case 'FAIL': return 'status-field--fail';
+                case 'REJECT': return 'status-field--reject';
+                case 'WIP': return 'status-field--wip';
+                case 'FIXED': return 'status-field--fixed';
+                default: return 'status-field--neutral';
+            }
+        }
+
+        function statusToneTargets(select) {
+            const wrapper = select?.nextElementSibling?.classList?.contains('pt-search-select')
+                ? select.nextElementSibling
+                : null;
+            return [
+                select,
+                wrapper?.querySelector('.pt-search-select__input')
+            ].filter(Boolean);
+        }
+
+        function applyStatusTone(select) {
+            if (!select) return;
+            const toneClass = statusToneClass(select.value);
+            statusToneTargets(select).forEach(target => {
+                target.classList.add('status-field');
+                target.classList.remove(...statusToneClasses);
+                target.classList.add(toneClass);
+            });
+        }
+
+        function applyAllStatusTones() {
+            document.querySelectorAll('[data-status-tone]').forEach(select => applyStatusTone(select));
+        }
+
+        document.querySelectorAll('[data-status-tone]').forEach(select => {
+            select.addEventListener('change', () => setTimeout(() => applyStatusTone(select), 0));
+        });
+        applyAllStatusTones();
+        setTimeout(applyAllStatusTones, 0);
+        setTimeout(applyAllStatusTones, 100);
+
+        new MutationObserver(applyAllStatusTones)
+            .observe(document.body, { childList: true, subtree: true });
+
         document.querySelector('form').addEventListener('submit', function (event) {
+            const currentStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentStatus));
+            const currentDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
             const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
             const status = (document.getElementById('Status')?.value || '').trim().toUpperCase();
 
@@ -247,6 +471,26 @@
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 alert('ไม่สามารถบันทึกสถานะ PASS หรือ FAIL ได้ เนื่องจาก Dev Status ยังไม่เป็น FIXED');
+                return;
+            }
+
+            const statusText = currentStatus.toUpperCase() === status
+                ? `${status} (คงเดิม)`
+                : `${currentStatus} -> ${status}`;
+            const devStatusText = currentDevStatus.toUpperCase() === devStatus
+                ? `${devStatus} (คงเดิม)`
+                : `${currentDevStatus} -> ${devStatus}`;
+
+            const confirmed = confirm([
+                'กำลังบันทึกการเปลี่ยนแปลงข้อมูลงาน Support',
+                `Status: ${statusText}`,
+                `Dev Status: ${devStatusText}`,
+                'ยืนยันการบันทึกหรือไม่?'
+            ].join('\n'));
+
+            if (!confirmed) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
                 return;
             }
 
