@@ -315,6 +315,12 @@
 
                     <td class="text-center col-action">
                         <div class="d-flex justify-content-center gap-1 flex-wrap">
+                            <a asp-action="ProductionMemo"
+                               asp-route-id="@p.ProjectId"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn btn-sm btn-outline-dark"
+                               title="บันทึกภายใน Production">📄</a>
                             @if (CanMenu("Projects.Edit"))
                             {
                                 <a asp-action="Edit" asp-route-id="@p.ProjectId" class="btn btn-sm btn-outline-primary" title="แก้ไขโครงการ">✏️</a>
@@ -532,6 +538,14 @@
                 </div>
 
                 <div class="project-actions">
+                    <a asp-action="ProductionMemo"
+                       asp-route-id="@p.ProjectId"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="btn btn-outline-dark btn-sm">
+                        📄 Memo
+                    </a>
+
                     @if (CanMenu("Projects.Edit"))
                     {
                         <a asp-action="Edit"
@@ -781,7 +795,7 @@
 .col-mini{ width:60px; min-width:60px; }
 
 /* Action buttons compact but not cramped */
-.col-action{ width:300px; min-width:300px; }
+.col-action{ width:330px; min-width:330px; }
 
 .project-table{
     table-layout: auto;

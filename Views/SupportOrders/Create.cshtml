@@ -158,7 +158,8 @@ OPEN <span class="status-field__desc">- เปิดงาน / รอแก้<
 
 <div class="col-12">
 <label class="form-label fw-semibold">แนบรูปประกอบ</label>
-<input type="file" name="files" multiple class="form-control" accept="image/*" />
+<input type="file" name="files" multiple class="form-control" accept="image/*" data-paste-image-upload />
+<small class="text-muted d-block mt-2">แนบรูปประกอบ รองรับหลายรูป jpg / png / webp หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง</small>
 </div>
 </div>
 
@@ -173,6 +174,7 @@ OPEN <span class="status-field__desc">- เปิดงาน / รอแก้<
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
     <script>
         function convertThaiDateToIso(value) {
             if (!value || !value.trim()) return '';

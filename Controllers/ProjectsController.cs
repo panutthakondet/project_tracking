@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.ViewModels;
 using System.Globalization;
 
 namespace ProjectTracking.Controllers
@@ -98,6 +99,131 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             return View(result);
+        }
+
+        [RequireMenu("Projects.Index")]
+        public async Task<IActionResult> ProductionMemo(int id)
+        {
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .Include(p => p.BA)
+                .FirstOrDefaultAsync(p => p.ProjectId == id);
+
+            if (project == null)
+                return NotFound();
+
+            var phases = await _context.ProjectPhases
+                .AsNoTracking()
+                .Where(p => p.ProjectId == id)
+                .OrderBy(p => p.PhaseOrder)
+                .ThenBy(p => p.PeriodOrder)
+                .ThenBy(p => p.PhaseSort)
+                .ThenBy(p => p.PhaseId)
+                .ToListAsync();
+
+            var periodTotal = phases.Count;
+
+            var assignments = await (
+                    from assign in _context.PhaseAssigns.AsNoTracking()
+                    join phase in _context.ProjectPhases.AsNoTracking() on assign.PhaseId equals phase.PhaseId
+                    join emp in _context.Employees.AsNoTracking() on assign.EmpId equals emp.EmpId
+                    where phase.ProjectId == id
+                    select new
+                    {
+                        emp.EmpId,
+                        emp.EmpName,
+                        emp.Position,
+                        assign.Role,
+                        PhaseOrder = assign.PhaseOrder ?? phase.PhaseOrder,
+                        phase.PeriodOrder,
+                        assign.AssignId
+                    })
+                .OrderBy(x => x.PhaseOrder)
+                .ThenBy(x => x.PeriodOrder)
+                .ThenBy(x => x.AssignId)
+                .ToListAsync();
+
+            var owners = assignments
+                .GroupBy(x => x.EmpId)
+                .Select(g =>
+                {
+                    var first = g.First();
+
+                    return new ProjectProductionMemoOwnerViewModel
+                    {
+                        Name = first.EmpName,
+                        Role = first.Position ?? ""
+                    };
+                })
+                .OrderBy(x => x.Role)
+                .ThenBy(x => x.Name)
+                .ToList();
+
+            var ownerNames = owners
+                .Select(x => x.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var projectManagers = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.Status == "ACTIVE"
+                    && e.Position == "Project Manager")
+                .OrderBy(e => e.Position)
+                .ThenBy(e => e.EmpName)
+                .ToListAsync();
+
+            foreach (var manager in projectManagers)
+            {
+                if (!ownerNames.Add(manager.EmpName))
+                    continue;
+
+                owners.Add(new ProjectProductionMemoOwnerViewModel
+                {
+                    Name = manager.EmpName,
+                    Role = string.IsNullOrWhiteSpace(manager.Position)
+                        ? "ผู้จัดการโครงการ"
+                        : manager.Position
+                });
+            }
+
+            var model = new ProjectProductionMemoViewModel
+            {
+                ProjectId = project.ProjectId,
+                CoopName = project.Coop?.CoopName ?? "",
+                ProjectName = project.ProjectName,
+                ProjectDisplayName = project.ProjectDisplayName,
+                LinkName = project.LinkName,
+                DatabaseName = project.DatabaseName,
+                TestAccount = project.TestAccount,
+                RemoteUrl = project.RemoteUrl,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                GeneratedAt = DateTime.Now,
+                BusinessAnalystName = project.BA?.EmpName ?? "",
+                Phases = phases
+                    .Select((p, index) => new
+                    {
+                        Phase = p,
+                        DurationStart = index == 0
+                            ? project.StartDate
+                            : phases[index - 1].PeriodEndDate
+                    })
+                    .Select(p => new ProjectProductionMemoPhaseViewModel
+                    {
+                        PhaseOrder = p.Phase.PhaseOrder,
+                        PeriodOrder = p.Phase.PeriodOrder,
+                        PeriodTotal = periodTotal,
+                        PhaseName = p.Phase.PhaseName,
+                        PlanStart = p.Phase.PlanStart,
+                        PlanEnd = p.Phase.PlanEnd,
+                        PeriodEndDate = p.Phase.PeriodEndDate,
+                        DurationDays = CalculateDurationDays(p.DurationStart, p.Phase.PeriodEndDate)
+                    })
+                    .ToList(),
+                Owners = owners
+            };
+
+            return View(model);
         }
 
         // ===========================
@@ -342,6 +468,15 @@ namespace ProjectTracking.Controllers
             }
 
             return null;
+        }
+
+        private static int? CalculateDurationDays(DateTime? start, DateTime? end)
+        {
+            if (!start.HasValue || !end.HasValue)
+                return null;
+
+            var days = (end.Value.Date - start.Value.Date).Days + 1;
+            return days > 0 ? days : null;
         }
 
         // ===========================

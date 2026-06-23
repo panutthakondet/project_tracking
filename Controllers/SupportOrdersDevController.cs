@@ -165,6 +165,20 @@ namespace ProjectTracking.Controllers
             if (dbOrder == null)
                 return NotFound();
 
+            ModelState.Remove(nameof(ProjectSupportOrder.Project));
+            ModelState.Remove(nameof(ProjectSupportOrder.Employee));
+            ModelState.Remove(nameof(ProjectSupportOrder.Images));
+            ModelState.Remove(nameof(ProjectSupportOrder.FixImages));
+            ModelState.Remove(nameof(ProjectSupportOrder.OrderTitle));
+            ModelState.Remove(nameof(ProjectSupportOrder.OrderDetail));
+            ModelState.Remove(nameof(ProjectSupportOrder.Priority));
+            ModelState.Remove(nameof(ProjectSupportOrder.Status));
+            ModelState.Remove(nameof(ProjectSupportOrder.AssignTo));
+            ModelState.Remove(nameof(ProjectSupportOrder.StartDate));
+            ModelState.Remove(nameof(ProjectSupportOrder.EndDate));
+            ModelState.Remove(nameof(ProjectSupportOrder.CreatedAt));
+            ModelState.Remove(nameof(ProjectSupportOrder.CreatedBy));
+
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
             if (nextDevStatus == "WIP")
             {

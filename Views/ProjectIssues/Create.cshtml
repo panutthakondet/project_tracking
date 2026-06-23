@@ -164,8 +164,9 @@ OPEN <span class="status-field__desc">- เปิดปัญหา / รอแ�
        name="images"
        class="form-control"
        multiple
-       accept="image/*" />
-<small class="text-muted d-block mt-2">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp</small>
+       accept="image/*"
+       data-paste-image-upload />
+<small class="text-muted d-block mt-2">แนบรูปตอนพบปัญหา รองรับหลายรูป jpg / png / webp หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง</small>
 </div>
 </div>
 
@@ -180,6 +181,7 @@ OPEN <span class="status-field__desc">- เปิดปัญหา / รอแ�
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
     <script>
         function convertThaiDateToIso(value) {
             if (!value || !value.trim()) return '';

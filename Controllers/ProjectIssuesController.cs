@@ -524,6 +524,21 @@ namespace ProjectTracking.Controllers
                 .FirstOrDefaultAsync(i => i.IssueId == id);
             if (issue == null) return NotFound();
 
+            ModelState.Remove(nameof(ProjectIssue.Project));
+            ModelState.Remove(nameof(ProjectIssue.Employee));
+            ModelState.Remove(nameof(ProjectIssue.Images));
+            ModelState.Remove(nameof(ProjectIssue.FixImages));
+            ModelState.Remove(nameof(ProjectIssue.IssueName));
+            ModelState.Remove(nameof(ProjectIssue.IssueDetail));
+            ModelState.Remove(nameof(ProjectIssue.IssueStatus));
+            ModelState.Remove(nameof(ProjectIssue.IssuePriority));
+            ModelState.Remove(nameof(ProjectIssue.AssignTo));
+            ModelState.Remove(nameof(ProjectIssue.StartDate));
+            ModelState.Remove(nameof(ProjectIssue.EndDate));
+            ModelState.Remove(nameof(ProjectIssue.CreatedAt));
+            ModelState.Remove(nameof(ProjectIssue.CreatedBy));
+            ModelState.Remove(nameof(ProjectIssue.UpdatedAt));
+
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
             if (newDev == "WIP")
             {

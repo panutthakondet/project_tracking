@@ -1,0 +1,371 @@
+@model ProjectTracking.ViewModels.ProjectProductionMemoViewModel
+@using System.Globalization
+
+@{
+    Layout = null;
+    var th = new CultureInfo("th-TH");
+    var projectName = string.IsNullOrWhiteSpace(Model.ProjectName) ? "-" : Model.ProjectName.Trim();
+    var coopName = string.IsNullOrWhiteSpace(Model.CoopName) ? "-" : Model.CoopName.Trim();
+
+    string DateText(DateTime? value)
+    {
+        if (!value.HasValue) return "-";
+
+        var date = value.Value;
+        return $"{date.Day} {date.ToString("MMMM", th)} {date.Year + 543}";
+    }
+
+    string ShortDateText(DateTime? value)
+    {
+        if (!value.HasValue) return "-";
+
+        var date = value.Value;
+        return $"{date.Day} {date.ToString("MMM", th)} {date.Year + 543}";
+    }
+
+    string DurationText(int? days)
+    {
+        return days.HasValue ? $"ระยะเวลา {days.Value:N0} วัน" : "ระยะเวลา - วัน";
+    }
+
+    string PhaseTitle(ProjectTracking.ViewModels.ProjectProductionMemoPhaseViewModel phase)
+    {
+        var label = $"งวดที่ {phase.PeriodOrder}/{Math.Max(phase.PeriodTotal, 1)}";
+        return $"{label} {phase.PhaseName}";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>บันทึกภายใน - @projectName</title>
+    <style>
+        @@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+        @@page {
+            size: A4 portrait;
+            margin-top: 14mm;
+            margin-right: 16mm;
+            margin-bottom: 12mm;
+            margin-left: 18mm;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: #111;
+            background: #fff;
+            font-family: "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-size: 14pt;
+            font-weight: 400;
+            line-height: 1.28;
+            text-rendering: auto;
+            -webkit-font-smoothing: auto;
+        }
+
+        body :where(*):not(svg):not(svg *) {
+            font-family: "Sarabun", "Noto Sans Thai", Tahoma, Arial, sans-serif !important;
+            letter-spacing: 0 !important;
+            text-shadow: none !important;
+            -webkit-text-stroke: 0 transparent !important;
+        }
+
+        .no-print {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 10px;
+            background: #eef4fb;
+            border-bottom: 1px solid #cbd8e8;
+        }
+
+        .report-btn {
+            min-height: 34px;
+            padding: 7px 14px;
+            border: 1px solid #102443;
+            border-radius: 999px;
+            color: #102443;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .report-btn.primary {
+            color: #fff;
+            background: #102443;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 10px 0 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2px;
+        }
+
+        .logo {
+            width: 70px;
+            flex: 0 0 auto;
+        }
+
+        .company {
+            font-size: 9.5pt;
+            line-height: 1.25;
+        }
+
+        .company b {
+            font-size: 10.5pt;
+            font-weight: 700;
+        }
+
+        hr {
+            margin: 2px 0 8px;
+            border: 0;
+            border-top: 1px solid #111;
+        }
+
+        .title {
+            margin: 0 0 10px;
+            text-align: center;
+            font-size: 18pt;
+            font-weight: 500;
+        }
+
+        .date {
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .memo-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 1px;
+        }
+
+        .memo-label {
+            flex: 0 0 120px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .memo-label.short {
+            flex-basis: 48px;
+        }
+
+        .memo-value {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .intro {
+            margin: 14px 0 10px;
+            padding-left: 0;
+            text-indent: 54px;
+        }
+
+        .detail-block {
+            margin: 0 0 8px;
+        }
+
+        .memo-stack {
+            margin-bottom: 3px;
+        }
+
+        .memo-stack-label {
+            font-weight: 600;
+            line-height: 1.18;
+        }
+
+        .memo-stack-value {
+            margin-left: 32px;
+            line-height: 1.18;
+        }
+
+        .phase-list {
+            margin: 1px 0 6px 32px;
+            font-size: 13pt;
+            line-height: 1.2;
+        }
+
+        .phase-line {
+            margin-bottom: 5px;
+        }
+
+        .phase-title {
+            line-height: 1.18;
+        }
+
+        .phase-meta {
+            margin-left: 24px;
+            line-height: 1.15;
+        }
+
+        .owner-list {
+            margin: 1px 0 10px 32px;
+            font-size: 13pt;
+            line-height: 1.2;
+        }
+
+        .owner-line {
+            margin-bottom: 1px;
+        }
+
+        .comment-lines {
+            margin: 16px 0 18px;
+        }
+
+        .comment-line {
+            position: relative;
+            height: 22px;
+            border-bottom: 1px dotted #000;
+        }
+
+        .comment-label {
+            position: absolute;
+            left: 0;
+            top: -1px;
+            padding-right: 8px;
+            background: #fff;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .signature {
+            width: 240px;
+            margin-left: auto;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .sign-space {
+            height: 34px;
+        }
+
+        @@media print {
+            .no-print { display: none !important; }
+            body {
+                zoom: .88;
+            }
+            .page {
+                max-width: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
+        <a asp-action="Index" class="report-btn">Projects</a>
+    </div>
+
+    <main class="page">
+        <div class="header">
+            <img src="@Url.Content("~/images/auth/logosoat.png")" class="logo" alt="SO-AT" />
+            <div class="company">
+                <b>SO-AT SOLUTION COMPANY LIMITED</b><br />
+                165/57 Ramindra Road, Monument Sub-District, Bangkhen District, Bangkok 10220<br />
+                Tel. 0-2059-0511
+            </div>
+        </div>
+        <hr />
+
+        <h1 class="title">บันทึกภายใน</h1>
+        <div class="date">@DateText(Model.GeneratedAt)</div>
+
+        <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการ ฝ่ายพัฒนาธุรกิจ</span></div>
+        <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน @projectName</span></div>
+
+        <p class="intro">
+            สืบเนื่องจากการพัฒนาระบบ @projectName @coopName ซึ่งทีมผู้พัฒนาได้ดำเนินงานถึงขั้นตอนการเตรียมระบบเพื่อติดตั้งบน Production มีรายละเอียด ดังนี้
+        </p>
+
+        <section class="detail-block">
+            <div class="memo-stack">
+                <div class="memo-stack-label">ชื่อสหกรณ์</div>
+                <div class="memo-stack-value">@coopName</div>
+            </div>
+
+            <div class="memo-stack">
+                <div class="memo-stack-label">โครงการ</div>
+                <div class="memo-stack-value">@projectName</div>
+            </div>
+
+            <div class="memo-stack">
+                <div class="memo-stack-label">รายละเอียดสัญญา</div>
+            </div>
+
+            <div class="phase-list">
+                @if (Model.Phases.Any())
+                {
+                    foreach (var phase in Model.Phases)
+                    {
+                        var due = phase.PeriodEndDate ?? phase.PlanEnd;
+                        <div class="phase-line">
+                            <div class="phase-title">@PhaseTitle(phase)</div>
+                            <div class="phase-meta">วันที่กำหนดแผนงาน @ShortDateText(phase.PlanStart) - @ShortDateText(phase.PlanEnd)</div>
+                            <div class="phase-meta">วันที่กำหนดส่งงาน @ShortDateText(due) @DurationText(phase.DurationDays)</div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="phase-line">-</div>
+                }
+            </div>
+
+            <div class="memo-stack">
+                <div class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</div>
+                <div class="memo-stack-value">@DateText(Model.StartDate) - @DateText(Model.EndDate)</div>
+            </div>
+        </section>
+
+        <section>
+            <div class="memo-stack">
+                <div class="memo-stack-label">ผู้รับผิดชอบส่วนงาน</div>
+            </div>
+            <div class="owner-list">
+                @if (Model.Owners.Any())
+                {
+                    foreach (var owner in Model.Owners)
+                    {
+                        <div class="owner-line">@owner.Name @(string.IsNullOrWhiteSpace(owner.Role) ? "" : $"(ตำแหน่ง {owner.Role})")</div>
+                    }
+                }
+                else
+                {
+                    <div class="owner-line">-</div>
+                }
+            </div>
+        </section>
+
+        <div class="comment-lines">
+            <div class="comment-line"><span class="comment-label">แสดงความคิดเห็น</span></div>
+            <div class="comment-line"></div>
+            <div class="comment-line"></div>
+            <div class="comment-line"></div>
+            <div class="comment-line"></div>
+        </div>
+
+        <div class="signature">
+            <div class="sign-space"></div>
+            <div>คุณสอง ยาสมุทร</div>
+            <div>ผู้จัดการฝ่ายพัฒนาธุรกิจ</div>
+        </div>
+    </main>
+</body>
+</html>
