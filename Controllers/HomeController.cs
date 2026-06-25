@@ -705,8 +705,9 @@ namespace ProjectTracking.Controllers
 
             var issueMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("OPEN", issues.Count(i => Norm(i.IssueStatus) == "OPEN"), issues.Count, "warning"),
-                CreateMetric("WAIT BA", issues.Count(i => Norm(i.DevStatus) == "FIXED" && !IsIssueResolved(i)), issues.Count, "cyan"),
+                CreateMetric("OPEN", issues.Count(i => Norm(i.IssueStatus) == "OPEN"), issues.Count, "blue"),
+                CreateMetric("WIP", issues.Count(i => Norm(i.DevStatus) == "WIP" && !IsIssueResolved(i)), issues.Count, "orange"),
+                CreateMetric("FIXED", issues.Count(i => Norm(i.DevStatus) == "FIXED" && !IsIssueResolved(i)), issues.Count, "cyan"),
                 CreateMetric("FAIL", issues.Count(i => Norm(i.IssueStatus) == "FAIL"), issues.Count, "danger"),
                 CreateMetric("PASS", issues.Count(i => Norm(i.IssueStatus) == "PASS"), issues.Count, "lime"),
                 CreateMetric("REJECT", issues.Count(i => Norm(i.IssueStatus) == "REJECT"), issues.Count, "violet")
@@ -714,8 +715,9 @@ namespace ProjectTracking.Controllers
 
             var supportMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("OPEN", supportOrders.Count(o => Norm(o.Status) == "OPEN"), supportOrders.Count, "warning"),
-                CreateMetric("WAIT BA", supportOrders.Count(o => Norm(o.DevStatus) == "FIXED" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "cyan"),
+                CreateMetric("OPEN", supportOrders.Count(o => Norm(o.Status) == "OPEN"), supportOrders.Count, "blue"),
+                CreateMetric("WIP", supportOrders.Count(o => Norm(o.DevStatus) == "WIP" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "orange"),
+                CreateMetric("FIXED", supportOrders.Count(o => Norm(o.DevStatus) == "FIXED" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "cyan"),
                 CreateMetric("FAIL", supportOrders.Count(o => Norm(o.Status) == "FAIL"), supportOrders.Count, "danger"),
                 CreateMetric("PASS", supportOrders.Count(o => Norm(o.Status) == "PASS"), supportOrders.Count, "lime"),
                 CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")

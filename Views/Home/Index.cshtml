@@ -119,96 +119,24 @@
             var end = startAngle + span;
             var mid = (start + end) / 2d;
             var lineStart = EllipsePoint(78d, 66d, 64d, 34d, mid);
-            var isRightSide = Math.Cos(Math.PI * mid / 180d) >= 0;
-            var anchor = "middle";
-            var labelPoint = EllipsePoint(78d, 66d, 92d, 52d, mid);
+            var horizontalDirection = Math.Cos(Math.PI * mid / 180d);
+            var isRightSide = horizontalDirection >= 0;
+            var anchor = Math.Abs(horizontalDirection) < .16d
+                ? "middle"
+                : isRightSide ? "start" : "end";
+            var labelPoint = EllipsePoint(78d, 66d, 91d, 51d, mid);
             var labelX = labelPoint.X;
             var labelY = labelPoint.Y;
-            var labelKey = metric.Label.ToUpperInvariant();
 
-            if (visibleMetrics.Count <= 2)
-            {
-                switch (labelKey)
-                {
-                    case "OPEN":
-                        labelX = 25d;
-                        labelY = 42d;
-                        anchor = "end";
-                        break;
-                    case "PASS":
-                        labelX = 151d;
-                        labelY = 86d;
-                        anchor = "start";
-                        break;
-                    default:
-                        labelX = isRightSide ? 151d : 25d;
-                        labelY = isRightSide ? 86d : 42d;
-                        anchor = isRightSide ? "start" : "end";
-                        break;
-                }
-            }
-            else
-            {
-                switch (labelKey)
-                {
-                    case "OPEN":
-                        labelX = 6d;
-                        labelY = 49d;
-                        anchor = "end";
-                        break;
-                    case "WIP":
-                        labelX = 21d;
-                        labelY = 24d;
-                        anchor = "end";
-                        break;
-                    case "FIXED":
-                        labelX = 124d;
-                        labelY = 24d;
-                        anchor = "start";
-                        break;
-                    case "FAIL":
-                        labelX = 153d;
-                        labelY = 73d;
-                        anchor = "start";
-                        break;
-                    case "PASS":
-                        labelX = 28d;
-                        labelY = 119d;
-                        anchor = "end";
-                        break;
-                    case "REJECT":
-                        labelX = 5d;
-                        labelY = 67d;
-                        anchor = "end";
-                        break;
-                }
-            }
+            labelX = Math.Clamp(labelX, 7d, 151d);
+            labelY = Math.Clamp(labelY, 17d, 118d);
 
-            labelX = Math.Clamp(labelX, 3d, 156d);
-            labelY = Math.Clamp(labelY, 16d, 120d);
-
-            var lineEndX = labelX + (anchor == "start" ? -5d : 9d);
-            if (metric.Label.Equals("REJECT", StringComparison.OrdinalIgnoreCase))
-            {
-                lineEndX = labelX + (anchor == "start" ? -7d : 14d);
-            }
-            var lineEndY = labelY + (labelY >= 66d ? -3d : 3d);
-            var lineBendX = lineStart.X + (lineEndX - lineStart.X) * .72d;
+            var lineEndX = anchor == "start"
+                ? labelX - 5d
+                : anchor == "end" ? labelX + 5d : labelX;
+            var lineEndY = labelY + (labelY >= 66d ? -5d : 5d);
+            var lineBendX = lineStart.X + (lineEndX - lineStart.X) * .66d;
             var lineBendY = lineEndY;
-            if (metric.Label.Equals("REJECT", StringComparison.OrdinalIgnoreCase) && !isRightSide)
-            {
-                lineEndX = labelX + 10d;
-                lineEndY = labelY + 1d;
-                lineBendX = lineStart.X - 17d;
-                lineBendY = lineEndY;
-            }
-            else if (metric.Label.Equals("OPEN", StringComparison.OrdinalIgnoreCase) && !isRightSide)
-            {
-                lineEndX = labelX + 12d;
-                lineEndY = labelY + 7d;
-                lineBendX = lineStart.X - 12d;
-                lineBendY = lineEndY;
-            }
 
             result.Add((
                 metric,
