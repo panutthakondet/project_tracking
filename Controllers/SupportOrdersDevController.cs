@@ -20,6 +20,7 @@ namespace ProjectTracking.Controllers
         private readonly ILogger<SupportOrdersDevController> _logger;
         private const string FilterProjectIdKey = "SupportOrdersDev.Filter.ProjectId";
         private const string FilterEmpIdKey = "SupportOrdersDev.Filter.EmpId";
+        private const string FilterStatusKey = "SupportOrdersDev.Filter.Status";
         private static readonly (string Value, string Text)[] SupportDevStatuses =
         {
             ("WIP", "WIP - กำลังแก้"),
@@ -49,9 +50,10 @@ namespace ProjectTracking.Controllers
         // Programmer Order List
         // =========================
         [RequireMenu("SupportOrdersDev.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? empId)
+        public async Task<IActionResult> Index(int? projectId, int? empId, string? status)
         {
             (projectId, empId) = ResolveIndexFilters(projectId, empId);
+            var selectedStatus = ResolveStatusFilter(status);
 
             var query = _context.ProjectSupportOrders
                 .Include(o => o.Project)
@@ -67,6 +69,11 @@ namespace ProjectTracking.Controllers
             if (empId.HasValue && empId.Value > 0)
             {
                 query = query.Where(o => o.AssignTo == empId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                query = query.Where(o => o.DevStatus == selectedStatus);
             }
 
             var orders = await query
@@ -94,6 +101,8 @@ namespace ProjectTracking.Controllers
 
             ViewBag.SelectedEmpId = empId;
             ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedStatus = selectedStatus;
+            ViewBag.StatusList = BuildStatusFilterList(SupportDevStatuses, selectedStatus);
             ViewBag.EmpList = await BuildOwnerListAsync(projectId, empId);
 
             return View(orders);
@@ -491,6 +500,32 @@ namespace ProjectTracking.Controllers
             return normalized == "FIXED" ? "FIXED" : "WIP";
         }
 
+        private static string NormalizeIndexSupportDevStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "IN_PROGRESS" || normalized == "TODO" || normalized == "DOING" || normalized == "BLOCK")
+                return "WIP";
+            return normalized == "FIXED" || normalized == "WIP" ? normalized : "";
+        }
+
+        private string ResolveStatusFilter(string? status)
+        {
+            if (!Request.Query.ContainsKey("status"))
+            {
+                return NormalizeIndexSupportDevStatus(HttpContext.Session.GetString(FilterStatusKey));
+            }
+
+            var selectedStatus = NormalizeIndexSupportDevStatus(status);
+            if (string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                HttpContext.Session.Remove(FilterStatusKey);
+                return "";
+            }
+
+            HttpContext.Session.SetString(FilterStatusKey, selectedStatus);
+            return selectedStatus;
+        }
+
         private SelectList GetDevStatusList(string? selected = null)
         {
             var selectedValue = NormalizeSupportDevStatus(selected);
@@ -499,6 +534,18 @@ namespace ProjectTracking.Controllers
                 "Value",
                 "Text",
                 selectedValue
+            );
+        }
+
+        private static SelectList BuildStatusFilterList(
+            IEnumerable<(string Value, string Text)> statuses,
+            string? selected)
+        {
+            return new SelectList(
+                statuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selected
             );
         }
     }

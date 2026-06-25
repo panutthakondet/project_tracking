@@ -22,6 +22,7 @@ namespace ProjectTracking.Controllers
         private readonly ILogger<SupportOrdersController> _logger;
         private const string FilterProjectIdKey = "SupportOrders.Filter.ProjectId";
         private const string FilterEmpIdKey = "SupportOrders.Filter.EmpId";
+        private const string FilterStatusKey = "SupportOrders.Filter.Status";
         private static readonly string[] SupportOrderStatuses = { "OPEN", "PASS", "FAIL", "REJECT" };
         private static readonly string[] SupportDevStatuses = { "WIP", "FIXED" };
         private static readonly CultureInfo ThaiCulture = new("th-TH");
@@ -57,9 +58,10 @@ namespace ProjectTracking.Controllers
         // LIST
         // =========================
         [RequireMenu("SupportOrders.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? empId)
+        public async Task<IActionResult> Index(int? projectId, int? empId, string? status)
         {
             (projectId, empId) = ResolveIndexFilters(projectId, empId);
+            var selectedStatus = ResolveStatusFilter(status);
 
             // send project list to dropdown
             var projectList = await _context.Projects
@@ -89,6 +91,11 @@ namespace ProjectTracking.Controllers
                 query = query.Where(o => o.AssignTo == empId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                query = query.Where(o => o.Status == selectedStatus);
+            }
+
             // send selected project name to view
             Project? selectedProject = null;
             if (projectId.HasValue && projectId.Value > 0)
@@ -104,6 +111,8 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProject = selectedProject;
             ViewBag.SelectedEmpId = empId;
             ViewBag.SelectedProjectId = projectId;
+            ViewBag.SelectedStatus = selectedStatus;
+            ViewBag.StatusList = BuildStatusFilterList(TesterSupportStatuses, selectedStatus);
             ViewBag.EmpList = await BuildOwnerListAsync(projectId, empId);
 
             var orders = await query
@@ -114,8 +123,13 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("SupportOrders.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status, string? priority, string? devStatus)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? priority, string? devStatus)
         {
+            empName = string.IsNullOrWhiteSpace(empName) ? null : empName.Trim();
+            status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
+            priority = string.IsNullOrWhiteSpace(priority) ? null : priority.Trim().ToUpperInvariant();
+            devStatus = string.IsNullOrWhiteSpace(devStatus) ? null : devStatus.Trim().ToUpperInvariant();
+
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
@@ -139,6 +153,9 @@ namespace ProjectTracking.Controllers
 
             if (baEmpId.HasValue && baEmpId.Value > 0)
                 query = query.Where(o => o.Project != null && o.Project.BaEmpId == baEmpId.Value);
+
+            if (!string.IsNullOrWhiteSpace(empName))
+                query = query.Where(o => o.Employee != null && o.Employee.EmpName == empName);
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(o => o.Status == status);
@@ -193,10 +210,21 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
+            var empList = await _context.ProjectSupportOrders
+                .AsNoTracking()
+                .Include(o => o.Employee)
+                .Where(o => o.Employee != null)
+                .Select(o => o.Employee!.EmpName)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+
             ViewBag.Projects = projects;
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedBA = baEmpId;
+            ViewBag.SelectedEmp = empName ?? "";
             ViewBag.BAList = baList;
+            ViewBag.EmpList = empList;
             ViewBag.SelectedStatus = status ?? "";
             ViewBag.SelectedPriority = priority ?? "";
             ViewBag.SelectedDevStatus = devStatus ?? "";
@@ -1010,6 +1038,32 @@ namespace ProjectTracking.Controllers
             return SupportOrderStatuses.Contains(normalized) ? normalized : "OPEN";
         }
 
+        private static string NormalizeIndexSupportStatus(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            if (normalized == "WAIT_TEST") return "OPEN";
+            if (normalized == "DONE") return "PASS";
+            return SupportOrderStatuses.Contains(normalized) ? normalized : "";
+        }
+
+        private string ResolveStatusFilter(string? status)
+        {
+            if (!Request.Query.ContainsKey("status"))
+            {
+                return NormalizeIndexSupportStatus(HttpContext.Session.GetString(FilterStatusKey));
+            }
+
+            var selectedStatus = NormalizeIndexSupportStatus(status);
+            if (string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                HttpContext.Session.Remove(FilterStatusKey);
+                return "";
+            }
+
+            HttpContext.Session.SetString(FilterStatusKey, selectedStatus);
+            return selectedStatus;
+        }
+
         private static string NormalizeSupportDevStatus(string? status)
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
@@ -1044,6 +1098,18 @@ namespace ProjectTracking.Controllers
                 "Value",
                 "Text",
                 selectedValue
+            );
+        }
+
+        private static SelectList BuildStatusFilterList(
+            IEnumerable<(string Value, string Text)> statuses,
+            string? selected)
+        {
+            return new SelectList(
+                statuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selected
             );
         }
     }

@@ -7,12 +7,42 @@
     </script>
 }
 @using System.Linq
+@using System.Globalization
 @{
     var menus = Context.Session.GetString("Menus") ?? "";
     var allowedMenus = menus.Split(',').Select(x => x.Trim()).ToList();
+    var th = new CultureInfo("th-TH");
+    var selectedCoopName = Convert.ToString(ViewBag.SelectedCoopName ?? Context.Request.Query["coopName"].ToString()) ?? "";
     var selectedProjectId = Context.Request.Query["projectId"].ToString();
     var selectedOwnerEmpId = Context.Request.Query["ownerEmpId"].ToString();
+    var selectedStatus = Convert.ToString(ViewBag.SelectedStatus ?? Context.Request.Query["status"].ToString()) ?? "";
     var ownerEmployees = ViewBag.OwnerEmployees as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var coops = ViewBag.Coops as IEnumerable<string> ?? Enumerable.Empty<string>();
+
+    string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "เปิดงาน",
+        "DONE" => "เสร็จแล้ว",
+        "ACK" => "รับทราบแล้ว",
+        _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+    };
+
+    string ThaiDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+
+    string StatusClass(string? status)
+    {
+        var value = (status ?? "").Trim();
+        var normalized = value.ToUpperInvariant();
+
+        if (normalized == "DONE" || value.Contains("เสร็จ", StringComparison.OrdinalIgnoreCase))
+            return "done";
+
+        if (normalized == "ACK" || value.Contains("รับทราบ", StringComparison.OrdinalIgnoreCase))
+            return "ack";
+
+        return "open";
+    }
 
     bool HasMenu(string key)
     {
@@ -47,10 +77,28 @@
 
 <form method="get" action="/Followups/Index" class="followup-filter mb-2">
     <div class="followup-filter__field">
+        <label for="coopName">🏢 สหกรณ์</label>
+        <select id="coopName"
+                name="coopName"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์..."
+                onchange="this.form.submit()">
+            <option value="">-- ทุกสหกรณ์ --</option>
+            @foreach (var coop in coops)
+            {
+                <option value="@coop" selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                    @coop
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="followup-filter__field">
         <label for="projectId">📁 โครงการ</label>
         <select id="projectId"
                 name="projectId"
                 class="form-select form-select-lg"
+                data-project-coop-filter="off"
                 data-placeholder="🔍 ค้นหา Project..."
                 onchange="this.form.submit()"
                 asp-items="@(new SelectList(ViewBag.Projects, "ProjectId", "ProjectDisplayName", selectedProjectId))">
@@ -75,16 +123,33 @@
             }
         </select>
     </div>
+
+    <div class="followup-filter__field">
+        <label for="status">📌 สถานะ</label>
+        <select id="status"
+                name="status"
+                class="form-select form-select-lg"
+                data-placeholder="🔍 ค้นหาสถานะ..."
+                onchange="this.form.submit()">
+            <option value="">-- ทุกสถานะ --</option>
+            @foreach (var status in statusList)
+            {
+                <option value="@status" selected="@(selectedStatus == status ? "selected" : null)">
+                    @StatusText(status)
+                </option>
+            }
+        </select>
+    </div>
 </form>
 
-@if (string.IsNullOrEmpty(selectedProjectId) && string.IsNullOrEmpty(selectedOwnerEmpId))
+@if (string.IsNullOrEmpty(selectedCoopName) && string.IsNullOrEmpty(selectedProjectId) && string.IsNullOrEmpty(selectedOwnerEmpId) && string.IsNullOrEmpty(selectedStatus))
 {
     <div class="alert alert-secondary mt-3 p-3">
-        ⬆ กรุณาเลือก Project หรือผู้รับผิดชอบก่อน
+        ⬆ กรุณาเลือกสหกรณ์ Project ผู้รับผิดชอบ หรือสถานะก่อน
     </div>
 }
 
-@if (!string.IsNullOrEmpty(selectedProjectId) || !string.IsNullOrEmpty(selectedOwnerEmpId))
+@if (!string.IsNullOrEmpty(selectedCoopName) || !string.IsNullOrEmpty(selectedProjectId) || !string.IsNullOrEmpty(selectedOwnerEmpId) || !string.IsNullOrEmpty(selectedStatus))
 {
     int no = 1;
     <div class="mb-2">
@@ -102,7 +167,7 @@
             <th style="text-align:center;">Owner</th>
             <th style="text-align:center;">Next Follow-up</th>
             <th style="text-align:center;">Last Contact</th>
-            <th style="text-align:center;">Status</th>
+            <th style="text-align:center;">สถานะ</th>
             <th style="width:260px; text-align:center;">Action</th>
         </tr>
     </thead>
@@ -128,14 +193,14 @@
             <td>@item.PartnerName</td>
             <td>@(item.CreatedByEmployee?.EmpName ?? "-")</td>
             <td>@item.Owner?.EmpName</td>
-            <td>@item.NextFollowupDate?.ToString("dd/MM/yyyy")</td>
+            <td>@ThaiDate(item.NextFollowupDate)</td>
             <td>
                 @if(item.LastContactDate != null)
                 {
-                    @(item.LastContactDate?.ToString("dd/MM/yyyy")) @("(" + item.LastContactType + ")")
+                    @ThaiDate(item.LastContactDate) @("(" + item.LastContactType + ")")
                 }
             </td>
-            <td>@item.Status</td>
+            <td>@StatusText(item.Status)</td>
             <td style="white-space:nowrap; text-align:center;">
                 @if (HasMenu("Followups.Details"))
                 {
@@ -187,8 +252,8 @@
                     if(item.Status == "DONE" || item.Status == "ACK")
                     {
                         <button class="btn btn-sm btn-outline-success"
-                                title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                                onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                                title="รายการนี้เสร็จแล้วหรือรับทราบแล้ว"
+                                onclick="alert('ไม่สามารถกด Done ได้ เนื่องจากรายการนี้เสร็จแล้วหรือรับทราบแล้ว'); return false;">
                             Done
                         </button>
                     }
@@ -213,8 +278,8 @@
                     if(item.Status == "DONE" || item.Status == "ACK")
                     {
                         <button class="btn btn-sm btn-outline-primary"
-                                title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                                onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                                title="รายการนี้เสร็จแล้วหรือรับทราบแล้ว"
+                                onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้เสร็จแล้วหรือรับทราบแล้ว'); return false;">
                             Log
                         </button>
                     }
@@ -244,17 +309,8 @@
     <div class="followup-cards">
     @foreach (var item in Model)
     {
-        var rowClass = "";
-        if (item.NextFollowupDate != null)
-        {
-            var d = item.NextFollowupDate.Value.Date;
-            if (d < DateTime.Today)
-                rowClass = "table-danger";
-            else if (d == DateTime.Today)
-                rowClass = "table-warning";
-            else
-                rowClass = "table-success";
-        }
+        var statusClass = StatusClass(item.Status);
+        var rowClass = statusClass;
         var ownerAvatar = item.Owner?.LoginUser?.ProfileImagePath;
         if (string.IsNullOrWhiteSpace(ownerAvatar))
         {
@@ -273,7 +329,7 @@
                 <div class="followup-partner">@item.PartnerName</div>
             </div>
 
-            <span class="badge bg-secondary">@item.Status</span>
+            <span class="badge followup-status-badge @statusClass">@StatusText(item.Status)</span>
         </div>
 
         <div class="followup-info">
@@ -290,7 +346,7 @@
 
             <div class="followup-info-row">
                 <span class="followup-label">Next</span>
-                <span>@item.NextFollowupDate?.ToString("dd/MM/yyyy")</span>
+                <span>@ThaiDate(item.NextFollowupDate)</span>
             </div>
 
             <div class="followup-info-row">
@@ -298,7 +354,7 @@
                 <span>
                     @if(item.LastContactDate != null)
                     {
-                        @(item.LastContactDate?.ToString("dd/MM/yyyy")) @(" (" + item.LastContactType + ")")
+                        @ThaiDate(item.LastContactDate) @(" (" + item.LastContactType + ")")
                     }
                 </span>
             </div>
@@ -355,8 +411,8 @@
                 if(item.Status == "DONE" || item.Status == "ACK")
                 {
                     <button class="btn btn-sm btn-outline-success"
-                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                            onclick="alert('ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                            title="รายการนี้เสร็จแล้วหรือรับทราบแล้ว"
+                            onclick="alert('ไม่สามารถกด Done ได้ เนื่องจากรายการนี้เสร็จแล้วหรือรับทราบแล้ว'); return false;">
                         Done
                     </button>
                 }
@@ -381,8 +437,8 @@
                 if(item.Status == "DONE" || item.Status == "ACK")
                 {
                     <button class="btn btn-sm btn-outline-primary"
-                            title="รายการนี้ถูก DONE หรือ ACK แล้ว"
-                            onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว'); return false;">
+                            title="รายการนี้เสร็จแล้วหรือรับทราบแล้ว"
+                            onclick="alert('ไม่สามารถ Log ได้ เนื่องจากรายการนี้เสร็จแล้วหรือรับทราบแล้ว'); return false;">
                         Log
                     </button>
                 }
@@ -413,7 +469,7 @@
 <style>
 .followup-filter {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     padding: 18px;
     margin-top: 16px;
@@ -424,20 +480,31 @@
 }
 
 .followup-filter__field {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 24px 54px;
+    align-items: start;
     gap: 8px;
+    min-width: 0;
 }
 
 .followup-filter__field label {
+    display: flex;
+    align-items: center;
+    height: 24px;
     margin: 0;
     color: #0f2748;
     font-weight: 800;
+    line-height: 24px;
+    white-space: nowrap;
 }
 
-.followup-filter .form-select {
+.followup-filter .form-select,
+.followup-filter .pt-search-select__input {
+    display: block;
     width: 100%;
+    height: 54px;
     min-height: 54px;
+    margin: 0;
     border: 1px solid #d7e2f2;
     border-radius: 16px;
     color: #10233f;
@@ -445,6 +512,15 @@
     font-size: 1rem;
     font-weight: 700;
     background-color: #f8fbff;
+}
+
+.followup-filter .pt-search-select,
+.followup-filter .pt-search-select__field {
+    display: block;
+    width: 100%;
+    height: 54px;
+    min-height: 54px;
+    margin: 0;
 }
 
 .followup-cards {
@@ -474,6 +550,57 @@
 .followup-card.table-success {
     border-color: #bbf7d0;
     background: #f0fdf4;
+}
+
+.followup-card.open {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.followup-card.done {
+    border-color: #86efac;
+    background: #ecfdf5;
+}
+
+.followup-card.ack {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+html body main.route-controller-followups .followup-card .followup-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    width: auto !important;
+    padding: 10px 16px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    letter-spacing: 0 !important;
+    box-shadow: none !important;
+}
+
+html body main.route-controller-followups .followup-card .followup-status-badge.open {
+    color: #fff !important;
+    background: #f59e0b !important;
+    background-color: #f59e0b !important;
+}
+
+html body main.route-controller-followups .followup-card .followup-status-badge.done {
+    color: #fff !important;
+    background: #16a34a !important;
+    background-color: #16a34a !important;
+}
+
+html body main.route-controller-followups .followup-card .followup-status-badge.ack {
+    color: #fff !important;
+    background: #2563eb !important;
+    background-color: #2563eb !important;
 }
 
 .followup-card-header {
@@ -683,6 +810,12 @@
     overflow: hidden;
 }
 
+@@media (max-width:1200px){
+    .followup-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @@media (max-width:768px){
     .followup-filter {
         grid-template-columns: 1fr;
@@ -747,7 +880,11 @@
 
                 <div class="followup-modal__field">
                     <label for="quickNextDate">Next Follow-up</label>
-                    <input id="quickNextDate" type="date" name="NextFollowupDate" class="form-control" />
+                    <input id="quickNextDate"
+                           type="text"
+                           name="NextFollowupDate"
+                           class="form-control thai-date"
+                           placeholder="วัน/เดือน/พ.ศ." />
                 </div>
 
                 <div class="followup-modal__field followup-modal__field--full">

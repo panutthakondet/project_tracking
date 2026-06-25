@@ -20,8 +20,8 @@
         .ToList();
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    string DateText(DateTime? value) => value?.ToString("dd/MM/yyyy", th) ?? "-";
-    string DateTimeText(DateTime? value) => value?.ToString("dd/MM/yyyy HH:mm", th) ?? "-";
+    string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string DateTimeText(DateTime? value) => value?.ToString("dd MMM yyyy HH:mm", th) ?? "-";
     string SelectedProjectName() => selectedProjectId.HasValue
         ? projects.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)?.ProjectDisplayName ?? "-"
         : "All Projects";
@@ -34,9 +34,9 @@
 
     string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
     {
-        "OPEN" => "OPEN",
-        "DONE" => "DONE",
-        "ACK" => "ACK",
+        "OPEN" => "เปิดงาน",
+        "DONE" => "เสร็จแล้ว",
+        "ACK" => "รับทราบแล้ว",
         _ => TextOrDash(status)
     };
 
@@ -429,7 +429,7 @@
         <div>
             Project: @SelectedProjectName()<br />
             Owner: @(string.IsNullOrWhiteSpace(selectedOwner) ? "All Owners" : selectedOwner)<br />
-            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            สถานะ: @(string.IsNullOrWhiteSpace(selectedStatus) ? "ทุกสถานะ" : StatusText(selectedStatus))<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
     </header>
@@ -470,12 +470,12 @@
             </select>
         </div>
         <div class="field">
-            <label for="status">Status</label>
-            <select id="status" name="status" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
-                <option value="">-- All Statuses --</option>
+            <label for="status">สถานะ</label>
+            <select id="status" name="status" class="form-select form-select-lg" data-placeholder="🔍 พิมพ์ค้นหาสถานะ..." onchange="this.form.submit()">
+                <option value="">-- ทุกสถานะ --</option>
                 @foreach (var item in statusList)
                 {
-                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
+                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@StatusText(item)</option>
                 }
             </select>
         </div>
@@ -484,17 +484,17 @@
 
     <section class="kpi-grid">
         <article class="kpi warning">
-            <span>Open</span>
+            <span>เปิดงาน</span>
             <strong>@openCount</strong>
             <small>รอติดตาม</small>
         </article>
         <article class="kpi">
-            <span>Done</span>
+            <span>เสร็จแล้ว</span>
             <strong>@doneCount</strong>
             <small>ดำเนินการแล้ว</small>
         </article>
         <article class="kpi muted">
-            <span>ACK</span>
+            <span>รับทราบแล้ว</span>
             <strong>@ackCount</strong>
             <small>รับทราบแล้ว</small>
         </article>
@@ -529,7 +529,7 @@
                     <th>Partner</th>
                     <th>ผู้สั่งงาน</th>
                     <th>Owner</th>
-                    <th>Status</th>
+                    <th>สถานะ</th>
                     <th>Dates / Contact</th>
                 </tr>
             </thead>

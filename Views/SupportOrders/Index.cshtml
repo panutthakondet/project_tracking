@@ -19,6 +19,8 @@
     var hasSelectedProject = selectedProject != null;
     var orders = (Model ?? Enumerable.Empty<ProjectTracking.Models.ProjectSupportOrder>()).ToList();
     var empList = ViewBag.EmpList as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    var statusList = ViewBag.StatusList as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
     var th = new System.Globalization.CultureInfo("th-TH");
 
     string PriorityClass(string? priority) => (priority ?? "").Trim().ToUpperInvariant() switch
@@ -409,7 +411,7 @@
 
     <form method="get" id="supportFilterForm" class="support-filter-card">
         <div class="row g-3 align-items-end">
-            <div class="col-md-6">
+            <div class="@(hasSelectedProject ? "col-md-4" : "col-md-6")">
                 <label class="form-label">โครงการ</label>
                 <select id="projectSelect"
                         name="projectId"
@@ -426,13 +428,26 @@
             </div>
             @if (hasSelectedProject)
             {
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label">เจ้าของงาน</label>
                     <select id="supportOwnerSelect" name="empId" class="form-select" onchange="supportOrdersOwnerChanged(this)">
                         <option value="">-- ทั้งหมด --</option>
                         @foreach (var emp in empList)
                         {
                             <option value="@emp.Value" selected="@(emp.Selected ? "selected" : null)">@emp.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">สถานะ</label>
+                    <select id="supportStatusSelect" name="status" class="form-select" onchange="supportOrdersStatusChanged(this)">
+                        <option value="">-- ทุกสถานะ --</option>
+                        @foreach (var status in statusList)
+                        {
+                            <option value="@status.Value" selected="@(string.Equals(status.Value, selectedStatus, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                                @status.Text
+                            </option>
                         }
                     </select>
                 </div>
@@ -568,20 +583,29 @@ function createOrder() {
     window.location.href = '/SupportOrders/Create?projectId=' + encodeURIComponent(projectId);
 }
 
-function supportOrdersGo(projectId, empId) {
+function supportOrdersGo(projectId, empId, status) {
     var url = new URL('/SupportOrders', window.location.origin);
     if (projectId) url.searchParams.set('projectId', projectId);
     if (empId) url.searchParams.set('empId', empId);
+    if (status) url.searchParams.set('status', status);
     window.location.href = url.pathname + url.search;
 }
 
 function supportOrdersProjectChanged(select) {
-    supportOrdersGo(select ? select.value : '', '');
+    var statusSelect = document.getElementById('supportStatusSelect');
+    supportOrdersGo(select ? select.value : '', '', statusSelect ? statusSelect.value : '');
 }
 
 function supportOrdersOwnerChanged(select) {
     var projectSelect = document.getElementById('projectSelect');
-    supportOrdersGo(projectSelect ? projectSelect.value : '', select ? select.value : '');
+    var statusSelect = document.getElementById('supportStatusSelect');
+    supportOrdersGo(projectSelect ? projectSelect.value : '', select ? select.value : '', statusSelect ? statusSelect.value : '');
+}
+
+function supportOrdersStatusChanged(select) {
+    var projectSelect = document.getElementById('projectSelect');
+    var ownerSelect = document.getElementById('supportOwnerSelect');
+    supportOrdersGo(projectSelect ? projectSelect.value : '', ownerSelect ? ownerSelect.value : '', select ? select.value : '');
 }
 
 (function () {

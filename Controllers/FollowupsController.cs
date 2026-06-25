@@ -38,10 +38,34 @@ namespace ProjectTracking.Controllers
 
         // ===== Follow-up Dashboard =====
         [RequireMenu("Followups.Dashboard")]
-        public async Task<IActionResult> Dashboard(string? owner)
+        public async Task<IActionResult> Dashboard(int? ownerEmpId, string? owner, string? status)
         {
             var today = DateTime.Today;
             owner = string.IsNullOrWhiteSpace(owner) ? null : owner.Trim();
+            var selectedStatus = (status ?? "").Trim().ToUpperInvariant();
+            selectedStatus = FollowupStatuses.Contains(selectedStatus) ? selectedStatus : "";
+
+            if (!ownerEmpId.HasValue && !string.IsNullOrWhiteSpace(owner))
+            {
+                ownerEmpId = await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => e.EmpName == owner)
+                    .Select(e => (int?)e.EmpId)
+                    .FirstOrDefaultAsync();
+            }
+
+            var ownerIds = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Where(x => x.OwnerEmpId.HasValue)
+                .Select(x => x.OwnerEmpId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.OwnerEmployees = await _context.Employees
+                .AsNoTracking()
+                .Where(e => ownerIds.Contains(e.EmpId))
+                .OrderBy(e => e.EmpName)
+                .ToListAsync();
 
             var query = _context.ProjectFollowups
                 .Include(x => x.Project)
@@ -49,20 +73,31 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .Include(x => x.CreatedByEmployee)
-                .Where(x => x.Status == "OPEN")
+                .Where(x => FollowupStatuses.Contains(x.Status))
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(owner))
+            if (ownerEmpId.HasValue)
             {
-                query = query.Where(x => x.Owner != null && x.Owner.EmpName == owner);
+                query = query.Where(x => x.OwnerEmpId == ownerEmpId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                query = query.Where(x => x.Status == selectedStatus);
             }
 
             var data = await query
-                .OrderBy(x => x.NextFollowupDate)
+                .OrderBy(x => x.Status == "OPEN" ? 0 : x.Status == "DONE" ? 1 : x.Status == "ACK" ? 2 : 3)
+                .ThenBy(x => x.NextFollowupDate ?? DateTime.MaxValue)
+                .ThenBy(x => x.Project != null && x.Project.Coop != null ? x.Project.Coop.CoopName : "")
+                .ThenBy(x => x.Project != null ? x.Project.ProjectName : "")
                 .Select(x => new
                 {
                     x.FollowupId,
                     ProjectId = x.ProjectId,
+                    CoopName = x.Project != null && x.Project.Coop != null
+                        ? x.Project.Coop.CoopName
+                        : "",
                     Project = x.Project != null
                         ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
                         : "",
@@ -74,7 +109,8 @@ namespace ProjectTracking.Controllers
                         ? x.Owner.LoginUser.ProfileImagePath
                         : null,
                     NextFollowupDate = x.NextFollowupDate ?? today,
-                    Status =
+                    Status = x.Status,
+                    DateStatus =
                         x.NextFollowupDate == null ? "Done" :
                         x.NextFollowupDate < today ? "Overdue" :
                         x.NextFollowupDate == today ? "Today" :
@@ -82,90 +118,38 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            ViewBag.SelectedOwner = owner ?? "";
+            ViewBag.SelectedOwnerEmpId = ownerEmpId;
+            ViewBag.StatusList = FollowupStatuses;
+            ViewBag.SelectedStatus = selectedStatus ?? "";
             return View(data);
         }
 
-        // ===== Follow-up Dashboard DONE (Waiting ACK) =====
-        [RequireMenu("Followups.DashboardDone")]
-        public async Task<IActionResult> DashboardDone()
+        public async Task<IActionResult> Index(string? coopName, int? projectId, int? ownerEmpId, string? status)
         {
-            var today = DateTime.Today;
+            var selectedCoopName = string.IsNullOrWhiteSpace(coopName) ? "" : coopName.Trim();
+            var selectedStatus = (status ?? "").Trim().ToUpperInvariant();
+            selectedStatus = FollowupStatuses.Contains(selectedStatus) ? selectedStatus : "";
 
-            var data = await _context.ProjectFollowups
-                .Include(x => x.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Include(x => x.Owner)
-                    .ThenInclude(owner => owner!.LoginUser)
-                .Include(x => x.CreatedByEmployee)
-                .Where(x => x.Status == "DONE")
-                .OrderBy(x => x.NextFollowupDate)
-                .Select(x => new
-                {
-                    x.FollowupId,
-                    ProjectId = x.ProjectId,
-                    Project = x.Project != null
-                        ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
-                        : "",
-                    x.TaskTitle,
-                    x.PartnerName,
-                    Owner = x.Owner != null ? x.Owner.EmpName : "",
-                    OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
-                        ? x.Owner.LoginUser.ProfileImagePath
-                        : null,
-                    NextFollowupDate = x.NextFollowupDate ?? today,
-                    Status =
-                        x.NextFollowupDate == null ? "Done" :
-                        x.NextFollowupDate < today ? "Overdue" :
-                        x.NextFollowupDate == today ? "Today" :
-                        "Upcoming"
-                })
+            ViewBag.Coops = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Where(x => x.Project != null && x.Project.Coop != null && x.Project.Coop.CoopName != "")
+                .Select(x => x.Project!.Coop!.CoopName)
+                .Distinct()
+                .OrderBy(name => name)
                 .ToListAsync();
 
-            return View(data);
-        }
-
-        // ===== Follow-up Dashboard ACK (Closed / Acknowledged) =====
-        [RequireMenu("Followups.DashboardACK")]
-        public async Task<IActionResult> DashboardACK()
-        {
-            var today = DateTime.Today;
-            var fromDate = today.AddMonths(-1);
-
-            var data = await _context.ProjectFollowups
-                .Include(x => x.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Include(x => x.Owner)
-                    .ThenInclude(owner => owner!.LoginUser)
-                .Include(x => x.CreatedByEmployee)
-                .Where(x => x.Status == "ACK" && x.LastContactDate != null && x.LastContactDate >= fromDate)
-                .OrderByDescending(x => x.LastContactDate)
-                .Select(x => new
-                {
-                    x.FollowupId,
-                    ProjectId = x.ProjectId,
-                    Project = x.Project != null
-                        ? ((x.Project.Coop != null ? x.Project.Coop.CoopName + " - " : "") + x.Project.ProjectName)
-                        : "",
-                    x.TaskTitle,
-                    x.PartnerName,
-                    Owner = x.Owner != null ? x.Owner.EmpName : "",
-                    OwnerAvatar = x.Owner != null && x.Owner.LoginUser != null
-                        ? x.Owner.LoginUser.ProfileImagePath
-                        : null,
-                    NextFollowupDate = x.NextFollowupDate ?? today,
-                    Status = "ACK"
-                })
-                .ToListAsync();
-
-            return View(data);
-        }
-
-        public async Task<IActionResult> Index(int? projectId, int? ownerEmpId)
-        {
-            // send project list to dropdown
-            ViewBag.Projects = await _context.Projects
+            var projectDropdownQuery = _context.Projects
+                .AsNoTracking()
                 .Include(p => p.Coop)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(selectedCoopName))
+            {
+                projectDropdownQuery = projectDropdownQuery.Where(p => p.Coop != null && p.Coop.CoopName == selectedCoopName);
+            }
+
+            // send project list to dropdown
+            ViewBag.Projects = await projectDropdownQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -183,10 +167,18 @@ namespace ProjectTracking.Controllers
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 
+            ViewBag.SelectedCoopName = selectedCoopName;
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedOwnerEmpId = ownerEmpId;
+            ViewBag.StatusList = FollowupStatuses;
+            ViewBag.SelectedStatus = selectedStatus;
 
             var query = _context.ProjectFollowups.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(selectedCoopName))
+            {
+                query = query.Where(x => x.Project != null && x.Project.Coop != null && x.Project.Coop.CoopName == selectedCoopName);
+            }
 
             // filter by project
             if (projectId != null)
@@ -199,13 +191,21 @@ namespace ProjectTracking.Controllers
                 query = query.Where(x => x.OwnerEmpId == ownerEmpId);
             }
 
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                query = query.Where(x => x.Status == selectedStatus);
+            }
+
             var data = await query
                 .Include(x => x.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(x => x.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .Include(x => x.CreatedByEmployee)
-                .OrderBy(x => x.NextFollowupDate)
+                .OrderBy(x => x.Status == "OPEN" ? 0 : x.Status == "DONE" ? 1 : x.Status == "ACK" ? 2 : 3)
+                .ThenBy(x => x.NextFollowupDate ?? DateTime.MaxValue)
+                .ThenBy(x => x.Project != null && x.Project.Coop != null ? x.Project.Coop.CoopName : "")
+                .ThenBy(x => x.Project != null ? x.Project.ProjectName : "")
                 .ToListAsync();
 
             return View(data);
@@ -298,6 +298,8 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Followups.Create")]
         public async Task<IActionResult> Create(ProjectFollowup model)
         {
+            ApplyFollowupDateInput(model, nameof(ProjectFollowup.NextFollowupDate));
+
             if (ModelState.IsValid)
             {
                 model.Status = NormalizeFollowupStatus(model.Status);
@@ -322,6 +324,74 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectId = model.ProjectId;
 
             return View(model);
+        }
+
+        private void ApplyFollowupDateInput(ProjectFollowup model, string propertyName)
+        {
+            ModelState.Remove(propertyName);
+
+            var raw = Request.Form[propertyName].ToString();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                model.NextFollowupDate = null;
+                return;
+            }
+
+            if (TryParseThaiDate(raw, out var parsedDate))
+            {
+                model.NextFollowupDate = parsedDate;
+                return;
+            }
+
+            model.NextFollowupDate = null;
+            ModelState.AddModelError(propertyName, "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+        }
+
+        private void ApplyFollowupLogDateInput(ProjectFollowupLog log, string propertyName)
+        {
+            ModelState.Remove(propertyName);
+
+            var raw = Request.Form[propertyName].ToString();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                log.NextFollowupDate = null;
+                return;
+            }
+
+            if (TryParseThaiDate(raw, out var parsedDate))
+            {
+                log.NextFollowupDate = parsedDate;
+                return;
+            }
+
+            log.NextFollowupDate = null;
+            ModelState.AddModelError(propertyName, "รูปแบบวันที่ต้องเป็น วัน/เดือน/พ.ศ.");
+        }
+
+        private static bool TryParseThaiDate(string value, out DateTime date)
+        {
+            date = default;
+            var parts = (value ?? "").Trim().Split('/', StringSplitOptions.TrimEntries);
+            if (parts.Length != 3 ||
+                !int.TryParse(parts[0], out var day) ||
+                !int.TryParse(parts[1], out var month) ||
+                !int.TryParse(parts[2], out var year))
+            {
+                return false;
+            }
+
+            if (year < 100) year += 2500;
+            if (year > 2400) year -= 543;
+
+            try
+            {
+                date = new DateTime(year, month, day);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // ===== Edit Follow-up =====
@@ -424,6 +494,8 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Followups.Log")]
         public async Task<IActionResult> AddLog(ProjectFollowupLog log)
         {
+            ApplyFollowupLogDateInput(log, nameof(ProjectFollowupLog.NextFollowupDate));
+
             if (!ModelState.IsValid)
                 return RedirectToAction("Details", new { id = log.FollowupId });
 
@@ -545,7 +617,7 @@ namespace ProjectTracking.Controllers
 
             if (followup.Status == "DONE" || followup.Status == "ACK")
             {
-                TempData["FollowupMessage"] = "ไม่สามารถกด DONE ได้ เนื่องจากรายการนี้ถูก DONE หรือ ACK แล้ว";
+                TempData["FollowupMessage"] = "ไม่สามารถกดเสร็จแล้วได้ เนื่องจากรายการนี้เสร็จแล้วหรือรับทราบแล้ว";
                 return RedirectToAction("Index", new { projectId = followup.ProjectId });
             }
 
@@ -570,7 +642,7 @@ namespace ProjectTracking.Controllers
 
             await SendFollowupOwnerUpdateToRequesterSafelyAsync(
                 followup.FollowupId,
-                "แจ้ง Follow-up Done:",
+                "แจ้ง Follow-up เสร็จแล้ว:",
                 log.ContactType,
                 log.Note,
                 log.NextFollowupDate);
@@ -637,8 +709,8 @@ namespace ProjectTracking.Controllers
                 recipientSelector: followup => followup.OwnerEmpId,
                 lineFeature: LineNotificationFeatures.FollowupsAck,
                 telegramFeature: TelegramNotificationFeatures.FollowupsAck,
-                title: "แจ้ง Follow-up ACK:",
-                eventText: "ผู้สั่งงาน ACK งานติดตามแล้ว",
+                title: "แจ้ง Follow-up รับทราบแล้ว:",
+                eventText: "ผู้สั่งงานรับทราบงานติดตามแล้ว",
                 contactType: null,
                 note: null,
                 nextFollowupDate: null,
@@ -788,7 +860,7 @@ namespace ProjectTracking.Controllers
                 $"คู่ติดต่อ: {TextOrDash(followup.PartnerName)}",
                 $"ผู้สั่งงาน: {TextOrDash(followup.CreatedByEmployee?.EmpName)}",
                 $"Owner: {TextOrDash(followup.Owner?.EmpName)}",
-                $"Status: {TextOrDash(followup.Status)}",
+                $"สถานะ: {FollowupStatusText(followup.Status)}",
                 $"Next Follow-up: {DateText(nextFollowupDate ?? followup.NextFollowupDate)}"
             };
 
@@ -839,6 +911,17 @@ namespace ProjectTracking.Controllers
             if (normalized == "IN_PROGRESS")
                 return "OPEN";
             return FollowupStatuses.Contains(normalized) ? normalized : "OPEN";
+        }
+
+        private static string FollowupStatusText(string? status)
+        {
+            return (status ?? string.Empty).Trim().ToUpperInvariant() switch
+            {
+                "OPEN" => "เปิดงาน",
+                "DONE" => "เสร็จแล้ว",
+                "ACK" => "รับทราบแล้ว",
+                _ => TextOrDash(status)
+            };
         }
 
         private static string ProjectNameForNotification(Project? project)

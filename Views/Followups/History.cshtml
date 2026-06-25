@@ -1,10 +1,14 @@
 
 
 @model List<ProjectTracking.Models.ProjectFollowupLog>
+@using System.Globalization
 
 @{
     ViewData["Title"] = "Follow-up History";
     var followup = ViewBag.Followup;
+    var th = new CultureInfo("th-TH");
+    string ThaiDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
+    string ThaiDateTime(DateTime value) => value.ToString("dd MMM yyyy HH:mm", th);
 }
 
 <div class="index-hero pt-form-hero">
@@ -161,14 +165,14 @@
                     <div class="history-box">
                         <div class="history-label">Contact Date</div>
                         <div class="history-value">
-                            @log.ContactDate.ToString("dd/MM/yyyy HH:mm")
+                            @ThaiDateTime(log.ContactDate)
                         </div>
                     </div>
 
                     <div class="history-box">
                         <div class="history-label">Next Follow-up</div>
                         <div class="history-value">
-                            @(log.NextFollowupDate?.ToString("dd/MM/yyyy") ?? "-")
+                            @ThaiDate(log.NextFollowupDate)
                         </div>
                     </div>
                 </div>

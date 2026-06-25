@@ -3,6 +3,12 @@
 @{
     ViewData["Title"] = "สร้างงานติดตาม";
     var projectId = Context.Request.Query["projectId"].ToString();
+
+    string ThaiDateValue(DateTime? value)
+    {
+        if (!value.HasValue) return "";
+        return $"{value.Value:dd/MM/}{value.Value.Year + 543}";
+    }
 }
 
 <div class="index-hero pt-form-hero">
@@ -48,7 +54,12 @@
 
 <div class="mb-3">
 <label>Next Follow-up</label>
-<input asp-for="NextFollowupDate" type="date" class="form-control"/>
+<input asp-for="NextFollowupDate"
+       type="text"
+       class="form-control thai-date"
+       value="@ThaiDateValue(Model?.NextFollowupDate)"
+       placeholder="วัน/เดือน/พ.ศ." />
+<span asp-validation-for="NextFollowupDate" class="text-danger"></span>
 </div>
 
 <div class="pt-form-actions">

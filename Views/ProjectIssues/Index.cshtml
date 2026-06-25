@@ -6,6 +6,8 @@
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var selectedEmp = ViewBag.SelectedEmp as string;
     var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+    var statusList = ViewBag.StatusList as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
     var th = new CultureInfo("th-TH");
 
     string DateOrDash(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
@@ -336,6 +338,19 @@
                 {
                     <option value="@emp" selected="@(emp == selectedEmp)">
                         @emp
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="issue-filter-row">
+            <label class="form-label fw-semibold">สถานะ</label>
+            <select name="status" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                <option value="">-- ทุกสถานะ --</option>
+                @foreach (var status in statusList)
+                {
+                    <option value="@status.Value" selected="@(string.Equals(status.Value, selectedStatus, StringComparison.OrdinalIgnoreCase))">
+                        @status.Text
                     </option>
                 }
             </select>

@@ -5,8 +5,18 @@
     ViewData["Title"] = "Follow-up Dashboard";
     var th = new System.Globalization.CultureInfo("th-TH");
     int i = 1;
-    var owners = Model.Select(x => (string)x.Owner).Distinct().OrderBy(x => x).ToList();
-    var selectedOwner = ViewBag.SelectedOwner as string ?? "";
+    var selectedOwnerEmpId = Convert.ToString(ViewBag.SelectedOwnerEmpId ?? "") ?? "";
+    var ownerEmployees = ViewBag.OwnerEmployees as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
+    var selectedStatus = Convert.ToString(ViewBag.SelectedStatus ?? "") ?? "";
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+
+    string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "เปิดงาน",
+        "DONE" => "เสร็จแล้ว",
+        "ACK" => "รับทราบแล้ว",
+        _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+    };
 
     Func<string, bool> HasMenu = key =>
     {
@@ -40,19 +50,42 @@
         </div>
     </div>
 
-    <div class="followup-dashboard-filter mb-3">
-        <label class="form-label fw-bold">Filter Owner</label>
-        <select id="ownerFilter"
-                class="form-select form-select-lg"
-                data-placeholder="🔍 ค้นหา Owner..."
-                onchange="filterOwner()">
-            <option value="">-- All Owner --</option>
-            @foreach (var o in owners)
-            {
-                <option value="@o" selected="@(string.Equals(selectedOwner, o, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@o</option>
-            }
-        </select>
-    </div>
+    <form method="get" action="/Followups/Dashboard" class="followup-dashboard-filter mb-3">
+        <div class="followup-dashboard-filter__field">
+            <label class="form-label fw-bold" for="ownerEmpId">👤 ผู้รับผิดชอบ</label>
+            <select id="ownerEmpId"
+                    name="ownerEmpId"
+                    class="form-select form-select-lg"
+                    data-placeholder="🔍 ค้นหา Owner..."
+                    onchange="this.form.submit()">
+                <option value="">-- ทุกคน --</option>
+                @foreach (var owner in ownerEmployees)
+                {
+                    var value = owner.EmpId.ToString();
+                    <option value="@value" selected="@(selectedOwnerEmpId == value ? "selected" : null)">
+                        @owner.EmpName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="followup-dashboard-filter__field">
+            <label class="form-label fw-bold" for="status">📌 สถานะ</label>
+            <select id="status"
+                    name="status"
+                    class="form-select form-select-lg"
+                    data-placeholder="🔍 ค้นหาสถานะ..."
+                    onchange="this.form.submit()">
+                <option value="">-- ทุกสถานะ --</option>
+                @foreach (var status in statusList)
+                {
+                    <option value="@status" selected="@(selectedStatus == status ? "selected" : null)">
+                        @StatusText(status)
+                    </option>
+                }
+            </select>
+        </div>
+    </form>
 
     <div class="table-responsive" style="display:none;">
         <table class="table table-bordered table-hover align-middle">
@@ -65,7 +98,7 @@
                     <th style="width:100px">Partner</th>
                     <th style="width:180px">Owner</th>
                     <th style="width:150px">Follow-up Date</th>
-                    <th style="width:120px">Status</th>
+                    <th style="width:120px">สถานะ</th>
                 </tr>
             </thead>
 
@@ -76,23 +109,25 @@
 
                     var projectId = item.ProjectId;
                     var ownerEmpId = item.OwnerEmpId;
+                    var coopName = Convert.ToString(item.CoopName) ?? "";
                     var targetUrl = projectId != null
-                        ? Url.Action("Index", "Followups", new { projectId = projectId, ownerEmpId = ownerEmpId })
-                        : Url.Action("Index", "Followups", new { ownerEmpId = ownerEmpId });
+                        ? Url.Action("Index", "Followups", new { coopName = coopName, projectId = projectId, ownerEmpId = ownerEmpId })
+                        : Url.Action("Index", "Followups", new { coopName = coopName, ownerEmpId = ownerEmpId });
+                    var followupStatus = Convert.ToString(item.Status) ?? "";
 
                     string rowClass = "";
 
-                    if (item.Status == "Overdue")
+                    if (followupStatus == "DONE")
                     {
-                        rowClass = "table-danger";
+                        rowClass = "table-success";
                     }
-                    else if (item.Status == "Today")
+                    else if (followupStatus == "ACK")
                     {
-                        rowClass = "table-warning";
+                        rowClass = "table-primary";
                     }
                     else
                     {
-                        rowClass = "table-success";
+                        rowClass = "table-warning";
                     }
 
                     <tr class="@rowClass" data-owner="@item.Owner"
@@ -122,7 +157,7 @@
                         </td>
 
                         <td class="text-center fw-bold">
-                            @item.Status
+                            @StatusText(followupStatus)
                         </td>
 
                     </tr>
@@ -145,23 +180,25 @@
 {
     var projectId = item.ProjectId;
     var ownerEmpId = item.OwnerEmpId;
+    var coopName = Convert.ToString(item.CoopName) ?? "";
     var targetUrl = projectId != null
-        ? Url.Action("Index", "Followups", new { projectId = projectId, ownerEmpId = ownerEmpId })
-        : Url.Action("Index", "Followups", new { ownerEmpId = ownerEmpId });
+        ? Url.Action("Index", "Followups", new { coopName = coopName, projectId = projectId, ownerEmpId = ownerEmpId })
+        : Url.Action("Index", "Followups", new { coopName = coopName, ownerEmpId = ownerEmpId });
+    var followupStatus = Convert.ToString(item.Status) ?? "";
 
     string rowClass = "";
 
-    if (item.Status == "Overdue")
+    if (followupStatus == "DONE")
     {
-        rowClass = "overdue";
+        rowClass = "done";
     }
-    else if (item.Status == "Today")
+    else if (followupStatus == "ACK")
     {
-        rowClass = "today";
+        rowClass = "ack";
     }
     else
     {
-        rowClass = "future";
+        rowClass = "open";
     }
     string ownerAvatar = Convert.ToString(item.OwnerAvatar);
     if (string.IsNullOrWhiteSpace(ownerAvatar))
@@ -190,8 +227,8 @@
                 </div>
             </div>
 
-            <span class="badge bg-secondary">
-                @item.Status
+            <span class="badge followup-status-badge @followupStatus.ToLowerInvariant()">
+                @StatusText(followupStatus)
             </span>
         </div>
 
@@ -234,6 +271,13 @@
     border-radius: 18px;
     background: #fff;
     box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.followup-dashboard-filter__field {
+    min-width: 0;
 }
 
 .followup-dashboard-filter .form-label {
@@ -279,6 +323,33 @@
 .followup-dashboard-card.future {
     border-color: #bbf7d0;
     background: #f0fdf4;
+}
+
+.followup-dashboard-card.open {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.followup-dashboard-card.done {
+    border-color: #86efac;
+    background: #ecfdf5;
+}
+
+.followup-dashboard-card.ack {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.followup-status-badge.open {
+    background: #f59e0b;
+}
+
+.followup-status-badge.done {
+    background: #16a34a;
+}
+
+.followup-status-badge.ack {
+    background: #2563eb;
 }
 
 .followup-dashboard-header {
@@ -341,32 +412,9 @@
     .followup-dashboard-cards {
         grid-template-columns: 1fr;
     }
+
+    .followup-dashboard-filter {
+        grid-template-columns: 1fr;
+    }
 }
 </style>
-<script>
-function filterOwner() {
-    const selected = document.getElementById("ownerFilter").value.toLowerCase();
-    const rows = document.querySelectorAll("tbody tr");
-    const cards = document.querySelectorAll(".followup-dashboard-card");
-
-    rows.forEach(r => {
-        const owner = (r.getAttribute("data-owner") || "").toLowerCase();
-
-        if (selected === "" || owner === selected) {
-            r.style.display = "";
-        } else {
-            r.style.display = "none";
-        }
-    });
-
-    cards.forEach(c => {
-        const owner = (c.getAttribute("data-owner") || "").toLowerCase();
-
-        if (selected === "" || owner === selected) {
-            c.style.display = "";
-        } else {
-            c.style.display = "none";
-        }
-    });
-}
-</script>

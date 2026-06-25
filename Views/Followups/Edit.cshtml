@@ -3,6 +3,15 @@
 
 @{
     ViewData["Title"] = "แก้ไขงานติดตาม";
+    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+
+    string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "เปิดงาน",
+        "DONE" => "เสร็จแล้ว",
+        "ACK" => "รับทราบแล้ว",
+        _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+    };
 }
 
 <div class="index-hero pt-form-hero">
@@ -53,11 +62,16 @@
     </div>
 
     <div class="form-group mb-3">
-        <label asp-for="Status" class="form-label">Status</label>
+        <label asp-for="Status" class="form-label">สถานะ</label>
         <select asp-for="Status"
                 class="form-select form-select-lg"
-                data-placeholder="🔍 ค้นหา Status..."
-                asp-items="@(new SelectList(ViewBag.StatusList ?? Array.Empty<string>(), Model.Status))">
+                data-placeholder="🔍 ค้นหาสถานะ...">
+            @foreach (var status in statusList)
+            {
+                <option value="@status" selected="@(Model.Status == status ? "selected" : null)">
+                    @StatusText(status)
+                </option>
+            }
         </select>
     </div>
 

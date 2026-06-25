@@ -2041,9 +2041,7 @@
 	    var canReports = CanMenu("Reports.Index");
 
     var canFollowups = CanMenu("Followups.Index")
-                    || CanMenu("Followups.Dashboard")
-                    || CanMenu("Followups.DashboardDone")
-                    || CanMenu("Followups.DashboardACK");
+                    || CanMenu("Followups.Dashboard");
 
     var canFollowAtten = CanMenu("Attendance.Index")
                       || canFollowups;
@@ -2492,30 +2490,6 @@
                                                 @if (followupAlertCount > 0)
                                                 {
                                                     <span class="nav-count-badge">@followupAlertCount</span>
-                                                }
-                                            </a>
-                                        </li>
-                                    }
-                                    @if (CanMenu("Followups.DashboardDone"))
-                                    {
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Followups" asp-action="DashboardDone">
-                                                ติดตามงานเสร็จแล้ว
-                                                @if (followupDoneCount > 0)
-                                                {
-                                                    <span class="nav-count-badge">@followupDoneCount</span>
-                                                }
-                                            </a>
-                                        </li>
-                                    }
-                                    @if (CanMenu("Followups.DashboardACK"))
-                                    {
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Followups" asp-action="DashboardACK">
-                                                ติดตามงานรับทราบแล้ว
-                                                @if (followupAckCount > 0)
-                                                {
-                                                    <span class="nav-count-badge">@followupAckCount</span>
                                                 }
                                             </a>
                                         </li>

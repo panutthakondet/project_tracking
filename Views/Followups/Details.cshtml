@@ -8,6 +8,13 @@
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string ThaiDate(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
     string ThaiDateTime(DateTime? value) => value?.ToString("dd MMM yyyy HH:mm", th) ?? "-";
+    string StatusText(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    {
+        "OPEN" => "เปิดงาน",
+        "DONE" => "เสร็จแล้ว",
+        "ACK" => "รับทราบแล้ว",
+        _ => TextOrDash(status)
+    };
 }
 
 <div class="index-hero pt-form-hero">
@@ -157,7 +164,7 @@
 
             <div class="followup-info-line">
                 <span class="followup-info-label">สถานะ:</span>
-                <span class="followup-info-value">@TextOrDash(Model.Status)</span>
+                <span class="followup-info-value">@StatusText(Model.Status)</span>
             </div>
         </div>
     </div>

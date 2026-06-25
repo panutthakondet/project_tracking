@@ -9,10 +9,12 @@
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
     var selectedBA = ViewBag.SelectedBA is int baId ? baId : (int?)null;
+    var selectedEmp = ViewBag.SelectedEmp as string;
     var selectedStatus = ViewBag.SelectedStatus as string ?? "";
     var selectedPriority = ViewBag.SelectedPriority as string ?? "";
     var selectedDevStatus = ViewBag.SelectedDevStatus as string ?? "";
     var baList = ViewBag.BAList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    var empList = ViewBag.EmpList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var priorityList = ViewBag.PriorityList as IEnumerable<string> ?? Enumerable.Empty<string>();
     var devStatusList = ViewBag.DevStatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
@@ -138,7 +140,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(240px, 1.25fr) minmax(190px, .9fr) repeat(3, minmax(140px, .65fr)) auto;
+            grid-template-columns: minmax(240px, 1.25fr) minmax(190px, .9fr) minmax(190px, .9fr) repeat(3, minmax(140px, .65fr)) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -496,6 +498,7 @@
         <div>
             Project: @SelectedProjectName()<br />
             BA: @SelectedBAText()<br />
+            Employee: @(string.IsNullOrWhiteSpace(selectedEmp) ? "All Employees" : selectedEmp)<br />
             Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
             Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
             Dev: @(string.IsNullOrWhiteSpace(selectedDevStatus) ? "All Dev Statuses" : selectedDevStatus)<br />
@@ -536,6 +539,18 @@
                 {
                     <option value="@ba.Value" selected="@(selectedBA.HasValue && ba.Value == selectedBA.Value.ToString() ? "selected" : null)">
                         @ba.Text
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="empName">Employee</label>
+            <select id="empName" name="empName" data-placeholder="🔍 พิมพ์ค้นหา Employee..." onchange="this.form.submit()">
+                <option value="">-- All Employees --</option>
+                @foreach (var emp in empList)
+                {
+                    <option value="@emp" selected="@(emp == selectedEmp ? "selected" : null)">
+                        @emp
                     </option>
                 }
             </select>

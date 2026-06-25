@@ -35,8 +35,10 @@ namespace ProjectTracking.Controllers
         private readonly ILogger<ProjectIssuesController> _logger;
         private const string FilterProjectIdKey = "ProjectIssues.Filter.ProjectId";
         private const string FilterEmpNameKey = "ProjectIssues.Filter.EmpName";
+        private const string FilterStatusKey = "ProjectIssues.Filter.Status";
         private const string DevFilterProjectIdKey = "ProjectIssuesDev.Filter.ProjectId";
         private const string DevFilterEmpNameKey = "ProjectIssuesDev.Filter.EmpName";
+        private const string DevFilterStatusKey = "ProjectIssuesDev.Filter.Status";
         private static readonly CultureInfo ThaiCulture = new("th-TH");
 
         public ProjectIssuesController(
@@ -63,16 +65,19 @@ namespace ProjectTracking.Controllers
         // INDEX
         // =====================================================
         [RequireMenu("ProjectIssues.Index")]
-        public async Task<IActionResult> Index(int? projectId, string? empName)
+        public async Task<IActionResult> Index(int? projectId, string? empName, string? status)
         {
             (projectId, empName) = ResolveIndexFilters(projectId, empName, FilterProjectIdKey, FilterEmpNameKey);
+            var selectedStatus = ResolveStatusFilter(status, FilterStatusKey, NormalizeIndexIssueStatus);
 
             await LoadDropdown(projectId, empName);
+            ViewBag.StatusList = BuildStatusFilterList(TesterIssueStatuses, selectedStatus);
+            ViewBag.SelectedStatus = selectedStatus;
 
             if (!projectId.HasValue)
                 return View(new List<ProjectIssue>());
 
-            var issues = await GetIssues(projectId.Value, empName);
+            var issues = await GetIssues(projectId.Value, empName, issueStatus: selectedStatus);
             return View(issues);
         }
 
@@ -80,16 +85,19 @@ namespace ProjectTracking.Controllers
         // DEV INDEX (Programmer page)
         // =====================================================
         [RequireMenu("ProjectIssues.DevIndex")]
-        public async Task<IActionResult> DevIndex(int? projectId, string? empName)
+        public async Task<IActionResult> DevIndex(int? projectId, string? empName, string? status)
         {
             (projectId, empName) = ResolveIndexFilters(projectId, empName, DevFilterProjectIdKey, DevFilterEmpNameKey);
+            var selectedStatus = ResolveStatusFilter(status, DevFilterStatusKey, NormalizeIndexDevStatus);
 
             await LoadDropdown(projectId, empName);
+            ViewBag.StatusList = BuildStatusFilterList(ProgrammerDevStatuses, selectedStatus);
+            ViewBag.SelectedStatus = selectedStatus;
 
             if (!projectId.HasValue)
                 return View(new List<ProjectIssue>());
 
-            var issues = await GetIssues(projectId.Value, empName);
+            var issues = await GetIssues(projectId.Value, empName, devStatus: selectedStatus);
             return View(issues);
         }
 
@@ -640,7 +648,11 @@ namespace ProjectTracking.Controllers
         // =====================================================
         // QUERY
         // =====================================================
-        private async Task<List<ProjectIssue>> GetIssues(int projectId, string? empName)
+        private async Task<List<ProjectIssue>> GetIssues(
+            int projectId,
+            string? empName,
+            string? issueStatus = null,
+            string? devStatus = null)
         {
             var query = _context.ProjectIssues
                 .AsNoTracking()
@@ -654,6 +666,12 @@ namespace ProjectTracking.Controllers
 
             if (!string.IsNullOrEmpty(empName))
                 query = query.Where(i => i.Employee != null && i.Employee.EmpName == empName);
+
+            if (!string.IsNullOrWhiteSpace(issueStatus))
+                query = query.Where(i => i.IssueStatus == issueStatus);
+
+            if (!string.IsNullOrWhiteSpace(devStatus))
+                query = query.Where(i => i.DevStatus == devStatus);
 
             return await query
                 .OrderByDescending(i => i.IsReopen)
@@ -722,6 +740,51 @@ namespace ProjectTracking.Controllers
             }
 
             return (projectId, empName);
+        }
+
+        private static string NormalizeIndexIssueStatus(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            return TesterIssueStatuses.Any(x => x.Value == value) ? value : "";
+        }
+
+        private static string NormalizeIndexDevStatus(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            return ProgrammerDevStatuses.Any(x => x.Value == value) ? value : "";
+        }
+
+        private string ResolveStatusFilter(
+            string? status,
+            string statusKey,
+            Func<string?, string> normalize)
+        {
+            if (!Request.Query.ContainsKey("status"))
+            {
+                return normalize(HttpContext.Session.GetString(statusKey));
+            }
+
+            var selectedStatus = normalize(status);
+            if (string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                HttpContext.Session.Remove(statusKey);
+                return "";
+            }
+
+            HttpContext.Session.SetString(statusKey, selectedStatus);
+            return selectedStatus;
+        }
+
+        private static SelectList BuildStatusFilterList(
+            IEnumerable<(string Value, string Text)> statuses,
+            string? selected)
+        {
+            return new SelectList(
+                statuses.Select(x => new { x.Value, x.Text }),
+                "Value",
+                "Text",
+                selected
+            );
         }
 
         // =====================================================
