@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Green field board background">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/><stop offset=".58" stop-color="#bbf7d0"/><stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <circle cx="520" cy="82" r="54" fill="#fef3c7" opacity=".72"/>
+  <path d="M0 244c116-58 224-64 348-16 94 36 186 32 292-8v140H0z" fill="#15803d"/>
+  <path d="M0 292c122-42 226-32 338 6 102 34 196 24 302-26v88H0z" fill="#065f46" opacity=".72"/>
+  <g stroke="#dcfce7" stroke-width="3" opacity=".45"><path d="M76 306c36-18 78-26 128-24"/><path d="M356 286c56 12 110 10 164-6"/></g>
+</svg>

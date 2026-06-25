@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Night mountain board background">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset=".62" stop-color="#164e63"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <circle cx="520" cy="72" r="36" fill="#fde68a" opacity=".52"/>
+  <g fill="#e0f2fe" opacity=".72">
+    <circle cx="70" cy="56" r="2"/><circle cx="148" cy="88" r="1.6"/><circle cx="236" cy="42" r="2.2"/><circle cx="312" cy="94" r="1.5"/><circle cx="428" cy="36" r="2"/>
+  </g>
+  <path d="M0 270 128 132l58 72 82-98 126 164Z" fill="#0f172a"/>
+  <path d="M188 276 360 86l96 126 68-66 116 130Z" fill="#1e293b"/>
+  <path d="M128 132 92 170l62-12 32 46Z" fill="url(#snow)" opacity=".9"/>
+  <path d="M360 86 320 130l78-24 58 106Z" fill="url(#snow)" opacity=".9"/>
+  <rect y="276" width="640" height="84" fill="#020617" opacity=".82"/>
+</svg>

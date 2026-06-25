@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Violet tower board background">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f0abfc"/>
+      <stop offset=".46" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <path d="M0 234c86-34 154-24 232-8 82 16 164 26 260-12 54-22 98-26 148-18v164H0z" fill="#172033" opacity=".72"/>
+  <path d="M368 360V84l28-46 28 46v276z" fill="#e9d5ff" opacity=".92"/>
+  <path d="M386 70h20v290h-20z" fill="#312e81" opacity=".48"/>
+  <g fill="#0f172a" opacity=".82">
+    <rect x="44" y="212" width="42" height="148"/><rect x="120" y="186" width="72" height="174"/><rect x="224" y="226" width="56" height="134"/>
+    <rect x="482" y="204" width="46" height="156"/><rect x="552" y="176" width="52" height="184"/>
+  </g>
+</svg>

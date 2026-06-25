@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Aurora board background">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/><stop offset=".52" stop-color="#312e81"/><stop offset="1" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="aurora" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0"/><stop offset=".34" stop-color="#86efac" stop-opacity=".76"/><stop offset=".7" stop-color="#c084fc" stop-opacity=".7"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <path d="M0 88c94 76 162 60 236 28 100-44 180-30 404 88v70C404 146 322 140 226 190 138 236 64 224 0 164z" fill="url(#aurora)" opacity=".92"/>
+  <path d="M0 282 124 170l72 72 88-114 118 154 72-86 166 86v78H0z" fill="#020617" opacity=".72"/>
+</svg>

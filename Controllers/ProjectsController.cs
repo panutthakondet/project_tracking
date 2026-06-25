@@ -362,7 +362,12 @@ namespace ProjectTracking.Controllers
                 .FirstOrDefaultAsync(c => c.CardId == requirementCardId.Value && !c.IsArchived);
             if (card == null) return;
 
-            var targetColumn = await FindRequirementBoardColumnForProjectStatusAsync(projectStatus);
+            var sourceColumn = await _context.RequirementBoardColumns
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.ColumnId == card.ColumnId);
+            if (sourceColumn == null) return;
+
+            var targetColumn = await FindRequirementBoardColumnForProjectStatusAsync(projectStatus, sourceColumn.BoardId);
             if (targetColumn == null || targetColumn.ColumnId == card.ColumnId) return;
 
             var cardsInTargetColumn = await _context.RequirementCards
@@ -379,7 +384,7 @@ namespace ProjectTracking.Controllers
             card.UpdatedAt = DateTime.Now;
         }
 
-        private async Task<RequirementBoardColumn?> FindRequirementBoardColumnForProjectStatusAsync(string? projectStatus)
+        private async Task<RequirementBoardColumn?> FindRequirementBoardColumnForProjectStatusAsync(string? projectStatus, int boardId)
         {
             var candidates = NormalizeProjectStatus(projectStatus) switch
             {
@@ -392,7 +397,7 @@ namespace ProjectTracking.Controllers
             if (candidates.Length == 0) return null;
 
             var columns = await _context.RequirementBoardColumns
-                .Where(c => c.IsActive)
+                .Where(c => c.BoardId == boardId && c.IsActive)
                 .OrderBy(c => c.SortOrder)
                 .ThenBy(c => c.ColumnId)
                 .ToListAsync();

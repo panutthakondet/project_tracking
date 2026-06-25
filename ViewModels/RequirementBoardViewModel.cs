@@ -4,11 +4,15 @@ namespace ProjectTracking.ViewModels
 {
     public class RequirementBoardViewModel
     {
+        public RequirementBoard? CurrentBoard { get; set; }
         public List<RequirementBoardColumn> Columns { get; set; } = new();
         public List<RequirementBoardOnlineUserViewModel> OnlineUsers { get; set; } = new();
         public List<RequirementBoardLabel> Labels { get; set; } = new();
         public int TotalCards { get; set; }
         public int TotalAttachments { get; set; }
+        public bool CanCreate { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanDelete { get; set; }
     }
 
     public class RequirementBoardOnlineUserViewModel
@@ -18,6 +22,17 @@ namespace ProjectTracking.ViewModels
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
         public string ColorClass { get; set; } = "c1";
         public DateTime? LastSeenAt { get; set; }
+    }
+
+    public class RequirementBoardHomeViewModel
+    {
+        public List<RequirementBoardGroup> Groups { get; set; } = new();
+        public List<RequirementBoardOnlineUserViewModel> OnlineUsers { get; set; } = new();
+        public int TotalBoards { get; set; }
+        public int TotalCards { get; set; }
+        public bool CanCreate { get; set; }
+        public bool CanEdit { get; set; }
+        public bool CanDelete { get; set; }
     }
 
     public class MoveRequirementCardRequest

@@ -12,6 +12,33 @@ namespace ProjectTracking.Controllers
     public class RequirementBoardController : BaseController
     {
         private const long MaxUploadSize = 209715200;
+        private static readonly string[] BoardGradientCovers =
+        {
+            "g:ocean", "g:sky", "g:navy", "g:berry", "g:sunset", "g:forest",
+            "g:violet", "g:flame", "g:lagoon", "g:steel", "g:midnight", "g:gold"
+        };
+
+        private static readonly string[] LegacyBoardCoverColors =
+        {
+            "#14b8a6", "#2563eb", "#0f4aa5", "#db2777", "#f59e0b", "#16a34a",
+            "#7c3aed", "#ef4444", "#0891b2", "#64748b", "#111827", "#f97316", "#22c7b8"
+        };
+
+        private static readonly string[] BoardCoverImages =
+        {
+            "/images/boards/blue-city.svg",
+            "/images/boards/night-mountain.svg",
+            "/images/boards/orange-skyline.svg",
+            "/images/boards/focus-lights.svg",
+            "/images/boards/violet-tower.svg",
+            "/images/boards/winter-field.svg",
+            "/images/boards/aurora.svg",
+            "/images/boards/coral-waves.svg",
+            "/images/boards/green-field.svg",
+            "/images/boards/blueprint.svg",
+            "/images/boards/rose-clouds.svg",
+            "/images/boards/midnight-grid.svg"
+        };
 
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
@@ -23,13 +50,76 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? cardId = null)
         {
-            await EnsureDefaultColumnsAsync();
+            if (cardId.HasValue)
+            {
+                var targetBoardId = await _context.RequirementCards
+                    .AsNoTracking()
+                    .Where(x => x.CardId == cardId.Value && !x.IsArchived)
+                    .Select(x => (int?)x.Column!.BoardId)
+                    .FirstOrDefaultAsync();
+
+                if (targetBoardId.HasValue)
+                    return RedirectToAction(nameof(Board), new { id = targetBoardId.Value, cardId = cardId.Value });
+            }
+
+            await EnsureDefaultBoardShellAsync();
+
+            var groups = await _context.RequirementBoardGroups
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(x => x.IsActive)
+                .Include(x => x.Boards.Where(b => b.IsActive))
+                    .ThenInclude(x => x.Columns)
+                        .ThenInclude(x => x.Cards.Where(c => !c.IsArchived))
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.GroupName)
+                .ToListAsync();
+
+            foreach (var group in groups)
+            {
+                group.Boards = group.Boards
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.BoardName)
+                    .ToList();
+            }
+
+            var model = new RequirementBoardHomeViewModel
+            {
+                Groups = groups,
+                OnlineUsers = await LoadOnlineUsersAsync(),
+                TotalBoards = groups.Sum(x => x.Boards.Count),
+                TotalCards = groups
+                    .SelectMany(x => x.Boards)
+                    .SelectMany(x => x.Columns)
+                    .Sum(x => x.Cards.Count(c => !c.IsArchived))
+            };
+            ApplyPermissionFlags(model);
+
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Board(int id, int? cardId = null)
+        {
+            var board = await _context.RequirementBoards
+                .AsNoTracking()
+                .Include(x => x.Group)
+                .FirstOrDefaultAsync(x => x.BoardId == id && x.IsActive && x.Group != null && x.Group.IsActive);
+
+            if (board == null)
+            {
+                TempData["Error"] = "ไม่พบกระดานที่ต้องการ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await EnsureDefaultColumnsAsync(board.BoardId);
 
             var columns = await _context.RequirementBoardColumns
                 .AsNoTracking()
-                .Where(x => x.IsActive)
+                .Where(x => x.BoardId == board.BoardId && x.IsActive)
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ColumnId)
                 .ToListAsync();
@@ -37,6 +127,7 @@ namespace ProjectTracking.Controllers
             var columnIds = columns.Select(x => x.ColumnId).ToList();
             var cards = await _context.RequirementCards
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(x => columnIds.Contains(x.ColumnId) && !x.IsArchived)
                 .Include(x => x.Attachments)
                 .Include(x => x.PhaseItems)
@@ -57,46 +148,6 @@ namespace ProjectTracking.Controllers
                     .ToList();
             }
 
-            var onlineCutoff = DateTime.Now.AddMinutes(-5);
-            var onlineRows = await (
-                from user in _context.LoginUsers.AsNoTracking()
-                join employee in _context.Employees.AsNoTracking()
-                    on user.UserId equals employee.LoginUserId into employeeJoin
-                from employee in employeeJoin.DefaultIfEmpty()
-                where user.Status == "ACTIVE"
-                      && user.LastSeenAt.HasValue
-                      && user.LastSeenAt.Value >= onlineCutoff
-                orderby user.LastSeenAt descending
-                select new
-                {
-                    user.UserId,
-                    user.Username,
-                    user.ProfileImagePath,
-                    user.LastSeenAt,
-                    EmployeeName = employee != null ? employee.EmpName : null
-                })
-                .ToListAsync();
-
-            var onlineUsers = onlineRows
-                .GroupBy(x => x.UserId)
-                .Select((group, index) =>
-                {
-                    var row = group.First();
-                    var displayName = !string.IsNullOrWhiteSpace(row.EmployeeName)
-                        ? row.EmployeeName!
-                        : row.Username;
-
-                    return new RequirementBoardOnlineUserViewModel
-                    {
-                        UserId = row.UserId,
-                        DisplayName = displayName,
-                        AvatarPath = ResolveOnlineAvatarPath(row.ProfileImagePath),
-                        ColorClass = $"c{(index % 5) + 1}",
-                        LastSeenAt = row.LastSeenAt
-                    };
-                })
-                .ToList();
-
             var labels = await _context.RequirementBoardLabels
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -106,34 +157,38 @@ namespace ProjectTracking.Controllers
 
             var model = new RequirementBoardViewModel
             {
+                CurrentBoard = board,
                 Columns = columns,
-                OnlineUsers = onlineUsers,
+                OnlineUsers = await LoadOnlineUsersAsync(),
                 Labels = labels,
                 TotalCards = cards.Count,
                 TotalAttachments = cards.Sum(x => x.Attachments.Count)
             };
+            ApplyPermissionFlags(model);
 
+            ViewBag.OpenCardId = cardId;
             return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateColumn(string columnName)
+        [RequireMenu("RequirementBoard.Create")]
+        public async Task<IActionResult> CreateGroup(string groupName)
         {
-            columnName = (columnName ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(columnName))
+            groupName = (groupName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(groupName))
             {
-                TempData["Error"] = "กรุณากรอกชื่อหัวข้อ";
+                TempData["Error"] = "กรุณากรอกชื่อกลุ่ม";
                 return RedirectToAction(nameof(Index));
             }
 
-            var maxSort = await _context.RequirementBoardColumns
+            var maxSort = await _context.RequirementBoardGroups
                 .Select(x => (int?)x.SortOrder)
                 .MaxAsync() ?? 0;
 
-            _context.RequirementBoardColumns.Add(new RequirementBoardColumn
+            _context.RequirementBoardGroups.Add(new RequirementBoardGroup
             {
-                ColumnName = columnName,
+                GroupName = groupName,
                 SortOrder = maxSort + 1,
                 IsActive = true,
                 CreatedByUserId = CurrentUserId(),
@@ -148,12 +203,253 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Create")]
+        public async Task<IActionResult> CreateBoard(int groupId, string boardName, string? coverChoice)
+        {
+            boardName = (boardName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(boardName))
+            {
+                TempData["Error"] = "กรุณากรอกชื่อกระดาน";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var groupExists = await _context.RequirementBoardGroups
+                .AnyAsync(x => x.GroupId == groupId && x.IsActive);
+            if (!groupExists)
+            {
+                TempData["Error"] = "ไม่พบกลุ่มสำหรับสร้างกระดาน";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var maxSort = await _context.RequirementBoards
+                .Where(x => x.GroupId == groupId)
+                .Select(x => (int?)x.SortOrder)
+                .MaxAsync() ?? 0;
+
+            var board = new RequirementBoard
+            {
+                GroupId = groupId,
+                BoardName = boardName,
+                SortOrder = maxSort + 1,
+                IsActive = true,
+                CreatedByUserId = CurrentUserId(),
+                CreatedByEmpId = CurrentEmpId(),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+            ApplyBoardCover(board, coverChoice, useDefaultWhenMissing: true);
+
+            _context.RequirementBoards.Add(board);
+            await _context.SaveChangesAsync();
+            await EnsureDefaultColumnsAsync(board.BoardId);
+
+            return RedirectToAction(nameof(Board), new { id = board.BoardId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
+        public async Task<IActionResult> RenameGroup(int groupId, string groupName)
+        {
+            groupName = (groupName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                TempData["Error"] = "กรุณากรอกชื่อ group";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var group = await _context.RequirementBoardGroups
+                .FirstOrDefaultAsync(x => x.GroupId == groupId && x.IsActive);
+            if (group == null)
+            {
+                TempData["Error"] = "ไม่พบ group ที่ต้องการแก้ไข";
+                return RedirectToAction(nameof(Index));
+            }
+
+            group.GroupName = groupName;
+            group.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index), null, null, $"group-{group.GroupId}");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
+        public async Task<IActionResult> RenameBoard(int boardId, string boardName, string? coverChoice)
+        {
+            boardName = (boardName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(boardName))
+            {
+                TempData["Error"] = "กรุณากรอกชื่อ board";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var board = await _context.RequirementBoards
+                .FirstOrDefaultAsync(x => x.BoardId == boardId && x.IsActive);
+            if (board == null)
+            {
+                TempData["Error"] = "ไม่พบ board ที่ต้องการแก้ไข";
+                return RedirectToAction(nameof(Index));
+            }
+
+            board.BoardName = boardName;
+            board.UpdatedAt = DateTime.Now;
+            ApplyBoardCover(board, coverChoice, useDefaultWhenMissing: false);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index), null, null, $"group-{board.GroupId}");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Delete")]
+        public async Task<IActionResult> DeleteGroup(int groupId)
+        {
+            var group = await _context.RequirementBoardGroups
+                .Include(x => x.Boards)
+                .FirstOrDefaultAsync(x => x.GroupId == groupId && x.IsActive);
+            if (group == null)
+            {
+                TempData["Error"] = "ไม่พบ group ที่ต้องการลบ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var now = DateTime.Now;
+            group.IsActive = false;
+            group.UpdatedAt = now;
+
+            foreach (var board in group.Boards)
+            {
+                board.IsActive = false;
+                board.UpdatedAt = now;
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Delete")]
+        public async Task<IActionResult> DeleteBoard(int boardId)
+        {
+            var board = await _context.RequirementBoards
+                .FirstOrDefaultAsync(x => x.BoardId == boardId && x.IsActive);
+            if (board == null)
+            {
+                TempData["Error"] = "ไม่พบ board ที่ต้องการลบ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            board.IsActive = false;
+            board.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index), null, null, $"group-{board.GroupId}");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Create")]
+        public async Task<IActionResult> CreateColumn(int boardId, string columnName)
+        {
+            columnName = (columnName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(columnName))
+            {
+                TempData["Error"] = "กรุณากรอกชื่อหัวข้อ";
+                return boardId > 0
+                    ? RedirectToAction(nameof(Board), new { id = boardId })
+                    : RedirectToAction(nameof(Index));
+            }
+
+            if (!await _context.RequirementBoards.AnyAsync(x => x.BoardId == boardId && x.IsActive))
+            {
+                TempData["Error"] = "ไม่พบกระดานสำหรับเพิ่มหัวข้อ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var maxSort = await _context.RequirementBoardColumns
+                .Where(x => x.BoardId == boardId)
+                .Select(x => (int?)x.SortOrder)
+                .MaxAsync() ?? 0;
+
+            _context.RequirementBoardColumns.Add(new RequirementBoardColumn
+            {
+                BoardId = boardId,
+                ColumnName = columnName,
+                SortOrder = maxSort + 1,
+                IsActive = true,
+                CreatedByUserId = CurrentUserId(),
+                CreatedByEmpId = CurrentEmpId(),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Board), new { id = boardId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Delete")]
+        public async Task<IActionResult> DeleteColumn(int columnId)
+        {
+            var column = await _context.RequirementBoardColumns
+                .Include(x => x.Board)
+                .FirstOrDefaultAsync(x => x.ColumnId == columnId && x.IsActive && x.Board != null && x.Board.IsActive);
+
+            if (column == null)
+            {
+                TempData["Error"] = "ไม่พบหัวข้อที่ต้องการลบ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var activeCardCount = await _context.RequirementCards
+                .CountAsync(x => x.ColumnId == column.ColumnId && !x.IsArchived);
+
+            if (activeCardCount > 0)
+            {
+                TempData["Error"] = "หัวข้อนี้ยังมีการ์ดอยู่ กรุณาย้ายหรือลบการ์ดออกก่อน";
+                return RedirectToAction(nameof(Board), new { id = column.BoardId });
+            }
+
+            var activeColumnCount = await _context.RequirementBoardColumns
+                .CountAsync(x => x.BoardId == column.BoardId && x.IsActive);
+
+            if (activeColumnCount <= 1)
+            {
+                TempData["Error"] = "ต้องมีหัวข้ออย่างน้อย 1 หัวข้อใน board";
+                return RedirectToAction(nameof(Board), new { id = column.BoardId });
+            }
+
+            column.IsActive = false;
+            column.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Board), new { id = column.BoardId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Create")]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadSize)]
         [RequestSizeLimit(MaxUploadSize)]
-        public async Task<IActionResult> CreateCard(int columnId, string title, string? detail, IFormFile? coverImage, List<IFormFile>? files)
+        public async Task<IActionResult> CreateCard(
+            int columnId,
+            string title,
+            string? detail,
+            IFormFile? coverImage,
+            List<IFormFile>? files,
+            List<int>? labelIds,
+            List<RequirementCardPhaseItemInput>? phaseItems)
         {
             title = (title ?? "").Trim();
-            if (columnId <= 0 || !await _context.RequirementBoardColumns.AnyAsync(x => x.ColumnId == columnId && x.IsActive))
+            var column = await _context.RequirementBoardColumns
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ColumnId == columnId && x.IsActive && x.Board != null && x.Board.IsActive);
+
+            if (columnId <= 0 || column == null)
             {
                 TempData["Error"] = "ไม่พบหัวข้อสำหรับเพิ่มการ์ด";
                 return RedirectToAction(nameof(Index));
@@ -162,13 +458,13 @@ namespace ProjectTracking.Controllers
             if (string.IsNullOrWhiteSpace(title))
             {
                 TempData["Error"] = "กรุณากรอกหัวข้อการ์ด";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Board), new { id = column.BoardId });
             }
 
             if (!IsValidCoverImage(coverImage))
             {
                 TempData["Error"] = "รูปพื้นหลังต้องเป็นไฟล์รูปภาพเท่านั้น";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Board), new { id = column.BoardId });
             }
 
             var existingCards = await _context.RequirementCards
@@ -204,13 +500,16 @@ namespace ProjectTracking.Controllers
             }
 
             await SaveAttachmentsAsync(card.CardId, files);
+            await ReplaceCardLabelsAsync(card.CardId, labelIds);
+            await ReplacePhaseItemsAsync(card.CardId, phaseItems);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Board), new { id = column.BoardId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadSize)]
         [RequestSizeLimit(MaxUploadSize)]
         public async Task<IActionResult> UpdateCard(
@@ -223,7 +522,9 @@ namespace ProjectTracking.Controllers
             List<RequirementCardPhaseItemInput>? phaseItems)
         {
             var isAjax = IsAjaxRequest();
-            var card = await _context.RequirementCards.FirstOrDefaultAsync(x => x.CardId == cardId && !x.IsArchived);
+            var card = await _context.RequirementCards
+                .Include(x => x.Column)
+                .FirstOrDefaultAsync(x => x.CardId == cardId && !x.IsArchived);
             if (card == null)
             {
                 if (isAjax) return NotFound(new { success = false, message = "ไม่พบการ์ดนี้ หรือการ์ดถูกลบแล้ว" });
@@ -235,7 +536,7 @@ namespace ProjectTracking.Controllers
             {
                 if (isAjax) return BadRequest(new { success = false, message = "กรุณากรอกหัวข้อการ์ด" });
                 TempData["Error"] = "กรุณากรอกหัวข้อการ์ด";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Board), new { id = card.Column?.BoardId });
             }
 
             card.Title = title;
@@ -246,7 +547,7 @@ namespace ProjectTracking.Controllers
             {
                 if (isAjax) return BadRequest(new { success = false, message = "รูปพื้นหลังต้องเป็นไฟล์รูปภาพเท่านั้น" });
                 TempData["Error"] = "รูปพื้นหลังต้องเป็นไฟล์รูปภาพเท่านั้น";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Board), new { id = card.Column?.BoardId });
             }
 
             var cover = await SaveCoverImageAsync(card.CardId, coverImage, card.CoverImagePath);
@@ -282,28 +583,34 @@ namespace ProjectTracking.Controllers
                 });
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Board), new { id = card.Column?.BoardId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Delete")]
         public async Task<IActionResult> ArchiveCard(int cardId)
         {
-            var card = await _context.RequirementCards.FirstOrDefaultAsync(x => x.CardId == cardId);
+            var card = await _context.RequirementCards
+                .Include(x => x.Column)
+                .FirstOrDefaultAsync(x => x.CardId == cardId);
             if (card == null) return NotFound();
 
             card.IsArchived = true;
             card.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Board), new { id = card.Column?.BoardId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Delete")]
         public async Task<IActionResult> DeleteAttachment(int attachmentId)
         {
             var attachment = await _context.RequirementCardAttachments
+                .Include(x => x.Card)
+                    .ThenInclude(x => x!.Column)
                 .FirstOrDefaultAsync(x => x.AttachmentId == attachmentId);
             if (attachment == null) return NotFound();
 
@@ -314,7 +621,7 @@ namespace ProjectTracking.Controllers
             if (card != null) card.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Board), new { id = attachment.Card?.Column?.BoardId });
         }
 
         [HttpGet]
@@ -359,6 +666,7 @@ namespace ProjectTracking.Controllers
         {
             var card = await _context.RequirementCards
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(x => x.Column)
                 .Include(x => x.CreatedByUser)
                 .Include(x => x.CreatedByEmployee)
@@ -435,6 +743,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Create")]
         public async Task<IActionResult> CreateLabel(string labelName, string colorHex)
         {
             labelName = (labelName ?? "").Trim();
@@ -475,6 +784,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
         public async Task<IActionResult> UpdateCardLabels(int cardId, List<int>? labelIds)
         {
             var card = await _context.RequirementCards
@@ -514,18 +824,24 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
         public async Task<IActionResult> MoveCard([FromBody] MoveRequirementCardRequest request)
         {
             if (request == null || request.CardId <= 0 || request.ColumnId <= 0)
                 return BadRequest(new { ok = false, message = "ข้อมูลไม่ครบ" });
 
-            var targetColumnExists = await _context.RequirementBoardColumns
-                .AnyAsync(x => x.ColumnId == request.ColumnId && x.IsActive);
-            if (!targetColumnExists)
+            var targetColumn = await _context.RequirementBoardColumns
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ColumnId == request.ColumnId && x.IsActive);
+            if (targetColumn == null)
                 return BadRequest(new { ok = false, message = "ไม่พบหัวข้อปลายทาง" });
 
-            var card = await _context.RequirementCards.FirstOrDefaultAsync(x => x.CardId == request.CardId && !x.IsArchived);
+            var card = await _context.RequirementCards
+                .Include(x => x.Column)
+                .FirstOrDefaultAsync(x => x.CardId == request.CardId && !x.IsArchived);
             if (card == null) return NotFound(new { ok = false, message = "ไม่พบการ์ด" });
+            if (card.Column != null && card.Column.BoardId != targetColumn.BoardId)
+                return BadRequest(new { ok = false, message = "ไม่สามารถย้ายการ์ดข้ามกระดานได้" });
 
             card.ColumnId = request.ColumnId;
             card.UpdatedAt = DateTime.Now;
@@ -569,6 +885,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("RequirementBoard.Edit")]
         public async Task<IActionResult> ReorderColumns([FromBody] ReorderRequirementColumnsRequest request)
         {
             var orderedIds = request?.OrderedColumnIds?
@@ -586,6 +903,9 @@ namespace ProjectTracking.Controllers
             if (columns.Count != orderedIds.Count)
                 return BadRequest(new { ok = false, message = "พบหัวข้อที่ไม่ถูกต้อง" });
 
+            if (columns.Select(x => x.BoardId).Distinct().Count() != 1)
+                return BadRequest(new { ok = false, message = "ไม่สามารถสลับหัวข้อข้ามกระดานได้" });
+
             var now = DateTime.Now;
             for (var i = 0; i < orderedIds.Count; i++)
             {
@@ -600,9 +920,59 @@ namespace ProjectTracking.Controllers
             return Json(new { ok = true });
         }
 
-        private async Task EnsureDefaultColumnsAsync()
+        private async Task<RequirementBoard> EnsureDefaultBoardShellAsync()
         {
-            if (await _context.RequirementBoardColumns.AnyAsync()) return;
+            var group = await _context.RequirementBoardGroups
+                .FirstOrDefaultAsync(x => x.IsActive);
+
+            var now = DateTime.Now;
+            var userId = CurrentUserId();
+            var empId = CurrentEmpId();
+
+            if (group == null)
+            {
+                group = new RequirementBoardGroup
+                {
+                    GroupName = "Project Boards",
+                    SortOrder = 1,
+                    IsActive = true,
+                    CreatedByUserId = userId,
+                    CreatedByEmpId = empId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _context.RequirementBoardGroups.Add(group);
+                await _context.SaveChangesAsync();
+            }
+
+            var board = await _context.RequirementBoards
+                .FirstOrDefaultAsync(x => x.GroupId == group.GroupId && x.IsActive);
+
+            if (board == null)
+            {
+                board = new RequirementBoard
+                {
+                    GroupId = group.GroupId,
+                    BoardName = "Default Project Board",
+                    CoverColor = BoardGradientCovers[0],
+                    SortOrder = 1,
+                    IsActive = true,
+                    CreatedByUserId = userId,
+                    CreatedByEmpId = empId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _context.RequirementBoards.Add(board);
+                await _context.SaveChangesAsync();
+            }
+
+            await EnsureDefaultColumnsAsync(board.BoardId);
+            return board;
+        }
+
+        private async Task EnsureDefaultColumnsAsync(int boardId)
+        {
+            if (await _context.RequirementBoardColumns.AnyAsync(x => x.BoardId == boardId && x.IsActive)) return;
 
             var now = DateTime.Now;
             var userId = CurrentUserId();
@@ -611,6 +981,7 @@ namespace ProjectTracking.Controllers
             _context.RequirementBoardColumns.AddRange(
                 new RequirementBoardColumn
                 {
+                    BoardId = boardId,
                     ColumnName = "To Do",
                     SortOrder = 1,
                     IsActive = true,
@@ -621,6 +992,7 @@ namespace ProjectTracking.Controllers
                 },
                 new RequirementBoardColumn
                 {
+                    BoardId = boardId,
                     ColumnName = "Complete",
                     SortOrder = 2,
                     IsActive = true,
@@ -631,6 +1003,75 @@ namespace ProjectTracking.Controllers
                 });
 
             await _context.SaveChangesAsync();
+        }
+
+        private async Task<List<RequirementBoardOnlineUserViewModel>> LoadOnlineUsersAsync()
+        {
+            var onlineCutoff = DateTime.Now.AddMinutes(-5);
+            var onlineRows = await (
+                from user in _context.LoginUsers.AsNoTracking()
+                join employee in _context.Employees.AsNoTracking()
+                    on user.UserId equals employee.LoginUserId into employeeJoin
+                from employee in employeeJoin.DefaultIfEmpty()
+                where user.Status == "ACTIVE"
+                      && user.LastSeenAt.HasValue
+                      && user.LastSeenAt.Value >= onlineCutoff
+                orderby user.LastSeenAt descending
+                select new
+                {
+                    user.UserId,
+                    user.Username,
+                    user.ProfileImagePath,
+                    user.LastSeenAt,
+                    EmployeeName = employee != null ? employee.EmpName : null
+                })
+                .ToListAsync();
+
+            return onlineRows
+                .GroupBy(x => x.UserId)
+                .Select((group, index) =>
+                {
+                    var row = group.First();
+                    var displayName = !string.IsNullOrWhiteSpace(row.EmployeeName)
+                        ? row.EmployeeName!
+                        : row.Username;
+
+                    return new RequirementBoardOnlineUserViewModel
+                    {
+                        UserId = row.UserId,
+                        DisplayName = displayName,
+                        AvatarPath = ResolveOnlineAvatarPath(row.ProfileImagePath),
+                        ColorClass = $"c{(index % 5) + 1}",
+                        LastSeenAt = row.LastSeenAt
+                    };
+                })
+                .ToList();
+        }
+
+        private void ApplyPermissionFlags(RequirementBoardHomeViewModel model)
+        {
+            model.CanCreate = CanMenu("RequirementBoard.Create");
+            model.CanEdit = CanMenu("RequirementBoard.Edit");
+            model.CanDelete = CanMenu("RequirementBoard.Delete");
+        }
+
+        private void ApplyPermissionFlags(RequirementBoardViewModel model)
+        {
+            model.CanCreate = CanMenu("RequirementBoard.Create");
+            model.CanEdit = CanMenu("RequirementBoard.Edit");
+            model.CanDelete = CanMenu("RequirementBoard.Delete");
+        }
+
+        private bool CanMenu(string key)
+        {
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim();
+            if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+            var menus = HttpContext.Session.GetString("Menus") ?? "";
+            return menus
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Contains(key, StringComparer.OrdinalIgnoreCase);
         }
 
         private static string FormatFileSize(long bytes)
@@ -780,6 +1221,63 @@ namespace ProjectTracking.Controllers
             }
 
             return color.ToLowerInvariant();
+        }
+
+        private static void ApplyBoardCover(RequirementBoard board, string? coverChoice, bool useDefaultWhenMissing)
+        {
+            var choice = (coverChoice ?? "").Trim();
+
+            if (choice.StartsWith("image:", StringComparison.OrdinalIgnoreCase))
+            {
+                var imagePath = choice["image:".Length..].Trim();
+                if (IsAllowedBoardCoverImage(imagePath))
+                {
+                    board.CoverImagePath = imagePath;
+                    if (string.IsNullOrWhiteSpace(board.CoverColor))
+                        board.CoverColor = BoardGradientCovers[0];
+                    return;
+                }
+            }
+
+            if (choice.StartsWith("color:", StringComparison.OrdinalIgnoreCase))
+            {
+                var color = choice["color:".Length..].Trim().ToLowerInvariant();
+                if (BoardGradientCovers.Contains(color, StringComparer.OrdinalIgnoreCase))
+                {
+                    board.CoverColor = color;
+                    board.CoverImagePath = null;
+                    return;
+                }
+
+                var legacyColor = NormalizeLabelColor(color);
+                if (LegacyBoardCoverColors.Contains(legacyColor, StringComparer.OrdinalIgnoreCase))
+                {
+                    board.CoverColor = legacyColor;
+                    board.CoverImagePath = null;
+                    return;
+                }
+            }
+
+            if (useDefaultWhenMissing)
+            {
+                board.CoverColor = BoardGradientCovers[0];
+                board.CoverImagePath = null;
+            }
+        }
+
+        private static bool IsAllowedBoardCoverImage(string imagePath)
+        {
+            if (BoardCoverImages.Contains(imagePath, StringComparer.OrdinalIgnoreCase))
+                return true;
+
+            if (!Uri.TryCreate(imagePath, UriKind.Absolute, out var uri))
+                return false;
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return string.Equals(uri.Host, "source.unsplash.com", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(uri.Host, "images.unsplash.com", StringComparison.OrdinalIgnoreCase);
         }
 
         private static DateTime? ParseBoardDate(string? value)

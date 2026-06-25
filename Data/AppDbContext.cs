@@ -66,6 +66,8 @@ namespace ProjectTracking.Data
         public DbSet<TelegramRecipient> TelegramRecipients { get; set; }
         public DbSet<WeeklyReport> WeeklyReports { get; set; }
         public DbSet<WeeklyReportAttachment> WeeklyReportAttachments { get; set; }
+        public DbSet<RequirementBoardGroup> RequirementBoardGroups { get; set; }
+        public DbSet<RequirementBoard> RequirementBoards { get; set; }
         public DbSet<RequirementBoardColumn> RequirementBoardColumns { get; set; }
         public DbSet<RequirementCard> RequirementCards { get; set; }
         public DbSet<RequirementCardAttachment> RequirementCardAttachments { get; set; }
@@ -1302,12 +1304,61 @@ namespace ProjectTracking.Data
             // =========================
             // REQUIREMENT BOARD
             // =========================
+            modelBuilder.Entity<RequirementBoardGroup>(entity =>
+            {
+                entity.ToTable("requirement_board_groups");
+                entity.HasKey(x => x.GroupId);
+
+                entity.Property(x => x.GroupId).HasColumnName("group_id");
+                entity.Property(x => x.GroupName).HasColumnName("group_name").HasColumnType("varchar(150)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.IsActive).HasColumnName("is_active");
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasMany(x => x.Boards)
+                    .WithOne(x => x.Group)
+                    .HasForeignKey(x => x.GroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder }).HasDatabaseName("idx_requirement_board_groups_active_sort");
+            });
+
+            modelBuilder.Entity<RequirementBoard>(entity =>
+            {
+                entity.ToTable("requirement_boards");
+                entity.HasKey(x => x.BoardId);
+
+                entity.Property(x => x.BoardId).HasColumnName("board_id");
+                entity.Property(x => x.GroupId).HasColumnName("group_id");
+                entity.Property(x => x.BoardName).HasColumnName("board_name").HasColumnType("varchar(150)").IsRequired();
+                entity.Property(x => x.CoverImagePath).HasColumnName("cover_image_path").HasColumnType("varchar(500)");
+                entity.Property(x => x.CoverColor).HasColumnName("cover_color").HasColumnType("varchar(20)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.IsActive).HasColumnName("is_active");
+                entity.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasMany(x => x.Columns)
+                    .WithOne(x => x.Board)
+                    .HasForeignKey(x => x.BoardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.GroupId, x.SortOrder }).HasDatabaseName("idx_requirement_boards_group_sort");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder }).HasDatabaseName("idx_requirement_boards_active_sort");
+            });
+
             modelBuilder.Entity<RequirementBoardColumn>(entity =>
             {
                 entity.ToTable("requirement_board_columns");
                 entity.HasKey(x => x.ColumnId);
 
                 entity.Property(x => x.ColumnId).HasColumnName("column_id");
+                entity.Property(x => x.BoardId).HasColumnName("board_id");
                 entity.Property(x => x.ColumnName).HasColumnName("column_name").HasColumnType("varchar(150)").IsRequired();
                 entity.Property(x => x.SortOrder).HasColumnName("sort_order");
                 entity.Property(x => x.IsActive).HasColumnName("is_active");
@@ -1322,6 +1373,7 @@ namespace ProjectTracking.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(x => x.SortOrder).HasDatabaseName("idx_requirement_columns_sort");
+                entity.HasIndex(x => new { x.BoardId, x.SortOrder }).HasDatabaseName("idx_requirement_columns_board_sort");
             });
 
             modelBuilder.Entity<RequirementCard>(entity =>

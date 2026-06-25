@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Rose clouds board background">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fecdd3"/><stop offset=".52" stop-color="#f472b6"/><stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".42">
+    <ellipse cx="138" cy="132" rx="92" ry="34"/><ellipse cx="208" cy="118" rx="74" ry="30"/><ellipse cx="470" cy="174" rx="118" ry="42"/><ellipse cx="548" cy="154" rx="76" ry="30"/>
+  </g>
+  <path d="M0 266c112-36 220-32 328 12 96 38 202 28 312-26v108H0z" fill="#581c87" opacity=".32"/>
+</svg>

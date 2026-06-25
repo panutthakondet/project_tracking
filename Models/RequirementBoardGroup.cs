@@ -3,20 +3,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ProjectTracking.Models
 {
-    [Table("requirement_board_columns")]
-    public class RequirementBoardColumn
+    [Table("requirement_board_groups")]
+    public class RequirementBoardGroup
     {
         [Key]
-        [Column("column_id")]
-        public int ColumnId { get; set; }
-
-        [Column("board_id")]
-        public int BoardId { get; set; }
+        [Column("group_id")]
+        public int GroupId { get; set; }
 
         [Required]
         [StringLength(150)]
-        [Column("column_name")]
-        public string ColumnName { get; set; } = "";
+        [Column("group_name")]
+        public string GroupName { get; set; } = "";
 
         [Column("sort_order")]
         public int SortOrder { get; set; }
@@ -36,9 +33,6 @@ namespace ProjectTracking.Models
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
-        [ForeignKey(nameof(BoardId))]
-        public RequirementBoard? Board { get; set; }
-
-        public ICollection<RequirementCard> Cards { get; set; } = new List<RequirementCard>();
+        public ICollection<RequirementBoard> Boards { get; set; } = new List<RequirementBoard>();
     }
 }

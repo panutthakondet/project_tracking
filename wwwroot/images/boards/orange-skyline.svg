@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Orange skyline board background">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset=".48" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#172033"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <circle cx="118" cy="118" r="78" fill="#fff7ed" opacity=".34"/>
+  <path d="M0 226h640v134H0z" fill="#1f2937" opacity=".76"/>
+  <g fill="#111827">
+    <rect x="28" y="184" width="58" height="176"/><rect x="104" y="142" width="44" height="218"/><rect x="166" y="202" width="80" height="158"/>
+    <rect x="278" y="120" width="52" height="240"/><path d="M374 360V92l24-64 24 64v268z"/>
+    <rect x="458" y="172" width="68" height="188"/><rect x="552" y="148" width="50" height="212"/>
+  </g>
+  <g fill="#fed7aa" opacity=".58">
+    <rect x="44" y="210" width="20" height="6"/><rect x="44" y="238" width="28" height="6"/><rect x="114" y="172" width="18" height="6"/>
+    <rect x="292" y="154" width="24" height="6"/><rect x="292" y="190" width="20" height="6"/><rect x="474" y="206" width="32" height="6"/>
+  </g>
+</svg>

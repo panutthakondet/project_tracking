@@ -208,6 +208,7 @@ await EnsureSystemConfigTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);
 await EnsureWeeklyReportTablesAsync(app.Services);
+await EnsureRequirementBoardTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 
@@ -259,7 +260,7 @@ app.Use(async (context, next) =>
 
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; " +
-        "img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://*.google.com; " +
+        "img-src 'self' data: blob: https://maps.gstatic.com https://maps.googleapis.com https://*.google.com https://images.unsplash.com https://plus.unsplash.com; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://cdn.jsdelivr.net; " +
         "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net https:; " +
         "font-src 'self' data: https://fonts.gstatic.com https:; " +
@@ -920,6 +921,295 @@ static async Task EnsureSupportOrderStatusValuesAsync(IServiceProvider services)
             ) h ON h.`order_id` = o.`order_id`
             SET o.`reopen_count` = COALESCE(h.`fail_count`, 0),
                 o.`is_reopen` = CASE WHEN COALESCE(h.`fail_count`, 0) > 0 THEN 1 ELSE 0 END;";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureRequirementBoardTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+
+        async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND COLUMN_NAME = '{columnName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task<bool> ConstraintExistsAsync(string constraintName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND CONSTRAINT_NAME = '{constraintName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_board_groups` (
+              `group_id` int(11) NOT NULL AUTO_INCREMENT,
+              `group_name` varchar(150) NOT NULL,
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`group_id`),
+              KEY `idx_requirement_board_groups_active_sort` (`is_active`,`sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_boards` (
+              `board_id` int(11) NOT NULL AUTO_INCREMENT,
+              `group_id` int(11) NOT NULL,
+              `board_name` varchar(150) NOT NULL,
+              `cover_image_path` varchar(500) DEFAULT NULL,
+              `cover_color` varchar(20) NOT NULL DEFAULT '#22c7b8',
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`board_id`),
+              KEY `idx_requirement_boards_group_sort` (`group_id`,`sort_order`),
+              KEY `idx_requirement_boards_active_sort` (`is_active`,`sort_order`),
+              CONSTRAINT `fk_requirement_boards_group`
+                FOREIGN KEY (`group_id`) REFERENCES `requirement_board_groups` (`group_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `requirement_board_groups` (`group_name`, `sort_order`)
+            SELECT 'Project Boards', 1
+            FROM DUAL
+            WHERE NOT EXISTS (
+                SELECT 1 FROM `requirement_board_groups`
+                WHERE `group_name` = 'Project Boards'
+            );";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `requirement_boards` (`group_id`, `board_name`, `cover_color`, `sort_order`)
+            SELECT g.`group_id`, 'Default Project Board', '#22c7b8', 1
+            FROM `requirement_board_groups` g
+            WHERE g.`group_name` = 'Project Boards'
+              AND NOT EXISTS (
+                  SELECT 1 FROM `requirement_boards`
+                  WHERE `board_name` = 'Default Project Board'
+              )
+            LIMIT 1;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_board_columns` (
+              `column_id` int(11) NOT NULL AUTO_INCREMENT,
+              `board_id` int(11) NOT NULL,
+              `column_name` varchar(150) NOT NULL,
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`column_id`),
+              KEY `idx_requirement_columns_sort` (`sort_order`),
+              KEY `idx_requirement_columns_board_sort` (`board_id`,`sort_order`),
+              CONSTRAINT `fk_requirement_columns_board`
+                FOREIGN KEY (`board_id`) REFERENCES `requirement_boards` (`board_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        if (!await ColumnExistsAsync("requirement_board_columns", "board_id"))
+        {
+            command.CommandText = @"
+                ALTER TABLE `requirement_board_columns`
+                  ADD COLUMN `board_id` int(11) NULL AFTER `column_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `requirement_board_columns`
+            SET `board_id` = (
+                SELECT `board_id`
+                FROM `requirement_boards`
+                WHERE `board_name` = 'Default Project Board'
+                ORDER BY `board_id`
+                LIMIT 1
+            )
+            WHERE `board_id` IS NULL OR `board_id` = 0;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `requirement_board_columns`
+              MODIFY COLUMN `board_id` int(11) NOT NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        if (!await ConstraintExistsAsync("fk_requirement_columns_board"))
+        {
+            command.CommandText = @"
+                ALTER TABLE `requirement_board_columns`
+                  ADD CONSTRAINT `fk_requirement_columns_board`
+                  FOREIGN KEY (`board_id`) REFERENCES `requirement_boards` (`board_id`)
+                  ON DELETE CASCADE;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_cards` (
+              `card_id` int(11) NOT NULL AUTO_INCREMENT,
+              `column_id` int(11) NOT NULL,
+              `title` varchar(255) NOT NULL,
+              `detail` text DEFAULT NULL,
+              `cover_image_path` varchar(500) DEFAULT NULL,
+              `cover_image_name` varchar(255) DEFAULT NULL,
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_archived` tinyint(1) NOT NULL DEFAULT 0,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`card_id`),
+              KEY `idx_requirement_cards_column_sort` (`column_id`,`sort_order`),
+              KEY `idx_requirement_cards_created_by_user` (`created_by_user_id`),
+              KEY `idx_requirement_cards_created_by_emp` (`created_by_emp_id`),
+              CONSTRAINT `fk_requirement_cards_column`
+                FOREIGN KEY (`column_id`) REFERENCES `requirement_board_columns` (`column_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        if (!await ColumnExistsAsync("requirement_cards", "cover_image_path"))
+        {
+            command.CommandText = @"
+                ALTER TABLE `requirement_cards`
+                  ADD COLUMN `cover_image_path` varchar(500) DEFAULT NULL AFTER `detail`,
+                  ADD COLUMN `cover_image_name` varchar(255) DEFAULT NULL AFTER `cover_image_path`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_card_attachments` (
+              `attachment_id` int(11) NOT NULL AUTO_INCREMENT,
+              `card_id` int(11) NOT NULL,
+              `file_name` varchar(255) NOT NULL,
+              `stored_file_name` varchar(255) NOT NULL,
+              `file_path` varchar(500) NOT NULL,
+              `content_type` varchar(150) DEFAULT NULL,
+              `file_size` bigint DEFAULT 0,
+              `uploaded_by_user_id` int(11) DEFAULT NULL,
+              `uploaded_by_emp_id` int(11) DEFAULT NULL,
+              `uploaded_at` datetime DEFAULT current_timestamp(),
+              PRIMARY KEY (`attachment_id`),
+              KEY `idx_requirement_attachments_card` (`card_id`),
+              KEY `idx_requirement_attachments_user` (`uploaded_by_user_id`),
+              KEY `idx_requirement_attachments_emp` (`uploaded_by_emp_id`),
+              CONSTRAINT `fk_requirement_attachments_card`
+                FOREIGN KEY (`card_id`) REFERENCES `requirement_cards` (`card_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_board_labels` (
+              `label_id` int(11) NOT NULL AUTO_INCREMENT,
+              `label_name` varchar(100) NOT NULL,
+              `color_hex` varchar(20) NOT NULL DEFAULT '#22c7b8',
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`label_id`),
+              KEY `idx_requirement_labels_active_sort` (`is_active`,`sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_card_labels` (
+              `card_id` int(11) NOT NULL,
+              `label_id` int(11) NOT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              PRIMARY KEY (`card_id`,`label_id`),
+              KEY `idx_requirement_card_labels_label` (`label_id`),
+              CONSTRAINT `fk_requirement_card_labels_card`
+                FOREIGN KEY (`card_id`) REFERENCES `requirement_cards` (`card_id`) ON DELETE CASCADE,
+              CONSTRAINT `fk_requirement_card_labels_label`
+                FOREIGN KEY (`label_id`) REFERENCES `requirement_board_labels` (`label_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `requirement_card_phase_items` (
+              `item_id` int(11) NOT NULL AUTO_INCREMENT,
+              `card_id` int(11) NOT NULL,
+              `phase_name` varchar(500) NOT NULL,
+              `phase_type` varchar(20) NOT NULL DEFAULT 'MAIN',
+              `phase_order` int(11) NOT NULL DEFAULT 1,
+              `period_order` int(11) NOT NULL DEFAULT 1,
+              `phase_sort` int(11) NOT NULL DEFAULT 0,
+              `phase_status` varchar(50) DEFAULT 'วางแผน',
+              `plan_start` date DEFAULT NULL,
+              `plan_end` date DEFAULT NULL,
+              `period_end_date` date DEFAULT NULL,
+              `created_by_user_id` int(11) DEFAULT NULL,
+              `created_by_emp_id` int(11) DEFAULT NULL,
+              `created_at` datetime DEFAULT current_timestamp(),
+              `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`item_id`),
+              KEY `idx_requirement_card_phase_card_sort` (`card_id`,`phase_sort`),
+              CONSTRAINT `fk_requirement_card_phase_card`
+                FOREIGN KEY (`card_id`) REFERENCES `requirement_cards` (`card_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `requirement_board_columns` (`board_id`, `column_name`, `sort_order`)
+            SELECT b.`board_id`, 'To Do', 1
+            FROM `requirement_boards` b
+            WHERE b.`board_name` = 'Default Project Board'
+              AND NOT EXISTS (
+                  SELECT 1 FROM `requirement_board_columns` c
+                  WHERE c.`board_id` = b.`board_id`
+                    AND c.`column_name` = 'To Do'
+              )
+            LIMIT 1;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `requirement_board_columns` (`board_id`, `column_name`, `sort_order`)
+            SELECT b.`board_id`, 'Complete', 2
+            FROM `requirement_boards` b
+            WHERE b.`board_name` = 'Default Project Board'
+              AND NOT EXISTS (
+                  SELECT 1 FROM `requirement_board_columns` c
+                  WHERE c.`board_id` = b.`board_id`
+                    AND c.`column_name` = 'Complete'
+              )
+            LIMIT 1;";
         await command.ExecuteNonQueryAsync();
     }
     finally
