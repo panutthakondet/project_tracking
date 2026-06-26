@@ -177,53 +177,87 @@ namespace ProjectTracking.Controllers
             return RedirectToAction("Index", new { projectId = model.project_id });
         }
 
+        [HttpGet]
         [RequireMenu("TestScenarios.Import")]
         public async Task<IActionResult> ImportTemplates(int? projectId, int? groupId)
         {
             if (!projectId.HasValue || !groupId.HasValue)
                 return RedirectToAction("Index");
 
-            var templates = _context.TestScenarioTemplates
-                .Where(t => t.group_id == groupId && t.is_active)
-                .ToList();
+            await ImportTemplatesForGroupsAsync(projectId.Value, new[] { groupId.Value });
 
-            var lastCode = _context.TestScenarios
-                .Where(x => x.project_id == projectId.Value)
-                .OrderByDescending(x => x.scenario_id)
-                .Select(x => x.scenario_code)
-                .FirstOrDefault();
+            return RedirectToAction("Index", new { projectId, groupId });
+        }
 
-            int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastCode) && lastCode.Contains("-"))
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Import")]
+        public async Task<IActionResult> ImportTemplates(int? projectId, List<int> groupIds)
+        {
+            if (!projectId.HasValue || groupIds == null || groupIds.Count == 0)
             {
-                var parts = lastCode.Split('-');
-                if (int.TryParse(parts.Last(), out int num))
-                    nextNumber = num + 1;
+                TempData["Error"] = "กรุณาเลือก Group อย่างน้อย 1 รายการก่อน Import";
+                return RedirectToAction("Index", new { projectId });
             }
 
-            foreach (var t in templates)
-            {
-                var scenario = new TestScenario
-                {
-                    project_id = projectId.Value,
-                    group_id = t.group_id,
-                    scenario_code = $"TC-{nextNumber++:D4}",
-                    title = t.title,
-                    precondition = t.precondition,
-                    steps = t.steps,
-                    expected_result = t.expected_result,
-                    priority = t.priority_default,
-                    status = t.status_default,
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now
-                };
+            await ImportTemplatesForGroupsAsync(projectId.Value, groupIds);
 
-                _context.TestScenarios.Add(scenario);
+            return RedirectToAction("Index", new { projectId });
+        }
+
+        private async Task ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds)
+        {
+            var selectedGroupIds = groupIds
+                .Distinct()
+                .ToList();
+
+            if (selectedGroupIds.Count == 0)
+                return;
+
+            var orderedGroupIds = await _context.TestTemplateGroups
+                .AsNoTracking()
+                .Where(g => g.is_active && selectedGroupIds.Contains(g.group_id))
+                .OrderBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .Select(g => g.group_id)
+                .ToListAsync();
+
+            if (orderedGroupIds.Count == 0)
+                return;
+
+            var templates = await _context.TestScenarioTemplates
+                .AsNoTracking()
+                .Where(t => t.is_active && t.group_id.HasValue && orderedGroupIds.Contains(t.group_id.Value))
+                .OrderBy(t => t.template_id)
+                .ToListAsync();
+
+            var nextNumber = await GetNextScenarioNumberAsync(projectId);
+
+            foreach (var selectedGroupId in orderedGroupIds)
+            {
+                foreach (var t in templates.Where(t => t.group_id == selectedGroupId))
+                {
+                    var scenario = new TestScenario
+                    {
+                        project_id = projectId,
+                        group_id = t.group_id,
+                        scenario_code = $"TC-{nextNumber++:D4}",
+                        title = t.title,
+                        precondition = t.precondition,
+                        steps = t.steps,
+                        expected_result = t.expected_result,
+                        priority = t.priority_default,
+                        status = t.status_default,
+                        created_at = DateTime.Now,
+                        updated_at = DateTime.Now
+                    };
+
+                    _context.TestScenarios.Add(scenario);
+                }
             }
 
             await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index", new { projectId, groupId });
+            await RenumberScenarioCodesAsync(projectId);
         }
 
         [HttpPost]
@@ -236,6 +270,7 @@ namespace ProjectTracking.Controllers
 
             _context.TestScenarios.Remove(scenario);
             await _context.SaveChangesAsync();
+            await RenumberScenarioCodesAsync(scenario.project_id);
 
             return RedirectToAction("Index", new { projectId = scenario.project_id });
         }
@@ -425,6 +460,7 @@ namespace ProjectTracking.Controllers
             _context.TestScenarios.RemoveRange(scenarios);
 
             await _context.SaveChangesAsync();
+            await RenumberScenarioCodesAsync(projectId);
 
             return RedirectToAction("Index", new { projectId });
         }
@@ -435,17 +471,105 @@ namespace ProjectTracking.Controllers
             if (data == null || data.Count == 0)
                 return BadRequest();
 
+            var projectIds = new HashSet<int>();
+
             foreach (var item in data)
             {
                 var scenario = await _context.TestScenarios.FindAsync(item.id);
                 if (scenario != null)
                 {
                     scenario.sort_order = item.sort;
+                    projectIds.Add(scenario.project_id);
                 }
             }
 
             await _context.SaveChangesAsync();
+
+            foreach (var projectId in projectIds)
+            {
+                await RenumberScenarioCodesAsync(projectId);
+            }
+
             return Ok();
+        }
+
+        private async Task RenumberScenarioCodesAsync(int projectId)
+        {
+            var scenarios = await _context.TestScenarios
+                .Where(x => x.project_id == projectId)
+                .Join(
+                    _context.TestTemplateGroups,
+                    s => s.group_id,
+                    g => g.group_id,
+                    (s, g) => new
+                    {
+                        Scenario = s,
+                        GroupSort = g.sort_order,
+                        GroupName = g.group_name
+                    }
+                )
+                .OrderBy(x => x.GroupSort)
+                .ThenBy(x => x.GroupName)
+                .ThenBy(x => x.Scenario.sort_order)
+                .ThenBy(x => x.Scenario.scenario_id)
+                .Select(x => x.Scenario)
+                .ToListAsync();
+
+            var number = 1;
+            var changed = false;
+
+            foreach (var scenario in scenarios)
+            {
+                var nextCode = $"TC-{number++:D4}";
+                if (string.Equals(scenario.scenario_code, nextCode, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                scenario.scenario_code = nextCode;
+                scenario.updated_at = DateTime.Now;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                foreach (var scenario in scenarios)
+                {
+                    scenario.scenario_code = $"TMP{scenario.scenario_id:D7}";
+                    scenario.updated_at = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+
+                number = 1;
+                foreach (var scenario in scenarios)
+                {
+                    scenario.scenario_code = $"TC-{number++:D4}";
+                    scenario.updated_at = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async Task<int> GetNextScenarioNumberAsync(int projectId)
+        {
+            var codes = await _context.TestScenarios
+                .AsNoTracking()
+                .Where(x => x.project_id == projectId)
+                .Select(x => x.scenario_code)
+                .ToListAsync();
+
+            var maxNumber = 0;
+            foreach (var code in codes)
+            {
+                if (string.IsNullOrWhiteSpace(code) || !code.Contains("-"))
+                    continue;
+
+                var parts = code.Split('-');
+                if (int.TryParse(parts.Last(), out var number) && number > maxNumber)
+                    maxNumber = number;
+            }
+
+            return maxNumber + 1;
         }
 
         public class SortDto

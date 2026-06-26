@@ -2952,26 +2952,31 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
   color: #0f766e;
   background: rgba(20, 184, 166, .12);
   font-size: .94rem;
-  font-weight: 900;
+  font-weight: 650;
   line-height: 1.25;
+  letter-spacing: 0;
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 .route-controller-meetings .meeting-selected-attendee > span {
   min-width: 0;
   overflow-wrap: anywhere;
+  font-weight: 650;
+  text-shadow: none;
 }
 
 .route-controller-meetings .meeting-attendee-remove {
   flex: 0 0 auto;
   width: 24px;
   height: 24px;
-  border: 0;
+  border: 1px solid #ef4444;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: #ef4444;
+  color: #ef4444;
+  background: #fff;
   font-size: 18px;
   font-weight: 900;
   line-height: 1;
@@ -2979,7 +2984,9 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
 
 .route-controller-meetings .meeting-attendee-remove:hover,
 .route-controller-meetings .meeting-attendee-remove:focus {
-  background: #be123c;
+  color: #be123c;
+  border-color: #be123c;
+  background: #fff5f5;
 }
 
 .route-controller-meetings .meeting-attendee-empty {

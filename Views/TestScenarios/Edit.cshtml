@@ -124,8 +124,15 @@
 
     <div class="form-group">
         <label>แนบรูปภาพ (เพิ่ม/อัปเดต Evidence)</label>
-        <input type="file" name="files" multiple class="form-control" />
-        <small class="text-muted">สามารถเพิ่มรูปเพิ่มเติมได้</small>
+        <input type="file"
+               name="files"
+               multiple
+               accept="image/*"
+               class="form-control"
+               data-paste-image-upload />
+        <small class="text-muted d-block mt-2">
+            เลือกได้หลายรูป หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง
+        </small>
     </div>
 
     <hr />
@@ -174,3 +181,8 @@
         </a>
     </div>
 </form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
+}

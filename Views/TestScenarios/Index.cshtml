@@ -362,6 +362,94 @@
         border-top: 1px solid #e2e8f0;
     }
 
+    .scenario-group-picker {
+        padding: 14px;
+        border: 1px solid #d8e2ef;
+        border-radius: 16px;
+        background: #f8fafc;
+    }
+
+    .scenario-group-picker__controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .scenario-group-picker__controls .btn {
+        min-width: 92px;
+        font-weight: 900;
+    }
+
+    .scenario-selected-groups {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 44px;
+        margin-top: 12px;
+    }
+
+    .scenario-selected-group {
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px 8px 12px;
+        border: 1px solid rgba(20, 184, 166, .28);
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .12);
+        font-size: .94rem;
+        font-weight: 650;
+        line-height: 1.25;
+        letter-spacing: 0;
+        text-shadow: none;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .scenario-selected-group > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-weight: 650;
+        text-shadow: none;
+    }
+
+    .scenario-group-remove {
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+        border: 1px solid #ef4444;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ef4444;
+        background: #fff;
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .scenario-group-remove:hover,
+    .scenario-group-remove:focus {
+        color: #be123c;
+        border-color: #be123c;
+        background: #fff5f5;
+    }
+
+    .scenario-group-empty {
+        width: 100%;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #fff;
+        font-weight: 800;
+    }
+
     @@media (max-width: 992px) {
         .scenario-detail-grid {
             grid-template-columns: 1fr;
@@ -377,6 +465,10 @@
 
         .scenario-card-actions {
             justify-content: stretch;
+        }
+
+        .scenario-group-picker__controls {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -428,59 +520,30 @@
                             selGroup = Convert.ToInt32(ViewBag.SelectedGroup);
                         }
                     }
-                    <select name="groupId"
-                            class="form-select"
-                            onchange="this.form.submit()">
-                        <option value="">-- Select Group --</option>
-                        @if (ViewBag.Groups != null)
-                        {
-                            foreach (var g in ViewBag.Groups)
-                            {
-                                <option value="@g.group_id"
-                                        selected="@(selGroup == g.group_id ? "selected" : null)">
-                                    @g.group_name
-                                </option>
-                            }
-                        }
-                    </select>
-
-                    <div class="mt-2 border rounded p-2" style="max-height:180px; overflow:auto;">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <strong>เลือกหลาย Group สำหรับ Preview PDF</strong>
-                            <div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAllGroups(true)">เลือกทั้งหมด</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAllGroups(false)">ล้าง</button>
-                            </div>
-                        </div>
-
-                        @if (ViewBag.Groups != null)
-                        {
-                            var projectGroupIds = list
-                                .Select(x => x.group_id.GetValueOrDefault())
-                                .Where(x => x != 0)
-                                .Distinct()
-                                .ToList();
-
-                            foreach (var g in ViewBag.Groups)
-                            {
-                                if (!projectGroupIds.Contains(g.group_id))
+                    <div class="scenario-group-picker" data-group-picker>
+                        <div class="scenario-group-picker__controls">
+                            <select class="form-select" data-group-select>
+                                <option value="">-- Select Group --</option>
+                                @if (ViewBag.Groups != null)
                                 {
-                                    continue;
+                                    foreach (var g in ViewBag.Groups)
+                                    {
+                                        <option value="@g.group_id"
+                                                data-label="@g.group_name"
+                                                data-selected="@(selGroup == g.group_id ? "true" : "false")">
+                                            @g.group_name
+                                        </option>
+                                    }
                                 }
-
-                                <div class="form-check">
-                                    <input class="form-check-input group-checkbox"
-                                           type="checkbox"
-                                           value="@g.group_id"
-                                           id="g_@g.group_id">
-                                    <label class="form-check-label" for="g_@g.group_id">
-                                        @g.group_name
-                                    </label>
-                                </div>
-                            }
-                        }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-pill" data-group-add>
+                                เพิ่ม
+                            </button>
+                        </div>
+                        <div class="scenario-selected-groups" data-group-list></div>
+                        <div data-group-inputs></div>
                     </div>
-                    <small class="form-hint">เลือกได้หลาย Group เพื่อ Preview PDF</small>
+                    <small class="form-hint">เลือกทีละ Group กดเพิ่ม แล้วค่อยกด Import Templates หรือ Preview PDF</small>
                 </div>
             </div>
         </form>
@@ -489,19 +552,29 @@
 
 @if (ViewBag.SelectedProject != null)
 {
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="toolbar">
 
             @if (CanMenu("TestScenarios.Import"))
             {
-                <a asp-action="ImportTemplates"
-                   asp-route-projectId="@ViewBag.SelectedProject"
-                   asp-route-groupId="@ViewBag.SelectedGroup"
-                   class="btn btn-primary"
-                   title="Import Template"
-                   onclick="return confirm('Import template ตาม Group ที่เลือกเข้าโครงการนี้?');">
-                    Import Templates
-                </a>
+                <form id="importTemplatesForm"
+                      asp-action="ImportTemplates"
+                      method="post"
+                      style="display:inline;"
+                      onsubmit="return importSelectedGroups();">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
+                    <button type="submit"
+                            class="btn btn-primary"
+                            title="Import Template">
+                        Import Templates
+                    </button>
+                </form>
             }
             else
             {
@@ -690,8 +763,118 @@ else
         });
     });
 
-    function checkAllGroups(flag) {
-        document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = flag);
+    const selectedGroups = new Map();
+
+    function initScenarioGroupPicker() {
+        const picker = document.querySelector('[data-group-picker]');
+        if (!picker) return;
+
+        const select = picker.querySelector('[data-group-select]');
+        const addButton = picker.querySelector('[data-group-add]');
+        const list = picker.querySelector('[data-group-list]');
+        const inputs = picker.querySelector('[data-group-inputs]');
+
+        function findOption(value) {
+            return Array.from(select.options).find(option => option.value === value);
+        }
+
+        function syncInputs() {
+            inputs.innerHTML = '';
+            selectedGroups.forEach((label, id) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'groupIds';
+                input.value = id;
+                input.setAttribute('form', 'importTemplatesForm');
+                inputs.appendChild(input);
+            });
+        }
+
+        function render() {
+            list.innerHTML = '';
+
+            if (selectedGroups.size === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'scenario-group-empty';
+                empty.textContent = 'ยังไม่ได้เลือก Group';
+                list.appendChild(empty);
+                syncInputs();
+                return;
+            }
+
+            selectedGroups.forEach((label, id) => {
+                const chip = document.createElement('span');
+                chip.className = 'scenario-selected-group';
+
+                const text = document.createElement('span');
+                text.textContent = label;
+
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'scenario-group-remove';
+                remove.setAttribute('aria-label', `ลบ ${label}`);
+                remove.dataset.removeGroup = id;
+                remove.textContent = '×';
+
+                chip.appendChild(text);
+                chip.appendChild(remove);
+                list.appendChild(chip);
+            });
+
+            syncInputs();
+        }
+
+        function addGroup(value) {
+            if (!value || selectedGroups.has(value)) return;
+
+            const option = findOption(value);
+            if (!option) return;
+
+            const label = option.dataset.label || option.textContent.trim();
+            selectedGroups.set(value, label);
+            option.disabled = true;
+            select.value = '';
+            render();
+        }
+
+        addButton?.addEventListener('click', function () {
+            addGroup(select.value);
+        });
+
+        select?.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addGroup(select.value);
+            }
+        });
+
+        list?.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-remove-group]');
+            if (!button) return;
+
+            const id = button.dataset.removeGroup;
+            selectedGroups.delete(id);
+
+            const option = findOption(id);
+            if (option) option.disabled = false;
+
+            render();
+        });
+
+        Array.from(select.options)
+            .filter(option => option.dataset.selected === 'true')
+            .forEach(option => addGroup(option.value));
+
+        render();
+    }
+
+    function importSelectedGroups() {
+        if (selectedGroups.size === 0) {
+            alert('กรุณาเลือก Group อย่างน้อย 1 รายการก่อน Import');
+            return false;
+        }
+
+        return confirm(`Import Templates จาก ${selectedGroups.size} Group ที่เลือกเข้าโครงการนี้?`);
     }
 
     function previewPdf() {
@@ -704,11 +887,12 @@ else
 
         let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
 
-        document.querySelectorAll('.group-checkbox:checked')
-            .forEach(cb => {
-                url += `&groupIds=${cb.value}`;
+        selectedGroups.forEach((label, id) => {
+                url += `&groupIds=${id}`;
             });
 
         window.open(url, '_blank');
     }
+
+    initScenarioGroupPicker();
 </script>

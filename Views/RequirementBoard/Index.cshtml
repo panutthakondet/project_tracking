@@ -7,6 +7,17 @@
     var canCreate = Model.CanCreate;
     var canEdit = Model.CanEdit;
     var canDelete = Model.CanDelete;
+    var groupToneClasses = new[]
+    {
+        "tone-blue",
+        "tone-teal",
+        "tone-rose",
+        "tone-amber",
+        "tone-emerald",
+        "tone-violet",
+        "tone-sky",
+        "tone-red"
+    };
     var gradientPalette = new (string Value, string Css, string Name)[]
     {
         ("g:ocean", "linear-gradient(135deg, #14b8a6, #22d3ee)", "Ocean"),
@@ -306,6 +317,7 @@
         .boards-icon.board {
             background: linear-gradient(135deg, #dbeafe, #bfdbfe);
             color: #0b63e5;
+            font-size: 1.48rem;
             border-color: rgba(59, 130, 246, .26);
             box-shadow: 0 12px 20px rgba(37, 99, 235, .16), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -313,6 +325,7 @@
         .boards-icon.dashboard {
             background: linear-gradient(135deg, #bbf7d0, #dcfce7);
             color: #15803d;
+            font-size: 1.42rem;
             border-color: rgba(34, 197, 94, .26);
             box-shadow: 0 12px 20px rgba(22, 163, 74, .14), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -320,6 +333,7 @@
         .boards-icon.create {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
             color: #b45309;
+            font-size: 1.72rem;
             border-color: rgba(245, 158, 11, .34);
             box-shadow: 0 12px 20px rgba(245, 158, 11, .15), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -348,6 +362,10 @@
         }
 
         .boards-group-link {
+            --boards-row-accent: #6366f1;
+            --boards-row-accent-soft: rgba(99, 102, 241, .28);
+            --boards-avatar-bg: linear-gradient(135deg, #2563eb, #7c3aed);
+            --boards-avatar-shadow: rgba(67, 56, 202, .24);
             position: relative;
             display: grid;
             grid-template-columns: 46px minmax(0, 1fr);
@@ -372,20 +390,8 @@
             position: absolute;
             inset: 0 auto 0 0;
             width: 4px;
-            background: linear-gradient(180deg, #60a5fa, rgba(96, 165, 250, .35));
+            background: linear-gradient(180deg, var(--boards-row-accent), var(--boards-row-accent-soft));
             opacity: .88;
-        }
-
-        .boards-group-link:nth-child(3n + 1)::before {
-            background: linear-gradient(180deg, #6366f1, rgba(99, 102, 241, .28));
-        }
-
-        .boards-group-link:nth-child(3n + 2)::before {
-            background: linear-gradient(180deg, #14b8a6, rgba(20, 184, 166, .30));
-        }
-
-        .boards-group-link:nth-child(3n + 3)::before {
-            background: linear-gradient(180deg, #ec4899, rgba(236, 72, 153, .28));
         }
 
         .boards-group-link:hover {
@@ -409,19 +415,89 @@
             width: 46px;
             height: 46px;
             border-radius: 8px;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            background: var(--boards-avatar-bg, linear-gradient(135deg, #2563eb, #7c3aed));
             font-size: 1rem;
-            box-shadow: 0 12px 22px rgba(67, 56, 202, .24);
+            box-shadow: 0 12px 22px var(--boards-avatar-shadow, rgba(67, 56, 202, .24));
         }
 
-        .boards-group-link:nth-child(3n + 2) .boards-avatar {
-            background: linear-gradient(135deg, #0f766e, #22c55e);
-            box-shadow: 0 12px 22px rgba(15, 118, 110, .22);
+        .boards-group-link.tone-blue,
+        .boards-section.tone-blue {
+            --boards-row-accent: #4f46e5;
+            --boards-row-accent-soft: rgba(79, 70, 229, .26);
+            --boards-avatar-bg: linear-gradient(135deg, #2563eb, #7c3aed);
+            --boards-avatar-shadow: rgba(67, 56, 202, .24);
+            --boards-section-wash: rgba(79, 70, 229, .055);
+            --boards-section-border: rgba(79, 70, 229, .18);
         }
 
-        .boards-group-link:nth-child(3n + 3) .boards-avatar {
-            background: linear-gradient(135deg, #c026d3, #f97316);
-            box-shadow: 0 12px 22px rgba(192, 38, 211, .18);
+        .boards-group-link.tone-teal,
+        .boards-section.tone-teal {
+            --boards-row-accent: #14b8a6;
+            --boards-row-accent-soft: rgba(20, 184, 166, .28);
+            --boards-avatar-bg: linear-gradient(135deg, #0f766e, #22c55e);
+            --boards-avatar-shadow: rgba(15, 118, 110, .22);
+            --boards-section-wash: rgba(20, 184, 166, .06);
+            --boards-section-border: rgba(20, 184, 166, .2);
+        }
+
+        .boards-group-link.tone-rose,
+        .boards-section.tone-rose {
+            --boards-row-accent: #ec4899;
+            --boards-row-accent-soft: rgba(236, 72, 153, .26);
+            --boards-avatar-bg: linear-gradient(135deg, #db2777, #f97316);
+            --boards-avatar-shadow: rgba(219, 39, 119, .2);
+            --boards-section-wash: rgba(236, 72, 153, .052);
+            --boards-section-border: rgba(236, 72, 153, .18);
+        }
+
+        .boards-group-link.tone-amber,
+        .boards-section.tone-amber {
+            --boards-row-accent: #f59e0b;
+            --boards-row-accent-soft: rgba(245, 158, 11, .28);
+            --boards-avatar-bg: linear-gradient(135deg, #f59e0b, #ef4444);
+            --boards-avatar-shadow: rgba(245, 158, 11, .2);
+            --boards-section-wash: rgba(245, 158, 11, .055);
+            --boards-section-border: rgba(245, 158, 11, .2);
+        }
+
+        .boards-group-link.tone-emerald,
+        .boards-section.tone-emerald {
+            --boards-row-accent: #10b981;
+            --boards-row-accent-soft: rgba(16, 185, 129, .26);
+            --boards-avatar-bg: linear-gradient(135deg, #059669, #34d399);
+            --boards-avatar-shadow: rgba(5, 150, 105, .2);
+            --boards-section-wash: rgba(16, 185, 129, .055);
+            --boards-section-border: rgba(16, 185, 129, .19);
+        }
+
+        .boards-group-link.tone-violet,
+        .boards-section.tone-violet {
+            --boards-row-accent: #8b5cf6;
+            --boards-row-accent-soft: rgba(139, 92, 246, .27);
+            --boards-avatar-bg: linear-gradient(135deg, #7c3aed, #4f46e5);
+            --boards-avatar-shadow: rgba(124, 58, 237, .21);
+            --boards-section-wash: rgba(139, 92, 246, .055);
+            --boards-section-border: rgba(139, 92, 246, .18);
+        }
+
+        .boards-group-link.tone-sky,
+        .boards-section.tone-sky {
+            --boards-row-accent: #0ea5e9;
+            --boards-row-accent-soft: rgba(14, 165, 233, .26);
+            --boards-avatar-bg: linear-gradient(135deg, #0284c7, #38bdf8);
+            --boards-avatar-shadow: rgba(14, 165, 233, .2);
+            --boards-section-wash: rgba(14, 165, 233, .052);
+            --boards-section-border: rgba(14, 165, 233, .18);
+        }
+
+        .boards-group-link.tone-red,
+        .boards-section.tone-red {
+            --boards-row-accent: #ef4444;
+            --boards-row-accent-soft: rgba(239, 68, 68, .25);
+            --boards-avatar-bg: linear-gradient(135deg, #dc2626, #f43f5e);
+            --boards-avatar-shadow: rgba(220, 38, 38, .19);
+            --boards-section-wash: rgba(239, 68, 68, .052);
+            --boards-section-border: rgba(239, 68, 68, .18);
         }
 
         .boards-group-copy {
@@ -687,11 +763,11 @@
             display: grid;
             gap: 16px;
             padding: 18px 20px 24px;
-            border: 1px solid rgba(203, 213, 225, .7);
+            border: 1px solid var(--boards-section-border, rgba(203, 213, 225, .7));
             border-radius: 8px;
             background:
                 linear-gradient(180deg, rgba(255, 255, 255, .52), rgba(255, 255, 255, .18)),
-                linear-gradient(135deg, rgba(20, 184, 166, .05), rgba(12, 102, 228, .05));
+                linear-gradient(135deg, var(--boards-section-wash, rgba(20, 184, 166, .05)), rgba(12, 102, 228, .045));
             box-shadow: 0 18px 38px rgba(28, 44, 72, .06);
         }
 
@@ -1354,15 +1430,17 @@
         <div>
             <div class="boards-sidebar-title">พื้นที่ทำงานต่างๆ</div>
             <div class="boards-group-list">
-                @foreach (var group in Model.Groups)
+                @foreach (var groupItem in Model.Groups.Select((Group, Index) => new { Group, Index }))
                 {
+                    var group = groupItem.Group;
+                    var toneClass = groupToneClasses[groupItem.Index % groupToneClasses.Length];
                     var initial = string.IsNullOrWhiteSpace(group.GroupName)
                         ? "?"
                         : group.GroupName.Trim().Substring(0, 1).ToUpperInvariant();
                     var sidebarGroupCardTotal = group.Boards
                         .SelectMany(x => x.Columns)
                         .Sum(x => x.Cards.Count);
-                    <a class="boards-group-link" href="#group-@group.GroupId">
+                    <a class="boards-group-link @toneClass" href="#group-@group.GroupId">
                         <span class="boards-avatar">@initial</span>
                         <span class="boards-group-copy">
                             <span class="boards-group-name">@group.GroupName</span>
@@ -1432,15 +1510,17 @@
             <div class="boards-empty">ยังไม่มี group สำหรับกระดาน</div>
         }
 
-        @foreach (var group in Model.Groups)
+        @foreach (var groupItem in Model.Groups.Select((Group, Index) => new { Group, Index }))
         {
+            var group = groupItem.Group;
+            var toneClass = groupToneClasses[groupItem.Index % groupToneClasses.Length];
             var initial = string.IsNullOrWhiteSpace(group.GroupName)
                 ? "?"
                 : group.GroupName.Trim().Substring(0, 1).ToUpperInvariant();
             var groupCardTotal = group.Boards
                 .SelectMany(x => x.Columns)
                 .Sum(x => x.Cards.Count);
-            <section class="boards-section" id="group-@group.GroupId" data-board-section>
+            <section class="boards-section @toneClass" id="group-@group.GroupId" data-board-section>
                 <div class="boards-section-head">
                     <h2 class="boards-section-title">
                         <span class="boards-avatar">@initial</span>
