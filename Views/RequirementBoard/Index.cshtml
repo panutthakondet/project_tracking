@@ -211,9 +211,17 @@
             width: 100%;
             max-width: none;
             margin: 0;
-            padding: 22px 0 46px;
+            padding: 18px 0 46px;
             min-height: calc(100vh - 88px);
             color: #172033;
+        }
+
+        .boards-hero {
+            margin-bottom: 18px;
+        }
+
+        .boards-hero .index-title {
+            letter-spacing: 0;
         }
 
         .boards-sidebar {
@@ -223,12 +231,15 @@
             display: grid;
             gap: 20px;
             padding: 18px;
-            border: 1px solid rgba(170, 193, 219, .86);
+            border: 1px solid rgba(126, 164, 207, .82);
             border-radius: 8px;
             background:
-                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(248, 252, 255, .90)),
-                linear-gradient(135deg, rgba(20, 184, 166, .16), rgba(12, 102, 228, .10) 48%, rgba(245, 158, 11, .08));
-            box-shadow: 0 24px 52px rgba(28, 44, 72, .14);
+                linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(244, 249, 255, .93)),
+                linear-gradient(135deg, rgba(12, 102, 228, .10), rgba(20, 184, 166, .10) 50%, rgba(245, 158, 11, .055));
+            box-shadow:
+                0 24px 52px rgba(20, 42, 73, .16),
+                inset 0 0 0 1px rgba(255, 255, 255, .72),
+                inset 0 0 0 2px rgba(191, 219, 254, .34);
             overflow: hidden;
         }
 
@@ -249,16 +260,19 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            min-height: 64px;
-            padding: 8px 12px 8px 20px;
-            border: 1px solid rgba(191, 211, 235, .72);
+            min-height: 62px;
+            padding: 8px 12px 8px 18px;
+            border: 1px solid rgba(191, 211, 235, .86);
             border-radius: 8px;
             color: #243044;
             font-size: .92rem;
             font-weight: 800;
             text-decoration: none;
-            background: rgba(255, 255, 255, .72);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(248, 252, 255, .88)),
+                linear-gradient(90deg, rgba(12, 102, 228, .055), transparent 58%);
             overflow: hidden;
+            box-shadow: 0 10px 22px rgba(28, 44, 72, .055);
             transition: background .15s ease, color .15s ease, transform .15s ease, border-color .15s ease, box-shadow .15s ease;
         }
 
@@ -282,7 +296,9 @@
 
         .boards-nav-link:hover,
         .boards-create-summary:hover {
-            background: rgba(239, 246, 255, .92);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .99), rgba(239, 246, 255, .94)),
+                linear-gradient(90deg, rgba(12, 102, 228, .085), transparent 60%);
             color: #0c66e4;
             transform: translateX(2px);
             border-color: rgba(12, 102, 228, .34);
@@ -290,10 +306,12 @@
         }
 
         .boards-nav-link.is-active {
-            background: linear-gradient(135deg, #dff0ff, #d8fff2);
-            color: #075985;
-            border-color: rgba(20, 184, 166, .42);
-            box-shadow: 0 14px 28px rgba(12, 102, 228, .13), inset 0 0 0 1px rgba(255, 255, 255, .68);
+            background:
+                linear-gradient(135deg, rgba(224, 242, 254, .96), rgba(204, 251, 241, .94)),
+                linear-gradient(90deg, rgba(12, 102, 228, .18), transparent 62%);
+            color: #084e74;
+            border-color: rgba(20, 184, 166, .56);
+            box-shadow: 0 16px 30px rgba(12, 102, 228, .16), inset 0 0 0 1px rgba(255, 255, 255, .74);
         }
 
         .boards-icon {
@@ -314,10 +332,20 @@
             box-shadow: 0 10px 18px rgba(15, 23, 42, .08), inset 0 1px 0 rgba(255, 255, 255, .68);
         }
 
+        .boards-icon svg {
+            width: 25px;
+            height: 25px;
+            stroke: currentColor;
+            stroke-width: 2.25;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            filter: drop-shadow(0 2px 2px rgba(15, 23, 42, .10));
+        }
+
         .boards-icon.board {
             background: linear-gradient(135deg, #dbeafe, #bfdbfe);
             color: #0b63e5;
-            font-size: 1.48rem;
             border-color: rgba(59, 130, 246, .26);
             box-shadow: 0 12px 20px rgba(37, 99, 235, .16), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -325,7 +353,6 @@
         .boards-icon.dashboard {
             background: linear-gradient(135deg, #bbf7d0, #dcfce7);
             color: #15803d;
-            font-size: 1.42rem;
             border-color: rgba(34, 197, 94, .26);
             box-shadow: 0 12px 20px rgba(22, 163, 74, .14), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -333,7 +360,6 @@
         .boards-icon.create {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
             color: #b45309;
-            font-size: 1.72rem;
             border-color: rgba(245, 158, 11, .34);
             box-shadow: 0 12px 20px rgba(245, 158, 11, .15), inset 0 1px 0 rgba(255, 255, 255, .72);
         }
@@ -371,16 +397,18 @@
             grid-template-columns: 46px minmax(0, 1fr);
             align-items: center;
             gap: 10px;
-            min-height: 64px;
-            padding: 8px 10px 8px 20px;
-            border: 1px solid rgba(226, 232, 240, .72);
+            min-height: 66px;
+            padding: 9px 12px 9px 20px;
+            border: 1px solid rgba(211, 225, 241, .82);
             border-radius: 8px;
             color: #273246;
             font-size: .9rem;
             font-weight: 800;
             text-decoration: none;
-            background: rgba(255, 255, 255, .64);
-            box-shadow: 0 10px 22px rgba(28, 44, 72, .05);
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 252, 255, .90)),
+                linear-gradient(90deg, var(--boards-row-wash, rgba(99, 102, 241, .08)), transparent 62%);
+            box-shadow: 0 12px 24px rgba(28, 44, 72, .07);
             overflow: hidden;
             transition: background .15s ease, transform .15s ease, border-color .15s ease, box-shadow .15s ease;
         }
@@ -395,9 +423,11 @@
         }
 
         .boards-group-link:hover {
-            background: #fff;
-            border-color: rgba(12, 102, 228, .22);
-            box-shadow: 0 16px 28px rgba(28, 44, 72, .10);
+            background:
+                linear-gradient(135deg, #fff, rgba(248, 252, 255, .95)),
+                linear-gradient(90deg, var(--boards-row-wash, rgba(99, 102, 241, .12)), transparent 62%);
+            border-color: color-mix(in srgb, var(--boards-row-accent) 36%, #dbeafe);
+            box-shadow: 0 16px 30px rgba(28, 44, 72, .11);
             transform: translateX(3px);
         }
 
@@ -424,6 +454,7 @@
         .boards-section.tone-blue {
             --boards-row-accent: #4f46e5;
             --boards-row-accent-soft: rgba(79, 70, 229, .26);
+            --boards-row-wash: rgba(79, 70, 229, .085);
             --boards-avatar-bg: linear-gradient(135deg, #2563eb, #7c3aed);
             --boards-avatar-shadow: rgba(67, 56, 202, .24);
             --boards-section-wash: rgba(79, 70, 229, .055);
@@ -434,6 +465,7 @@
         .boards-section.tone-teal {
             --boards-row-accent: #14b8a6;
             --boards-row-accent-soft: rgba(20, 184, 166, .28);
+            --boards-row-wash: rgba(20, 184, 166, .085);
             --boards-avatar-bg: linear-gradient(135deg, #0f766e, #22c55e);
             --boards-avatar-shadow: rgba(15, 118, 110, .22);
             --boards-section-wash: rgba(20, 184, 166, .06);
@@ -444,6 +476,7 @@
         .boards-section.tone-rose {
             --boards-row-accent: #ec4899;
             --boards-row-accent-soft: rgba(236, 72, 153, .26);
+            --boards-row-wash: rgba(236, 72, 153, .075);
             --boards-avatar-bg: linear-gradient(135deg, #db2777, #f97316);
             --boards-avatar-shadow: rgba(219, 39, 119, .2);
             --boards-section-wash: rgba(236, 72, 153, .052);
@@ -454,6 +487,7 @@
         .boards-section.tone-amber {
             --boards-row-accent: #f59e0b;
             --boards-row-accent-soft: rgba(245, 158, 11, .28);
+            --boards-row-wash: rgba(245, 158, 11, .08);
             --boards-avatar-bg: linear-gradient(135deg, #f59e0b, #ef4444);
             --boards-avatar-shadow: rgba(245, 158, 11, .2);
             --boards-section-wash: rgba(245, 158, 11, .055);
@@ -464,6 +498,7 @@
         .boards-section.tone-emerald {
             --boards-row-accent: #10b981;
             --boards-row-accent-soft: rgba(16, 185, 129, .26);
+            --boards-row-wash: rgba(16, 185, 129, .08);
             --boards-avatar-bg: linear-gradient(135deg, #059669, #34d399);
             --boards-avatar-shadow: rgba(5, 150, 105, .2);
             --boards-section-wash: rgba(16, 185, 129, .055);
@@ -474,6 +509,7 @@
         .boards-section.tone-violet {
             --boards-row-accent: #8b5cf6;
             --boards-row-accent-soft: rgba(139, 92, 246, .27);
+            --boards-row-wash: rgba(139, 92, 246, .08);
             --boards-avatar-bg: linear-gradient(135deg, #7c3aed, #4f46e5);
             --boards-avatar-shadow: rgba(124, 58, 237, .21);
             --boards-section-wash: rgba(139, 92, 246, .055);
@@ -484,6 +520,7 @@
         .boards-section.tone-sky {
             --boards-row-accent: #0ea5e9;
             --boards-row-accent-soft: rgba(14, 165, 233, .26);
+            --boards-row-wash: rgba(14, 165, 233, .08);
             --boards-avatar-bg: linear-gradient(135deg, #0284c7, #38bdf8);
             --boards-avatar-shadow: rgba(14, 165, 233, .2);
             --boards-section-wash: rgba(14, 165, 233, .052);
@@ -494,6 +531,7 @@
         .boards-section.tone-red {
             --boards-row-accent: #ef4444;
             --boards-row-accent-soft: rgba(239, 68, 68, .25);
+            --boards-row-wash: rgba(239, 68, 68, .07);
             --boards-avatar-bg: linear-gradient(135deg, #dc2626, #f43f5e);
             --boards-avatar-shadow: rgba(220, 38, 38, .19);
             --boards-section-wash: rgba(239, 68, 68, .052);
@@ -515,13 +553,13 @@
 
         .boards-group-meta {
             color: #64748b;
-            font-size: .72rem;
-            font-weight: 800;
+            font-size: .74rem;
+            font-weight: 750;
             line-height: 1.2;
         }
 
         .boards-create-box {
-            border-top: 1px solid rgba(203, 213, 225, .72);
+            border-top: 1px solid rgba(148, 163, 184, .22);
             padding-top: 14px;
         }
 
@@ -532,9 +570,11 @@
         .boards-create-summary {
             cursor: pointer;
             list-style: none;
-            background: linear-gradient(135deg, rgba(255, 247, 237, .96), rgba(236, 253, 245, .92));
-            border-color: rgba(245, 158, 11, .36);
-            box-shadow: 0 12px 24px rgba(245, 158, 11, .10), inset 0 0 0 1px rgba(255, 255, 255, .64);
+            background:
+                linear-gradient(135deg, rgba(255, 251, 235, .98), rgba(240, 253, 244, .92)),
+                linear-gradient(90deg, rgba(245, 158, 11, .10), transparent 62%);
+            border-color: rgba(245, 158, 11, .42);
+            box-shadow: 0 12px 24px rgba(245, 158, 11, .12), inset 0 0 0 1px rgba(255, 255, 255, .70);
         }
 
         .boards-create-summary::-webkit-details-marker,
@@ -812,13 +852,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            width: 32px;
+            min-width: 32px;
             min-height: 32px;
-            padding: 0 10px;
+            padding: 0;
             border: 1px solid #d7e1ec;
             border-radius: 8px;
             background: #fff;
             color: #475569;
-            font-size: .8rem;
+            font-size: 1rem;
             font-weight: 850;
             cursor: pointer;
             list-style: none;
@@ -832,6 +874,15 @@
         .boards-rename summary:hover {
             border-color: #b9c8d9;
             color: #0c66e4;
+        }
+
+        .boards-edit-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            line-height: 1;
         }
 
         .boards-rename-panel {
@@ -947,11 +998,12 @@
             position: absolute;
             right: 10px;
             bottom: 10px;
-            width: fit-content;
+            width: 34px;
+            min-width: 34px;
             min-height: 30px;
-            padding: 0 10px;
+            padding: 0;
             background: rgba(255, 255, 255, .92);
-            font-size: .76rem;
+            font-size: 1rem;
             pointer-events: auto;
         }
 
@@ -1414,15 +1466,37 @@
     </style>
 }
 
+<div class="index-hero boards-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">PROJECTTRACKING</span>
+        <h2 class="index-title">Project Boards</h2>
+        <p class="index-subtitle">จัดการ Requirement Board แยกตามทีมและโครงการ</p>
+    </div>
+</div>
+
 <div class="boards-page">
     <aside class="boards-sidebar">
         <nav class="boards-nav" aria-label="Project Board navigation">
             <a class="boards-nav-link is-active" asp-controller="RequirementBoard" asp-action="Index">
-                <span class="boards-icon board">▦</span>
+                <span class="boards-icon board" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3.5" y="4" width="17" height="16" rx="3"></rect>
+                        <path d="M8 8h2.8"></path>
+                        <path d="M13.2 8H16"></path>
+                        <path d="M7.5 11.5h3.5v4.8H7.5z"></path>
+                        <path d="M13 11.5h3.5v4.8H13z"></path>
+                    </svg>
+                </span>
                 <span>กระดาน</span>
             </a>
             <a class="boards-nav-link dashboard" asp-controller="Home" asp-action="Index">
-                <span class="boards-icon dashboard">⌂</span>
+                <span class="boards-icon dashboard" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 10.5 12 4l8 6.5"></path>
+                        <path d="M6.5 9.8V20h11V9.8"></path>
+                        <path d="M9.5 20v-5.5h5V20"></path>
+                    </svg>
+                </span>
                 <span>Dashboard</span>
             </a>
         </nav>
@@ -1456,7 +1530,13 @@
             <div class="boards-create-box">
                 <details>
                     <summary class="boards-create-summary">
-                        <span class="boards-icon create">+</span>
+                        <span class="boards-icon create" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+                                <path d="M12 8.2v7.6"></path>
+                                <path d="M8.2 12h7.6"></path>
+                            </svg>
+                        </span>
                         <span>เพิ่ม group</span>
                     </summary>
                     <form class="boards-form" asp-action="CreateGroup" method="post">
@@ -1531,7 +1611,9 @@
                         @if (canEdit || canDelete)
                         {
                             <details class="boards-rename">
-                                <summary>แก้ไข</summary>
+                                <summary title="แก้ไข" aria-label="แก้ไข">
+                                    <span class="boards-edit-icon" aria-hidden="true">✎</span>
+                                </summary>
                                 <div class="boards-rename-panel">
                                     @if (canEdit)
                                     {
@@ -1595,7 +1677,9 @@
                             @if (canEdit || canDelete)
                             {
                                 <details class="boards-rename boards-card-menu">
-                                <summary>แก้ไข</summary>
+                                    <summary title="แก้ไข" aria-label="แก้ไข">
+                                        <span class="boards-edit-icon" aria-hidden="true">✎</span>
+                                    </summary>
                                     <div class="boards-rename-panel">
                                         @if (canEdit)
                                         {
