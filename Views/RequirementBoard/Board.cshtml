@@ -1198,12 +1198,49 @@
             border-color: rgba(20, 184, 166, .72);
         }
 
-        .rb-card-cover {
+        .rb-card-cover-frame {
+            position: relative;
+            display: grid;
+            place-items: center;
             width: 100%;
             height: var(--rb-card-cover-height);
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(15, 39, 70, .18), rgba(20, 184, 166, .16)),
+                var(--rb-card-image, #dbe8f5);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .rb-card-cover-frame::before {
+            content: "";
+            position: absolute;
+            inset: -14px;
+            background-image: var(--rb-card-image);
+            background-size: cover;
+            background-position: center;
+            filter: blur(14px) saturate(1.18);
+            transform: scale(1.08);
+            opacity: .72;
+        }
+
+        .rb-card-cover-frame::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .03) 28%, rgba(255, 255, 255, .03) 72%, rgba(255, 255, 255, .28)),
+                linear-gradient(180deg, rgba(15, 23, 42, .08), rgba(15, 23, 42, .12));
+        }
+
+        .rb-card-cover {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             object-position: center;
-            background: #dbe8f5;
+            filter: drop-shadow(0 5px 10px rgba(15, 23, 42, .16));
         }
 
         .rb-card-body {
@@ -2222,7 +2259,9 @@
                                      data-bs-target="#requirementCardModal-@card.CardId">
                                 @if (!string.IsNullOrWhiteSpace(coverPath))
                                 {
-                                    <img class="rb-card-cover" src="@coverPath" alt="@card.Title" />
+                                    <div class="rb-card-cover-frame" style="--rb-card-image: url('@coverPath');">
+                                        <img class="rb-card-cover" src="@coverPath" alt="@card.Title" />
+                                    </div>
                                 }
                                 <div class="rb-card-body">
                                     <div class="rb-card-labels" data-card-labels="@card.CardId">
@@ -3342,6 +3381,36 @@
                 await saveCardLabels(control);
             });
 
+            function cssImageUrl(path) {
+                return `url("${String(path || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`;
+            }
+
+            function ensureCardCoverFrame(card, path, title) {
+                if (!card || !path) return;
+
+                let frame = card.querySelector('.rb-card-cover-frame');
+                let cover = frame?.querySelector('.rb-card-cover') || card.querySelector(':scope > .rb-card-cover');
+
+                if (!frame) {
+                    frame = document.createElement('div');
+                    frame.className = 'rb-card-cover-frame';
+
+                    if (cover) {
+                        cover.replaceWith(frame);
+                    } else {
+                        cover = document.createElement('img');
+                        cover.className = 'rb-card-cover';
+                        card.insertBefore(frame, card.firstElementChild);
+                    }
+
+                    frame.appendChild(cover);
+                }
+
+                frame.style.setProperty('--rb-card-image', cssImageUrl(path));
+                cover.src = path;
+                cover.alt = title || '';
+            }
+
             function updateBoardCard(data, form) {
                 const cardId = data.cardId || form.dataset.cardId;
                 const card = document.querySelector(`.rb-card[data-card-id="${cardId}"]`);
@@ -3359,14 +3428,7 @@
                     renderLabelCollection(card.querySelector('[data-card-labels]'), labels, false, false);
 
                     if (data.coverImagePath) {
-                        let cover = card.querySelector('.rb-card-cover');
-                        if (!cover) {
-                            cover = document.createElement('img');
-                            cover.className = 'rb-card-cover';
-                            card.insertBefore(cover, card.firstElementChild);
-                        }
-                        cover.src = data.coverImagePath;
-                        cover.alt = title;
+                        ensureCardCoverFrame(card, data.coverImagePath, title);
                     }
                 }
 
