@@ -369,52 +369,51 @@
 
         .rb-search {
             position: relative;
-            flex: 0 1 380px;
-            min-width: 220px;
+            flex: 0 1 520px;
+            min-width: 260px;
         }
 
         .rb-search-icon {
             position: absolute;
-            left: 7px;
+            left: 18px;
             top: 50%;
             transform: translateY(-50%);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #21d4c2, #0f8f80);
-            color: #fff;
-            box-shadow: 0 8px 18px rgba(15, 143, 128, .24);
+            width: 22px;
+            height: 22px;
+            border-radius: 0;
+            background: transparent;
+            color: #435875;
+            box-shadow: none;
             pointer-events: none;
         }
 
         .rb-search-icon svg {
-            width: 15px;
-            height: 15px;
+            width: 16px;
+            height: 16px;
         }
 
         .rb-search-input {
             width: 100%;
-            min-height: 44px;
-            padding: 0 44px 0 48px;
-            border: 1px solid rgba(255, 255, 255, .72);
-            border-radius: 999px;
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(244, 250, 255, .9));
+            min-height: 46px;
+            padding: 0 50px 0 54px;
+            border: 2px solid #bfd1e6;
+            border-radius: 8px;
+            background: #fff;
             color: #10213a;
             font-size: .95rem;
             font-weight: 800;
             outline: none;
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, .95),
-                0 14px 30px rgba(31, 65, 109, .16);
+                0 12px 28px rgba(28, 44, 72, .10),
+                inset 0 1px 0 rgba(255, 255, 255, .72);
             transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
         }
 
         .rb-search-input::placeholder {
-            color: #64748b;
+            color: #c0cada;
             font-weight: 800;
         }
 
@@ -426,26 +425,25 @@
         }
 
         .rb-search-input:focus {
-            border-color: rgba(20, 184, 166, .78);
+            border-color: #0c66e4;
             background: #fff;
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, .95),
-                0 0 0 4px rgba(20, 184, 166, .16),
-                0 16px 34px rgba(31, 65, 109, .18);
+                0 0 0 3px rgba(12, 102, 228, .13),
+                0 14px 32px rgba(28, 44, 72, .13);
         }
 
         .rb-search-clear {
             position: absolute;
-            right: 7px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
             display: none;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border: 0;
-            border-radius: 999px;
+            border-radius: 8px;
             background: rgba(15, 33, 58, .08);
             color: #334155;
             font-size: 1.1rem;
@@ -472,16 +470,23 @@
         .rb-board-title-pill {
             display: inline-flex;
             align-items: center;
-            max-width: 280px;
+            max-width: 320px;
             min-height: 42px;
-            padding: 0 16px;
-            border: 1px solid rgba(255, 255, 255, .62);
+            padding: 0 18px;
+            border: 1px solid rgba(255, 255, 255, .72);
             border-radius: 999px;
-            background: rgba(255, 255, 255, .9);
-            color: #10213a;
-            font-size: .98rem;
-            font-weight: 900;
-            box-shadow: 0 8px 18px rgba(15, 39, 70, .10);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(239, 247, 250, .90));
+            color: #101b2d;
+            font-size: 1rem;
+            font-weight: 880;
+            letter-spacing: 0;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .88),
+                0 10px 22px rgba(15, 39, 70, .14);
+            -webkit-text-stroke: 0;
+            text-shadow:
+                0 1px 0 rgba(255, 255, 255, .82);
         }
 
         .rb-board-title-pill span {
@@ -496,6 +501,7 @@
             align-items: center;
             gap: 0;
             margin-right: 2px;
+            flex: 0 0 auto;
             padding: 7px 10px;
             border: 1px solid rgba(96, 165, 250, .58);
             border-radius: 999px;
@@ -569,6 +575,11 @@
         .rb-online-avatar.c5 {
             background: #111827;
             color: #fff;
+        }
+
+        .rb-toolbar-start > .rb-online-users {
+            margin-left: 0;
+            margin-right: 0;
         }
 
         .rb-online-more {
@@ -903,7 +914,7 @@
             --rb-column-gap-total: 60px;
             --rb-column-width: clamp(270px, calc((100% - var(--rb-column-gap-total)) / var(--rb-visible-columns)), 390px);
             --rb-card-gap: clamp(7px, .78vh, 11px);
-            --rb-card-cover-height: clamp(66px, 7.8vh, 102px);
+            --rb-card-cover-height: auto;
             --rb-card-body-padding-y: clamp(8px, .82vh, 11px);
             --rb-card-body-padding-x: clamp(9px, .68vw, 12px);
             --rb-card-title-size: clamp(.86rem, .76vw, .96rem);
@@ -1203,7 +1214,8 @@
             display: grid;
             place-items: center;
             width: 100%;
-            height: var(--rb-card-cover-height);
+            height: auto;
+            min-height: 0;
             overflow: hidden;
             background:
                 linear-gradient(135deg, rgba(15, 39, 70, .18), rgba(20, 184, 166, .16)),
@@ -1237,7 +1249,8 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            height: 100%;
+            height: auto;
+            display: block;
             object-fit: contain;
             object-position: center;
             filter: drop-shadow(0 5px 10px rgba(15, 23, 42, .16));
@@ -1276,7 +1289,8 @@
             white-space: nowrap;
         }
 
-        .rb-card .rb-card-label {
+        .rb-card .rb-card-label,
+        .rb-card-label.is-board-chip {
             max-width: 100%;
             min-height: var(--rb-card-label-height);
             padding: 1px 8px;
@@ -2092,6 +2106,10 @@
                 min-width: 0;
             }
 
+            .rb-toolbar-start > .rb-online-users {
+                align-self: flex-start;
+            }
+
             .rb-toolbar-actions {
                 justify-content: flex-end;
             }
@@ -2120,7 +2138,7 @@
 
         @@media (min-height: 900px) {
             .rb-board-wrap {
-                --rb-card-cover-height: clamp(64px, 6.5vh, 94px);
+                --rb-card-cover-height: auto;
             }
         }
 
@@ -2133,7 +2151,7 @@
 
             .rb-board-wrap {
                 --rb-card-gap: 6px;
-                --rb-card-cover-height: 56px;
+                --rb-card-cover-height: auto;
                 --rb-card-body-padding-y: 7px;
                 --rb-card-title-size: .82rem;
                 --rb-card-label-font-size: .58rem;
@@ -2169,14 +2187,6 @@
                        autocomplete="off" />
                 <button class="rb-search-clear" type="button" aria-label="ล้างคำค้น">×</button>
             </div>
-        </div>
-        <div class="rb-toolbar-actions">
-            @if (currentBoard != null)
-            {
-                <div class="rb-board-title-pill" title="@currentBoard.Group?.GroupName">
-                    <span>@currentBoard.BoardName</span>
-                </div>
-            }
             @if (visibleOnlineUsers.Count > 0)
             {
                 <div class="rb-online-users" aria-label="Online users">
@@ -2193,6 +2203,14 @@
                     {
                         <span class="rb-online-more">+@hiddenOnlineCount</span>
                     }
+                </div>
+            }
+        </div>
+        <div class="rb-toolbar-actions">
+            @if (currentBoard != null)
+            {
+                <div class="rb-board-title-pill" title="@currentBoard.Group?.GroupName">
+                    <span>@currentBoard.BoardName</span>
                 </div>
             }
             <a class="rb-btn rb-dashboard-btn" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
@@ -2267,7 +2285,7 @@
                                     <div class="rb-card-labels" data-card-labels="@card.CardId">
                                         @foreach (var label in cardLabels)
                                         {
-                                            <span class="rb-card-label"
+                                            <span class="rb-card-label is-board-chip"
                                                   style="--rb-label-color: @label.ColorHex; font-size: .72rem !important; font-weight: 500 !important; line-height: 1.24 !important;"
                                                   title="@label.LabelName">@label.LabelName</span>
                                         }
@@ -2906,11 +2924,16 @@
                 return boardLabels.find(label => Number(normalizeLabel(label).labelId) === Number(labelId));
             }
 
-            function createLabelChip(label, compact = false) {
+            function createLabelChip(label, compact = false, boardChip = false) {
                 const chip = document.createElement('span');
-                chip.className = 'rb-card-label';
+                chip.className = boardChip ? 'rb-card-label is-board-chip' : 'rb-card-label';
                 chip.style.setProperty('--rb-label-color', normalizeHex(label.colorHex));
                 chip.style.setProperty('--rb-label-text', labelTextColor(label.colorHex));
+                if (boardChip) {
+                    chip.style.setProperty('font-size', '.72rem', 'important');
+                    chip.style.setProperty('font-weight', '500', 'important');
+                    chip.style.setProperty('line-height', '1.24', 'important');
+                }
                 chip.title = label.labelName;
                 chip.textContent = compact ? '' : label.labelName;
                 return chip;
@@ -2930,7 +2953,8 @@
                     return;
                 }
 
-                labels.forEach(label => container.appendChild(createLabelChip(label, compact)));
+                const boardChip = container.matches('[data-card-labels]') && Boolean(container.closest('.rb-card'));
+                labels.forEach(label => container.appendChild(createLabelChip(label, compact, boardChip)));
             }
 
             function selectedLabelsFor(control) {
