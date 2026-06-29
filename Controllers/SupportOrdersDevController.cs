@@ -205,8 +205,12 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(ProjectSupportOrder.CreatedAt));
             ModelState.Remove(nameof(ProjectSupportOrder.CreatedBy));
 
+            var currentDbDevStatus = NormalizeSupportDevStatus(dbOrder.DevStatus);
+            var canAddGitHistory = currentDbDevStatus == "WIP";
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
-            var gitHistoryRows = BuildGitHistoryRows(gitTypes, gitIds, ModelState);
+            var gitHistoryRows = canAddGitHistory
+                ? BuildGitHistoryRows(gitTypes, gitIds, ModelState)
+                : new List<(string GitType, string GitId)>();
 
             if (!ModelState.IsValid)
             {

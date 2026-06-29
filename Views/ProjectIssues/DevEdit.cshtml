@@ -547,6 +547,9 @@
         new MutationObserver(applyAllStatusTones)
             .observe(document.body, { childList: true, subtree: true });
 
+        const currentDbDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
+        const canEditGitHistoryFromDb = (currentDbDevStatus || '').trim().toUpperCase() === 'WIP';
+
         function createGitRow() {
             const row = document.createElement('div');
             row.className = 'dev-git-row';
@@ -567,8 +570,7 @@
 
         function syncGitHistoryState() {
             const panel = document.querySelector('[data-git-history-panel]');
-            const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
-            const canEditGit = devStatus === 'WIP';
+            const canEditGit = canEditGitHistoryFromDb;
             panel?.classList.toggle('is-disabled', !canEditGit);
             panel?.querySelectorAll('[name="gitTypes"], [name="gitIds"], [data-add-git-row], [data-remove-git-row]')
                 .forEach(input => input.disabled = !canEditGit);
@@ -593,16 +595,14 @@
             row?.remove();
         });
 
-        document.getElementById('DevStatus')?.addEventListener('change', syncGitHistoryState);
         syncGitHistoryState();
 
         document.querySelector('form').addEventListener('submit', function (event) {
-            const currentDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
             const nextDevStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
 
-            const devStatusText = currentDevStatus.toUpperCase() === nextDevStatus
+            const devStatusText = currentDbDevStatus.toUpperCase() === nextDevStatus
                 ? `${nextDevStatus} (คงเดิม)`
-                : `${currentDevStatus} -> ${nextDevStatus}`;
+                : `${currentDbDevStatus} -> ${nextDevStatus}`;
 
             const confirmed = confirm([
                 'กำลังบันทึกการเปลี่ยนแปลงข้อมูล Project Issue Dev',

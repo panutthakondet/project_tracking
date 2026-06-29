@@ -146,6 +146,12 @@ namespace ProjectTracking.Controllers
             if (issue == null)
                 return NotFound();
 
+            ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                .AsNoTracking()
+                .Where(x => x.IssueId == issue.IssueId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
+
             return View(issue);
         }
 
@@ -574,8 +580,12 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(ProjectIssue.CreatedBy));
             ModelState.Remove(nameof(ProjectIssue.UpdatedAt));
 
+            var currentDbDevStatus = NormalizeProgrammerDevStatus(issue.DevStatus);
+            var canAddGitHistory = currentDbDevStatus == "WIP";
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
-            var gitHistoryRows = BuildGitHistoryRows(gitTypes, gitIds, ModelState);
+            var gitHistoryRows = canAddGitHistory
+                ? BuildGitHistoryRows(gitTypes, gitIds, ModelState)
+                : new List<(string GitType, string GitId)>();
 
             if (!ModelState.IsValid)
             {
