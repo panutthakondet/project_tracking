@@ -8,6 +8,8 @@
     var issue = Model;
     var beforeImages = issue?.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueImage>();
     var afterImages = issue?.FixImages?.ToList() ?? new List<ProjectTracking.Models.ProjectIssueFixImage>();
+    var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectIssueGitHistory>
+        ?? new List<ProjectTracking.Models.ProjectIssueGitHistory>();
 
     bool CanMenu(string key)
     {
@@ -290,6 +292,55 @@
         text-align: center;
     }
 
+    .issue-git-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .issue-git-table th {
+        padding: 0 10px;
+        color: #475569;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .issue-git-table td {
+        padding: 10px;
+        color: #000;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 400;
+    }
+
+    .issue-git-table td:first-child {
+        border-left: 1px solid #e2e8f0;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .issue-git-table td:last-child {
+        border-right: 1px solid #e2e8f0;
+        border-radius: 0 12px 12px 0;
+    }
+
+    .issue-git-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #075985;
+        background: #e0f2fe;
+        font-size: .86rem;
+        font-weight: 700;
+    }
+
+    .issue-git-id {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        overflow-wrap: anywhere;
+    }
+
     .issue-detail-page :is(
         .issue-summary-card,
         .issue-summary-label,
@@ -435,6 +486,36 @@
         <article class="issue-panel">
             <h3>รายละเอียดการแก้ไข</h3>
             <div class="issue-text-box">@(string.IsNullOrWhiteSpace(issue?.DevDetail) ? "-" : issue.DevDetail)</div>
+        </article>
+
+        <article class="issue-panel">
+            <h3>ประวัติ Git</h3>
+            @if (gitHistories.Any())
+            {
+                <table class="issue-git-table">
+                    <thead>
+                        <tr>
+                            <th>ประเภท</th>
+                            <th>Git ID</th>
+                            <th>วันที่บันทึก</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in gitHistories)
+                        {
+                            <tr>
+                                <td><span class="issue-git-badge">@row.GitType</span></td>
+                                <td class="issue-git-id">@row.GitId</td>
+                                <td>@row.EntryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="issue-empty">ยังไม่มีประวัติ Git</div>
+            }
         </article>
     </section>
 

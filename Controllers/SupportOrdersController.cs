@@ -257,6 +257,12 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.OrderId == order.OrderId)
                 .ToListAsync();
 
+            ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                .AsNoTracking()
+                .Where(x => x.OrderId == order.OrderId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
+
             return View(order);
         }
 
@@ -414,6 +420,11 @@ namespace ProjectTracking.Controllers
             ViewBag.CurrentStatus = order.Status;
             ViewBag.CurrentDevStatus = order.DevStatus;
             ViewBag.StatusList = GetStatusList(order.Status);
+            ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                .AsNoTracking()
+                .Where(x => x.OrderId == order.OrderId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
 
             return View(order);
         }
@@ -459,6 +470,11 @@ namespace ProjectTracking.Controllers
                 ViewBag.CurrentStatus = existingOrder.Status;
                 ViewBag.CurrentDevStatus = existingOrder.DevStatus;
                 ViewBag.StatusList = GetStatusList(order.Status);
+                ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                    .AsNoTracking()
+                    .Where(x => x.OrderId == existingOrder.OrderId)
+                    .OrderByDescending(x => x.EntryDate)
+                    .ToListAsync();
                 return View(order);
             }
 

@@ -211,6 +211,7 @@ await EnsureWeeklyReportTablesAsync(app.Services);
 await EnsureRequirementBoardTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
+await EnsureDevGitHistoryTablesAsync(app.Services);
 
 if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
 {
@@ -1318,6 +1319,83 @@ static async Task EnsureIssueDevStatusValuesAsync(IServiceProvider services)
               MODIFY COLUMN `IssueStatus` varchar(20) NOT NULL DEFAULT 'OPEN',
               MODIFY COLUMN `DevStatus` varchar(20) NOT NULL DEFAULT 'WIP';";
         await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureDevGitHistoryTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name = 'ProjectIssues';";
+        var hasProjectIssues = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+
+        if (hasProjectIssues)
+        {
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS `project_issue_git_histories` (
+                  `id` int NOT NULL AUTO_INCREMENT,
+                  `issue_id` int NOT NULL,
+                  `git_type` varchar(10) NOT NULL,
+                  `git_id` varchar(80) NOT NULL,
+                  `entry_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  `created_by_emp_id` int NULL,
+                  PRIMARY KEY (`id`),
+                  KEY `IX_project_issue_git_histories_issue_id` (`issue_id`),
+                  KEY `IX_project_issue_git_histories_entry_date` (`entry_date`),
+                  KEY `IX_project_issue_git_histories_issue_id_entry_date` (`issue_id`, `entry_date`),
+                  CONSTRAINT `FK_project_issue_git_histories_issue`
+                    FOREIGN KEY (`issue_id`) REFERENCES `ProjectIssues` (`IssueId`)
+                    ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name = 'project_support_order';";
+        var hasSupportOrders = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+
+        if (hasSupportOrders)
+        {
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS `project_support_order_git_histories` (
+                  `id` int NOT NULL AUTO_INCREMENT,
+                  `order_id` int NOT NULL,
+                  `git_type` varchar(10) NOT NULL,
+                  `git_id` varchar(80) NOT NULL,
+                  `entry_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  `created_by_emp_id` int NULL,
+                  PRIMARY KEY (`id`),
+                  KEY `IX_project_support_order_git_histories_order_id` (`order_id`),
+                  KEY `IX_project_support_order_git_histories_entry_date` (`entry_date`),
+                  KEY `IX_project_support_order_git_histories_order_id_entry_date` (`order_id`, `entry_date`),
+                  CONSTRAINT `FK_project_support_order_git_histories_order`
+                    FOREIGN KEY (`order_id`) REFERENCES `project_support_order` (`order_id`)
+                    ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {

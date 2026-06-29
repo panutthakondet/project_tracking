@@ -128,6 +128,12 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.OrderId == id)
                 .ToListAsync();
 
+            ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                .AsNoTracking()
+                .Where(x => x.OrderId == order.OrderId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
+
             return View(order);
         }
 
@@ -156,6 +162,11 @@ namespace ProjectTracking.Controllers
 
             ViewBag.CurrentDevStatus = order.DevStatus;
             ViewBag.DevStatusList = GetDevStatusList(order.DevStatus);
+            ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                .AsNoTracking()
+                .Where(x => x.OrderId == order.OrderId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
 
             return View(order);
         }
@@ -163,7 +174,13 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("SupportOrdersDev.Edit")]
-        public async Task<IActionResult> Edit(int id, ProjectSupportOrder order, List<IFormFile> afterFiles, List<int> deleteImageIds)
+        public async Task<IActionResult> Edit(
+            int id,
+            ProjectSupportOrder order,
+            List<IFormFile> afterFiles,
+            List<int> deleteImageIds,
+            List<string>? gitTypes,
+            List<string>? gitIds)
         {
             var dbOrder = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
@@ -189,12 +206,7 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(ProjectSupportOrder.CreatedBy));
 
             var nextDevStatus = NormalizeSupportDevStatus(order.DevStatus);
-            if (nextDevStatus == "WIP")
-            {
-                ModelState.AddModelError(
-                    nameof(ProjectSupportOrder.DevStatus),
-                    "ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ");
-            }
+            var gitHistoryRows = BuildGitHistoryRows(gitTypes, gitIds, ModelState);
 
             if (!ModelState.IsValid)
             {
@@ -208,6 +220,11 @@ namespace ProjectTracking.Controllers
 
                 ViewBag.CurrentDevStatus = dbOrder.DevStatus;
                 ViewBag.DevStatusList = GetDevStatusList(order.DevStatus);
+                ViewBag.GitHistories = await _context.ProjectSupportOrderGitHistories
+                    .AsNoTracking()
+                    .Where(x => x.OrderId == dbOrder.OrderId)
+                    .OrderByDescending(x => x.EntryDate)
+                    .ToListAsync();
                 dbOrder.DevStatus = order.DevStatus;
                 dbOrder.DevDetail = order.DevDetail;
                 return View(dbOrder);
@@ -216,6 +233,24 @@ namespace ProjectTracking.Controllers
             var shouldNotifyBaFixed = nextDevStatus == "FIXED";
             dbOrder.DevStatus = nextDevStatus;
             dbOrder.DevDetail = order.DevDetail;
+
+            if (gitHistoryRows.Count > 0)
+            {
+                var entryDate = DateTime.Now;
+                var currentEmpId = await GetCurrentEntryIdAsync();
+
+                foreach (var row in gitHistoryRows)
+                {
+                    _context.ProjectSupportOrderGitHistories.Add(new ProjectSupportOrderGitHistory
+                    {
+                        OrderId = dbOrder.OrderId,
+                        GitType = row.GitType,
+                        GitId = row.GitId,
+                        EntryDate = entryDate,
+                        CreatedByEmpId = currentEmpId
+                    });
+                }
+            }
 
             var folder = Path.Combine(
                 Directory.GetCurrentDirectory(),
@@ -406,6 +441,65 @@ namespace ProjectTracking.Controllers
 
         private static string DateText(DateTime? value)
             => value.HasValue ? value.Value.ToString("dd MMM yyyy", ThaiCulture) : "-";
+
+        private static List<(string GitType, string GitId)> BuildGitHistoryRows(
+            List<string>? gitTypes,
+            List<string>? gitIds,
+            Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary modelState)
+        {
+            var rows = new List<(string GitType, string GitId)>();
+            var count = Math.Max(gitTypes?.Count ?? 0, gitIds?.Count ?? 0);
+
+            for (var i = 0; i < count; i++)
+            {
+                var gitId = i < (gitIds?.Count ?? 0) ? (gitIds![i] ?? "").Trim() : "";
+                if (string.IsNullOrWhiteSpace(gitId))
+                    continue;
+
+                if (gitId.Length > 80)
+                {
+                    modelState.AddModelError("gitIds", "Git ID ต้องไม่เกิน 80 ตัวอักษร");
+                    continue;
+                }
+
+                var gitType = NormalizeGitType(i < (gitTypes?.Count ?? 0) ? gitTypes![i] : null);
+                if (gitType == null)
+                {
+                    modelState.AddModelError("gitTypes", "ประเภท Git ต้องเป็น GITHUB หรือ GITLAB เท่านั้น");
+                    continue;
+                }
+
+                rows.Add((gitType, gitId));
+            }
+
+            return rows;
+        }
+
+        private static string? NormalizeGitType(string? gitType)
+        {
+            var value = (gitType ?? "").Trim().ToUpperInvariant();
+            return value is "GITHUB" or "GITLAB" ? value : null;
+        }
+
+        private async Task<int?> GetCurrentEntryIdAsync()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return null;
+
+            var empId = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.LoginUserId == userId.Value)
+                .Select(e => (int?)e.EmpId)
+                .FirstOrDefaultAsync();
+
+            if (empId.HasValue) return empId;
+
+            return await _context.LoginUsers
+                .AsNoTracking()
+                .Where(u => u.UserId == userId.Value)
+                .Select(u => u.EmpId)
+                .FirstOrDefaultAsync();
+        }
 
         private async Task<SelectList> BuildOwnerListAsync(int? projectId, int? selectedEmpId)
         {

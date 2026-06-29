@@ -7,6 +7,7 @@
 
     var issue = Model ?? new ProjectIssue();
     var beforeImages = issue.Images?.ToList() ?? new List<ProjectIssueImage>();
+    var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectIssueGitHistory> ?? new List<ProjectIssueGitHistory>();
     var projectName = (ViewBag.ProjectName as string) ?? issue.Project?.ProjectDisplayName ?? $"Project #{issue.ProjectId}";
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
@@ -169,6 +170,56 @@
         background-color: #f8fafc !important;
         border-color: #cbd5e1 !important;
     }
+
+    .issue-git-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-bottom: 0;
+    }
+
+    .issue-git-table th {
+        padding: 0 10px;
+        color: #475569;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .issue-git-table td {
+        padding: 10px;
+        color: #10233f;
+        background: #f8fafc;
+        border-top: 1px solid #dbe8f5;
+        border-bottom: 1px solid #dbe8f5;
+        font-weight: 700;
+    }
+
+    .issue-git-table td:first-child {
+        border-left: 1px solid #dbe8f5;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .issue-git-table td:last-child {
+        border-right: 1px solid #dbe8f5;
+        border-radius: 0 12px 12px 0;
+    }
+
+    .issue-git-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #075985;
+        background: #e0f2fe;
+        font-size: .86rem;
+        font-weight: 900;
+    }
+
+    .issue-git-id {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        overflow-wrap: anywhere;
+    }
 </style>
 
 <div class="index-hero pt-form-hero">
@@ -294,6 +345,39 @@
                     <div class="issue-edit-note">
                         จำนวน FAIL จะนับเมื่อ Dev ส่งงานเป็น FIXED แล้ว BA ตรวจไม่ผ่านและบันทึกเป็น FAIL โดย Dev Status จะถูกเปลี่ยนกลับเป็น WIP เพื่อให้แก้อีกรอบ
                     </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="issue-edit-gallery-head">
+                        <h3 class="issue-edit-section-title">ประวัติ Git</h3>
+                    </div>
+
+                    @if (gitHistories.Any())
+                    {
+                        <table class="issue-git-table">
+                            <thead>
+                                <tr>
+                                    <th>ประเภท</th>
+                                    <th>Git ID</th>
+                                    <th>วันที่บันทึก</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in gitHistories)
+                                {
+                                    <tr>
+                                        <td><span class="issue-git-badge">@row.GitType</span></td>
+                                        <td class="issue-git-id">@row.GitId</td>
+                                        <td>@row.EntryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="issue-edit-empty">ยังไม่มีประวัติ Git</div>
+                    }
                 </div>
 
                 <div class="col-12">

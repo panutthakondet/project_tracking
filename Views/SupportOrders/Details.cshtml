@@ -11,6 +11,8 @@
     var afterImages = Model.FixImages?
         .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
         .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+    var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectSupportOrderGitHistory>
+        ?? new List<ProjectTracking.Models.ProjectSupportOrderGitHistory>();
 
     bool CanMenu(string key)
     {
@@ -321,6 +323,55 @@
         font-weight: 400;
     }
 
+    .support-git-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .support-git-table th {
+        padding: 0 10px;
+        color: #475569;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .support-git-table td {
+        padding: 10px;
+        color: #000;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 400;
+    }
+
+    .support-git-table td:first-child {
+        border-left: 1px solid #e2e8f0;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .support-git-table td:last-child {
+        border-right: 1px solid #e2e8f0;
+        border-radius: 0 12px 12px 0;
+    }
+
+    .support-git-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #075985;
+        background: #e0f2fe;
+        font-size: .86rem;
+        font-weight: 700;
+    }
+
+    .support-git-id {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        overflow-wrap: anywhere;
+    }
+
     .status-text {
         color: #000;
         font-weight: 400 !important;
@@ -492,6 +543,36 @@
         <article class="support-panel">
             <h3>รายละเอียดการแก้ไข</h3>
             <div class="support-text-box">@TextOrDash(Model.DevDetail)</div>
+        </article>
+
+        <article class="support-panel">
+            <h3>ประวัติ Git</h3>
+            @if (gitHistories.Any())
+            {
+                <table class="support-git-table">
+                    <thead>
+                        <tr>
+                            <th>ประเภท</th>
+                            <th>Git ID</th>
+                            <th>วันที่บันทึก</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in gitHistories)
+                        {
+                            <tr>
+                                <td><span class="support-git-badge">@row.GitType</span></td>
+                                <td class="support-git-id">@row.GitId</td>
+                                <td>@row.EntryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="support-empty">ยังไม่มีประวัติ Git</div>
+            }
         </article>
     </section>
 

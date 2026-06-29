@@ -31,12 +31,14 @@ namespace ProjectTracking.Data
         public DbSet<ProjectIssue> ProjectIssues { get; set; }
         public DbSet<ProjectIssueImage> ProjectIssueImages { get; set; }
         public DbSet<ProjectIssueFixImage> ProjectIssueFixImages { get; set; }
+        public DbSet<ProjectIssueGitHistory> ProjectIssueGitHistories { get; set; }
 
         // ===== Support Orders (Warranty / Maintenance) =====
         public DbSet<ProjectSupportOrder> ProjectSupportOrders { get; set; }
         public DbSet<ProjectSupportImage> ProjectSupportImages { get; set; }
         public DbSet<ProjectSupportFixImage> ProjectSupportFixImages { get; set; }
         public DbSet<ProjectSupportOrderStatusHistory> ProjectSupportOrderStatusHistories { get; set; }
+        public DbSet<ProjectSupportOrderGitHistory> ProjectSupportOrderGitHistories { get; set; }
 
         // ===== Test Scenarios =====
         public DbSet<TestScenario> TestScenarios { get; set; }
@@ -1202,6 +1204,32 @@ namespace ProjectTracking.Data
             });
 
             // =========================
+            // ISSUE GIT HISTORY
+            // =========================
+            modelBuilder.Entity<ProjectIssueGitHistory>(entity =>
+            {
+                entity.ToTable("project_issue_git_histories");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id).HasColumnName("id");
+                entity.Property(x => x.IssueId).HasColumnName("issue_id").IsRequired();
+                entity.Property(x => x.GitType).HasColumnName("git_type").HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
+                entity.Property(x => x.GitId).HasColumnName("git_id").HasColumnType("varchar(80)").HasMaxLength(80).IsRequired();
+                entity.Property(x => x.EntryDate).HasColumnName("entry_date").HasColumnType("datetime").IsRequired();
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id").HasColumnType("int").IsRequired(false);
+
+                entity.HasIndex(x => x.IssueId);
+                entity.HasIndex(x => x.EntryDate);
+                entity.HasIndex(x => new { x.IssueId, x.EntryDate });
+
+                entity.HasOne(x => x.Issue)
+                    .WithMany()
+                    .HasForeignKey(x => x.IssueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
             // SUPPORT ORDER STATUS HISTORY
             // =========================
             modelBuilder.Entity<ProjectSupportOrderStatusHistory>(entity =>
@@ -1252,6 +1280,32 @@ namespace ProjectTracking.Data
                 entity.HasIndex(x => x.OrderId);
                 entity.HasIndex(x => x.ChangedAt);
                 entity.HasIndex(x => new { x.OrderId, x.ChangedAt });
+
+                entity.HasOne(x => x.Order)
+                    .WithMany()
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // SUPPORT ORDER GIT HISTORY
+            // =========================
+            modelBuilder.Entity<ProjectSupportOrderGitHistory>(entity =>
+            {
+                entity.ToTable("project_support_order_git_histories");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id).HasColumnName("id");
+                entity.Property(x => x.OrderId).HasColumnName("order_id").IsRequired();
+                entity.Property(x => x.GitType).HasColumnName("git_type").HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
+                entity.Property(x => x.GitId).HasColumnName("git_id").HasColumnType("varchar(80)").HasMaxLength(80).IsRequired();
+                entity.Property(x => x.EntryDate).HasColumnName("entry_date").HasColumnType("datetime").IsRequired();
+                entity.Property(x => x.CreatedByEmpId).HasColumnName("created_by_emp_id").HasColumnType("int").IsRequired(false);
+
+                entity.HasIndex(x => x.OrderId);
+                entity.HasIndex(x => x.EntryDate);
+                entity.HasIndex(x => new { x.OrderId, x.EntryDate });
 
                 entity.HasOne(x => x.Order)
                     .WithMany()

@@ -119,6 +119,12 @@ namespace ProjectTracking.Controllers
             if (issue == null)
                 return NotFound();
 
+            ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                .AsNoTracking()
+                .Where(x => x.IssueId == issue.IssueId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
+
             return View(issue);
         }
 
@@ -345,6 +351,11 @@ namespace ProjectTracking.Controllers
             ViewBag.CurrentIssueStatus = issue.IssueStatus;
             ViewBag.CurrentDevStatus = issue.DevStatus;
             ViewBag.StatusList = GetStatusList(issue.IssueStatus);
+            ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                .AsNoTracking()
+                .Where(x => x.IssueId == issue.IssueId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
 
             return View(issue);
         }
@@ -388,6 +399,11 @@ namespace ProjectTracking.Controllers
                 ViewBag.CurrentIssueStatus = issue.IssueStatus;
                 ViewBag.CurrentDevStatus = issue.DevStatus;
                 ViewBag.StatusList = GetStatusList(model.IssueStatus);
+                ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                    .AsNoTracking()
+                    .Where(x => x.IssueId == issue.IssueId)
+                    .OrderByDescending(x => x.EntryDate)
+                    .ToListAsync();
                 model.DevStatus = issue.DevStatus;
                 model.Images = await _context.ProjectIssueImages
                     .AsNoTracking()
@@ -511,6 +527,11 @@ namespace ProjectTracking.Controllers
 
             ViewBag.CurrentDevStatus = issue.DevStatus;
             ViewBag.DevStatusList = GetDevStatusList(issue.DevStatus);
+            ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                .AsNoTracking()
+                .Where(x => x.IssueId == issue.IssueId)
+                .OrderByDescending(x => x.EntryDate)
+                .ToListAsync();
             return View(issue);
         }
 
@@ -520,7 +541,13 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("ProjectIssues.DevIndex")]
-        public async Task<IActionResult> DevEdit(int id, ProjectIssue model, List<IFormFile>? afterImages, List<int>? deleteFixImageIds)
+        public async Task<IActionResult> DevEdit(
+            int id,
+            ProjectIssue model,
+            List<IFormFile>? afterImages,
+            List<int>? deleteFixImageIds,
+            List<string>? gitTypes,
+            List<string>? gitIds)
         {
             if (id != model.IssueId) return NotFound();
 
@@ -548,17 +575,17 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(ProjectIssue.UpdatedAt));
 
             var newDev = NormalizeProgrammerDevStatus(model.DevStatus);
-            if (newDev == "WIP")
-            {
-                ModelState.AddModelError(
-                    nameof(ProjectIssue.DevStatus),
-                    "ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ");
-            }
+            var gitHistoryRows = BuildGitHistoryRows(gitTypes, gitIds, ModelState);
 
             if (!ModelState.IsValid)
             {
                 ViewBag.CurrentDevStatus = issue.DevStatus;
                 ViewBag.DevStatusList = GetDevStatusList(model.DevStatus);
+                ViewBag.GitHistories = await _context.ProjectIssueGitHistories
+                    .AsNoTracking()
+                    .Where(x => x.IssueId == issue.IssueId)
+                    .OrderByDescending(x => x.EntryDate)
+                    .ToListAsync();
                 issue.DevStatus = model.DevStatus;
                 issue.DevDetail = model.DevDetail;
                 return View(issue);
@@ -571,6 +598,24 @@ namespace ProjectTracking.Controllers
 
             _context.Entry(issue).Property(x => x.DevStatus).IsModified = true;
             _context.Entry(issue).Property(x => x.DevDetail).IsModified = true;
+
+            if (gitHistoryRows.Count > 0)
+            {
+                var entryDate = DateTime.Now;
+                var currentEmpId = await GetCurrentEntryIdAsync();
+
+                foreach (var row in gitHistoryRows)
+                {
+                    _context.ProjectIssueGitHistories.Add(new ProjectIssueGitHistory
+                    {
+                        IssueId = issue.IssueId,
+                        GitType = row.GitType,
+                        GitId = row.GitId,
+                        EntryDate = entryDate,
+                        CreatedByEmpId = currentEmpId
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
 
@@ -785,6 +830,45 @@ namespace ProjectTracking.Controllers
                 "Text",
                 selected
             );
+        }
+
+        private static List<(string GitType, string GitId)> BuildGitHistoryRows(
+            List<string>? gitTypes,
+            List<string>? gitIds,
+            Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary modelState)
+        {
+            var rows = new List<(string GitType, string GitId)>();
+            var count = Math.Max(gitTypes?.Count ?? 0, gitIds?.Count ?? 0);
+
+            for (var i = 0; i < count; i++)
+            {
+                var gitId = i < (gitIds?.Count ?? 0) ? (gitIds![i] ?? "").Trim() : "";
+                if (string.IsNullOrWhiteSpace(gitId))
+                    continue;
+
+                if (gitId.Length > 80)
+                {
+                    modelState.AddModelError("gitIds", "Git ID ต้องไม่เกิน 80 ตัวอักษร");
+                    continue;
+                }
+
+                var gitType = NormalizeGitType(i < (gitTypes?.Count ?? 0) ? gitTypes![i] : null);
+                if (gitType == null)
+                {
+                    modelState.AddModelError("gitTypes", "ประเภท Git ต้องเป็น GITHUB หรือ GITLAB เท่านั้น");
+                    continue;
+                }
+
+                rows.Add((gitType, gitId));
+            }
+
+            return rows;
+        }
+
+        private static string? NormalizeGitType(string? gitType)
+        {
+            var value = (gitType ?? "").Trim().ToUpperInvariant();
+            return value is "GITHUB" or "GITLAB" ? value : null;
         }
 
         // =====================================================

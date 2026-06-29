@@ -10,6 +10,8 @@
     DateTime? endDate = Model?.EndDate;
     var supportOrder = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
     var beforeImages = supportOrder.Images?.ToList() ?? new List<ProjectTracking.Models.ProjectSupportImage>();
+    var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectSupportOrderGitHistory>
+        ?? new List<ProjectTracking.Models.ProjectSupportOrderGitHistory>();
     var projectName = (ViewBag.SelectedProjectName as string) ?? supportOrder.Project?.ProjectDisplayName ?? $"Project #{supportOrder.ProjectId}";
 
     string ThaiDateText(DateTime? value)
@@ -170,6 +172,56 @@
         background-color: #f8fafc !important;
         border-color: #cbd5e1 !important;
     }
+
+    .support-git-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-bottom: 0;
+    }
+
+    .support-git-table th {
+        padding: 0 10px;
+        color: #475569;
+        font-size: .9rem;
+        font-weight: 700;
+    }
+
+    .support-git-table td {
+        padding: 10px;
+        color: #10233f;
+        background: #f8fafc;
+        border-top: 1px solid #dbe8f5;
+        border-bottom: 1px solid #dbe8f5;
+        font-weight: 700;
+    }
+
+    .support-git-table td:first-child {
+        border-left: 1px solid #dbe8f5;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .support-git-table td:last-child {
+        border-right: 1px solid #dbe8f5;
+        border-radius: 0 12px 12px 0;
+    }
+
+    .support-git-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #075985;
+        background: #e0f2fe;
+        font-size: .86rem;
+        font-weight: 900;
+    }
+
+    .support-git-id {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        overflow-wrap: anywhere;
+    }
 </style>
 
 <div class="index-hero pt-form-hero">
@@ -293,6 +345,39 @@
                     <div class="support-edit-note">
                         จำนวน FAIL จะนับเมื่อ Dev ส่งงานเป็น FIXED แล้ว BA ตรวจไม่ผ่านและบันทึกเป็น FAIL โดย Dev Status จะถูกเปลี่ยนกลับเป็น WIP เพื่อให้แก้อีกรอบ
                     </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="support-edit-gallery-head">
+                        <h3 class="support-edit-section-title">ประวัติ Git</h3>
+                    </div>
+
+                    @if (gitHistories.Any())
+                    {
+                        <table class="support-git-table">
+                            <thead>
+                                <tr>
+                                    <th>ประเภท</th>
+                                    <th>Git ID</th>
+                                    <th>วันที่บันทึก</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in gitHistories)
+                                {
+                                    <tr>
+                                        <td><span class="support-git-badge">@row.GitType</span></td>
+                                        <td class="support-git-id">@row.GitId</td>
+                                        <td>@row.EntryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="support-edit-empty">ยังไม่มีประวัติ Git</div>
+                    }
                 </div>
 
                 <div class="col-12">

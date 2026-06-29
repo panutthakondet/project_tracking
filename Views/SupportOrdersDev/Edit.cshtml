@@ -11,6 +11,8 @@
     var afterImages = order.FixImages?
         .Where(x => string.Equals(x.ImageType, "AFTER", StringComparison.OrdinalIgnoreCase))
         .ToList() ?? new List<ProjectTracking.Models.ProjectSupportFixImage>();
+    var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectSupportOrderGitHistory>
+        ?? new List<ProjectTracking.Models.ProjectSupportOrderGitHistory>();
     var currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? order.DevStatus ?? "-";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
@@ -151,6 +153,121 @@
         border: 1px solid #e2e8f0;
         margin-bottom: 6px;
     }
+
+    .dev-git-panel {
+        border: 1px solid #cfe0f2;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f8fbff, #eff6ff);
+        padding: 16px;
+    }
+
+    .dev-git-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .dev-git-title {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 900;
+    }
+
+    .dev-git-table {
+        width: 100%;
+        margin-bottom: 14px;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .dev-git-table th {
+        color: #64748b;
+        font-size: .82rem;
+        font-weight: 900;
+        padding: 0 10px;
+    }
+
+    .dev-git-table td {
+        padding: 10px;
+        color: #10233f;
+        background: #fff;
+        border-top: 1px solid #dbe8f5;
+        border-bottom: 1px solid #dbe8f5;
+        font-weight: 800;
+    }
+
+    .dev-git-table td:first-child {
+        border-left: 1px solid #dbe8f5;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .dev-git-table td:last-child {
+        border-right: 1px solid #dbe8f5;
+        border-radius: 0 12px 12px 0;
+    }
+
+    .dev-git-id {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: .86rem;
+        overflow-wrap: anywhere;
+    }
+
+    .dev-git-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #075985;
+        background: #e0f2fe;
+        font-size: .82rem;
+        font-weight: 900;
+    }
+
+    .dev-git-row {
+        display: grid;
+        grid-template-columns: minmax(150px, 180px) 1fr auto;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .dev-git-row .form-select,
+    .dev-git-row .form-control {
+        min-height: 46px;
+        border-radius: 12px;
+        font-weight: 800;
+    }
+
+    .dev-git-remove {
+        min-width: 52px;
+        border-radius: 12px;
+        font-weight: 900;
+    }
+
+    .dev-git-panel.is-disabled .dev-git-new {
+        opacity: .55;
+        pointer-events: none;
+    }
+
+    .support-dev-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 18px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .dev-git-row {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="support-dev-edit-page">
@@ -227,6 +344,59 @@
                               class="form-control"
                               placeholder="ระบุรายละเอียดการแก้ไข หรือหมายเหตุจากโปรแกรมเมอร์"></textarea>
                     <span asp-validation-for="DevDetail" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <div class="dev-git-panel" data-git-history-panel>
+                        <div class="dev-git-head">
+                            <h3 class="dev-git-title">ประวัติ Git</h3>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-add-git-row>
+                                + เพิ่มแถว
+                            </button>
+                        </div>
+
+                        @if (gitHistories.Any())
+                        {
+                            <table class="dev-git-table">
+                                <thead>
+                                    <tr>
+                                        <th>ประเภท</th>
+                                        <th>Git ID</th>
+                                        <th>วันที่บันทึก</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in gitHistories)
+                                    {
+                                        <tr>
+                                            <td><span class="dev-git-badge">@row.GitType</span></td>
+                                            <td class="dev-git-id">@row.GitId</td>
+                                            <td>@row.EntryDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="support-dev-empty">ยังไม่มีประวัติ Git</div>
+                        }
+
+                        <div class="dev-git-new" data-git-rows>
+                            <div class="dev-git-row">
+                                <select name="gitTypes" class="form-select">
+                                    <option value="GITHUB">GITHUB</option>
+                                    <option value="GITLAB">GITLAB</option>
+                                </select>
+                                <input type="text"
+                                       name="gitIds"
+                                       class="form-control"
+                                       maxlength="80"
+                                       placeholder="Git ID เช่น 8ba2994a809ebaea3d8f1c69e5dbd9abe8482fb2" />
+                                <button type="button" class="btn btn-outline-danger dev-git-remove" data-remove-git-row>-</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -354,15 +524,58 @@
         new MutationObserver(applyAllStatusTones)
             .observe(document.body, { childList: true, subtree: true });
 
+        function createGitRow() {
+            const row = document.createElement('div');
+            row.className = 'dev-git-row';
+            row.innerHTML = `
+                <select name="gitTypes" class="form-select">
+                    <option value="GITHUB">GITHUB</option>
+                    <option value="GITLAB">GITLAB</option>
+                </select>
+                <input type="text"
+                       name="gitIds"
+                       class="form-control"
+                       maxlength="80"
+                       placeholder="Git ID เช่น 8ba2994a809ebaea3d8f1c69e5dbd9abe8482fb2" />
+                <button type="button" class="btn btn-outline-danger dev-git-remove" data-remove-git-row>-</button>
+            `;
+            return row;
+        }
+
+        function syncGitHistoryState() {
+            const panel = document.querySelector('[data-git-history-panel]');
+            const devStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
+            const canEditGit = devStatus === 'WIP';
+            panel?.classList.toggle('is-disabled', !canEditGit);
+            panel?.querySelectorAll('[name="gitTypes"], [name="gitIds"], [data-add-git-row], [data-remove-git-row]')
+                .forEach(input => input.disabled = !canEditGit);
+        }
+
+        document.querySelector('[data-add-git-row]')?.addEventListener('click', () => {
+            document.querySelector('[data-git-rows]')?.appendChild(createGitRow());
+            syncGitHistoryState();
+        });
+
+        document.querySelector('[data-git-rows]')?.addEventListener('click', event => {
+            const button = event.target.closest('[data-remove-git-row]');
+            if (!button) return;
+
+            const rows = document.querySelectorAll('.dev-git-row');
+            const row = button.closest('.dev-git-row');
+            if (rows.length <= 1) {
+                row?.querySelectorAll('input').forEach(input => input.value = '');
+                return;
+            }
+
+            row?.remove();
+        });
+
+        document.getElementById('DevStatus')?.addEventListener('change', syncGitHistoryState);
+        syncGitHistoryState();
+
         document.querySelector('form').addEventListener('submit', function (event) {
             const currentDevStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(currentDevStatus));
             const nextDevStatus = (document.getElementById('DevStatus')?.value || '').trim().toUpperCase();
-            if (nextDevStatus === 'WIP') {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                alert('ไม่สามารถบันทึกสถานะ WIP ได้ กรุณาเลือก FIXED เมื่อแก้ไขเสร็จ');
-                return;
-            }
 
             const devStatusText = currentDevStatus.toUpperCase() === nextDevStatus
                 ? `${nextDevStatus} (คงเดิม)`
