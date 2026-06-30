@@ -548,6 +548,7 @@ namespace ProjectTracking.Controllers
                     ProjectId = f.ProjectId,
                     TaskTitle = f.TaskTitle,
                     OwnerEmpId = f.OwnerEmpId,
+                    CreatedByEmpId = f.CreatedByEmpId,
                     Status = f.Status,
                     NextFollowupDate = f.NextFollowupDate,
                     CreatedAt = f.CreatedAt
@@ -839,6 +840,9 @@ namespace ProjectTracking.Controllers
             var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
             var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
+            var phaseById = phases
+                .GroupBy(phase => phase.PhaseId)
+                .ToDictionary(group => group.Key, group => group.First());
             int? ProjectBaEmpId(int? projectId)
             {
                 return projectId.HasValue && projectBaById.TryGetValue(projectId.Value, out var baEmpId)
@@ -846,18 +850,29 @@ namespace ProjectTracking.Controllers
                     : null;
             }
 
+            var visibleOpenAssigns = assigns
+                .Where(assign => !IsDashboardAssignDone(assign))
+                .Where(assign => CanSeeOpenAssign(assign, phaseById, ProjectBaEmpId, currentEmpId, isAdmin))
+                .ToList();
             var visibleOpenIssues = issues
-                .Where(i => IsOpenWorkStatus(i.IssueStatus))
+                .Where(i => !IsIssueResolved(i))
                 .Where(i => CanSeeOpenIssue(i, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
             var visibleOpenSupportOrders = supportOrders
-                .Where(o => IsOpenWorkStatus(o.Status))
+                .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
                 .Where(o => CanSeeOpenSupport(o, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
-            var openIssueSupportCount = visibleOpenIssues.Count + visibleOpenSupportOrders.Count;
+            var visibleOpenFollowups = followups
+                .Where(followup => !IsFollowupClosed(followup.Status))
+                .Where(followup => CanSeeOpenFollowup(followup, ProjectBaEmpId, currentEmpId, isAdmin))
+                .ToList();
+            var openIssueSupportCount = visibleOpenAssigns.Count + visibleOpenIssues.Count + visibleOpenSupportOrders.Count + visibleOpenFollowups.Count;
             var openIssueSupportItems = BuildOpenIssueSupportItems(
+                visibleOpenAssigns,
                 visibleOpenIssues,
                 visibleOpenSupportOrders,
+                visibleOpenFollowups,
+                phaseById,
                 ProjectName,
                 EmployeeName,
                 ProjectBaEmpId,
@@ -1299,6 +1314,7 @@ namespace ProjectTracking.Controllers
                     ProjectId = f.ProjectId,
                     TaskTitle = f.TaskTitle,
                     OwnerEmpId = f.OwnerEmpId,
+                    CreatedByEmpId = f.CreatedByEmpId,
                     Status = f.Status,
                     NextFollowupDate = f.NextFollowupDate,
                     CreatedAt = f.CreatedAt
@@ -2285,8 +2301,11 @@ namespace ProjectTracking.Controllers
         }
 
         private static List<HomeDashboardOpenWorkItem> BuildOpenIssueSupportItems(
+            IReadOnlyList<DashboardAssignRow> assigns,
             IReadOnlyList<DashboardIssueRow> issues,
             IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            IReadOnlyList<DashboardFollowupRow> followups,
+            IReadOnlyDictionary<int, DashboardPhaseRow> phaseById,
             Func<int?, string> projectName,
             Func<int?, string> employeeName,
             Func<int?, int?> projectBaEmpId,
@@ -2296,14 +2315,42 @@ namespace ProjectTracking.Controllers
         {
             var rows = new List<(DateTime? dueDate, DateTime createdAt, HomeDashboardOpenWorkItem item)>();
 
+            rows.AddRange(assigns
+                .Select(assign =>
+                {
+                    phaseById.TryGetValue(assign.PhaseId, out var phase);
+                    var projectId = phase?.ProjectId;
+                    var dueDate = assign.PlanEnd ?? phase?.PlanEnd;
+                    var title = !string.IsNullOrWhiteSpace(assign.Role)
+                        ? assign.Role
+                        : !string.IsNullOrWhiteSpace(phase?.PhaseName)
+                            ? phase.PhaseName
+                            : $"PhaseAssign #{assign.AssignId}";
+
+                    return (
+                        dueDate,
+                        createdAt: assign.CreatedAt ?? phase?.CreatedAt ?? DateTime.MinValue,
+                        item: new HomeDashboardOpenWorkItem
+                        {
+                            Type = "PhaseAssign",
+                            Title = title,
+                            ProjectName = projectName(projectId),
+                            OwnerName = employeeName(assign.EmpId),
+                            DueText = dueDate.HasValue ? FormatDashboardDate(dueDate, culture) : "ยังไม่กำหนด",
+                            Url = projectId.HasValue
+                                ? $"/PhaseAssigns/Index?projectId={projectId.Value}&empId={assign.EmpId}"
+                                : $"/PhaseAssigns/Index?empId={assign.EmpId}",
+                            Color = "blue"
+                        });
+                }));
+
             rows.AddRange(issues
-                .Where(i => IsOpenWorkStatus(i.IssueStatus))
                 .Select(i => (
                     dueDate: i.EndDate,
                     createdAt: i.CreatedAt,
                     item: new HomeDashboardOpenWorkItem
                     {
-                        Type = "Issue",
+                        Type = "ProjectIssue",
                         Title = string.IsNullOrWhiteSpace(i.IssueName) ? $"Issue #{i.IssueId}" : i.IssueName,
                         ProjectName = projectName(i.ProjectId),
                         OwnerName = employeeName(i.EmpId),
@@ -2315,13 +2362,12 @@ namespace ProjectTracking.Controllers
                     })));
 
             rows.AddRange(supportOrders
-                .Where(o => IsOpenWorkStatus(o.Status))
                 .Select(o => (
                     dueDate: o.EndDate,
                     createdAt: o.CreatedAt ?? DateTime.MinValue,
                     item: new HomeDashboardOpenWorkItem
                     {
-                        Type = "Support",
+                        Type = "SupportOrder",
                         Title = string.IsNullOrWhiteSpace(o.OrderTitle) ? $"Support #{o.OrderId}" : o.OrderTitle,
                         ProjectName = projectName(o.ProjectId),
                         OwnerName = employeeName(o.AssignTo),
@@ -2332,12 +2378,40 @@ namespace ProjectTracking.Controllers
                         Color = IsHighPriority(o.Priority) ? "pink" : "cyan"
                     })));
 
+            rows.AddRange(followups
+                .Select(followup => (
+                    dueDate: followup.NextFollowupDate,
+                    createdAt: followup.CreatedAt,
+                    item: new HomeDashboardOpenWorkItem
+                    {
+                        Type = "Followup",
+                        Title = string.IsNullOrWhiteSpace(followup.TaskTitle) ? $"Followup #{followup.FollowupId}" : followup.TaskTitle,
+                        ProjectName = projectName(followup.ProjectId),
+                        OwnerName = employeeName(followup.OwnerEmpId ?? followup.CreatedByEmpId),
+                        DueText = followup.NextFollowupDate.HasValue ? FormatDashboardDate(followup.NextFollowupDate, culture) : "ยังไม่กำหนด",
+                        Url = $"/Followups/Details/{followup.FollowupId}",
+                        Color = "green"
+                    })));
+
             return rows
-                .OrderBy(row => row.dueDate ?? DateTime.MaxValue)
+                .OrderBy(row => OpenWorkSeverityOrder(row.dueDate, DateTime.Today))
+                .ThenBy(row => row.dueDate ?? DateTime.MaxValue)
                 .ThenByDescending(row => row.createdAt)
                 .Take(10)
                 .Select(row => row.item)
                 .ToList();
+        }
+
+        private static int OpenWorkSeverityOrder(DateTime? dueDate, DateTime today)
+        {
+            if (!dueDate.HasValue)
+                return 2;
+
+            var date = dueDate.Value.Date;
+            if (date < today)
+                return 0;
+
+            return date <= today.AddDays(7) ? 1 : 2;
         }
 
         private static bool CanSeeOpenIssue(
@@ -2346,9 +2420,10 @@ namespace ProjectTracking.Controllers
             int? currentEmpId,
             bool isAdmin)
         {
-            return isAdmin ||
-                (currentEmpId.HasValue &&
-                    (issue.EmpId == currentEmpId.Value || projectBaEmpId(issue.ProjectId) == currentEmpId.Value));
+            return currentEmpId.HasValue &&
+                (issue.EmpId == currentEmpId.Value ||
+                    issue.CreatedBy == currentEmpId.Value ||
+                    projectBaEmpId(issue.ProjectId) == currentEmpId.Value);
         }
 
         private static bool CanSeeOpenSupport(
@@ -2357,9 +2432,40 @@ namespace ProjectTracking.Controllers
             int? currentEmpId,
             bool isAdmin)
         {
-            return isAdmin ||
-                (currentEmpId.HasValue &&
-                    (supportOrder.AssignTo == currentEmpId.Value || projectBaEmpId(supportOrder.ProjectId) == currentEmpId.Value));
+            return currentEmpId.HasValue &&
+                (supportOrder.AssignTo == currentEmpId.Value ||
+                    supportOrder.CreatedBy == currentEmpId.Value ||
+                    projectBaEmpId(supportOrder.ProjectId) == currentEmpId.Value);
+        }
+
+        private static bool CanSeeOpenAssign(
+            DashboardAssignRow assign,
+            IReadOnlyDictionary<int, DashboardPhaseRow> phaseById,
+            Func<int?, int?> projectBaEmpId,
+            int? currentEmpId,
+            bool isAdmin)
+        {
+            if (!currentEmpId.HasValue)
+                return false;
+
+            var projectId = phaseById.TryGetValue(assign.PhaseId, out var phase)
+                ? phase.ProjectId
+                : (int?)null;
+
+            return assign.EmpId == currentEmpId.Value ||
+                projectBaEmpId(projectId) == currentEmpId.Value;
+        }
+
+        private static bool CanSeeOpenFollowup(
+            DashboardFollowupRow followup,
+            Func<int?, int?> projectBaEmpId,
+            int? currentEmpId,
+            bool isAdmin)
+        {
+            return currentEmpId.HasValue &&
+                (followup.OwnerEmpId == currentEmpId.Value ||
+                    followup.CreatedByEmpId == currentEmpId.Value ||
+                    projectBaEmpId(followup.ProjectId) == currentEmpId.Value);
         }
 
         private static bool ShouldUseBaOpenWorkRoute(int? projectBaEmpId, int? currentEmpId, bool isAdmin)
@@ -2456,6 +2562,11 @@ namespace ProjectTracking.Controllers
         private static bool IsSupportOrderClosed(string? status, string? devStatus)
         {
             return Norm(status) is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
+        }
+
+        private static bool IsFollowupClosed(string? status)
+        {
+            return Norm(status) is "DONE" or "ACK" or "CLOSED" or "RESOLVED";
         }
 
         private static bool IsSupportOrderInProgress(DashboardSupportOrderRow order)
@@ -2680,6 +2791,7 @@ namespace ProjectTracking.Controllers
             public int? ProjectId { get; set; }
             public string TaskTitle { get; set; } = "";
             public int? OwnerEmpId { get; set; }
+            public int? CreatedByEmpId { get; set; }
             public string? Status { get; set; }
             public DateTime? NextFollowupDate { get; set; }
             public DateTime CreatedAt { get; set; }

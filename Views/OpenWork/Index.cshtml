@@ -1,15 +1,28 @@
 @model ProjectTracking.ViewModels.OpenIssueSupportPageViewModel
 
 @{
-    ViewData["Title"] = "แจ้งเตือนงาน ที่เปิดอยู่";
+    ViewData["Title"] = "งานทั้งหมดที่ยังไม่เสร็จสิ้น";
     var pageModel = Model ?? new ProjectTracking.ViewModels.OpenIssueSupportPageViewModel();
+    var totalWorkTypeCount = pageModel.WorkTypeOptions.Sum(option => option.Count);
 
     string SeverityText(string severity) => (severity ?? "").Trim().ToLowerInvariant() switch
     {
-        "danger" => "เลยกำหนด",
-        "warning" => "ใกล้ครบกำหนด",
-        _ => "เปิดอยู่"
+        "danger" => "ล่าช้าเลยกำหนด",
+        "warning" => "เสี่ยงล่าช้า",
+        _ => "ปกติ"
     };
+
+    string RemainingDaysText(DateTime? dueDate)
+    {
+        if (!dueDate.HasValue)
+            return "ยังไม่กำหนด";
+
+        var days = (dueDate.Value.Date - DateTime.Today).Days;
+        if (days < 0)
+            return $"เลยกำหนด {Math.Abs(days)} วัน";
+
+        return days == 0 ? "ครบกำหนดวันนี้" : $"เหลือ {days} วัน";
+    }
 
     string TextTone(string? value) => (value ?? "").Trim().ToUpperInvariant() switch
     {
@@ -43,6 +56,49 @@
     }
     .open-work-actions {
         justify-content: flex-end !important;
+    }
+
+    .open-work-filter {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        margin: 0 0 18px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, .82);
+        border: 1px solid #dbe6f3;
+        border-radius: 18px;
+        box-shadow: 0 12px 26px rgba(15, 40, 74, .07);
+    }
+
+    .open-work-filter-field {
+        display: grid;
+        gap: 7px;
+        width: min(360px, 100%);
+    }
+
+    .open-work-filter label {
+        color: #10223e;
+        font-size: .92rem;
+        font-weight: 900;
+    }
+
+    .open-work-filter select {
+        width: 100%;
+        min-height: 44px;
+        color: #10223e;
+        background: #fff;
+        border: 1px solid #cbd8ea;
+        border-radius: 12px;
+        padding: 0 38px 0 12px;
+        font-weight: 800;
+        outline: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
+    }
+
+    .open-work-filter select:focus {
+        border-color: #22c7b8;
+        box-shadow: 0 0 0 3px rgba(34, 199, 184, .16);
     }
 
     .open-work-summary {
@@ -123,6 +179,14 @@
 
     .open-work-group.support .open-work-group-icon {
         background: linear-gradient(135deg, #f59e0b, #f97316);
+    }
+
+    .open-work-group.assign .open-work-group-icon {
+        background: linear-gradient(135deg, #2563eb, #0891b2);
+    }
+
+    .open-work-group.followup .open-work-group-icon {
+        background: linear-gradient(135deg, #16a34a, #0f766e);
     }
 
     .open-work-group-count {
@@ -302,6 +366,16 @@
         line-height: 1.45;
     }
 
+    .open-work-days {
+        font-size: .95rem;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .open-work-days .open-work-value {
+        font-weight: 800;
+    }
+
     .open-work-status-row {
         display: flex;
         gap: 10px;
@@ -318,13 +392,15 @@
     }
 
     .open-work-status-text.danger,
-    .open-work-severity.danger {
+    .open-work-severity.danger,
+    .open-work-days.danger {
         color: #e11d48;
     }
 
     .open-work-status-text.warning,
-    .open-work-severity.warning {
-        color: #d97706;
+    .open-work-severity.warning,
+    .open-work-days.warning {
+        color: #ca8a04;
     }
 
     .open-work-status-text.info {
@@ -336,8 +412,9 @@
     }
 
     .open-work-status-text.muted,
-    .open-work-severity.normal {
-        color: #64748b;
+    .open-work-severity.normal,
+    .open-work-days.normal {
+        color: #059669;
     }
 
     .open-work-empty {
@@ -360,6 +437,11 @@
             justify-content: flex-end !important;
         }
 
+        .open-work-filter {
+            align-items: stretch;
+            padding: 12px;
+        }
+
         .open-work-card {
             grid-template-columns: 1fr;
         }
@@ -379,22 +461,46 @@
     <section class="open-work-hero index-hero">
         <div class="index-hero__content">
             <div class="open-work-eyebrow index-eyebrow">ProjectTracking</div>
-            <h1 class="index-title">แจ้งเตือนงาน ที่เปิดอยู่</h1>
+            <h1 class="index-title">งานทั้งหมดที่ยังไม่เสร็จสิ้น</h1>
             <p class="index-subtitle">
-                รายการ Issue และ Support ที่ยังเปิดอยู่
-                @if (!pageModel.IsAdmin)
-                {
-                    <span>ของ @pageModel.CurrentEmployeeName และโครงการที่เป็น BA</span>
-                }
+                PhaseAssigns, ProjectIssues, SupportOrders และ Followups แยกตามประเภทงานและสหกรณ์
+                <span>ของ @pageModel.CurrentEmployeeName และโครงการที่เป็น BA</span>
             </p>
         </div>
         <div class="open-work-actions index-actions">
             <a class="btn btn-light" asp-controller="Home" asp-action="Index">Dashboard</a>
-            <a class="btn btn-outline-light" asp-controller="Notifications" asp-action="Index">Notifications</a>
         </div>
     </section>
 
-    <section class="open-work-summary" aria-label="สรุปรายการเปิดอยู่">
+    <form class="open-work-filter" method="get" asp-controller="OpenWork" asp-action="Index">
+        <div class="open-work-filter-field">
+            <label for="workType">ประเภทงาน</label>
+            <select id="workType" name="workType" onchange="this.form.submit()">
+                @if (string.IsNullOrWhiteSpace(pageModel.SelectedWorkType))
+                {
+                    <option value="" selected>ทั้งหมด (@totalWorkTypeCount)</option>
+                }
+                else
+                {
+                    <option value="">ทั้งหมด (@totalWorkTypeCount)</option>
+                }
+
+                @foreach (var option in pageModel.WorkTypeOptions)
+                {
+                    if (string.Equals(pageModel.SelectedWorkType, option.Value, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@option.Value" selected>@option.Label (@option.Count)</option>
+                    }
+                    else
+                    {
+                        <option value="@option.Value">@option.Label (@option.Count)</option>
+                    }
+                }
+            </select>
+        </div>
+    </form>
+
+    <section class="open-work-summary" aria-label="สรุปงานที่ยังไม่เสร็จสิ้น">
         <div class="open-work-stat">
             <span>รวมทั้งหมด</span>
             <strong>@pageModel.TotalCount</strong>
@@ -410,11 +516,11 @@
 
     @if (pageModel.TotalCount == 0)
     {
-        <div class="open-work-empty">ยังไม่มี Issue หรือ Support ที่เปิดอยู่</div>
+        <div class="open-work-empty">ยังไม่มีงานที่ยังไม่เสร็จสิ้น</div>
     }
     else
     {
-        <section class="open-work-groups" aria-label="รายการ Issue และ Support ที่เปิดอยู่">
+        <section class="open-work-groups" aria-label="รายการงานที่ยังไม่เสร็จสิ้น">
             @foreach (var group in pageModel.Groups)
             {
                 <article class="open-work-group @group.Tone">
@@ -480,6 +586,10 @@
                                                 <div class="open-work-date">
                                                     <span class="open-work-label">กำหนด:</span>
                                                     <span class="open-work-value">@item.DateRangeText</span>
+                                                </div>
+                                                <div class="open-work-days @item.Severity">
+                                                    <span class="open-work-label">จำนวนวัน:</span>
+                                                    <span class="open-work-value">@RemainingDaysText(item.DueDate)</span>
                                                 </div>
                                                 <div class="open-work-status-row">
                                                     <span class="open-work-severity @item.Severity">@SeverityText(item.Severity)</span>

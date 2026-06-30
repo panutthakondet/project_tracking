@@ -13,7 +13,6 @@
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
     var yearlyCompletedTotal = dashboard.YearlyTasks.Sum(task => task.Completed);
     var yearlyInProgressTotal = dashboard.YearlyTasks.Sum(task => task.InProgress);
-    var unreadNotificationCount = Convert.ToInt32(ViewBag.UnreadNotificationCount ?? 0);
     var openIssueSupportCount = dashboard.OpenIssueSupportCount;
     var todayIso = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     var onlineUsers = ViewBag.OnlineUsers is IEnumerable<RequirementBoardOnlineUserViewModel> onlineUserRows
@@ -272,8 +271,8 @@
             <a class="dashboard-global-tool open-work"
                asp-controller="OpenWork"
                asp-action="Index"
-               title="Issue และ Support ที่ยังเปิดอยู่"
-               aria-label="Issue และ Support ที่ยังเปิดอยู่">
+               title="งานทั้งหมดที่ยังไม่เสร็จสิ้น"
+               aria-label="งานทั้งหมดที่ยังไม่เสร็จสิ้น">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M9 4h6" />
                     <path d="M10 2h4a2 2 0 0 1 2 2v2H8V4a2 2 0 0 1 2-2Z" />
@@ -282,17 +281,6 @@
                     <path d="M8 16h5" />
                 </svg>
                 <span class="dashboard-global-tool-count @(openIssueSupportCount == 0 ? "is-empty" : "")">@openIssueSupportCount</span>
-            </a>
-            <a class="dashboard-global-tool notification"
-               asp-controller="Notifications"
-               asp-action="Index"
-               title="แจ้งเตือนงาน"
-               aria-label="แจ้งเตือนงาน">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                <span class="dashboard-global-tool-count @(unreadNotificationCount == 0 ? "is-empty" : "")">@unreadNotificationCount</span>
             </a>
         </div>
     </section>
@@ -1438,6 +1426,8 @@
 .dashboard-open-work-mark.pink { background:linear-gradient(135deg,#fb3f7a,#e11d48); }
 .dashboard-open-work-mark.orange { background:linear-gradient(135deg,#f59e0b,#f97316); }
 .dashboard-open-work-mark.cyan { background:linear-gradient(135deg,#22d3ee,#0f9f94); }
+.dashboard-open-work-mark.blue { background:linear-gradient(135deg,#2563eb,#0891b2); }
+.dashboard-open-work-mark.green { background:linear-gradient(135deg,#22c55e,#0f766e); }
 
 .dashboard-open-work-body {
     display:grid;

@@ -8,9 +8,18 @@ namespace ProjectTracking.ViewModels
     {
         public bool IsAdmin { get; set; }
         public string CurrentEmployeeName { get; set; } = "-";
+        public string SelectedWorkType { get; set; } = "";
+        public List<OpenIssueSupportWorkTypeOptionViewModel> WorkTypeOptions { get; set; } = new();
         public List<OpenIssueSupportGroupViewModel> Groups { get; set; } = new();
 
         public int TotalCount => Groups.Sum(group => group.TotalCount);
+    }
+
+    public class OpenIssueSupportWorkTypeOptionViewModel
+    {
+        public string Value { get; set; } = "";
+        public string Label { get; set; } = "";
+        public int Count { get; set; }
     }
 
     public class OpenIssueSupportGroupViewModel

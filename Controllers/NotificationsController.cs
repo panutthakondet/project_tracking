@@ -22,48 +22,9 @@ namespace ProjectTracking.Controllers
             _notificationService = notificationService;
         }
 
-        public async Task<IActionResult> Index(string? severity = null, bool includeResolved = false)
+        public IActionResult Index(string? severity = null, bool includeResolved = false)
         {
-            try
-            {
-                await _notificationService.SyncAsync(HttpContext.RequestAborted);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.SyncError = ex.Message;
-            }
-
-            var query = ExcludeOpenWorkNotifications(ApplyVisibility(_context.UserNotifications
-                .AsNoTracking()
-                .Include(x => x.RecipientEmployee)
-                    .ThenInclude(employee => employee!.LoginUser)
-                .AsQueryable()));
-
-            if (!includeResolved)
-                query = query.Where(x => !x.IsResolved);
-
-            if (!string.IsNullOrWhiteSpace(severity))
-            {
-                var normalizedSeverity = severity.Trim().ToUpperInvariant();
-                query = query.Where(x => x.Severity == normalizedSeverity);
-            }
-
-            var notifications = await query
-                .OrderBy(x => x.IsRead)
-                .ThenByDescending(x => x.Severity == "DANGER")
-                .ThenByDescending(x => x.CreatedAt)
-                .Take(200)
-                .ToListAsync();
-            notifications = DeduplicateForPage(notifications, IsAdmin());
-
-            ViewBag.SelectedSeverity = severity ?? "";
-            ViewBag.IncludeResolved = includeResolved;
-            ViewBag.IsAdmin = IsAdmin();
-
-            var model = await BuildPageModelAsync(notifications);
-            model.IsAdmin = IsAdmin();
-
-            return View(model);
+            return RedirectToAction("Index", "OpenWork");
         }
 
         [HttpGet]

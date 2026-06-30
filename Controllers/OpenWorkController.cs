@@ -17,7 +17,7 @@ namespace ProjectTracking.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? workType = null)
         {
             var currentUserId = HttpContext.Session.GetInt32("UserId");
             var currentEmpId = await ResolveEmployeeIdAsync(currentUserId);
@@ -31,6 +31,25 @@ namespace ProjectTracking.Controllers
             var isAdmin = IsAdmin();
             var today = DateTime.Today;
 
+            var assigns = await _context.PhaseAssigns
+                .AsNoTracking()
+                .Include(assign => assign.Phase)
+                    .ThenInclude(phase => phase!.Project)
+                        .ThenInclude(project => project!.Coop)
+                .Include(assign => assign.Phase)
+                    .ThenInclude(phase => phase!.Project)
+                        .ThenInclude(project => project!.BA)
+                            .ThenInclude(ba => ba!.LoginUser)
+                .Include(assign => assign.Employee)
+                    .ThenInclude(employee => employee!.LoginUser)
+                .ToListAsync();
+
+            var assignItems = assigns
+                .Where(IsPhaseAssignIncomplete)
+                .Where(assign => CanSeeAssign(assign, currentEmpId, isAdmin))
+                .Select(assign => BuildAssignItem(assign, currentEmpId, isAdmin, today))
+                .ToList();
+
             var issues = await _context.ProjectIssues
                 .AsNoTracking()
                 .Include(issue => issue.Project)
@@ -43,7 +62,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             var issueItems = issues
-                .Where(issue => IsOpenWorkStatus(issue.IssueStatus))
+                .Where(IsIssueIncomplete)
                 .Where(issue => CanSeeIssue(issue, currentEmpId, isAdmin))
                 .Select(issue => BuildIssueItem(issue, currentEmpId, isAdmin, today))
                 .ToList();
@@ -60,51 +79,136 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             var supportItems = supportOrders
-                .Where(order => IsOpenWorkStatus(order.Status))
+                .Where(IsSupportIncomplete)
                 .Where(order => CanSeeSupport(order, currentEmpId, isAdmin))
                 .Select(order => BuildSupportItem(order, currentEmpId, isAdmin, today))
                 .ToList();
 
-            var sortedIssueItems = issueItems
-                .OrderBy(item => item.DueDate ?? DateTime.MaxValue)
-                .ThenByDescending(item => item.CreatedAt)
+            var followups = await _context.ProjectFollowups
+                .AsNoTracking()
+                .Include(followup => followup.Project)
+                    .ThenInclude(project => project!.Coop)
+                .Include(followup => followup.Project)
+                    .ThenInclude(project => project!.BA)
+                        .ThenInclude(ba => ba!.LoginUser)
+                .Include(followup => followup.Owner)
+                    .ThenInclude(owner => owner!.LoginUser)
+                .Include(followup => followup.CreatedByEmployee)
+                    .ThenInclude(employee => employee!.LoginUser)
+                .ToListAsync();
+
+            var followupItems = followups
+                .Where(IsFollowupIncomplete)
+                .Where(followup => CanSeeFollowup(followup, currentEmpId, isAdmin))
+                .Select(followup => BuildFollowupItem(followup, currentEmpId, isAdmin, today))
                 .ToList();
 
-            var sortedSupportItems = supportItems
-                .OrderBy(item => item.DueDate ?? DateTime.MaxValue)
-                .ThenByDescending(item => item.CreatedAt)
-                .ToList();
+            var assignSortedItems = SortOpenItems(assignItems);
+            var issueSortedItems = SortOpenItems(issueItems);
+            var supportSortedItems = SortOpenItems(supportItems);
+            var followupSortedItems = SortOpenItems(followupItems);
+            var allGroups = new List<OpenIssueSupportGroupViewModel>
+            {
+                new()
+                {
+                    Key = "assigns",
+                    Label = "PhaseAssigns",
+                    Icon = "A",
+                    Tone = "assign",
+                    Items = assignSortedItems,
+                    CoopGroups = BuildCoopGroups(assignSortedItems)
+                },
+                new()
+                {
+                    Key = "issues",
+                    Label = "ProjectIssues",
+                    Icon = "!",
+                    Tone = "issue",
+                    Items = issueSortedItems,
+                    CoopGroups = BuildCoopGroups(issueSortedItems)
+                },
+                new()
+                {
+                    Key = "support",
+                    Label = "SupportOrders",
+                    Icon = "S",
+                    Tone = "support",
+                    Items = supportSortedItems,
+                    CoopGroups = BuildCoopGroups(supportSortedItems)
+                },
+                new()
+                {
+                    Key = "followups",
+                    Label = "Followups",
+                    Icon = "F",
+                    Tone = "followup",
+                    Items = followupSortedItems,
+                    CoopGroups = BuildCoopGroups(followupSortedItems)
+                }
+            };
+            var selectedWorkType = NormalizeWorkType(workType);
+            var visibleGroups = string.IsNullOrWhiteSpace(selectedWorkType)
+                ? allGroups.Where(group => group.TotalCount > 0).ToList()
+                : allGroups
+                    .Where(group => string.Equals(group.Key, selectedWorkType, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
 
             var model = new OpenIssueSupportPageViewModel
             {
                 IsAdmin = isAdmin,
                 CurrentEmployeeName = currentEmployeeName,
-                Groups = new List<OpenIssueSupportGroupViewModel>
-                {
-                    new()
+                SelectedWorkType = selectedWorkType,
+                WorkTypeOptions = allGroups
+                    .Select(group => new OpenIssueSupportWorkTypeOptionViewModel
                     {
-                        Key = "issues",
-                        Label = "Issues",
-                        Icon = "!",
-                        Tone = "issue",
-                        Items = sortedIssueItems,
-                        CoopGroups = BuildCoopGroups(sortedIssueItems)
-                    },
-                    new()
-                    {
-                        Key = "support",
-                        Label = "Support",
-                        Icon = "S",
-                        Tone = "support",
-                        Items = sortedSupportItems,
-                        CoopGroups = BuildCoopGroups(sortedSupportItems)
-                    }
-                }
-                .Where(group => group.TotalCount > 0)
-                .ToList()
+                        Value = group.Key,
+                        Label = group.Label,
+                        Count = group.TotalCount
+                    })
+                    .ToList(),
+                Groups = visibleGroups
             };
 
             return View(model);
+        }
+
+        private static OpenIssueSupportItemViewModel BuildAssignItem(PhaseAssign assign, int? currentEmpId, bool isAdmin, DateTime today)
+        {
+            var phase = assign.Phase;
+            var project = phase?.Project;
+            var dueDate = assign.PlanEnd ?? phase?.PlanEnd;
+            var startDate = assign.PlanStart ?? phase?.PlanStart;
+            var isOwner = currentEmpId.HasValue && assign.EmpId == currentEmpId.Value;
+            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var roleText = isOwner ? "ผู้รับผิดชอบ" : isAdmin ? "Admin" : isBa ? "BA" : "User";
+            var title = FirstText(assign.Role, phase?.PhaseDisplayName, $"PhaseAssign #{assign.AssignId}");
+
+            return new OpenIssueSupportItemViewModel
+            {
+                Type = "PhaseAssign",
+                Id = assign.AssignId,
+                Title = title,
+                ProjectName = ProjectDisplayName(project),
+                CoopName = project?.Coop?.CoopName ?? "-",
+                BaName = project?.BA?.EmpName ?? "-",
+                BaAvatarPath = ProfileImage(project?.BA),
+                OwnerName = assign.Employee?.EmpName ?? "-",
+                OwnerAvatarPath = ProfileImage(assign.Employee),
+                Detail = CleanDetail(assign.Remark ?? phase?.PhaseDisplayName),
+                StatusText = DisplayStatus(assign.WorkStatus),
+                DevStatusText = "-",
+                PriorityText = DisplayStatus(phase?.PhaseStatus),
+                StartText = FormatDate(startDate),
+                DueText = FormatDate(dueDate),
+                DateRangeText = FormatDateRange(startDate, dueDate),
+                DueDate = dueDate,
+                CreatedAt = assign.CreatedAt ?? phase?.CreatedAt ?? DateTime.MinValue,
+                Severity = Severity(dueDate, today),
+                RecipientRole = roleText,
+                TargetUrl = project == null
+                    ? $"/PhaseAssigns/Index?empId={assign.EmpId}"
+                    : $"/PhaseAssigns/Index?projectId={project.ProjectId}&empId={assign.EmpId}"
+            };
         }
 
         private async Task<int?> ResolveEmployeeIdAsync(int? userId)
@@ -169,6 +273,41 @@ namespace ProjectTracking.Controllers
             };
         }
 
+        private static OpenIssueSupportItemViewModel BuildFollowupItem(ProjectFollowup followup, int? currentEmpId, bool isAdmin, DateTime today)
+        {
+            var project = followup.Project;
+            var owner = followup.Owner ?? followup.CreatedByEmployee;
+            var isOwner = currentEmpId.HasValue && followup.OwnerEmpId == currentEmpId.Value;
+            var isCreator = currentEmpId.HasValue && followup.CreatedByEmpId == currentEmpId.Value;
+            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var roleText = isOwner ? "เจ้าของงาน" : isCreator ? "ผู้สร้าง" : isAdmin ? "Admin" : isBa ? "BA" : "User";
+
+            return new OpenIssueSupportItemViewModel
+            {
+                Type = "Followup",
+                Id = followup.FollowupId,
+                Title = string.IsNullOrWhiteSpace(followup.TaskTitle) ? $"Followup #{followup.FollowupId}" : followup.TaskTitle.Trim(),
+                ProjectName = ProjectDisplayName(project),
+                CoopName = project?.Coop?.CoopName ?? "-",
+                BaName = project?.BA?.EmpName ?? "-",
+                BaAvatarPath = ProfileImage(project?.BA),
+                OwnerName = owner?.EmpName ?? "-",
+                OwnerAvatarPath = ProfileImage(owner),
+                Detail = CleanDetail(followup.PartnerName),
+                StatusText = DisplayStatus(followup.Status),
+                DevStatusText = "-",
+                PriorityText = "-",
+                StartText = FormatDate(followup.LastContactDate ?? followup.CreatedAt),
+                DueText = FormatDate(followup.NextFollowupDate),
+                DateRangeText = FormatDate(followup.NextFollowupDate),
+                DueDate = followup.NextFollowupDate,
+                CreatedAt = followup.CreatedAt,
+                Severity = Severity(followup.NextFollowupDate, today),
+                RecipientRole = roleText,
+                TargetUrl = $"/Followups/Details/{followup.FollowupId}"
+            };
+        }
+
         private static OpenIssueSupportItemViewModel BuildSupportItem(ProjectSupportOrder order, int? currentEmpId, bool isAdmin, DateTime today)
         {
             var project = order.Project;
@@ -206,25 +345,55 @@ namespace ProjectTracking.Controllers
 
         private static bool CanSeeIssue(ProjectIssue issue, int? currentEmpId, bool isAdmin)
         {
-            if (isAdmin)
-                return true;
-
             return currentEmpId.HasValue &&
-                (issue.AssignTo == currentEmpId.Value || issue.Project?.BaEmpId == currentEmpId.Value);
+                (issue.AssignTo == currentEmpId.Value ||
+                    issue.CreatedBy == currentEmpId.Value ||
+                    issue.Project?.BaEmpId == currentEmpId.Value);
         }
 
         private static bool CanSeeSupport(ProjectSupportOrder order, int? currentEmpId, bool isAdmin)
         {
-            if (isAdmin)
-                return true;
-
             return currentEmpId.HasValue &&
-                (order.AssignTo == currentEmpId.Value || order.Project?.BaEmpId == currentEmpId.Value);
+                (order.AssignTo == currentEmpId.Value ||
+                    order.CreatedBy == currentEmpId.Value ||
+                    order.Project?.BaEmpId == currentEmpId.Value);
         }
 
-        private static bool IsOpenWorkStatus(string? status)
+        private static bool CanSeeAssign(PhaseAssign assign, int? currentEmpId, bool isAdmin)
         {
-            return Norm(status) is "OPEN" or "FAIL";
+            return currentEmpId.HasValue &&
+                (assign.EmpId == currentEmpId.Value || assign.Phase?.Project?.BaEmpId == currentEmpId.Value);
+        }
+
+        private static bool CanSeeFollowup(ProjectFollowup followup, int? currentEmpId, bool isAdmin)
+        {
+            return currentEmpId.HasValue &&
+                (followup.OwnerEmpId == currentEmpId.Value ||
+                    followup.CreatedByEmpId == currentEmpId.Value ||
+                    followup.Project?.BaEmpId == currentEmpId.Value);
+        }
+
+        private static bool IsPhaseAssignIncomplete(PhaseAssign assign)
+        {
+            return Norm(assign.WorkStatus) != "DONE";
+        }
+
+        private static bool IsIssueIncomplete(ProjectIssue issue)
+        {
+            var status = Norm(issue.IssueStatus);
+            return status is not "PASS" and not "REJECT" and not "DONE" and not "CLOSED" and not "RESOLVED";
+        }
+
+        private static bool IsSupportIncomplete(ProjectSupportOrder order)
+        {
+            var status = Norm(order.Status);
+            return status is not "PASS" and not "REJECT" and not "DONE" and not "CLOSED" and not "RESOLVED";
+        }
+
+        private static bool IsFollowupIncomplete(ProjectFollowup followup)
+        {
+            var status = Norm(followup.Status);
+            return status is not "DONE" and not "ACK" and not "CLOSED" and not "RESOLVED";
         }
 
         private static string Severity(DateTime? dueDate, DateTime today)
@@ -246,6 +415,17 @@ namespace ProjectTracking.Controllers
 
             var name = project.ProjectName?.Trim();
             return string.IsNullOrWhiteSpace(name) ? "-" : name;
+        }
+
+        private static string FirstText(params string?[] values)
+        {
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                    return value.Trim();
+            }
+
+            return "-";
         }
 
         private static string CleanDetail(string? value)
@@ -309,6 +489,35 @@ namespace ProjectTracking.Controllers
                     Items = group.ToList()
                 })
                 .ToList();
+
+        private static List<OpenIssueSupportItemViewModel> SortOpenItems(IEnumerable<OpenIssueSupportItemViewModel> items)
+            => items
+                .OrderBy(item => SeverityOrder(item.Severity))
+                .ThenBy(item => item.DueDate ?? DateTime.MaxValue)
+                .ThenByDescending(item => item.CreatedAt)
+                .ToList();
+
+        private static int SeverityOrder(string? severity)
+        {
+            return (severity ?? "").Trim().ToLowerInvariant() switch
+            {
+                "danger" => 0,
+                "warning" => 1,
+                _ => 2
+            };
+        }
+
+        private static string NormalizeWorkType(string? workType)
+        {
+            return (workType ?? "").Trim().ToLowerInvariant().Replace("_", "").Replace("-", "") switch
+            {
+                "assigns" or "phaseassign" or "phaseassigns" => "assigns",
+                "issues" or "issue" or "projectissue" or "projectissues" => "issues",
+                "support" or "supportorder" or "supportorders" => "support",
+                "followup" or "followups" => "followups",
+                _ => ""
+            };
+        }
 
         private static string CoopGroupName(string? value)
         {
