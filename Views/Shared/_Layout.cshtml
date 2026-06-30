@@ -1826,6 +1826,7 @@
                       || canFollowups;
 
     var canSettings = CanMenu("UserManagement.Index")
+                   || CanMenu("StatusApprovals.Index")
                    || CanMenu("LineNotificationSettings.Index")
                    || CanMenu("TelegramNotificationSettings.Index")
                    || CanMenu("NotificationSendLogs.Index")
@@ -2143,7 +2144,7 @@
                         @if (canSettings)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="StatusApprovals" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
                                     <span class="nav-label">Settings</span>
@@ -2152,7 +2153,11 @@
                                     <li><h6 class="dropdown-header">Settings</h6></li>
                                     @if (CanMenu("UserManagement.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">ผู้ใช้งาน</a></li>
+                                        <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">UserManagement</a></li>
+                                    }
+                                    @if (CanMenu("StatusApprovals.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="StatusApprovals" asp-action="Index">PM Approval</a></li>
                                     }
                                     @if (CanMenu("LineNotificationSettings.Index"))
                                     {

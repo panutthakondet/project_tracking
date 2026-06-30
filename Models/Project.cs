@@ -49,6 +49,15 @@ namespace ProjectTracking.Models
         [ForeignKey("BaEmpId")]
         public Employee? BA { get; set; }
 
+        // ======================
+        // 👤 PROJECT MANAGER
+        // ======================
+        [Column("pm_emp_id")]
+        public int? PmEmpId { get; set; }
+
+        [ForeignKey("PmEmpId")]
+        public Employee? PM { get; set; }
+
         [Column("start_date")]
         public DateTime? StartDate { get; set; }
 

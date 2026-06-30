@@ -19,6 +19,7 @@
     var th = new CultureInfo("th-TH");
     var selectedProject = ViewBag.SelectedProject;
     var selectedProjectId = (int?)ViewBag.SelectedProjectId;
+    var pendingAssignApprovalIds = ViewBag.PendingAssignApprovalIds as ISet<int> ?? new HashSet<int>();
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectCoopName = ((selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "").Trim();
@@ -689,6 +690,22 @@ thead .sticky-col { z-index: 5; }
         padding: .32rem .7rem;
     }
 
+    .assign-status-badges {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .assign-status-row .assign-approval-pending-badge {
+        color: #c2410c !important;
+        background: #fff7ed !important;
+        border: 1px solid #fed7aa;
+        box-shadow: 0 4px 10px rgba(194, 65, 12, .10);
+        font-weight: 900;
+    }
+
     .assign-card-actions {
         display: flex;
         flex-wrap: nowrap;
@@ -800,6 +817,7 @@ thead .sticky-col { z-index: 5; }
                           ?? ReadNestedInt(a, "PhaseOrder");
             var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
                            ?? ReadNestedInt(a, "Phase", "PeriodOrder");
+            var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
             <div class="assign-card @(a.WorkStatus == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
                 <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
@@ -859,14 +877,22 @@ thead .sticky-col { z-index: 5; }
                     <div class="assign-status-grid">
                         <div class="assign-status-row">
                             <small>สถานะงาน:</small>
-                            @if (a.WorkStatus == "DONE")
-                            {
-                                <span class="badge bg-success">เสร็จสิ้น</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">กำลังดำเนินการ</span>
-                            }
+                            <span class="assign-status-badges">
+                                @if (a.WorkStatus == "DONE")
+                                {
+                                    <span class="badge bg-success">เสร็จสิ้น</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">กำลังดำเนินการ</span>
+                                }
+                                @if (hasPendingApproval)
+                                {
+                                    <span class="badge assign-approval-pending-badge">
+                                        รออนุมัติ
+                                    </span>
+                                }
+                            </span>
                         </div>
                     </div>
                 </section>

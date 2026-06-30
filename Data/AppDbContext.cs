@@ -64,6 +64,7 @@ namespace ProjectTracking.Data
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
         public DbSet<NotificationSendLog> NotificationSendLogs { get; set; }
+        public DbSet<StatusApprovalRequest> StatusApprovalRequests { get; set; }
         public DbSet<LineRecipient> LineRecipients { get; set; }
         public DbSet<TelegramRecipient> TelegramRecipients { get; set; }
         public DbSet<WeeklyReport> WeeklyReports { get; set; }
@@ -673,6 +674,12 @@ namespace ProjectTracking.Data
                     .HasColumnType("int")
                     .IsRequired(false);
 
+                // 👤 Project Manager
+                entity.Property(p => p.PmEmpId)
+                    .HasColumnName("pm_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
                 entity.Property(p => p.CreatedAt)
                     .HasColumnName("created_at")
                     .HasColumnType("datetime")
@@ -694,6 +701,12 @@ namespace ProjectTracking.Data
                     .HasForeignKey(p => p.BaEmpId)
                     .OnDelete(DeleteBehavior.SetNull);
 
+                // 👤 Project Manager relationship
+                entity.HasOne(p => p.PM)
+                    .WithMany()
+                    .HasForeignKey(p => p.PmEmpId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasOne(p => p.RequirementCard)
                     .WithMany()
                     .HasForeignKey(p => p.RequirementCardId)
@@ -706,7 +719,115 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(p => p.ProjectName);
                 entity.HasIndex(p => p.CoopId).HasDatabaseName("idx_project_coop_id");
+                entity.HasIndex(p => p.PmEmpId).HasDatabaseName("idx_project_pm_emp_id");
                 entity.HasIndex(p => p.RequirementCardId).HasDatabaseName("idx_project_requirement_card_id");
+            });
+
+            modelBuilder.Entity<StatusApprovalRequest>(entity =>
+            {
+                entity.ToTable("status_approval_requests");
+                entity.HasKey(x => x.RequestId);
+
+                entity.Property(x => x.RequestId)
+                    .HasColumnName("request_id")
+                    .HasColumnType("int");
+
+                entity.Property(x => x.TargetType)
+                    .HasColumnName("target_type")
+                    .HasColumnType("varchar(30)")
+                    .IsRequired();
+
+                entity.Property(x => x.TargetId)
+                    .HasColumnName("target_id")
+                    .HasColumnType("int")
+                    .IsRequired();
+
+                entity.Property(x => x.ProjectId)
+                    .HasColumnName("project_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ProjectName)
+                    .HasColumnName("project_name")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.TargetTitle)
+                    .HasColumnName("target_title")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CurrentStatus)
+                    .HasColumnName("current_status")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestedStatus)
+                    .HasColumnName("requested_status")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired();
+
+                entity.Property(x => x.RequestStatus)
+                    .HasColumnName("request_status")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("PENDING")
+                    .IsRequired();
+
+                entity.Property(x => x.RequestNote)
+                    .HasColumnName("request_note")
+                    .HasColumnType("varchar(1000)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestedByUserId)
+                    .HasColumnName("requested_by_user_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestedByEmpId)
+                    .HasColumnName("requested_by_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestedAt)
+                    .HasColumnName("requested_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewedByUserId)
+                    .HasColumnName("reviewed_by_user_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ReviewedByEmpId)
+                    .HasColumnName("reviewed_by_emp_id")
+                    .HasColumnType("int")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ReviewedAt)
+                    .HasColumnName("reviewed_at")
+                    .HasColumnType("datetime")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ReviewNote)
+                    .HasColumnName("review_note")
+                    .HasColumnType("varchar(1000)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.TargetType, x.TargetId, x.RequestStatus })
+                    .HasDatabaseName("idx_status_approval_target_status");
+
+                entity.HasIndex(x => new { x.ProjectId, x.RequestStatus })
+                    .HasDatabaseName("idx_status_approval_project_status");
+
+                entity.HasIndex(x => x.RequestedAt)
+                    .HasDatabaseName("idx_status_approval_requested_at");
             });
 
             // =========================

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 using System.Globalization;
 
@@ -13,13 +14,16 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly StatusApprovalService _statusApprovalService;
 
         public ProjectsController(
             AppDbContext context,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            StatusApprovalService statusApprovalService)
         {
             _context = context;
             _env = env;
+            _statusApprovalService = statusApprovalService;
         }
 
         // ===========================
@@ -37,6 +41,8 @@ namespace ProjectTracking.Controllers
             var query = _context.Projects
                 .Include(p => p.BA)
                     .ThenInclude(e => e!.LoginUser)
+                .Include(p => p.PM)
+                    .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
                 .AsNoTracking()
                 .AsQueryable();
@@ -47,6 +53,19 @@ namespace ProjectTracking.Controllers
             }
 
             var projects = OrderProjects(await query.ToListAsync()).ToList();
+            var projectIds = projects.Select(p => p.ProjectId).ToList();
+
+            ViewBag.PendingProjectApprovalIds = projectIds.Count == 0
+                ? new HashSet<int>()
+                : (await _context.StatusApprovalRequests
+                    .AsNoTracking()
+                    .Where(r => r.TargetType == StatusApprovalService.TargetProject
+                                && r.RequestStatus == StatusApprovalService.RequestPending
+                                && projectIds.Contains(r.TargetId))
+                    .Select(r => r.TargetId)
+                    .Distinct()
+                    .ToListAsync())
+                    .ToHashSet();
 
             return View(projects);
         }
@@ -56,6 +75,7 @@ namespace ProjectTracking.Controllers
         {
             var allProjects = await _context.Projects
                 .Include(p => p.BA)
+                .Include(p => p.PM)
                 .Include(p => p.Coop)
                 .AsNoTracking()
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
@@ -108,6 +128,7 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.PM)
                 .FirstOrDefaultAsync(p => p.ProjectId == id);
 
             if (project == null)
@@ -328,11 +349,13 @@ namespace ProjectTracking.Controllers
             // ===============================
             // ✅ UPDATE FIELD (ครบทุกช่อง)
             // ===============================
+            var oldStatus = db.Status;
+            var requestedStatus = model.Status;
+
             db.ProjectName = model.ProjectName;
             db.CoopId = model.CoopId;
             db.StartDate = model.StartDate;
             db.EndDate = model.EndDate;
-            db.Status = model.Status;
 
             // 🔹 SYSTEM / DATABASE INFO
             db.LinkName = model.LinkName;
@@ -345,9 +368,46 @@ namespace ProjectTracking.Controllers
 
             // 🔹 BUSINESS ANALYST
             db.BaEmpId = model.BaEmpId;
+            db.PmEmpId = model.PmEmpId;
             db.RequirementCardId = model.RequirementCardId;
             db.CreatedAt = DateTime.Now;
             db.EntryId = await GetCurrentEntryIdAsync();
+
+            var requirePmApproval = StatusApprovalService.IsProjectCompletionStatus(requestedStatus)
+                && !StatusApprovalService.IsProjectCompletionStatus(oldStatus)
+                && !await _statusApprovalService.CanApplyCompletionStatusImmediatelyAsync(db.ProjectId);
+
+            if (requirePmApproval)
+            {
+                db.Status = oldStatus;
+
+                var coopName = db.CoopId.HasValue
+                    ? await _context.CntMCoops
+                        .AsNoTracking()
+                        .Where(c => c.CoopId == db.CoopId.Value)
+                        .Select(c => c.CoopName)
+                        .FirstOrDefaultAsync()
+                    : null;
+                var projectDisplayName = string.IsNullOrWhiteSpace(coopName)
+                    ? db.ProjectName
+                    : $"{coopName} - {db.ProjectName}";
+
+                await _statusApprovalService.QueueCompletionRequestAsync(
+                    StatusApprovalService.TargetProject,
+                    db.ProjectId,
+                    db.ProjectId,
+                    projectDisplayName,
+                    projectDisplayName,
+                    oldStatus,
+                    requestedStatus,
+                    "ขอปรับสถานะโครงการเป็นเสร็จสิ้น");
+
+                TempData["Success"] = "บันทึกข้อมูลแล้ว และส่งคำขออนุมัติสถานะเสร็จสิ้นให้ PM แล้ว";
+            }
+            else
+            {
+                db.Status = requestedStatus;
+            }
 
             await SyncRequirementCardColumnForProjectStatusAsync(db.RequirementCardId, db.Status);
             await _context.SaveChangesAsync();
@@ -425,6 +485,14 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Employees = await _context.Employees
                 .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .OrderBy(e => e.EmpName)
+                .ToListAsync();
+
+            ViewBag.ProjectManagers = await _context.Employees
+                .Where(e => e.Status == "ACTIVE"
+                    && (e.Position == "Project Manager"
+                        || e.Position == "Project Manager IT"
+                        || e.Position == "PM"))
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 

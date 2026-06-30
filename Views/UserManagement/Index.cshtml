@@ -26,8 +26,8 @@
     <div class="alert alert-warning">@TempData["Error"]</div>
 }
 
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
+<div class="table-responsive user-management-table-wrap">
+    <table class="table table-hover align-middle user-management-table">
         <thead class="table-light">
             <tr>
                 <th>Username</th>
@@ -101,8 +101,19 @@
     </table>
 </div>
 <style>
-    table td {
+    .user-management-table th,
+    .user-management-table td {
+        padding: 12px 14px;
+        font-size: .9rem;
+        line-height: 1.35;
+    }
+
+    .user-management-table td {
         word-break: break-word;
+    }
+
+    .user-management-table .fw-semibold {
+        font-weight: 700 !important;
     }
 
     .user-status-text,
@@ -114,9 +125,17 @@
         border-radius: 0;
         background: transparent;
         box-shadow: none;
-        font-weight: 900;
-        line-height: 1.35;
+        font-size: .82rem;
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: 0;
         white-space: normal;
+    }
+
+    .user-management-table .btn-sm {
+        padding: .34rem .58rem;
+        font-size: .78rem;
+        line-height: 1.15;
     }
 
     .user-role-text.is-admin {
@@ -141,5 +160,20 @@
 
     .user-verified-text.is-unverified {
         color: #f59e0b;
+    }
+
+    @@media (max-width: 576px) {
+        .user-management-table th,
+        .user-management-table td {
+            padding: 10px 12px;
+            font-size: .82rem;
+        }
+
+        .user-status-text,
+        .user-role-text,
+        .user-verified-text {
+            font-size: .74rem;
+            font-weight: 750;
+        }
     }
 </style>

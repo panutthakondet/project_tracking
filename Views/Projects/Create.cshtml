@@ -121,6 +121,20 @@
                     </select>
                 </div>
 
+                <!-- Project Manager -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        PM
+                    </label>
+                    <select asp-for="PmEmpId" class="form-select">
+                        <option value="">-- Select Project Manager --</option>
+                        @foreach (var emp in ViewBag.ProjectManagers)
+                        {
+                            <option value="@emp.EmpId">@emp.EmpName</option>
+                        }
+                    </select>
+                </div>
+
                 <!-- Start Date -->
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">

@@ -187,6 +187,7 @@ builder.Services.AddHttpClient<LineMessagingService>();
 builder.Services.AddScoped<LineNotificationSettingsService>();
 builder.Services.AddHttpClient<TelegramMessagingService>();
 builder.Services.AddScoped<TelegramNotificationSettingsService>();
+builder.Services.AddScoped<StatusApprovalService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
@@ -200,6 +201,8 @@ var app = builder.Build();
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
+await EnsureProjectPmEmpIdColumnAsync(app.Services);
+await EnsureStatusApprovalRequestTableAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
@@ -384,6 +387,133 @@ static async Task EnsureEntryIdColumnAsync(System.Data.Common.DbConnection conne
         command.CommandText = $"ALTER TABLE `{tableName}` ADD COLUMN entry_id INT NULL;";
         await command.ExecuteNonQueryAsync();
     }
+}
+
+static async Task EnsureProjectPmEmpIdColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND COLUMN_NAME = 'pm_emp_id';";
+
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (exists == 0)
+        {
+            command.CommandText = "ALTER TABLE `project` ADD COLUMN `pm_emp_id` INT NULL AFTER `ba_emp_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND INDEX_NAME = 'idx_project_pm_emp_id';";
+
+        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (indexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_project_pm_emp_id` ON `project` (`pm_emp_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureStatusApprovalRequestTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `status_approval_requests` (
+                `request_id` INT NOT NULL AUTO_INCREMENT,
+                `target_type` VARCHAR(30) NOT NULL,
+                `target_id` INT NOT NULL,
+                `project_id` INT NULL,
+                `project_name` VARCHAR(255) NULL,
+                `target_title` VARCHAR(500) NULL,
+                `current_status` VARCHAR(50) NULL,
+                `requested_status` VARCHAR(50) NOT NULL,
+                `request_status` VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                `request_note` VARCHAR(1000) NULL,
+                `requested_by_user_id` INT NULL,
+                `requested_by_emp_id` INT NULL,
+                `requested_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `reviewed_by_user_id` INT NULL,
+                `reviewed_by_emp_id` INT NULL,
+                `reviewed_at` DATETIME NULL,
+                `review_note` VARCHAR(1000) NULL,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`request_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        await EnsureStatusApprovalIndexAsync(
+            connection,
+            "idx_status_approval_target_status",
+            "CREATE INDEX `idx_status_approval_target_status` ON `status_approval_requests` (`target_type`, `target_id`, `request_status`);");
+
+        await EnsureStatusApprovalIndexAsync(
+            connection,
+            "idx_status_approval_project_status",
+            "CREATE INDEX `idx_status_approval_project_status` ON `status_approval_requests` (`project_id`, `request_status`);");
+
+        await EnsureStatusApprovalIndexAsync(
+            connection,
+            "idx_status_approval_requested_at",
+            "CREATE INDEX `idx_status_approval_requested_at` ON `status_approval_requests` (`requested_at`);");
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureStatusApprovalIndexAsync(
+    System.Data.Common.DbConnection connection,
+    string indexName,
+    string createSql)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = $@"
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'status_approval_requests'
+          AND INDEX_NAME = '{indexName}';";
+
+    var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+    if (exists > 0) return;
+
+    command.CommandText = createSql;
+    await command.ExecuteNonQueryAsync();
 }
 
 static async Task EnsureMeetingStatusColumnAsync(IServiceProvider services)

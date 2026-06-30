@@ -742,6 +742,7 @@ namespace ProjectTracking.Controllers
                 "TelegramNotificationSettings" => 236,
                 "NotificationSendLogs" => 237,
                 "SystemConfigs" => 238,
+                "StatusApprovals" => 239,
                 _ => 999
             };
         }
@@ -820,6 +821,7 @@ namespace ProjectTracking.Controllers
                 "TelegramNotificationSettings" => "Telegram Notification",
                 "NotificationSendLogs" => "Notification Send Logs",
                 "SystemConfigs" => "System Config",
+                "StatusApprovals" => "อนุมัติสถานะ",
                 _ => controller
             };
 

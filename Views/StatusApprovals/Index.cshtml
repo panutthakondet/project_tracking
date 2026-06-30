@@ -1,0 +1,540 @@
+@model IEnumerable<ProjectTracking.Models.StatusApprovalRequest>
+
+@{
+    ViewData["Title"] = "PM Approval";
+    var selectedStatus = (ViewBag.SelectedStatus as string ?? "PENDING").ToUpperInvariant();
+    var pendingCount = Convert.ToInt32(ViewBag.PendingCount ?? 0);
+    var employeeNames = ViewBag.EmployeeNames as IDictionary<int, string> ?? new Dictionary<int, string>();
+    var statuses = new[]
+    {
+        new { Value = "PENDING", Label = "Pending" },
+        new { Value = "APPROVED", Label = "Approved" },
+        new { Value = "REJECTED", Label = "Rejected" },
+        new { Value = "ALL", Label = "All" }
+    };
+}
+
+<style>
+    .pm-approval-page {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 12px 0 28px;
+    }
+
+    .approval-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .approval-title {
+        margin: 0;
+        color: #111827;
+        font-size: 1.45rem;
+        font-weight: 800;
+    }
+
+    .approval-subtitle {
+        margin-top: 5px;
+        color: #64748b;
+        font-size: .92rem;
+    }
+
+    .approval-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 118px;
+        min-height: 40px;
+        padding: 9px 16px;
+        border-radius: 999px;
+        background: rgba(202, 138, 4, .18);
+        color: #fde68a;
+        font-weight: 900;
+        border: 1px solid rgba(251, 191, 36, .78);
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .12);
+        line-height: 1.15;
+    }
+
+    .approval-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid #dbeafe;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .approval-tab {
+        display: inline-flex;
+        align-items: center;
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid #d7dee8;
+        background: #f8fafc;
+        color: #334155;
+        font-size: .9rem;
+        font-weight: 800;
+        text-decoration: none;
+        transition: .18s ease;
+    }
+
+    .approval-tab:hover {
+        border-color: var(--pt-accent);
+        color: var(--pt-accent-dark);
+        background: rgba(20, 184, 166, .10);
+    }
+
+    .approval-tab.active {
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 18px var(--pt-accent-soft);
+    }
+
+    .approval-alert {
+        border-radius: 8px;
+        padding: 11px 14px;
+        margin-bottom: 14px;
+        font-weight: 700;
+    }
+
+    .approval-alert.success {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #bbf7d0;
+    }
+
+    .approval-alert.error {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .approval-table-wrap {
+        overflow-x: auto;
+        border: 2px solid #dbeafe;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+    }
+
+    .approval-table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+    }
+
+    .approval-table th,
+    .approval-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: top;
+        text-align: left;
+    }
+
+    .approval-table th {
+        color: #10233f;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef7ff 100%);
+        font-size: .78rem;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .approval-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .approval-target {
+        color: #10233f;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .approval-target:hover {
+        color: var(--pt-accent-dark);
+    }
+
+    .approval-meta,
+    .approval-note {
+        color: #64748b;
+        font-size: .84rem;
+        margin-top: 4px;
+    }
+
+    .approval-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .approval-badge.pending {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+    }
+
+    .approval-badge.approved {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #bbf7d0;
+    }
+
+    .approval-badge.rejected {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .approval-action-cell {
+        width: 250px;
+    }
+
+    .approval-action-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .approval-action-form:last-child {
+        margin-bottom: 0;
+    }
+
+    .approval-note-input {
+        width: 100%;
+        min-width: 0;
+        height: 34px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0 10px;
+        font-size: .85rem;
+    }
+
+    .approval-btn {
+        height: 34px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 0 12px;
+        color: #fff;
+        font-weight: 800;
+        white-space: nowrap;
+        transition: .18s ease;
+    }
+
+    .approval-btn.approve {
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+        box-shadow: 0 8px 16px var(--pt-accent-soft);
+    }
+
+    .approval-btn.reject {
+        background: #fff;
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .approval-btn:hover,
+    .approval-btn:focus {
+        filter: brightness(1.04);
+        transform: translateY(-1px);
+    }
+
+    .approval-empty {
+        padding: 34px 18px;
+        text-align: center;
+        color: #64748b;
+        background: #fff;
+        border: 2px solid #dbeafe;
+        border-radius: 16px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+        font-weight: 700;
+    }
+
+    .approval-mobile-list {
+        display: none;
+    }
+
+    .approval-card {
+        border: 2px solid #dbeafe;
+        border-radius: 16px;
+        background: #fff;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+        transition: .2s ease;
+    }
+
+    .approval-card:hover {
+        transform: translateY(-2px);
+        border-color: #93c5fd;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, .10);
+    }
+
+    .approval-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    @@media (max-width: 760px) {
+        .approval-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .approval-table-wrap {
+            display: none;
+        }
+
+        .approval-mobile-list {
+            display: block;
+        }
+
+        .approval-action-form {
+            grid-template-columns: 1fr;
+        }
+
+        .approval-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="pm-approval-page">
+    <!-- ================= HEADER ================= -->
+    <div class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Settings</span>
+            <h2 class="index-title">PM Approval</h2>
+            <p class="index-subtitle">อนุมัติคำขอปรับสถานะเป็นเสร็จสิ้น</p>
+        </div>
+
+        <div class="index-actions">
+            <div class="approval-count" title="Pending">
+                Pending @pendingCount
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="approval-alert success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="approval-alert error">@TempData["Error"]</div>
+    }
+
+    <div class="approval-tabs" role="navigation" aria-label="Approval status">
+        @foreach (var item in statuses)
+        {
+            <a class="approval-tab @(selectedStatus == item.Value ? "active" : "")"
+               asp-controller="StatusApprovals"
+               asp-action="Index"
+               asp-route-status="@item.Value">
+                @item.Label
+            </a>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="approval-empty">ไม่มีรายการคำขออนุมัติ</div>
+    }
+    else
+    {
+        <div class="approval-table-wrap">
+            <table class="approval-table">
+                <thead>
+                    <tr>
+                        <th>รายการ</th>
+                        <th>โครงการ</th>
+                        <th>สถานะ</th>
+                        <th>ผู้ขอ</th>
+                        <th>วันที่ขอ</th>
+                        <th>ผลอนุมัติ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var isPending = IsPending(item);
+                        <tr>
+                            <td>
+                                <a class="approval-target" href="@TargetUrl(item)">
+                                    @TextOrDash(item.TargetTitle)
+                                </a>
+                                <div class="approval-meta">@TargetTypeLabel(item.TargetType)</div>
+                                @if (!string.IsNullOrWhiteSpace(item.RequestNote))
+                                {
+                                    <div class="approval-note">@item.RequestNote</div>
+                                }
+                            </td>
+                            <td>@TextOrDash(item.ProjectName)</td>
+                            <td>
+                                <div>@StatusLabel(item.CurrentStatus) → @StatusLabel(item.RequestedStatus)</div>
+                                <div class="approval-meta">เฉพาะสถานะเสร็จสิ้น</div>
+                            </td>
+                            <td>@EmpLabel(item.RequestedByEmpId, employeeNames)</td>
+                            <td>@FormatDateTime(item.RequestedAt)</td>
+                            <td class="approval-action-cell">
+                                <span class="approval-badge @BadgeClass(item.RequestStatus)">
+                                    @RequestStatusLabel(item.RequestStatus)
+                                </span>
+
+                                @if (isPending)
+                                {
+                                    <form class="approval-action-form" asp-controller="StatusApprovals" asp-action="Approve" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.RequestId" />
+                                        <input class="approval-note-input" name="note" maxlength="1000" placeholder="หมายเหตุ" />
+                                        <button class="approval-btn approve" type="submit">Approve</button>
+                                    </form>
+                                    <form class="approval-action-form" asp-controller="StatusApprovals" asp-action="Reject" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.RequestId" />
+                                        <input class="approval-note-input" name="note" maxlength="1000" placeholder="เหตุผล" />
+                                        <button class="approval-btn reject" type="submit">Reject</button>
+                                    </form>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(item.ReviewNote))
+                                {
+                                    <div class="approval-note">@item.ReviewNote</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="approval-mobile-list">
+            @foreach (var item in Model)
+            {
+                var isPending = IsPending(item);
+                <div class="approval-card">
+                    <div class="approval-card-top">
+                        <a class="approval-target" href="@TargetUrl(item)">@TextOrDash(item.TargetTitle)</a>
+                        <span class="approval-badge @BadgeClass(item.RequestStatus)">
+                            @RequestStatusLabel(item.RequestStatus)
+                        </span>
+                    </div>
+                    <div class="approval-meta">@TargetTypeLabel(item.TargetType)</div>
+                    <div class="approval-meta">โครงการ: @TextOrDash(item.ProjectName)</div>
+                    <div class="approval-meta">สถานะ: @StatusLabel(item.CurrentStatus) → @StatusLabel(item.RequestedStatus)</div>
+                    <div class="approval-meta">ผู้ขอ: @EmpLabel(item.RequestedByEmpId, employeeNames)</div>
+                    <div class="approval-meta">วันที่ขอ: @FormatDateTime(item.RequestedAt)</div>
+
+                    @if (isPending)
+                    {
+                        <form class="approval-action-form" asp-controller="StatusApprovals" asp-action="Approve" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.RequestId" />
+                            <input class="approval-note-input" name="note" maxlength="1000" placeholder="หมายเหตุ" />
+                            <button class="approval-btn approve" type="submit">Approve</button>
+                        </form>
+                        <form class="approval-action-form" asp-controller="StatusApprovals" asp-action="Reject" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@item.RequestId" />
+                            <input class="approval-note-input" name="note" maxlength="1000" placeholder="เหตุผล" />
+                            <button class="approval-btn reject" type="submit">Reject</button>
+                        </form>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(item.ReviewNote))
+                    {
+                        <div class="approval-note">@item.ReviewNote</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@functions {
+    private static bool IsPending(ProjectTracking.Models.StatusApprovalRequest request)
+        => string.Equals(request.RequestStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
+
+    private static string TargetTypeLabel(string? value)
+    {
+        return (value ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PROJECT" => "Project",
+            "PROJECT_PHASE" => "Project Phase",
+            "PHASE_ASSIGN" => "Phase Assign",
+            _ => "รายการ"
+        };
+    }
+
+    private static string RequestStatusLabel(string? value)
+    {
+        return (value ?? "").Trim().ToUpperInvariant() switch
+        {
+            "APPROVED" => "Approved",
+            "REJECTED" => "Rejected",
+            _ => "Pending"
+        };
+    }
+
+    private static string BadgeClass(string? value)
+    {
+        return (value ?? "").Trim().ToUpperInvariant() switch
+        {
+            "APPROVED" => "approved",
+            "REJECTED" => "rejected",
+            _ => "pending"
+        };
+    }
+
+    private static string TargetUrl(ProjectTracking.Models.StatusApprovalRequest request)
+    {
+        return (request.TargetType ?? "").Trim().ToUpperInvariant() switch
+        {
+            "PROJECT" => $"/Projects/Edit/{request.TargetId}",
+            "PROJECT_PHASE" => $"/ProjectPhases/Edit/{request.TargetId}",
+            "PHASE_ASSIGN" => $"/PhaseAssigns/Edit/{request.TargetId}",
+            _ => "#"
+        };
+    }
+
+    private static string StatusLabel(string? value)
+    {
+        var status = (value ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(status)) return "-";
+
+        return status.ToUpperInvariant() switch
+        {
+            "PLAN" => "วางแผน",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            "DONE" => "เสร็จสิ้น",
+            _ => status
+        };
+    }
+
+    private static string TextOrDash(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    private static string EmpLabel(int? empId, IDictionary<int, string> employeeNames)
+    {
+        if (!empId.HasValue) return "-";
+        return employeeNames.TryGetValue(empId.Value, out var name) && !string.IsNullOrWhiteSpace(name)
+            ? name
+            : $"Emp #{empId.Value}";
+    }
+
+    private static string FormatDateTime(DateTime value)
+        => value.ToString("dd/MM/yyyy HH:mm", new System.Globalization.CultureInfo("th-TH"));
+}

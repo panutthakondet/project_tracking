@@ -9,18 +9,23 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
 
 namespace ProjectTracking.Controllers
 {
     public class ProjectPhasesController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly StatusApprovalService _statusApprovalService;
         private const string SubmittedStatus = "ส่งงวดงานแล้ว";
         private const string ApprovedPaymentStatus = "อนุมัติจ่ายเงินแล้ว";
 
-        public ProjectPhasesController(AppDbContext context)
+        public ProjectPhasesController(
+            AppDbContext context,
+            StatusApprovalService statusApprovalService)
         {
             _context = context;
+            _statusApprovalService = statusApprovalService;
         }
 
         // ===========================
@@ -32,6 +37,8 @@ namespace ProjectTracking.Controllers
             ViewBag.Projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.PM)
+                    .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.BA)
                     .ThenInclude(e => e!.LoginUser)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
@@ -41,12 +48,15 @@ namespace ProjectTracking.Controllers
             if (projectId == null)
             {
                 ViewBag.SelectedProject = null;
+                ViewBag.PendingPhaseApprovalIds = new HashSet<int>();
                 return View(new List<ProjectPhase>());
             }
 
             var selectedProject = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.PM)
+                    .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.BA)
                     .ThenInclude(e => e!.LoginUser)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
@@ -54,6 +64,7 @@ namespace ProjectTracking.Controllers
             if (selectedProject == null)
             {
                 ViewBag.SelectedProject = null;
+                ViewBag.PendingPhaseApprovalIds = new HashSet<int>();
                 return View(new List<ProjectPhase>());
             }
 
@@ -67,6 +78,19 @@ namespace ProjectTracking.Controllers
                 .ThenBy(p => p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort)
                 .ThenBy(p => p.PhaseId)
                 .ToListAsync();
+
+            var phaseIds = phases.Select(p => p.PhaseId).ToList();
+            ViewBag.PendingPhaseApprovalIds = phaseIds.Count == 0
+                ? new HashSet<int>()
+                : (await _context.StatusApprovalRequests
+                    .AsNoTracking()
+                    .Where(r => r.TargetType == StatusApprovalService.TargetProjectPhase
+                                && r.RequestStatus == StatusApprovalService.RequestPending
+                                && phaseIds.Contains(r.TargetId))
+                    .Select(r => r.TargetId)
+                    .Distinct()
+                    .ToListAsync())
+                    .ToHashSet();
 
             return View(phases);
         }
@@ -359,6 +383,9 @@ namespace ProjectTracking.Controllers
             if (existing == null)
                 return NotFound();
 
+            var oldStatus = existing.PhaseStatus;
+            var requestedStatus = NormalizePhaseStatus(phase.PhaseStatus);
+
             // ✅ อัปเดตเฉพาะฟิลด์ที่แก้ได้จากฟอร์ม (คงค่า PhaseSort เดิมไว้)
             existing.PhaseName = phase.PhaseName;
             existing.PhaseType = phase.PhaseType;
@@ -367,9 +394,38 @@ namespace ProjectTracking.Controllers
             existing.PlanStart = phase.PlanStart;
             existing.PlanEnd = phase.PlanEnd;
             existing.ActualEnd = phase.ActualEnd;
-            existing.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
             existing.CreatedAt = DateTime.Now;
             existing.EntryId = await GetCurrentEntryIdAsync();
+
+            var requirePmApproval = StatusApprovalService.IsProjectPhaseCompletionStatus(requestedStatus)
+                && !StatusApprovalService.IsProjectPhaseCompletionStatus(oldStatus)
+                && !await _statusApprovalService.CanApplyCompletionStatusImmediatelyAsync(existing.ProjectId);
+
+            if (requirePmApproval)
+            {
+                existing.PhaseStatus = oldStatus;
+
+                var project = await _context.Projects
+                    .AsNoTracking()
+                    .Include(p => p.Coop)
+                    .FirstOrDefaultAsync(p => p.ProjectId == existing.ProjectId);
+
+                await _statusApprovalService.QueueCompletionRequestAsync(
+                    StatusApprovalService.TargetProjectPhase,
+                    existing.PhaseId,
+                    existing.ProjectId,
+                    project?.ProjectDisplayName,
+                    existing.PhaseDisplayName,
+                    oldStatus,
+                    requestedStatus ?? SubmittedStatus,
+                    "ขอปรับสถานะงวดงานเป็นเสร็จสิ้น");
+
+                TempData["Success"] = "บันทึกข้อมูลงวดงานแล้ว และส่งคำขออนุมัติสถานะเสร็จสิ้นให้ PM แล้ว";
+            }
+            else
+            {
+                existing.PhaseStatus = requestedStatus;
+            }
 
             var linkedAssigns = await _context.PhaseAssigns
                 .Where(a => a.PhaseId == existing.PhaseId)

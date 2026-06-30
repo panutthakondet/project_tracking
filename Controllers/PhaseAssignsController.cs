@@ -21,6 +21,7 @@ namespace ProjectTracking.Controllers
         private readonly LineNotificationSettingsService _lineNotificationSettings;
         private readonly TelegramMessagingService _telegramMessagingService;
         private readonly TelegramNotificationSettingsService _telegramNotificationSettings;
+        private readonly StatusApprovalService _statusApprovalService;
         private readonly ILogger<PhaseAssignsController> _logger;
 
         public PhaseAssignsController(
@@ -29,6 +30,7 @@ namespace ProjectTracking.Controllers
             LineNotificationSettingsService lineNotificationSettings,
             TelegramMessagingService telegramMessagingService,
             TelegramNotificationSettingsService telegramNotificationSettings,
+            StatusApprovalService statusApprovalService,
             ILogger<PhaseAssignsController> logger)
         {
             _context = context;
@@ -36,6 +38,7 @@ namespace ProjectTracking.Controllers
             _lineNotificationSettings = lineNotificationSettings;
             _telegramMessagingService = telegramMessagingService;
             _telegramNotificationSettings = telegramNotificationSettings;
+            _statusApprovalService = statusApprovalService;
             _logger = logger;
         }
 
@@ -103,7 +106,10 @@ namespace ProjectTracking.Controllers
             ViewBag.EmployeeList = new List<Employee>();
 
             if (projectId == null)
+            {
+                ViewBag.PendingAssignApprovalIds = new HashSet<int>();
                 return View(new List<PhaseAssign>());
+            }
 
             var project = await _context.Projects
                 .Include(p => p.Coop)
@@ -111,7 +117,10 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(e => e!.LoginUser)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId.Value);
             if (project == null)
+            {
+                ViewBag.PendingAssignApprovalIds = new HashSet<int>();
                 return View(new List<PhaseAssign>());
+            }
 
             ViewBag.SelectedProject = project;
 
@@ -178,6 +187,19 @@ namespace ProjectTracking.Controllers
                 .ThenBy(a => a.PhaseSort ?? int.MaxValue)
                 .ThenBy(a => a.AssignId)
                 .ToListAsync();
+
+            var assignIds = assigns.Select(a => a.AssignId).ToList();
+            ViewBag.PendingAssignApprovalIds = assignIds.Count == 0
+                ? new HashSet<int>()
+                : (await _context.StatusApprovalRequests
+                    .AsNoTracking()
+                    .Where(r => r.TargetType == StatusApprovalService.TargetPhaseAssign
+                                && r.RequestStatus == StatusApprovalService.RequestPending
+                                && assignIds.Contains(r.TargetId))
+                    .Select(r => r.TargetId)
+                    .Distinct()
+                    .ToListAsync())
+                    .ToHashSet();
 
             return View(assigns);
         }
@@ -414,6 +436,11 @@ namespace ProjectTracking.Controllers
                 ModelState.AddModelError("", "Cannot determine project for this assignment.");
             }
 
+            var oldStatus = db.WorkStatus;
+            var requestedStatus = string.IsNullOrWhiteSpace(model.WorkStatus)
+                ? "IN_PROGRESS"
+                : model.WorkStatus.Trim();
+
             // ✅ Validate selected phase (must be in same project)
             ProjectPhase? selectedPhase = null;
             if (model.PhaseId > 0)
@@ -486,9 +513,6 @@ namespace ProjectTracking.Controllers
             db.PlanStart = model.PlanStart;
             db.PlanEnd = model.PlanEnd;
             db.Remark = model.Remark;
-            db.WorkStatus = string.IsNullOrWhiteSpace(model.WorkStatus)
-                ? "IN_PROGRESS"
-                : model.WorkStatus;
             db.CreatedAt = DateTime.Now;
             db.EntryId = await GetCurrentEntryIdAsync();
 
@@ -501,6 +525,40 @@ namespace ProjectTracking.Controllers
             else
             {
                 db.Role = selectedPhase?.PhaseName ?? db.Role;
+            }
+
+            var requirePmApproval = StatusApprovalService.IsPhaseAssignCompletionStatus(requestedStatus)
+                && !StatusApprovalService.IsPhaseAssignCompletionStatus(oldStatus)
+                && !await _statusApprovalService.CanApplyCompletionStatusImmediatelyAsync(projectIdOfAssign);
+
+            if (requirePmApproval)
+            {
+                db.WorkStatus = oldStatus;
+
+                Project? project = null;
+                if (projectIdOfAssign.HasValue)
+                {
+                    project = await _context.Projects
+                        .AsNoTracking()
+                        .Include(p => p.Coop)
+                        .FirstOrDefaultAsync(p => p.ProjectId == projectIdOfAssign.Value);
+                }
+
+                await _statusApprovalService.QueueCompletionRequestAsync(
+                    StatusApprovalService.TargetPhaseAssign,
+                    db.AssignId,
+                    projectIdOfAssign,
+                    project?.ProjectDisplayName,
+                    db.Role,
+                    oldStatus,
+                    requestedStatus,
+                    "ขอปรับสถานะมอบหมายงานเป็นเสร็จสิ้น");
+
+                TempData["Success"] = "บันทึกข้อมูลมอบหมายงานแล้ว และส่งคำขออนุมัติสถานะเสร็จสิ้นให้ PM แล้ว";
+            }
+            else
+            {
+                db.WorkStatus = requestedStatus;
             }
 
             await _context.SaveChangesAsync();
