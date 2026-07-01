@@ -3,6 +3,7 @@ namespace ProjectTracking.Reports;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using ProjectTracking.Helpers;
 using ProjectTracking.Models;
 
 using System;
@@ -202,12 +203,13 @@ public class TestScenarioReport
 
                                 inner.Item().PaddingTop(4).Text(text =>
                                 {
-                                    text.Span("Status: ").Bold();
-                                    var status = item.status ?? "-";
+                                    text.Span("สถานะ: ").Bold();
+                                    var status = (item.status ?? "").Trim().ToUpperInvariant();
+                                    var statusText = TestScenarioDisplay.StatusText(item.status);
                                     if (status == "FAILED")
-                                        text.Span(status).FontColor(Colors.Red.Medium).Bold();
+                                        text.Span(statusText).FontColor(Colors.Red.Medium).Bold();
                                     else
-                                        text.Span(status);
+                                        text.Span(statusText);
                                 });
 
                                 inner.Item().PaddingTop(2).Text(text =>

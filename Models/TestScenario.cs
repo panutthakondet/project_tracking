@@ -36,7 +36,7 @@ namespace ProjectTracking.Models
 
         public string priority { get; set; } = "MEDIUM";
 
-        public string status { get; set; } = "DRAFT";
+        public string status { get; set; } = "READY";
 
         public string? created_by { get; set; }
 

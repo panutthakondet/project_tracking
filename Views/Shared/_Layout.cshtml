@@ -1270,6 +1270,30 @@
     overflow:hidden !important;
 }
 
+body:has(.v2-shell-requirement-board)::-webkit-scrollbar,
+body:has(.v2-shell-requirement-board) *::-webkit-scrollbar{
+    width:2px !important;
+    height:3px !important;
+}
+
+body:has(.v2-shell-requirement-board)::-webkit-scrollbar-track,
+body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-track{
+    background:rgba(15,39,70,.04) !important;
+    border-radius:999px !important;
+}
+
+body:has(.v2-shell-requirement-board)::-webkit-scrollbar-thumb,
+body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb{
+    background:rgba(20,126,120,.42) !important;
+    border:0 !important;
+    border-radius:999px !important;
+}
+
+body:has(.v2-shell-requirement-board)::-webkit-scrollbar-thumb:hover,
+body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
+    background:rgba(20,126,120,.68) !important;
+}
+
 .v2-page .table-responsive{
     width:100%;
     max-width:100%;

@@ -24,7 +24,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? empId, string? workType, string? viewMode)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, string? workType, string? viewMode)
         {
             var currentDate = DateTime.Today;
             var hasFilterQuery =
@@ -32,9 +32,23 @@ namespace ProjectTracking.Controllers
                 yearTo.HasValue ||
                 month.HasValue ||
                 monthTo.HasValue ||
+                !string.IsNullOrWhiteSpace(periodStart) ||
+                !string.IsNullOrWhiteSpace(periodEnd) ||
                 !string.IsNullOrWhiteSpace(empId) ||
                 !string.IsNullOrWhiteSpace(workType) ||
                 !string.IsNullOrWhiteSpace(viewMode);
+
+            if (TryParsePeriodMonth(periodStart, out var parsedStart))
+            {
+                year = parsedStart.Year;
+                month = parsedStart.Month;
+            }
+
+            if (TryParsePeriodMonth(periodEnd, out var parsedEnd))
+            {
+                yearTo = parsedEnd.Year;
+                monthTo = parsedEnd.Month;
+            }
 
             int selectedYear = year ?? HttpContext.Session.GetInt32(FilterYearKey) ?? currentDate.Year;
             int selectedYearTo = yearTo ?? HttpContext.Session.GetInt32(FilterYearToKey) ?? selectedYear;
@@ -68,17 +82,18 @@ namespace ProjectTracking.Controllers
             }
 
             empId = hasFilterQuery ? empId : HttpContext.Session.GetString(FilterEmpIdKey);
-            workType = hasFilterQuery ? workType : HttpContext.Session.GetString(FilterWorkTypeKey);
+            var savedWorkType = HttpContext.Session.GetString(FilterWorkTypeKey);
+            workType = hasFilterQuery
+                ? string.IsNullOrWhiteSpace(workType) ? savedWorkType : workType
+                : savedWorkType;
+            if (string.IsNullOrWhiteSpace(workType))
+                workType = "PHASE";
             viewMode = hasFilterQuery ? viewMode : HttpContext.Session.GetString(FilterViewModeKey);
 
             var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
                 ? parsedEmpId
                 : (int?)null;
             var selectedViewMode = NormalizeViewMode(viewMode);
-            if (selectedViewMode == "day" && (monthEnd - monthStart).TotalDays > 62)
-            {
-                selectedViewMode = "week";
-            }
             var selectedWorkType = NormalizeWorkType(workType);
 
             SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedWorkType, selectedViewMode);
@@ -275,16 +290,37 @@ namespace ProjectTracking.Controllers
         {
             return (workType ?? "").Trim().ToUpperInvariant() switch
             {
+                "ALL" => "ALL",
                 "PHASE" or "ASSIGN" or "ASSIGNS" => "PHASE",
                 "ISSUE" or "ISSUES" => "ISSUE",
                 "SUPPORT" => "SUPPORT",
-                _ => "ALL"
+                _ => "PHASE"
             };
         }
 
         private static int ClampMonth(int month)
         {
             return Math.Clamp(month, 1, 12);
+        }
+
+        private static bool TryParsePeriodMonth(string? value, out DateTime month)
+        {
+            month = default;
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            var parts = value.Trim().Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2 ||
+                !int.TryParse(parts[0], out var year) ||
+                !int.TryParse(parts[1], out var monthNumber) ||
+                monthNumber < 1 ||
+                monthNumber > 12)
+            {
+                return false;
+            }
+
+            month = new DateTime(year, monthNumber, 1);
+            return true;
         }
 
         private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, string workType, string viewMode)

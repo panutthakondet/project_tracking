@@ -14,6 +14,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using ProjectTracking.Reports;
 using Microsoft.AspNetCore.Hosting;
+using ProjectTracking.Helpers;
 
 namespace ProjectTracking.Controllers
 {
@@ -29,32 +30,154 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestScenarios.Create")]
-        public IActionResult Create(int? projectId, int? groupId)
+        public async Task<IActionResult> Create(int? projectId, int? groupId)
         {
-            ViewBag.Projects = _context.Projects
+            await LoadScenarioFormListsAsync(projectId, groupId);
+
+            return View(new TestScenario
+            {
+                project_id = projectId ?? 0,
+                group_id = groupId,
+                priority = "MEDIUM",
+                status = "READY"
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Create")]
+        public async Task<IActionResult> Create(TestScenario model, List<IFormFile> files)
+        {
+            ModelState.Remove(nameof(TestScenario.scenario_code));
+
+            if (model.project_id <= 0)
+                ModelState.AddModelError(nameof(TestScenario.project_id), "กรุณาเลือกโครงการ");
+
+            if (!model.group_id.HasValue || model.group_id.Value <= 0)
+                ModelState.AddModelError(nameof(TestScenario.group_id), "กรุณาเลือกกลุ่ม Test Scenario");
+
+            if (model.project_id > 0)
+            {
+                var projectExists = await _context.Projects.AnyAsync(x => x.ProjectId == model.project_id);
+                if (!projectExists)
+                    ModelState.AddModelError(nameof(TestScenario.project_id), "ไม่พบโครงการที่เลือก");
+            }
+
+            if (model.group_id.HasValue && model.group_id.Value > 0)
+            {
+                var groupExists = await _context.TestTemplateGroups
+                    .AnyAsync(x => x.group_id == model.group_id.Value && x.is_active);
+                if (!groupExists)
+                    ModelState.AddModelError(nameof(TestScenario.group_id), "ไม่พบกลุ่ม Test Scenario ที่เลือก");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await LoadScenarioFormListsAsync(
+                    model.project_id > 0 ? model.project_id : null,
+                    model.group_id);
+                return View(model);
+            }
+
+            var nextNumber = await GetNextScenarioNumberAsync(model.project_id);
+            var nextSort = await _context.TestScenarios
+                .Where(x => x.project_id == model.project_id && x.group_id == model.group_id)
+                .Select(x => (int?)x.sort_order)
+                .MaxAsync() ?? 0;
+
+            model.scenario_code = $"TC-{nextNumber:D4}";
+            model.sort_order = nextSort + 1;
+            model.priority = string.IsNullOrWhiteSpace(model.priority) ? "MEDIUM" : model.priority.Trim().ToUpperInvariant();
+            model.status = TestScenarioDisplay.NormalizeStatus(model.status);
+            model.created_at = DateTime.Now;
+            model.updated_at = DateTime.Now;
+
+            _context.TestScenarios.Add(model);
+            await _context.SaveChangesAsync();
+
+            await SaveScenarioAttachmentsAsync(model, files);
+            await RenumberScenarioCodesAsync(model.project_id);
+
+            return RedirectToAction("Index", new { projectId = model.project_id, groupId = model.group_id });
+        }
+
+        private async Task LoadScenarioFormListsAsync(int? selectedProject, int? selectedGroup)
+        {
+            ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
-                .ToList();
-            ViewBag.Groups = _context.TestTemplateGroups
+                .ToListAsync();
+            ViewBag.Groups = await _context.TestTemplateGroups
                 .Where(g => g.is_active)
                 .OrderBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
-                .ToList();
+                .ToListAsync();
 
-            ViewBag.SelectedProject = projectId;
-            ViewBag.SelectedGroup = groupId;
+            ViewBag.SelectedProject = selectedProject;
+            ViewBag.SelectedGroup = selectedGroup;
+        }
 
-            return View();
+        private async Task SaveScenarioAttachmentsAsync(TestScenario model, List<IFormFile>? files)
+        {
+            if (files == null || files.Count == 0)
+                return;
+
+            var projectFolder = Path.Combine(
+                _env.WebRootPath,
+                "uploads",
+                "testcase",
+                model.project_id.ToString()
+            );
+
+            if (!Directory.Exists(projectFolder))
+                Directory.CreateDirectory(projectFolder);
+
+            foreach (var file in files)
+            {
+                if (file.Length <= 0)
+                    continue;
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                var filePath = Path.Combine(projectFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                var attachment = new TestScenarioAttachment
+                {
+                    ScenarioId = model.scenario_id,
+                    FileName = file.FileName,
+                    FilePath = $"/uploads/testcase/{model.project_id}/{fileName}",
+                    FileType = file.ContentType,
+                    FileSize = (int)file.Length,
+                    UploadedBy = "system",
+                    UploadedAt = DateTime.Now
+                };
+
+                _context.TestScenarioAttachments.Add(attachment);
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? groupId)
+        public async Task<IActionResult> Index(int? projectId, int? groupId, List<int>? groupIds)
         {
+            var selectedGroupIds = (groupIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (selectedGroupIds.Count == 0 && groupId.HasValue && groupId.Value > 0)
+                selectedGroupIds.Add(groupId.Value);
+
             var scenarios = await _context.TestScenarios
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
-                    (!groupId.HasValue || x.group_id == groupId)
+                    (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)))
                 )
                 .Join(
                     _context.TestTemplateGroups,
@@ -80,7 +203,8 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             ViewBag.SelectedProject = projectId;
-            ViewBag.SelectedGroup = groupId;
+            ViewBag.SelectedGroup = selectedGroupIds.Count == 1 ? (int?)selectedGroupIds[0] : null;
+            ViewBag.SelectedGroupIds = selectedGroupIds;
 
             return View(scenarios);
         }
@@ -90,6 +214,12 @@ namespace ProjectTracking.Controllers
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
             if (scenario == null) return NotFound();
+
+            ViewBag.Projects = await _context.Projects
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
 
             ViewBag.Groups = _context.TestTemplateGroups
                 .Where(g => g.is_active)
@@ -247,7 +377,7 @@ namespace ProjectTracking.Controllers
                         steps = t.steps,
                         expected_result = t.expected_result,
                         priority = t.priority_default,
-                        status = t.status_default,
+                        status = TestScenarioDisplay.NormalizeStatus(t.status_default),
                         created_at = DateTime.Now,
                         updated_at = DateTime.Now
                     };
@@ -315,7 +445,7 @@ namespace ProjectTracking.Controllers
                 groupId = null;
 
             var statusList = allScenarios
-                .Select(x => x.status)
+                .Select(x => TestScenarioDisplay.NormalizeStatus(x.status))
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(x => x)
@@ -337,7 +467,10 @@ namespace ProjectTracking.Controllers
                 result = result.Where(x => x.group_id == groupId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
-                result = result.Where(x => string.Equals(x.status, status, StringComparison.OrdinalIgnoreCase));
+            {
+                var normalizedStatus = TestScenarioDisplay.NormalizeStatus(status);
+                result = result.Where(x => string.Equals(TestScenarioDisplay.NormalizeStatus(x.status), normalizedStatus, StringComparison.OrdinalIgnoreCase));
+            }
 
             if (!string.IsNullOrWhiteSpace(priority))
                 result = result.Where(x => string.Equals(x.priority, priority, StringComparison.OrdinalIgnoreCase));

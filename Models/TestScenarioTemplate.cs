@@ -12,7 +12,7 @@ namespace ProjectTracking.Models
         public string expected_result { get; set; } = string.Empty;
 
         public string priority_default { get; set; } = "MEDIUM";
-        public string status_default { get; set; } = "DRAFT";
+        public string status_default { get; set; } = "READY";
         public bool is_active { get; set; } = true;
 
         public DateTime created_at { get; set; } = DateTime.Now;

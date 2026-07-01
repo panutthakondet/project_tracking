@@ -1,142 +1,178 @@
 @model ProjectTracking.Models.TestScenario
 
-<h2>เพิ่มสถานการณ์ทดสอบ</h2>
+@using ProjectTracking.Helpers
+
+@{
+    ViewData["Title"] = "เพิ่มสถานการณ์ทดสอบ";
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
+}
+
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">เพิ่มสถานการณ์ทดสอบ</h2>
+        <p class="index-subtitle">สร้าง Test Scenario เฉพาะโครงการนี้ โดยอิง Group กลาง</p>
+    </div>
+</div>
 
 <style>
     .form-control::placeholder {
-        color: #6c757d; /* Bootstrap gray */
+        color: #6c757d;
         opacity: 1;
     }
 </style>
 
-<form asp-action="Create" method="post" enctype="multipart/form-data" onsubmit="return confirm('ยืนยันการบันทึก Test Scenario นี้หรือไม่?');">
-@Html.AntiForgeryToken()
+<div class="card shadow-sm pt-form-card">
+    <div class="card-body">
+        <form asp-action="Create"
+              method="post"
+              enctype="multipart/form-data"
+              onsubmit="return confirm('ยืนยันการบันทึก Test Scenario นี้หรือไม่?');">
+            @Html.AntiForgeryToken()
 
-    <div class="form-group">
-        <label>โครงการ</label>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">โครงการ</label>
 
-        @if (ViewBag.SelectedProject != null)
-        {
-            <!-- ส่งค่า project_id ไปกับ form แม้ dropdown จะถูกล็อก -->
-            <input type="hidden" asp-for="project_id" />
-
-            <select class="form-control" disabled>
-                @foreach (var p in ViewBag.Projects)
-                {
-                    if ((int)ViewBag.SelectedProject == p.ProjectId)
+                    @if (ViewBag.SelectedProject != null)
                     {
-                        <option value="@p.ProjectId" selected>@p.ProjectDisplayName</option>
+                        <input type="hidden" asp-for="project_id" />
+                        <select class="form-select" disabled>
+                            @foreach (var p in projects)
+                            {
+                                if ((int)ViewBag.SelectedProject == p.ProjectId)
+                                {
+                                    <option value="@p.ProjectId" selected>@p.ProjectDisplayName</option>
+                                }
+                            }
+                        </select>
                     }
-                }
-            </select>
-        }
-        else
-        {
-            <select asp-for="project_id" class="form-control">
-                @foreach (var p in ViewBag.Projects)
-                {
-                    <option value="@p.ProjectId">@p.ProjectDisplayName</option>
-                }
-            </select>
-        }
-    </div>
-
-    <div class="form-group">
-        <label>กลุ่ม Test Scenario</label>
-
-        @if (ViewBag.SelectedGroup != null)
-        {
-            <input type="hidden" asp-for="group_id" />
-
-            <select class="form-control" disabled>
-                @if (ViewBag.Groups != null)
-                {
-                    foreach (var g in ViewBag.Groups)
+                    else
                     {
-                        if ((int)ViewBag.SelectedGroup == g.group_id)
-                        {
-                            <option value="@g.group_id" selected>@g.group_name</option>
-                        }
+                        <select asp-for="project_id" class="form-select" required>
+                            <option value="">-- เลือกโครงการ --</option>
+                            @foreach (var p in projects)
+                            {
+                                <option value="@p.ProjectId" selected="@(Model.project_id == p.ProjectId ? "selected" : null)">@p.ProjectDisplayName</option>
+                            }
+                        </select>
                     }
-                }
-            </select>
-        }
-        else
-        {
-            <select asp-for="group_id" class="form-control" required>
-                <option value="" selected disabled>-- เลือกกลุ่ม Test Scenario --</option>
+                    <span asp-validation-for="project_id" class="text-danger"></span>
+                </div>
 
-                @{
-                    var groups = ViewBag.Groups as IEnumerable<dynamic>;
-                }
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">กลุ่ม Test Scenario</label>
 
-                @if (groups != null)
-                {
-                    foreach (var g in groups)
+                    @if (ViewBag.SelectedGroup != null)
                     {
-                        <option value="@g.group_id">@g.group_name</option>
+                        <input type="hidden" asp-for="group_id" />
+                        <select class="form-select" disabled>
+                            @foreach (var g in groups)
+                            {
+                                if ((int)ViewBag.SelectedGroup == g.group_id)
+                                {
+                                    <option value="@g.group_id" selected>@g.group_name</option>
+                                }
+                            }
+                        </select>
                     }
-                }
-            </select>
+                    else
+                    {
+                        <select asp-for="group_id"
+                                class="form-select"
+                                required
+                                data-val="true"
+                                data-val-required="กรุณาเลือกกลุ่ม Test Scenario">
+                            <option value="">-- เลือกกลุ่ม Test Scenario --</option>
+                            @foreach (var g in groups)
+                            {
+                                <option value="@g.group_id" selected="@(Model.group_id == g.group_id ? "selected" : null)">@g.group_name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="group_id" class="text-danger"></span>
+                    }
+                </div>
 
-            <span asp-validation-for="group_id" class="text-danger"></span>
-        }
+                <div class="col-12">
+                    <label class="form-label fw-semibold">หัวข้อการทดสอบ</label>
+                    <input asp-for="title"
+                           class="form-control"
+                           placeholder="เช่น ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง"
+                           required />
+                    <span asp-validation-for="title" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">เงื่อนไขก่อนเริ่มทดสอบ</label>
+                    <textarea asp-for="precondition"
+                              class="form-control"
+                              rows="3"
+                              placeholder="เช่น ผู้ใช้ต้อง Login เข้าระบบแล้ว"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">ขั้นตอนการทดสอบ</label>
+                    <textarea asp-for="steps"
+                              class="form-control"
+                              rows="6"
+                              placeholder="1. เปิดหน้า Login&#10;2. กรอก Username และ Password&#10;3. กดปุ่ม Login"
+                              required></textarea>
+                    <span asp-validation-for="steps" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">ผลลัพธ์ที่ควรเกิดขึ้น</label>
+                    <textarea asp-for="expected_result"
+                              class="form-control"
+                              rows="6"
+                              placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. ไม่มี error"
+                              required></textarea>
+                    <span asp-validation-for="expected_result" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">ระดับความสำคัญ</label>
+                    <select asp-for="priority" class="form-select">
+                        <option>LOW</option>
+                        <option>MEDIUM</option>
+                        <option>HIGH</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">สถานะ</label>
+                    <select asp-for="status" class="form-select">
+                        <option value="READY">@TestScenarioDisplay.StatusText("READY")</option>
+                        <option value="PASSED">@TestScenarioDisplay.StatusText("PASSED")</option>
+                        <option value="FAILED">@TestScenarioDisplay.StatusText("FAILED")</option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold">แนบรูปภาพ</label>
+                    <input type="file"
+                           name="files"
+                           class="form-control"
+                           multiple
+                           accept="image/*"
+                           data-paste-image-upload />
+                    <div class="form-text">เลือกหลายรูป หรือวาง Screenshot ด้วย Ctrl+V / Cmd+V</div>
+                </div>
+            </div>
+
+            <div class="pt-form-actions">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-action="Index"
+                   asp-route-projectId="@ViewBag.SelectedProject"
+                   asp-route-groupId="@ViewBag.SelectedGroup"
+                   class="btn btn-outline-secondary">Back</a>
+            </div>
+        </form>
     </div>
+</div>
 
-    <div class="form-group">
-        <label>หัวข้อการทดสอบ</label>
-        <input asp-for="title" class="form-control"
-               placeholder="เช่น ทดสอบการเข้าสู่ระบบด้วยข้อมูลถูกต้อง" />
-    </div>
-
-    <div class="form-group">
-        <label>เงื่อนไขก่อนเริ่มทดสอบ</label>
-        <textarea asp-for="precondition" class="form-control" rows="3"
-                  placeholder="เช่น ผู้ใช้ต้อง Login เข้าระบบแล้ว"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>ขั้นตอนการทดสอบ</label>
-        <textarea asp-for="steps" class="form-control" rows="5"
-                  placeholder="1. เปิดหน้า Login&#10;2. กรอก Username และ Password&#10;3. กดปุ่ม Login"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>ผลลัพธ์ที่ควรเกิดขึ้น</label>
-        <textarea asp-for="expected_result" class="form-control" rows="5"
-                  placeholder="เช่น&#10;1. ระบบเข้าสู่หน้า...&#10;2. แสดงข้อความบันทึกสำเร็จ&#10;3. ไม่มี error"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>ระดับความสำคัญ</label>
-        <select asp-for="priority" class="form-control">
-            <option>LOW</option>
-            <option selected>MEDIUM</option>
-            <option>HIGH</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>สถานะ</label>
-        <select asp-for="status" class="form-control">
-            <option>DRAFT</option>
-            <option>READY</option>
-            <option>PASSED</option>
-            <option>FAILED</option>
-        </select>
-    </div>
-
-
-    <div class="form-group">
-        <label>แนบรูปภาพ (สามารถเลือกหลายไฟล์)</label>
-        <input type="file" name="files" class="form-control" multiple />
-    </div>
-
-    <br />
-
-    <button type="submit" class="btn btn-success">Save</button>
-    <a asp-action="Index"
-       asp-route-projectId="@ViewBag.SelectedProject"
-       asp-route-groupId="@ViewBag.SelectedGroup"
-       class="btn btn-secondary">Back</a>
-</form>
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
+}

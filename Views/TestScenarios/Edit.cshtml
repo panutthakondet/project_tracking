@@ -1,5 +1,7 @@
 @model ProjectTracking.Models.TestScenario
 
+@using ProjectTracking.Helpers
+
 <h2>แก้ไขสถานการณ์ทดสอบ (@Model.scenario_code)</h2>
 
 <style>
@@ -113,12 +115,11 @@
     </div>
 
     <div class="form-group">
-        <label>Status</label>
+        <label>สถานะ</label>
         <select asp-for="status" class="form-control">
-            <option>DRAFT</option>
-            <option>READY</option>
-            <option>PASSED</option>
-            <option>FAILED</option>
+            <option value="READY">@TestScenarioDisplay.StatusText("READY")</option>
+            <option value="PASSED">@TestScenarioDisplay.StatusText("PASSED")</option>
+            <option value="FAILED">@TestScenarioDisplay.StatusText("FAILED")</option>
         </select>
     </div>
 

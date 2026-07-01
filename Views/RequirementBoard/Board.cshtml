@@ -922,6 +922,25 @@
             --rb-card-label-height: clamp(17px, 1.9vh, 20px);
         }
 
+        .rb-board-wrap::-webkit-scrollbar {
+            width: 3px !important;
+            height: 3px !important;
+        }
+
+        .rb-board-wrap::-webkit-scrollbar-track {
+            background: rgba(15, 39, 70, .04);
+            border-radius: 999px;
+        }
+
+        .rb-board-wrap::-webkit-scrollbar-thumb {
+            background: rgba(20, 126, 120, .45);
+            border-radius: 999px;
+        }
+
+        .rb-board-wrap::-webkit-scrollbar-thumb:hover {
+            background: rgba(20, 126, 120, .72);
+        }
+
         .rb-board {
             display: flex;
             align-items: flex-start;
@@ -1088,24 +1107,24 @@
         }
 
         .rb-column-delete {
-            width: 30px;
-            height: 30px;
-            border: 1px solid rgba(248, 113, 113, .45);
-            border-radius: 9px;
+            width: 22px;
+            height: 22px;
+            border: 0;
+            border-radius: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             padding: 0;
             color: #b91c1c;
-            background: rgba(254, 242, 242, .88);
+            background: transparent;
             cursor: pointer;
-            transition: transform .16s ease, background .16s ease, border-color .16s ease;
+            transition: transform .16s ease, color .16s ease, opacity .16s ease;
         }
 
         .rb-column-delete:hover:not(:disabled) {
             transform: translateY(-1px);
-            border-color: rgba(220, 38, 38, .7);
-            background: #fff1f2;
+            color: #dc2626;
+            background: transparent;
         }
 
         .rb-column-delete:disabled {
@@ -1117,10 +1136,10 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 18px;
-            height: 18px;
+            width: 12px;
+            height: 12px;
             color: currentColor;
-            font-size: 1.35rem;
+            font-size: .95rem;
             font-weight: 900;
             line-height: 1;
         }
@@ -1130,27 +1149,28 @@
             min-height: 0;
             overflow-y: auto;
             overscroll-behavior: contain;
-            padding: clamp(6px, .72vh, 8px);
+            padding: clamp(6px, .72vh, 8px) 0 clamp(6px, .72vh, 8px) clamp(6px, .72vh, 8px);
             transition: background .18s ease;
         }
 
         .rb-card-list::-webkit-scrollbar {
-            width: 9px;
+            width: 2px !important;
+            height: 2px !important;
         }
 
         .rb-card-list::-webkit-scrollbar-track {
-            background: rgba(226, 236, 247, .68);
+            background: rgba(226, 236, 247, .22);
             border-radius: 999px;
         }
 
         .rb-card-list::-webkit-scrollbar-thumb {
-            background: rgba(30, 85, 128, .42);
-            border: 2px solid rgba(226, 236, 247, .68);
+            background: rgba(20, 126, 120, .42);
+            border: 0;
             border-radius: 999px;
         }
 
         .rb-card-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(20, 85, 110, .58);
+            background: rgba(20, 126, 120, .68);
         }
 
         .rb-card-list.is-over {

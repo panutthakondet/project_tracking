@@ -214,6 +214,7 @@ await EnsureWeeklyReportTablesAsync(app.Services);
 await EnsureRequirementBoardTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
+await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
 
 if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
@@ -1449,6 +1450,82 @@ static async Task EnsureIssueDevStatusValuesAsync(IServiceProvider services)
               MODIFY COLUMN `IssueStatus` varchar(20) NOT NULL DEFAULT 'OPEN',
               MODIFY COLUMN `DevStatus` varchar(20) NOT NULL DEFAULT 'WIP';";
         await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTestScenarioReadyStatusValuesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+
+        async Task<bool> TableExistsAsync(string tableName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND COLUMN_NAME = '{columnName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        if (await TableExistsAsync("project_test_scenarios") &&
+            await ColumnExistsAsync("project_test_scenarios", "status"))
+        {
+            command.CommandText = @"
+                UPDATE `project_test_scenarios`
+                SET `status` = 'READY'
+                WHERE UPPER(COALESCE(`status`, '')) = 'DRAFT'
+                   OR TRIM(COALESCE(`status`, '')) = '';";
+            await command.ExecuteNonQueryAsync();
+
+            command.CommandText = @"
+                ALTER TABLE `project_test_scenarios`
+                MODIFY COLUMN `status` varchar(20) NOT NULL DEFAULT 'READY';";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        if (await TableExistsAsync("test_scenario_templates") &&
+            await ColumnExistsAsync("test_scenario_templates", "status_default"))
+        {
+            command.CommandText = @"
+                UPDATE `test_scenario_templates`
+                SET `status_default` = 'READY'
+                WHERE UPPER(COALESCE(`status_default`, '')) = 'DRAFT'
+                   OR TRIM(COALESCE(`status_default`, '')) = '';";
+            await command.ExecuteNonQueryAsync();
+
+            command.CommandText = @"
+                ALTER TABLE `test_scenario_templates`
+                MODIFY COLUMN `status_default` varchar(20) NOT NULL DEFAULT 'READY';";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {

@@ -1,6 +1,7 @@
 @model IEnumerable<ProjectTracking.Models.TestScenarioTemplate>
 
 @using Microsoft.AspNetCore.Http
+@using ProjectTracking.Helpers
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -20,10 +21,9 @@
 
     string StatusTextClass(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
+        return TestScenarioDisplay.NormalizeStatus(status) switch
         {
             "READY" => "is-primary",
-            "DRAFT" => "is-muted",
             _ => "is-muted"
         };
     }
@@ -411,9 +411,9 @@ else
                                     </span>
                                 </span>
                                 <span class="template-pill">
-                                    Status:
+                                    สถานะ:
                                     <span class="template-status-text @StatusTextClass(item.status_default)">
-                                        @item.status_default
+                                        @TestScenarioDisplay.StatusText(item.status_default)
                                     </span>
                                 </span>
                             </div>

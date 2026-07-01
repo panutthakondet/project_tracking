@@ -8,13 +8,16 @@
     int yearTo = ViewBag.YearTo ?? year;
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
-    string selectedWorkType = ViewBag.SelectedWorkType as string ?? "ALL";
+    string selectedWorkType = ViewBag.SelectedWorkType as string ?? "PHASE";
     string viewMode = ViewBag.ViewMode as string ?? "day";
     bool isWeeklyMode = string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase);
 
     var th = new System.Globalization.CultureInfo("th-TH");
     var firstDay = new DateTime(year, month, 1);
     var endDay = new DateTime(yearTo, monthTo, DateTime.DaysInMonth(yearTo, monthTo));
+    var selectedPeriodStart = $"{year:D4}-{month:D2}";
+    var selectedPeriodEnd = $"{yearTo:D4}-{monthTo:D2}";
+    var periodYears = Enumerable.Range(DateTime.Today.Year - 1, 3).ToList();
     var timelineColumns = new List<(DateTime Start, DateTime End, string YearText, string MonthText, string MainText, string SubText, bool IsToday, bool IsWeekend, bool IsNewYear)>();
     var columnWidth = isWeeklyMode ? 44 : 40;
 
@@ -106,40 +109,37 @@
         "SUPPORT" => "Support",
         _ => "Assigns"
     };
+
+    var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
 }
 
-<div class="container-fluid px-2 px-md-3 d-flex justify-content-center workload-page-wrap">
+<div class="container-fluid px-2 px-md-3 workload-page-wrap">
 
-    <div class="card shadow-sm border-0" style="max-width: 100%;">
+    <div class="workload-calendar-card">
+        <div class="workload-calendar-toolbar">
+            <div class="workload-calendar-heading">
+                <span class="workload-calendar-date">@todayText</span>
+                <div>
+                    <span class="workload-calendar-eyebrow">ProjectTracking</span>
+                    <strong class="workload-calendar-title">ปริมาณงานทีม</strong>
+                    <span class="workload-calendar-subtitle">ดูภาระงานของทีมตามช่วงวันที่และผู้รับผิดชอบ</span>
+                </div>
+            </div>
+
+            <div class="workload-calendar-actions" aria-label="Workload actions">
+                <a class="workload-calendar-action" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 workload-content-card" style="max-width: 100%;">
         <div class="card-body">
 
             <div class="mb-3">
-                <div class="index-hero workload-hero">
-                    <div class="index-hero__content">
-                        <span class="index-eyebrow">ProjectTracking</span>
-                        <h2 class="index-title">ปริมาณงานทีม</h2>
-                        <p class="index-subtitle">ดูภาระงานของทีมตามช่วงวันที่และผู้รับผิดชอบ</p>
-                    </div>
 
-                    <div class="index-actions workload-legend">
-                        <a class="btn btn-outline-light btn-pill" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
-                            Dashboard
-                        </a>
-                    </div>
-                </div>
-
-                <div class="filter-toolbar d-flex align-items-center mt-3">
-                    <div class="workload-status-row">
-                        <span class="workload-status-row-title">สถานะ</span>
-                        <span class="workload-status-label done">DONE</span>
-                        <span class="workload-status-label progress">IN_PROGRESS</span>
-                        <span class="workload-status-divider"></span>
-                        <span class="workload-status-row-title">ประเภท</span>
-                        <span class="workload-type-chip phase">Assigns</span>
-                        <span class="workload-type-chip issue">Issue</span>
-                        <span class="workload-type-chip support">Support</span>
-                    </div>
-
+                <div class="filter-toolbar d-flex align-items-center">
                     <form id="filterForm"
                           method="get"
                           class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
@@ -147,12 +147,9 @@
 
                         <input type="hidden" name="viewMode" value="@viewMode" />
 
-                        <div class="workload-filter-row is-type-row">
-                            <label class="workload-filter-label fw-bold mb-0 text-nowrap">
-                                ประเภท
-                            </label>
-
-                            <div class="workload-filter-control is-type">
+                        <div class="workload-filter-grid">
+                            <label class="workload-filter-field is-type" for="workTypeFilter">
+                                <span>ประเภท</span>
                                 <select id="workTypeFilter"
                                         name="workType"
                                         class="form-select workload-filter-select"
@@ -162,15 +159,10 @@
                                     <option value="ISSUE" selected="@(selectedWorkType == "ISSUE")">Issue</option>
                                     <option value="SUPPORT" selected="@(selectedWorkType == "SUPPORT")">Support</option>
                                 </select>
-                            </div>
-                        </div>
-
-                        <div class="workload-filter-row is-range-row">
-                            <label class="workload-filter-label fw-bold mb-0 text-nowrap">
-                                ผู้รับผิดชอบ
                             </label>
 
-                            <div class="workload-filter-control is-employee">
+                            <label class="workload-filter-field is-employee" for="empFilter">
+                                <span>ผู้รับผิดชอบ</span>
                                 <select id="empFilter"
                                         name="empId"
                                         class="form-select emp-select-fixed"
@@ -189,67 +181,47 @@
                                     }
 
                                 </select>
-                            </div>
+                            </label>
 
-                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ปี</label>
-
-                            <div class="workload-filter-control is-year">
-                                <select name="year"
+                            <label class="workload-filter-field is-period is-start-period">
+                                <span>เดือนเริ่ม</span>
+                                <select name="periodStart"
                                         class="form-select workload-filter-select"
                                         form="filterForm"
                                         data-autosubmit="true">
-                                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
+                                @foreach (var periodYear in periodYears)
                                 {
-                                    <option value="@y" selected="@(year == y)">@(y + 543)</option>
+                                    @for (int m = 1; m <= 12; m++)
+                                    {
+                                        var optionValue = $"{periodYear:D4}-{m:D2}";
+                                        var optionDate = new DateTime(periodYear, m, 1);
+                                        <option value="@optionValue" selected="@(selectedPeriodStart == optionValue)">
+                                            @optionDate.ToString("MMMM yyyy", th)
+                                        </option>
+                                    }
                                 }
                                 </select>
-                            </div>
+                            </label>
 
-                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">เดือน</label>
-
-                            <div class="workload-filter-control is-month">
-                                <select name="month"
-                                        class="form-select workload-filter-select month-select"
-                                        form="filterForm"
-                                        data-autosubmit="true">
-                                @for (int m = 1; m <= 12; m++)
-                                {
-                                    <option value="@m" selected="@(month == m)">
-                                        @(new DateTime(year, m, 1).ToString("MMMM", th))
-                                    </option>
-                                }
-                                </select>
-                            </div>
-
-                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ถึงปี</label>
-
-                            <div class="workload-filter-control is-year">
-                                <select name="yearTo"
+                            <label class="workload-filter-field is-period is-end-period">
+                                <span>ถึงเดือน</span>
+                                <select name="periodEnd"
                                         class="form-select workload-filter-select"
                                         form="filterForm"
                                         data-autosubmit="true">
-                                @for (int y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 3; y++)
+                                @foreach (var periodYear in periodYears)
                                 {
-                                    <option value="@y" selected="@(yearTo == y)">@(y + 543)</option>
+                                    @for (int m = 1; m <= 12; m++)
+                                    {
+                                        var optionValue = $"{periodYear:D4}-{m:D2}";
+                                        var optionDate = new DateTime(periodYear, m, 1);
+                                        <option value="@optionValue" selected="@(selectedPeriodEnd == optionValue)">
+                                            @optionDate.ToString("MMMM yyyy", th)
+                                        </option>
+                                    }
                                 }
                                 </select>
-                            </div>
-
-                            <label class="workload-filter-label is-compact fw-bold mb-0 text-nowrap">ถึงเดือน</label>
-
-                            <div class="workload-filter-control is-month">
-                                <select name="monthTo"
-                                        class="form-select workload-filter-select month-select"
-                                        form="filterForm"
-                                        data-autosubmit="true">
-                                @for (int m = 1; m <= 12; m++)
-                                {
-                                    <option value="@m" selected="@(monthTo == m)">
-                                        @(new DateTime(year, m, 1).ToString("MMMM", th))
-                                    </option>
-                                }
-                                </select>
-                            </div>
+                            </label>
                         </div>
 
                     </form>
@@ -260,14 +232,22 @@
             </div>
 
             <div class="workload-table-topbar">
+                <div class="workload-status-row">
+                    <span class="workload-status-row-title">สถานะ</span>
+                    <span class="workload-status-label done">DONE</span>
+                    <span class="workload-status-label progress">IN_PROGRESS</span>
+                    <span class="workload-status-divider"></span>
+                    <span class="workload-status-row-title">ประเภท</span>
+                    <span class="workload-type-chip phase">Assigns</span>
+                    <span class="workload-type-chip issue">Issue</span>
+                    <span class="workload-type-chip support">Support</span>
+                </div>
                 <div class="workload-view-tabs" aria-label="เลือกมุมมอง">
                     <a class="workload-view-tab @(!isWeeklyMode ? "is-active" : "")"
                        asp-action="Index"
                        asp-route-empId="@selectedEmpId"
-                       asp-route-year="@year"
-                       asp-route-month="@month"
-                       asp-route-yearTo="@yearTo"
-                       asp-route-monthTo="@monthTo"
+                       asp-route-periodStart="@selectedPeriodStart"
+                       asp-route-periodEnd="@selectedPeriodEnd"
                        asp-route-workType="@selectedWorkType"
                        asp-route-viewMode="day">
                         รายวัน
@@ -276,10 +256,8 @@
                     <a class="workload-view-tab @(isWeeklyMode ? "is-active" : "")"
                        asp-action="Index"
                        asp-route-empId="@selectedEmpId"
-                       asp-route-year="@year"
-                       asp-route-month="@month"
-                       asp-route-yearTo="@yearTo"
-                       asp-route-monthTo="@monthTo"
+                       asp-route-periodStart="@selectedPeriodStart"
+                       asp-route-periodEnd="@selectedPeriodEnd"
                        asp-route-workType="@selectedWorkType"
                        asp-route-viewMode="week">
                         รายสัปดาห์
@@ -492,8 +470,214 @@
 
 </div>
 
+<div id="workloadLoading" class="workload-loading" role="status" aria-live="polite" aria-hidden="true">
+    <div class="workload-loading-box">
+        <span class="workload-loading-spinner" aria-hidden="true"></span>
+        <span>กำลังโหลดข้อมูล...</span>
+    </div>
+</div>
+
 @section Styles {
 <style>
+    .workload-loading {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, .34);
+        backdrop-filter: blur(3px);
+    }
+
+    .workload-loading.is-visible {
+        display: flex;
+    }
+
+    .workload-loading-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 210px;
+        min-height: 58px;
+        padding: 14px 18px;
+        color: #10223e;
+        background: rgba(255, 255, 255, .96);
+        border: 1px solid rgba(203, 213, 225, .95);
+        border-radius: 18px;
+        box-shadow: 0 22px 50px rgba(15, 23, 42, .22);
+        font-weight: 900;
+    }
+
+    .workload-loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(20, 184, 166, .22);
+        border-top-color: #0f766e;
+        border-radius: 50%;
+        animation: workloadSpin .75s linear infinite;
+        flex: 0 0 auto;
+    }
+
+    @@keyframes workloadSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .workload-calendar-card {
+        width: 100%;
+        border-radius: 22px;
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid rgba(15, 118, 110, .18);
+        box-shadow: 0 16px 38px rgba(15, 35, 64, .12);
+    }
+
+    .workload-calendar-toolbar {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        min-height: 132px;
+        padding: 24px 30px;
+        color: #ffffff;
+        background:
+            linear-gradient(135deg, rgba(16, 35, 63, .98) 0%, rgba(18, 59, 92, .95) 56%, rgba(15, 118, 110, .92) 100%);
+        border-bottom: 1px solid rgba(20, 184, 166, .36);
+    }
+
+    .workload-calendar-toolbar::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(90deg, rgba(255, 255, 255, .10), transparent 42%),
+            repeating-linear-gradient(135deg, rgba(255,255,255,.10) 0 1px, transparent 1px 14px);
+        opacity: .42;
+        pointer-events: none;
+    }
+
+    .workload-calendar-toolbar > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .workload-calendar-heading {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        min-width: 0;
+    }
+
+    .workload-calendar-date {
+        min-width: 300px;
+        min-height: 68px;
+        padding: 12px 20px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        color: #10233f;
+        background: rgba(255,255,255,.95);
+        box-shadow: 0 12px 26px rgba(4, 18, 38, .22);
+        font-size: 1.05rem;
+        font-weight: 900;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .workload-calendar-eyebrow {
+        display: block;
+        color: rgba(255,255,255,.72);
+        font-size: .8rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .workload-calendar-title {
+        display: block;
+        color: #ffffff;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.12;
+        margin-top: 3px;
+    }
+
+    .workload-calendar-subtitle {
+        display: block;
+        color: rgba(255,255,255,.78);
+        font-size: .98rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-top: 7px;
+    }
+
+    .workload-calendar-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .workload-calendar-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 138px;
+        min-height: 46px;
+        padding: 9px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.45);
+        color: #ffffff !important;
+        background: rgba(255,255,255,.12);
+        box-shadow: 0 8px 18px rgba(4, 18, 38, .16);
+        font-size: .98rem;
+        font-weight: 900;
+        line-height: 1.15;
+        text-decoration: none;
+        white-space: nowrap;
+        backdrop-filter: blur(8px);
+        transition: transform .15s ease, filter .15s ease;
+    }
+
+    .workload-calendar-action:hover,
+    .workload-calendar-action:focus {
+        color: #ffffff !important;
+        filter: brightness(1.06);
+        transform: translateY(-1px);
+    }
+
+    @@media (max-width: 900px) {
+        .workload-calendar-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .workload-calendar-heading {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .workload-calendar-date {
+            min-width: min(100%, 300px);
+            min-height: 54px;
+        }
+
+        .workload-calendar-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+
     .workload-table th {
         background: linear-gradient(180deg,#f8fafc,#eef2f7);
         vertical-align: middle;
@@ -779,9 +963,16 @@
 
     .workload-table-topbar {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
         margin: 4px 0 8px;
+    }
+
+    .workload-table-topbar .workload-status-row {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 
     .workload-view-tabs {
@@ -857,6 +1048,18 @@
 
     .workload-status-label.progress {
         color: #b7790b;
+    }
+
+    .workload-table-topbar .workload-status-row-title,
+    .workload-table-topbar .workload-status-label,
+    .workload-table-topbar .workload-type-chip {
+        min-height: auto;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.2;
     }
 </style>
 
@@ -1170,9 +1373,16 @@ main.route-controller-phaseworkload {
 }
 
 .workload-page-wrap {
+    display: grid !important;
+    gap: 14px;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+}
+
+.workload-page-wrap > .workload-hero {
+    width: 100% !important;
+    margin: 0 !important;
 }
 
 .workload-page-wrap > .card {
@@ -1348,6 +1558,93 @@ main.route-controller-phaseworkload {
             padding-left: 16px !important;
         }
     }
+
+    .employee-filter-wrap {
+        width: 100% !important;
+    }
+
+    .workload-filter-grid {
+        display: grid;
+        grid-template-columns:
+            minmax(160px, .8fr)
+            minmax(280px, 1.35fr)
+            minmax(220px, 1fr)
+            minmax(220px, 1fr);
+        gap: 12px 14px;
+        align-items: end;
+        width: 100%;
+    }
+
+    .workload-filter-field.is-type {
+        grid-column: 1 / 2;
+    }
+
+    .workload-filter-field.is-employee {
+        grid-column: 2 / 3;
+    }
+
+    .workload-filter-field.is-start-period {
+        grid-column: 3 / 4;
+    }
+
+    .workload-filter-field.is-end-period {
+        grid-column: 4 / 5;
+    }
+
+    .workload-filter-field {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        margin: 0;
+    }
+
+    .workload-filter-field span {
+        color: #25364f;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .workload-filter-field .form-select {
+        height: 44px !important;
+        min-height: 44px !important;
+        max-height: 44px !important;
+        border-radius: 12px !important;
+        padding-left: 16px !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        line-height: 44px !important;
+    }
+
+    @@media (max-width: 1500px) {
+        .workload-filter-grid {
+            grid-template-columns:
+                minmax(150px, .75fr)
+                minmax(260px, 1.25fr)
+                minmax(200px, 1fr)
+                minmax(200px, 1fr);
+        }
+    }
+
+    @@media (max-width: 1100px) {
+        .workload-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .workload-filter-field.is-type,
+        .workload-filter-field.is-employee,
+        .workload-filter-field.is-period {
+            grid-column: auto;
+            grid-row: auto;
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .workload-filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 	</style>
 	}
 
@@ -1355,13 +1652,24 @@ main.route-controller-phaseworkload {
     <script>
         (() => {
             const form = document.getElementById('filterForm');
+            const loading = document.getElementById('workloadLoading');
+
+            const showLoading = () => {
+                if (!loading) return;
+                loading.classList.add('is-visible');
+                loading.setAttribute('aria-hidden', 'false');
+            };
+
             if (!form) return;
 
             let submitTimer = null;
+            form.addEventListener('submit', showLoading);
+
             form.querySelectorAll('[data-autosubmit="true"]').forEach((control) => {
                 control.addEventListener('change', () => {
                     window.clearTimeout(submitTimer);
                     submitTimer = window.setTimeout(() => {
+                        showLoading();
                         if (form.requestSubmit) {
                             form.requestSubmit();
                         } else {
@@ -1370,6 +1678,12 @@ main.route-controller-phaseworkload {
                     }, 220);
                 });
             });
+
+            document.querySelectorAll('.workload-view-tab').forEach((tab) => {
+                tab.addEventListener('click', showLoading);
+            });
+
+            window.addEventListener('beforeunload', showLoading);
 
             if ('fetch' in window) {
                 window.setInterval(() => {

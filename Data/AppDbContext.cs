@@ -915,7 +915,7 @@ namespace ProjectTracking.Data
 
                 entity.Property(x => x.status)
                     .HasColumnType("varchar(20)")
-                    .HasDefaultValue("DRAFT");
+                    .HasDefaultValue("READY");
 
                 entity.Property(x => x.created_by)
                     .HasColumnType("varchar(50)")
@@ -975,7 +975,7 @@ namespace ProjectTracking.Data
 
                 entity.Property(x => x.status_default)
                     .HasColumnType("varchar(20)")
-                    .HasDefaultValue("DRAFT");
+                    .HasDefaultValue("READY");
 
                 entity.Property(x => x.is_active)
                     .HasColumnType("tinyint(1)")

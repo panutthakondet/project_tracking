@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using ProjectTracking.Helpers;
 
 namespace ProjectTracking.Controllers
 {
@@ -110,6 +111,7 @@ namespace ProjectTracking.Controllers
             model.created_at = DateTime.Now;
             model.updated_at = DateTime.Now;
             model.is_active = true;
+            model.status_default = TestScenarioDisplay.NormalizeStatus(model.status_default);
 
             _context.TestScenarioTemplates.Add(model);
             await _context.SaveChangesAsync();
@@ -173,7 +175,7 @@ namespace ProjectTracking.Controllers
             template.steps = model.steps;
             template.expected_result = model.expected_result;
             template.priority_default = model.priority_default;
-            template.status_default = model.status_default;
+            template.status_default = TestScenarioDisplay.NormalizeStatus(model.status_default);
             template.updated_at = DateTime.Now;
 
             await _context.SaveChangesAsync();

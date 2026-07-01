@@ -1,16 +1,16 @@
 @model IEnumerable<ProjectTracking.Models.TestScenario>
 
 @using Microsoft.AspNetCore.Http
+@using ProjectTracking.Helpers
 
 @{
     string StatusTextClass(string status)
     {
-        return status switch
+        return TestScenarioDisplay.NormalizeStatus(status) switch
         {
             "PASSED" => "is-success",
             "FAILED" => "is-danger",
             "READY"  => "is-primary",
-            "DRAFT"  => "is-muted",
             _        => "is-muted"
         };
     }
@@ -483,7 +483,7 @@
 
 <div class="page-header-card mb-4">
     <div class="card-body">
-        <form method="get">
+        <form id="scenarioFilterForm" method="get">
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">📁 โครงการ</label>
@@ -514,23 +514,20 @@
                 <div class="col-12">
                     <label class="form-label">Select Group</label>
                     @{
-                        int? selGroup = null;
-                        if (ViewBag.SelectedGroup != null)
-                        {
-                            selGroup = Convert.ToInt32(ViewBag.SelectedGroup);
-                        }
+                        var selectedGroupIds = ViewBag.SelectedGroupIds as IEnumerable<int> ?? Enumerable.Empty<int>();
+                        var selectedGroupIdSet = selectedGroupIds.ToHashSet();
                     }
                     <div class="scenario-group-picker" data-group-picker>
                         <div class="scenario-group-picker__controls">
                             <select class="form-select" data-group-select>
-                                <option value="">-- Select Group --</option>
+                                <option value="">-- แสดงทุก Group --</option>
                                 @if (ViewBag.Groups != null)
                                 {
                                     foreach (var g in ViewBag.Groups)
                                     {
                                         <option value="@g.group_id"
                                                 data-label="@g.group_name"
-                                                data-selected="@(selGroup == g.group_id ? "true" : "false")">
+                                                data-selected="@(selectedGroupIdSet.Contains(g.group_id) ? "true" : "false")">
                                             @g.group_name
                                         </option>
                                     }
@@ -541,9 +538,10 @@
                             </button>
                         </div>
                         <div class="scenario-selected-groups" data-group-list></div>
-                        <div data-group-inputs></div>
+                        <div data-group-filter-inputs></div>
+                        <div data-group-import-inputs></div>
                     </div>
-                    <small class="form-hint">เลือกทีละ Group กดเพิ่ม แล้วค่อยกด Import Templates หรือ Preview PDF</small>
+                    <small class="form-hint">ไม่เลือก Group = แสดงทั้งหมด เลือกทีละ Group กดเพิ่มเพื่อกรอง/Import/Preview PDF</small>
                 </div>
             </div>
         </form>
@@ -559,6 +557,23 @@
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="toolbar">
+
+            @if (CanMenu("TestScenarios.Create"))
+            {
+                <a asp-action="Create"
+                   asp-route-projectId="@ViewBag.SelectedProject"
+                   asp-route-groupId="@ViewBag.SelectedGroup"
+                   class="btn btn-success"
+                   title="เพิ่ม Test Scenario เฉพาะโครงการนี้">
+                    Create Scenario
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-success" disabled title="ไม่มีสิทธิ์ Create">
+                    Create Scenario
+                </button>
+            }
 
             @if (CanMenu("TestScenarios.Import"))
             {
@@ -620,11 +635,10 @@
         </div>
 
         <div class="d-flex flex-wrap gap-3">
-            <span class="scenario-status-summary is-muted">Total: @list.Count</span>
-            <span class="scenario-status-summary is-success">Passed: @list.Count(x => x.status == "PASSED")</span>
-            <span class="scenario-status-summary is-danger">Failed: @list.Count(x => x.status == "FAILED")</span>
-            <span class="scenario-status-summary is-primary">Ready: @list.Count(x => x.status == "READY")</span>
-            <span class="scenario-status-summary is-muted">Draft: @list.Count(x => x.status == "DRAFT")</span>
+            <span class="scenario-status-summary is-muted">ทั้งหมด: @list.Count</span>
+            <span class="scenario-status-summary is-success">@TestScenarioDisplay.StatusText("PASSED"): @list.Count(x => x.status == "PASSED")</span>
+            <span class="scenario-status-summary is-danger">@TestScenarioDisplay.StatusText("FAILED"): @list.Count(x => x.status == "FAILED")</span>
+            <span class="scenario-status-summary is-primary">@TestScenarioDisplay.StatusText("READY"): @list.Count(x => TestScenarioDisplay.NormalizeStatus(x.status) == "READY")</span>
         </div>
     </div>
 
@@ -653,7 +667,7 @@
                                         <div class="scenario-title">@item.title</div>
                                     </div>
                                 </div>
-                                <span class="scenario-status-text @StatusTextClass(item.status)">@item.status</span>
+                                <span class="scenario-status-text @StatusTextClass(item.status)">@TestScenarioDisplay.StatusText(item.status)</span>
                             </div>
 
                             <div class="scenario-meta">
@@ -772,22 +786,36 @@ else
         const select = picker.querySelector('[data-group-select]');
         const addButton = picker.querySelector('[data-group-add]');
         const list = picker.querySelector('[data-group-list]');
-        const inputs = picker.querySelector('[data-group-inputs]');
+        const filterForm = document.getElementById('scenarioFilterForm');
+        const filterInputs = picker.querySelector('[data-group-filter-inputs]');
+        const importInputs = picker.querySelector('[data-group-import-inputs]');
 
         function findOption(value) {
             return Array.from(select.options).find(option => option.value === value);
         }
 
         function syncInputs() {
-            inputs.innerHTML = '';
+            filterInputs.innerHTML = '';
+            importInputs.innerHTML = '';
             selectedGroups.forEach((label, id) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'groupIds';
-                input.value = id;
-                input.setAttribute('form', 'importTemplatesForm');
-                inputs.appendChild(input);
+                const filterInput = document.createElement('input');
+                filterInput.type = 'hidden';
+                filterInput.name = 'groupIds';
+                filterInput.value = id;
+                filterInputs.appendChild(filterInput);
+
+                const importInput = document.createElement('input');
+                importInput.type = 'hidden';
+                importInput.name = 'groupIds';
+                importInput.value = id;
+                importInput.setAttribute('form', 'importTemplatesForm');
+                importInputs.appendChild(importInput);
             });
+        }
+
+        function applyGroupFilter() {
+            syncInputs();
+            filterForm?.submit();
         }
 
         function render() {
@@ -796,7 +824,7 @@ else
             if (selectedGroups.size === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'scenario-group-empty';
-                empty.textContent = 'ยังไม่ได้เลือก Group';
+                empty.textContent = 'แสดงทุก Group';
                 list.appendChild(empty);
                 syncInputs();
                 return;
@@ -824,8 +852,21 @@ else
             syncInputs();
         }
 
-        function addGroup(value) {
-            if (!value || selectedGroups.has(value)) return;
+        function clearGroups() {
+            selectedGroups.clear();
+            Array.from(select.options).forEach(option => option.disabled = false);
+            select.value = '';
+            render();
+        }
+
+        function addGroup(value, shouldSubmit = false) {
+            if (!value) {
+                clearGroups();
+                if (shouldSubmit) applyGroupFilter();
+                return;
+            }
+
+            if (selectedGroups.has(value)) return;
 
             const option = findOption(value);
             if (!option) return;
@@ -835,16 +876,18 @@ else
             option.disabled = true;
             select.value = '';
             render();
+
+            if (shouldSubmit) applyGroupFilter();
         }
 
         addButton?.addEventListener('click', function () {
-            addGroup(select.value);
+            addGroup(select.value, true);
         });
 
         select?.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                addGroup(select.value);
+                addGroup(select.value, true);
             }
         });
 
@@ -859,6 +902,7 @@ else
             if (option) option.disabled = false;
 
             render();
+            applyGroupFilter();
         });
 
         Array.from(select.options)

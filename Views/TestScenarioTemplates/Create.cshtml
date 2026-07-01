@@ -1,4 +1,5 @@
 @model ProjectTracking.Models.TestScenarioTemplate
+@using ProjectTracking.Helpers
 
 @{
     bool lockGroup = ViewBag.LockGroup != null && (bool)ViewBag.LockGroup;
@@ -64,8 +65,7 @@
     <div class="mb-3">
         <label class="form-label">สถานะ</label>
         <select asp-for="status_default" class="form-select">
-            <option value="DRAFT">DRAFT</option>
-            <option value="READY">READY</option>
+            <option value="READY">@TestScenarioDisplay.StatusText("READY")</option>
         </select>
     </div>
 

@@ -1,5 +1,6 @@
 @model IEnumerable<ProjectTracking.Models.TestScenario>
 @using System.Globalization
+@using ProjectTracking.Helpers
 
 @{
     Layout = null;
@@ -37,12 +38,11 @@
 
     string StatusTextClass(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
+        return TestScenarioDisplay.NormalizeStatus(status) switch
         {
             "PASSED" => "status-text success",
             "FAILED" => "status-text danger",
             "READY" => "status-text info",
-            "DRAFT" => "status-text muted",
             _ => "status-text warning"
         };
     }
@@ -215,7 +215,7 @@
         }
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             margin-bottom: 12px;
         }
@@ -449,7 +449,7 @@
             Cooperative: @(string.IsNullOrWhiteSpace(selectedCoop) ? "All Cooperatives" : selectedCoop)<br />
             Project: @(selectedProject.HasValue ? ProjectName(selectedProject.Value) : "All Projects")<br />
             Group: @(selectedGroup.HasValue ? groups.FirstOrDefault(x => x.group_id == selectedGroup.Value)?.group_name ?? "-" : "All Groups")<br />
-            Status: @(string.IsNullOrWhiteSpace(selectedStatus) ? "All Statuses" : selectedStatus)<br />
+            สถานะ: @(string.IsNullOrWhiteSpace(selectedStatus) ? "ทุกสถานะ" : TestScenarioDisplay.StatusText(selectedStatus))<br />
             Priority: @(string.IsNullOrWhiteSpace(selectedPriority) ? "All Priorities" : selectedPriority)<br />
             ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
         </div>
@@ -498,13 +498,13 @@
         </div>
 
         <div class="field">
-            <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
-                <option value="">-- All Statuses --</option>
+            <label for="status">สถานะ</label>
+            <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหาสถานะ..." onchange="this.form.submit()">
+                <option value="">-- ทุกสถานะ --</option>
                 @foreach (var status in statusList)
                 {
                     <option value="@status" selected="@(selectedStatus == status ? "selected" : null)">
-                        @status
+                        @TestScenarioDisplay.StatusText(status)
                     </option>
                 }
             </select>
@@ -531,24 +531,19 @@
             <small>รายการทั้งหมด</small>
         </article>
         <article class="kpi">
-            <span>Passed</span>
+            <span>@TestScenarioDisplay.StatusText("PASSED")</span>
             <strong>@rows.Count(x => string.Equals(x.status, "PASSED", StringComparison.OrdinalIgnoreCase))</strong>
             <small>ผ่านแล้ว</small>
         </article>
         <article class="kpi danger">
-            <span>Failed</span>
+            <span>@TestScenarioDisplay.StatusText("FAILED")</span>
             <strong>@rows.Count(x => string.Equals(x.status, "FAILED", StringComparison.OrdinalIgnoreCase))</strong>
             <small>ไม่ผ่าน</small>
         </article>
         <article class="kpi warning">
-            <span>Ready</span>
-            <strong>@rows.Count(x => string.Equals(x.status, "READY", StringComparison.OrdinalIgnoreCase))</strong>
+            <span>@TestScenarioDisplay.StatusText("READY")</span>
+            <strong>@rows.Count(x => string.Equals(TestScenarioDisplay.NormalizeStatus(x.status), "READY", StringComparison.OrdinalIgnoreCase))</strong>
             <small>พร้อมทดสอบ</small>
-        </article>
-        <article class="kpi">
-            <span>Draft</span>
-            <strong>@rows.Count(x => string.Equals(x.status, "DRAFT", StringComparison.OrdinalIgnoreCase))</strong>
-            <small>ร่าง</small>
         </article>
     </section>
 
@@ -606,7 +601,7 @@
                                     <th style="width:42px;">Seq</th>
                                     <th style="width:82px;">Code</th>
                                     <th style="width:210px;">Title</th>
-                                    <th style="width:75px;">Status</th>
+                                    <th style="width:75px;">สถานะ</th>
                                     <th style="width:78px;">Priority</th>
                                     <th>Precondition</th>
                                     <th>Steps</th>
@@ -622,7 +617,7 @@
                                     <td class="text-center">@item.scenario_code</td>
                                     <td>@item.title</td>
                                     <td class="text-center">
-                                        <span class="@StatusTextClass(item.status)">@item.status</span>
+                                        <span class="@StatusTextClass(item.status)">@TestScenarioDisplay.StatusText(item.status)</span>
                                     </td>
                                     <td class="text-center">
                                         <span class="@PriorityTextClass(item.priority)">@item.priority</span>
