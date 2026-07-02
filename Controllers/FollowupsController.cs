@@ -130,12 +130,11 @@ namespace ProjectTracking.Controllers
             var selectedStatus = (status ?? "").Trim().ToUpperInvariant();
             selectedStatus = FollowupStatuses.Contains(selectedStatus) ? selectedStatus : "";
 
-            ViewBag.Coops = await _context.ProjectFollowups
+            ViewBag.Coops = await _context.CntMCoops
                 .AsNoTracking()
-                .Where(x => x.Project != null && x.Project.Coop != null && x.Project.Coop.CoopName != "")
-                .Select(x => x.Project!.Coop!.CoopName)
-                .Distinct()
-                .OrderBy(name => name)
+                .Where(x => x.CoopName != null && x.CoopName != "")
+                .OrderBy(x => x.CoopName)
+                .Select(x => x.CoopName)
                 .ToListAsync();
 
             var projectDropdownQuery = _context.Projects

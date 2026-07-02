@@ -1149,7 +1149,7 @@
             min-height: 0;
             overflow-y: auto;
             overscroll-behavior: contain;
-            padding: clamp(6px, .72vh, 8px) 0 clamp(6px, .72vh, 8px) clamp(6px, .72vh, 8px);
+            padding: clamp(6px, .72vh, 8px);
             transition: background .18s ease;
         }
 
@@ -1762,6 +1762,7 @@
         .rb-file-upload-card {
             display: grid;
             gap: 8px;
+            min-width: 0;
             padding: 14px;
             border: 1px solid #d8e3ef;
             border-radius: 16px;
@@ -2492,12 +2493,12 @@
                                                 <div class="rb-file-upload-card">
                                                     <label class="rb-field-label mb-0">รูปพื้นหลังการ์ด</label>
                                                     <div class="rb-file-info">เลือกไฟล์รูปภาพ</div>
-                                                    <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                                                    <input class="form-control" type="file" name="coverImage" accept="image/*" data-paste-image-upload data-paste-upload-scroll="x" />
                                                 </div>
                                                 <div class="rb-file-upload-card">
                                                     <label class="rb-field-label mb-0">เพิ่มไฟล์แนบ</label>
                                                     <div class="rb-file-info">เลือกได้หลายไฟล์</div>
-                                                    <input class="form-control" type="file" name="files" multiple />
+                                                    <input class="form-control" type="file" name="files" multiple data-paste-image-upload data-paste-upload-scroll="x" />
                                                 </div>
                                             </div>
                                         </div>
@@ -2743,12 +2744,12 @@
                                     {
                                         <div class="rb-file-info">รูปปัจจุบัน: @card.CoverImageName</div>
                                     }
-                                    <input class="form-control" type="file" name="coverImage" accept="image/*" />
+                                    <input class="form-control" type="file" name="coverImage" accept="image/*" data-paste-image-upload data-paste-upload-scroll="x" />
                                 </div>
                                 <div class="rb-file-upload-card">
                                     <label class="rb-field-label mb-0">เพิ่มไฟล์แนบ</label>
                                     <div class="rb-file-info">เลือกได้หลายไฟล์</div>
-                                    <input class="form-control" type="file" name="files" multiple />
+                                    <input class="form-control" type="file" name="files" multiple data-paste-image-upload data-paste-upload-scroll="x" />
                                 </div>
                             </div>
                         </div>
@@ -2837,6 +2838,7 @@
 }
 
 @section Scripts {
+    <script src="~/js/paste-image-upload.js" asp-append-version="true"></script>
     <script>
         (() => {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';

@@ -38,11 +38,13 @@
         style.textContent = `
             .paste-image-upload-panel {
                 margin-top: 10px;
+                max-width: 100%;
                 border: 1px dashed #9db4cf;
                 border-radius: 8px;
                 background: #f8fbff;
                 padding: 12px;
                 outline: none;
+                overflow: hidden;
             }
             .paste-image-upload-panel:focus-within,
             .paste-image-upload-panel.is-active {
@@ -67,6 +69,32 @@
                 gap: 10px;
                 margin-top: 10px;
             }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-list {
+                display: flex;
+                flex-wrap: nowrap;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding-bottom: 8px;
+                scroll-behavior: smooth;
+                scrollbar-color: rgba(20, 126, 120, .6) rgba(226, 236, 247, .72);
+                scrollbar-width: thin;
+            }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-list::-webkit-scrollbar {
+                height: 7px;
+            }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-list::-webkit-scrollbar-track {
+                background: rgba(226, 236, 247, .72);
+                border-radius: 999px;
+            }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-list::-webkit-scrollbar-thumb {
+                background: rgba(20, 126, 120, .6);
+                border-radius: 999px;
+            }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-list::-webkit-scrollbar-thumb:hover {
+                background: rgba(20, 126, 120, .8);
+            }
             .paste-image-upload-item {
                 position: relative;
                 border: 1px solid #d8e3ef;
@@ -75,6 +103,9 @@
                 padding: 6px;
                 min-width: 0;
             }
+            .paste-image-upload-panel.is-horizontal .paste-image-upload-item {
+                flex: 0 0 128px;
+            }
             .paste-image-upload-item img {
                 width: 100%;
                 aspect-ratio: 1 / 1;
@@ -82,6 +113,27 @@
                 object-fit: cover;
                 display: block;
                 background: #e2e8f0;
+            }
+            .paste-image-upload-file {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                aspect-ratio: 1 / 1;
+                border-radius: 6px;
+                color: #0f766e;
+                background: linear-gradient(135deg, #e0f7f4, #edf5ff);
+                font-size: 24px;
+                font-weight: 900;
+            }
+            .paste-image-upload-file-ext {
+                max-width: 86%;
+                overflow: hidden;
+                color: #10233f;
+                font-size: 13px;
+                text-overflow: ellipsis;
+                text-transform: uppercase;
+                white-space: nowrap;
             }
             .paste-image-upload-name {
                 color: #334155;
@@ -118,6 +170,9 @@
     function createPanel(input) {
         const panel = document.createElement("div");
         panel.className = "paste-image-upload-panel";
+        if (input.dataset.pasteUploadScroll === "x") {
+            panel.classList.add("is-horizontal");
+        }
         panel.tabIndex = 0;
         panel.dataset.pasteImagePanel = "";
         panel.innerHTML = `
@@ -137,6 +192,28 @@
         return dataTransfer;
     }
 
+    function isImageFile(file) {
+        return Boolean(file?.type?.startsWith("image/"));
+    }
+
+    function acceptsOnlyImages(input) {
+        const accept = (input.getAttribute("accept") || "").toLowerCase();
+        return accept.split(",").map(value => value.trim()).some(value => value === "image/*" || value.startsWith("image/"));
+    }
+
+    function shouldAcceptFile(input, file) {
+        if (acceptsOnlyImages(input)) {
+            return isImageFile(file);
+        }
+
+        return true;
+    }
+
+    function fileExtension(fileName) {
+        const lastDot = fileName.lastIndexOf(".");
+        return lastDot >= 0 ? fileName.substring(lastDot + 1) : "FILE";
+    }
+
     function render(input) {
         const state = inputStates.get(input);
         if (!state) return;
@@ -148,12 +225,23 @@
             const item = document.createElement("div");
             item.className = "paste-image-upload-item";
 
-            const image = document.createElement("img");
-            image.alt = file.name;
-            image.src = URL.createObjectURL(file);
-            image.onload = function () {
-                URL.revokeObjectURL(image.src);
-            };
+            let preview;
+            if (isImageFile(file)) {
+                preview = document.createElement("img");
+                preview.alt = file.name;
+                preview.src = URL.createObjectURL(file);
+                preview.onload = function () {
+                    URL.revokeObjectURL(preview.src);
+                };
+            } else {
+                preview = document.createElement("div");
+                preview.className = "paste-image-upload-file";
+
+                const ext = document.createElement("span");
+                ext.className = "paste-image-upload-file-ext";
+                ext.textContent = fileExtension(file.name);
+                preview.appendChild(ext);
+            }
 
             const name = document.createElement("div");
             name.className = "paste-image-upload-name";
@@ -170,7 +258,7 @@
                 syncInput(input);
             });
 
-            item.append(image, name, remove);
+            item.append(preview, name, remove);
             state.list.appendChild(item);
         });
     }
@@ -189,11 +277,16 @@
         const state = inputStates.get(input);
         if (!state) return 0;
 
+        const acceptedFiles = input.multiple ? files : files.slice(-1);
+        if (!input.multiple) {
+            state.files = [];
+        }
+
         const existing = new Set(state.files.map(uniqueName));
         let added = 0;
 
-        files.forEach(file => {
-            if (!file.type.startsWith("image/")) return;
+        acceptedFiles.forEach(file => {
+            if (!shouldAcceptFile(input, file)) return;
 
             const key = uniqueName(file);
             if (existing.has(key)) return;
