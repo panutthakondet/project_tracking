@@ -229,6 +229,11 @@
             margin-bottom: 3px;
         }
 
+        .memo-tail {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
         .comment-lines {
             margin: 18px 0 20px;
         }
@@ -268,6 +273,10 @@
             .page {
                 max-width: none;
                 padding: 0;
+            }
+            .memo-tail {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -336,38 +345,40 @@
             </div>
         </section>
 
-        <section>
-            <div class="memo-stack">
-                <div class="memo-stack-label">ผู้รับผิดชอบส่วนงาน</div>
-            </div>
-            <div class="owner-list">
-                @if (Model.Owners.Any())
-                {
-                    foreach (var owner in Model.Owners)
+        <section class="memo-tail">
+            <section>
+                <div class="memo-stack">
+                    <div class="memo-stack-label">ผู้รับผิดชอบส่วนงาน</div>
+                </div>
+                <div class="owner-list">
+                    @if (Model.Owners.Any())
                     {
-                        <div class="owner-line">@owner.Name @(string.IsNullOrWhiteSpace(owner.Role) ? "" : $"(ตำแหน่ง {owner.Role})")</div>
+                        foreach (var owner in Model.Owners)
+                        {
+                            <div class="owner-line">@owner.Name @(string.IsNullOrWhiteSpace(owner.Role) ? "" : $"(ตำแหน่ง {owner.Role})")</div>
+                        }
                     }
-                }
-                else
-                {
-                    <div class="owner-line">-</div>
-                }
+                    else
+                    {
+                        <div class="owner-line">-</div>
+                    }
+                </div>
+            </section>
+
+            <div class="comment-lines">
+                <div class="comment-line"><span class="comment-label">แสดงความคิดเห็น</span></div>
+                <div class="comment-line"></div>
+                <div class="comment-line"></div>
+                <div class="comment-line"></div>
+                <div class="comment-line"></div>
+            </div>
+
+            <div class="signature">
+                <div class="sign-space"></div>
+                <div>คุณสอง ยาสมุทร</div>
+                <div>ผู้จัดการฝ่ายพัฒนาธุรกิจ</div>
             </div>
         </section>
-
-        <div class="comment-lines">
-            <div class="comment-line"><span class="comment-label">แสดงความคิดเห็น</span></div>
-            <div class="comment-line"></div>
-            <div class="comment-line"></div>
-            <div class="comment-line"></div>
-            <div class="comment-line"></div>
-        </div>
-
-        <div class="signature">
-            <div class="sign-space"></div>
-            <div>คุณสอง ยาสมุทร</div>
-            <div>ผู้จัดการฝ่ายพัฒนาธุรกิจ</div>
-        </div>
     </main>
 </body>
 </html>
