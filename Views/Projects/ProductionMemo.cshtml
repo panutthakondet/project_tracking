@@ -31,7 +31,7 @@
 
     string PhaseTitle(ProjectTracking.ViewModels.ProjectProductionMemoPhaseViewModel phase)
     {
-        var label = $"งวดที่ {phase.PeriodOrder}/{Math.Max(phase.PeriodTotal, 1)}";
+        var label = $"ส่วนที่ {phase.PhaseOrder} งวดที่ {phase.PeriodOrder}";
         return $"{label} {phase.PhaseName}";
     }
 }
