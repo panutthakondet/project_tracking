@@ -6,6 +6,7 @@
     var th = new CultureInfo("th-TH");
     var projectName = string.IsNullOrWhiteSpace(Model.ProjectName) ? "-" : Model.ProjectName.Trim();
     var coopName = string.IsNullOrWhiteSpace(Model.CoopName) ? "-" : Model.CoopName.Trim();
+    var projectDetail = Model.ProjectDetail?.Trim();
 
     string DateText(DateTime? value)
     {
@@ -195,6 +196,10 @@
             line-height: 1.28;
         }
 
+        .memo-project-detail {
+            white-space: pre-line;
+        }
+
         .phase-list {
             margin: 1px 0 6px 32px;
             font-size: inherit;
@@ -295,6 +300,14 @@
         </p>
 
         <section class="detail-block">
+            @if (!string.IsNullOrWhiteSpace(projectDetail))
+            {
+                <div class="memo-stack">
+                    <div class="memo-stack-label">รายละเอียดเพิ่มเติม</div>
+                    <div class="memo-stack-value memo-project-detail">@projectDetail</div>
+                </div>
+            }
+
             <div class="memo-stack">
                 <div class="memo-stack-label">วันที่พัฒนาโครงการตามสัญญา</div>
                 <div class="memo-stack-value">@DateText(Model.StartDate) - @DateText(Model.EndDate)</div>

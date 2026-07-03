@@ -40,6 +40,10 @@ namespace ProjectTracking.Models
             }
         }
 
+        // รายละเอียดเพิ่มเติมของโครงการ
+        [Column("project_detail", TypeName = "text")]
+        public string? ProjectDetail { get; set; }
+
         // ======================
         // 👤 BUSINESS ANALYST
         // ======================

@@ -76,10 +76,29 @@
                         ส่วนงาน / งวดงาน
                     </label>
                     <select asp-for="PhaseId"
-                            asp-items="ViewBag.Phases"
                             class="form-select"
-                            required>
+                            required
+                            id="phaseSelect"
+                            data-initial-phase-id="@Model?.PhaseId">
                         <option value="">-- เลือกส่วนงาน / งวดงาน --</option>
+
+                        @if (ViewBag.PhaseItems != null)
+                        {
+                            foreach (var ph in ViewBag.PhaseItems)
+                            {
+                                var phaseStart = ph.PlanStart == null ? "" : ((DateTime)ph.PlanStart).ToString("yyyy-MM-dd");
+                                var phaseEnd = ph.PlanEnd == null ? "" : ((DateTime)ph.PlanEnd).ToString("yyyy-MM-dd");
+                                <option value="@ph.PhaseId"
+                                        selected="@(Model?.PhaseId == ph.PhaseId)"
+                                        data-role="@ph.PhaseName"
+                                        data-plan-start="@phaseStart"
+                                        data-plan-end="@phaseEnd"
+                                        data-phase-order="@ph.PhaseOrder"
+                                        data-period-order="@ph.PeriodOrder">
+                                    @ph.PhaseDisplayName
+                                </option>
+                            }
+                        }
                     </select>
                     <span asp-validation-for="PhaseId" class="text-danger"></span>
                 </div>
@@ -96,6 +115,21 @@
                     <span asp-validation-for="Role" class="text-danger"></span>
                     <small class="text-muted">
                         * งานที่รับผิดชอบจะเปลี่ยนตามชื่อส่วนงานอัตโนมัติ ถ้ายังไม่ได้แก้เอง และสามารถแก้ไขเองได้
+                    </small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        วันที่ตามงวดงาน
+                    </label>
+                    <button id="UsePhaseDatesButton"
+                            type="button"
+                            class="btn btn-outline-info w-100"
+                            title="ดึงกำหนดวันที่เริ่มและสิ้นสุดจากงวดงานที่เลือก">
+                        ใช้วันที่จากงวดงาน
+                    </button>
+                    <small id="phaseDateHint" class="text-muted d-block mt-1">
+                        ดึงจากกำหนดวันที่เริ่ม / สิ้นสุดของงวดงานที่เลือก
                     </small>
                 </div>
 
@@ -336,9 +370,64 @@
 
         const planStartInput = document.getElementById('PlanStart');
         const planEndInput = document.getElementById('PlanEnd');
+        const usePhaseDatesButton = document.getElementById('UsePhaseDatesButton');
+        const phaseDateHint = document.getElementById('phaseDateHint');
+
+        function toThaiDate(value) {
+            if (!value || !value.trim()) return '';
+
+            const parts = value.trim().split('-');
+            if (parts.length !== 3) return value;
+
+            const y = parseInt(parts[0], 10);
+            if (!Number.isFinite(y)) return value;
+
+            return `${parts[2]}/${parts[1]}/${y + 543}`;
+        }
+
+        function getSelectedPhaseOption() {
+            const phaseSelect = document.querySelector('select[name="PhaseId"], select#phaseSelect, select#PhaseId');
+            if (!phaseSelect) return null;
+            return phaseSelect.options[phaseSelect.selectedIndex] || null;
+        }
+
+        function setPhaseDateHint(message, tone) {
+            if (!phaseDateHint) return;
+            phaseDateHint.textContent = message;
+            phaseDateHint.classList.remove('text-muted', 'text-success', 'text-danger', 'text-warning');
+            phaseDateHint.classList.add(tone || 'text-muted');
+        }
+
+        function applyDatesFromSelectedPhase() {
+            const opt = getSelectedPhaseOption();
+            if (!opt || !opt.value) {
+                setPhaseDateHint('กรุณาเลือกส่วนงาน / งวดงานก่อน', 'text-danger');
+                return;
+            }
+
+            const phaseStart = (opt.dataset.planStart || '').trim();
+            const phaseEnd = (opt.dataset.planEnd || '').trim();
+
+            if (!phaseStart && !phaseEnd) {
+                setPhaseDateHint('งวดงานนี้ยังไม่ได้กำหนดวันที่เริ่ม / สิ้นสุด', 'text-warning');
+                return;
+            }
+
+            if (planStartInput) {
+                planStartInput.value = toThaiDate(phaseStart);
+            }
+
+            if (planEndInput) {
+                planEndInput.value = toThaiDate(phaseEnd);
+            }
+
+            setPhaseDateHint('ใช้วันที่จากงวดงานที่เลือกแล้ว', 'text-success');
+        }
 
         formatThaiDateInput(planStartInput);
         formatThaiDateInput(planEndInput);
+
+        usePhaseDatesButton?.addEventListener('click', applyDatesFromSelectedPhase);
 
         const form = document.querySelector('form');
         if (form) {

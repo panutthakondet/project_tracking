@@ -70,6 +70,18 @@
                           class="text-danger"></span>
                 </div>
 
+                <!-- Project Detail -->
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        รายละเอียดเพิ่มเติม
+                    </label>
+                    <textarea asp-for="ProjectDetail"
+                              class="form-control"
+                              rows="4"
+                              placeholder="ระบุรายละเอียดเพิ่มเติมของโครงการ"></textarea>
+                    <span asp-validation-for="ProjectDetail" class="text-danger"></span>
+                </div>
+
                 <!-- Status -->
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">

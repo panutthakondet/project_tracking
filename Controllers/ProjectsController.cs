@@ -213,6 +213,7 @@ namespace ProjectTracking.Controllers
                 CoopName = project.Coop?.CoopName ?? "",
                 ProjectName = project.ProjectName,
                 ProjectDisplayName = project.ProjectDisplayName,
+                ProjectDetail = project.ProjectDetail,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
                 TestAccount = project.TestAccount,
@@ -353,6 +354,7 @@ namespace ProjectTracking.Controllers
             var requestedStatus = model.Status;
 
             db.ProjectName = model.ProjectName;
+            db.ProjectDetail = model.ProjectDetail;
             db.CoopId = model.CoopId;
             db.StartDate = model.StartDate;
             db.EndDate = model.EndDate;

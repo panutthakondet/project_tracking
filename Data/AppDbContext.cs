@@ -695,6 +695,11 @@ namespace ProjectTracking.Data
                     .HasColumnType("int")
                     .IsRequired(false);
 
+                entity.Property(p => p.ProjectDetail)
+                    .HasColumnName("project_detail")
+                    .HasColumnType("text")
+                    .IsRequired(false);
+
                 // 👤 Business Analyst relationship
                 entity.HasOne(p => p.BA)
                     .WithMany()

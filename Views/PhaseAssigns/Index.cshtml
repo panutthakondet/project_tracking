@@ -30,6 +30,12 @@
         .OrderBy(name => name)
         .ToList();
     var requirementProjectCardDetailUrlTemplate = Url.Action("ProjectCardDetails", "RequirementBoard", new { projectId = "__PROJECT_ID__" }) ?? "";
+
+    var calendarToday = DateTime.Today;
+    var calendarYear = calendarToday.Year;
+    var calendarThaiYear = calendarYear + 543;
+    var thaiMonthNames = th.DateTimeFormat.MonthNames.Take(12).ToArray();
+    var thaiDayHeaders = new[] { "อา", "จ", "อ", "พ", "พฤ", "ศ", "ส" };
 }
 
 @functions {
@@ -153,7 +159,98 @@ thead .sticky-col { z-index: 5; }
     width: 100%;
     border-radius: 14px;
     box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
-}</style>
+}
+
+.thai-calendar-note {
+    --requirement-card-note-width: min(760px, calc(100vw - 44px));
+}
+
+.thai-calendar-note .requirement-card-popup__title {
+    display: block;
+}
+
+.thai-calendar-note .requirement-card-popup__body {
+    gap: 14px;
+}
+
+.thai-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.thai-calendar-month {
+    min-width: 0;
+    border: 1px solid #cfe0ef;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(248, 252, 255, .94));
+    box-shadow: 0 10px 24px rgba(15, 35, 64, .06);
+    overflow: hidden;
+}
+
+.thai-calendar-month__title {
+    padding: 10px 12px;
+    color: #0f766e;
+    background: #d8faf4;
+    font-weight: 900;
+    text-align: center;
+}
+
+.thai-calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1px;
+    padding: 8px;
+    background: #e2edf7;
+}
+
+.thai-calendar-day-head,
+.thai-calendar-day {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #10213a;
+    background: #fff;
+    font-size: .82rem;
+    font-weight: 800;
+}
+
+.thai-calendar-day-head {
+    min-height: 24px;
+    color: #64748b;
+    background: #f8fafc;
+    font-size: .74rem;
+    font-weight: 900;
+}
+
+.thai-calendar-day.is-empty {
+    color: transparent;
+    background: rgba(255, 255, 255, .52);
+}
+
+.thai-calendar-day.is-weekend {
+    color: #be123c;
+    background: #fff7f8;
+}
+
+.thai-calendar-day.is-today {
+    color: #fff;
+    background: linear-gradient(135deg, #21d4c2, #0f8f80);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .72);
+}
+
+.thai-calendar-note-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@@media (max-width: 575.98px) {
+    .thai-calendar-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 
 <div class="index-hero">
     <div class="index-hero__content">
@@ -180,6 +277,13 @@ thead .sticky-col { z-index: 5; }
                     data-project-field-id="hiddenProjectSelect"
                     title="เปิดดูรายละเอียด Project Board">
                 รายละเอียด Project Board
+            </button>
+
+            <button id="ThaiCalendarNoteButton"
+                    type="button"
+                    class="btn btn-outline-warning"
+                    title="เปิดปฏิทินไทยปี @calendarThaiYear">
+                ปฏิทิน
             </button>
 
             @if (CanMenu("ProjectIssues.Index"))
@@ -219,6 +323,71 @@ thead .sticky-col { z-index: 5; }
 </div>
 
 <partial name="_RequirementCardDetailModal" />
+
+<aside class="requirement-card-popup requirement-card-note thai-calendar-note" id="ThaiCalendarNoteModal" aria-hidden="true">
+    <div class="requirement-card-note__panel">
+        <div class="requirement-card-popup__header" id="ThaiCalendarNoteHeader">
+            <div class="requirement-card-popup__heading">
+                <div class="requirement-card-popup__eyebrow">ProjectTracking</div>
+                <h5 class="requirement-card-popup__title">ปฏิทินไทย @calendarThaiYear</h5>
+                <div class="requirement-card-popup__meta">
+                    วันนี้ @calendarToday.ToString("dd MMMM yyyy", th)
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-thai-calendar-close aria-label="Close"></button>
+        </div>
+        <div class="requirement-card-popup__body requirement-card-note__body">
+            <section class="requirement-card-popup__section">
+                <div class="requirement-card-popup__section-head">
+                    <h6 class="requirement-card-popup__label mb-0">ปี @calendarThaiYear</h6>
+                    <span class="requirement-card-popup__count">12 เดือน</span>
+                </div>
+
+                <div class="thai-calendar-grid">
+                    @for (var month = 1; month <= 12; month++)
+                    {
+                        var firstDay = new DateTime(calendarYear, month, 1);
+                        var leadingBlanks = (int)firstDay.DayOfWeek;
+                        var daysInMonth = DateTime.DaysInMonth(calendarYear, month);
+
+                        <article class="thai-calendar-month">
+                            <div class="thai-calendar-month__title">@thaiMonthNames[month - 1]</div>
+                            <div class="thai-calendar-days">
+                                @foreach (var dayHeader in thaiDayHeaders)
+                                {
+                                    <div class="thai-calendar-day-head">@dayHeader</div>
+                                }
+
+                                @for (var blank = 0; blank < leadingBlanks; blank++)
+                                {
+                                    <div class="thai-calendar-day is-empty" aria-hidden="true">0</div>
+                                }
+
+                                @for (var day = 1; day <= daysInMonth; day++)
+                                {
+                                    var date = new DateTime(calendarYear, month, day);
+                                    var isWeekend = date.DayOfWeek == DayOfWeek.Sunday || date.DayOfWeek == DayOfWeek.Saturday;
+                                    var isToday = date.Date == calendarToday.Date;
+                                    var dayClass = isToday
+                                        ? "thai-calendar-day is-today"
+                                        : isWeekend
+                                            ? "thai-calendar-day is-weekend"
+                                            : "thai-calendar-day";
+
+                                    <div class="@dayClass">@day</div>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+
+            <div class="thai-calendar-note-actions">
+                <button type="button" class="btn btn-outline-secondary" data-thai-calendar-close>ปิด</button>
+            </div>
+        </div>
+    </div>
+</aside>
 
 <form method="get" class="assign-filter-form mb-4" id="filterForm">
     <div class="assign-filter-row">
@@ -1058,6 +1227,120 @@ document.addEventListener("DOMContentLoaded", function () {
 
     employeeSelect?.addEventListener("change", submitSafely);
     syncProjectOptions();
+
+    const calendarButton = document.getElementById("ThaiCalendarNoteButton");
+    const calendarNote = document.getElementById("ThaiCalendarNoteModal");
+    const calendarHeader = document.getElementById("ThaiCalendarNoteHeader");
+    const calendarPositionKey = "ProjectTracking.PhaseAssigns.ThaiCalendarNotePosition";
+
+    function calendarBounds() {
+        const rect = calendarNote?.getBoundingClientRect();
+        const margin = 8;
+        return {
+            margin,
+            maxLeft: Math.max(margin, window.innerWidth - (rect?.width || 0) - margin),
+            maxTop: Math.max(margin, window.innerHeight - (rect?.height || 0) - margin)
+        };
+    }
+
+    function clampCalendarPosition(left, top) {
+        if (!calendarNote) return;
+        const bounds = calendarBounds();
+        const nextLeft = Math.min(Math.max(left, bounds.margin), bounds.maxLeft);
+        const nextTop = Math.min(Math.max(top, bounds.margin), bounds.maxTop);
+        calendarNote.style.setProperty("--requirement-card-note-left", `${nextLeft}px`);
+        calendarNote.style.setProperty("--requirement-card-note-top", `${nextTop}px`);
+    }
+
+    function applySavedCalendarPosition() {
+        if (!calendarNote) return;
+        if (window.matchMedia?.("(max-width: 575.98px)").matches) {
+            calendarNote.style.removeProperty("--requirement-card-note-left");
+            calendarNote.style.removeProperty("--requirement-card-note-top");
+            return;
+        }
+
+        let saved = null;
+        try {
+            saved = JSON.parse(window.localStorage?.getItem(calendarPositionKey) || "null");
+        } catch {
+            saved = null;
+        }
+
+        if (!saved || !Number.isFinite(saved.left) || !Number.isFinite(saved.top)) return;
+        clampCalendarPosition(saved.left, saved.top);
+    }
+
+    function openCalendarNote() {
+        if (!calendarNote) return;
+        if (calendarNote.parentElement !== document.body) {
+            document.body.appendChild(calendarNote);
+        }
+
+        applySavedCalendarPosition();
+        calendarNote.classList.add("is-open");
+        calendarNote.setAttribute("aria-hidden", "false");
+    }
+
+    function closeCalendarNote() {
+        if (!calendarNote) return;
+        calendarNote.classList.remove("is-open");
+        calendarNote.setAttribute("aria-hidden", "true");
+    }
+
+    calendarButton?.addEventListener("click", openCalendarNote);
+    document.querySelectorAll("[data-thai-calendar-close]").forEach(button => {
+        button.addEventListener("click", closeCalendarNote);
+    });
+
+    if (calendarNote && calendarHeader) {
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        function stopCalendarDrag() {
+            calendarNote.classList.remove("is-dragging");
+            document.removeEventListener("pointermove", dragCalendarNote);
+            document.removeEventListener("pointerup", stopCalendarDrag);
+            document.removeEventListener("pointercancel", stopCalendarDrag);
+
+            const rect = calendarNote.getBoundingClientRect();
+            window.localStorage?.setItem(calendarPositionKey, JSON.stringify({
+                left: Math.round(rect.left),
+                top: Math.round(rect.top)
+            }));
+        }
+
+        function dragCalendarNote(event) {
+            clampCalendarPosition(
+                startLeft + event.clientX - startX,
+                startTop + event.clientY - startY
+            );
+        }
+
+        calendarHeader.addEventListener("pointerdown", function (event) {
+            if (window.matchMedia?.("(max-width: 575.98px)").matches) return;
+            if (event.target.closest("button, a, input, textarea, select")) return;
+
+            event.preventDefault();
+            startX = event.clientX;
+            startY = event.clientY;
+            const rect = calendarNote.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            calendarNote.classList.add("is-dragging");
+            calendarHeader.setPointerCapture?.(event.pointerId);
+            document.addEventListener("pointermove", dragCalendarNote);
+            document.addEventListener("pointerup", stopCalendarDrag);
+            document.addEventListener("pointercancel", stopCalendarDrag);
+        });
+
+        window.addEventListener("resize", function () {
+            if (!calendarNote.classList.contains("is-open")) return;
+            applySavedCalendarPosition();
+        });
+    }
 });
 </script>
 
