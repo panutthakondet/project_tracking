@@ -15,6 +15,21 @@
         "ACK" => "รับทราบแล้ว",
         _ => TextOrDash(status)
     };
+
+    var returnCoopName = Context.Request.Query["coopName"].ToString();
+    if (string.IsNullOrWhiteSpace(returnCoopName))
+    {
+        returnCoopName = Model.Project?.Coop?.CoopName ?? "";
+    }
+
+    var returnProjectId = Context.Request.Query["projectId"].ToString();
+    if (string.IsNullOrWhiteSpace(returnProjectId))
+    {
+        returnProjectId = Model.ProjectId.ToString();
+    }
+
+    var returnOwnerEmpId = Context.Request.Query["ownerEmpId"].ToString();
+    var returnStatus = Context.Request.Query["status"].ToString();
 }
 
 <div class="index-hero pt-form-hero">
@@ -207,7 +222,10 @@ else
 
 <div class="pt-form-actions">
     <a asp-action="Index"
-       asp-route-projectId="@Model.ProjectId"
+       asp-route-coopName="@returnCoopName"
+       asp-route-projectId="@returnProjectId"
+       asp-route-ownerEmpId="@returnOwnerEmpId"
+       asp-route-status="@returnStatus"
        class="btn btn-outline-secondary">
         กลับ
     </a>

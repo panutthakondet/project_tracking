@@ -204,7 +204,12 @@
             <td style="white-space:nowrap; text-align:center;">
                 @if (HasMenu("Followups.Details"))
                 {
-                    <a href="/Followups/Details/@item.FollowupId" 
+                    <a asp-action="Details"
+                       asp-route-id="@item.FollowupId"
+                       asp-route-coopName="@selectedCoopName"
+                       asp-route-projectId="@selectedProjectId"
+                       asp-route-ownerEmpId="@selectedOwnerEmpId"
+                       asp-route-status="@selectedStatus"
                        class="btn btn-sm btn-outline-secondary"
                        title="ดูรายละเอียด">
                         View
@@ -363,7 +368,12 @@
         <div class="followup-actions">
             @if (HasMenu("Followups.Details"))
             {
-                <a href="/Followups/Details/@item.FollowupId" 
+                <a asp-action="Details"
+                   asp-route-id="@item.FollowupId"
+                   asp-route-coopName="@selectedCoopName"
+                   asp-route-projectId="@selectedProjectId"
+                   asp-route-ownerEmpId="@selectedOwnerEmpId"
+                   asp-route-status="@selectedStatus"
                    class="btn btn-sm btn-outline-secondary"
                    title="ดูรายละเอียด">
                     View
