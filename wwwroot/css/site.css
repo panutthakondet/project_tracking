@@ -1073,6 +1073,13 @@ main.route-action-edit img {
   font-weight: 400;
   line-height: 1.55;
   white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.requirement-card-popup__detail * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
