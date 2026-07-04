@@ -407,6 +407,16 @@
 
 (function () {
     const notePositionStorageKey = "projectTracking.requirementCardNote.position";
+    const requirementDetailAllowedFontSizes = new Set(["8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72"]);
+    const requirementDetailThemeColors = [
+        "#000000", "#404040", "#808080", "#1f4e79", "#0f6b7d", "#c55a11", "#196b24", "#0f9ed5", "#a02b93", "#4ea72e",
+        "#ffffff", "#d9d9d9", "#bfbfbf", "#d9eaf7", "#c7eaf3", "#f7c7ac", "#c6efce", "#b7e3f3", "#e6b8df", "#d8f0c8",
+        "#f2f2f2", "#a6a6a6", "#7f7f7f", "#9dc3e6", "#9bd7ea", "#f4b183", "#63d978", "#6dc8e8", "#d86ecc", "#a9d98f",
+        "#d9d9d9", "#808080", "#595959", "#5b9bd5", "#2f9fc3", "#ed7d31", "#00b050", "#00b0f0", "#c000a0", "#70ad47",
+        "#bfbfbf", "#595959", "#404040", "#1f4e79", "#164f63", "#9e480e", "#0b4016", "#0b6984", "#70305f", "#375623"
+    ];
+    const requirementDetailStandardColors = ["#c00000", "#ff0000", "#ffc000", "#ffff00", "#92d050", "#00b050", "#00b0f0", "#0070c0", "#002060", "#7030a0"];
+    const requirementDetailAllowedColors = new Set(["#0f172a", ...requirementDetailThemeColors, ...requirementDetailStandardColors].map(color => color.toLowerCase()));
 
     function clamp(value, min, max) {
         return Math.min(Math.max(value, min), max);
@@ -435,6 +445,51 @@
             .replace(/'/g, "&#39;");
     }
 
+    function rgbToHex(red, green, blue) {
+        return [red, green, blue]
+            .map(value => Math.max(0, Math.min(255, Number(value) || 0)).toString(16).padStart(2, "0"))
+            .join("");
+    }
+
+    function normalizeRequirementDetailColor(value) {
+        const raw = (value || "").trim().toLowerCase();
+        const hex = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (hex) {
+            const normalized = hex[1].length === 3
+                ? `#${hex[1].split("").map(char => char + char).join("")}`
+                : `#${hex[1]}`;
+            return requirementDetailAllowedColors.has(normalized) ? normalized : "";
+        }
+
+        const rgb = raw.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+        if (rgb) {
+            const normalized = `#${rgbToHex(rgb[1], rgb[2], rgb[3])}`;
+            return requirementDetailAllowedColors.has(normalized) ? normalized : "";
+        }
+
+        return "";
+    }
+
+    function normalizeRequirementDetailStyle(value) {
+        const styleText = (value || "").toString();
+        const styles = [];
+        const sizeMatch = styleText.match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i);
+        if (sizeMatch) {
+            const size = String(Math.round(Number(sizeMatch[1])));
+            if (requirementDetailAllowedFontSizes.has(size)) {
+                styles.push(`font-size: ${size}px;`);
+            }
+        }
+
+        const colorMatch = styleText.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+        if (colorMatch) {
+            const color = normalizeRequirementDetailColor(colorMatch[1]);
+            if (color) styles.push(`color: ${color};`);
+        }
+
+        return styles.join(" ");
+    }
+
     function sanitizeRequirementDetailHtml(value) {
         const text = (value || "").toString().trim();
         if (!text) return "";
@@ -445,7 +500,7 @@
 
         const template = document.createElement("template");
         template.innerHTML = text;
-        const allowedTags = new Set(["A", "B", "BR", "DIV", "EM", "I", "LI", "OL", "P", "SPAN", "STRONG", "U", "UL"]);
+        const allowedTags = new Set(["A", "B", "BR", "DIV", "EM", "FONT", "H3", "I", "LI", "OL", "P", "SPAN", "STRONG", "U", "UL"]);
 
         template.content.querySelectorAll("*").forEach(node => {
             if (!allowedTags.has(node.tagName)) {
@@ -459,11 +514,60 @@
                     const href = attribute.value.trim();
                     if (/^(https?:|mailto:|tel:|\/)/i.test(href)) return;
                 }
+
+                if (node.tagName === "FONT" && ["face", "size"].includes(name)) {
+                    if (name === "face" && /^(Prompt|Sarabun|Tahoma|Arial)$/i.test(attribute.value.trim())) return;
+                    if (name === "size" && /^[2-5]$/.test(attribute.value.trim())) return;
+                }
+
+                if (node.tagName === "FONT" && name === "color") {
+                    if (normalizeRequirementDetailColor(attribute.value)) return;
+                }
+
+                if (node.tagName === "SPAN" && name === "style") {
+                    const normalizedStyle = normalizeRequirementDetailStyle(attribute.value);
+                    if (normalizedStyle) {
+                        node.setAttribute("style", normalizedStyle);
+                        return;
+                    }
+                }
+
                 node.removeAttribute(attribute.name);
             });
+
+            if (node.tagName === "A" && node.getAttribute("href")) {
+                node.setAttribute("target", "_blank");
+                node.setAttribute("rel", "noopener noreferrer");
+            }
         });
 
         return template.innerHTML;
+    }
+
+    function normalizeHex(value) {
+        const color = (value || "#22c7b8").toString().trim();
+        return color.startsWith("#") ? color : `#${color}`;
+    }
+
+    function labelTextColor(hex) {
+        const color = normalizeHex(hex).replace("#", "");
+        if (color.length !== 6) return "#10213a";
+
+        const red = parseInt(color.slice(0, 2), 16);
+        const green = parseInt(color.slice(2, 4), 16);
+        const blue = parseInt(color.slice(4, 6), 16);
+        const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+        return brightness < 132 ? "#fff" : "#10213a";
+    }
+
+    function renderRequirementLabel(label) {
+        const chip = document.createElement("span");
+        const color = normalizeHex(label.colorHex || label.ColorHex || "#22c7b8");
+        chip.className = "requirement-card-popup__label-chip";
+        chip.style.setProperty("--requirement-label-color", color);
+        chip.style.setProperty("--requirement-label-text", labelTextColor(color));
+        chip.textContent = label.labelName || label.LabelName || "-";
+        return chip;
     }
 
     function createActionLink(label, href, variant) {
@@ -560,6 +664,24 @@
             "RequirementCardDetailMeta",
             `List: ${card.columnName || "-"} · สร้างโดย ${card.createdBy || "-"} · อัปเดต ${card.updatedAt || "-"}`
         );
+
+        const labels = Array.isArray(card.labels) ? card.labels : [];
+        setText("RequirementCardLabelCount", labels.length.toString());
+
+        const labelList = document.getElementById("RequirementCardLabelList");
+        clearElement(labelList);
+        if (labelList) {
+            if (labels.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "requirement-card-popup__label-empty requirement-card-popup__empty";
+                empty.textContent = "ยังไม่มีป้าย";
+                labelList.appendChild(empty);
+            } else {
+                labels.forEach(label => {
+                    labelList.appendChild(renderRequirementLabel(label));
+                });
+            }
+        }
 
         const detail = document.getElementById("RequirementCardDetailText");
         if (detail) {

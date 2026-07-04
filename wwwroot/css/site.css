@@ -1032,6 +1032,36 @@ main.route-action-edit img {
   font-weight: 900;
 }
 
+.requirement-card-popup__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.requirement-card-popup__label-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--requirement-label-color, #d8faf4);
+  color: var(--requirement-label-text, #10213a);
+  font-size: .86rem;
+  font-weight: 900;
+  line-height: 1.25;
+  word-break: break-word;
+  box-shadow: 0 8px 18px rgba(15, 39, 70, .08);
+}
+
+.requirement-card-popup__label-empty {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8efe9;
+  border-radius: 14px;
+  background: #f8fffd;
+}
+
 .requirement-card-popup__detail {
   min-height: 150px;
   padding: 12px;
@@ -1042,8 +1072,26 @@ main.route-action-edit img {
   font-size: .94rem;
   font-weight: 400;
   line-height: 1.55;
-  white-space: pre-wrap;
+  white-space: normal;
   word-break: break-word;
+}
+
+.requirement-card-popup__detail :where(p, div, h3, ul, ol) {
+  margin-top: 0;
+}
+
+.requirement-card-popup__detail :where(p, div, h3, ul, ol):last-child {
+  margin-bottom: 0;
+}
+
+.requirement-card-popup__detail :where(ul, ol) {
+  padding-left: 1.35rem;
+}
+
+.requirement-card-popup__detail a {
+  color: #0d6efd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .requirement-card-popup__empty {

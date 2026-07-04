@@ -649,28 +649,9 @@
         .rb-description-title {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             color: #10213a;
-            font-size: 1.1rem;
             font-weight: 900;
-        }
-
-        .rb-description-icon {
-            color: #27364d;
-            font-size: 1.95rem;
-            font-weight: 900;
-            line-height: 1;
-        }
-
-        .rb-description-edit-button {
-            min-height: 42px;
-            padding: 0 18px;
-            border: 1px solid #d8e3ef;
-            border-radius: 12px;
-            background: #fff;
-            color: #334155;
-            font-weight: 900;
-            box-shadow: 0 8px 18px rgba(15, 39, 70, .06);
         }
 
         .rb-description-view {
@@ -1698,17 +1679,6 @@
             overflow: visible;
         }
 
-        .rb-edit-panel-head {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #0f766e;
-            font-size: .85rem;
-            font-weight: 900;
-            letter-spacing: .02em;
-            text-transform: uppercase;
-        }
-
         .rb-label-control {
             position: relative;
             display: grid;
@@ -1977,7 +1947,7 @@
 
         .rb-file-upload-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 1fr);
             gap: 12px;
         }
 
@@ -1989,6 +1959,23 @@
             border: 1px solid #d8e3ef;
             border-radius: 16px;
             background: #fff;
+        }
+
+        .rb-attachment-inline {
+            display: grid;
+            gap: 10px;
+            padding-top: 4px;
+        }
+
+        .rb-attachment-inline .rb-file-list,
+        .rb-attachment-inline .alert {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .rb-field-label[data-attachment-heading] {
+            font-size: 1rem;
+            line-height: 1.35;
         }
 
         .rb-file-upload-card .form-control {
@@ -2030,7 +2017,18 @@
             flex-wrap: wrap;
             gap: 10px;
             align-items: center;
+            justify-content: flex-end;
+            width: 100%;
             padding-top: 6px;
+        }
+
+        .rb-modal-actions-main {
+            margin-left: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
         }
 
         .rb-modal-actions .rb-btn {
@@ -2038,19 +2036,21 @@
         }
 
         .rb-save-status {
-            display: inline-flex;
+            display: none;
             align-items: center;
             min-height: 38px;
             padding: 0 14px;
             border-radius: 999px;
             color: #64748b;
             font-weight: 900;
+            order: -1;
             opacity: 0;
             transform: translateY(3px);
             transition: opacity .18s ease, transform .18s ease;
         }
 
         .rb-save-status.is-visible {
+            display: inline-flex;
             opacity: 1;
             transform: translateY(0);
         }
@@ -2201,13 +2201,48 @@
         }
 
         .rb-phase-add-footer .rb-btn {
-            min-height: 42px;
-            min-width: 92px;
-            border-radius: 14px;
-            border: 0;
-            background: linear-gradient(135deg, #21d4c2, #0f8f80);
-            color: #fff;
-            box-shadow: 0 10px 22px rgba(15, 143, 128, .18);
+            position: relative;
+            width: 64px;
+            min-width: 64px;
+            height: 40px;
+            min-height: 40px;
+            padding: 0;
+            border-radius: 12px;
+            border: 2px solid #16b8a8;
+            background: transparent;
+            color: #0f8f80;
+            font-size: 0;
+            line-height: 1;
+            box-shadow: none;
+        }
+
+        .rb-phase-add-footer .rb-btn:hover {
+            background: rgba(33, 212, 194, .08);
+            color: #0f766e;
+        }
+
+        .rb-phase-add-footer .rb-plus-icon {
+            position: relative;
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+        }
+
+        .rb-phase-add-footer .rb-plus-icon::before,
+        .rb-phase-add-footer .rb-plus-icon::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 16px;
+            height: 2.5px;
+            border-radius: 999px;
+            background: currentColor;
+            transform: translate(-50%, -50%);
+        }
+
+        .rb-phase-add-footer .rb-plus-icon::after {
+            transform: translate(-50%, -50%) rotate(90deg);
         }
 
         .rb-phase-date-grid {
@@ -2569,18 +2604,15 @@
 
                                         <div class="col-12">
                                             <div class="rb-edit-panel">
-                                                <div class="rb-edit-panel-head">ข้อมูลการ์ด</div>
                                                 <div>
                                                     <label class="rb-field-label">หัวข้อ</label>
                                                     <input class="rb-input" name="title" maxlength="255" placeholder="หัวข้อการ์ด" required />
                                                 </div>
                                                 <div class="rb-description-box" data-description-control>
                                                     <div class="rb-description-head">
-                                                        <div class="rb-description-title">
-                                                            <span class="rb-description-icon" aria-hidden="true">☰</span>
+                                                        <div class="rb-description-title rb-field-label mb-0">
                                                             <span>คำอธิบาย</span>
                                                         </div>
-                                                        <button class="rb-description-edit-button" type="button" data-description-toggle>แก้ไข</button>
                                                     </div>
                                                     <div class="rb-description-view" data-description-preview data-description-toggle role="button" tabindex="0">
                                                         <span class="rb-description-placeholder">เพิ่มคำอธิบายของการ์ด...</span>
@@ -2694,6 +2726,9 @@
 
                                         <div class="col-12">
                                             <div class="rb-phase-draft">
+                                                <div class="rb-phase-draft-head">
+                                                    <div class="rb-phase-draft-title">บันทึกงวดงาน</div>
+                                                </div>
                                                 <div class="rb-phase-draft-list" data-phase-list>
                                                     <div class="rb-phase-row" data-phase-row>
                                                         <input type="hidden" name="phaseItems[0].ItemId" data-phase-field="ItemId" />
@@ -2743,8 +2778,9 @@
                                                 <div class="rb-phase-add-footer">
                                                     <button class="rb-btn"
                                                             type="button"
-                                                            data-add-phase-row>
-                                                        เพิ่ม
+                                                            data-add-phase-row
+                                                            aria-label="เพิ่มแถว">
+                                                        <span class="rb-plus-icon" aria-hidden="true"></span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -2820,23 +2856,20 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form asp-action="UpdateCard" method="post" enctype="multipart/form-data" class="row g-3 rb-card-edit-form" data-card-update-form data-card-id="@card.CardId">
+                    <form id="cardUpdateForm-@card.CardId" asp-action="UpdateCard" method="post" enctype="multipart/form-data" class="row g-3 rb-card-edit-form" data-card-update-form data-card-id="@card.CardId">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="cardId" value="@card.CardId" />
                         <div class="col-12">
                             <div class="rb-edit-panel">
-                                <div class="rb-edit-panel-head">ข้อมูลการ์ด</div>
                                 <div>
                                     <label class="rb-field-label">หัวข้อ</label>
                                     <input class="rb-input" name="title" maxlength="255" value="@card.Title" required />
                                 </div>
                                 <div class="rb-description-box" data-description-control>
                                     <div class="rb-description-head">
-                                        <div class="rb-description-title">
-                                            <span class="rb-description-icon" aria-hidden="true">☰</span>
+                                        <div class="rb-description-title rb-field-label mb-0">
                                             <span>คำอธิบาย</span>
                                         </div>
-                                        <button class="rb-description-edit-button" type="button" data-description-toggle>แก้ไข</button>
                                     </div>
                                     <div class="rb-description-view" data-description-preview data-description-toggle role="button" tabindex="0">
                                         @if (string.IsNullOrWhiteSpace(card.Detail))
@@ -2983,6 +3016,9 @@
                                 var phaseDraftRows = Math.Max(phaseDrafts.Count, 1);
                             }
                             <div class="rb-phase-draft">
+                                <div class="rb-phase-draft-head">
+                                    <div class="rb-phase-draft-title">บันทึกงวดงาน</div>
+                                </div>
                                 <div class="rb-phase-draft-list" data-phase-list>
                                     @for (var i = 0; i < phaseDraftRows; i++)
                                     {
@@ -3036,8 +3072,9 @@
                                 <div class="rb-phase-add-footer">
                                     <button class="rb-btn"
                                             type="button"
-                                            data-add-phase-row>
-                                        เพิ่ม
+                                            data-add-phase-row
+                                            aria-label="เพิ่มแถว">
+                                        <span class="rb-plus-icon" aria-hidden="true"></span>
                                     </button>
                                 </div>
                             </div>
@@ -3056,87 +3093,103 @@
                                     <label class="rb-field-label mb-0">เพิ่มไฟล์แนบ</label>
                                     <div class="rb-file-info">เลือกได้หลายไฟล์</div>
                                     <input class="form-control" type="file" name="files" multiple data-paste-image-upload data-paste-upload-scroll="x" />
+                                    <div class="rb-attachment-inline">
+                                        <h3 class="rb-field-label mb-0" data-attachment-heading data-attachment-count="@card.Attachments.Count">ไฟล์แนบ (@card.Attachments.Count)</h3>
+                                        @if (card.Attachments.Count == 0)
+                                        {
+                                            <div class="alert alert-light border">ยังไม่มีไฟล์แนบ</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="rb-file-list">
+                                                @foreach (var file in card.Attachments.OrderByDescending(x => x.UploadedAt))
+                                                {
+                                                    <div class="rb-file-row">
+                                                        @if (IsImage(file))
+                                                        {
+                                                            <a class="rb-file-thumb-link"
+                                                               asp-action="PreviewAttachment"
+                                                               asp-route-id="@file.AttachmentId"
+                                                               target="_blank"
+                                                               rel="noopener">
+                                                                <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a class="rb-file-thumb-link rb-file-thumb"
+                                                               asp-action="PreviewAttachment"
+                                                               asp-route-id="@file.AttachmentId"
+                                                               target="_blank"
+                                                               rel="noopener">FILE</a>
+                                                        }
+                                                        <div>
+                                                            <div class="rb-file-name">@file.FileName</div>
+                                                            <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                                        </div>
+                                                        <div class="rb-file-actions">
+                                                            <a class="rb-btn secondary"
+                                                               asp-action="PreviewAttachment"
+                                                               asp-route-id="@file.AttachmentId"
+                                                               target="_blank"
+                                                               rel="noopener">Preview</a>
+                                                            <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
+                                                            @if (canDelete)
+                                                            {
+                                                                <button class="rb-btn danger"
+                                                                        type="submit"
+                                                                        form="deleteAttachmentForm-@file.AttachmentId">
+                                                                    ลบ
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-12 rb-modal-actions">
+                            @if (canDelete)
+                            {
+                                <button class="rb-btn danger"
+                                        type="submit"
+                                        form="archiveCardForm-@card.CardId">
+                                    ลบการ์ดออกจากบอร์ด
+                                </button>
+                            }
+                            <div class="rb-modal-actions-main">
                             @if (canEdit)
                             {
                                 <button class="rb-btn" type="submit">บันทึก</button>
                             }
                             <button class="rb-btn secondary" type="button" data-bs-dismiss="modal">ปิด</button>
                             <span class="rb-save-status" data-card-save-status aria-live="polite"></span>
+                            </div>
                         </div>
                     </form>
 
-                    <hr class="my-4" />
-
-                    <div>
-                        <h3 class="rb-field-label" data-attachment-heading data-attachment-count="@card.Attachments.Count">ไฟล์แนบ (@card.Attachments.Count)</h3>
-                        @if (card.Attachments.Count == 0)
+                    @if (canDelete)
+                    {
+                        foreach (var file in card.Attachments)
                         {
-                            <div class="alert alert-light border mb-0">ยังไม่มีไฟล์แนบ</div>
+                            <form id="deleteAttachmentForm-@file.AttachmentId" asp-action="DeleteAttachment" method="post" onsubmit="return confirm('ลบไฟล์แนบนี้หรือไม่?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="attachmentId" value="@file.AttachmentId" />
+                            </form>
                         }
-                        else
-                        {
-                            <div class="rb-file-list">
-                                @foreach (var file in card.Attachments.OrderByDescending(x => x.UploadedAt))
-                                {
-                                    <div class="rb-file-row">
-                                        @if (IsImage(file))
-                                        {
-                                            <a class="rb-file-thumb-link"
-                                               asp-action="PreviewAttachment"
-                                               asp-route-id="@file.AttachmentId"
-                                               target="_blank"
-                                               rel="noopener">
-                                                <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <a class="rb-file-thumb-link rb-file-thumb"
-                                               asp-action="PreviewAttachment"
-                                               asp-route-id="@file.AttachmentId"
-                                               target="_blank"
-                                               rel="noopener">FILE</a>
-                                        }
-                                        <div>
-                                            <div class="rb-file-name">@file.FileName</div>
-                                            <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
-                                        </div>
-                                        <div class="rb-file-actions">
-                                            <a class="rb-btn secondary"
-                                               asp-action="PreviewAttachment"
-                                               asp-route-id="@file.AttachmentId"
-                                               target="_blank"
-                                               rel="noopener">Preview</a>
-                                            <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
-                                            @if (canDelete)
-                                            {
-                                                <form asp-action="DeleteAttachment" method="post" onsubmit="return confirm('ลบไฟล์แนบนี้หรือไม่?');">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="attachmentId" value="@file.AttachmentId" />
-                                                    <button class="rb-btn danger" type="submit">ลบ</button>
-                                                </form>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-
-                    <hr class="my-4" />
+                    }
 
                     @if (canDelete)
                     {
-                        <form asp-action="ArchiveCard" method="post" onsubmit="return confirm('ลบการ์ดนี้ออกจากบอร์ดหรือไม่?');">
+                        <form id="archiveCardForm-@card.CardId" asp-action="ArchiveCard" method="post" onsubmit="return confirm('ลบการ์ดนี้ออกจากบอร์ดหรือไม่?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="cardId" value="@card.CardId" />
-                            <button class="rb-btn danger" type="submit">ลบการ์ดออกจากบอร์ด</button>
                         </form>
                     }
+
                 </div>
             </div>
         </div>
@@ -3616,6 +3669,12 @@
                 });
             }
 
+            function closeLabelPickers(exceptPicker = null) {
+                document.querySelectorAll('[data-label-picker]').forEach(picker => {
+                    if (picker !== exceptPicker) picker.hidden = true;
+                });
+            }
+
             function applyDescriptionFontColor(button) {
                 const color = (button.dataset.descriptionColor || '').trim().toLowerCase();
                 const editor = button.closest('[data-description-editor]');
@@ -3888,6 +3947,10 @@
                     closeDescriptionFontSizeMenus();
                 }
 
+                if (!event.target.closest('[data-label-control]')) {
+                    closeLabelPickers();
+                }
+
                 const descriptionCommand = event.target.closest('[data-description-command]');
                 if (descriptionCommand) {
                     runDescriptionCommand(descriptionCommand);
@@ -3906,9 +3969,7 @@
                     const picker = control?.querySelector('[data-label-picker]');
                     if (!picker) return;
 
-                    document.querySelectorAll('[data-label-picker]').forEach(item => {
-                        if (item !== picker) item.hidden = true;
-                    });
+                    closeLabelPickers(picker);
                     picker.hidden = !picker.hidden;
                     picker.querySelector('[data-label-search]')?.focus();
                     return;
