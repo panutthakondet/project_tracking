@@ -342,9 +342,7 @@
                         </div>
                     </td>
 
-                    <td class="col-detail project-detail-value">
-                        @(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail)
-                    </td>
+                    <td class="col-detail project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</td>
 
                     <td class="col-pm text-center">
                         @if (p.PM != null)
@@ -584,11 +582,7 @@
                 <div class="project-info">
                     <div class="project-info-row project-detail-row">
                         <span class="project-label">รายละเอียดเพิ่มเติม</span>
-                        <span class="project-value project-detail-value">
-                            @(string.IsNullOrWhiteSpace(p.ProjectDetail)
-                                ? "-"
-                                : p.ProjectDetail)
-                        </span>
+                        <span class="project-value project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</span>
                     </div>
 
                     <div class="project-info-row project-system-row">
@@ -1326,6 +1320,17 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     background: transparent;
     word-break: normal;
     overflow-wrap: anywhere;
+}
+
+.project-detail-row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    column-gap: 8px;
+}
+
+.project-detail-row .project-label {
+    white-space: nowrap;
 }
 
 .project-system-value,

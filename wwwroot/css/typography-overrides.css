@@ -2136,3 +2136,43 @@ html body main.route-controller-requirementboard .rb-modal .rb-file-upload-card 
   font-synthesis: none !important;
   font-synthesis-weight: none !important;
 }
+
+html body main.route-controller-requirementboard .rb-modal .rb-description-toolbar .rb-description-font-size-control,
+html body .v2-shell-requirement-board .rb-modal .rb-description-toolbar .rb-description-font-size-control {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 54px !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  overflow: visible !important;
+  margin: 0 !important;
+}
+
+html body main.route-controller-requirementboard .rb-modal .rb-description-toolbar .rb-description-font-size-button,
+html body .v2-shell-requirement-board .rb-modal .rb-description-toolbar .rb-description-font-size-button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 4px 0 8px !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  font-size: .8rem !important;
+  line-height: 1 !important;
+  align-self: center !important;
+}
+
+html body main.route-controller-requirementboard .rb-modal .rb-description-toolbar .rb-description-font-size-menu,
+html body .v2-shell-requirement-board .rb-modal .rb-description-toolbar .rb-description-font-size-menu,
+html body main.route-controller-requirementboard .rb-modal .rb-description-toolbar .rb-description-color-menu,
+html body .v2-shell-requirement-board .rb-modal .rb-description-toolbar .rb-description-color-menu {
+  overflow: auto;
+  z-index: 1058 !important;
+}

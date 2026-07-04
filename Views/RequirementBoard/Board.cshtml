@@ -375,7 +375,7 @@
 
         .rb-search-icon {
             position: absolute;
-            left: 18px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             display: inline-flex;
@@ -397,17 +397,19 @@
 
         .rb-search-input {
             width: 100%;
-            min-height: 46px;
-            padding: 0 50px 0 54px;
+            height: 38px;
+            min-height: 38px;
+            padding: 0 44px 0 48px;
             border: 2px solid #bfd1e6;
             border-radius: 8px;
             background: #fff;
             color: #10213a;
-            font-size: .95rem;
+            font-size: .88rem;
             font-weight: 800;
+            line-height: 38px;
             outline: none;
             box-shadow:
-                0 12px 28px rgba(28, 44, 72, .10),
+                0 8px 18px rgba(28, 44, 72, .10),
                 inset 0 1px 0 rgba(255, 255, 255, .72);
             transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
         }
@@ -434,19 +436,19 @@
 
         .rb-search-clear {
             position: absolute;
-            right: 10px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
             display: none;
             align-items: center;
             justify-content: center;
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             border: 0;
-            border-radius: 8px;
+            border-radius: 7px;
             background: rgba(15, 33, 58, .08);
             color: #334155;
-            font-size: 1.1rem;
+            font-size: .95rem;
             font-weight: 900;
             line-height: 1;
         }
@@ -672,12 +674,12 @@
         }
 
         .rb-description-view {
-            height: 96px;
-            max-height: 96px;
+            height: 200px;
+            max-height: 200px;
             padding: 12px 16px;
-            border: 1px solid transparent;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, .72);
+            border: 1px solid #d8e3ef;
+            border-radius: 16px;
+            background: #fff;
             color: #0f172a;
             font-size: .96rem;
             font-weight: 400;
@@ -742,11 +744,22 @@
         }
 
         .rb-description-editor {
-            overflow: hidden;
-            border: 2px solid #2563eb;
+            position: relative;
+            overflow: visible;
+            border: 2px solid transparent;
             border-radius: 12px;
             background: #fff;
             box-shadow: 0 14px 28px rgba(15, 39, 70, .08);
+        }
+
+        .rb-description-editor::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            z-index: 3;
+            border: 2px solid #2563eb;
+            border-radius: 12px;
+            pointer-events: none;
         }
 
         .rb-description-editor[hidden] {
@@ -761,13 +774,18 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             min-height: 54px;
             padding: 8px 12px;
             border-bottom: 1px solid #e2e8f0;
             background: linear-gradient(180deg, #ffffff, #f8fafc);
             color: #475569;
             font-weight: 900;
+            overflow: visible;
+        }
+
+        .rb-description-toolbar > * {
+            flex: 0 0 auto;
         }
 
         .rb-description-tool {
@@ -789,6 +807,182 @@
         .rb-description-tool:hover {
             background: #edf5ff;
             color: #0f766e;
+        }
+
+        .rb-description-bullet-tool {
+            min-width: 38px;
+            font-size: 1.16rem;
+            line-height: 1;
+        }
+
+        .rb-description-font-size-control {
+            position: relative;
+            display: inline-flex !important;
+            align-items: center;
+            flex: 0 0 54px !important;
+            width: 54px !important;
+            min-width: 54px !important;
+            max-width: 54px !important;
+        }
+
+        .rb-description-font-size-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2px;
+            width: 54px !important;
+            min-width: 54px !important;
+            max-width: 54px !important;
+            height: 30px !important;
+            padding: 0 4px 0 8px !important;
+            border: 1px solid #d8e3ef;
+            border-radius: 6px;
+            background: #fff;
+            color: #334155;
+            font-size: .8rem;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .rb-description-font-size-button:hover,
+        .rb-description-font-size-button:focus {
+            border-color: #14b8a6;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .14);
+            outline: none;
+        }
+
+        .rb-description-font-size-caret {
+            color: #64748b;
+            font-size: .65rem;
+            line-height: 1;
+        }
+
+        .rb-description-font-size-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 45;
+            width: 64px;
+            max-height: 246px;
+            overflow-y: auto;
+            padding: 4px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 18px 38px rgba(15, 23, 42, .22);
+        }
+
+        .rb-description-font-size-menu[hidden] {
+            display: none;
+        }
+
+        .rb-description-font-size-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 28px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #334155;
+            font-size: .82rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .rb-description-font-size-option:hover,
+        .rb-description-font-size-option:focus,
+        .rb-description-font-size-option.is-selected {
+            background: #e0f7f4;
+            color: #0f766e;
+        }
+
+        .rb-description-color-control {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .rb-description-color-button {
+            position: relative;
+            min-width: 42px;
+            height: 34px;
+            padding: 0 7px 5px;
+            gap: 5px;
+        }
+
+        .rb-description-color-button::after {
+            content: "";
+            position: absolute;
+            left: 8px;
+            right: 16px;
+            bottom: 4px;
+            height: 3px;
+            border-radius: 999px;
+            background: var(--rb-description-color, #dc2626);
+        }
+
+        .rb-description-color-caret {
+            color: #64748b;
+            font-size: .72rem;
+            line-height: 1;
+        }
+
+        .rb-description-color-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            z-index: 40;
+            width: 276px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background: #fff;
+            box-sizing: border-box;
+            box-shadow: 0 18px 38px rgba(15, 23, 42, .22);
+        }
+
+        .rb-description-color-menu[hidden] {
+            display: none;
+        }
+
+        .rb-description-color-auto {
+            width: 100%;
+            min-height: 34px;
+            border: 1px solid #d8e3ef;
+            background: #fff;
+            color: #10213a;
+            font-weight: 800;
+        }
+
+        .rb-description-color-label {
+            margin: 10px 0 7px;
+            color: #334155;
+            font-size: .86rem;
+            font-weight: 900;
+        }
+
+        .rb-description-color-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 20px);
+            gap: 5px;
+        }
+
+        .rb-description-color-option {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(15, 23, 42, .18);
+            border-radius: 4px;
+            background: var(--rb-description-swatch, #0f172a);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .32);
+            cursor: pointer;
+        }
+
+        .rb-description-color-option:hover,
+        .rb-description-color-option:focus {
+            outline: 2px solid rgba(20, 184, 166, .45);
+            outline-offset: 1px;
         }
 
         .rb-description-divider {
@@ -2368,8 +2562,48 @@
                                                             <button class="rb-description-tool" type="button" data-description-command="bold" title="ตัวหนา">B</button>
                                                             <button class="rb-description-tool" type="button" data-description-command="italic" title="ตัวเอียง"><em>I</em></button>
                                                             <button class="rb-description-tool" type="button" data-description-command="underline" title="ขีดเส้นใต้"><u>U</u></button>
+                                                            <div class="rb-description-font-size-control" data-description-font-size-control>
+                                                                <button class="rb-description-font-size-button"
+                                                                        type="button"
+                                                                        data-description-font-size-toggle
+                                                                        title="ขนาดตัวอักษร"
+                                                                        aria-label="ขนาดตัวอักษร">
+                                                                    <span data-description-font-size-label>12</span>
+                                                                    <span class="rb-description-font-size-caret">▼</span>
+                                                                </button>
+                                                                <div class="rb-description-font-size-menu" data-description-font-size-menu hidden>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="8">8</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="9">9</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="10">10</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="11">11</button>
+                                                                    <button class="rb-description-font-size-option is-selected" type="button" data-description-font-size="12">12</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="14">14</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="16">16</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="18">18</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="20">20</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="22">22</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="24">24</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="26">26</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="28">28</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="36">36</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="48">48</button>
+                                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="72">72</button>
+                                                                </div>
+                                                            </div>
+                                                            <div class="rb-description-color-control" data-description-color-control>
+                                                                <button class="rb-description-tool rb-description-color-button"
+                                                                        type="button"
+                                                                        data-description-color-toggle
+                                                                        title="สีตัวอักษร"
+                                                                        aria-label="สีตัวอักษร"
+                                                                        style="--rb-description-color: #dc2626;">
+                                                                    <span>A</span>
+                                                                    <span class="rb-description-color-caret">▼</span>
+                                                                </button>
+                                                                <div class="rb-description-color-menu" data-description-color-menu hidden></div>
+                                                            </div>
                                                             <span class="rb-description-divider"></span>
-                                                            <button class="rb-description-tool" type="button" data-description-command="bullet" title="รายการ">•≡⌄</button>
+                                                            <button class="rb-description-tool rb-description-bullet-tool" type="button" data-description-command="bullet" title="รายการ">•≡</button>
                                                             <span class="rb-description-divider"></span>
                                                             <button class="rb-description-tool" type="button" data-description-command="link" title="ลิงก์">🔗</button>
                                                         </div>
@@ -2587,8 +2821,48 @@
                                             <button class="rb-description-tool" type="button" data-description-command="bold" title="ตัวหนา">B</button>
                                             <button class="rb-description-tool" type="button" data-description-command="italic" title="ตัวเอียง"><em>I</em></button>
                                             <button class="rb-description-tool" type="button" data-description-command="underline" title="ขีดเส้นใต้"><u>U</u></button>
+                                            <div class="rb-description-font-size-control" data-description-font-size-control>
+                                                <button class="rb-description-font-size-button"
+                                                        type="button"
+                                                        data-description-font-size-toggle
+                                                        title="ขนาดตัวอักษร"
+                                                        aria-label="ขนาดตัวอักษร">
+                                                    <span data-description-font-size-label>12</span>
+                                                    <span class="rb-description-font-size-caret">▼</span>
+                                                </button>
+                                                <div class="rb-description-font-size-menu" data-description-font-size-menu hidden>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="8">8</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="9">9</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="10">10</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="11">11</button>
+                                                    <button class="rb-description-font-size-option is-selected" type="button" data-description-font-size="12">12</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="14">14</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="16">16</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="18">18</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="20">20</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="22">22</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="24">24</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="26">26</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="28">28</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="36">36</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="48">48</button>
+                                                    <button class="rb-description-font-size-option" type="button" data-description-font-size="72">72</button>
+                                                </div>
+                                            </div>
+                                            <div class="rb-description-color-control" data-description-color-control>
+                                                <button class="rb-description-tool rb-description-color-button"
+                                                        type="button"
+                                                        data-description-color-toggle
+                                                        title="สีตัวอักษร"
+                                                        aria-label="สีตัวอักษร"
+                                                        style="--rb-description-color: #dc2626;">
+                                                    <span>A</span>
+                                                    <span class="rb-description-color-caret">▼</span>
+                                                </button>
+                                                <div class="rb-description-color-menu" data-description-color-menu hidden></div>
+                                            </div>
                                             <span class="rb-description-divider"></span>
-                                            <button class="rb-description-tool" type="button" data-description-command="bullet" title="รายการ">•≡⌄</button>
+                                            <button class="rb-description-tool rb-description-bullet-tool" type="button" data-description-command="bullet" title="รายการ">•≡</button>
                                             <span class="rb-description-divider"></span>
                                             <button class="rb-description-tool" type="button" data-description-command="link" title="ลิงก์">🔗</button>
                                         </div>
@@ -2859,6 +3133,16 @@
             let didDrop = false;
             let wasDragging = false;
             let suppressClickUntil = 0;
+            const descriptionAllowedFontSizes = new Set(['8', '9', '10', '11', '12', '14', '16', '18', '20', '22', '24', '26', '28', '36', '48', '72']);
+            const descriptionThemeColors = [
+                '#000000', '#404040', '#808080', '#1f4e79', '#0f6b7d', '#c55a11', '#196b24', '#0f9ed5', '#a02b93', '#4ea72e',
+                '#ffffff', '#d9d9d9', '#bfbfbf', '#d9eaf7', '#c7eaf3', '#f7c7ac', '#c6efce', '#b7e3f3', '#e6b8df', '#d8f0c8',
+                '#f2f2f2', '#a6a6a6', '#7f7f7f', '#9dc3e6', '#9bd7ea', '#f4b183', '#63d978', '#6dc8e8', '#d86ecc', '#a9d98f',
+                '#d9d9d9', '#808080', '#595959', '#5b9bd5', '#2f9fc3', '#ed7d31', '#00b050', '#00b0f0', '#c000a0', '#70ad47',
+                '#bfbfbf', '#595959', '#404040', '#1f4e79', '#164f63', '#9e480e', '#0b4016', '#0b6984', '#70305f', '#375623'
+            ];
+            const descriptionStandardColors = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0'];
+            const descriptionAllowedColors = new Set(['#0f172a', ...descriptionThemeColors, ...descriptionStandardColors].map(color => color.toLowerCase()));
 
             function normalizeText(value) {
                 return (value || '').toString().trim().toLowerCase();
@@ -3025,6 +3309,44 @@
                 template.innerHTML = text;
                 const allowedTags = new Set(['A', 'B', 'BR', 'DIV', 'EM', 'FONT', 'H3', 'I', 'LI', 'OL', 'P', 'SPAN', 'STRONG', 'U', 'UL']);
 
+                function normalizeFontSizeStyle(value) {
+                    const match = (value || '').match(/font-size\s*:\s*(\d+(?:\.\d+)?)px/i);
+                    if (!match) return '';
+
+                    const size = String(Math.round(Number(match[1])));
+                    return descriptionAllowedFontSizes.has(size) ? size : '';
+                }
+
+                function rgbToHex(red, green, blue) {
+                    return [red, green, blue]
+                        .map(value => Math.max(0, Math.min(255, Number(value) || 0)).toString(16).padStart(2, '0'))
+                        .join('');
+                }
+
+                function normalizeDescriptionColor(value) {
+                    const raw = (value || '').trim().toLowerCase();
+                    const hex = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+                    if (hex) {
+                        const normalized = hex[1].length === 3
+                            ? `#${hex[1].split('').map(char => char + char).join('')}`
+                            : `#${hex[1]}`;
+                        return descriptionAllowedColors.has(normalized) ? normalized : '';
+                    }
+
+                    const rgb = raw.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+                    if (rgb) {
+                        const normalized = `#${rgbToHex(rgb[1], rgb[2], rgb[3])}`;
+                        return descriptionAllowedColors.has(normalized) ? normalized : '';
+                    }
+
+                    return '';
+                }
+
+                function normalizeFontColorStyle(value) {
+                    const match = (value || '').match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+                    return match ? normalizeDescriptionColor(match[1]) : '';
+                }
+
                 template.content.querySelectorAll('*').forEach(node => {
                     if (!allowedTags.has(node.tagName)) {
                         node.replaceWith(document.createTextNode(node.textContent || ''));
@@ -3045,6 +3367,22 @@
                         if (node.tagName === 'FONT' && ['face', 'size'].includes(name)) {
                             if (name === 'face' && /^(Prompt|Sarabun|Tahoma|Arial)$/i.test(attribute.value.trim())) return;
                             if (name === 'size' && /^[2-5]$/.test(attribute.value.trim())) return;
+                        }
+
+                        if (node.tagName === 'FONT' && name === 'color') {
+                            if (normalizeDescriptionColor(attribute.value)) return;
+                        }
+
+                        if (node.tagName === 'SPAN' && name === 'style') {
+                            const size = normalizeFontSizeStyle(attribute.value);
+                            const color = normalizeFontColorStyle(attribute.value);
+                            const styles = [];
+                            if (size) styles.push(`font-size: ${size}px;`);
+                            if (color) styles.push(`color: ${color};`);
+                            if (styles.length > 0) {
+                                node.setAttribute('style', styles.join(' '));
+                                return;
+                            }
                         }
 
                         if (!['target', 'rel'].includes(name)) {
@@ -3098,6 +3436,47 @@
                     .replace(/>/g, '&gt;');
             }
 
+            function escapeHtmlText(value) {
+                return (value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            function normalizeDescriptionLinkUrl(value) {
+                const raw = (value || '').trim();
+                if (!raw) return '';
+                if (/^(https?:|mailto:|tel:|\/)/i.test(raw)) return raw;
+                if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return '';
+                return `https://${raw}`;
+            }
+
+            function descriptionRangeHost(range) {
+                if (!range) return null;
+                const node = range.commonAncestorContainer;
+                const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+                return element?.closest?.('[data-description-rich]') || null;
+            }
+
+            function saveDescriptionSelection(rich) {
+                if (!rich) return;
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0) return;
+
+                const range = selection.getRangeAt(0);
+                if (descriptionRangeHost(range) !== rich) return;
+                rich._descriptionSavedRange = range.cloneRange();
+            }
+
+            function restoreDescriptionSelection(rich) {
+                if (!rich || !rich._descriptionSavedRange) return;
+                const selection = window.getSelection();
+                if (!selection) return;
+
+                selection.removeAllRanges();
+                selection.addRange(rich._descriptionSavedRange);
+            }
+
             function syncDescriptionFromRich(control) {
                 const rich = control?.querySelector('[data-description-rich]');
                 const hidden = control?.querySelector('textarea[name="detail"]');
@@ -3122,6 +3501,111 @@
                     rich.dataset.descriptionReady = '1';
                     syncDescriptionPreview(control, hidden.value);
                 });
+            }
+
+            function applyDescriptionFontSize(option) {
+                const editor = option.closest('[data-description-editor]');
+                const rich = editor?.querySelector('[data-description-rich]');
+                const size = (option.dataset.descriptionFontSize || '').trim();
+                if (!rich || !descriptionAllowedFontSizes.has(size)) return;
+
+                rich.focus();
+                restoreDescriptionSelection(rich);
+                document.execCommand('fontSize', false, '7');
+
+                rich.querySelectorAll('font[size="7"]').forEach(font => {
+                    const span = document.createElement('span');
+                    span.style.fontSize = `${size}px`;
+                    span.innerHTML = font.innerHTML;
+                    font.replaceWith(span);
+                });
+
+                editor.querySelector('[data-description-font-size-label]').textContent = size;
+                editor.querySelectorAll('[data-description-font-size]').forEach(button => {
+                    button.classList.toggle('is-selected', button.dataset.descriptionFontSize === size);
+                });
+                option.closest('[data-description-font-size-menu]')?.setAttribute('hidden', '');
+                syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                saveDescriptionSelection(rich);
+            }
+
+            function renderDescriptionColorMenu(menu) {
+                if (!menu || menu.dataset.ready === '1') return;
+                menu.dataset.ready = '1';
+
+                function addColorButton(container, color, label) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'rb-description-color-option';
+                    button.dataset.descriptionColor = color;
+                    button.style.setProperty('--rb-description-swatch', color);
+                    button.title = label || color;
+                    button.setAttribute('aria-label', label || color);
+                    container.appendChild(button);
+                }
+
+                const auto = document.createElement('button');
+                auto.type = 'button';
+                auto.className = 'rb-description-color-auto';
+                auto.dataset.descriptionColor = '#0f172a';
+                auto.textContent = 'Automatic';
+                menu.appendChild(auto);
+
+                const themeLabel = document.createElement('div');
+                themeLabel.className = 'rb-description-color-label';
+                themeLabel.textContent = 'Theme Colors';
+                menu.appendChild(themeLabel);
+
+                const themeGrid = document.createElement('div');
+                themeGrid.className = 'rb-description-color-grid';
+                descriptionThemeColors.forEach(color => addColorButton(themeGrid, color));
+                menu.appendChild(themeGrid);
+
+                const standardLabel = document.createElement('div');
+                standardLabel.className = 'rb-description-color-label';
+                standardLabel.textContent = 'Standard Colors';
+                menu.appendChild(standardLabel);
+
+                const standardGrid = document.createElement('div');
+                standardGrid.className = 'rb-description-color-grid';
+                descriptionStandardColors.forEach(color => addColorButton(standardGrid, color));
+                menu.appendChild(standardGrid);
+            }
+
+            function closeDescriptionColorMenus(exceptMenu = null) {
+                document.querySelectorAll('[data-description-color-menu]').forEach(menu => {
+                    if (menu !== exceptMenu) menu.hidden = true;
+                });
+            }
+
+            function closeDescriptionFontSizeMenus(exceptMenu = null) {
+                document.querySelectorAll('[data-description-font-size-menu]').forEach(menu => {
+                    if (menu !== exceptMenu) menu.hidden = true;
+                });
+            }
+
+            function applyDescriptionFontColor(button) {
+                const color = (button.dataset.descriptionColor || '').trim().toLowerCase();
+                const editor = button.closest('[data-description-editor]');
+                const rich = editor?.querySelector('[data-description-rich]');
+                if (!rich || !descriptionAllowedColors.has(color)) return;
+
+                rich.focus();
+                restoreDescriptionSelection(rich);
+                document.execCommand('foreColor', false, color);
+
+                rich.querySelectorAll('font[color]').forEach(font => {
+                    const span = document.createElement('span');
+                    span.style.color = color;
+                    span.innerHTML = font.innerHTML;
+                    font.replaceWith(span);
+                });
+
+                const colorButton = editor.querySelector('[data-description-color-toggle]');
+                colorButton?.style.setProperty('--rb-description-color', color);
+                button.closest('[data-description-color-menu]')?.setAttribute('hidden', '');
+                syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                saveDescriptionSelection(rich);
             }
 
             function runDescriptionCommand(button) {
@@ -3158,29 +3642,29 @@
 
                 if (command === 'link') {
                     const selection = window.getSelection();
-                    const selected = selection?.toString() || '';
-                    const url = window.prompt('ใส่ URL');
+                    const selected = (selection?.toString() || '').trim();
+                    saveDescriptionSelection(rich);
+                    const url = normalizeDescriptionLinkUrl(window.prompt('ใส่ URL') || '');
                     if (!url) {
                         rich.focus();
                         return;
                     }
 
-                    if (!selected) {
-                        document.execCommand(
-                            'insertHTML',
-                            false,
-                            `<a href="${escapeHtmlAttribute(url)}" target="_blank" rel="noopener noreferrer">ข้อความลิงก์</a>`
-                        );
-                        syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    const linkText = (window.prompt('ใส่ชื่อลิงก์', selected || 'ข้อความลิงก์') || '').trim();
+                    if (!linkText) {
+                        rich.focus();
                         return;
                     }
 
-                    document.execCommand('createLink', false, url);
-                    rich.querySelectorAll('a').forEach(link => {
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                    });
+                    rich.focus();
+                    restoreDescriptionSelection(rich);
+                    document.execCommand(
+                        'insertHTML',
+                        false,
+                        `<a href="${escapeHtmlAttribute(url)}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(linkText)}</a>`
+                    );
                     syncDescriptionFromRich(editor.closest('[data-description-control]'));
+                    saveDescriptionSelection(rich);
                     return;
                 }
             }
@@ -3298,9 +3782,80 @@
                 if (descriptionCommand) {
                     event.preventDefault();
                 }
+
+                const descriptionFontSizeControl = event.target.closest('[data-description-font-size-control]');
+                if (descriptionFontSizeControl) {
+                    const editor = descriptionFontSizeControl.closest('[data-description-editor]');
+                    saveDescriptionSelection(editor?.querySelector('[data-description-rich]'));
+                }
+
+                const descriptionColorControl = event.target.closest('[data-description-color-control]');
+                if (descriptionColorControl) {
+                    const editor = descriptionColorControl.closest('[data-description-editor]');
+                    saveDescriptionSelection(editor?.querySelector('[data-description-rich]'));
+                }
+            });
+
+            document.addEventListener('selectionchange', () => {
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0) return;
+
+                const rich = descriptionRangeHost(selection.getRangeAt(0));
+                if (rich) saveDescriptionSelection(rich);
             });
 
             document.addEventListener('click', async event => {
+                if (event.target.closest('[data-description-preview] a')) {
+                    return;
+                }
+
+                const descriptionFontSizeToggle = event.target.closest('[data-description-font-size-toggle]');
+                if (descriptionFontSizeToggle) {
+                    const control = descriptionFontSizeToggle.closest('[data-description-font-size-control]');
+                    const menu = control?.querySelector('[data-description-font-size-menu]');
+                    if (!menu) return;
+
+                    const willOpen = menu.hidden;
+                    closeDescriptionFontSizeMenus(menu);
+                    closeDescriptionColorMenus();
+                    menu.hidden = !willOpen;
+                    return;
+                }
+
+                const descriptionFontSizeOption = event.target.closest('[data-description-font-size]');
+                if (descriptionFontSizeOption) {
+                    applyDescriptionFontSize(descriptionFontSizeOption);
+                    return;
+                }
+
+                const descriptionColorToggle = event.target.closest('[data-description-color-toggle]');
+                if (descriptionColorToggle) {
+                    const control = descriptionColorToggle.closest('[data-description-color-control]');
+                    const menu = control?.querySelector('[data-description-color-menu]');
+                    if (!menu) return;
+
+                    renderDescriptionColorMenu(menu);
+                    const willOpen = menu.hidden;
+                    closeDescriptionColorMenus(menu);
+                    closeDescriptionFontSizeMenus();
+                    menu.hidden = !willOpen;
+                    return;
+                }
+
+                const descriptionColorOption = event.target.closest('[data-description-color]');
+                if (descriptionColorOption) {
+                    applyDescriptionFontColor(descriptionColorOption);
+                    return;
+                }
+
+                if (!event.target.closest('[data-description-color-control]')) {
+                    closeDescriptionColorMenus();
+                }
+
+                if (!event.target.closest('[data-description-font-size-control]')) {
+                    closeDescriptionFontSizeMenus();
+                }
+
                 const descriptionCommand = event.target.closest('[data-description-command]');
                 if (descriptionCommand) {
                     runDescriptionCommand(descriptionCommand);
@@ -3393,6 +3948,10 @@
             });
 
             document.addEventListener('keydown', event => {
+                if (event.target.closest('[data-description-preview] a')) {
+                    return;
+                }
+
                 const descriptionPreview = event.target.closest('[data-description-preview]');
                 if (!descriptionPreview || (event.key !== 'Enter' && event.key !== ' ')) return;
 
@@ -3503,6 +4062,13 @@
                 }
             }
 
+            function closeCardModal(form) {
+                const modal = form?.closest('.rb-modal');
+                if (!modal || !window.bootstrap) return;
+
+                window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+            }
+
             document.addEventListener('submit', async event => {
                 const createForm = event.target.closest('.rb-create-card-form');
                 if (createForm && !createForm.hasAttribute('data-card-update-form')) {
@@ -3547,6 +4113,7 @@
                         input.value = '';
                     });
                     setSaveStatus(status, result.message || 'บันทึกแล้ว', 'success');
+                    closeCardModal(form);
                 } catch (error) {
                     setSaveStatus(status, error.message || 'บันทึกไม่สำเร็จ', 'error');
                 } finally {
