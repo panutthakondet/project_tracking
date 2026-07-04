@@ -1596,15 +1596,32 @@
             min-height: 170px;
             padding: 14px 18px;
             background-color: #719187;
-            background-size: contain;
+            background-image: none !important;
             text-shadow: none;
+            overflow: hidden;
+        }
+
+        .rb-modal .modal-header.has-cover::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: var(--rb-modal-cover-image);
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            opacity: .34;
+            filter: saturate(.95) contrast(.95);
+            transform: scale(1.02);
+            pointer-events: none;
         }
 
         .rb-modal .modal-header.has-cover::after {
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(4, 15, 32, .22), rgba(4, 15, 32, 0) 42%, rgba(4, 15, 32, .16));
+            background:
+                linear-gradient(90deg, rgba(8, 22, 41, .58), rgba(8, 22, 41, .22) 44%, rgba(8, 22, 41, .42)),
+                linear-gradient(180deg, rgba(4, 15, 32, .28), rgba(4, 15, 32, .08) 48%, rgba(4, 15, 32, .22));
             pointer-events: none;
         }
 
@@ -1616,7 +1633,7 @@
         .rb-modal .modal-header.has-cover .rb-modal-header-info {
             padding: 7px 11px;
             border-radius: 14px;
-            background: rgba(8, 22, 41, .62);
+            background: rgba(8, 22, 41, .38);
             backdrop-filter: blur(10px);
         }
 
@@ -2771,7 +2788,7 @@
 @foreach (var card in allCards)
 {
     var modalHeaderStyle = !string.IsNullOrWhiteSpace(card.CoverImagePath)
-        ? $"background-image: url('{card.CoverImagePath}');"
+        ? $"--rb-modal-cover-image: url('{card.CoverImagePath}');"
         : "";
     var cardLabels = ActiveCardLabels(card);
 
@@ -4052,7 +4069,7 @@
                 const modalHeader = modal.querySelector('.modal-header');
                 if (modalHeader && data.coverImagePath) {
                     modalHeader.classList.add('has-cover');
-                    modalHeader.style.backgroundImage = `url('${data.coverImagePath}')`;
+                    modalHeader.style.setProperty('--rb-modal-cover-image', `url('${data.coverImagePath}')`);
                 }
 
                 const attachmentHeading = modal.querySelector('[data-attachment-heading]');
