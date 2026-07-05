@@ -28,11 +28,31 @@ namespace ProjectTracking.ViewModels
         public string Status { get; set; } = "AVAILABLE";
         public string StatusLabel { get; set; } = "Available";
         public string StatusText { get; set; } = "";
-        public string CharacterPreset { get; set; } = "doraemon";
-        public string AvatarColor { get; set; } = "#2d9cff";
+        public string CharacterPreset { get; set; } = "human";
+        public string AvatarColor { get; set; } = "#3b82f6";
+        public string SkinTone { get; set; } = "#f2c19b";
+        public string HairStyle { get; set; } = "short";
+        public string HairColor { get; set; } = "#2f3137";
+        public string FacialHairStyle { get; set; } = "none";
+        public string TopStyle { get; set; } = "shirt";
+        public string TopColor { get; set; } = "#3b82f6";
+        public string JacketStyle { get; set; } = "none";
+        public string JacketColor { get; set; } = "#111827";
+        public string BottomStyle { get; set; } = "pants";
+        public string BottomColor { get; set; } = "#1f2937";
+        public string ShoesStyle { get; set; } = "sneakers";
+        public string ShoesColor { get; set; } = "#e5e7eb";
+        public string HatStyle { get; set; } = "none";
+        public string HatColor { get; set; } = "#3b82f6";
+        public string GlassesStyle { get; set; } = "none";
+        public string GlassesColor { get; set; } = "#111827";
+        public string OtherStyle { get; set; } = "none";
+        public string OtherColor { get; set; } = "#ef4444";
         public string Zone { get; set; } = "Lobby";
         public int X { get; set; } = 50;
         public int Y { get; set; } = 50;
+        public int HomeX { get; set; } = 50;
+        public int HomeY { get; set; } = 50;
         public bool IsOnline { get; set; }
         public bool IsCurrentUser { get; set; }
         public DateTime? LastSeenAt { get; set; }
@@ -58,6 +78,9 @@ namespace ProjectTracking.ViewModels
         public int Y { get; set; }
         public int W { get; set; }
         public int H { get; set; }
+        public int? OwnerUserId { get; set; }
+        public string OwnerName { get; set; } = "";
+        public string OwnerInitial { get; set; } = "";
     }
 
     public class MeetingRoomTodayMeetingViewModel

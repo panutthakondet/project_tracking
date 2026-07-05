@@ -111,7 +111,8 @@ namespace ProjectTracking.Middleware
 
             // Public read-only room link for external guests.
             if (path.Equals("/MeetingRoom/Guest", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/MeetingRoom/Guest/", StringComparison.OrdinalIgnoreCase))
+                path.StartsWith("/MeetingRoom/Guest/", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/MeetingRoom/State", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;

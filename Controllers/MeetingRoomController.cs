@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Hubs;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
@@ -11,8 +14,18 @@ namespace ProjectTracking.Controllers
     public class MeetingRoomController : BaseController
     {
         private const string DefaultProfileImagePath = "/images/Profile/profile.png";
-        private const string DefaultCharacterPreset = "doraemon";
-        private const string DefaultAvatarColor = "#2d9cff";
+        private const string DefaultCharacterPreset = "human";
+        private const string DefaultAvatarColor = "#3b82f6";
+        private const string DefaultSkinTone = "#f2c19b";
+        private const string DefaultHairColor = "#2f3137";
+        private const string DefaultTopColor = "#3b82f6";
+        private const string DefaultJacketColor = "#111827";
+        private const string DefaultBottomColor = "#1f2937";
+        private const string DefaultShoesColor = "#e5e7eb";
+        private const string DefaultHatColor = "#3b82f6";
+        private const string DefaultGlassesColor = "#111827";
+        private const string DefaultOtherColor = "#ef4444";
+        private const long MaxMeetingFileSize = 50L * 1024L * 1024L;
         private static readonly TimeSpan OnlineWindow = TimeSpan.FromMinutes(10);
         private static readonly string[] ClosedIssueStatuses = { "PASS", "REJECT", "DONE", "CLOSED", "RESOLVED" };
         private static readonly string[] ClosedSupportStatuses = { "PASS", "REJECT", "DONE", "CLOSED", "RESOLVED" };
@@ -28,11 +41,144 @@ namespace ProjectTracking.Controllers
         };
         private static readonly HashSet<string> AllowedCharacters = new(StringComparer.OrdinalIgnoreCase)
         {
-            "doraemon",
-            "domita",
-            "jaian",
-            "dorami",
-            "sunio"
+            "human"
+        };
+        private static readonly HashSet<string> AllowedHairStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "short",
+            "bob",
+            "long",
+            "curly",
+            "bun",
+            "ponytail",
+            "spiky",
+            "sidepart",
+            "buzz",
+            "undercut",
+            "afro",
+            "waves",
+            "twin",
+            "braids",
+            "mohawk",
+            "messy",
+            "bald"
+        };
+        private static readonly HashSet<string> AllowedFacialHairStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "none",
+            "mustache",
+            "beard",
+            "goatee",
+            "stubble",
+            "fullbeard",
+            "sideburns",
+            "chinstrap",
+            "soulpatch"
+        };
+        private static readonly HashSet<string> AllowedTopStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "shirt",
+            "tshirt",
+            "hoodie",
+            "suit",
+            "dress",
+            "uniform",
+            "polo",
+            "sweater",
+            "striped",
+            "vest",
+            "overalls",
+            "jersey",
+            "tunic"
+        };
+        private static readonly HashSet<string> AllowedJacketStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "none",
+            "blazer",
+            "coat",
+            "cardigan",
+            "bomber",
+            "leather",
+            "varsity",
+            "denim",
+            "parka",
+            "cape",
+            "kimono",
+            "utility"
+        };
+        private static readonly HashSet<string> AllowedBottomStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "pants",
+            "jeans",
+            "skirt",
+            "shorts",
+            "chinos",
+            "joggers",
+            "cargo",
+            "wide",
+            "pleated",
+            "leggings",
+            "sarong"
+        };
+        private static readonly HashSet<string> AllowedShoesStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "sneakers",
+            "boots",
+            "formal",
+            "sandals",
+            "hightops",
+            "loafers",
+            "slippers",
+            "heels",
+            "running",
+            "workboots"
+        };
+        private static readonly HashSet<string> AllowedHatStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "none",
+            "cap",
+            "beanie",
+            "headphones",
+            "hijab",
+            "fedora",
+            "beret",
+            "hardhat",
+            "crown",
+            "bow",
+            "flower",
+            "visor",
+            "hood",
+            "helmet",
+            "bucket"
+        };
+        private static readonly HashSet<string> AllowedGlassesStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "none",
+            "round",
+            "square",
+            "sunglasses",
+            "visor",
+            "aviator",
+            "goggles",
+            "mask",
+            "monocle",
+            "halfmoon",
+            "heart"
+        };
+        private static readonly HashSet<string> AllowedOtherStyles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "none",
+            "backpack",
+            "satchel",
+            "scarf",
+            "tie",
+            "lanyard",
+            "sash",
+            "belt",
+            "wings",
+            "flower",
+            "badge",
+            "capelet"
         };
         private static readonly HashSet<string> AllowedAreaTones = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -47,16 +193,48 @@ namespace ProjectTracking.Controllers
         private static readonly HashSet<string> AllowedObjectKeys = new(StringComparer.OrdinalIgnoreCase)
         {
             "desk-basic",
+            "desk-large",
+            "desk-corner",
+            "desk-white",
+            "conference-table",
+            "meeting-table",
+            "coffee-table",
             "chair-office",
+            "chair-gaming",
+            "chair-lounge",
+            "chair-wood",
+            "stool",
             "sofa-blue",
+            "sofa-long",
+            "sofa-corner",
+            "couch-dark",
             "table-round",
             "plant-pot",
             "plant-tall",
+            "plant-wide",
             "rug-blue",
             "rug-round",
+            "rug-rainbow",
+            "rug-green",
+            "rug-stone",
+            "rug-wood",
             "partition",
+            "partition-glass",
             "screen",
-            "board"
+            "screen-wide",
+            "computer-station",
+            "laptop",
+            "server-rack",
+            "board",
+            "whiteboard",
+            "poster",
+            "cabinet",
+            "bookshelf",
+            "watercooler",
+            "vending",
+            "lamp-floor",
+            "door",
+            "window"
         };
         private static readonly HashSet<string> AllowedObjectTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -68,7 +246,13 @@ namespace ProjectTracking.Controllers
             "RUG",
             "DIVIDER",
             "SCREEN",
-            "BOARD"
+            "BOARD",
+            "COMPUTER",
+            "STORAGE",
+            "DECOR",
+            "LIGHT",
+            "DOOR",
+            "WINDOW"
         };
         private static readonly HashSet<string> AllowedObjectTones = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -79,7 +263,25 @@ namespace ProjectTracking.Controllers
             "green",
             "orange",
             "rose",
-            "gray"
+            "gray",
+            "cyan"
+        };
+        private static readonly HashSet<string> AllowedMeetingFileExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx",
+            ".ppt",
+            ".pptx",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".txt",
+            ".csv",
+            ".zip"
         };
 
         private static readonly (int X, int Y, string Zone)[] DeskSlots =
@@ -102,11 +304,16 @@ namespace ProjectTracking.Controllers
 
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IHubContext<MeetingRoomHub> _hubContext;
 
-        public MeetingRoomController(AppDbContext context, IWebHostEnvironment webHostEnvironment)
+        public MeetingRoomController(
+            AppDbContext context,
+            IWebHostEnvironment webHostEnvironment,
+            IHubContext<MeetingRoomHub> hubContext)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -149,6 +356,7 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             var resolvedDisplayName = await ResolveDisplayNameAsync(currentUserId.Value);
+            await BroadcastPersonStateAsync("PersonUpdated", currentUserId.Value, profile);
             return Json(new
             {
                 ok = true,
@@ -183,6 +391,7 @@ namespace ProjectTracking.Controllers
             await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
             await _context.SaveChangesAsync();
 
+            await BroadcastPersonStateAsync("PersonUpdated", currentUserId.Value, profile);
             return Json(new
             {
                 ok = true,
@@ -195,25 +404,319 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("MeetingRoom.Index")]
-        public async Task<IActionResult> UpdateCharacter(string character, string? avatarColor = null)
+        public async Task<IActionResult> UpdateCharacter(
+            string? character = null,
+            string? avatarColor = null,
+            string? skinTone = null,
+            string? hairStyle = null,
+            string? hairColor = null,
+            string? facialHairStyle = null,
+            string? topStyle = null,
+            string? topColor = null,
+            string? jacketStyle = null,
+            string? jacketColor = null,
+            string? bottomStyle = null,
+            string? bottomColor = null,
+            string? shoesStyle = null,
+            string? shoesColor = null,
+            string? hatStyle = null,
+            string? hatColor = null,
+            string? glassesStyle = null,
+            string? glassesColor = null,
+            string? otherStyle = null,
+            string? otherColor = null)
         {
             var currentUserId = HttpContext.Session.GetInt32("UserId");
             if (!currentUserId.HasValue)
                 return Unauthorized();
 
-            character = (character ?? "").Trim().ToLowerInvariant();
-            if (!AllowedCharacters.Contains(character))
-                return BadRequest(new { ok = false, message = "Character is invalid." });
-
             var profile = await EnsureCurrentProfileAsync(currentUserId.Value);
-            profile.CharacterPreset = character;
+            profile.CharacterPreset = NormalizeCharacter(character);
             profile.AvatarColor = NormalizeAvatarColor(avatarColor ?? profile.AvatarColor);
+            profile.SkinTone = NormalizeAvatarColor(skinTone ?? profile.SkinTone, DefaultSkinTone);
+            profile.HairStyle = NormalizeAvatarChoice(hairStyle ?? profile.HairStyle, AllowedHairStyles, "short");
+            profile.HairColor = NormalizeAvatarColor(hairColor ?? profile.HairColor, DefaultHairColor);
+            profile.FacialHairStyle = NormalizeAvatarChoice(facialHairStyle ?? profile.FacialHairStyle, AllowedFacialHairStyles, "none");
+            profile.TopStyle = NormalizeAvatarChoice(topStyle ?? profile.TopStyle, AllowedTopStyles, "shirt");
+            profile.TopColor = NormalizeAvatarColor(topColor ?? profile.TopColor, DefaultTopColor);
+            profile.JacketStyle = NormalizeAvatarChoice(jacketStyle ?? profile.JacketStyle, AllowedJacketStyles, "none");
+            profile.JacketColor = NormalizeAvatarColor(jacketColor ?? profile.JacketColor, DefaultJacketColor);
+            profile.BottomStyle = NormalizeAvatarChoice(bottomStyle ?? profile.BottomStyle, AllowedBottomStyles, "pants");
+            profile.BottomColor = NormalizeAvatarColor(bottomColor ?? profile.BottomColor, DefaultBottomColor);
+            profile.ShoesStyle = NormalizeAvatarChoice(shoesStyle ?? profile.ShoesStyle, AllowedShoesStyles, "sneakers");
+            profile.ShoesColor = NormalizeAvatarColor(shoesColor ?? profile.ShoesColor, DefaultShoesColor);
+            profile.HatStyle = NormalizeAvatarChoice(hatStyle ?? profile.HatStyle, AllowedHatStyles, "none");
+            profile.HatColor = NormalizeAvatarColor(hatColor ?? profile.HatColor, DefaultHatColor);
+            profile.GlassesStyle = NormalizeAvatarChoice(glassesStyle ?? profile.GlassesStyle, AllowedGlassesStyles, "none");
+            profile.GlassesColor = NormalizeAvatarColor(glassesColor ?? profile.GlassesColor, DefaultGlassesColor);
+            profile.OtherStyle = NormalizeAvatarChoice(otherStyle ?? profile.OtherStyle, AllowedOtherStyles, "none");
+            profile.OtherColor = NormalizeAvatarColor(otherColor ?? profile.OtherColor, DefaultOtherColor);
             profile.UpdatedAt = DateTime.Now;
 
             await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
             await _context.SaveChangesAsync();
 
-            return Json(new { ok = true, character, avatarColor = profile.AvatarColor });
+            await BroadcastPersonStateAsync("PersonUpdated", currentUserId.Value, profile);
+            return Json(new { ok = true, avatar = ToAvatarDto(profile) });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("MeetingRoom.Index")]
+        public async Task<IActionResult> UpdatePosition(int x, int y)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            var profile = await EnsureCurrentProfileAsync(currentUserId.Value);
+            profile.CurrentX = ClampWalkX(x);
+            profile.CurrentY = ClampWalkY(y);
+            profile.UpdatedAt = DateTime.Now;
+
+            await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
+            await _context.SaveChangesAsync();
+
+            await BroadcastPersonStateAsync("PersonMoved", currentUserId.Value, profile);
+            return Json(new
+            {
+                ok = true,
+                userId = currentUserId.Value,
+                x = profile.CurrentX,
+                y = profile.CurrentY,
+                updatedAt = profile.UpdatedAt.ToString("O")
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("MeetingRoom.Index")]
+        public async Task<IActionResult> SetDeskArea(int? areaId)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            var profile = await EnsureCurrentProfileAsync(currentUserId.Value);
+
+            if (areaId.HasValue && areaId.Value > 0)
+            {
+                var area = await _context.MeetingRoomAreas
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.AreaId == areaId.Value && item.IsActive);
+
+                if (area == null)
+                    return NotFound(new { ok = false, message = "ไม่พบพื้นที่นี้" });
+
+                if (NormalizeAreaType(area.AreaType) != "DESK")
+                    return BadRequest(new { ok = false, message = "เลือกได้เฉพาะพื้นที่ชนิด Desk เท่านั้น" });
+
+                var currentOwner = await FindDeskAreaOwnerAsync(area);
+                if (currentOwner.HasValue && currentOwner.Value.UserId != currentUserId.Value)
+                {
+                    return BadRequest(new
+                    {
+                        ok = false,
+                        message = $"ห้องนี้มีเจ้าของแล้ว: {currentOwner.Value.Name}",
+                        ownerUserId = currentOwner.Value.UserId,
+                        ownerName = currentOwner.Value.Name,
+                        ownerInitial = currentOwner.Value.Initial
+                    });
+                }
+
+                var bounds = NormalizeAreaBounds(area.X, area.Y, area.W, area.H);
+                profile.DeskX = ClampWalkX(bounds.X + (bounds.W / 2));
+                profile.DeskY = ClampWalkY(bounds.Y + (bounds.H / 2));
+                profile.HomeZone = area.Title[..Math.Min(area.Title.Length, 80)];
+                profile.UpdatedAt = DateTime.Now;
+
+                await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
+                await _context.SaveChangesAsync();
+                await BroadcastPersonStateAsync("PersonUpdated", currentUserId.Value, profile);
+
+                var ownerName = await ResolveDisplayNameAsync(currentUserId.Value);
+                return Json(new
+                {
+                    ok = true,
+                    selected = true,
+                    area = ToZone(area, (currentUserId.Value, ownerName, Initial(ownerName))),
+                    areaId = area.AreaId,
+                    ownerUserId = currentUserId.Value,
+                    ownerName,
+                    ownerInitial = Initial(ownerName),
+                    homeX = profile.DeskX,
+                    homeY = profile.DeskY,
+                    homeZone = profile.HomeZone,
+                    message = $"ตั้ง {area.Title} เป็นห้องของคุณแล้ว"
+                });
+            }
+
+            var slot = DeskSlots[Math.Abs(currentUserId.Value) % DeskSlots.Length];
+            profile.DeskX = slot.X;
+            profile.DeskY = slot.Y;
+            profile.HomeZone = slot.Zone;
+            profile.UpdatedAt = DateTime.Now;
+
+            await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
+            await _context.SaveChangesAsync();
+            await BroadcastPersonStateAsync("PersonUpdated", currentUserId.Value, profile);
+
+            return Json(new
+            {
+                ok = true,
+                selected = false,
+                areaId = 0,
+                ownerUserId = 0,
+                ownerName = "",
+                ownerInitial = "",
+                homeX = profile.DeskX,
+                homeY = profile.DeskY,
+                homeZone = profile.HomeZone,
+                message = "ยกเลิกห้องส่วนตัวแล้ว"
+            });
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> State()
+        {
+            var now = DateTime.Now;
+            var onlineCutoff = now.Subtract(OnlineWindow);
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+
+            var users = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(user => user.Status == "ACTIVE" &&
+                    ((user.LastSeenAt.HasValue && user.LastSeenAt.Value >= onlineCutoff) ||
+                    (currentUserId.HasValue && user.UserId == currentUserId.Value)))
+                .OrderByDescending(user => currentUserId.HasValue && user.UserId == currentUserId.Value)
+                .ThenBy(user => user.Username)
+                .ToListAsync();
+
+            var userIds = users.Select(user => user.UserId).ToList();
+            var profiles = await _context.MeetingRoomProfiles
+                .AsNoTracking()
+                .Where(profile => userIds.Contains(profile.UserId))
+                .ToDictionaryAsync(profile => profile.UserId);
+
+            var people = users.Select((user, index) =>
+            {
+                profiles.TryGetValue(user.UserId, out var profile);
+                var slot = DeskSlots[Math.Abs(user.UserId + index) % DeskSlots.Length];
+                var status = NormalizeStatus(profile?.Status ?? "AVAILABLE");
+                var displayName = RoomDisplayName(profile?.DisplayName, string.IsNullOrWhiteSpace(user.Username) ? $"User #{user.UserId}" : user.Username.Trim());
+
+                return new
+                {
+                    userId = user.UserId,
+                    displayName,
+                    initial = Initial(displayName),
+                    status,
+                    statusLabel = StatusLabel(status),
+                    statusText = profile?.StatusText ?? "",
+                    avatarPath = ResolveProfileImagePath(user.ProfileImagePath),
+                    x = ClampPercent(profile?.CurrentX ?? profile?.DeskX ?? slot.X),
+                    y = ClampPercent(profile?.CurrentY ?? profile?.DeskY ?? slot.Y),
+                    homeX = ClampPercent(profile?.DeskX ?? slot.X),
+                    homeY = ClampPercent(profile?.DeskY ?? slot.Y),
+                    homeZone = profile?.HomeZone ?? slot.Zone,
+                    characterPreset = NormalizeCharacter(profile?.CharacterPreset),
+                    avatarColor = NormalizeAvatarColor(profile?.AvatarColor),
+                    skinTone = NormalizeAvatarColor(profile?.SkinTone, DefaultSkinTone),
+                    hairStyle = NormalizeAvatarChoice(profile?.HairStyle, AllowedHairStyles, "short"),
+                    hairColor = NormalizeAvatarColor(profile?.HairColor, DefaultHairColor),
+                    facialHairStyle = NormalizeAvatarChoice(profile?.FacialHairStyle, AllowedFacialHairStyles, "none"),
+                    topStyle = NormalizeAvatarChoice(profile?.TopStyle, AllowedTopStyles, "shirt"),
+                    topColor = NormalizeAvatarColor(profile?.TopColor, DefaultTopColor),
+                    jacketStyle = NormalizeAvatarChoice(profile?.JacketStyle, AllowedJacketStyles, "none"),
+                    jacketColor = NormalizeAvatarColor(profile?.JacketColor, DefaultJacketColor),
+                    bottomStyle = NormalizeAvatarChoice(profile?.BottomStyle, AllowedBottomStyles, "pants"),
+                    bottomColor = NormalizeAvatarColor(profile?.BottomColor, DefaultBottomColor),
+                    shoesStyle = NormalizeAvatarChoice(profile?.ShoesStyle, AllowedShoesStyles, "sneakers"),
+                    shoesColor = NormalizeAvatarColor(profile?.ShoesColor, DefaultShoesColor),
+                    hatStyle = NormalizeAvatarChoice(profile?.HatStyle, AllowedHatStyles, "none"),
+                    hatColor = NormalizeAvatarColor(profile?.HatColor, DefaultHatColor),
+                    glassesStyle = NormalizeAvatarChoice(profile?.GlassesStyle, AllowedGlassesStyles, "none"),
+                    glassesColor = NormalizeAvatarColor(profile?.GlassesColor, DefaultGlassesColor),
+                    otherStyle = NormalizeAvatarChoice(profile?.OtherStyle, AllowedOtherStyles, "none"),
+                    otherColor = NormalizeAvatarColor(profile?.OtherColor, DefaultOtherColor),
+                    avatar = ToAvatarDto(profile),
+                    updatedAt = (profile?.UpdatedAt ?? user.LastSeenAt ?? now).ToString("O")
+                };
+            }).ToList();
+
+            return Json(new { ok = true, serverTime = now.ToString("O"), people });
+        }
+
+        private async Task BroadcastPersonStateAsync(string eventName, int userId, MeetingRoomProfile? profile = null)
+        {
+            var state = await BuildRealtimePersonStateAsync(userId, profile);
+            if (state == null)
+                return;
+
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync(eventName, state);
+        }
+
+        private async Task<object?> BuildRealtimePersonStateAsync(int userId, MeetingRoomProfile? profile = null)
+        {
+            var now = DateTime.Now;
+            var user = await _context.LoginUsers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.UserId == userId && item.Status == "ACTIVE");
+
+            if (user == null)
+                return null;
+
+            profile ??= await _context.MeetingRoomProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.UserId == userId);
+
+            var employee = await _context.Employees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.LoginUserId == user.UserId ||
+                    (user.EmpId.HasValue && item.EmpId == user.EmpId.Value));
+
+            var slot = DeskSlots[Math.Abs(user.UserId) % DeskSlots.Length];
+            var displayName = RoomDisplayName(profile?.DisplayName, DisplayName(user, employee));
+            var status = NormalizeStatus(profile?.Status ?? "AVAILABLE");
+
+            return new
+            {
+                userId,
+                displayName,
+                initial = Initial(displayName),
+                status,
+                statusLabel = StatusLabel(status),
+                statusText = profile?.StatusText ?? "",
+                avatarPath = ResolveProfileImagePath(user.ProfileImagePath),
+                x = ClampPercent(profile?.CurrentX ?? profile?.DeskX ?? slot.X),
+                y = ClampPercent(profile?.CurrentY ?? profile?.DeskY ?? slot.Y),
+                homeX = ClampPercent(profile?.DeskX ?? slot.X),
+                homeY = ClampPercent(profile?.DeskY ?? slot.Y),
+                homeZone = profile?.HomeZone ?? slot.Zone,
+                characterPreset = NormalizeCharacter(profile?.CharacterPreset),
+                avatarColor = NormalizeAvatarColor(profile?.AvatarColor),
+                skinTone = NormalizeAvatarColor(profile?.SkinTone, DefaultSkinTone),
+                hairStyle = NormalizeAvatarChoice(profile?.HairStyle, AllowedHairStyles, "short"),
+                hairColor = NormalizeAvatarColor(profile?.HairColor, DefaultHairColor),
+                facialHairStyle = NormalizeAvatarChoice(profile?.FacialHairStyle, AllowedFacialHairStyles, "none"),
+                topStyle = NormalizeAvatarChoice(profile?.TopStyle, AllowedTopStyles, "shirt"),
+                topColor = NormalizeAvatarColor(profile?.TopColor, DefaultTopColor),
+                jacketStyle = NormalizeAvatarChoice(profile?.JacketStyle, AllowedJacketStyles, "none"),
+                jacketColor = NormalizeAvatarColor(profile?.JacketColor, DefaultJacketColor),
+                bottomStyle = NormalizeAvatarChoice(profile?.BottomStyle, AllowedBottomStyles, "pants"),
+                bottomColor = NormalizeAvatarColor(profile?.BottomColor, DefaultBottomColor),
+                shoesStyle = NormalizeAvatarChoice(profile?.ShoesStyle, AllowedShoesStyles, "sneakers"),
+                shoesColor = NormalizeAvatarColor(profile?.ShoesColor, DefaultShoesColor),
+                hatStyle = NormalizeAvatarChoice(profile?.HatStyle, AllowedHatStyles, "none"),
+                hatColor = NormalizeAvatarColor(profile?.HatColor, DefaultHatColor),
+                glassesStyle = NormalizeAvatarChoice(profile?.GlassesStyle, AllowedGlassesStyles, "none"),
+                glassesColor = NormalizeAvatarColor(profile?.GlassesColor, DefaultGlassesColor),
+                otherStyle = NormalizeAvatarChoice(profile?.OtherStyle, AllowedOtherStyles, "none"),
+                otherColor = NormalizeAvatarColor(profile?.OtherColor, DefaultOtherColor),
+                avatar = ToAvatarDto(profile),
+                updatedAt = (profile?.UpdatedAt ?? user.LastSeenAt ?? now).ToString("O")
+            };
         }
 
         [HttpPost]
@@ -281,7 +784,11 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Json(new { ok = true, area = ToZone(area) });
+            var owner = await FindDeskAreaOwnerAsync(area);
+            var zone = ToZone(area, owner);
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("AreaSaved", zone);
+
+            return Json(new { ok = true, area = zone });
         }
 
         [HttpPost]
@@ -300,6 +807,7 @@ namespace ProjectTracking.Controllers
             area.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("AreaDeleted", new { areaId });
             return Json(new { ok = true, areaId });
         }
 
@@ -371,7 +879,10 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Json(new { ok = true, item = ToObject(roomObject) });
+            var item = ToObject(roomObject);
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("ObjectSaved", item);
+
+            return Json(new { ok = true, item });
         }
 
         [HttpPost]
@@ -390,6 +901,7 @@ namespace ProjectTracking.Controllers
             roomObject.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("ObjectDeleted", new { objectId });
             return Json(new { ok = true, objectId });
         }
 
@@ -483,6 +995,102 @@ namespace ProjectTracking.Controllers
 
             var targetName = await ResolveDisplayNameAsync(target.UserId);
             return Json(new { ok = true, message = $"ส่ง Message หา {targetName} แล้ว" });
+        }
+
+        [HttpGet]
+        [RequireMenu("MeetingRoom.Index")]
+        public async Task<IActionResult> Files(string areaKey)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            areaKey = NormalizeAreaKey(areaKey);
+
+            var files = await _context.MeetingRoomFileShares
+                .AsNoTracking()
+                .Where(file => file.AreaKey == areaKey && !file.IsDeleted)
+                .OrderByDescending(file => file.UploadedAt)
+                .Take(25)
+                .ToListAsync();
+
+            return Json(new
+            {
+                ok = true,
+                areaKey,
+                files = files.Select(ToMeetingFileShareDto)
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("MeetingRoom.Index")]
+        [RequestSizeLimit(MaxMeetingFileSize)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxMeetingFileSize)]
+        public async Task<IActionResult> ShareFile(IFormFile? file, string areaKey, string areaTitle)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            if (file == null || file.Length <= 0)
+                return BadRequest(new { ok = false, message = "กรุณาเลือกไฟล์ก่อนแชร์" });
+
+            if (file.Length > MaxMeetingFileSize)
+                return BadRequest(new { ok = false, message = "ไฟล์ใหญ่เกิน 50 MB" });
+
+            var originalFileName = Path.GetFileName(file.FileName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(originalFileName))
+                originalFileName = "shared-file";
+
+            var extension = Path.GetExtension(originalFileName);
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedMeetingFileExtensions.Contains(extension))
+                return BadRequest(new { ok = false, message = "ชนิดไฟล์นี้ยังไม่อนุญาตให้แชร์ใน Meeting Room" });
+
+            areaKey = NormalizeAreaKey(areaKey);
+            areaTitle = string.IsNullOrWhiteSpace(areaTitle) ? areaKey : areaTitle.Trim();
+            if (areaTitle.Length > 100)
+                areaTitle = areaTitle[..100];
+
+            var uploadDate = DateTime.Now;
+            var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+            var relativeFolder = $"/uploads/meeting-room/{uploadDate:yyyyMMdd}";
+            var webRoot = _webHostEnvironment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+                webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
+            var absoluteFolder = Path.Combine(webRoot, "uploads", "meeting-room", uploadDate.ToString("yyyyMMdd"));
+            Directory.CreateDirectory(absoluteFolder);
+
+            var absolutePath = Path.Combine(absoluteFolder, storedFileName);
+            await using (var stream = System.IO.File.Create(absolutePath))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var uploaderName = await ResolveDisplayNameAsync(currentUserId.Value);
+            var share = new MeetingRoomFileShare
+            {
+                AreaKey = areaKey,
+                AreaTitle = areaTitle,
+                OriginalFileName = originalFileName.Length > 255 ? originalFileName[..255] : originalFileName,
+                StoredFileName = storedFileName,
+                ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                FileSize = file.Length,
+                FilePath = $"{relativeFolder}/{storedFileName}",
+                UploadedByUserId = currentUserId.Value,
+                UploadedByName = uploaderName,
+                UploadedAt = uploadDate
+            };
+
+            _context.MeetingRoomFileShares.Add(share);
+            await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
+            await _context.SaveChangesAsync();
+
+            var dto = ToMeetingFileShareDto(share);
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("MeetingFileShared", dto);
+
+            return Json(new { ok = true, file = dto, message = "แชร์ไฟล์ในห้องประชุมแล้ว" });
         }
 
         private async Task<MeetingRoomViewModel> BuildViewModelAsync(
@@ -614,9 +1222,29 @@ namespace ProjectTracking.Controllers
                         StatusText = profile?.StatusText ?? "",
                         CharacterPreset = NormalizeCharacter(profile?.CharacterPreset),
                         AvatarColor = NormalizeAvatarColor(profile?.AvatarColor),
+                        SkinTone = NormalizeAvatarColor(profile?.SkinTone, DefaultSkinTone),
+                        HairStyle = NormalizeAvatarChoice(profile?.HairStyle, AllowedHairStyles, "short"),
+                        HairColor = NormalizeAvatarColor(profile?.HairColor, DefaultHairColor),
+                        FacialHairStyle = NormalizeAvatarChoice(profile?.FacialHairStyle, AllowedFacialHairStyles, "none"),
+                        TopStyle = NormalizeAvatarChoice(profile?.TopStyle, AllowedTopStyles, "shirt"),
+                        TopColor = NormalizeAvatarColor(profile?.TopColor, DefaultTopColor),
+                        JacketStyle = NormalizeAvatarChoice(profile?.JacketStyle, AllowedJacketStyles, "none"),
+                        JacketColor = NormalizeAvatarColor(profile?.JacketColor, DefaultJacketColor),
+                        BottomStyle = NormalizeAvatarChoice(profile?.BottomStyle, AllowedBottomStyles, "pants"),
+                        BottomColor = NormalizeAvatarColor(profile?.BottomColor, DefaultBottomColor),
+                        ShoesStyle = NormalizeAvatarChoice(profile?.ShoesStyle, AllowedShoesStyles, "sneakers"),
+                        ShoesColor = NormalizeAvatarColor(profile?.ShoesColor, DefaultShoesColor),
+                        HatStyle = NormalizeAvatarChoice(profile?.HatStyle, AllowedHatStyles, "none"),
+                        HatColor = NormalizeAvatarColor(profile?.HatColor, DefaultHatColor),
+                        GlassesStyle = NormalizeAvatarChoice(profile?.GlassesStyle, AllowedGlassesStyles, "none"),
+                        GlassesColor = NormalizeAvatarColor(profile?.GlassesColor, DefaultGlassesColor),
+                        OtherStyle = NormalizeAvatarChoice(profile?.OtherStyle, AllowedOtherStyles, "none"),
+                        OtherColor = NormalizeAvatarColor(profile?.OtherColor, DefaultOtherColor),
                         Zone = profile?.HomeZone ?? slot.Zone,
-                        X = ClampPercent(profile?.DeskX ?? slot.X),
-                        Y = ClampPercent(profile?.DeskY ?? slot.Y),
+                        X = ClampPercent(profile?.CurrentX ?? profile?.DeskX ?? slot.X),
+                        Y = ClampPercent(profile?.CurrentY ?? profile?.DeskY ?? slot.Y),
+                        HomeX = ClampPercent(profile?.DeskX ?? slot.X),
+                        HomeY = ClampPercent(profile?.DeskY ?? slot.Y),
                         IsOnline = isOnline,
                         IsCurrentUser = isCurrentUser,
                         LastSeenAt = user.LastSeenAt,
@@ -648,6 +1276,14 @@ namespace ProjectTracking.Controllers
                         StatusLabel = "Guest view",
                         CharacterPreset = DefaultCharacterPreset,
                         AvatarColor = DefaultAvatarColor,
+                        SkinTone = DefaultSkinTone,
+                        HairColor = DefaultHairColor,
+                        TopColor = DefaultTopColor,
+                        BottomColor = DefaultBottomColor,
+                        ShoesColor = DefaultShoesColor,
+                        HatColor = DefaultHatColor,
+                        GlassesColor = DefaultGlassesColor,
+                        OtherColor = DefaultOtherColor,
                         Zone = "Lobby",
                         IsOnline = true
                     }
@@ -658,6 +1294,14 @@ namespace ProjectTracking.Controllers
                         Initial = Initial(HttpContext.Session.GetString("Username") ?? "M"),
                         CharacterPreset = DefaultCharacterPreset,
                         AvatarColor = DefaultAvatarColor,
+                        SkinTone = DefaultSkinTone,
+                        HairColor = DefaultHairColor,
+                        TopColor = DefaultTopColor,
+                        BottomColor = DefaultBottomColor,
+                        ShoesColor = DefaultShoesColor,
+                        HatColor = DefaultHatColor,
+                        GlassesColor = DefaultGlassesColor,
+                        OtherColor = DefaultOtherColor,
                         IsCurrentUser = true,
                         IsOnline = true
                     };
@@ -689,6 +1333,7 @@ namespace ProjectTracking.Controllers
             var exposedIssueCount = isGuest ? 0 : people.Sum(person => person.IssueCount);
             var exposedSupportCount = isGuest ? 0 : people.Sum(person => person.SupportCount);
             var exposedFollowupCount = isGuest ? 0 : people.Sum(person => person.FollowupCount);
+            var areaOwners = BuildDeskAreaOwners(customAreas, users, profiles, employeesByEmpId, employeesByUserId);
 
             return new MeetingRoomViewModel
             {
@@ -709,7 +1354,7 @@ namespace ProjectTracking.Controllers
                     OpenSupportCount = exposedSupportCount,
                     OpenFollowupCount = exposedFollowupCount
                 },
-                Zones = BuildZones(exposedMeetingCount, exposedIssueCount, exposedSupportCount, exposedFollowupCount, customAreas)
+                Zones = BuildZones(exposedMeetingCount, exposedIssueCount, exposedSupportCount, exposedFollowupCount, customAreas, areaOwners)
             };
         }
 
@@ -718,7 +1363,8 @@ namespace ProjectTracking.Controllers
             int issueCount,
             int supportCount,
             int followupCount,
-            IReadOnlyList<MeetingRoomArea>? customAreas = null)
+            IReadOnlyList<MeetingRoomArea>? customAreas = null,
+            IReadOnlyDictionary<int, (int UserId, string Name, string Initial)>? areaOwners = null)
         {
             var zones = new List<MeetingRoomZoneViewModel>
             {
@@ -733,13 +1379,16 @@ namespace ProjectTracking.Controllers
 
             if (customAreas != null)
             {
-                zones.AddRange(customAreas.Select(ToZone));
+                zones.AddRange(customAreas.Select(area =>
+                    ToZone(area, areaOwners != null && areaOwners.TryGetValue(area.AreaId, out var owner) ? owner : null)));
             }
 
             return zones;
         }
 
-        private static MeetingRoomZoneViewModel ToZone(MeetingRoomArea area)
+        private static MeetingRoomZoneViewModel ToZone(
+            MeetingRoomArea area,
+            (int UserId, string Name, string Initial)? owner = null)
         {
             var x = Math.Clamp(area.X, 0, 98);
             var y = Math.Clamp(area.Y, 0, 98);
@@ -766,7 +1415,10 @@ namespace ProjectTracking.Controllers
                 X = x,
                 Y = y,
                 W = w,
-                H = h
+                H = h,
+                OwnerUserId = owner?.UserId,
+                OwnerName = owner?.Name ?? "",
+                OwnerInitial = owner?.Initial ?? ""
             };
         }
 
@@ -787,6 +1439,174 @@ namespace ProjectTracking.Controllers
                 IsObstacle = roomObject.IsObstacle,
                 IsCustom = true
             };
+        }
+
+        private static object ToAvatarDto(MeetingRoomProfile? profile)
+        {
+            return new
+            {
+                characterPreset = NormalizeCharacter(profile?.CharacterPreset),
+                avatarColor = NormalizeAvatarColor(profile?.AvatarColor),
+                skinTone = NormalizeAvatarColor(profile?.SkinTone, DefaultSkinTone),
+                hairStyle = NormalizeAvatarChoice(profile?.HairStyle, AllowedHairStyles, "short"),
+                hairColor = NormalizeAvatarColor(profile?.HairColor, DefaultHairColor),
+                facialHairStyle = NormalizeAvatarChoice(profile?.FacialHairStyle, AllowedFacialHairStyles, "none"),
+                topStyle = NormalizeAvatarChoice(profile?.TopStyle, AllowedTopStyles, "shirt"),
+                topColor = NormalizeAvatarColor(profile?.TopColor, DefaultTopColor),
+                jacketStyle = NormalizeAvatarChoice(profile?.JacketStyle, AllowedJacketStyles, "none"),
+                jacketColor = NormalizeAvatarColor(profile?.JacketColor, DefaultJacketColor),
+                bottomStyle = NormalizeAvatarChoice(profile?.BottomStyle, AllowedBottomStyles, "pants"),
+                bottomColor = NormalizeAvatarColor(profile?.BottomColor, DefaultBottomColor),
+                shoesStyle = NormalizeAvatarChoice(profile?.ShoesStyle, AllowedShoesStyles, "sneakers"),
+                shoesColor = NormalizeAvatarColor(profile?.ShoesColor, DefaultShoesColor),
+                hatStyle = NormalizeAvatarChoice(profile?.HatStyle, AllowedHatStyles, "none"),
+                hatColor = NormalizeAvatarColor(profile?.HatColor, DefaultHatColor),
+                glassesStyle = NormalizeAvatarChoice(profile?.GlassesStyle, AllowedGlassesStyles, "none"),
+                glassesColor = NormalizeAvatarColor(profile?.GlassesColor, DefaultGlassesColor),
+                otherStyle = NormalizeAvatarChoice(profile?.OtherStyle, AllowedOtherStyles, "none"),
+                otherColor = NormalizeAvatarColor(profile?.OtherColor, DefaultOtherColor)
+            };
+        }
+
+        private static object ToMeetingFileShareDto(MeetingRoomFileShare file)
+        {
+            return new
+            {
+                shareId = file.ShareId,
+                areaKey = file.AreaKey,
+                areaTitle = file.AreaTitle,
+                fileName = file.OriginalFileName,
+                url = file.FilePath,
+                contentType = file.ContentType,
+                fileSize = file.FileSize,
+                fileSizeText = FormatFileSize(file.FileSize),
+                uploadedByName = file.UploadedByName,
+                uploadedAt = file.UploadedAt.ToString("dd/MM/yyyy HH:mm")
+            };
+        }
+
+        private async Task<(int UserId, string Name, string Initial)?> FindDeskAreaOwnerAsync(MeetingRoomArea area)
+        {
+            var users = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(user => user.Status == "ACTIVE")
+                .ToListAsync();
+
+            var userIds = users.Select(user => user.UserId).ToList();
+            var profiles = await _context.MeetingRoomProfiles
+                .AsNoTracking()
+                .Where(profile => userIds.Contains(profile.UserId))
+                .ToDictionaryAsync(profile => profile.UserId);
+
+            var empIds = users
+                .Where(user => user.EmpId.HasValue)
+                .Select(user => user.EmpId!.Value)
+                .ToHashSet();
+
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .Where(employee => employee.Status == "ACTIVE" &&
+                    ((employee.LoginUserId.HasValue && userIds.Contains(employee.LoginUserId.Value)) ||
+                    empIds.Contains(employee.EmpId)))
+                .ToListAsync();
+
+            var employeesByUserId = employees
+                .Where(employee => employee.LoginUserId.HasValue)
+                .GroupBy(employee => employee.LoginUserId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            var employeesByEmpId = employees
+                .GroupBy(employee => employee.EmpId)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            var owners = BuildDeskAreaOwners(new[] { area }, users, profiles, employeesByEmpId, employeesByUserId);
+            return owners.TryGetValue(area.AreaId, out var owner) ? owner : null;
+        }
+
+        private static Dictionary<int, (int UserId, string Name, string Initial)> BuildDeskAreaOwners(
+            IReadOnlyList<MeetingRoomArea> customAreas,
+            IReadOnlyList<LoginUser> users,
+            IReadOnlyDictionary<int, MeetingRoomProfile> profiles,
+            IReadOnlyDictionary<int, Employee> employeesByEmpId,
+            IReadOnlyDictionary<int, Employee> employeesByUserId)
+        {
+            var owners = new Dictionary<int, (int UserId, string Name, string Initial)>();
+            var candidates = users
+                .Select(user =>
+                {
+                    profiles.TryGetValue(user.UserId, out var profile);
+                    Employee? employee = null;
+
+                    if (user.EmpId.HasValue)
+                        employeesByEmpId.TryGetValue(user.EmpId.Value, out employee);
+
+                    if (employee == null)
+                        employeesByUserId.TryGetValue(user.UserId, out employee);
+
+                    return new
+                    {
+                        User = user,
+                        Profile = profile,
+                        Employee = employee
+                    };
+                })
+                .Where(item => item.Profile != null)
+                .ToList();
+
+            foreach (var area in customAreas.Where(area => NormalizeAreaType(area.AreaType) == "DESK"))
+            {
+                var owner = candidates
+                    .Where(item => ProfileOwnsDeskArea(item.Profile!, area))
+                    .OrderByDescending(item => item.Profile!.UpdatedAt)
+                    .FirstOrDefault();
+
+                if (owner?.Profile == null)
+                    continue;
+
+                var fallbackName = DisplayName(owner.User, owner.Employee);
+                var ownerName = RoomDisplayName(owner.Profile.DisplayName, fallbackName);
+                owners[area.AreaId] = (owner.User.UserId, ownerName, Initial(ownerName));
+            }
+
+            return owners;
+        }
+
+        private static bool ProfileOwnsDeskArea(MeetingRoomProfile profile, MeetingRoomArea area)
+        {
+            if (NormalizeAreaType(area.AreaType) != "DESK")
+                return false;
+
+            var homeKey = NormalizeAreaKey(profile.HomeZone);
+            var titleKey = NormalizeAreaKey(area.Title);
+            var areaKey = NormalizeAreaKey(string.IsNullOrWhiteSpace(area.AreaKey) ? area.Title : area.AreaKey);
+
+            if (homeKey != titleKey && homeKey != areaKey)
+                return false;
+
+            var bounds = NormalizeAreaBounds(area.X, area.Y, area.W, area.H);
+            const int padding = 1;
+
+            return profile.DeskX >= bounds.X - padding &&
+                profile.DeskX <= bounds.X + bounds.W + padding &&
+                profile.DeskY >= bounds.Y - padding &&
+                profile.DeskY <= bounds.Y + bounds.H + padding;
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            string[] units = { "B", "KB", "MB", "GB" };
+            var size = (double)Math.Max(0, bytes);
+            var unitIndex = 0;
+
+            while (size >= 1024 && unitIndex < units.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+
+            return unitIndex == 0
+                ? $"{size:0} {units[unitIndex]}"
+                : $"{size:0.#} {units[unitIndex]}";
         }
 
         private async Task<string> CreateUniqueAreaKeyAsync(string title)
@@ -899,16 +1719,26 @@ namespace ProjectTracking.Controllers
 
             return NormalizeObjectKey(objectKey) switch
             {
+                "desk-large" or "desk-corner" or "desk-white" => "DESK",
+                "conference-table" or "meeting-table" or "coffee-table" => "TABLE",
                 "chair-office" => "CHAIR",
-                "sofa-blue" => "SOFA",
+                "chair-gaming" or "chair-lounge" or "chair-wood" or "stool" => "CHAIR",
+                "sofa-blue" or "sofa-long" or "sofa-corner" or "couch-dark" => "SOFA",
                 "table-round" => "TABLE",
                 "plant-pot" => "PLANT",
                 "plant-tall" => "PLANT",
-                "rug-blue" => "RUG",
-                "rug-round" => "RUG",
+                "plant-wide" => "PLANT",
+                "rug-blue" or "rug-round" or "rug-rainbow" or "rug-green" or "rug-stone" or "rug-wood" => "RUG",
                 "partition" => "DIVIDER",
-                "screen" => "SCREEN",
-                "board" => "BOARD",
+                "partition-glass" => "DIVIDER",
+                "screen" or "screen-wide" => "SCREEN",
+                "computer-station" or "laptop" or "server-rack" => "COMPUTER",
+                "board" or "whiteboard" => "BOARD",
+                "poster" or "watercooler" or "vending" => "DECOR",
+                "cabinet" or "bookshelf" => "STORAGE",
+                "lamp-floor" => "LIGHT",
+                "door" => "DOOR",
+                "window" => "WINDOW",
                 _ => "DESK"
             };
         }
@@ -921,16 +1751,48 @@ namespace ProjectTracking.Controllers
 
             return NormalizeObjectKey(objectKey) switch
             {
+                "desk-large" => "Large desk",
+                "desk-corner" => "Corner desk",
+                "desk-white" => "White desk",
+                "conference-table" => "Conference table",
+                "meeting-table" => "Meeting table",
+                "coffee-table" => "Coffee table",
                 "chair-office" => "Office chair",
+                "chair-gaming" => "Gaming chair",
+                "chair-lounge" => "Lounge chair",
+                "chair-wood" => "Wood chair",
+                "stool" => "Stool",
                 "sofa-blue" => "Sofa",
+                "sofa-long" => "Long sofa",
+                "sofa-corner" => "Corner sofa",
+                "couch-dark" => "Dark couch",
                 "table-round" => "Round table",
                 "plant-pot" => "Plant",
                 "plant-tall" => "Tall plant",
+                "plant-wide" => "Wide plant",
                 "rug-blue" => "Rug",
                 "rug-round" => "Round rug",
+                "rug-rainbow" => "Rainbow rug",
+                "rug-green" => "Green rug",
+                "rug-stone" => "Stone rug",
+                "rug-wood" => "Wood floor mat",
                 "partition" => "Partition",
+                "partition-glass" => "Glass partition",
                 "screen" => "Screen",
+                "screen-wide" => "Wide screen",
+                "computer-station" => "Computer station",
+                "laptop" => "Laptop",
+                "server-rack" => "Server rack",
                 "board" => "Board",
+                "whiteboard" => "Whiteboard",
+                "poster" => "Poster",
+                "cabinet" => "Cabinet",
+                "bookshelf" => "Bookshelf",
+                "watercooler" => "Water cooler",
+                "vending" => "Vending machine",
+                "lamp-floor" => "Floor lamp",
+                "door" => "Door",
+                "window" => "Window",
                 _ => "Desk"
             };
         }
@@ -986,8 +1848,28 @@ namespace ProjectTracking.Controllers
                 Status = "AVAILABLE",
                 CharacterPreset = DefaultCharacterPreset,
                 AvatarColor = DefaultAvatarColor,
+                SkinTone = DefaultSkinTone,
+                HairStyle = "short",
+                HairColor = DefaultHairColor,
+                FacialHairStyle = "none",
+                TopStyle = "shirt",
+                TopColor = DefaultTopColor,
+                JacketStyle = "none",
+                JacketColor = DefaultJacketColor,
+                BottomStyle = "pants",
+                BottomColor = DefaultBottomColor,
+                ShoesStyle = "sneakers",
+                ShoesColor = DefaultShoesColor,
+                HatStyle = "none",
+                HatColor = DefaultHatColor,
+                GlassesStyle = "none",
+                GlassesColor = DefaultGlassesColor,
+                OtherStyle = "none",
+                OtherColor = DefaultOtherColor,
                 DeskX = slot.X,
                 DeskY = slot.Y,
+                CurrentX = slot.X,
+                CurrentY = slot.Y,
                 HomeZone = slot.Zone,
                 UpdatedAt = DateTime.Now
             };
@@ -1112,6 +1994,12 @@ namespace ProjectTracking.Controllers
         private static int ClampPercent(int value)
             => Math.Clamp(value, 4, 96);
 
+        private static int ClampWalkX(int value)
+            => Math.Clamp(value, 4, 96);
+
+        private static int ClampWalkY(int value)
+            => Math.Clamp(value, 7, 85);
+
         private static string NormalizeStatus(string? status)
         {
             status = (status ?? "AVAILABLE").Trim().ToUpperInvariant();
@@ -1125,10 +2013,13 @@ namespace ProjectTracking.Controllers
         }
 
         private static string NormalizeAvatarColor(string? avatarColor)
+            => NormalizeAvatarColor(avatarColor, DefaultAvatarColor);
+
+        private static string NormalizeAvatarColor(string? avatarColor, string fallback)
         {
             avatarColor = (avatarColor ?? "").Trim();
             if (avatarColor.Length != 7 || avatarColor[0] != '#')
-                return DefaultAvatarColor;
+                return fallback;
 
             for (var index = 1; index < avatarColor.Length; index++)
             {
@@ -1138,10 +2029,16 @@ namespace ProjectTracking.Controllers
                     value is >= 'A' and <= 'F';
 
                 if (!isHex)
-                    return DefaultAvatarColor;
+                    return fallback;
             }
 
             return avatarColor.ToLowerInvariant();
+        }
+
+        private static string NormalizeAvatarChoice(string? value, HashSet<string> allowedValues, string fallback)
+        {
+            value = (value ?? fallback).Trim().ToLowerInvariant();
+            return allowedValues.Contains(value) ? value : fallback;
         }
 
         private static string StatusLabel(string status)

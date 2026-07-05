@@ -12,6 +12,7 @@ using System.IO;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Http.Features;
 using QuestPDF.Infrastructure;
+using ProjectTracking.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -191,6 +192,11 @@ builder.Services.AddScoped<StatusApprovalService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.MaximumReceiveMessageSize = 64 * 1024;
+});
 // Overdue email automation is disabled. We will replace it with in-app bell notifications.
 // Keep OverdueMailService registered for existing manual flows and future reference.
 builder.Services.AddHostedService<OverdueNotificationBackgroundService>();
@@ -270,7 +276,7 @@ app.Use(async (context, next) =>
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com https://cdn.jsdelivr.net; " +
         "script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net https:; " +
         "font-src 'self' data: https://fonts.gstatic.com https:; " +
-        "connect-src 'self' https://maps.googleapis.com https://maps.gstatic.com; " +
+        "connect-src 'self' ws: wss: https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net; " +
         "frame-src https://www.google.com https://maps.google.com;";
 
     await next();
@@ -288,6 +294,7 @@ app.UseRequireLogin();
 // Route
 // ==================================================
 app.MapControllers();
+app.MapHub<MeetingRoomHub>("/hubs/meeting-room");
 
 app.MapControllerRoute(
     name: "default",
@@ -838,10 +845,30 @@ static async Task EnsureMeetingRoomProfileTableAsync(IServiceProvider services)
               `display_name` varchar(50) DEFAULT NULL,
               `status` varchar(20) NOT NULL DEFAULT 'AVAILABLE',
               `status_text` varchar(120) DEFAULT NULL,
-              `character_preset` varchar(30) NOT NULL DEFAULT 'doraemon',
-              `avatar_color` varchar(20) NOT NULL DEFAULT '#2d9cff',
+              `character_preset` varchar(30) NOT NULL DEFAULT 'human',
+              `avatar_color` varchar(20) NOT NULL DEFAULT '#3b82f6',
+              `skin_tone` varchar(20) NOT NULL DEFAULT '#f2c19b',
+              `hair_style` varchar(30) NOT NULL DEFAULT 'short',
+              `hair_color` varchar(20) NOT NULL DEFAULT '#2f3137',
+              `facial_hair_style` varchar(30) NOT NULL DEFAULT 'none',
+              `top_style` varchar(30) NOT NULL DEFAULT 'shirt',
+              `top_color` varchar(20) NOT NULL DEFAULT '#3b82f6',
+              `jacket_style` varchar(30) NOT NULL DEFAULT 'none',
+              `jacket_color` varchar(20) NOT NULL DEFAULT '#111827',
+              `bottom_style` varchar(30) NOT NULL DEFAULT 'pants',
+              `bottom_color` varchar(20) NOT NULL DEFAULT '#1f2937',
+              `shoes_style` varchar(30) NOT NULL DEFAULT 'sneakers',
+              `shoes_color` varchar(20) NOT NULL DEFAULT '#e5e7eb',
+              `hat_style` varchar(30) NOT NULL DEFAULT 'none',
+              `hat_color` varchar(20) NOT NULL DEFAULT '#3b82f6',
+              `glasses_style` varchar(30) NOT NULL DEFAULT 'none',
+              `glasses_color` varchar(20) NOT NULL DEFAULT '#111827',
+              `other_style` varchar(30) NOT NULL DEFAULT 'none',
+              `other_color` varchar(20) NOT NULL DEFAULT '#ef4444',
               `desk_x` int NOT NULL DEFAULT 50,
               `desk_y` int NOT NULL DEFAULT 50,
+              `current_x` int DEFAULT NULL,
+              `current_y` int DEFAULT NULL,
               `home_zone` varchar(80) NOT NULL DEFAULT 'Lobby',
               `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
               PRIMARY KEY (`user_id`),
@@ -881,14 +908,118 @@ static async Task EnsureMeetingRoomProfileTableAsync(IServiceProvider services)
         {
             command.CommandText = @"
                 ALTER TABLE `meeting_room_profiles`
-                ADD COLUMN `avatar_color` varchar(20) NOT NULL DEFAULT '#2d9cff' AFTER `character_preset`;";
+                ADD COLUMN `avatar_color` varchar(20) NOT NULL DEFAULT '#3b82f6' AFTER `character_preset`;";
             await command.ExecuteNonQueryAsync();
         }
 
         command.CommandText = @"
             ALTER TABLE `meeting_room_profiles`
-            MODIFY COLUMN `character_preset` varchar(30) NOT NULL DEFAULT 'doraemon';";
+            MODIFY COLUMN `character_preset` varchar(30) NOT NULL DEFAULT 'human';";
         await command.ExecuteNonQueryAsync();
+
+        async Task EnsureProfileColumnAsync(string columnName, string addColumnSql)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'meeting_room_profiles'
+                  AND COLUMN_NAME = '{columnName}';";
+
+            var hasColumn = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+            if (hasColumn)
+                return;
+
+            command.CommandText = addColumnSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureProfileColumnAsync("skin_tone", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `skin_tone` varchar(20) NOT NULL DEFAULT '#f2c19b' AFTER `avatar_color`;");
+        await EnsureProfileColumnAsync("hair_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `hair_style` varchar(30) NOT NULL DEFAULT 'short' AFTER `skin_tone`;");
+        await EnsureProfileColumnAsync("hair_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `hair_color` varchar(20) NOT NULL DEFAULT '#2f3137' AFTER `hair_style`;");
+        await EnsureProfileColumnAsync("facial_hair_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `facial_hair_style` varchar(30) NOT NULL DEFAULT 'none' AFTER `hair_color`;");
+        await EnsureProfileColumnAsync("top_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `top_style` varchar(30) NOT NULL DEFAULT 'shirt' AFTER `facial_hair_style`;");
+        await EnsureProfileColumnAsync("top_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `top_color` varchar(20) NOT NULL DEFAULT '#3b82f6' AFTER `top_style`;");
+        await EnsureProfileColumnAsync("jacket_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `jacket_style` varchar(30) NOT NULL DEFAULT 'none' AFTER `top_color`;");
+        await EnsureProfileColumnAsync("jacket_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `jacket_color` varchar(20) NOT NULL DEFAULT '#111827' AFTER `jacket_style`;");
+        await EnsureProfileColumnAsync("bottom_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `bottom_style` varchar(30) NOT NULL DEFAULT 'pants' AFTER `jacket_color`;");
+        await EnsureProfileColumnAsync("bottom_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `bottom_color` varchar(20) NOT NULL DEFAULT '#1f2937' AFTER `bottom_style`;");
+        await EnsureProfileColumnAsync("shoes_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `shoes_style` varchar(30) NOT NULL DEFAULT 'sneakers' AFTER `bottom_color`;");
+        await EnsureProfileColumnAsync("shoes_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `shoes_color` varchar(20) NOT NULL DEFAULT '#e5e7eb' AFTER `shoes_style`;");
+        await EnsureProfileColumnAsync("hat_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `hat_style` varchar(30) NOT NULL DEFAULT 'none' AFTER `shoes_color`;");
+        await EnsureProfileColumnAsync("hat_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `hat_color` varchar(20) NOT NULL DEFAULT '#3b82f6' AFTER `hat_style`;");
+        await EnsureProfileColumnAsync("glasses_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `glasses_style` varchar(30) NOT NULL DEFAULT 'none' AFTER `hat_color`;");
+        await EnsureProfileColumnAsync("glasses_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `glasses_color` varchar(20) NOT NULL DEFAULT '#111827' AFTER `glasses_style`;");
+        await EnsureProfileColumnAsync("other_style", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `other_style` varchar(30) NOT NULL DEFAULT 'none' AFTER `glasses_color`;");
+        await EnsureProfileColumnAsync("other_color", @"
+            ALTER TABLE `meeting_room_profiles`
+            ADD COLUMN `other_color` varchar(20) NOT NULL DEFAULT '#ef4444' AFTER `other_style`;");
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'meeting_room_profiles'
+              AND COLUMN_NAME = 'current_x';";
+
+        var hasCurrentX = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasCurrentX)
+        {
+            command.CommandText = @"
+                ALTER TABLE `meeting_room_profiles`
+                ADD COLUMN `current_x` int DEFAULT NULL AFTER `desk_y`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'meeting_room_profiles'
+              AND COLUMN_NAME = 'current_y';";
+
+        var hasCurrentY = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasCurrentY)
+        {
+            command.CommandText = @"
+                ALTER TABLE `meeting_room_profiles`
+                ADD COLUMN `current_y` int DEFAULT NULL AFTER `current_x`;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS `meeting_room_areas` (
@@ -932,6 +1063,26 @@ static async Task EnsureMeetingRoomProfileTableAsync(IServiceProvider services)
               `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
               PRIMARY KEY (`object_id`),
               KEY `idx_meeting_room_objects_active_type` (`is_active`, `object_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `meeting_room_file_shares` (
+              `share_id` int NOT NULL AUTO_INCREMENT,
+              `area_key` varchar(80) NOT NULL,
+              `area_title` varchar(100) NOT NULL,
+              `original_file_name` varchar(255) NOT NULL,
+              `stored_file_name` varchar(120) NOT NULL,
+              `content_type` varchar(120) NOT NULL DEFAULT 'application/octet-stream',
+              `file_size` bigint NOT NULL DEFAULT 0,
+              `file_path` varchar(500) NOT NULL,
+              `uploaded_by_user_id` int NOT NULL,
+              `uploaded_by_name` varchar(100) NOT NULL,
+              `uploaded_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+              PRIMARY KEY (`share_id`),
+              KEY `idx_meeting_room_file_shares_area` (`area_key`, `is_deleted`, `uploaded_at`),
+              KEY `idx_meeting_room_file_shares_user` (`uploaded_by_user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await command.ExecuteNonQueryAsync();
     }

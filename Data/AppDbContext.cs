@@ -66,6 +66,7 @@ namespace ProjectTracking.Data
         public DbSet<MeetingRoomProfile> MeetingRoomProfiles { get; set; }
         public DbSet<MeetingRoomArea> MeetingRoomAreas { get; set; }
         public DbSet<MeetingRoomObject> MeetingRoomObjects { get; set; }
+        public DbSet<MeetingRoomFileShare> MeetingRoomFileShares { get; set; }
         public DbSet<NotificationSendLog> NotificationSendLogs { get; set; }
         public DbSet<StatusApprovalRequest> StatusApprovalRequests { get; set; }
         public DbSet<LineRecipient> LineRecipients { get; set; }
@@ -502,13 +503,121 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.CharacterPreset)
                     .HasColumnName("character_preset")
                     .HasColumnType("varchar(30)")
-                    .HasDefaultValue("doraemon")
+                    .HasDefaultValue("human")
                     .IsRequired();
 
                 entity.Property(x => x.AvatarColor)
                     .HasColumnName("avatar_color")
                     .HasColumnType("varchar(20)")
-                    .HasDefaultValue("#2d9cff")
+                    .HasDefaultValue("#3b82f6")
+                    .IsRequired();
+
+                entity.Property(x => x.SkinTone)
+                    .HasColumnName("skin_tone")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#f2c19b")
+                    .IsRequired();
+
+                entity.Property(x => x.HairStyle)
+                    .HasColumnName("hair_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("short")
+                    .IsRequired();
+
+                entity.Property(x => x.HairColor)
+                    .HasColumnName("hair_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#2f3137")
+                    .IsRequired();
+
+                entity.Property(x => x.FacialHairStyle)
+                    .HasColumnName("facial_hair_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("none")
+                    .IsRequired();
+
+                entity.Property(x => x.TopStyle)
+                    .HasColumnName("top_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("shirt")
+                    .IsRequired();
+
+                entity.Property(x => x.TopColor)
+                    .HasColumnName("top_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#3b82f6")
+                    .IsRequired();
+
+                entity.Property(x => x.JacketStyle)
+                    .HasColumnName("jacket_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("none")
+                    .IsRequired();
+
+                entity.Property(x => x.JacketColor)
+                    .HasColumnName("jacket_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#111827")
+                    .IsRequired();
+
+                entity.Property(x => x.BottomStyle)
+                    .HasColumnName("bottom_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("pants")
+                    .IsRequired();
+
+                entity.Property(x => x.BottomColor)
+                    .HasColumnName("bottom_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#1f2937")
+                    .IsRequired();
+
+                entity.Property(x => x.ShoesStyle)
+                    .HasColumnName("shoes_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("sneakers")
+                    .IsRequired();
+
+                entity.Property(x => x.ShoesColor)
+                    .HasColumnName("shoes_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#e5e7eb")
+                    .IsRequired();
+
+                entity.Property(x => x.HatStyle)
+                    .HasColumnName("hat_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("none")
+                    .IsRequired();
+
+                entity.Property(x => x.HatColor)
+                    .HasColumnName("hat_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#3b82f6")
+                    .IsRequired();
+
+                entity.Property(x => x.GlassesStyle)
+                    .HasColumnName("glasses_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("none")
+                    .IsRequired();
+
+                entity.Property(x => x.GlassesColor)
+                    .HasColumnName("glasses_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#111827")
+                    .IsRequired();
+
+                entity.Property(x => x.OtherStyle)
+                    .HasColumnName("other_style")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("none")
+                    .IsRequired();
+
+                entity.Property(x => x.OtherColor)
+                    .HasColumnName("other_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#ef4444")
                     .IsRequired();
 
                 entity.Property(x => x.DeskX)
@@ -520,6 +629,14 @@ namespace ProjectTracking.Data
                     .HasColumnName("desk_y")
                     .HasDefaultValue(50)
                     .IsRequired();
+
+                entity.Property(x => x.CurrentX)
+                    .HasColumnName("current_x")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CurrentY)
+                    .HasColumnName("current_y")
+                    .IsRequired(false);
 
                 entity.Property(x => x.HomeZone)
                     .HasColumnName("home_zone")
@@ -719,6 +836,79 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(x => new { x.IsActive, x.ObjectType })
                     .HasDatabaseName("idx_meeting_room_objects_active_type");
+            });
+
+            modelBuilder.Entity<MeetingRoomFileShare>(entity =>
+            {
+                entity.ToTable("meeting_room_file_shares");
+                entity.HasKey(x => x.ShareId);
+
+                entity.Property(x => x.ShareId)
+                    .HasColumnName("share_id");
+
+                entity.Property(x => x.AreaKey)
+                    .HasColumnName("area_key")
+                    .HasColumnType("varchar(80)")
+                    .IsRequired();
+
+                entity.Property(x => x.AreaTitle)
+                    .HasColumnName("area_title")
+                    .HasColumnType("varchar(100)")
+                    .IsRequired();
+
+                entity.Property(x => x.OriginalFileName)
+                    .HasColumnName("original_file_name")
+                    .HasColumnType("varchar(255)")
+                    .IsRequired();
+
+                entity.Property(x => x.StoredFileName)
+                    .HasColumnName("stored_file_name")
+                    .HasColumnType("varchar(120)")
+                    .IsRequired();
+
+                entity.Property(x => x.ContentType)
+                    .HasColumnName("content_type")
+                    .HasColumnType("varchar(120)")
+                    .HasDefaultValue("application/octet-stream")
+                    .IsRequired();
+
+                entity.Property(x => x.FileSize)
+                    .HasColumnName("file_size")
+                    .IsRequired();
+
+                entity.Property(x => x.FilePath)
+                    .HasColumnName("file_path")
+                    .HasColumnType("varchar(500)")
+                    .IsRequired();
+
+                entity.Property(x => x.UploadedByUserId)
+                    .HasColumnName("uploaded_by_user_id")
+                    .IsRequired();
+
+                entity.Property(x => x.UploadedByName)
+                    .HasColumnName("uploaded_by_name")
+                    .HasColumnType("varchar(100)")
+                    .IsRequired();
+
+                entity.Property(x => x.UploadedAt)
+                    .HasColumnName("uploaded_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.IsDeleted)
+                    .HasColumnName("is_deleted")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(false)
+                    .IsRequired();
+
+                entity.HasIndex(x => new { x.AreaKey, x.IsDeleted, x.UploadedAt })
+                    .HasDatabaseName("idx_meeting_room_file_shares_area");
+
+                entity.HasOne(x => x.UploadedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.UploadedByUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // =========================

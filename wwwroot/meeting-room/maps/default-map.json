@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "Meeting Room Default Map",
+  "tileSize": 32,
+  "floor": {
+    "baseColor": 15722200,
+    "groutColor": 15251593,
+    "markColor": 15647899
+  },
+  "layers": [
+    {
+      "key": "floor",
+      "type": "tile",
+      "visible": true
+    },
+    {
+      "key": "collision",
+      "type": "collision",
+      "visible": false
+    },
+    {
+      "key": "objects",
+      "type": "object",
+      "visible": true
+    },
+    {
+      "key": "avatars",
+      "type": "sprite",
+      "visible": true
+    }
+  ]
+}
