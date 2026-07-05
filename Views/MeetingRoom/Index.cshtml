@@ -3881,14 +3881,14 @@
             z-index: 34;
             left: 22px;
             bottom: 88px;
-            width: min(620px, calc(100% - 430px));
-            min-width: 420px;
-            max-height: min(430px, calc(100% - 138px));
+            width: min(560px, calc(100% - 430px));
+            min-width: 390px;
+            max-height: min(330px, calc(100% - 138px));
             display: grid;
             grid-template-rows: auto minmax(0, 1fr);
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.13);
-            border-radius: 20px;
+            border-radius: 16px;
             color: #f8fbff;
             background: rgba(12,21,45,.95);
             box-shadow: 0 24px 70px rgba(0,0,0,.36);
@@ -3904,15 +3904,15 @@
         }
 
         .meeting-room.is-right-panel-collapsed .mr-meeting-panel {
-            width: min(680px, calc(100% - 46px));
+            width: min(600px, calc(100% - 46px));
         }
 
         .mr-meeting-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
+            gap: 10px;
+            padding: 8px 10px;
             border-bottom: 1px solid rgba(255,255,255,.1);
             background: rgba(255,255,255,.035);
             cursor: grab;
@@ -3933,13 +3933,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 900;
         }
 
         .mr-meeting-title span {
             color: rgba(226,232,240,.72);
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 750;
         }
 
@@ -3952,10 +3952,10 @@
 
         .mr-meeting-head-actions .mr-icon-btn,
         .mr-file-plus {
-            width: 36px;
-            height: 36px;
+            width: 30px;
+            height: 30px;
             border: 1px solid rgba(255,255,255,.12);
-            border-radius: 12px;
+            border-radius: 10px;
             color: #fff;
             background: rgba(255,255,255,.07);
             cursor: pointer;
@@ -3977,13 +3977,13 @@
         .mr-meeting-body {
             min-height: 0;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 200px;
+            grid-template-columns: minmax(0, 1fr) 178px;
         }
 
         .mr-meeting-stage {
             min-width: 0;
-            min-height: 220px;
-            padding: 12px;
+            min-height: 178px;
+            padding: 8px;
             background: rgba(0,0,0,.16);
         }
 
@@ -3991,16 +3991,16 @@
             height: 100%;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: minmax(108px, 1fr);
-            gap: 8px;
+            grid-auto-rows: minmax(82px, 1fr);
+            gap: 6px;
         }
 
         .mr-video-tile {
             position: relative;
-            min-height: 108px;
+            min-height: 82px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.1);
-            border-radius: 14px;
+            border-radius: 12px;
             background:
                 linear-gradient(145deg, rgba(34,197,94,.16), rgba(59,130,246,.12)),
                 rgba(15,23,42,.82);
@@ -4024,17 +4024,17 @@
 
         .mr-video-expand {
             position: absolute;
-            top: 9px;
-            right: 9px;
-            width: 28px;
-            height: 28px;
+            top: 7px;
+            right: 7px;
+            width: 24px;
+            height: 24px;
             display: inline-grid;
             place-items: center;
-            border-radius: 10px;
+            border-radius: 8px;
             color: #fff;
             background: rgba(2,6,23,.68);
             box-shadow: 0 10px 20px rgba(0,0,0,.22);
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
             opacity: .78;
             pointer-events: none;
@@ -4048,25 +4048,26 @@
             height: 100%;
             display: grid;
             place-items: center;
-            padding: 14px;
+            padding: 10px;
             text-align: center;
             color: rgba(226,232,240,.82);
+            font-size: 12px;
             font-weight: 850;
         }
 
         .mr-video-label {
             position: absolute;
-            left: 10px;
-            bottom: 10px;
+            left: 8px;
+            bottom: 8px;
             max-width: calc(100% - 20px);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 5px 8px;
+            padding: 4px 7px;
             border-radius: 999px;
             color: #fff;
             background: rgba(2,6,23,.72);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 850;
         }
 
@@ -4093,11 +4094,11 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            padding: 10px 12px;
+            padding: 8px 10px;
         }
 
         .mr-meeting-box-head strong {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
         }
 
@@ -4111,23 +4112,34 @@
         .mr-meeting-files {
             min-height: 0;
             overflow: auto;
-            padding: 0 10px 10px;
+            padding: 0 8px 8px;
         }
 
         .mr-meeting-person,
         .mr-meeting-file {
             display: grid;
-            grid-template-columns: 34px minmax(0, 1fr);
-            gap: 9px;
+            gap: 7px;
             align-items: center;
             width: 100%;
-            padding: 8px;
+            padding: 6px;
             border: 0;
-            border-radius: 12px;
+            border-radius: 10px;
             color: #fff;
             background: transparent;
             text-align: left;
             text-decoration: none;
+        }
+
+        .mr-meeting-person {
+            grid-template-columns: 30px minmax(0, 1fr) auto;
+        }
+
+        .mr-meeting-file {
+            grid-template-columns: 30px minmax(0, 1fr);
+        }
+
+        .mr-meeting-person.is-speaking {
+            background: rgba(34,211,238,.10);
         }
 
         .mr-meeting-person:hover,
@@ -4139,8 +4151,8 @@
 
         .mr-meeting-avatar {
             position: relative;
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
             display: inline-grid;
             place-items: center;
             border-radius: 50%;
@@ -4180,6 +4192,30 @@
             color: rgba(226,232,240,.68);
             font-size: 11px;
             font-weight: 720;
+        }
+
+        .mr-meeting-person .mr-meeting-mic {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 21px;
+            padding: 0 6px;
+            border-radius: 999px;
+            overflow: visible;
+            white-space: nowrap;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .mr-meeting-mic.is-on {
+            color: #052e2b;
+            background: rgba(45,212,191,.92);
+        }
+
+        .mr-meeting-mic.is-off {
+            color: rgba(226,232,240,.74);
+            background: rgba(148,163,184,.18);
         }
 
         .mr-meeting-empty {
@@ -4942,7 +4978,7 @@
 
         @@media (max-width: 1366px), (pointer: coarse) and (max-width: 1400px) {
             .meeting-room {
-                --mr-dock-bottom: 12px;
+                --mr-dock-bottom: 28px;
                 --mr-map-tools-bottom: 76px;
                 gap: 6px;
                 padding:
@@ -5111,9 +5147,9 @@
 
             .mr-meeting-panel {
                 bottom: 76px;
-                width: min(560px, calc(100% - 350px));
-                min-width: 400px;
-                max-height: min(390px, calc(100% - 112px));
+                width: min(520px, calc(100% - 350px));
+                min-width: 380px;
+                max-height: min(320px, calc(100% - 112px));
             }
 
             .mr-customize-panel {
@@ -5199,8 +5235,8 @@
             }
 
             .mr-meeting-panel {
-                width: min(560px, calc(100% - 360px));
-                min-width: 390px;
+                width: min(520px, calc(100% - 360px));
+                min-width: 380px;
             }
 
             .mr-avatar-workspace {
@@ -5256,7 +5292,7 @@
                 right: 14px;
                 width: auto;
                 min-width: 0;
-                max-height: min(430px, calc(100% - 126px));
+                max-height: min(340px, calc(100% - 126px));
             }
 
             .mr-avatar-dialog {
@@ -5342,7 +5378,7 @@
 
             .mr-meeting-side {
                 grid-template-columns: 1fr 1fr;
-                grid-template-rows: minmax(120px, 160px);
+                grid-template-rows: minmax(96px, 130px);
                 border-top: 1px solid rgba(255,255,255,.1);
                 border-left: 0;
             }
@@ -5445,26 +5481,26 @@
                 left: 8px;
                 right: 8px;
                 bottom: 74px;
-                max-height: calc(100% - 92px);
+                max-height: min(330px, calc(100% - 92px));
                 border-radius: 16px;
             }
 
             .mr-meeting-head {
-                padding: 10px;
+                padding: 8px;
             }
 
             .mr-meeting-stage {
-                min-height: 210px;
-                padding: 10px;
+                min-height: 150px;
+                padding: 8px;
             }
 
             .mr-video-grid {
-                grid-auto-rows: minmax(96px, 1fr);
+                grid-auto-rows: minmax(72px, 1fr);
             }
 
             .mr-meeting-side {
                 grid-template-columns: 1fr;
-                grid-template-rows: 140px 140px;
+                grid-template-rows: 112px 112px;
             }
 
             .mr-meeting-box + .mr-meeting-box {
@@ -6475,11 +6511,16 @@
             const rtcPeers = new Map();
             const rtcRemoteAudio = new Map();
             const rtcRemoteStreams = new Map();
+            const rtcRemoteMediaStreams = new Map();
             const speechDetectors = new Map();
+            const meetingMediaStates = new Map();
             let activeMeetingArea = null;
             let meetingFilesAreaKey = '';
             let meetingFiles = [];
             let proximityVoiceTimer = null;
+            let autoMeetingTimer = null;
+            let autoMeetingAreaKey = '';
+            let dismissedMeetingAreaKey = '';
             let lastPositionSyncAt = 0;
             let pendingPositionSyncTimer = null;
             let roomStateTimer = null;
@@ -8324,16 +8365,42 @@
                 };
             }
 
-            function walkToAreaCenter(areaButton) {
+            function clampPointToArea(point, area, margin = 1.2) {
+                if (!area) return clampPoint(point);
+
+                const x = Number(area.x || 0);
+                const y = Number(area.y || 0);
+                const w = Number(area.w || 0);
+                const h = Number(area.h || 0);
+                if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+                    return clampPoint(point);
+                }
+
+                const minX = Math.min(x + margin, x + (w / 2));
+                const maxX = Math.max(x + w - margin, x + (w / 2));
+                const minY = Math.min(y + margin, y + (h / 2));
+                const maxY = Math.max(y + h - margin, y + (h / 2));
+                return clampPoint({
+                    x: clampPercent(point.x, minX, maxX),
+                    y: clampPercent(point.y, minY, maxY)
+                });
+            }
+
+            function walkToAreaPoint(areaButton, event) {
                 const area = areaFromButton(areaButton);
                 if (!area) return false;
 
-                const x = Number(area.x) + (Number(area.w) / 2);
-                const y = Number(area.y) + (Number(area.h) / 2);
+                const clickedPoint = event ? mapEventToWorldPoint(event) : {
+                    x: Number(area.x) + (Number(area.w) / 2),
+                    y: Number(area.y) + (Number(area.h) / 2)
+                };
+                const destination = clampPointToArea(clickedPoint, area);
+                const x = destination.x;
+                const y = destination.y;
                 if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
 
                 closePopovers();
-                walkCurrentToPoint(x, y, { closePopovers: false });
+                walkCurrentToPoint(x, y, { closePopovers: false, area });
                 showToast(isDeskArea(area) ? 'กำลังเดินกลับห้อง' : `กำลังเดินไป ${area.title || 'พื้นที่นี้'}`);
                 return true;
             }
@@ -8435,6 +8502,67 @@
                 const currentArea = currentConversationArea();
                 const targetArea = targetConversationArea(targetUserId);
                 return currentArea.key === targetArea.key;
+            }
+
+            function isMeetingArea(area) {
+                if (!area) return false;
+
+                const type = String(area.areaType || '').trim().toUpperCase();
+                const key = normalizeAreaKey(area.key || area.title || '');
+                return type === 'MEETING' ||
+                    key === 'meeting' ||
+                    key === 'meeting-room';
+            }
+
+            function clearAutoMeetingTimer() {
+                window.clearTimeout(autoMeetingTimer);
+                autoMeetingTimer = null;
+                autoMeetingAreaKey = '';
+            }
+
+            function scheduleAutoMeetingMode(area) {
+                if (isGuest || !area || isCustomizeOpen) {
+                    clearAutoMeetingTimer();
+                    return;
+                }
+
+                if (!isMeetingArea(area)) {
+                    dismissedMeetingAreaKey = '';
+                    clearAutoMeetingTimer();
+                    return;
+                }
+
+                const areaKey = normalizeAreaKey(area.key || area.title || '');
+                if (!areaKey || dismissedMeetingAreaKey === areaKey) {
+                    clearAutoMeetingTimer();
+                    return;
+                }
+
+                if (isMeetingPanelOpen() && normalizeAreaKey(activeMeetingArea?.key || activeMeetingArea?.title || '') === areaKey) {
+                    clearAutoMeetingTimer();
+                    return;
+                }
+
+                if (autoMeetingTimer && autoMeetingAreaKey === areaKey) {
+                    return;
+                }
+
+                window.clearTimeout(autoMeetingTimer);
+                autoMeetingAreaKey = areaKey;
+                autoMeetingTimer = window.setTimeout(async () => {
+                    autoMeetingTimer = null;
+
+                    const currentArea = currentConversationArea();
+                    const currentKey = normalizeAreaKey(currentArea.key || currentArea.title || '');
+                    if (currentKey !== areaKey || !isMeetingArea(currentArea) || dismissedMeetingAreaKey === areaKey || isCustomizeOpen) {
+                        return;
+                    }
+
+                    const opened = await openMeetingPanel('auto');
+                    if (opened) {
+                        showToast(`เข้าสู่โหมดประชุม: ${currentArea.title || 'Meeting'}`);
+                    }
+                }, 320);
             }
 
             function requireSameConversationArea(targetUserId, actionLabel) {
@@ -8729,9 +8857,12 @@
                 marker.dataset.y = String(y);
                 marker.style.setProperty('--x', x);
                 marker.style.setProperty('--y', y);
-                syncMarkerArea(marker);
+                const area = syncMarkerArea(marker);
                 scheduleProximityVoiceRefresh();
                 refreshMeetingPanel();
+                if (Number(marker.dataset.userId || 0) === currentUserId) {
+                    scheduleAutoMeetingMode(area);
+                }
             }
 
             function updateMarkerStatusClasses(marker, status) {
@@ -9016,8 +9147,17 @@
             function rtcTargetIds() {
                 if (!hasRtcLocalMedia() || !realtimeReady || isGuest) return [];
 
+                return [...peopleById.keys()]
+                    .filter(userId => userId && userId !== currentUserId)
+                    .filter(userId => isRtcPeerInRange(userId));
+            }
+
+            function isRtcPeerInRange(userId) {
+                userId = Number(userId || 0);
+                if (!userId || userId === currentUserId) return false;
+
                 const currentMarker = getPersonMarker(currentUserId);
-                if (!currentMarker) return [];
+                if (!currentMarker) return false;
 
                 const currentArea = markerArea(currentMarker);
                 const currentPoint = {
@@ -9025,22 +9165,19 @@
                     y: markerPercent(currentMarker, 'y', 50)
                 };
                 const maxDistance = 18;
+                const marker = getPersonMarker(userId);
+                if (!marker || marker.hidden) return false;
 
-                return [...peopleById.keys()]
-                    .filter(userId => userId && userId !== currentUserId)
-                    .filter(userId => {
-                        const marker = getPersonMarker(userId);
-                        if (!marker || marker.hidden) return false;
+                const area = markerArea(marker);
+                if (area.key !== currentArea.key) return false;
+                if (isMeetingArea(currentArea)) return true;
 
-                        const area = markerArea(marker);
-                        if (area.key !== currentArea.key) return false;
+                const point = {
+                    x: markerPercent(marker, 'x', 50),
+                    y: markerPercent(marker, 'y', 50)
+                };
 
-                        const point = {
-                            x: markerPercent(marker, 'x', 50),
-                            y: markerPercent(marker, 'y', 50)
-                        };
-                        return pointDistance(currentPoint, point) <= maxDistance;
-                    });
+                return pointDistance(currentPoint, point) <= maxDistance;
             }
 
             function remoteVolumeFor(userId) {
@@ -9048,7 +9185,10 @@
                 const marker = getPersonMarker(userId);
                 if (!currentMarker || !marker) return 0;
 
-                if (markerArea(currentMarker).key !== markerArea(marker).key) return 0;
+                const currentArea = markerArea(currentMarker);
+                const targetArea = markerArea(marker);
+                if (currentArea.key !== targetArea.key) return 0;
+                if (isMeetingArea(currentArea)) return 1;
 
                 const distance = pointDistance(
                     { x: markerPercent(currentMarker, 'x', 50), y: markerPercent(currentMarker, 'y', 50) },
@@ -9066,6 +9206,163 @@
 
             function hasRtcLocalMedia() {
                 return Boolean(micStream || cameraStream || screenStream);
+            }
+
+            function remoteStreamKey(userId, stream) {
+                return `${Number(userId || 0)}:${stream?.id || 'stream'}`;
+            }
+
+            function remoteMediaEntriesForUser(userId) {
+                const id = Number(userId || 0);
+                return [...rtcRemoteMediaStreams.values()].filter(entry => Number(entry.userId) === id);
+            }
+
+            function isRemoteScreenStream(userId, stream) {
+                if (!stream || !liveVideoTracks(stream).length) return false;
+                if (streamLooksLikeScreen(stream)) return true;
+
+                const saved = meetingMediaStates.get(Number(userId || 0)) || {};
+                if (!saved.screenOn) return false;
+                if (!saved.cameraOn) return true;
+
+                const videoEntries = remoteMediaEntriesForUser(userId)
+                    .filter(entry => liveVideoTracks(entry.stream).length)
+                    .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+                return videoEntries.length > 1 && videoEntries[0]?.stream?.id === stream.id;
+            }
+
+            function rememberRemoteMediaStream(userId, stream) {
+                const id = Number(userId || 0);
+                if (!id || !stream) return null;
+
+                const key = remoteStreamKey(id, stream);
+                const entry = {
+                    userId: id,
+                    stream,
+                    updatedAt: Date.now()
+                };
+                rtcRemoteMediaStreams.set(key, entry);
+                rtcRemoteStreams.set(id, stream);
+
+                stream.getTracks().forEach(track => {
+                    track.addEventListener('ended', () => {
+                        rtcRemoteMediaStreams.delete(key);
+                        renderMeetingPanel();
+                    }, { once: true });
+                });
+
+                return entry;
+            }
+
+            function forgetRemoteMediaStreams(userId) {
+                const id = Number(userId || 0);
+                [...rtcRemoteMediaStreams.entries()].forEach(([key, entry]) => {
+                    if (Number(entry.userId) === id) {
+                        rtcRemoteMediaStreams.delete(key);
+                    }
+                });
+            }
+
+            function currentMeetingMediaState(extra = {}) {
+                const detector = speechDetectors.get(speakingDetectorKey(currentUserId));
+                const micOn = Boolean(micStream && liveAudioTracks(micStream).length);
+                const state = {
+                    userId: currentUserId,
+                    areaKey: currentConversationArea().key,
+                    micOn,
+                    cameraOn: Boolean(cameraStream && liveVideoTracks(cameraStream).length),
+                    screenOn: Boolean(screenStream && liveVideoTracks(screenStream).length),
+                    isSpeaking: micOn && Boolean(detector?.isSpeaking),
+                    ...extra
+                };
+
+                if (!state.micOn) {
+                    state.isSpeaking = false;
+                }
+
+                return state;
+            }
+
+            function applyMeetingMediaState(state, options = {}) {
+                const userId = Number(state?.userId ?? state?.UserId ?? 0);
+                if (!userId) return;
+
+                const previous = meetingMediaStates.get(userId) || {};
+                const hasMic = Object.prototype.hasOwnProperty.call(state || {}, 'micOn') ||
+                    Object.prototype.hasOwnProperty.call(state || {}, 'MicOn');
+                const hasCamera = Object.prototype.hasOwnProperty.call(state || {}, 'cameraOn') ||
+                    Object.prototype.hasOwnProperty.call(state || {}, 'CameraOn');
+                const hasScreen = Object.prototype.hasOwnProperty.call(state || {}, 'screenOn') ||
+                    Object.prototype.hasOwnProperty.call(state || {}, 'ScreenOn');
+                const hasSpeaking = Object.prototype.hasOwnProperty.call(state || {}, 'isSpeaking') ||
+                    Object.prototype.hasOwnProperty.call(state || {}, 'IsSpeaking');
+                const micOn = hasMic ? Boolean(state?.micOn ?? state?.MicOn) : Boolean(previous.micOn);
+                const next = {
+                    userId,
+                    areaKey: normalizeAreaKey(state?.areaKey ?? state?.AreaKey ?? previous.areaKey ?? ''),
+                    micOn,
+                    cameraOn: hasCamera ? Boolean(state?.cameraOn ?? state?.CameraOn) : Boolean(previous.cameraOn),
+                    screenOn: hasScreen ? Boolean(state?.screenOn ?? state?.ScreenOn) : Boolean(previous.screenOn),
+                    isSpeaking: micOn && (hasSpeaking ? Boolean(state?.isSpeaking ?? state?.IsSpeaking) : Boolean(previous.isSpeaking)),
+                    updatedAt: state?.updatedAt ?? state?.UpdatedAt ?? new Date().toISOString()
+                };
+
+                meetingMediaStates.set(userId, next);
+                setPersonSpeaking(userId, next.isSpeaking);
+
+                const marker = getPersonMarker(userId);
+                if (marker) {
+                    marker.dataset.micOn = next.micOn ? 'true' : 'false';
+                }
+
+                if (!options.silent) {
+                    renderMeetingPanel();
+                }
+            }
+
+            async function broadcastMeetingMediaState(extra = {}) {
+                const state = currentMeetingMediaState(extra);
+                applyMeetingMediaState(state, { silent: false });
+
+                if (!realtimeConnection || !realtimeReady || isGuest) return;
+
+                try {
+                    await realtimeConnection.invoke(
+                        'UpdateMediaState',
+                        state.areaKey,
+                        Boolean(state.micOn),
+                        Boolean(state.cameraOn),
+                        Boolean(state.screenOn),
+                        Boolean(state.isSpeaking)
+                    );
+                } catch {
+                    // Media state is advisory; WebRTC/polling should keep the room usable.
+                }
+            }
+
+            function meetingMediaStateForUser(userId) {
+                const id = Number(userId || 0);
+                if (!id) return { micOn: false, cameraOn: false, screenOn: false, isSpeaking: false };
+                if (id === currentUserId) return currentMeetingMediaState();
+
+                const saved = meetingMediaStates.get(id) || {};
+                const entries = remoteMediaEntriesForUser(id);
+                const hasRemoteAudio = entries.some(entry => liveAudioTracks(entry.stream).length);
+                const hasRemoteScreen = entries.some(entry => isRemoteScreenStream(id, entry.stream));
+                const hasRemoteCamera = entries.some(entry =>
+                    liveVideoTracks(entry.stream).length && !isRemoteScreenStream(id, entry.stream));
+                const hasSavedMic = Object.prototype.hasOwnProperty.call(saved, 'micOn');
+                const hasSavedCamera = Object.prototype.hasOwnProperty.call(saved, 'cameraOn');
+                const hasSavedScreen = Object.prototype.hasOwnProperty.call(saved, 'screenOn');
+
+                return {
+                    userId: id,
+                    areaKey: saved.areaKey || normalizeAreaKey(markerArea(getPersonMarker(id))?.key || ''),
+                    micOn: hasSavedMic ? Boolean(saved.micOn) : hasRemoteAudio,
+                    cameraOn: hasSavedCamera ? Boolean(saved.cameraOn) : hasRemoteCamera,
+                    screenOn: hasSavedScreen ? Boolean(saved.screenOn) : hasRemoteScreen,
+                    isSpeaking: Boolean(saved.isSpeaking)
+                };
             }
 
             function ensureRtcPeer(userId) {
@@ -9089,22 +9386,33 @@
                     const stream = event.streams[0];
                     if (!stream) return;
 
-                    rtcRemoteStreams.set(userId, stream);
+                    rememberRemoteMediaStream(userId, stream);
                     startSpeakingDetector(stream, userId);
 
-                    let audio = rtcRemoteAudio.get(userId);
-                    if (!audio) {
-                        audio = document.createElement('audio');
-                        audio.autoplay = true;
-                        audio.playsInline = true;
-                        audio.dataset.userId = String(userId);
-                        audio.style.display = 'none';
-                        document.body.appendChild(audio);
-                        rtcRemoteAudio.set(userId, audio);
-                    }
+                    if (liveAudioTracks(stream).length) {
+                        let audio = rtcRemoteAudio.get(userId);
+                        if (!audio) {
+                            audio = document.createElement('audio');
+                            audio.autoplay = true;
+                            audio.playsInline = true;
+                            audio.dataset.userId = String(userId);
+                            audio.style.display = 'none';
+                            document.body.appendChild(audio);
+                            rtcRemoteAudio.set(userId, audio);
+                        }
 
-                    audio.srcObject = stream;
-                    setRemoteAudioVolume(userId);
+                        audio.srcObject = stream;
+                        audio.play?.().catch(() => { });
+                        setRemoteAudioVolume(userId);
+                    }
+                    applyMeetingMediaState({
+                        userId,
+                        areaKey: markerArea(getPersonMarker(userId)).key,
+                        micOn: liveAudioTracks(stream).length > 0 || meetingMediaStateForUser(userId).micOn,
+                        cameraOn: meetingMediaStateForUser(userId).cameraOn,
+                        screenOn: meetingMediaStateForUser(userId).screenOn,
+                        isSpeaking: false
+                    }, { silent: true });
                     renderMeetingPanel();
                 };
 
@@ -9138,7 +9446,9 @@
             async function handleRtcOffer(message) {
                 const fromUserId = Number(message?.fromUserId || 0);
                 const offer = message?.payload?.offer;
-                if (!fromUserId || !offer || !hasRtcLocalMedia() || !window.RTCSessionDescription) return;
+                const offerAreaKey = normalizeAreaKey(message?.payload?.areaKey || '');
+                if (!fromUserId || !offer || !window.RTCSessionDescription) return;
+                if (offerAreaKey && offerAreaKey !== normalizeAreaKey(currentConversationArea().key)) return;
 
                 const peer = ensureRtcPeer(fromUserId);
                 if (!peer) return;
@@ -9196,6 +9506,7 @@
                 }
 
                 rtcRemoteStreams.delete(userId);
+                forgetRemoteMediaStreams(userId);
                 renderMeetingPanel();
             }
 
@@ -9245,24 +9556,30 @@
             }
 
             function refreshProximityVoice() {
-                if (!hasRtcLocalMedia() || !realtimeReady) {
+                if (!realtimeReady) {
                     closeAllRtcPeers();
                     return;
                 }
 
-                const targets = new Set(rtcTargetIds());
-                targets.forEach(userId => {
-                    setRemoteAudioVolume(userId);
-                    if (!rtcPeers.has(userId)) {
-                        callRtcPeer(userId);
+                if (hasRtcLocalMedia()) {
+                    const targets = new Set(rtcTargetIds());
+                    targets.forEach(userId => {
+                        setRemoteAudioVolume(userId);
+                        if (!rtcPeers.has(userId)) {
+                            callRtcPeer(userId);
+                        }
+                    });
+                }
+
+                [...rtcPeers.keys()].forEach(userId => {
+                    if (!isRtcPeerInRange(userId)) {
+                        closeRtcPeer(userId);
+                    } else {
+                        setRemoteAudioVolume(userId);
                     }
                 });
 
-                [...rtcPeers.keys()].forEach(userId => {
-                    if (!targets.has(userId)) {
-                        closeRtcPeer(userId);
-                    }
-                });
+                void broadcastMeetingMediaState();
             }
 
             async function announceVoiceArea() {
@@ -9270,6 +9587,7 @@
 
                 try {
                     await realtimeConnection.invoke('JoinVoiceArea', currentConversationArea().key);
+                    await broadcastMeetingMediaState();
                 } catch {
                     // Realtime presence is opportunistic; polling still keeps the room usable.
                 }
@@ -9319,6 +9637,9 @@
                     showToast(`${file.uploadedByName || 'Someone'} แชร์ไฟล์ใน ${meetingArea().title}`);
                 });
                 realtimeConnection.on('VoiceAreaChanged', () => scheduleProximityVoiceRefresh());
+                realtimeConnection.on('MeetingMediaStateChanged', state => {
+                    applyMeetingMediaState(state);
+                });
                 realtimeConnection.on('RtcOffer', handleRtcOffer);
                 realtimeConnection.on('RtcAnswer', handleRtcAnswer);
                 realtimeConnection.on('RtcIceCandidate', handleRtcIceCandidate);
@@ -9411,6 +9732,60 @@
 
                     candidates.sort((a, b) => pointDistance(a, preferred) - pointDistance(b, preferred));
                     const openPoint = candidates.find(candidate => !isPointBlocked(candidate, obstacles));
+                    if (openPoint) {
+                        return openPoint;
+                    }
+                }
+
+                return preferred;
+            }
+
+            function walkDestinationOverlapsPerson(point, ignoreUserId = currentUserId, minDistance = 2.4) {
+                return [...map.querySelectorAll('.mr-person')].some(marker => {
+                    const userId = Number(marker.dataset.userId || 0);
+                    if (!userId || userId === Number(ignoreUserId || 0) || marker.hidden) return false;
+
+                    const other = {
+                        x: markerPercent(marker, 'x', 50),
+                        y: markerPercent(marker, 'y', 50)
+                    };
+                    return pointDistance(point, other) < minDistance;
+                });
+            }
+
+            function resolveWalkDestination(point, obstacles, options = {}) {
+                const ignoreUserId = Number(options.ignoreUserId || currentUserId || 0);
+                const preferred = options.area
+                    ? clampPointToArea(nearestWalkablePoint(point, obstacles), options.area)
+                    : nearestWalkablePoint(point, obstacles);
+
+                if (!isPointBlocked(preferred, obstacles) && !walkDestinationOverlapsPerson(preferred, ignoreUserId)) {
+                    return preferred;
+                }
+
+                for (let radius = .8; radius <= 8; radius += .8) {
+                    const candidates = [];
+                    for (let angle = 0; angle < 360; angle += 30) {
+                        const radians = angle * Math.PI / 180;
+                        const raw = {
+                            x: preferred.x + (Math.cos(radians) * radius),
+                            y: preferred.y + (Math.sin(radians) * radius)
+                        };
+                        candidates.push(options.area ? clampPointToArea(raw, options.area) : clampPoint(raw));
+                    }
+
+                    const seen = new Set();
+                    const openPoint = candidates
+                        .sort((a, b) => pointDistance(a, point) - pointDistance(b, point))
+                        .find(candidate => {
+                            const key = `${roundPercent(candidate.x)}:${roundPercent(candidate.y)}`;
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            if (isPointBlocked(candidate, obstacles)) return false;
+                            if (walkDestinationOverlapsPerson(candidate, ignoreUserId)) return false;
+                            return true;
+                        });
+
                     if (openPoint) {
                         return openPoint;
                     }
@@ -9642,13 +10017,19 @@
                 const marker = getPersonMarker(currentUserId);
                 if (!marker) return false;
 
-                const nextX = clampPercent(x, 4, 96);
-                const nextY = clampPercent(y, walkBounds.minY, walkBounds.maxY);
+                const requested = clampPoint({
+                    x: clampPercent(x, 4, 96),
+                    y: clampPercent(y, walkBounds.minY, walkBounds.maxY)
+                });
+                const destination = resolveWalkDestination(requested, buildWalkObstacles(), {
+                    area: options.area,
+                    ignoreUserId: currentUserId
+                });
                 if (options.closePopovers !== false) {
                     closePopovers();
                 }
 
-                const moved = await animateMarkerTo(marker, nextX, nextY, options);
+                const moved = await animateMarkerTo(marker, destination.x, destination.y, options);
 
                 if (moved && options.message) {
                     showToast(options.message);
@@ -9960,6 +10341,16 @@
                         if (detector.isSpeaking !== isSpeaking) {
                             detector.isSpeaking = isSpeaking;
                             setPersonSpeaking(id, isSpeaking);
+                            if (id === currentUserId) {
+                                void broadcastMeetingMediaState({ isSpeaking });
+                            } else {
+                                applyMeetingMediaState({
+                                    userId: id,
+                                    areaKey: markerArea(getPersonMarker(id)).key,
+                                    micOn: true,
+                                    isSpeaking
+                                });
+                            }
                         }
 
                         detector.frameId = window.requestAnimationFrame(tick);
@@ -10004,10 +10395,11 @@
             async function toggleMicrophone() {
                 if (micStream) {
                     stopSpeakingDetector(currentUserId);
+                    removeStreamTracksFromRtcPeers(micStream);
                     stopMediaStream(micStream);
                     micStream = null;
-                    closeAllRtcPeers();
                     setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                    await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                     showToast('ปิดไมโครโฟนแล้ว');
                     return;
                 }
@@ -10021,22 +10413,24 @@
                     micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                     micStream.getAudioTracks().forEach(track => {
                         track.addEventListener('ended', () => {
+                            removeStreamTracksFromRtcPeers(micStream);
                             stopSpeakingDetector(currentUserId);
                             micStream = null;
-                            closeAllRtcPeers();
                             setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                            void broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                         }, { once: true });
                     });
                     startSpeakingDetector(micStream, currentUserId);
                     setDockMediaState('toggleMic', true, 'Microphone on', 'Microphone muted');
+                    await broadcastMeetingMediaState({ micOn: true, isSpeaking: false });
                     await announceVoiceArea();
                     refreshProximityVoice();
                     showToast(`เปิดไมโครโฟนใน ${currentConversationArea().title} แล้ว`);
                 } catch (error) {
                     stopSpeakingDetector(currentUserId);
                     micStream = null;
-                    closeAllRtcPeers();
                     setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                    await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                     showToast(mediaErrorMessage(error, 'ไมโครโฟน'));
                 }
             }
@@ -10047,6 +10441,7 @@
                     stopMediaStream(cameraStream);
                     cameraStream = null;
                     setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                    await broadcastMeetingMediaState({ cameraOn: false });
                     refreshProximityVoice();
                     renderMeetingPanel();
                     showToast('ปิดกล้องแล้ว');
@@ -10066,18 +10461,21 @@
                             removeStreamTracksFromRtcPeers(stream);
                             cameraStream = null;
                             setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                            void broadcastMeetingMediaState({ cameraOn: false });
                             refreshProximityVoice();
                             renderMeetingPanel();
                         }, { once: true });
                     });
                     addStreamTracksToRtcPeers(cameraStream);
                     setDockMediaState('toggleCamera', true, 'Camera on', 'Camera off');
+                    await broadcastMeetingMediaState({ cameraOn: true });
                     await openMeetingPanel('camera');
                     renderMeetingPanel();
                     showToast('เปิดกล้องแล้ว');
                 } catch (error) {
                     cameraStream = null;
                     setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                    await broadcastMeetingMediaState({ cameraOn: false });
                     showToast(mediaErrorMessage(error, 'กล้อง'));
                 }
             }
@@ -10088,6 +10486,7 @@
                     stopMediaStream(screenStream);
                     screenStream = null;
                     setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                    await broadcastMeetingMediaState({ screenOn: false });
                     refreshProximityVoice();
                     renderMeetingPanel();
                     showToast('หยุดแชร์หน้าจอแล้ว');
@@ -10107,6 +10506,7 @@
                             removeStreamTracksFromRtcPeers(stream);
                             screenStream = null;
                             setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                            void broadcastMeetingMediaState({ screenOn: false });
                             refreshProximityVoice();
                             renderMeetingPanel();
                             showToast('หยุดแชร์หน้าจอแล้ว');
@@ -10114,12 +10514,14 @@
                     });
                     addStreamTracksToRtcPeers(screenStream);
                     setDockMediaState('shareScreen', true, 'Screen sharing', 'Screen share off');
+                    await broadcastMeetingMediaState({ screenOn: true });
                     await openMeetingPanel('screen');
                     renderMeetingPanel();
                     showToast(`กำลังแชร์หน้าจอใน ${currentConversationArea().title}`);
                 } catch (error) {
                     screenStream = null;
                     setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                    await broadcastMeetingMediaState({ screenOn: false });
                     showToast(mediaErrorMessage(error, 'แชร์หน้าจอ'));
                 }
             }
@@ -10162,6 +10564,10 @@
 
             function isMeetingPanelOpen() {
                 return meetingPanel && !meetingPanel.hidden;
+            }
+
+            function liveAudioTracks(stream) {
+                return stream?.getAudioTracks?.().filter(track => track.readyState === 'live' && track.enabled !== false) || [];
             }
 
             function liveVideoTracks(stream) {
@@ -10318,6 +10724,8 @@
 
                 grid.replaceChildren();
                 meetingScreenSources.clear();
+                const area = meetingArea();
+                const participants = meetingParticipantsForArea(area);
                 const current = peopleById.get(currentUserId);
                 const currentName = current?.displayName || 'You';
 
@@ -10329,27 +10737,49 @@
                     }));
                 }
 
-                grid.appendChild(createVideoTile(currentName, cameraStream, {
-                    muted: true,
-                    placeholder: cameraStream ? 'Camera starting' : 'Camera off',
-                    sourceId: 'local-camera'
-                }));
+                participants
+                    .filter(person => Number(person.userId) !== currentUserId)
+                    .forEach(person => {
+                        remoteMediaEntriesForUser(person.userId)
+                            .filter(entry => liveVideoTracks(entry.stream).length)
+                            .filter(entry => isRemoteScreenStream(person.userId, entry.stream))
+                            .forEach(entry => {
+                                grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, entry.stream, {
+                                    muted: true,
+                                    isScreen: true,
+                                    sourceId: `remote-screen-${person.userId}-${entry.stream.id || 'video'}`
+                                }));
+                            });
+                    });
 
-                rtcRemoteStreams.forEach((stream, userId) => {
-                    if (!liveVideoTracks(stream).length) return;
+                participants.forEach(person => {
+                    const userId = Number(person.userId);
+                    const isSelf = userId === currentUserId;
+                    let stream = null;
 
-                    const marker = getPersonMarker(userId);
-                    if (!marker || marker.hidden || markerArea(marker).key !== meetingArea().key) return;
+                    if (isSelf) {
+                        stream = cameraStream;
+                    } else {
+                        const cameraEntry = remoteMediaEntriesForUser(userId)
+                            .filter(entry => liveVideoTracks(entry.stream).length)
+                            .find(entry => !isRemoteScreenStream(userId, entry.stream));
+                        stream = cameraEntry?.stream || null;
+                    }
 
-                    const person = peopleById.get(Number(userId));
-                    const isRemoteScreen = streamLooksLikeScreen(stream);
-                    const label = `${person?.displayName || `User ${userId}`}${isRemoteScreen ? ' · Screen' : ''}`;
+                    const label = isSelf ? `${person.displayName || currentName} · You` : (person.displayName || `User ${userId}`);
                     grid.appendChild(createVideoTile(label, stream, {
-                        muted: false,
-                        isScreen: isRemoteScreen,
-                        sourceId: `remote-${userId}-${stream.id || 'video'}`
+                        muted: true,
+                        placeholder: stream ? 'Camera starting' : 'กล้องปิด',
+                        sourceId: isSelf ? 'local-camera' : `remote-camera-${userId}`
                     }));
                 });
+
+                if (!grid.children.length) {
+                    grid.appendChild(createVideoTile('Meeting', null, {
+                        muted: true,
+                        placeholder: 'ยังไม่มีคนในเอเรียนี้'
+                    }));
+                }
 
                 if (activeScreenSourceId && !meetingScreenSources.has(activeScreenSourceId)) {
                     closeMeetingScreenViewer();
@@ -10376,23 +10806,31 @@
                 }
 
                 participants.forEach(person => {
+                    const media = meetingMediaStateForUser(person.userId);
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'mr-meeting-person';
+                    button.classList.toggle('is-speaking', Boolean(media.isSpeaking));
                     button.dataset.userId = String(person.userId);
+                    button.title = `${person.displayName} · ${media.micOn ? 'ไมค์เปิด' : 'ไมค์ปิด'}`;
 
                     const avatar = document.createElement('span');
                     avatar.className = 'mr-meeting-avatar';
                     avatar.textContent = person.initial || 'U';
 
                     const copy = document.createElement('span');
+                    copy.className = 'mr-meeting-person-copy';
                     const name = document.createElement('strong');
                     name.textContent = person.userId === currentUserId ? `${person.displayName} · You` : person.displayName;
                     const meta = document.createElement('span');
-                    meta.textContent = person.statusLabel || 'Available';
+                    meta.textContent = `${person.statusLabel || 'Available'} · ${media.micOn ? 'ไมค์เปิด' : 'ไมค์ปิด'}`;
                     copy.append(name, meta);
 
-                    button.append(avatar, copy);
+                    const mic = document.createElement('span');
+                    mic.className = `mr-meeting-mic ${media.micOn ? 'is-on' : 'is-off'}`;
+                    mic.textContent = media.micOn ? 'เปิด' : 'ปิด';
+
+                    button.append(avatar, copy, mic);
                     list.appendChild(button);
                 });
             }
@@ -10477,6 +10915,9 @@
                 }
 
                 activeMeetingArea = currentConversationArea();
+                if (reason !== 'auto') {
+                    dismissedMeetingAreaKey = '';
+                }
                 meetingPanel.hidden = false;
                 ensureMeetingPanelInView();
                 closePopovers();
@@ -10492,13 +10933,23 @@
                 return true;
             }
 
+            function dismissAutoMeetingForCurrentArea() {
+                const area = activeMeetingArea || currentConversationArea();
+                if (isMeetingArea(area)) {
+                    dismissedMeetingAreaKey = normalizeAreaKey(area.key || area.title || '');
+                }
+                clearAutoMeetingTimer();
+            }
+
             function minimizeMeetingPanel() {
+                dismissAutoMeetingForCurrentArea();
                 if (meetingPanel) {
                     meetingPanel.hidden = true;
                 }
             }
 
-            function leaveMeetingPanel() {
+            function leaveMeetingPanel(options = {}) {
+                dismissAutoMeetingForCurrentArea();
                 if (micStream) {
                     stopSpeakingDetector(currentUserId);
                     stopMediaStream(micStream);
@@ -10521,16 +10972,24 @@
                 }
 
                 closeAllRtcPeers();
+                void broadcastMeetingMediaState({ micOn: false, cameraOn: false, screenOn: false, isSpeaking: false });
                 activeMeetingArea = null;
                 closeMeetingScreenViewer();
                 minimizeMeetingPanel();
-                showToast('ออกจาก Meeting แล้ว');
+                showToast(options.message || 'ออกจาก Meeting แล้ว');
             }
 
             function refreshMeetingPanel() {
                 if (!isMeetingPanelOpen()) return;
 
                 const currentArea = currentConversationArea();
+                const previousArea = activeMeetingArea;
+                if (previousArea && isMeetingArea(previousArea) &&
+                    normalizeAreaKey(currentArea.key || currentArea.title || '') !== normalizeAreaKey(previousArea.key || previousArea.title || '')) {
+                    leaveMeetingPanel({ message: 'ออกจาก Meeting เพราะเดินออกจากพื้นที่ประชุมแล้ว' });
+                    return;
+                }
+
                 if (!activeMeetingArea || currentArea.key !== activeMeetingArea.key) {
                     activeMeetingArea = currentArea;
                     meetingFilesAreaKey = '';
@@ -11414,7 +11873,7 @@
                 event.preventDefault();
                 event.stopPropagation();
 
-                if (areaButton && walkToAreaCenter(areaButton)) {
+                if (areaButton && walkToAreaPoint(areaButton, event)) {
                     return;
                 }
 
@@ -11454,6 +11913,7 @@
                 window.clearTimeout(pendingPositionSyncTimer);
                 window.clearTimeout(pendingObjectPlacementTimer);
                 window.clearTimeout(pendingDeskAreaSelectionTimer);
+                window.clearTimeout(autoMeetingTimer);
                 window.clearTimeout(proximityVoiceTimer);
                 stopAllSpeakingDetectors();
                 closeAllRtcPeers();
@@ -11713,7 +12173,10 @@
             document.querySelectorAll('.mr-person').forEach(marker => {
                 const person = peopleById.get(Number(marker.dataset.userId));
                 applyAvatarToElement(marker, person || marker.dataset);
-                syncMarkerArea(marker);
+                const area = syncMarkerArea(marker);
+                if (Number(marker.dataset.userId || 0) === currentUserId) {
+                    scheduleAutoMeetingMode(area);
+                }
             });
             startCanvasEngine();
             startRealtimeRoom();

@@ -53,6 +53,25 @@ namespace ProjectTracking.Hubs
             });
         }
 
+        public async Task UpdateMediaState(string areaKey, bool micOn, bool cameraOn, bool screenOn, bool isSpeaking)
+        {
+            var userId = CurrentUserId();
+            if (!userId.HasValue || userId.Value <= 0)
+                return;
+
+            areaKey = (areaKey ?? "").Trim();
+            await Clients.Group(RoomGroup).SendAsync("MeetingMediaStateChanged", new
+            {
+                userId = userId.Value,
+                areaKey,
+                micOn,
+                cameraOn,
+                screenOn,
+                isSpeaking = micOn && isSpeaking,
+                updatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
         public Task SendRtcOffer(int targetUserId, object offer, string? areaKey = null)
             => SendRtcSignalAsync(targetUserId, "RtcOffer", new { offer, areaKey });
 
