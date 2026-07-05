@@ -8,6 +8,9 @@ using ProjectTracking.Hubs;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace ProjectTracking.Controllers
 {
@@ -1093,6 +1096,60 @@ namespace ProjectTracking.Controllers
             return Json(new { ok = true, file = dto, message = "แชร์ไฟล์ในห้องประชุมแล้ว" });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("MeetingRoom.Index")]
+        public async Task<IActionResult> LiveKitToken(string areaKey, string? areaTitle = null)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            var liveKitUrl = Environment.GetEnvironmentVariable("LIVEKIT_URL")?.Trim();
+            var apiKey = Environment.GetEnvironmentVariable("LIVEKIT_API_KEY")?.Trim();
+            var apiSecret = Environment.GetEnvironmentVariable("LIVEKIT_API_SECRET")?.Trim();
+
+            if (string.IsNullOrWhiteSpace(liveKitUrl) ||
+                string.IsNullOrWhiteSpace(apiKey) ||
+                string.IsNullOrWhiteSpace(apiSecret))
+            {
+                return Json(new
+                {
+                    ok = false,
+                    configured = false,
+                    message = "ยังไม่ได้ตั้งค่า LiveKit: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET"
+                });
+            }
+
+            areaKey = NormalizeAreaKey(areaKey);
+            areaTitle = string.IsNullOrWhiteSpace(areaTitle) ? areaKey : NormalizeAreaTitle(areaTitle);
+            var roomName = BuildLiveKitRoomName(areaKey);
+            var displayName = await ResolveDisplayNameAsync(currentUserId.Value);
+            var token = CreateLiveKitToken(
+                apiKey,
+                apiSecret,
+                roomName,
+                $"user-{currentUserId.Value}",
+                displayName,
+                TimeSpan.FromHours(6));
+
+            await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                ok = true,
+                configured = true,
+                url = liveKitUrl,
+                token,
+                roomName,
+                areaKey,
+                areaTitle,
+                identity = $"user-{currentUserId.Value}",
+                displayName
+            });
+        }
+
         private async Task<MeetingRoomViewModel> BuildViewModelAsync(
             int? currentUserId,
             bool isGuest = false,
@@ -1656,6 +1713,66 @@ namespace ProjectTracking.Controllers
                 key = key.Replace("--", "-");
 
             return string.IsNullOrWhiteSpace(key) ? "meeting-area" : key[..Math.Min(key.Length, 70)];
+        }
+
+        private static string BuildLiveKitRoomName(string areaKey)
+        {
+            return $"soat-meeting-{NormalizeAreaKey(areaKey)}";
+        }
+
+        private static string CreateLiveKitToken(
+            string apiKey,
+            string apiSecret,
+            string roomName,
+            string identity,
+            string displayName,
+            TimeSpan ttl)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var header = new Dictionary<string, object?>
+            {
+                ["alg"] = "HS256",
+                ["typ"] = "JWT"
+            };
+
+            var payload = new Dictionary<string, object?>
+            {
+                ["iss"] = apiKey,
+                ["sub"] = identity,
+                ["name"] = displayName,
+                ["nbf"] = now.ToUnixTimeSeconds(),
+                ["iat"] = now.ToUnixTimeSeconds(),
+                ["exp"] = now.Add(ttl).ToUnixTimeSeconds(),
+                ["video"] = new Dictionary<string, object?>
+                {
+                    ["roomJoin"] = true,
+                    ["room"] = roomName,
+                    ["canPublish"] = true,
+                    ["canSubscribe"] = true,
+                    ["canPublishData"] = true
+                },
+                ["metadata"] = JsonSerializer.Serialize(new
+                {
+                    source = "ProjectTracking",
+                    userId = identity.Replace("user-", "", StringComparison.OrdinalIgnoreCase)
+                })
+            };
+
+            var encodedHeader = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(header));
+            var encodedPayload = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(payload));
+            var unsignedToken = $"{encodedHeader}.{encodedPayload}";
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(apiSecret));
+            var signature = Base64UrlEncode(hmac.ComputeHash(Encoding.UTF8.GetBytes(unsignedToken)));
+
+            return $"{unsignedToken}.{signature}";
+        }
+
+        private static string Base64UrlEncode(byte[] bytes)
+        {
+            return Convert.ToBase64String(bytes)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
         }
 
         private static string NormalizeAreaType(string? areaType)

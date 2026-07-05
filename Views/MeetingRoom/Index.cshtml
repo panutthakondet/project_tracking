@@ -5622,6 +5622,7 @@
      data-map-url="/meeting-room/maps/default-map.json"
      data-files-url="@Url.Action("Files", "MeetingRoom")"
      data-share-file-url="@Url.Action("ShareFile", "MeetingRoom")"
+     data-livekit-token-url="@Url.Action("LiveKitToken", "MeetingRoom")"
      data-set-desk-area-url="@Url.Action("SetDeskArea", "MeetingRoom")"
      data-save-area-url="@Url.Action("SaveArea", "MeetingRoom")"
      data-delete-area-url="@Url.Action("DeleteArea", "MeetingRoom")"
@@ -6451,6 +6452,7 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
     <script src="~/js/meeting-room/meeting-room-engine.js" asp-append-version="true"></script>
     <script>
         (() => {
@@ -6499,6 +6501,14 @@
             let screenStream = null;
             let meetingPanelDragState = null;
             let meetingPanelPositioned = false;
+            let liveKitRoom = null;
+            let liveKitConnectedAreaKey = '';
+            let liveKitConnectingPromise = null;
+            let desiredMicOn = false;
+            let desiredCameraOn = false;
+            let desiredScreenOn = false;
+            const liveKitRemoteTracks = new Map();
+            const liveKitRemoteAudio = new Map();
             const meetingScreenSources = new Map();
             let activeScreenSourceId = '';
             let screenViewerZoom = 1;
@@ -6514,6 +6524,8 @@
             const rtcRemoteMediaStreams = new Map();
             const speechDetectors = new Map();
             const meetingMediaStates = new Map();
+            let meetingParticipantsRenderTimer = null;
+            let meetingVideosRenderTimer = null;
             let activeMeetingArea = null;
             let meetingFilesAreaKey = '';
             let meetingFiles = [];
@@ -9202,10 +9214,564 @@
                 if (audio) {
                     audio.volume = remoteVolumeFor(Number(userId));
                 }
+
+                liveKitRemoteAudio.forEach(element => {
+                    if (Number(element.dataset.userId || 0) === Number(userId)) {
+                        element.volume = isMeetingArea(currentConversationArea()) ? 1 : remoteVolumeFor(Number(userId));
+                    }
+                });
+            }
+
+            function liveKitClient() {
+                return window.LivekitClient || window.LiveKitClient || null;
+            }
+
+            function useLiveKitMedia() {
+                return !isGuest && Boolean(root.dataset.livekitTokenUrl);
+            }
+
+            function liveKitSourceName(source) {
+                return String(source || '').toLowerCase().replace(/-/g, '_');
+            }
+
+            function liveKitPublicationSource(publication) {
+                return publication?.source || publication?.track?.source || '';
+            }
+
+            function liveKitPublicationTrack(publication) {
+                return publication?.track || null;
+            }
+
+            function liveKitTrackKind(track, publication = null) {
+                return String(track?.kind || publication?.kind || publication?.track?.kind || '').toLowerCase();
+            }
+
+            function isLiveKitScreenSource(source) {
+                const value = liveKitSourceName(source);
+                return value.includes('screen');
+            }
+
+            function isLiveKitAudioEntry(track, publication = null) {
+                return liveKitTrackKind(track, publication) === 'audio';
+            }
+
+            function isLiveKitVideoEntry(track, publication = null) {
+                return liveKitTrackKind(track, publication) === 'video';
+            }
+
+            function liveKitParticipantUserId(participant) {
+                const match = String(participant?.identity || '').match(/^user-(\d+)$/i);
+                return match ? Number(match[1]) : 0;
+            }
+
+            function liveKitPublications(participant) {
+                if (!participant) return [];
+
+                const seen = new Set();
+                const result = [];
+                ['trackPublications', 'audioTrackPublications', 'videoTrackPublications'].forEach(name => {
+                    const map = participant[name];
+                    if (!map?.values) return;
+
+                    [...map.values()].forEach(publication => {
+                        const id = publication?.trackSid || publication?.sid || publication?.track?.sid || publication?.source || result.length;
+                        if (seen.has(id)) return;
+                        seen.add(id);
+                        result.push(publication);
+                    });
+                });
+
+                return result;
+            }
+
+            function liveKitTrackSid(track, publication = null) {
+                return String(track?.sid || publication?.trackSid || publication?.sid || track?.mediaStreamTrack?.id || '');
+            }
+
+            function liveKitRemoteTrackKey(userId, track, publication) {
+                const source = liveKitPublicationSource(publication) || track?.source || track?.kind || 'track';
+                const sid = liveKitTrackSid(track, publication) || source;
+                return `${Number(userId || 0)}:${source}:${sid}`;
+            }
+
+            function isLiveKitTrackLive(track) {
+                if (!track) return false;
+                const mediaTrack = track.mediaStreamTrack;
+                return !mediaTrack || mediaTrack.readyState === 'live';
+            }
+
+            function mediaStreamFromLiveKitTrack(track) {
+                const mediaTrack = track?.mediaStreamTrack;
+                if (!mediaTrack || mediaTrack.readyState !== 'live') return null;
+                return new MediaStream([mediaTrack]);
+            }
+
+            function liveKitLocalPublications() {
+                return liveKitPublications(liveKitRoom?.localParticipant);
+            }
+
+            function liveKitLocalPublication(predicate) {
+                return liveKitLocalPublications().find(publication => {
+                    const track = liveKitPublicationTrack(publication);
+                    return track && isLiveKitTrackLive(track) && predicate(publication, track);
+                }) || null;
+            }
+
+            function liveKitLocalStream(predicate) {
+                return mediaStreamFromLiveKitTrack(liveKitLocalPublication(predicate)?.track);
+            }
+
+            function syncLiveKitLocalMediaStreams() {
+                if (!useLiveKitMedia() || !liveKitRoom) return;
+
+                micStream = liveKitLocalStream((publication, track) =>
+                    isLiveKitAudioEntry(track, publication) && !isLiveKitScreenSource(liveKitPublicationSource(publication)));
+                cameraStream = liveKitLocalStream((publication, track) =>
+                    isLiveKitVideoEntry(track, publication) && !isLiveKitScreenSource(liveKitPublicationSource(publication)));
+                screenStream = liveKitLocalStream((publication, track) =>
+                    isLiveKitVideoEntry(track, publication) && isLiveKitScreenSource(liveKitPublicationSource(publication)));
+
+                setDockMediaState('toggleMic', Boolean(micStream), 'Microphone on', 'Microphone muted');
+                setDockMediaState('toggleCamera', Boolean(cameraStream), 'Camera on', 'Camera off');
+                setDockMediaState('shareScreen', Boolean(screenStream), 'Screen sharing', 'Screen share off');
+            }
+
+            function liveKitRemoteEntriesForUser(userId) {
+                const id = Number(userId || 0);
+                return [...liveKitRemoteTracks.values()]
+                    .filter(entry => Number(entry.userId) === id && isLiveKitTrackLive(entry.track));
+            }
+
+            function liveKitEntryIsScreen(entry) {
+                return isLiveKitVideoEntry(entry.track, entry.publication) && isLiveKitScreenSource(entry.source);
+            }
+
+            function liveKitEntryIsCamera(entry) {
+                return isLiveKitVideoEntry(entry.track, entry.publication) && !isLiveKitScreenSource(entry.source);
+            }
+
+            function liveKitEntryIsAudio(entry) {
+                return isLiveKitAudioEntry(entry.track, entry.publication) && !isLiveKitScreenSource(entry.source);
+            }
+
+            function hasLiveKitRemoteAudio(userId) {
+                return liveKitRemoteEntriesForUser(userId).some(liveKitEntryIsAudio);
+            }
+
+            function hasLiveKitRemoteCamera(userId) {
+                return liveKitRemoteEntriesForUser(userId).some(liveKitEntryIsCamera);
+            }
+
+            function hasLiveKitRemoteScreen(userId) {
+                return liveKitRemoteEntriesForUser(userId).some(liveKitEntryIsScreen);
+            }
+
+            function refreshLiveKitMediaStateForUser(userId) {
+                userId = Number(userId || 0);
+                if (!userId) return;
+
+                applyMeetingMediaState({
+                    userId,
+                    areaKey: liveKitConnectedAreaKey || markerArea(getPersonMarker(userId))?.key || '',
+                    micOn: hasLiveKitRemoteAudio(userId),
+                    cameraOn: hasLiveKitRemoteCamera(userId),
+                    screenOn: hasLiveKitRemoteScreen(userId),
+                    isSpeaking: meetingMediaStates.get(userId)?.isSpeaking || false
+                });
+            }
+
+            function findLiveKitTrackBySid(sid) {
+                if (!sid) return null;
+
+                for (const entry of liveKitRemoteTracks.values()) {
+                    if (liveKitTrackSid(entry.track, entry.publication) === sid) {
+                        return entry.track;
+                    }
+                }
+
+                for (const publication of liveKitLocalPublications()) {
+                    const track = liveKitPublicationTrack(publication);
+                    if (liveKitTrackSid(track, publication) === sid) {
+                        return track;
+                    }
+                }
+
+                return null;
+            }
+
+            function attachLiveKitTrackToElement(track, element, publication = null) {
+                if (!track || !element) return false;
+
+                try {
+                    track.attach(element);
+                } catch {
+                    const stream = mediaStreamFromLiveKitTrack(track);
+                    if (!stream) return false;
+                    element.srcObject = stream;
+                }
+
+                element.dataset.livekitAttached = 'true';
+                element.dataset.livekitTrackSid = liveKitTrackSid(track, publication);
+                return true;
+            }
+
+            function detachLiveKitElement(element) {
+                if (!element?.dataset?.livekitAttached) return;
+
+                const track = findLiveKitTrackBySid(element.dataset.livekitTrackSid);
+                try {
+                    track?.detach?.(element);
+                } catch {
+                    // Detach is best effort; clearing srcObject prevents stale playback.
+                }
+
+                element.srcObject = null;
+                delete element.dataset.livekitAttached;
+                delete element.dataset.livekitTrackSid;
+            }
+
+            function detachLiveKitElements(container) {
+                container?.querySelectorAll?.('[data-livekit-attached="true"]').forEach(detachLiveKitElement);
+            }
+
+            function attachLiveKitRemoteAudio(key, track, publication, userId) {
+                let audio = liveKitRemoteAudio.get(key);
+                if (!audio) {
+                    audio = document.createElement('audio');
+                    audio.autoplay = true;
+                    audio.playsInline = true;
+                    audio.dataset.userId = String(userId);
+                    audio.style.display = 'none';
+                    document.body.appendChild(audio);
+                    liveKitRemoteAudio.set(key, audio);
+                }
+
+                attachLiveKitTrackToElement(track, audio, publication);
+                audio.volume = isMeetingArea(currentConversationArea()) ? 1 : remoteVolumeFor(userId);
+                audio.play?.().catch(() => { });
+            }
+
+            function rememberLiveKitRemoteTrack(track, publication, participant) {
+                const userId = liveKitParticipantUserId(participant);
+                if (!userId || userId === currentUserId || !isLiveKitTrackLive(track)) return;
+
+                const source = liveKitPublicationSource(publication) || track.source || track.kind || '';
+                const key = liveKitRemoteTrackKey(userId, track, publication);
+                liveKitRemoteTracks.set(key, {
+                    userId,
+                    participant,
+                    publication,
+                    track,
+                    source,
+                    updatedAt: Date.now()
+                });
+
+                if (isLiveKitAudioEntry(track, publication)) {
+                    attachLiveKitRemoteAudio(key, track, publication, userId);
+                    startSpeakingDetector(mediaStreamFromLiveKitTrack(track), userId);
+                }
+
+                refreshLiveKitMediaStateForUser(userId);
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
+            }
+
+            function forgetLiveKitRemoteTrack(key) {
+                const entry = liveKitRemoteTracks.get(key);
+                if (!entry) return;
+
+                detachLiveKitElement(liveKitRemoteAudio.get(key));
+                liveKitRemoteAudio.get(key)?.remove();
+                liveKitRemoteAudio.delete(key);
+                liveKitRemoteTracks.delete(key);
+
+                if (entry.userId) {
+                    if (!hasLiveKitRemoteAudio(entry.userId)) {
+                        stopSpeakingDetector(entry.userId);
+                    }
+                    refreshLiveKitMediaStateForUser(entry.userId);
+                }
+            }
+
+            function forgetLiveKitRemoteTrackBySource(track, publication, participant) {
+                const userId = liveKitParticipantUserId(participant);
+                const key = liveKitRemoteTrackKey(userId, track, publication);
+                forgetLiveKitRemoteTrack(key);
+            }
+
+            function forgetLiveKitRemoteTracksForUser(userId) {
+                const keys = [...liveKitRemoteTracks.entries()]
+                    .filter(([, entry]) => Number(entry.userId) === Number(userId))
+                    .map(([key]) => key);
+                keys.forEach(forgetLiveKitRemoteTrack);
+            }
+
+            function rememberExistingLiveKitTracks(room) {
+                if (!room?.remoteParticipants?.values) return;
+
+                [...room.remoteParticipants.values()].forEach(participant => {
+                    liveKitPublications(participant).forEach(publication => {
+                        const track = liveKitPublicationTrack(publication);
+                        if (track) {
+                            rememberLiveKitRemoteTrack(track, publication, participant);
+                        }
+                    });
+                });
+            }
+
+            function wireLiveKitRoom(room) {
+                const events = liveKitClient()?.RoomEvent || {};
+
+                if (events.TrackSubscribed) {
+                    room.on(events.TrackSubscribed, (track, publication, participant) => {
+                        rememberLiveKitRemoteTrack(track, publication, participant);
+                    });
+                }
+
+                if (events.TrackUnsubscribed) {
+                    room.on(events.TrackUnsubscribed, (track, publication, participant) => {
+                        forgetLiveKitRemoteTrackBySource(track, publication, participant);
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                    });
+                }
+
+                if (events.ParticipantDisconnected) {
+                    room.on(events.ParticipantDisconnected, participant => {
+                        const userId = liveKitParticipantUserId(participant);
+                        forgetLiveKitRemoteTracksForUser(userId);
+                        applyMeetingMediaState({
+                            userId,
+                            areaKey: liveKitConnectedAreaKey,
+                            micOn: false,
+                            cameraOn: false,
+                            screenOn: false,
+                            isSpeaking: false
+                        });
+                    });
+                }
+
+                if (events.LocalTrackPublished) {
+                    room.on(events.LocalTrackPublished, () => {
+                        syncLiveKitLocalMediaStreams();
+                        void broadcastMeetingMediaState();
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                    });
+                }
+
+                if (events.LocalTrackUnpublished) {
+                    room.on(events.LocalTrackUnpublished, publication => {
+                        const source = liveKitPublicationSource(publication);
+                        const track = liveKitPublicationTrack(publication);
+                        if (isLiveKitScreenSource(source)) {
+                            desiredScreenOn = false;
+                        } else if (isLiveKitAudioEntry(track, publication)) {
+                            desiredMicOn = false;
+                            stopSpeakingDetector(currentUserId);
+                        } else if (isLiveKitVideoEntry(track, publication)) {
+                            desiredCameraOn = false;
+                        }
+
+                        syncLiveKitLocalMediaStreams();
+                        void broadcastMeetingMediaState();
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                    });
+                }
+
+                if (events.ActiveSpeakersChanged) {
+                    room.on(events.ActiveSpeakersChanged, speakers => {
+                        const activeIds = new Set((speakers || []).map(liveKitParticipantUserId).filter(Boolean));
+                        meetingParticipantsForArea(currentConversationArea()).forEach(person => {
+                            if (person.userId === currentUserId) return;
+                            applyMeetingMediaState({
+                                userId: person.userId,
+                                areaKey: liveKitConnectedAreaKey,
+                                micOn: hasLiveKitRemoteAudio(person.userId),
+                                isSpeaking: activeIds.has(Number(person.userId))
+                            });
+                        });
+                    });
+                }
+
+                if (events.Reconnecting) {
+                    room.on(events.Reconnecting, () => showToast('LiveKit กำลังเชื่อมต่อใหม่...'));
+                }
+
+                if (events.Reconnected) {
+                    room.on(events.Reconnected, () => {
+                        syncLiveKitLocalMediaStreams();
+                        rememberExistingLiveKitTracks(room);
+                        void broadcastMeetingMediaState();
+                        showToast('LiveKit กลับมาเชื่อมต่อแล้ว');
+                    });
+                }
+
+                if (events.Disconnected) {
+                    room.on(events.Disconnected, () => {
+                        liveKitRemoteTracks.clear();
+                        [...liveKitRemoteAudio.values()].forEach(audio => {
+                            detachLiveKitElement(audio);
+                            audio.remove();
+                        });
+                        liveKitRemoteAudio.clear();
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                    });
+                }
+            }
+
+            async function restoreDesiredLiveKitMedia() {
+                if (!liveKitRoom) return;
+
+                if (desiredMicOn) {
+                    await liveKitRoom.localParticipant.setMicrophoneEnabled(true, {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    });
+                }
+
+                if (desiredCameraOn) {
+                    await liveKitRoom.localParticipant.setCameraEnabled(true);
+                }
+
+                if (desiredScreenOn) {
+                    await liveKitRoom.localParticipant.setScreenShareEnabled(true);
+                }
+
+                syncLiveKitLocalMediaStreams();
+                if (micStream) {
+                    startSpeakingDetector(micStream, currentUserId);
+                }
+            }
+
+            async function disconnectLiveKitRoom(options = {}) {
+                const room = liveKitRoom;
+                liveKitRoom = null;
+                liveKitConnectedAreaKey = '';
+
+                [...liveKitRemoteAudio.values()].forEach(audio => {
+                    detachLiveKitElement(audio);
+                    audio.remove();
+                });
+                liveKitRemoteAudio.clear();
+                liveKitRemoteTracks.clear();
+
+                if (room) {
+                    try {
+                        room.disconnect();
+                    } catch {
+                        // LiveKit disconnect is best effort during navigation/area changes.
+                    }
+                }
+
+                stopSpeakingDetector(currentUserId);
+                micStream = null;
+                cameraStream = null;
+                screenStream = null;
+                setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+
+                if (!options.keepDesiredMedia) {
+                    desiredMicOn = false;
+                    desiredCameraOn = false;
+                    desiredScreenOn = false;
+                }
+
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
+            }
+
+            async function ensureLiveKitRoom(area = currentConversationArea()) {
+                if (!useLiveKitMedia()) return false;
+
+                const areaKey = normalizeAreaKey(area?.key || area?.title || 'meeting-area');
+                if (liveKitRoom && liveKitConnectedAreaKey === areaKey) return true;
+
+                if (liveKitConnectingPromise) {
+                    await liveKitConnectingPromise;
+                    if (liveKitRoom && liveKitConnectedAreaKey === areaKey) return true;
+                }
+
+                liveKitConnectingPromise = (async () => {
+                    const client = liveKitClient();
+                    if (!client?.Room) {
+                        showToast('โหลด LiveKit SDK ไม่สำเร็จ');
+                        return false;
+                    }
+
+                    await disconnectLiveKitRoom({ keepDesiredMedia: true });
+
+                    let payload;
+                    try {
+                        payload = await postForm(root.dataset.livekitTokenUrl, {
+                            areaKey,
+                            areaTitle: area?.title || areaKey
+                        });
+                    } catch (error) {
+                        showToast(error.message || 'เชื่อมต่อ LiveKit ไม่สำเร็จ');
+                        return false;
+                    }
+
+                    const room = new client.Room({
+                        adaptiveStream: true,
+                        dynacast: true
+                    });
+
+                    wireLiveKitRoom(room);
+
+                    try {
+                        await room.connect(payload.url, payload.token, { autoSubscribe: true });
+                    } catch {
+                        showToast('เชื่อมต่อ LiveKit room ไม่สำเร็จ');
+                        return false;
+                    }
+
+                    liveKitRoom = room;
+                    liveKitConnectedAreaKey = areaKey;
+                    rememberExistingLiveKitTracks(room);
+                    await restoreDesiredLiveKitMedia();
+                    await broadcastMeetingMediaState();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
+                    return true;
+                })();
+
+                try {
+                    return await liveKitConnectingPromise;
+                } finally {
+                    liveKitConnectingPromise = null;
+                }
             }
 
             function hasRtcLocalMedia() {
-                return Boolean(micStream || cameraStream || screenStream);
+                return Boolean(
+                    liveAudioTracks(micStream).length ||
+                    liveVideoTracks(cameraStream).length ||
+                    liveAudioTracks(screenStream).length ||
+                    liveVideoTracks(screenStream).length
+                );
+            }
+
+            function scheduleMeetingParticipantsRender() {
+                window.clearTimeout(meetingParticipantsRenderTimer);
+                meetingParticipantsRenderTimer = window.setTimeout(() => {
+                    if (isMeetingPanelOpen()) {
+                        renderMeetingParticipants();
+                    }
+                }, 40);
+            }
+
+            function scheduleMeetingVideosRender() {
+                window.clearTimeout(meetingVideosRenderTimer);
+                meetingVideosRenderTimer = window.setTimeout(() => {
+                    if (isMeetingPanelOpen()) {
+                        renderMeetingVideos();
+                    }
+                }, 80);
             }
 
             function remoteStreamKey(userId, stream) {
@@ -9247,7 +9813,8 @@
                 stream.getTracks().forEach(track => {
                     track.addEventListener('ended', () => {
                         rtcRemoteMediaStreams.delete(key);
-                        renderMeetingPanel();
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
                     }, { once: true });
                 });
 
@@ -9309,6 +9876,8 @@
 
                 meetingMediaStates.set(userId, next);
                 setPersonSpeaking(userId, next.isSpeaking);
+                const videoStateChanged = Boolean(previous.cameraOn) !== next.cameraOn ||
+                    Boolean(previous.screenOn) !== next.screenOn;
 
                 const marker = getPersonMarker(userId);
                 if (marker) {
@@ -9316,7 +9885,10 @@
                 }
 
                 if (!options.silent) {
-                    renderMeetingPanel();
+                    if (videoStateChanged) {
+                        scheduleMeetingVideosRender();
+                    }
+                    scheduleMeetingParticipantsRender();
                 }
             }
 
@@ -9347,10 +9919,14 @@
 
                 const saved = meetingMediaStates.get(id) || {};
                 const entries = remoteMediaEntriesForUser(id);
+                const liveKitEntries = liveKitRemoteEntriesForUser(id);
                 const hasRemoteAudio = entries.some(entry => liveAudioTracks(entry.stream).length);
                 const hasRemoteScreen = entries.some(entry => isRemoteScreenStream(id, entry.stream));
                 const hasRemoteCamera = entries.some(entry =>
                     liveVideoTracks(entry.stream).length && !isRemoteScreenStream(id, entry.stream));
+                const hasLiveKitAudio = liveKitEntries.some(liveKitEntryIsAudio);
+                const hasLiveKitScreen = liveKitEntries.some(liveKitEntryIsScreen);
+                const hasLiveKitCamera = liveKitEntries.some(liveKitEntryIsCamera);
                 const hasSavedMic = Object.prototype.hasOwnProperty.call(saved, 'micOn');
                 const hasSavedCamera = Object.prototype.hasOwnProperty.call(saved, 'cameraOn');
                 const hasSavedScreen = Object.prototype.hasOwnProperty.call(saved, 'screenOn');
@@ -9358,11 +9934,43 @@
                 return {
                     userId: id,
                     areaKey: saved.areaKey || normalizeAreaKey(markerArea(getPersonMarker(id))?.key || ''),
-                    micOn: hasSavedMic ? Boolean(saved.micOn) : hasRemoteAudio,
-                    cameraOn: hasSavedCamera ? Boolean(saved.cameraOn) : hasRemoteCamera,
-                    screenOn: hasSavedScreen ? Boolean(saved.screenOn) : hasRemoteScreen,
+                    micOn: hasSavedMic ? Boolean(saved.micOn) : (hasRemoteAudio || hasLiveKitAudio),
+                    cameraOn: hasSavedCamera ? Boolean(saved.cameraOn) : (hasRemoteCamera || hasLiveKitCamera),
+                    screenOn: hasSavedScreen ? Boolean(saved.screenOn) : (hasRemoteScreen || hasLiveKitScreen),
                     isSpeaking: Boolean(saved.isSpeaking)
                 };
+            }
+
+            function canNegotiatePeer(peer) {
+                return Boolean(peer?.connection) &&
+                    peer.connection.signalingState === 'stable' &&
+                    !peer.makingOffer;
+            }
+
+            function scheduleRtcOffer(userId) {
+                if (!realtimeConnection || !realtimeReady || !hasRtcLocalMedia()) return;
+
+                const peer = ensureRtcPeer(userId);
+                if (!peer) return;
+
+                window.clearTimeout(peer.offerTimer);
+                peer.offerTimer = window.setTimeout(() => {
+                    void callRtcPeer(userId);
+                }, 120);
+            }
+
+            async function flushRtcIceCandidates(peer, userId) {
+                if (!peer?.connection?.remoteDescription || !peer.pendingCandidates?.length) return;
+
+                const pending = peer.pendingCandidates.splice(0);
+                for (const candidate of pending) {
+                    try {
+                        await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch {
+                        closeRtcPeer(userId);
+                        break;
+                    }
+                }
             }
 
             function ensureRtcPeer(userId) {
@@ -9380,6 +9988,21 @@
                 connection.onicecandidate = event => {
                     if (!event.candidate || !realtimeConnection || !realtimeReady) return;
                     realtimeConnection.invoke('SendRtcIceCandidate', userId, event.candidate).catch(() => { });
+                };
+
+                connection.onnegotiationneeded = () => {
+                    scheduleRtcOffer(userId);
+                };
+
+                connection.oniceconnectionstatechange = () => {
+                    if (connection.iceConnectionState === 'failed') {
+                        try {
+                            connection.restartIce?.();
+                        } catch {
+                            // Some browsers do not expose restartIce.
+                        }
+                        scheduleRtcOffer(userId);
+                    }
                 };
 
                 connection.ontrack = event => {
@@ -9413,15 +10036,23 @@
                         screenOn: meetingMediaStateForUser(userId).screenOn,
                         isSpeaking: false
                     }, { silent: true });
-                    renderMeetingPanel();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
                 };
+
+                peer = {
+                    connection,
+                    makingOffer: false,
+                    needsNegotiation: false,
+                    pendingCandidates: [],
+                    offerTimer: null
+                };
+                rtcPeers.set(userId, peer);
 
                 [micStream, cameraStream, screenStream].filter(Boolean).forEach(stream => {
                     stream.getTracks().forEach(track => connection.addTrack(track, stream));
                 });
 
-                peer = { connection, makingOffer: false };
-                rtcPeers.set(userId, peer);
                 return peer;
             }
 
@@ -9430,16 +10061,23 @@
 
                 const peer = ensureRtcPeer(userId);
                 if (!peer) return;
+                if (!canNegotiatePeer(peer)) {
+                    peer.needsNegotiation = true;
+                    return;
+                }
 
                 try {
                     peer.makingOffer = true;
-                    const offer = await peer.connection.createOffer();
-                    await peer.connection.setLocalDescription(offer);
+                    await peer.connection.setLocalDescription(await peer.connection.createOffer());
                     await realtimeConnection.invoke('SendRtcOffer', Number(userId), peer.connection.localDescription, currentConversationArea().key);
                 } catch {
                     closeRtcPeer(userId);
                 } finally {
                     peer.makingOffer = false;
+                    if (peer.needsNegotiation && peer.connection.signalingState === 'stable') {
+                        peer.needsNegotiation = false;
+                        scheduleRtcOffer(userId);
+                    }
                 }
             }
 
@@ -9454,10 +10092,24 @@
                 if (!peer) return;
 
                 try {
+                    const offerCollision = peer.makingOffer || peer.connection.signalingState !== 'stable';
+                    if (offerCollision) {
+                        try {
+                            await peer.connection.setLocalDescription({ type: 'rollback' });
+                        } catch {
+                            // Rollback is best-effort; setRemoteDescription below will decide if this offer is usable.
+                        }
+                    }
+
                     await peer.connection.setRemoteDescription(new RTCSessionDescription(offer));
+                    await flushRtcIceCandidates(peer, fromUserId);
                     const answer = await peer.connection.createAnswer();
                     await peer.connection.setLocalDescription(answer);
                     await realtimeConnection.invoke('SendRtcAnswer', fromUserId, peer.connection.localDescription, currentConversationArea().key);
+                    if (peer.needsNegotiation && hasRtcLocalMedia()) {
+                        peer.needsNegotiation = false;
+                        scheduleRtcOffer(fromUserId);
+                    }
                 } catch {
                     closeRtcPeer(fromUserId);
                 }
@@ -9468,9 +10120,15 @@
                 const answer = message?.payload?.answer;
                 const peer = rtcPeers.get(fromUserId);
                 if (!peer || !answer || !window.RTCSessionDescription) return;
+                if (peer.connection.signalingState === 'stable') return;
 
                 try {
                     await peer.connection.setRemoteDescription(new RTCSessionDescription(answer));
+                    await flushRtcIceCandidates(peer, fromUserId);
+                    if (peer.needsNegotiation && hasRtcLocalMedia()) {
+                        peer.needsNegotiation = false;
+                        scheduleRtcOffer(fromUserId);
+                    }
                 } catch {
                     closeRtcPeer(fromUserId);
                 }
@@ -9483,6 +10141,10 @@
                 if (!peer || !candidate || !window.RTCIceCandidate) return;
 
                 try {
+                    if (!peer.connection.remoteDescription) {
+                        peer.pendingCandidates.push(candidate);
+                        return;
+                    }
                     await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
                 } catch {
                     closeRtcPeer(fromUserId);
@@ -9495,6 +10157,7 @@
 
                 const peer = rtcPeers.get(userId);
                 if (peer) {
+                    window.clearTimeout(peer.offerTimer);
                     peer.connection.close();
                     rtcPeers.delete(userId);
                 }
@@ -9507,7 +10170,8 @@
 
                 rtcRemoteStreams.delete(userId);
                 forgetRemoteMediaStreams(userId);
-                renderMeetingPanel();
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
             }
 
             function closeAllRtcPeers() {
@@ -9527,7 +10191,7 @@
                         }
                     });
                     if (addedTrack) {
-                        callRtcPeer(userId);
+                        scheduleRtcOffer(userId);
                     }
                 });
             }
@@ -9545,7 +10209,7 @@
                         }
                     });
                     if (removedTrack) {
-                        callRtcPeer(userId);
+                        scheduleRtcOffer(userId);
                     }
                 });
             }
@@ -9556,6 +10220,15 @@
             }
 
             function refreshProximityVoice() {
+                if (useLiveKitMedia()) {
+                    closeAllRtcPeers();
+                    if (hasRtcLocalMedia() || isMeetingPanelOpen()) {
+                        void ensureLiveKitRoom(currentConversationArea());
+                    }
+                    void broadcastMeetingMediaState();
+                    return;
+                }
+
                 if (!realtimeReady) {
                     closeAllRtcPeers();
                     return;
@@ -9566,7 +10239,7 @@
                     targets.forEach(userId => {
                         setRemoteAudioVolume(userId);
                         if (!rtcPeers.has(userId)) {
-                            callRtcPeer(userId);
+                            scheduleRtcOffer(userId);
                         }
                     });
                 }
@@ -10393,6 +11066,59 @@
             }
 
             async function toggleMicrophone() {
+                if (useLiveKitMedia()) {
+                    if (desiredMicOn || micStream) {
+                        desiredMicOn = false;
+                        stopSpeakingDetector(currentUserId);
+                        try {
+                            await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
+                        } catch {
+                            // Local state is still updated so the UI does not get stuck.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
+                        scheduleMeetingParticipantsRender();
+                        showToast('ปิดไมโครโฟนแล้ว');
+                        return;
+                    }
+
+                    desiredMicOn = true;
+                    if (!await ensureLiveKitRoom(currentConversationArea())) {
+                        desiredMicOn = false;
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
+                        return;
+                    }
+
+                    try {
+                        if (!micStream) {
+                            await liveKitRoom.localParticipant.setMicrophoneEnabled(true, {
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            });
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        startSpeakingDetector(micStream, currentUserId);
+                        await broadcastMeetingMediaState({ micOn: true, isSpeaking: false });
+                        await announceVoiceArea();
+                        scheduleMeetingParticipantsRender();
+                        showToast(`เปิดไมโครโฟนใน ${currentConversationArea().title} แล้ว`);
+                    } catch (error) {
+                        desiredMicOn = false;
+                        stopSpeakingDetector(currentUserId);
+                        try {
+                            await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
+                        } catch {
+                            // Best effort cleanup.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
+                        showToast(mediaErrorMessage(error, 'ไมโครโฟน'));
+                    }
+                    return;
+                }
+
                 if (micStream) {
                     stopSpeakingDetector(currentUserId);
                     removeStreamTracksFromRtcPeers(micStream);
@@ -10410,7 +11136,14 @@
                 }
 
                 try {
-                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    micStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        },
+                        video: false
+                    });
                     micStream.getAudioTracks().forEach(track => {
                         track.addEventListener('ended', () => {
                             removeStreamTracksFromRtcPeers(micStream);
@@ -10418,6 +11151,7 @@
                             micStream = null;
                             setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                             void broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
+                            scheduleMeetingParticipantsRender();
                         }, { once: true });
                     });
                     startSpeakingDetector(micStream, currentUserId);
@@ -10436,6 +11170,54 @@
             }
 
             async function toggleCameraStream() {
+                if (useLiveKitMedia()) {
+                    if (desiredCameraOn || cameraStream) {
+                        desiredCameraOn = false;
+                        try {
+                            await liveKitRoom?.localParticipant?.setCameraEnabled(false);
+                        } catch {
+                            // Local state is still updated so the UI does not get stuck.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ cameraOn: false });
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                        showToast('ปิดกล้องแล้ว');
+                        return;
+                    }
+
+                    desiredCameraOn = true;
+                    if (!await ensureLiveKitRoom(currentConversationArea())) {
+                        desiredCameraOn = false;
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ cameraOn: false });
+                        return;
+                    }
+
+                    try {
+                        if (!cameraStream) {
+                            await liveKitRoom.localParticipant.setCameraEnabled(true);
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ cameraOn: true });
+                        await openMeetingPanel('camera');
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                        showToast('เปิดกล้องแล้ว');
+                    } catch (error) {
+                        desiredCameraOn = false;
+                        try {
+                            await liveKitRoom?.localParticipant?.setCameraEnabled(false);
+                        } catch {
+                            // Best effort cleanup.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ cameraOn: false });
+                        showToast(mediaErrorMessage(error, 'กล้อง'));
+                    }
+                    return;
+                }
+
                 if (cameraStream) {
                     removeStreamTracksFromRtcPeers(cameraStream);
                     stopMediaStream(cameraStream);
@@ -10443,7 +11225,8 @@
                     setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
                     await broadcastMeetingMediaState({ cameraOn: false });
                     refreshProximityVoice();
-                    renderMeetingPanel();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
                     showToast('ปิดกล้องแล้ว');
                     return;
                 }
@@ -10454,7 +11237,14 @@
                 }
 
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: false,
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            frameRate: { ideal: 24, max: 30 }
+                        }
+                    });
                     cameraStream = stream;
                     cameraStream.getVideoTracks().forEach(track => {
                         track.addEventListener('ended', () => {
@@ -10463,14 +11253,16 @@
                             setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
                             void broadcastMeetingMediaState({ cameraOn: false });
                             refreshProximityVoice();
-                            renderMeetingPanel();
+                            scheduleMeetingVideosRender();
+                            scheduleMeetingParticipantsRender();
                         }, { once: true });
                     });
                     addStreamTracksToRtcPeers(cameraStream);
                     setDockMediaState('toggleCamera', true, 'Camera on', 'Camera off');
                     await broadcastMeetingMediaState({ cameraOn: true });
                     await openMeetingPanel('camera');
-                    renderMeetingPanel();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
                     showToast('เปิดกล้องแล้ว');
                 } catch (error) {
                     cameraStream = null;
@@ -10481,6 +11273,54 @@
             }
 
             async function toggleScreenShare() {
+                if (useLiveKitMedia()) {
+                    if (desiredScreenOn || screenStream) {
+                        desiredScreenOn = false;
+                        try {
+                            await liveKitRoom?.localParticipant?.setScreenShareEnabled(false);
+                        } catch {
+                            // Local state is still updated so the UI does not get stuck.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ screenOn: false });
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                        showToast('หยุดแชร์หน้าจอแล้ว');
+                        return;
+                    }
+
+                    desiredScreenOn = true;
+                    if (!await ensureLiveKitRoom(currentConversationArea())) {
+                        desiredScreenOn = false;
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ screenOn: false });
+                        return;
+                    }
+
+                    try {
+                        if (!screenStream) {
+                            await liveKitRoom.localParticipant.setScreenShareEnabled(true);
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ screenOn: true });
+                        await openMeetingPanel('screen');
+                        scheduleMeetingVideosRender();
+                        scheduleMeetingParticipantsRender();
+                        showToast(`กำลังแชร์หน้าจอใน ${currentConversationArea().title}`);
+                    } catch (error) {
+                        desiredScreenOn = false;
+                        try {
+                            await liveKitRoom?.localParticipant?.setScreenShareEnabled(false);
+                        } catch {
+                            // Best effort cleanup.
+                        }
+                        syncLiveKitLocalMediaStreams();
+                        await broadcastMeetingMediaState({ screenOn: false });
+                        showToast(mediaErrorMessage(error, 'แชร์หน้าจอ'));
+                    }
+                    return;
+                }
+
                 if (screenStream) {
                     removeStreamTracksFromRtcPeers(screenStream);
                     stopMediaStream(screenStream);
@@ -10488,7 +11328,8 @@
                     setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
                     await broadcastMeetingMediaState({ screenOn: false });
                     refreshProximityVoice();
-                    renderMeetingPanel();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
                     showToast('หยุดแชร์หน้าจอแล้ว');
                     return;
                 }
@@ -10508,7 +11349,8 @@
                             setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
                             void broadcastMeetingMediaState({ screenOn: false });
                             refreshProximityVoice();
-                            renderMeetingPanel();
+                            scheduleMeetingVideosRender();
+                            scheduleMeetingParticipantsRender();
                             showToast('หยุดแชร์หน้าจอแล้ว');
                         }, { once: true });
                     });
@@ -10516,7 +11358,8 @@
                     setDockMediaState('shareScreen', true, 'Screen sharing', 'Screen share off');
                     await broadcastMeetingMediaState({ screenOn: true });
                     await openMeetingPanel('screen');
-                    renderMeetingPanel();
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
                     showToast(`กำลังแชร์หน้าจอใน ${currentConversationArea().title}`);
                 } catch (error) {
                     screenStream = null;
@@ -10624,6 +11467,7 @@
                 const viewer = document.getElementById('meetingScreenViewer');
                 const video = document.getElementById('meetingScreenVideo');
                 if (video) {
+                    detachLiveKitElement(video);
                     video.srcObject = null;
                 }
                 activeScreenSourceId = '';
@@ -10636,7 +11480,8 @@
 
             function openMeetingScreenViewer(sourceId) {
                 const source = meetingScreenSources.get(sourceId);
-                if (!source || !liveVideoTracks(source.stream).length) {
+                const hasLiveKitTrack = source?.track && isLiveKitTrackLive(source.track);
+                if (!source || (!hasLiveKitTrack && !liveVideoTracks(source.stream).length)) {
                     showToast('ยังไม่มีจอแชร์ให้ขยาย');
                     return;
                 }
@@ -10647,7 +11492,12 @@
 
                 const video = document.getElementById('meetingScreenVideo');
                 if (video) {
-                    video.srcObject = source.stream;
+                    detachLiveKitElement(video);
+                    if (hasLiveKitTrack) {
+                        attachLiveKitTrackToElement(source.track, video, source.publication);
+                    } else {
+                        video.srcObject = source.stream;
+                    }
                     video.muted = true;
                     video.play?.().catch(() => { });
                 }
@@ -10681,7 +11531,9 @@
 
             function createVideoTile(label, stream, options = {}) {
                 const tile = document.createElement('div');
-                const hasVideo = stream && liveVideoTracks(stream).length;
+                const liveKitTrack = options.liveKitTrack || null;
+                const hasVideo = Boolean((stream && liveVideoTracks(stream).length) ||
+                    (liveKitTrack && isLiveKitTrackLive(liveKitTrack)));
                 const sourceId = options.sourceId || '';
                 tile.className = `mr-video-tile${options.isScreen ? ' is-screen' : ''}${hasVideo ? ' is-expandable' : ''}`;
                 if (hasVideo && sourceId) {
@@ -10689,7 +11541,12 @@
                     tile.tabIndex = 0;
                     tile.setAttribute('role', 'button');
                     tile.setAttribute('aria-label', `Expand ${label}`);
-                    meetingScreenSources.set(sourceId, { label, stream });
+                    meetingScreenSources.set(sourceId, {
+                        label,
+                        stream,
+                        track: liveKitTrack,
+                        publication: options.liveKitPublication || null
+                    });
                 }
 
                 if (hasVideo) {
@@ -10697,7 +11554,11 @@
                     video.autoplay = true;
                     video.playsInline = true;
                     video.muted = options.muted !== false;
-                    video.srcObject = stream;
+                    if (liveKitTrack) {
+                        attachLiveKitTrackToElement(liveKitTrack, video, options.liveKitPublication || null);
+                    } else {
+                        video.srcObject = stream;
+                    }
                     tile.appendChild(video);
                     const expand = document.createElement('span');
                     expand.className = 'mr-video-expand';
@@ -10722,24 +11583,47 @@
                 const grid = document.getElementById('meetingVideoGrid');
                 if (!grid) return;
 
+                detachLiveKitElements(grid);
                 grid.replaceChildren();
                 meetingScreenSources.clear();
                 const area = meetingArea();
                 const participants = meetingParticipantsForArea(area);
                 const current = peopleById.get(currentUserId);
                 const currentName = current?.displayName || 'You';
+                const localScreenPublication = liveKitLocalPublication((publication, track) =>
+                    isLiveKitVideoEntry(track, publication) && isLiveKitScreenSource(liveKitPublicationSource(publication)));
+                const localScreenTrack = liveKitPublicationTrack(localScreenPublication);
+                const localCameraPublication = liveKitLocalPublication((publication, track) =>
+                    isLiveKitVideoEntry(track, publication) && !isLiveKitScreenSource(liveKitPublicationSource(publication)));
+                const localCameraTrack = liveKitPublicationTrack(localCameraPublication);
 
-                if (screenStream && liveVideoTracks(screenStream).length) {
+                if ((screenStream && liveVideoTracks(screenStream).length) || localScreenTrack) {
                     grid.appendChild(createVideoTile(`${currentName} · Screen`, screenStream, {
                         isScreen: true,
                         muted: true,
-                        sourceId: 'local-screen'
+                        sourceId: 'local-screen',
+                        liveKitTrack: localScreenTrack,
+                        liveKitPublication: localScreenPublication
                     }));
                 }
 
                 participants
                     .filter(person => Number(person.userId) !== currentUserId)
                     .forEach(person => {
+                        const liveKitScreens = liveKitRemoteEntriesForUser(person.userId).filter(liveKitEntryIsScreen);
+                        if (liveKitScreens.length) {
+                            liveKitScreens.forEach(entry => {
+                                grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, null, {
+                                    muted: true,
+                                    isScreen: true,
+                                    sourceId: `livekit-screen-${person.userId}-${liveKitTrackSid(entry.track, entry.publication) || entry.updatedAt}`,
+                                    liveKitTrack: entry.track,
+                                    liveKitPublication: entry.publication
+                                }));
+                            });
+                            return;
+                        }
+
                         remoteMediaEntriesForUser(person.userId)
                             .filter(entry => liveVideoTracks(entry.stream).length)
                             .filter(entry => isRemoteScreenStream(person.userId, entry.stream))
@@ -10756,21 +11640,33 @@
                     const userId = Number(person.userId);
                     const isSelf = userId === currentUserId;
                     let stream = null;
+                    let liveKitTrack = null;
+                    let liveKitPublication = null;
 
                     if (isSelf) {
                         stream = cameraStream;
+                        liveKitTrack = localCameraTrack;
+                        liveKitPublication = localCameraPublication;
                     } else {
-                        const cameraEntry = remoteMediaEntriesForUser(userId)
-                            .filter(entry => liveVideoTracks(entry.stream).length)
-                            .find(entry => !isRemoteScreenStream(userId, entry.stream));
-                        stream = cameraEntry?.stream || null;
+                        const liveKitCameraEntry = liveKitRemoteEntriesForUser(userId).find(liveKitEntryIsCamera);
+                        if (liveKitCameraEntry) {
+                            liveKitTrack = liveKitCameraEntry.track;
+                            liveKitPublication = liveKitCameraEntry.publication;
+                        } else {
+                            const cameraEntry = remoteMediaEntriesForUser(userId)
+                                .filter(entry => liveVideoTracks(entry.stream).length)
+                                .find(entry => !isRemoteScreenStream(userId, entry.stream));
+                            stream = cameraEntry?.stream || null;
+                        }
                     }
 
                     const label = isSelf ? `${person.displayName || currentName} · You` : (person.displayName || `User ${userId}`);
                     grid.appendChild(createVideoTile(label, stream, {
                         muted: true,
-                        placeholder: stream ? 'Camera starting' : 'กล้องปิด',
-                        sourceId: isSelf ? 'local-camera' : `remote-camera-${userId}`
+                        placeholder: stream || liveKitTrack ? 'Camera starting' : 'กล้องปิด',
+                        sourceId: isSelf ? 'local-camera' : `remote-camera-${userId}`,
+                        liveKitTrack,
+                        liveKitPublication
                     }));
                 });
 
@@ -10921,6 +11817,9 @@
                 meetingPanel.hidden = false;
                 ensureMeetingPanelInView();
                 closePopovers();
+                if (useLiveKitMedia()) {
+                    await ensureLiveKitRoom(activeMeetingArea);
+                }
                 renderMeetingPanel();
                 if (reason === 'file') {
                     document.getElementById('meetingFileInput')?.click();
@@ -10950,25 +11849,29 @@
 
             function leaveMeetingPanel(options = {}) {
                 dismissAutoMeetingForCurrentArea();
-                if (micStream) {
-                    stopSpeakingDetector(currentUserId);
-                    stopMediaStream(micStream);
-                    micStream = null;
-                    setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
-                }
+                if (useLiveKitMedia()) {
+                    void disconnectLiveKitRoom();
+                } else {
+                    if (micStream) {
+                        stopSpeakingDetector(currentUserId);
+                        stopMediaStream(micStream);
+                        micStream = null;
+                        setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                    }
 
-                if (cameraStream) {
-                    removeStreamTracksFromRtcPeers(cameraStream);
-                    stopMediaStream(cameraStream);
-                    cameraStream = null;
-                    setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
-                }
+                    if (cameraStream) {
+                        removeStreamTracksFromRtcPeers(cameraStream);
+                        stopMediaStream(cameraStream);
+                        cameraStream = null;
+                        setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                    }
 
-                if (screenStream) {
-                    removeStreamTracksFromRtcPeers(screenStream);
-                    stopMediaStream(screenStream);
-                    screenStream = null;
-                    setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                    if (screenStream) {
+                        removeStreamTracksFromRtcPeers(screenStream);
+                        stopMediaStream(screenStream);
+                        screenStream = null;
+                        setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                    }
                 }
 
                 closeAllRtcPeers();
@@ -11915,7 +12818,10 @@
                 window.clearTimeout(pendingDeskAreaSelectionTimer);
                 window.clearTimeout(autoMeetingTimer);
                 window.clearTimeout(proximityVoiceTimer);
+                window.clearTimeout(meetingParticipantsRenderTimer);
+                window.clearTimeout(meetingVideosRenderTimer);
                 stopAllSpeakingDetectors();
+                void disconnectLiveKitRoom();
                 closeAllRtcPeers();
                 stopMediaStream(micStream);
                 stopMediaStream(cameraStream);
