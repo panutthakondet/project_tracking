@@ -22,6 +22,7 @@ namespace ProjectTracking.Middleware
                 "IssueDashboard",
                 "UserManagement",
                 "Meetings",
+                "MeetingRoom",
                 "TestScenarios",
                 "TestScenarioTemplates",
                 "TestTemplateGroups",
@@ -103,6 +104,14 @@ namespace ProjectTracking.Middleware
             // 2) ✅ Allow Auth routes ALWAYS (รวมถึง /Auth/VerifyEmail ด้วย)
             // แต่ VerifyEmail จะไปบังคับ login ใน AuthController เอง (เพื่อให้ "ต้อง login ก่อนเสมอ")
             if (path.StartsWith("/Auth", StringComparison.OrdinalIgnoreCase))
+            {
+                await _next(context);
+                return;
+            }
+
+            // Public read-only room link for external guests.
+            if (path.Equals("/MeetingRoom/Guest", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/MeetingRoom/Guest/", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;

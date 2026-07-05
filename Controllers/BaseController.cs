@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using ProjectTracking.Middleware;
 using System;
 using System.Linq;
@@ -12,6 +13,13 @@ namespace ProjectTracking.Controllers
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             var httpContext = context.HttpContext;
+            var actionDescriptor = context.ActionDescriptor;
+
+            if (actionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any())
+            {
+                base.OnActionExecuting(context);
+                return;
+            }
 
             // 🔐 ตรวจสอบ Login
             var userId = httpContext.Session.GetInt32("UserId");
@@ -22,8 +30,6 @@ namespace ProjectTracking.Controllers
             }
 
             // 🔐 ตรวจสอบ Permission
-            var actionDescriptor = context.ActionDescriptor;
-
             var requireMenuAttr = actionDescriptor.EndpointMetadata
                 .OfType<RequireMenuAttribute>()
                 .FirstOrDefault();

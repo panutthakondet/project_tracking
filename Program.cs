@@ -208,6 +208,7 @@ await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
+await EnsureMeetingRoomProfileTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);
 await EnsureWeeklyReportTablesAsync(app.Services);
@@ -261,7 +262,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    context.Response.Headers["Permissions-Policy"] = "geolocation=(self), microphone=(), camera=()";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(self), microphone=(self), camera=(self), display-capture=(self)";
 
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; " +
@@ -809,6 +810,129 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
               ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
             ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";
 
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureMeetingRoomProfileTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `meeting_room_profiles` (
+              `user_id` int NOT NULL,
+              `display_name` varchar(50) DEFAULT NULL,
+              `status` varchar(20) NOT NULL DEFAULT 'AVAILABLE',
+              `status_text` varchar(120) DEFAULT NULL,
+              `character_preset` varchar(30) NOT NULL DEFAULT 'doraemon',
+              `avatar_color` varchar(20) NOT NULL DEFAULT '#2d9cff',
+              `desk_x` int NOT NULL DEFAULT 50,
+              `desk_y` int NOT NULL DEFAULT 50,
+              `home_zone` varchar(80) NOT NULL DEFAULT 'Lobby',
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`user_id`),
+              KEY `idx_meeting_room_profiles_status` (`status`),
+              CONSTRAINT `fk_meeting_room_profiles_user`
+                FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`)
+                ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'meeting_room_profiles'
+              AND COLUMN_NAME = 'display_name';";
+
+        var hasDisplayName = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasDisplayName)
+        {
+            command.CommandText = @"
+                ALTER TABLE `meeting_room_profiles`
+                ADD COLUMN `display_name` varchar(50) DEFAULT NULL AFTER `user_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'meeting_room_profiles'
+              AND COLUMN_NAME = 'avatar_color';";
+
+        var hasAvatarColor = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasAvatarColor)
+        {
+            command.CommandText = @"
+                ALTER TABLE `meeting_room_profiles`
+                ADD COLUMN `avatar_color` varchar(20) NOT NULL DEFAULT '#2d9cff' AFTER `character_preset`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            ALTER TABLE `meeting_room_profiles`
+            MODIFY COLUMN `character_preset` varchar(30) NOT NULL DEFAULT 'doraemon';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `meeting_room_areas` (
+              `area_id` int NOT NULL AUTO_INCREMENT,
+              `area_key` varchar(80) NOT NULL,
+              `title` varchar(100) NOT NULL,
+              `area_type` varchar(30) NOT NULL DEFAULT 'MEETING',
+              `tone` varchar(20) NOT NULL DEFAULT 'teal',
+              `x` int NOT NULL DEFAULT 10,
+              `y` int NOT NULL DEFAULT 10,
+              `w` int NOT NULL DEFAULT 20,
+              `h` int NOT NULL DEFAULT 15,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `sort_order` int NOT NULL DEFAULT 0,
+              `created_by_user_id` int DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`area_id`),
+              UNIQUE KEY `uq_meeting_room_areas_key` (`area_key`),
+              KEY `idx_meeting_room_areas_active` (`is_active`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `meeting_room_objects` (
+              `object_id` int NOT NULL AUTO_INCREMENT,
+              `object_key` varchar(80) NOT NULL DEFAULT 'desk-basic',
+              `object_type` varchar(30) NOT NULL DEFAULT 'DESK',
+              `title` varchar(100) NOT NULL DEFAULT 'Desk',
+              `tone` varchar(20) NOT NULL DEFAULT 'wood',
+              `x` int NOT NULL DEFAULT 20,
+              `y` int NOT NULL DEFAULT 20,
+              `w` int NOT NULL DEFAULT 8,
+              `h` int NOT NULL DEFAULT 6,
+              `rotation` int NOT NULL DEFAULT 0,
+              `is_obstacle` tinyint(1) NOT NULL DEFAULT 1,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `sort_order` int NOT NULL DEFAULT 0,
+              `created_by_user_id` int DEFAULT NULL,
+              `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+              `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+              PRIMARY KEY (`object_id`),
+              KEY `idx_meeting_room_objects_active_type` (`is_active`, `object_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await command.ExecuteNonQueryAsync();
     }
     finally

@@ -63,6 +63,9 @@ namespace ProjectTracking.Data
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
+        public DbSet<MeetingRoomProfile> MeetingRoomProfiles { get; set; }
+        public DbSet<MeetingRoomArea> MeetingRoomAreas { get; set; }
+        public DbSet<MeetingRoomObject> MeetingRoomObjects { get; set; }
         public DbSet<NotificationSendLog> NotificationSendLogs { get; set; }
         public DbSet<StatusApprovalRequest> StatusApprovalRequests { get; set; }
         public DbSet<LineRecipient> LineRecipients { get; set; }
@@ -467,6 +470,255 @@ namespace ProjectTracking.Data
                     .WithMany()
                     .HasForeignKey(x => x.RecipientEmpId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // =========================
+            // SO-AT MEETING ROOM
+            // =========================
+            modelBuilder.Entity<MeetingRoomProfile>(entity =>
+            {
+                entity.ToTable("meeting_room_profiles");
+                entity.HasKey(x => x.UserId);
+
+                entity.Property(x => x.UserId)
+                    .HasColumnName("user_id");
+
+                entity.Property(x => x.Status)
+                    .HasColumnName("status")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("AVAILABLE")
+                    .IsRequired();
+
+                entity.Property(x => x.DisplayName)
+                    .HasColumnName("display_name")
+                    .HasColumnType("varchar(50)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.StatusText)
+                    .HasColumnName("status_text")
+                    .HasColumnType("varchar(120)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CharacterPreset)
+                    .HasColumnName("character_preset")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("doraemon")
+                    .IsRequired();
+
+                entity.Property(x => x.AvatarColor)
+                    .HasColumnName("avatar_color")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("#2d9cff")
+                    .IsRequired();
+
+                entity.Property(x => x.DeskX)
+                    .HasColumnName("desk_x")
+                    .HasDefaultValue(50)
+                    .IsRequired();
+
+                entity.Property(x => x.DeskY)
+                    .HasColumnName("desk_y")
+                    .HasDefaultValue(50)
+                    .IsRequired();
+
+                entity.Property(x => x.HomeZone)
+                    .HasColumnName("home_zone")
+                    .HasColumnType("varchar(80)")
+                    .HasDefaultValue("Lobby")
+                    .IsRequired();
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasIndex(x => x.Status)
+                    .HasDatabaseName("idx_meeting_room_profiles_status");
+
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MeetingRoomArea>(entity =>
+            {
+                entity.ToTable("meeting_room_areas");
+                entity.HasKey(x => x.AreaId);
+
+                entity.Property(x => x.AreaId)
+                    .HasColumnName("area_id");
+
+                entity.Property(x => x.AreaKey)
+                    .HasColumnName("area_key")
+                    .HasColumnType("varchar(80)")
+                    .IsRequired();
+
+                entity.Property(x => x.Title)
+                    .HasColumnName("title")
+                    .HasColumnType("varchar(100)")
+                    .IsRequired();
+
+                entity.Property(x => x.AreaType)
+                    .HasColumnName("area_type")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("MEETING")
+                    .IsRequired();
+
+                entity.Property(x => x.Tone)
+                    .HasColumnName("tone")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("teal")
+                    .IsRequired();
+
+                entity.Property(x => x.X)
+                    .HasColumnName("x")
+                    .HasDefaultValue(10)
+                    .IsRequired();
+
+                entity.Property(x => x.Y)
+                    .HasColumnName("y")
+                    .HasDefaultValue(10)
+                    .IsRequired();
+
+                entity.Property(x => x.W)
+                    .HasColumnName("w")
+                    .HasDefaultValue(20)
+                    .IsRequired();
+
+                entity.Property(x => x.H)
+                    .HasColumnName("h")
+                    .HasDefaultValue(15)
+                    .IsRequired();
+
+                entity.Property(x => x.IsActive)
+                    .HasColumnName("is_active")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true)
+                    .IsRequired();
+
+                entity.Property(x => x.SortOrder)
+                    .HasColumnName("sort_order")
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(x => x.CreatedByUserId)
+                    .HasColumnName("created_by_user_id")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasIndex(x => x.AreaKey)
+                    .IsUnique()
+                    .HasDatabaseName("uq_meeting_room_areas_key");
+
+                entity.HasIndex(x => x.IsActive)
+                    .HasDatabaseName("idx_meeting_room_areas_active");
+            });
+
+            modelBuilder.Entity<MeetingRoomObject>(entity =>
+            {
+                entity.ToTable("meeting_room_objects");
+                entity.HasKey(x => x.ObjectId);
+
+                entity.Property(x => x.ObjectId)
+                    .HasColumnName("object_id");
+
+                entity.Property(x => x.ObjectKey)
+                    .HasColumnName("object_key")
+                    .HasColumnType("varchar(80)")
+                    .HasDefaultValue("desk-basic")
+                    .IsRequired();
+
+                entity.Property(x => x.ObjectType)
+                    .HasColumnName("object_type")
+                    .HasColumnType("varchar(30)")
+                    .HasDefaultValue("DESK")
+                    .IsRequired();
+
+                entity.Property(x => x.Title)
+                    .HasColumnName("title")
+                    .HasColumnType("varchar(100)")
+                    .HasDefaultValue("Desk")
+                    .IsRequired();
+
+                entity.Property(x => x.Tone)
+                    .HasColumnName("tone")
+                    .HasColumnType("varchar(20)")
+                    .HasDefaultValue("wood")
+                    .IsRequired();
+
+                entity.Property(x => x.X)
+                    .HasColumnName("x")
+                    .HasDefaultValue(20)
+                    .IsRequired();
+
+                entity.Property(x => x.Y)
+                    .HasColumnName("y")
+                    .HasDefaultValue(20)
+                    .IsRequired();
+
+                entity.Property(x => x.W)
+                    .HasColumnName("w")
+                    .HasDefaultValue(8)
+                    .IsRequired();
+
+                entity.Property(x => x.H)
+                    .HasColumnName("h")
+                    .HasDefaultValue(6)
+                    .IsRequired();
+
+                entity.Property(x => x.Rotation)
+                    .HasColumnName("rotation")
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(x => x.IsObstacle)
+                    .HasColumnName("is_obstacle")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true)
+                    .IsRequired();
+
+                entity.Property(x => x.IsActive)
+                    .HasColumnName("is_active")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true)
+                    .IsRequired();
+
+                entity.Property(x => x.SortOrder)
+                    .HasColumnName("sort_order")
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(x => x.CreatedByUserId)
+                    .HasColumnName("created_by_user_id")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasIndex(x => new { x.IsActive, x.ObjectType })
+                    .HasDatabaseName("idx_meeting_room_objects_active_type");
             });
 
             // =========================

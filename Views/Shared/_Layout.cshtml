@@ -1270,6 +1270,52 @@
     overflow:hidden !important;
 }
 
+.v2-shell-meeting-room .v2-sidebar{
+    display:none !important;
+}
+
+html:has(body .v2-shell-meeting-room),
+body:has(.v2-shell-meeting-room){
+    width:100%;
+    height:100%;
+    margin:0 !important;
+    overflow:hidden !important;
+    overscroll-behavior:none;
+    background:#0b1730 !important;
+}
+
+body:has(.v2-shell-meeting-room) .v2-shell{
+    width:100vw !important;
+    height:100vh !important;
+    min-height:100vh !important;
+    overflow:hidden !important;
+    background:#0b1730 !important;
+}
+
+body:has(.v2-shell-meeting-room) .footer-modern{
+    display:none !important;
+}
+
+.v2-shell-meeting-room .v2-page{
+    margin-left:0 !important;
+    width:100vw !important;
+    max-width:100vw !important;
+    height:100vh !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    background:#0b1730 !important;
+}
+
+.v2-shell-meeting-room .v2-page > .container,
+.v2-shell-meeting-room .v2-page main{
+    width:100vw !important;
+    max-width:100vw !important;
+    height:100% !important;
+    margin:0 !important;
+    padding:0 !important;
+    overflow:hidden !important;
+}
+
 body:has(.v2-shell-requirement-board)::-webkit-scrollbar,
 body:has(.v2-shell-requirement-board) *::-webkit-scrollbar{
     width:2px !important;
@@ -1388,6 +1434,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
 .nav-ico:has(img[src$="dashboard.svg"]) { background:linear-gradient(135deg,rgba(32,214,200,.76),rgba(16,146,232,.68)); }
 .nav-ico:has(img[src$="requirement-board.svg"]) { background:linear-gradient(135deg,rgba(33,199,200,.72),rgba(8,123,143,.66)); }
+.nav-ico:has(img[src$="meetings.svg"]) { background:linear-gradient(135deg,rgba(34,211,238,.74),rgba(20,184,166,.68)); }
 .nav-ico:has(img[src$="employees.svg"]) { background:linear-gradient(135deg,rgba(75,140,255,.74),rgba(24,78,233,.68)); }
 .nav-ico:has(img[src$="projects.svg"]) { background:linear-gradient(135deg,rgba(123,108,255,.74),rgba(70,53,212,.68)); }
 .nav-ico:has(img[src$="test-scenarios.svg"]) { background:linear-gradient(135deg,rgba(24,213,190,.72),rgba(8,127,145,.66)); }
@@ -1705,13 +1752,18 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     var isRequirementBoardPage =
         string.Equals(layoutController, "RequirementBoard", StringComparison.OrdinalIgnoreCase) &&
         string.Equals(layoutAction, "Board", StringComparison.OrdinalIgnoreCase);
+    var isMeetingRoomPage =
+        string.Equals(layoutController, "MeetingRoom", StringComparison.OrdinalIgnoreCase) &&
+        (string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(layoutAction, "Guest", StringComparison.OrdinalIgnoreCase));
     var isStandaloneCalendarPage =
         (string.Equals(layoutController, "Meetings", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
         (string.Equals(layoutController, "PhaseCalendar", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
         (string.Equals(layoutController, "PhaseWorkload", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
-        isRequirementBoardPage;
+        isRequirementBoardPage ||
+        isMeetingRoomPage;
 }
-<div class="v2-shell @(isStandaloneCalendarPage ? "v2-shell-standalone" : "") @(isRequirementBoardPage ? "v2-shell-requirement-board" : "")">
+<div class="v2-shell @(isStandaloneCalendarPage ? "v2-shell-standalone" : "") @(isRequirementBoardPage ? "v2-shell-requirement-board" : "") @(isMeetingRoomPage ? "v2-shell-meeting-room" : "")">
 
 @{
     var userId = Context.Session.GetInt32("UserId");
@@ -1840,6 +1892,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
     var canRequirementBoard = CanMenu("RequirementBoard.Index");
+    var canMeetingRoom = CanMenu("MeetingRoom.Index");
 
 	    var canReports = CanMenu("Reports.Index");
 
@@ -1938,6 +1991,16 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                 <a class="nav-link @(controller=="RequirementBoard" ? "active-menu" : "")" asp-controller="RequirementBoard" asp-action="Index">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/requirement-board.svg" alt="" /></span>
                                     <span class="nav-label">Project Board</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (canMeetingRoom)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(controller=="MeetingRoom" ? "active-menu" : "")" asp-controller="MeetingRoom" asp-action="Index">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
+                                    <span class="nav-label">Meeting Room</span>
                                 </a>
                             </li>
                         }

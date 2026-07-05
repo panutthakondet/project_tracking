@@ -94,7 +94,7 @@
             var row = 0;
             foreach (var emp in Model.OrderBy(e => e.Position).ThenBy(e => e.EmpId))
             {
-                <tr>
+                <tr id="employee-@emp.EmpId">
                     @{ row++; }
                     <td class="text-center">@row</td>
 
@@ -197,7 +197,7 @@
         {
             mobileRow++;
 
-            <div class="employee-card">
+            <div class="employee-card" id="employee-card-@emp.EmpId">
 
                 <div class="employee-card-header">
                     <img class="employee-avatar"
@@ -306,6 +306,11 @@
     transform: translateY(-2px);
     border-color: #93c5fd;
     box-shadow: 0 14px 30px rgba(15,23,42,.10);
+}
+
+.employee-card:target {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20,184,166,.18), 0 16px 34px rgba(15,23,42,.14);
 }
 
 .employee-card-header {
