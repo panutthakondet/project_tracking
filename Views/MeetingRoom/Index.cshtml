@@ -3852,6 +3852,31 @@
             transition: transform .18s ease, opacity .18s ease;
         }
 
+        .mr-toast.has-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .mr-toast-message {
+            min-width: 0;
+        }
+
+        .mr-toast-action {
+            flex: 0 0 auto;
+            border: 0;
+            border-radius: 999px;
+            padding: 7px 11px;
+            color: #061728;
+            background: var(--mr-teal);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+        }
+
         .mr-toast.is-show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
@@ -3880,7 +3905,8 @@
             position: absolute;
             z-index: 34;
             left: 22px;
-            bottom: 88px;
+            top: 92px;
+            bottom: auto;
             width: min(560px, calc(100% - 430px));
             min-width: 390px;
             max-height: min(330px, calc(100% - 138px));
@@ -3923,6 +3949,13 @@
             cursor: grabbing;
         }
 
+        .mr-meeting-head-left {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .mr-meeting-title {
             min-width: 0;
             display: grid;
@@ -3941,6 +3974,43 @@
             color: rgba(226,232,240,.72);
             font-size: 10px;
             font-weight: 750;
+        }
+
+        .mr-meeting-status-pill {
+            min-width: 48px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 0 8px;
+            border: 1px solid rgba(45,212,191,.34);
+            border-radius: 999px;
+            color: rgba(204,251,241,.96);
+            background: rgba(20,184,166,.13);
+            font-size: 10px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .mr-meeting-status-pill::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34,197,94,.12);
+        }
+
+        .mr-meeting-status-pill.is-ready {
+            color: rgba(226,232,240,.72);
+            border-color: rgba(148,163,184,.28);
+            background: rgba(148,163,184,.12);
+        }
+
+        .mr-meeting-status-pill.is-ready::before {
+            background: #94a3b8;
+            box-shadow: none;
         }
 
         .mr-meeting-head-actions {
@@ -3977,12 +4047,15 @@
         .mr-meeting-body {
             min-height: 0;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 178px;
+            grid-template-columns: minmax(0, 1fr) 190px;
         }
 
         .mr-meeting-stage {
             min-width: 0;
             min-height: 178px;
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: 7px;
             padding: 8px;
             background: rgba(0,0,0,.16);
         }
@@ -3991,19 +4064,20 @@
             height: 100%;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: minmax(82px, 1fr);
+            grid-auto-rows: minmax(76px, 1fr);
             gap: 6px;
         }
 
         .mr-video-tile {
             position: relative;
-            min-height: 82px;
+            min-height: 76px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.1);
             border-radius: 12px;
             background:
                 linear-gradient(145deg, rgba(34,197,94,.16), rgba(59,130,246,.12)),
                 rgba(15,23,42,.82);
+            box-shadow: inset 0 0 0 1px rgba(45,212,191,.08);
         }
 
         .mr-video-tile.is-expandable {
@@ -4046,13 +4120,29 @@
 
         .mr-video-placeholder {
             height: 100%;
-            display: grid;
-            place-items: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
             padding: 10px;
             text-align: center;
             color: rgba(226,232,240,.82);
             font-size: 12px;
             font-weight: 850;
+        }
+
+        .mr-video-avatar {
+            width: 42px;
+            height: 42px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #5c3b18;
+            background: #ffd19a;
+            box-shadow: 0 0 0 3px rgba(255,255,255,.08);
+            font-size: 18px;
+            font-weight: 900;
         }
 
         .mr-video-label {
@@ -4069,6 +4159,32 @@
             background: rgba(2,6,23,.72);
             font-size: 11px;
             font-weight: 850;
+        }
+
+        .mr-video-state {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            min-width: 22px;
+            height: 22px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 999px;
+            color: rgba(248,250,252,.92);
+            background: rgba(2,6,23,.68);
+            box-shadow: 0 8px 18px rgba(0,0,0,.18);
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .mr-video-state.is-on {
+            color: #052e2b;
+            background: rgba(45,212,191,.94);
+        }
+
+        .mr-video-state.is-off {
+            color: #fecaca;
+            background: rgba(127,29,29,.78);
         }
 
         .mr-meeting-side {
@@ -4916,9 +5032,44 @@
             animation: mrPulse 1s ease-in-out 3;
         }
 
+        .mr-person.is-waving .mr-character {
+            animation: mrWaveCharacter .52s ease-in-out 3;
+        }
+
+        .mr-person.is-waving::after {
+            content: "Wave";
+            position: absolute;
+            left: 50%;
+            top: 12px;
+            transform: translate(-50%, -100%);
+            padding: 5px 9px;
+            border: 2px solid rgba(255,255,255,.92);
+            border-radius: 999px;
+            color: #071421;
+            background: #ffffff;
+            font-size: 11px;
+            font-weight: 950;
+            line-height: 1;
+            box-shadow: 0 12px 22px rgba(0,0,0,.22);
+            pointer-events: none;
+            animation: mrWaveBadge 1.45s ease both;
+        }
+
         @@keyframes mrPulse {
             0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,.18), 0 10px 18px rgba(0,0,0,.22); }
             50% { box-shadow: 0 0 0 10px rgba(25,211,178,.34), 0 16px 28px rgba(0,0,0,.24); }
+        }
+
+        @@keyframes mrWaveCharacter {
+            0%, 100% { transform: scaleX(var(--avatar-dir, 1)) scale(var(--avatar-scale)) rotate(0deg); }
+            35% { transform: scaleX(var(--avatar-dir, 1)) scale(var(--avatar-scale)) rotate(-5deg) translateY(-3px); }
+            70% { transform: scaleX(var(--avatar-dir, 1)) scale(var(--avatar-scale)) rotate(5deg) translateY(-2px); }
+        }
+
+        @@keyframes mrWaveBadge {
+            0% { opacity: 0; transform: translate(-50%, -86%) scale(.86); }
+            14%, 78% { opacity: 1; transform: translate(-50%, -112%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -132%) scale(.92); }
         }
 
         @@keyframes mrWalkBody {
@@ -5146,7 +5297,8 @@
             }
 
             .mr-meeting-panel {
-                bottom: 76px;
+                top: 74px;
+                bottom: auto;
                 width: min(520px, calc(100% - 350px));
                 min-width: 380px;
                 max-height: min(320px, calc(100% - 112px));
@@ -5480,7 +5632,8 @@
             .meeting-room.is-right-panel-collapsed .mr-meeting-panel {
                 left: 8px;
                 right: 8px;
-                bottom: 74px;
+                top: 74px;
+                bottom: auto;
                 max-height: min(330px, calc(100% - 92px));
                 border-radius: 16px;
             }
@@ -6113,9 +6266,12 @@
 
     <section class="mr-meeting-panel mr-auth-only" id="meetingPanel" hidden aria-label="Active meeting">
         <div class="mr-meeting-head">
-            <div class="mr-meeting-title">
-                <strong id="meetingPanelTitle">Meeting</strong>
-                <span id="meetingPanelArea">Lobby</span>
+            <div class="mr-meeting-head-left">
+                <div class="mr-meeting-title">
+                    <strong id="meetingPanelTitle">Meeting</strong>
+                    <span id="meetingPanelArea">Lobby</span>
+                </div>
+                <span class="mr-meeting-status-pill" id="meetingConnectionStatus">Live</span>
             </div>
             <div class="mr-meeting-head-actions">
                 <button class="mr-icon-btn" type="button" id="meetingAttachFile" title="Share file" aria-label="Share file">＋</button>
@@ -6124,10 +6280,10 @@
             </div>
         </div>
 
-        <div class="mr-meeting-body">
-            <div class="mr-meeting-stage">
-                <div class="mr-video-grid" id="meetingVideoGrid"></div>
-            </div>
+	        <div class="mr-meeting-body">
+	            <div class="mr-meeting-stage">
+	                <div class="mr-video-grid" id="meetingVideoGrid"></div>
+	            </div>
 
             <aside class="mr-meeting-side">
                 <section class="mr-meeting-box">
@@ -6467,6 +6623,9 @@
             const focusUserId = Number(root.dataset.focusUserId || 0);
             const currentUserId = Number(root.dataset.currentUserId || 0);
             const token = document.querySelector('#meetingRoomAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
+            const globalAudioDesiredMicKey = 'meetingRoom:desiredMicOn';
+            const globalAudioOwnerKey = 'meetingRoom:audioOwner';
+            const meetingRoomAudioOwnerId = `meeting-room-${Date.now()}-${Math.random().toString(36).slice(2)}`;
             const personPopover = document.getElementById('personPopover');
             const selfPopover = document.getElementById('selfPopover');
             const meetingPanel = document.getElementById('meetingPanel');
@@ -6479,6 +6638,7 @@
             let followedUserId = null;
             let followTimer = null;
             let toastTimer = null;
+            let waveAudioContext = null;
             let activeWalkToken = 0;
             let roomZoom = 1;
             let roomPanX = 0;
@@ -6504,7 +6664,7 @@
             let liveKitRoom = null;
             let liveKitConnectedAreaKey = '';
             let liveKitConnectingPromise = null;
-            let desiredMicOn = false;
+            let desiredMicOn = readStoredDesiredMicOn();
             let desiredCameraOn = false;
             let desiredScreenOn = false;
             const liveKitRemoteTracks = new Map();
@@ -6538,6 +6698,7 @@
             let roomStateTimer = null;
             let roomStatePollingInterval = 0;
             let isPollingRoomState = false;
+            let meetingRoomAudioOwnerTimer = null;
             let objectDragState = null;
             let suppressObjectClick = false;
             let selectedObjectCategory = 'Desk';
@@ -6842,12 +7003,95 @@
                 AWAY: 'Away',
                 MEETING: 'In Meeting'
             };
-
-            function showToast(message) {
+            function showToast(message, options = {}) {
                 window.clearTimeout(toastTimer);
-                toast.textContent = message;
+                toast.replaceChildren();
+                toast.classList.toggle('has-action', Boolean(options.actionLabel && options.onAction));
+
+                const text = document.createElement('span');
+                text.className = 'mr-toast-message';
+                text.textContent = message;
+                toast.appendChild(text);
+
+                if (options.actionLabel && options.onAction) {
+                    const action = document.createElement('button');
+                    action.type = 'button';
+                    action.className = 'mr-toast-action';
+                    action.textContent = options.actionLabel;
+                    action.addEventListener('click', event => {
+                        event.stopPropagation();
+                        toast.classList.remove('is-show');
+                        toast.classList.remove('has-action');
+                        options.onAction();
+                    });
+                    toast.appendChild(action);
+                }
+
                 toast.classList.add('is-show');
-                toastTimer = window.setTimeout(() => toast.classList.remove('is-show'), 2600);
+                toastTimer = window.setTimeout(() => {
+                    toast.classList.remove('is-show');
+                    toast.classList.remove('has-action');
+                }, options.duration || (options.actionLabel ? 7000 : 2600));
+            }
+
+            function playWaveSound() {
+                try {
+                    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextCtor) return;
+
+                    waveAudioContext ||= new AudioContextCtor();
+                    if (waveAudioContext.state === 'suspended') {
+                        void waveAudioContext.resume();
+                    }
+
+                    const now = waveAudioContext.currentTime;
+                    [740, 980].forEach((frequency, index) => {
+                        const oscillator = waveAudioContext.createOscillator();
+                        const gain = waveAudioContext.createGain();
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(frequency, now + (index * .08));
+                        gain.gain.setValueAtTime(0, now + (index * .08));
+                        gain.gain.linearRampToValueAtTime(.12, now + (index * .08) + .015);
+                        gain.gain.exponentialRampToValueAtTime(.001, now + (index * .08) + .18);
+                        oscillator.connect(gain);
+                        gain.connect(waveAudioContext.destination);
+                        oscillator.start(now + (index * .08));
+                        oscillator.stop(now + (index * .08) + .2);
+                    });
+                } catch {
+                    // Browsers can block audio until the user has interacted with the page.
+                }
+            }
+
+            function showPersonWave(userId) {
+                const marker = getPersonMarker(userId);
+                if (!marker) return;
+
+                marker.classList.remove('is-waving');
+                void marker.offsetWidth;
+                marker.classList.add('is-waving', 'is-pulse');
+                window.setTimeout(() => marker.classList.remove('is-waving'), 1700);
+                window.setTimeout(() => marker.classList.remove('is-pulse'), 3200);
+            }
+
+            function handleRealtimeWave(payload) {
+                const sourceUserId = Number(payload?.sourceUserId ?? payload?.SourceUserId ?? 0);
+                const targetUserId = Number(payload?.targetUserId ?? payload?.TargetUserId ?? 0);
+                if (!sourceUserId || !targetUserId || targetUserId !== currentUserId || sourceUserId === currentUserId) {
+                    return;
+                }
+
+                const sourcePerson = peopleById.get(sourceUserId);
+                const sourceName = payload?.sourceName ?? payload?.SourceName ?? sourcePerson?.displayName ?? 'Someone';
+                showPersonWave(sourceUserId);
+                playWaveSound();
+                showToast(`${sourceName} Wave หาคุณ`, {
+                    actionLabel: 'เดินไปหา',
+                    duration: 8000,
+                    onAction: () => {
+                        void walkCurrentTo(sourceUserId, 'wave');
+                    }
+                });
             }
 
             function normalizeAvatar(personOrAvatar = {}) {
@@ -7259,6 +7503,71 @@
                 }
 
                 return payload;
+            }
+
+            function readStorageJson(key) {
+                try {
+                    const raw = window.localStorage.getItem(key);
+                    return raw ? JSON.parse(raw) : null;
+                } catch {
+                    return null;
+                }
+            }
+
+            function writeStorageJson(key, value) {
+                try {
+                    window.localStorage.setItem(key, JSON.stringify(value));
+                } catch {
+                    // Local storage can be unavailable in private mode.
+                }
+            }
+
+            function readStoredDesiredMicOn() {
+                const saved = readStorageJson(globalAudioDesiredMicKey);
+                if (!saved || saved.value !== true) return false;
+
+                const updatedAt = Number(saved.updatedAt || 0);
+                return updatedAt > 0 && Date.now() - updatedAt < 12 * 60 * 60 * 1000;
+            }
+
+            function setStoredDesiredMicOn(value) {
+                writeStorageJson(globalAudioDesiredMicKey, {
+                    value: Boolean(value),
+                    updatedAt: Date.now()
+                });
+            }
+
+            function renewMeetingRoomAudioOwner() {
+                if (isGuest || !currentUserId) return;
+
+                writeStorageJson(globalAudioOwnerKey, {
+                    id: meetingRoomAudioOwnerId,
+                    scope: 'meeting-room',
+                    userId: currentUserId,
+                    expiresAt: Date.now() + 7000
+                });
+            }
+
+            function startMeetingRoomAudioOwner() {
+                if (isGuest || !currentUserId) return;
+
+                renewMeetingRoomAudioOwner();
+                window.clearInterval(meetingRoomAudioOwnerTimer);
+                meetingRoomAudioOwnerTimer = window.setInterval(renewMeetingRoomAudioOwner, 2000);
+            }
+
+            function releaseMeetingRoomAudioOwner() {
+                window.clearInterval(meetingRoomAudioOwnerTimer);
+                meetingRoomAudioOwnerTimer = null;
+
+                try {
+                    const owner = readStorageJson(globalAudioOwnerKey);
+                    if (owner?.id === meetingRoomAudioOwnerId) {
+                        window.localStorage.removeItem(globalAudioOwnerKey);
+                    }
+                } catch {
+                    // Best effort only.
+                }
             }
 
             async function copyToClipboard(text) {
@@ -9310,10 +9619,14 @@
                 return liveKitPublications(liveKitRoom?.localParticipant);
             }
 
+            function isLiveKitPublicationMuted(publication, track = null) {
+                return Boolean(publication?.isMuted || publication?.muted || track?.isMuted || track?.mediaStreamTrack?.enabled === false);
+            }
+
             function liveKitLocalPublication(predicate) {
                 return liveKitLocalPublications().find(publication => {
                     const track = liveKitPublicationTrack(publication);
-                    return track && isLiveKitTrackLive(track) && predicate(publication, track);
+                    return track && isLiveKitTrackLive(track) && !isLiveKitPublicationMuted(publication, track) && predicate(publication, track);
                 }) || null;
             }
 
@@ -9331,15 +9644,45 @@
                 screenStream = liveKitLocalStream((publication, track) =>
                     isLiveKitVideoEntry(track, publication) && isLiveKitScreenSource(liveKitPublicationSource(publication)));
 
-                setDockMediaState('toggleMic', Boolean(micStream), 'Microphone on', 'Microphone muted');
-                setDockMediaState('toggleCamera', Boolean(cameraStream), 'Camera on', 'Camera off');
-                setDockMediaState('shareScreen', Boolean(screenStream), 'Screen sharing', 'Screen share off');
+	                setDockMediaState('toggleMic', Boolean(micStream), 'Microphone on', 'Microphone muted');
+	                setDockMediaState('toggleCamera', Boolean(cameraStream), 'Camera on', 'Camera off');
+	                setDockMediaState('shareScreen', Boolean(screenStream), 'Screen sharing', 'Screen share off');
+	                syncMeetingConnectionStatus();
+	            }
+
+            function syncLiveKitLocalMediaState(options = {}) {
+                if (!useLiveKitMedia() || !liveKitRoom) return;
+
+	                syncLiveKitLocalMediaStreams();
+	                desiredMicOn = Boolean(micStream);
+	                desiredCameraOn = Boolean(cameraStream);
+	                desiredScreenOn = Boolean(screenStream);
+	                setStoredDesiredMicOn(desiredMicOn);
+
+                if (micStream) {
+                    startSpeakingDetector(micStream, currentUserId);
+                } else {
+                    stopSpeakingDetector(currentUserId);
+                }
+
+                const mediaState = {
+                    micOn: Boolean(micStream),
+                    cameraOn: Boolean(cameraStream),
+                    screenOn: Boolean(screenStream)
+                };
+                if (!micStream || options.clearSpeaking) {
+                    mediaState.isSpeaking = false;
+                }
+
+                void broadcastMeetingMediaState(mediaState);
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
             }
 
-            function liveKitRemoteEntriesForUser(userId) {
+	            function liveKitRemoteEntriesForUser(userId) {
                 const id = Number(userId || 0);
                 return [...liveKitRemoteTracks.values()]
-                    .filter(entry => Number(entry.userId) === id && isLiveKitTrackLive(entry.track));
+                    .filter(entry => Number(entry.userId) === id && isLiveKitTrackLive(entry.track) && !isLiveKitPublicationMuted(entry.publication, entry.track));
             }
 
             function liveKitEntryIsScreen(entry) {
@@ -9522,6 +9865,31 @@
             function wireLiveKitRoom(room) {
                 const events = liveKitClient()?.RoomEvent || {};
 
+                const handleTrackMuteChange = (publication, participant) => {
+                    const track = liveKitPublicationTrack(publication);
+                    const userId = liveKitParticipantUserId(participant);
+                    const isLocal = participant === room.localParticipant || userId === currentUserId;
+
+                    if (isLocal) {
+                        syncLiveKitLocalMediaState({ clearSpeaking: isLiveKitPublicationMuted(publication, track) });
+                        return;
+                    }
+
+                    if (userId && track && !isLiveKitPublicationMuted(publication, track)) {
+                        rememberLiveKitRemoteTrack(track, publication, participant);
+                    }
+
+                    if (userId && isLiveKitAudioEntry(track, publication) && isLiveKitPublicationMuted(publication, track)) {
+                        stopSpeakingDetector(userId);
+                    }
+
+                    if (userId) {
+                        refreshLiveKitMediaStateForUser(userId);
+                    }
+                    scheduleMeetingVideosRender();
+                    scheduleMeetingParticipantsRender();
+                };
+
                 if (events.TrackSubscribed) {
                     room.on(events.TrackSubscribed, (track, publication, participant) => {
                         rememberLiveKitRemoteTrack(track, publication, participant);
@@ -9534,6 +9902,14 @@
                         scheduleMeetingVideosRender();
                         scheduleMeetingParticipantsRender();
                     });
+                }
+
+                if (events.TrackMuted) {
+                    room.on(events.TrackMuted, handleTrackMuteChange);
+                }
+
+                if (events.TrackUnmuted) {
+                    room.on(events.TrackUnmuted, handleTrackMuteChange);
                 }
 
                 if (events.ParticipantDisconnected) {
@@ -9553,10 +9929,7 @@
 
                 if (events.LocalTrackPublished) {
                     room.on(events.LocalTrackPublished, () => {
-                        syncLiveKitLocalMediaStreams();
-                        void broadcastMeetingMediaState();
-                        scheduleMeetingVideosRender();
-                        scheduleMeetingParticipantsRender();
+                        syncLiveKitLocalMediaState();
                     });
                 }
 
@@ -9573,10 +9946,7 @@
                             desiredCameraOn = false;
                         }
 
-                        syncLiveKitLocalMediaStreams();
-                        void broadcastMeetingMediaState();
-                        scheduleMeetingVideosRender();
-                        scheduleMeetingParticipantsRender();
+                        syncLiveKitLocalMediaState({ clearSpeaking: true });
                     });
                 }
 
@@ -9596,13 +9966,17 @@
                 }
 
                 if (events.Reconnecting) {
-                    room.on(events.Reconnecting, () => showToast('LiveKit กำลังเชื่อมต่อใหม่...'));
+                    room.on(events.Reconnecting, () => {
+                        syncMeetingConnectionStatus();
+                        showToast('LiveKit กำลังเชื่อมต่อใหม่...');
+                    });
                 }
 
                 if (events.Reconnected) {
                     room.on(events.Reconnected, () => {
                         syncLiveKitLocalMediaStreams();
                         rememberExistingLiveKitTracks(room);
+                        syncMeetingConnectionStatus();
                         void broadcastMeetingMediaState();
                         showToast('LiveKit กลับมาเชื่อมต่อแล้ว');
                     });
@@ -9616,6 +9990,7 @@
                             audio.remove();
                         });
                         liveKitRemoteAudio.clear();
+                        syncMeetingConnectionStatus();
                         scheduleMeetingVideosRender();
                         scheduleMeetingParticipantsRender();
                     });
@@ -9648,11 +10023,11 @@
             }
 
             async function disconnectLiveKitRoom(options = {}) {
-                const room = liveKitRoom;
-                liveKitRoom = null;
-                liveKitConnectedAreaKey = '';
+	                const room = liveKitRoom;
+	                liveKitRoom = null;
+	                liveKitConnectedAreaKey = '';
 
-                [...liveKitRemoteAudio.values()].forEach(audio => {
+	                [...liveKitRemoteAudio.values()].forEach(audio => {
                     detachLiveKitElement(audio);
                     audio.remove();
                 });
@@ -9674,11 +10049,13 @@
                 setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                 setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
                 setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                syncMeetingConnectionStatus();
 
                 if (!options.keepDesiredMedia) {
                     desiredMicOn = false;
                     desiredCameraOn = false;
                     desiredScreenOn = false;
+                    setStoredDesiredMicOn(false);
                 }
 
                 scheduleMeetingVideosRender();
@@ -9688,13 +10065,18 @@
             async function ensureLiveKitRoom(area = currentConversationArea()) {
                 if (!useLiveKitMedia()) return false;
 
-                const areaKey = normalizeAreaKey(area?.key || area?.title || 'meeting-area');
-                if (liveKitRoom && liveKitConnectedAreaKey === areaKey) return true;
+	                const areaKey = normalizeAreaKey(area?.key || area?.title || 'meeting-area');
+	                if (liveKitRoom && liveKitConnectedAreaKey === areaKey) {
+	                    syncMeetingConnectionStatus();
+	                    return true;
+	                }
 
-                if (liveKitConnectingPromise) {
-                    await liveKitConnectingPromise;
-                    if (liveKitRoom && liveKitConnectedAreaKey === areaKey) return true;
-                }
+	                if (liveKitConnectingPromise) {
+	                    await liveKitConnectingPromise;
+	                    if (liveKitRoom && liveKitConnectedAreaKey === areaKey) {
+	                        return true;
+	                    }
+	                }
 
                 liveKitConnectingPromise = (async () => {
                     const client = liveKitClient();
@@ -9730,10 +10112,11 @@
                         return false;
                     }
 
-                    liveKitRoom = room;
-                    liveKitConnectedAreaKey = areaKey;
-                    rememberExistingLiveKitTracks(room);
+	                    liveKitRoom = room;
+	                    liveKitConnectedAreaKey = areaKey;
+	                    rememberExistingLiveKitTracks(room);
                     await restoreDesiredLiveKitMedia();
+                    syncMeetingConnectionStatus();
                     await broadcastMeetingMediaState();
                     scheduleMeetingVideosRender();
                     scheduleMeetingParticipantsRender();
@@ -10222,8 +10605,19 @@
             function refreshProximityVoice() {
                 if (useLiveKitMedia()) {
                     closeAllRtcPeers();
-                    if (hasRtcLocalMedia() || isMeetingPanelOpen()) {
-                        void ensureLiveKitRoom(currentConversationArea());
+                    const area = currentConversationArea();
+                    const hasAreaCompany = meetingParticipantsForArea(area).some(person => Number(person.userId) !== currentUserId);
+                    const shouldListen = hasAreaCompany ||
+                        hasRtcLocalMedia() ||
+                        desiredMicOn ||
+                        desiredCameraOn ||
+                        desiredScreenOn ||
+                        isMeetingPanelOpen();
+
+                    if (shouldListen) {
+                        void ensureLiveKitRoom(area);
+                    } else if (liveKitRoom) {
+                        void disconnectLiveKitRoom({ keepDesiredMedia: true });
                     }
                     void broadcastMeetingMediaState();
                     return;
@@ -10313,6 +10707,7 @@
                 realtimeConnection.on('MeetingMediaStateChanged', state => {
                     applyMeetingMediaState(state);
                 });
+                realtimeConnection.on('WaveReceived', handleRealtimeWave);
                 realtimeConnection.on('RtcOffer', handleRtcOffer);
                 realtimeConnection.on('RtcAnswer', handleRtcAnswer);
                 realtimeConnection.on('RtcIceCandidate', handleRtcIceCandidate);
@@ -10773,6 +11168,12 @@
                     return;
                 }
 
+                if (intent === 'wave') {
+                    openPerson(targetUserId, targetMarker);
+                    showToast(`เดินไปหา ${targetPerson.displayName} แล้ว`);
+                    return;
+                }
+
                 if (intent === 'meeting') {
                     const area = currentConversationArea();
                     try {
@@ -11039,14 +11440,25 @@
                 }
             }
 
-            function setDockMediaState(buttonId, isActive, onText, offText) {
-                const button = document.getElementById(buttonId);
-                if (!button) return;
+	            function setDockMediaState(buttonId, isActive, onText, offText) {
+	                const button = document.getElementById(buttonId);
+	                if (!button) return;
 
-                button.classList.toggle('is-off', !isActive);
-                button.classList.toggle('is-active', isActive);
-                button.title = isActive ? onText : offText;
-                button.setAttribute('aria-label', button.title);
+	                button.classList.toggle('is-off', !isActive);
+	                button.classList.toggle('is-active', isActive);
+	                button.title = isActive ? onText : offText;
+	                button.setAttribute('aria-label', button.title);
+	            }
+
+	            function syncMeetingConnectionStatus() {
+                const status = document.getElementById('meetingConnectionStatus');
+                if (!status) return;
+
+                const isConnected = useLiveKitMedia()
+                    ? Boolean(liveKitRoom && String(liveKitRoom.state || '').toLowerCase() === 'connected')
+                    : hasRtcLocalMedia();
+                status.textContent = isConnected ? 'Live' : 'Ready';
+                status.classList.toggle('is-ready', !isConnected);
             }
 
             function mediaErrorMessage(error, label) {
@@ -11067,9 +11479,10 @@
 
             async function toggleMicrophone() {
                 if (useLiveKitMedia()) {
-                    if (desiredMicOn || micStream) {
-                        desiredMicOn = false;
-                        stopSpeakingDetector(currentUserId);
+	                    if (desiredMicOn || micStream) {
+	                        desiredMicOn = false;
+	                        setStoredDesiredMicOn(false);
+	                        stopSpeakingDetector(currentUserId);
                         try {
                             await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
                         } catch {
@@ -11082,10 +11495,12 @@
                         return;
                     }
 
-                    desiredMicOn = true;
-                    if (!await ensureLiveKitRoom(currentConversationArea())) {
-                        desiredMicOn = false;
-                        syncLiveKitLocalMediaStreams();
+	                    desiredMicOn = true;
+	                    setStoredDesiredMicOn(true);
+	                    if (!await ensureLiveKitRoom(currentConversationArea())) {
+	                        desiredMicOn = false;
+	                        setStoredDesiredMicOn(false);
+	                        syncLiveKitLocalMediaStreams();
                         await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                         return;
                     }
@@ -11104,9 +11519,10 @@
                         await announceVoiceArea();
                         scheduleMeetingParticipantsRender();
                         showToast(`เปิดไมโครโฟนใน ${currentConversationArea().title} แล้ว`);
-                    } catch (error) {
-                        desiredMicOn = false;
-                        stopSpeakingDetector(currentUserId);
+	                    } catch (error) {
+	                        desiredMicOn = false;
+	                        setStoredDesiredMicOn(false);
+	                        stopSpeakingDetector(currentUserId);
                         try {
                             await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
                         } catch {
@@ -11119,8 +11535,9 @@
                     return;
                 }
 
-                if (micStream) {
-                    stopSpeakingDetector(currentUserId);
+	                if (micStream) {
+	                    setStoredDesiredMicOn(false);
+	                    stopSpeakingDetector(currentUserId);
                     removeStreamTracksFromRtcPeers(micStream);
                     stopMediaStream(micStream);
                     micStream = null;
@@ -11146,24 +11563,27 @@
                     });
                     micStream.getAudioTracks().forEach(track => {
                         track.addEventListener('ended', () => {
-                            removeStreamTracksFromRtcPeers(micStream);
-                            stopSpeakingDetector(currentUserId);
-                            micStream = null;
-                            setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+	                            removeStreamTracksFromRtcPeers(micStream);
+	                            stopSpeakingDetector(currentUserId);
+	                            micStream = null;
+	                            setStoredDesiredMicOn(false);
+	                            setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                             void broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                             scheduleMeetingParticipantsRender();
                         }, { once: true });
                     });
-                    startSpeakingDetector(micStream, currentUserId);
-                    setDockMediaState('toggleMic', true, 'Microphone on', 'Microphone muted');
+	                    startSpeakingDetector(micStream, currentUserId);
+	                    setStoredDesiredMicOn(true);
+	                    setDockMediaState('toggleMic', true, 'Microphone on', 'Microphone muted');
                     await broadcastMeetingMediaState({ micOn: true, isSpeaking: false });
                     await announceVoiceArea();
                     refreshProximityVoice();
                     showToast(`เปิดไมโครโฟนใน ${currentConversationArea().title} แล้ว`);
-                } catch (error) {
-                    stopSpeakingDetector(currentUserId);
-                    micStream = null;
-                    setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+	                } catch (error) {
+	                    stopSpeakingDetector(currentUserId);
+	                    micStream = null;
+	                    setStoredDesiredMicOn(false);
+	                    setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                     await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                     showToast(mediaErrorMessage(error, 'ไมโครโฟน'));
                 }
@@ -11397,6 +11817,24 @@
                 meetingPanelPositioned = true;
             }
 
+            function defaultMeetingPanelPosition() {
+                const roomRect = root.getBoundingClientRect();
+                const topbarRect = root.querySelector('.mr-topbar')?.getBoundingClientRect();
+                const left = topbarRect
+                    ? Math.max(10, topbarRect.left - roomRect.left + 4)
+                    : 22;
+                const top = topbarRect
+                    ? Math.max(10, topbarRect.bottom - roomRect.top + 10)
+                    : 92;
+
+                return clampMeetingPanelPosition(left, top);
+            }
+
+            function setDefaultMeetingPanelPosition() {
+                const next = defaultMeetingPanelPosition();
+                setMeetingPanelPosition(next.left, next.top);
+            }
+
             function ensureMeetingPanelInView() {
                 if (!meetingPanel || meetingPanel.hidden || !meetingPanelPositioned) return;
 
@@ -11536,6 +11974,7 @@
                     (liveKitTrack && isLiveKitTrackLive(liveKitTrack)));
                 const sourceId = options.sourceId || '';
                 tile.className = `mr-video-tile${options.isScreen ? ' is-screen' : ''}${hasVideo ? ' is-expandable' : ''}`;
+                tile.classList.toggle('is-camera-off', !hasVideo);
                 if (hasVideo && sourceId) {
                     tile.dataset.screenSourceId = sourceId;
                     tile.tabIndex = 0;
@@ -11567,9 +12006,22 @@
                 } else {
                     const placeholder = document.createElement('div');
                     placeholder.className = 'mr-video-placeholder';
-                    placeholder.textContent = options.placeholder || 'Camera off';
+                    if (options.initial) {
+                        const avatar = document.createElement('span');
+                        avatar.className = 'mr-video-avatar';
+                        avatar.textContent = options.initial;
+                        placeholder.appendChild(avatar);
+                    }
+                    const placeholderText = document.createElement('span');
+                    placeholderText.textContent = options.placeholder || 'Camera off';
+                    placeholder.appendChild(placeholderText);
                     tile.appendChild(placeholder);
                 }
+
+                const state = document.createElement('span');
+                state.className = `mr-video-state ${options.isScreen ? 'is-on' : (options.micOn ? 'is-on' : 'is-off')}`;
+                state.textContent = options.isScreen ? 'Share' : (options.micOn ? 'Mic' : 'Mute');
+                tile.appendChild(state);
 
                 const caption = document.createElement('span');
                 caption.className = 'mr-video-label';
@@ -11602,6 +12054,8 @@
                         isScreen: true,
                         muted: true,
                         sourceId: 'local-screen',
+                        initial: current?.initial || 'Y',
+                        micOn: Boolean(micStream),
                         liveKitTrack: localScreenTrack,
                         liveKitPublication: localScreenPublication
                     }));
@@ -11613,10 +12067,13 @@
                         const liveKitScreens = liveKitRemoteEntriesForUser(person.userId).filter(liveKitEntryIsScreen);
                         if (liveKitScreens.length) {
                             liveKitScreens.forEach(entry => {
+                                const media = meetingMediaStateForUser(person.userId);
                                 grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, null, {
                                     muted: true,
                                     isScreen: true,
                                     sourceId: `livekit-screen-${person.userId}-${liveKitTrackSid(entry.track, entry.publication) || entry.updatedAt}`,
+                                    initial: person.initial || 'U',
+                                    micOn: Boolean(media.micOn),
                                     liveKitTrack: entry.track,
                                     liveKitPublication: entry.publication
                                 }));
@@ -11628,10 +12085,13 @@
                             .filter(entry => liveVideoTracks(entry.stream).length)
                             .filter(entry => isRemoteScreenStream(person.userId, entry.stream))
                             .forEach(entry => {
+                                const media = meetingMediaStateForUser(person.userId);
                                 grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, entry.stream, {
                                     muted: true,
                                     isScreen: true,
-                                    sourceId: `remote-screen-${person.userId}-${entry.stream.id || 'video'}`
+                                    sourceId: `remote-screen-${person.userId}-${entry.stream.id || 'video'}`,
+                                    initial: person.initial || 'U',
+                                    micOn: Boolean(media.micOn)
                                 }));
                             });
                     });
@@ -11639,6 +12099,7 @@
                 participants.forEach(person => {
                     const userId = Number(person.userId);
                     const isSelf = userId === currentUserId;
+                    const media = meetingMediaStateForUser(userId);
                     let stream = null;
                     let liveKitTrack = null;
                     let liveKitPublication = null;
@@ -11665,6 +12126,8 @@
                         muted: true,
                         placeholder: stream || liveKitTrack ? 'Camera starting' : 'กล้องปิด',
                         sourceId: isSelf ? 'local-camera' : `remote-camera-${userId}`,
+                        initial: person.initial || (isSelf ? 'Y' : 'U'),
+                        micOn: Boolean(media.micOn),
                         liveKitTrack,
                         liveKitPublication
                     }));
@@ -11799,6 +12262,10 @@
                 const area = meetingArea();
                 document.getElementById('meetingPanelTitle')?.replaceChildren(document.createTextNode('Meeting'));
                 document.getElementById('meetingPanelArea')?.replaceChildren(document.createTextNode(area.title || 'Meeting area'));
+                setDockMediaState('toggleMic', Boolean(micStream), 'Microphone on', 'Microphone muted');
+                setDockMediaState('toggleCamera', Boolean(cameraStream), 'Camera on', 'Camera off');
+                setDockMediaState('shareScreen', Boolean(screenStream), 'Screen sharing', 'Screen share off');
+                syncMeetingConnectionStatus();
                 renderMeetingVideos();
                 renderMeetingParticipants();
                 renderMeetingFiles();
@@ -11815,7 +12282,11 @@
                     dismissedMeetingAreaKey = '';
                 }
                 meetingPanel.hidden = false;
-                ensureMeetingPanelInView();
+                if (meetingPanelPositioned) {
+                    ensureMeetingPanelInView();
+                } else {
+                    setDefaultMeetingPanelPosition();
+                }
                 closePopovers();
                 if (useLiveKitMedia()) {
                     await ensureLiveKitRoom(activeMeetingArea);
@@ -12498,25 +12969,25 @@
                     return;
                 }
 
-                if (targetId === 'toggleMic') {
-                    await toggleMicrophone();
-                    return;
-                }
+	                if (targetId === 'toggleMic') {
+	                    await toggleMicrophone();
+	                    return;
+	                }
 
-                if (targetId === 'toggleCamera') {
-                    await toggleCameraStream();
-                    return;
-                }
+	                if (targetId === 'toggleCamera') {
+	                    await toggleCameraStream();
+	                    return;
+	                }
 
-                if (targetId === 'shareScreen') {
-                    await toggleScreenShare();
-                    return;
-                }
+	                if (targetId === 'shareScreen') {
+	                    await toggleScreenShare();
+	                    return;
+	                }
 
-                if (targetId === 'meetingAttachFile' || targetId === 'meetingFileButton' || targetId === 'shareMeetingFile') {
-                    await openMeetingPanel('file');
-                    return;
-                }
+	                if (targetId === 'meetingAttachFile' || targetId === 'meetingFileButton' || targetId === 'shareMeetingFile') {
+	                    await openMeetingPanel('file');
+	                    return;
+	                }
 
                 if (targetId === 'meetingPanelMinimize') {
                     minimizeMeetingPanel();
@@ -12525,10 +12996,10 @@
 
                 if (targetId === 'meetingPanelLeave') {
                     leaveMeetingPanel();
-                    return;
-                }
+	                    return;
+	                }
 
-                if (targetId === 'meetingScreenZoomIn') {
+	                if (targetId === 'meetingScreenZoomIn') {
                     setMeetingScreenZoom(screenViewerZoom + screenViewerZoomConfig.step);
                     return;
                 }
@@ -12810,18 +13281,21 @@
                 }
             });
 
-            window.addEventListener('beforeunload', () => {
-                window.clearInterval(followTimer);
+	            startMeetingRoomAudioOwner();
+
+	            window.addEventListener('beforeunload', () => {
+	                window.clearInterval(followTimer);
                 window.clearInterval(roomStateTimer);
                 window.clearTimeout(pendingPositionSyncTimer);
                 window.clearTimeout(pendingObjectPlacementTimer);
                 window.clearTimeout(pendingDeskAreaSelectionTimer);
-                window.clearTimeout(autoMeetingTimer);
-                window.clearTimeout(proximityVoiceTimer);
-                window.clearTimeout(meetingParticipantsRenderTimer);
-                window.clearTimeout(meetingVideosRenderTimer);
-                stopAllSpeakingDetectors();
-                void disconnectLiveKitRoom();
+	                window.clearTimeout(autoMeetingTimer);
+	                window.clearTimeout(proximityVoiceTimer);
+	                window.clearTimeout(meetingParticipantsRenderTimer);
+	                window.clearTimeout(meetingVideosRenderTimer);
+	                releaseMeetingRoomAudioOwner();
+	                stopAllSpeakingDetectors();
+	                void disconnectLiveKitRoom({ keepDesiredMedia: true });
                 closeAllRtcPeers();
                 stopMediaStream(micStream);
                 stopMediaStream(cameraStream);

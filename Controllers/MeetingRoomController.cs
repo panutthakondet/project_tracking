@@ -305,6 +305,22 @@ namespace ProjectTracking.Controllers
             (88, 36, "Garden Talk")
         };
 
+        private static readonly (string Key, string Title, int X, int Y, int W, int H, string AreaType)[] DefaultVoiceAreas =
+        {
+            ("lobby", "Lobby", 4, 7, 20, 30, "LOBBY"),
+            ("war-table", "War Table", 24, 7, 17, 30, "WORK"),
+            ("design-review", "Design Review", 41, 7, 20, 30, "WORK"),
+            ("report-wall", "Report Wall", 61, 7, 15, 30, "WORK"),
+            ("garden-talk", "Garden Talk", 76, 7, 20, 30, "WORK"),
+            ("support-desk", "Support Desk", 4, 37, 21, 28, "WORK"),
+            ("developer-area", "Developer Area", 25, 37, 30, 28, "WORK"),
+            ("pm-room", "PM Room", 55, 37, 13, 28, "WORK"),
+            ("issue-desk", "Issue Desk", 68, 37, 15, 28, "WORK"),
+            ("meeting-room", "Meeting Room", 83, 37, 13, 28, "MEETING"),
+            ("project-board", "Project Board", 28, 65, 40, 20, "WORK"),
+            ("followup-corner", "Followup Corner", 68, 65, 28, 20, "WORK")
+        };
+
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IHubContext<MeetingRoomHub> _hubContext;
@@ -651,6 +667,46 @@ namespace ProjectTracking.Controllers
             return Json(new { ok = true, serverTime = now.ToString("O"), people });
         }
 
+        [HttpGet]
+        [RequireMenu("MeetingRoom.Index")]
+        public async Task<IActionResult> GlobalAudioState()
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
+            var profile = await EnsureCurrentProfileAsync(currentUserId.Value);
+            var customAreas = await _context.MeetingRoomAreas
+                .AsNoTracking()
+                .Where(area => area.IsActive)
+                .OrderBy(area => area.SortOrder)
+                .ThenBy(area => area.AreaId)
+                .ToListAsync();
+
+            var area = ResolveVoiceArea(profile, customAreas);
+            var liveKitConfigured =
+                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_URL")) &&
+                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_API_KEY")) &&
+                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_API_SECRET"));
+
+            var displayName = await ResolveDisplayNameAsync(currentUserId.Value);
+
+            return Json(new
+            {
+                ok = true,
+                enabled = true,
+                liveKitConfigured,
+                userId = currentUserId.Value,
+                displayName,
+                areaKey = area.Key,
+                areaTitle = area.Title,
+                areaType = area.AreaType,
+                x = ClampPercent(profile.CurrentX ?? profile.DeskX),
+                y = ClampPercent(profile.CurrentY ?? profile.DeskY),
+                updatedAt = DateTimeOffset.UtcNow.ToString("O")
+            });
+        }
+
         private async Task BroadcastPersonStateAsync(string eventName, int userId, MeetingRoomProfile? profile = null)
         {
             var state = await BuildRealtimePersonStateAsync(userId, profile);
@@ -949,6 +1005,15 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             var targetName = await ResolveDisplayNameAsync(target.UserId);
+            await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("WaveReceived", new
+            {
+                sourceUserId = currentUserId.Value,
+                sourceName,
+                targetUserId = target.UserId,
+                targetName,
+                createdAt = now
+            });
+
             return Json(new { ok = true, message = $"ส่ง Wave หา {targetName} แล้ว" });
         }
 
@@ -1441,6 +1506,63 @@ namespace ProjectTracking.Controllers
             }
 
             return zones;
+        }
+
+        private static (string Key, string Title, string AreaType) ResolveVoiceArea(
+            MeetingRoomProfile profile,
+            IReadOnlyList<MeetingRoomArea> customAreas)
+        {
+            var x = ClampPercent(profile.CurrentX ?? profile.DeskX);
+            var y = ClampPercent(profile.CurrentY ?? profile.DeskY);
+
+            foreach (var area in customAreas)
+            {
+                var bounds = NormalizeAreaBounds(area.X, area.Y, area.W, area.H);
+                if (!PointInsideArea(x, y, bounds.X, bounds.Y, bounds.W, bounds.H))
+                    continue;
+
+                var title = string.IsNullOrWhiteSpace(area.Title) ? "Meeting area" : area.Title.Trim();
+                var key = string.IsNullOrWhiteSpace(area.AreaKey) ? NormalizeAreaKey(title) : NormalizeAreaKey(area.AreaKey);
+                return (key, title, NormalizeAreaType(area.AreaType));
+            }
+
+            foreach (var area in DefaultVoiceAreas)
+            {
+                if (PointInsideArea(x, y, area.X, area.Y, area.W, area.H))
+                    return (area.Key, area.Title, area.AreaType);
+            }
+
+            return FallbackVoiceAreaForPoint(x, y);
+        }
+
+        private static (string Key, string Title, string AreaType) FallbackVoiceAreaForPoint(int x, int y)
+        {
+            var row = y < 37 ? "north" : y < 65 ? "middle" : "south";
+            var column = x < 33 ? "left" : x < 66 ? "center" : "right";
+            var key = $"{row}-{column}";
+            var title = key switch
+            {
+                "north-left" => "North Lobby Walkway",
+                "north-center" => "North Work Walkway",
+                "north-right" => "North Garden Walkway",
+                "middle-left" => "West Work Walkway",
+                "middle-center" => "Center Work Walkway",
+                "middle-right" => "East Work Walkway",
+                "south-left" => "South Lobby Walkway",
+                "south-center" => "South Board Walkway",
+                "south-right" => "South Meeting Walkway",
+                _ => "Open Area"
+            };
+
+            return (key, title, "WALKWAY");
+        }
+
+        private static bool PointInsideArea(int x, int y, int areaX, int areaY, int areaW, int areaH)
+        {
+            return x >= areaX &&
+                x <= areaX + areaW &&
+                y >= areaY &&
+                y <= areaY + areaH;
         }
 
         private static MeetingRoomZoneViewModel ToZone(
