@@ -70,7 +70,7 @@
             z-index: 20;
             min-height: 52px;
             display: grid;
-            grid-template-columns: minmax(300px, 1fr) auto minmax(420px, auto);
+            grid-template-columns: minmax(220px, 1fr) max-content minmax(0, max-content);
             align-items: center;
             gap: 10px;
             padding: 7px 10px;
@@ -79,6 +79,7 @@
             background: rgba(12,21,45,.84);
             box-shadow: 0 18px 54px rgba(0,0,0,.24);
             backdrop-filter: blur(18px);
+            overflow: hidden;
         }
 
         .mr-title {
@@ -126,6 +127,7 @@
             justify-content: center;
             gap: 6px;
             min-width: 0;
+            flex: 0 0 auto;
             flex-wrap: nowrap;
         }
 
@@ -133,7 +135,7 @@
             min-width: 0;
             min-height: 34px;
             display: inline-flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: center;
             gap: 5px;
             padding: 0 10px;
@@ -143,20 +145,16 @@
             white-space: nowrap;
         }
 
-        .mr-stat strong,
-        .mr-stat span {
-            display: inline;
-            line-height: 1.1;
-        }
-
         .mr-stat strong {
             font-size: 15px;
             color: #fff;
+            line-height: 1;
         }
 
         .mr-stat span {
             font-size: 10px;
             color: var(--mr-muted);
+            line-height: 1;
         }
 
         .mr-actions {
@@ -165,7 +163,15 @@
             justify-content: flex-end;
             gap: 6px;
             min-width: 0;
+            max-width: min(42vw, 360px);
+            flex: 0 1 auto;
             flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .mr-actions::-webkit-scrollbar {
+            display: none;
         }
 
         .meeting-room :is(.mr-popover, .mr-customize-panel, .mr-meeting-panel) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select),
@@ -5487,7 +5493,7 @@
 
             .mr-topbar {
                 min-height: 46px;
-                grid-template-columns: minmax(210px, .85fr) auto minmax(360px, auto);
+                grid-template-columns: minmax(190px, 1fr) max-content minmax(0, max-content);
                 gap: 8px;
                 padding: 5px 8px;
                 border-radius: 16px;
@@ -5534,13 +5540,7 @@
             .mr-actions {
                 justify-content: flex-end;
                 gap: 5px;
-                overflow-x: auto;
                 padding-bottom: 1px;
-                scrollbar-width: none;
-            }
-
-            .mr-actions::-webkit-scrollbar {
-                display: none;
             }
 
             .mr-icon-btn,
@@ -5703,12 +5703,7 @@
 
         @@media (max-width: 1180px) {
             .mr-topbar {
-                grid-template-columns: minmax(220px, 1fr) auto;
-            }
-
-            .mr-actions {
-                grid-column: 1 / -1;
-                justify-content: flex-start;
+                grid-template-columns: minmax(170px, 1fr) max-content minmax(0, max-content);
             }
 
             .mr-stage-shell {
@@ -5746,17 +5741,24 @@
 
         @@media (max-width: 880px) {
             .mr-topbar {
-                grid-template-columns: 1fr;
-                align-items: stretch;
+                grid-template-columns: minmax(150px, 1fr) max-content minmax(0, max-content);
+                align-items: center;
+                gap: 6px;
             }
 
             .mr-actions {
-                grid-column: auto;
+                max-width: min(34vw, 260px);
+                justify-content: flex-start;
             }
 
             .mr-stats {
-                justify-content: stretch;
+                justify-content: center;
                 overflow-x: auto;
+                scrollbar-width: none;
+            }
+
+            .mr-stats::-webkit-scrollbar {
+                display: none;
             }
 
             .mr-stat {
@@ -6171,31 +6173,31 @@
 
         <div class="mr-stats" aria-label="Meeting room summary">
             <div class="mr-stat">
+                <span>Online :</span>
                 <strong>@Model.Stats.OnlineCount</strong>
-                <span>Online</span>
             </div>
             <div class="mr-stat">
                 @if (isGuest)
                 {
+                    <span>People :</span>
                     <strong>@Model.Stats.TotalPeople</strong>
-                    <span>People</span>
                 }
                 else
                 {
+                    <span>Meetings :</span>
                     <strong>@Model.Stats.TodayMeetingCount</strong>
-                    <span>Meetings</span>
                 }
             </div>
             <div class="mr-stat">
                 @if (isGuest)
                 {
+                    <span>Guest :</span>
                     <strong>View</strong>
-                    <span>Guest</span>
                 }
                 else
                 {
+                    <span>Open work :</span>
                     <strong>@(Model.Stats.OpenIssueCount + Model.Stats.OpenSupportCount + Model.Stats.OpenFollowupCount)</strong>
-                    <span>Open work</span>
                 }
             </div>
         </div>
