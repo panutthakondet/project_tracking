@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ProjectTracking.Hubs
@@ -8,6 +9,27 @@ namespace ProjectTracking.Hubs
         public const string RoomGroup = "meeting-room";
         private static readonly ConcurrentDictionary<int, ConcurrentDictionary<string, byte>> UserConnections = new();
         private static readonly ConcurrentDictionary<string, int> ConnectionUsers = new();
+        private static readonly ConcurrentDictionary<int, ConcurrentDictionary<string, byte>> MeetingRoomPageConnections = new();
+        private static readonly ConcurrentDictionary<string, int> MeetingRoomPageConnectionUsers = new();
+
+        public static bool IsUserInMeetingRoomPage(int userId)
+        {
+            return userId > 0 &&
+                MeetingRoomPageConnections.TryGetValue(userId, out var connections) &&
+                !connections.IsEmpty;
+        }
+
+        public static HashSet<int> ActiveMeetingRoomPageUserIds()
+        {
+            var userIds = new HashSet<int>();
+            foreach (var pair in MeetingRoomPageConnections)
+            {
+                if (!pair.Value.IsEmpty)
+                    userIds.Add(pair.Key);
+            }
+
+            return userIds;
+        }
 
         public override async Task OnConnectedAsync()
         {
@@ -19,6 +41,20 @@ namespace ProjectTracking.Hubs
                 ConnectionUsers[Context.ConnectionId] = userId.Value;
                 var connections = UserConnections.GetOrAdd(userId.Value, _ => new ConcurrentDictionary<string, byte>());
                 connections[Context.ConnectionId] = 0;
+
+                if (IsMeetingRoomPageConnection())
+                {
+                    MeetingRoomPageConnectionUsers[Context.ConnectionId] = userId.Value;
+                    var pageConnections = MeetingRoomPageConnections.GetOrAdd(userId.Value, _ => new ConcurrentDictionary<string, byte>());
+                    pageConnections[Context.ConnectionId] = 0;
+
+                    await Clients.Group(RoomGroup).SendAsync("MeetingRoomPresenceChanged", new
+                    {
+                        userId = userId.Value,
+                        isInRoom = true,
+                        updatedAt = DateTimeOffset.UtcNow
+                    });
+                }
             }
 
             await base.OnConnectedAsync();
@@ -34,6 +70,22 @@ namespace ProjectTracking.Hubs
                 connections.TryRemove(Context.ConnectionId, out _);
                 if (connections.IsEmpty)
                     UserConnections.TryRemove(userId, out _);
+            }
+
+            if (MeetingRoomPageConnectionUsers.TryRemove(Context.ConnectionId, out var pageUserId) &&
+                MeetingRoomPageConnections.TryGetValue(pageUserId, out var pageConnections))
+            {
+                pageConnections.TryRemove(Context.ConnectionId, out _);
+                if (pageConnections.IsEmpty)
+                {
+                    MeetingRoomPageConnections.TryRemove(pageUserId, out _);
+                    await Clients.Group(RoomGroup).SendAsync("PersonLeftRoom", new
+                    {
+                        userId = pageUserId,
+                        isInRoom = false,
+                        updatedAt = DateTimeOffset.UtcNow
+                    });
+                }
             }
 
             await base.OnDisconnectedAsync(exception);
@@ -108,6 +160,16 @@ namespace ProjectTracking.Hubs
 
             var rawUserId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
             return int.TryParse(rawUserId, out var userId) ? userId : null;
+        }
+
+        private bool IsMeetingRoomPageConnection()
+        {
+            var request = Context.GetHttpContext()?.Request;
+            var client = request?.Query["client"].ToString();
+            var scope = request?.Query["scope"].ToString();
+
+            return string.Equals(client, "meeting-room", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(scope, "meeting-room", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

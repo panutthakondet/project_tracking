@@ -126,19 +126,26 @@
             justify-content: center;
             gap: 6px;
             min-width: 0;
+            flex-wrap: nowrap;
         }
 
         .mr-stat {
-            min-width: 74px;
-            padding: 6px 9px;
+            min-width: 0;
+            min-height: 34px;
+            display: inline-flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 5px;
+            padding: 0 10px;
             border: 1px solid rgba(255,255,255,.11);
             border-radius: 12px;
             background: rgba(255,255,255,.08);
+            white-space: nowrap;
         }
 
         .mr-stat strong,
         .mr-stat span {
-            display: block;
+            display: inline;
             line-height: 1.1;
         }
 
@@ -148,7 +155,6 @@
         }
 
         .mr-stat span {
-            margin-top: 2px;
             font-size: 10px;
             color: var(--mr-muted);
         }
@@ -162,38 +168,21 @@
             flex-wrap: nowrap;
         }
 
-        .mr-search {
-            min-width: 160px;
-            width: clamp(160px, 17vw, 240px);
-            flex: 0 1 auto;
-            height: 36px;
-            border: 1px solid rgba(255,255,255,.14);
-            border-radius: 12px;
-            padding: 0 12px;
-            color: #fff;
-            background: rgba(255,255,255,.1);
-            outline: none;
-        }
-
-        .mr-search::placeholder {
-            color: rgba(239,246,255,.48);
-        }
-
         .meeting-room :is(.mr-popover, .mr-customize-panel, .mr-meeting-panel) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select),
-        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input, .mr-search) {
+        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input) {
             color: #f8fafc !important;
             caret-color: #f8fafc !important;
             -webkit-text-fill-color: #f8fafc !important;
         }
 
         .meeting-room :is(.mr-popover, .mr-customize-panel, .mr-meeting-panel) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select)::placeholder,
-        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input, .mr-search)::placeholder {
+        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input)::placeholder {
             color: rgba(226,232,240,.62) !important;
             -webkit-text-fill-color: rgba(226,232,240,.62) !important;
         }
 
         .meeting-room :is(.mr-popover, .mr-customize-panel, .mr-meeting-panel) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select):focus,
-        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input, .mr-search):focus {
+        .meeting-room :is(.mr-name-input, .mr-status-input, .mr-message-input):focus {
             border-color: rgba(25,211,178,.46);
             box-shadow: 0 0 0 3px rgba(25,211,178,.14);
         }
@@ -2636,6 +2625,14 @@
             box-shadow: 0 10px 22px rgba(52,45,160,.32);
         }
 
+        .mr-person.has-status-text .mr-person-name {
+            top: -30px;
+            min-height: 44px;
+            align-items: start;
+            row-gap: 1px;
+            padding-right: 10px;
+        }
+
         .mr-person-name::after {
             content: "";
             position: absolute;
@@ -2662,6 +2659,11 @@
             font-weight: 850;
             line-height: 1;
             overflow: visible;
+        }
+
+        .mr-person.has-status-text .mr-name-badge {
+            grid-row: 1 / span 2;
+            align-self: center;
         }
 
         .mr-name-badge img {
@@ -2706,6 +2708,30 @@
             overflow: visible;
             text-overflow: clip;
             white-space: nowrap;
+        }
+
+        .mr-name-status {
+            grid-column: 2;
+            min-width: 0;
+            max-width: min(300px, calc(100vw - 88px));
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: rgba(239,246,255,.82);
+            font-size: 9px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .mr-name-status:empty {
+            display: none;
+        }
+
+        .mr-action-btn:disabled,
+        .mr-menu-action:disabled {
+            cursor: not-allowed;
+            opacity: .45;
+            filter: grayscale(.2);
         }
 
         .mr-right-panel {
@@ -3191,6 +3217,196 @@
             color: var(--mr-muted);
             font-size: 10px;
             font-weight: 750;
+        }
+
+        #personPopover {
+            width: min(430px, calc(100vw - 24px));
+            border: 1px solid rgba(15,23,42,.14);
+            border-radius: 22px;
+            color: #111827;
+            background: rgba(255,255,255,.98);
+            box-shadow: 0 22px 56px rgba(15,23,42,.28);
+            backdrop-filter: blur(16px);
+        }
+
+        #personPopover .mr-popover-inner {
+            padding: 18px;
+        }
+
+        #personPopover .mr-profile-head {
+            grid-template-columns: 72px minmax(0, 1fr) 30px;
+            gap: 12px;
+            align-items: start;
+        }
+
+        #personPopover .mr-profile-photo {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            box-shadow: inset 0 0 0 1px rgba(15,23,42,.08);
+        }
+
+        #personPopover .mr-profile-photo img {
+            border-radius: 50%;
+        }
+
+        #personPopover .mr-profile-status {
+            right: -1px;
+            bottom: 5px;
+            width: 17px;
+            height: 17px;
+            border: 3px solid #fff;
+        }
+
+        #personPopover .mr-profile-name {
+            padding-top: 4px;
+        }
+
+        #personPopover .mr-profile-name h2 {
+            color: #171717;
+            font-size: 18px;
+            line-height: 1.15;
+            font-weight: 850;
+        }
+
+        #personPopover .mr-profile-meta {
+            display: block;
+            margin-top: 3px;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        #personPopover .mr-profile-name p {
+            display: block;
+            min-height: 42px;
+            margin: 16px -44px 0 -84px;
+            padding: 10px 13px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 13px;
+            color: #111827;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(15,23,42,.05);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 15px;
+            line-height: 1.35;
+        }
+
+        #personPopover .mr-close {
+            width: 30px;
+            height: 30px;
+            border: 0;
+            border-radius: 50%;
+            color: #374151;
+            background: transparent;
+            font-size: 25px;
+            line-height: 1;
+        }
+
+        #personPopover .mr-close:hover {
+            background: #f3f4f6;
+        }
+
+        #personPopover .mr-divider {
+            display: none;
+        }
+
+        #personPopover .mr-quick-actions {
+            grid-template-columns: 48px minmax(140px, 1fr) 48px 48px 48px;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        #personPopover .mr-action-btn {
+            min-height: 46px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            color: #111827;
+            background: #f9fafb;
+            box-shadow: 0 3px 10px rgba(15,23,42,.08);
+            font-size: 15px;
+        }
+
+        #personPopover .mr-action-btn.icon-only {
+            width: 48px;
+            padding: 0;
+            font-size: 21px;
+        }
+
+        #personPopover .mr-action-btn.primary-join {
+            border-color: transparent;
+            color: #fff;
+            background: #3444e6;
+            font-size: 16px;
+        }
+
+        #personPopover .mr-action-btn.secondary {
+            color: #1f2937;
+            background: #f9fafb;
+        }
+
+        #personPopover .mr-action-btn:hover:not(:disabled),
+        #personPopover .mr-menu-action:hover {
+            transform: translateY(-1px);
+        }
+
+        #personPopover .mr-action-btn.primary-join:hover:not(:disabled) {
+            background: #2537d7;
+        }
+
+        #personPopover .mr-message-form {
+            margin-top: 12px;
+        }
+
+        #personPopover .mr-message-input {
+            color: #111827;
+            background: #fff;
+            border-color: #e5e7eb;
+        }
+
+        #personPopover .mr-message-input::placeholder {
+            color: #9ca3af;
+        }
+
+        #personPopover .mr-guest-note {
+            margin-top: 12px;
+            color: #4b5563;
+            background: #f3f4f6;
+        }
+
+        #personPopover .mr-menu-actions[hidden] {
+            display: none !important;
+        }
+
+        #personPopover .mr-menu-actions {
+            gap: 4px;
+            margin-top: 12px;
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 15px;
+            background: #f9fafb;
+        }
+
+        #personPopover .mr-menu-action {
+            color: #111827;
+        }
+
+        #personPopover .mr-menu-action:hover {
+            color: #111827;
+            background: #eef2ff;
+        }
+
+        #personPopover .mr-menu-icon {
+            color: #374151;
+            background: #e5e7eb;
+        }
+
+        #personPopover .mr-menu-text span,
+        #personPopover .mr-shortcut {
+            color: #6b7280;
         }
 
         .mr-self-panel {
@@ -3882,6 +4098,81 @@
             opacity: 1;
         }
 
+        .mr-wave-notification {
+            position: fixed;
+            z-index: 96;
+            top: max(16px, calc(16px + var(--mr-safe-top)));
+            right: max(16px, calc(16px + var(--mr-safe-right)));
+            max-width: min(420px, calc(100vw - 32px - var(--mr-safe-left) - var(--mr-safe-right)));
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 9px 8px 13px;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 12px;
+            color: #fff;
+            background: rgba(12,21,45,.96);
+            box-shadow: 0 20px 46px rgba(0,0,0,.34);
+            backdrop-filter: blur(16px);
+        }
+
+        .mr-wave-notification[hidden] {
+            display: none !important;
+        }
+
+        .mr-wave-notification strong {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .mr-wave-walk,
+        .mr-wave-close {
+            flex: 0 0 auto;
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+            line-height: 1;
+        }
+
+        .mr-wave-walk {
+            min-height: 28px;
+            padding: 0 12px;
+            border-radius: 999px;
+            color: #061728;
+            background: var(--mr-teal);
+            font-size: 11px;
+            font-weight: 950;
+        }
+
+        .mr-wave-close {
+            width: 28px;
+            height: 28px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 9px;
+            color: rgba(226,232,240,.82);
+            background: rgba(255,255,255,.08);
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .mr-wave-walk:hover,
+        .mr-wave-walk:focus-visible {
+            background: #4be8d4;
+            outline: none;
+        }
+
+        .mr-wave-close:hover,
+        .mr-wave-close:focus-visible {
+            color: #fff;
+            background: rgba(255,255,255,.14);
+            outline: none;
+        }
+
         .mr-map-tools {
             position: absolute;
             z-index: 18;
@@ -3907,18 +4198,18 @@
             left: 22px;
             top: 92px;
             bottom: auto;
-            width: min(560px, calc(100% - 430px));
-            min-width: 390px;
-            max-height: min(330px, calc(100% - 138px));
+            width: min(1080px, calc(100% - 430px));
+            min-width: 520px;
+            max-height: min(178px, calc(100% - 138px));
             display: grid;
             grid-template-rows: auto minmax(0, 1fr);
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,.13);
-            border-radius: 16px;
+            overflow: visible;
+            border: 0;
+            border-radius: 0;
             color: #f8fbff;
-            background: rgba(12,21,45,.95);
-            box-shadow: 0 24px 70px rgba(0,0,0,.36);
-            backdrop-filter: blur(18px);
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
         }
 
         .mr-meeting-panel.is-dragging {
@@ -3930,7 +4221,7 @@
         }
 
         .meeting-room.is-right-panel-collapsed .mr-meeting-panel {
-            width: min(600px, calc(100% - 46px));
+            width: min(1120px, calc(100% - 46px));
         }
 
         .mr-meeting-head {
@@ -3938,9 +4229,10 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            padding: 8px 10px;
-            border-bottom: 1px solid rgba(255,255,255,.1);
-            background: rgba(255,255,255,.035);
+            min-height: 30px;
+            padding: 0 0 6px;
+            border-bottom: 0;
+            background: transparent;
             cursor: grab;
             touch-action: none;
         }
@@ -3953,37 +4245,48 @@
             min-width: 0;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 7px;
+            max-width: min(340px, 48vw);
+            padding: 4px 8px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            background: rgba(15,23,42,.66);
+            box-shadow: 0 10px 24px rgba(0,0,0,.22);
+            backdrop-filter: blur(12px);
         }
 
         .mr-meeting-title {
             min-width: 0;
-            display: grid;
-            gap: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .mr-meeting-title strong {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 900;
         }
 
         .mr-meeting-title span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             color: rgba(226,232,240,.72);
             font-size: 10px;
             font-weight: 750;
         }
 
         .mr-meeting-status-pill {
-            min-width: 48px;
-            height: 24px;
+            min-width: 44px;
+            height: 22px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 5px;
-            padding: 0 8px;
+            padding: 0 7px;
             border: 1px solid rgba(45,212,191,.34);
             border-radius: 999px;
             color: rgba(204,251,241,.96);
@@ -4016,16 +4319,22 @@
         .mr-meeting-head-actions {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex: 0 0 auto;
+            padding: 3px;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 11px;
+            background: rgba(15,23,42,.62);
+            box-shadow: 0 10px 24px rgba(0,0,0,.18);
+            backdrop-filter: blur(12px);
         }
 
         .mr-meeting-head-actions .mr-icon-btn,
         .mr-file-plus {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border: 1px solid rgba(255,255,255,.12);
-            border-radius: 10px;
+            border-radius: 9px;
             color: #fff;
             background: rgba(255,255,255,.07);
             cursor: pointer;
@@ -4046,38 +4355,74 @@
 
         .mr-meeting-body {
             min-height: 0;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 190px;
+            display: block;
+            overflow: visible;
         }
 
         .mr-meeting-stage {
             min-width: 0;
-            min-height: 178px;
-            display: grid;
-            grid-template-rows: minmax(0, 1fr) auto;
-            gap: 7px;
-            padding: 8px;
-            background: rgba(0,0,0,.16);
+            min-height: 112px;
+            height: clamp(112px, 15vh, 134px);
+            overflow: visible;
+            display: block;
+            padding: 0;
+            background: transparent;
         }
 
         .mr-video-grid {
+            min-height: 0;
             height: 100%;
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: minmax(76px, 1fr);
-            gap: 6px;
+            grid-auto-flow: column;
+            grid-auto-columns: clamp(176px, 24vw, 292px);
+            grid-template-columns: none;
+            grid-auto-rows: 100%;
+            gap: 5px;
+            align-content: start;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior: contain;
+            padding: 0 2px 4px 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148,163,184,.45) transparent;
+        }
+
+        .mr-video-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .mr-video-grid::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(148,163,184,.42);
+        }
+
+        .mr-video-grid.is-single {
+            grid-auto-columns: clamp(220px, 30vw, 360px);
+        }
+
+        .mr-video-grid.is-many {
+            grid-template-columns: none;
+            grid-auto-columns: clamp(150px, 20vw, 240px);
+            grid-auto-rows: 100%;
+        }
+
+        .mr-video-grid.is-crowded {
+            grid-template-columns: none;
+            grid-auto-columns: clamp(132px, 18vw, 220px);
+            grid-auto-rows: 100%;
         }
 
         .mr-video-tile {
             position: relative;
-            min-height: 76px;
+            min-height: 112px;
+            height: 100%;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
+            border-radius: 6px;
             background:
-                linear-gradient(145deg, rgba(34,197,94,.16), rgba(59,130,246,.12)),
-                rgba(15,23,42,.82);
-            box-shadow: inset 0 0 0 1px rgba(45,212,191,.08);
+                linear-gradient(145deg, rgba(255,255,255,.03), rgba(255,255,255,0)),
+                #111418;
+            box-shadow: 0 16px 34px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.04);
         }
 
         .mr-video-tile.is-expandable {
@@ -4093,7 +4438,7 @@
         }
 
         .mr-video-tile.is-screen {
-            grid-column: 1 / -1;
+            grid-column: auto;
         }
 
         .mr-video-expand {
@@ -4124,31 +4469,31 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             padding: 10px;
             text-align: center;
             color: rgba(226,232,240,.82);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 850;
         }
 
         .mr-video-avatar {
-            width: 42px;
-            height: 42px;
+            width: 36px;
+            height: 36px;
             display: inline-grid;
             place-items: center;
             border-radius: 50%;
             color: #5c3b18;
             background: #ffd19a;
             box-shadow: 0 0 0 3px rgba(255,255,255,.08);
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 900;
         }
 
         .mr-video-label {
             position: absolute;
-            left: 8px;
-            bottom: 8px;
+            left: 7px;
+            bottom: 7px;
             max-width: calc(100% - 20px);
             overflow: hidden;
             text-overflow: ellipsis;
@@ -4157,23 +4502,24 @@
             border-radius: 999px;
             color: #fff;
             background: rgba(2,6,23,.72);
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 850;
         }
 
         .mr-video-state {
             position: absolute;
-            top: 8px;
-            left: 8px;
-            min-width: 22px;
-            height: 22px;
+            top: auto;
+            left: 7px;
+            bottom: 30px;
+            min-width: 18px;
+            height: 18px;
             display: inline-grid;
             place-items: center;
             border-radius: 999px;
             color: rgba(248,250,252,.92);
             background: rgba(2,6,23,.68);
             box-shadow: 0 8px 18px rgba(0,0,0,.18);
-            font-size: 10px;
+            font-size: 0;
             font-weight: 900;
         }
 
@@ -4189,7 +4535,7 @@
 
         .mr-meeting-side {
             min-width: 0;
-            display: grid;
+            display: none;
             grid-template-rows: minmax(0, .9fr) minmax(0, 1fr);
             border-left: 1px solid rgba(255,255,255,.1);
             background: rgba(255,255,255,.025);
@@ -5172,8 +5518,8 @@
             }
 
             .mr-stat {
-                min-width: 62px;
-                padding: 5px 8px;
+                min-height: 32px;
+                padding: 0 8px;
                 border-radius: 11px;
             }
 
@@ -5195,11 +5541,6 @@
 
             .mr-actions::-webkit-scrollbar {
                 display: none;
-            }
-
-            .mr-search {
-                width: clamp(170px, 22vw, 270px);
-                height: 34px;
             }
 
             .mr-icon-btn,
@@ -5299,9 +5640,9 @@
             .mr-meeting-panel {
                 top: 74px;
                 bottom: auto;
-                width: min(520px, calc(100% - 350px));
-                min-width: 380px;
-                max-height: min(320px, calc(100% - 112px));
+                width: min(940px, calc(100% - 350px));
+                min-width: 480px;
+                max-height: min(170px, calc(100% - 112px));
             }
 
             .mr-customize-panel {
@@ -5370,10 +5711,6 @@
                 justify-content: flex-start;
             }
 
-            .mr-search {
-                width: clamp(190px, 34vw, 330px);
-            }
-
             .mr-stage-shell {
                 grid-template-columns: minmax(0, 1fr) 320px;
             }
@@ -5387,8 +5724,8 @@
             }
 
             .mr-meeting-panel {
-                width: min(520px, calc(100% - 360px));
-                min-width: 380px;
+                width: min(900px, calc(100% - 360px));
+                min-width: 460px;
             }
 
             .mr-avatar-workspace {
@@ -5423,7 +5760,7 @@
             }
 
             .mr-stat {
-                min-width: 92px;
+                min-width: max-content;
             }
 
             .mr-stage-shell {
@@ -5444,7 +5781,7 @@
                 right: 14px;
                 width: auto;
                 min-width: 0;
-                max-height: min(340px, calc(100% - 126px));
+                max-height: min(168px, calc(100% - 126px));
             }
 
             .mr-avatar-dialog {
@@ -5519,20 +5856,12 @@
                 flex-wrap: wrap;
             }
 
-            .mr-search {
-                width: 100%;
-                flex-basis: 100%;
-            }
-
             .mr-meeting-body {
-                grid-template-columns: 1fr;
+                display: block;
             }
 
             .mr-meeting-side {
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: minmax(96px, 130px);
-                border-top: 1px solid rgba(255,255,255,.1);
-                border-left: 0;
+                display: none;
             }
 
             .mr-meeting-box + .mr-meeting-box {
@@ -5598,6 +5927,38 @@
                 grid-template-columns: 1fr;
             }
 
+            #personPopover .mr-profile-head {
+                grid-template-columns: 58px minmax(0, 1fr) 30px;
+            }
+
+            #personPopover .mr-profile-photo {
+                width: 54px;
+                height: 54px;
+                border-radius: 50%;
+            }
+
+            #personPopover .mr-profile-name p {
+                margin-left: -70px;
+                margin-right: -40px;
+                font-size: 13px;
+            }
+
+            #personPopover .mr-quick-actions {
+                grid-template-columns: 42px minmax(112px, 1fr) 42px 42px 42px;
+                gap: 7px;
+            }
+
+            #personPopover .mr-action-btn {
+                min-height: 42px;
+                border-radius: 13px;
+                font-size: 13px;
+            }
+
+            #personPopover .mr-action-btn.icon-only {
+                width: 42px;
+                font-size: 18px;
+            }
+
             .mr-control-dock {
                 bottom: max(10px, calc(10px + var(--mr-safe-bottom)));
                 max-width: calc(100vw - 16px - var(--mr-safe-left) - var(--mr-safe-right));
@@ -5628,32 +5989,43 @@
                 bottom: 76px;
             }
 
+            .mr-wave-notification {
+                left: max(8px, calc(8px + var(--mr-safe-left)));
+                right: max(8px, calc(8px + var(--mr-safe-right)));
+                max-width: none;
+            }
+
             .mr-meeting-panel,
             .meeting-room.is-right-panel-collapsed .mr-meeting-panel {
                 left: 8px;
                 right: 8px;
                 top: 74px;
                 bottom: auto;
-                max-height: min(330px, calc(100% - 92px));
-                border-radius: 16px;
+                max-height: min(158px, calc(100% - 92px));
+                border-radius: 0;
             }
 
             .mr-meeting-head {
-                padding: 8px;
+                padding: 0 0 5px;
+            }
+
+            .mr-meeting-head-left {
+                max-width: min(220px, 54vw);
             }
 
             .mr-meeting-stage {
-                min-height: 150px;
-                padding: 8px;
+                min-height: 100px;
+                height: 100px;
+                padding: 0;
             }
 
             .mr-video-grid {
-                grid-auto-rows: minmax(72px, 1fr);
+                grid-auto-columns: 158px;
+                grid-auto-rows: 100%;
             }
 
             .mr-meeting-side {
-                grid-template-columns: 1fr;
-                grid-template-rows: 112px 112px;
+                display: none;
             }
 
             .mr-meeting-box + .mr-meeting-box {
@@ -5829,7 +6201,6 @@
         </div>
 
         <div class="mr-actions">
-            <input class="mr-search" id="meetingRoomSearch" type="search" placeholder="Search people" autocomplete="off" />
             <button class="mr-icon-btn mr-tooltip-btn" type="button" id="copyGuestLink" data-tooltip="Copy desk link" title="Copy desk link" aria-label="Copy desk link">
                 <svg class="mr-btn-svg" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"></path>
@@ -5919,8 +6290,9 @@
                     var statusClass = (person.Status ?? "AVAILABLE").ToLowerInvariant();
                     var onlineClass = person.IsOnline ? "is-online" : "is-offline";
                     var selfClass = person.IsCurrentUser ? "is-self" : "";
+                    var statusTextClass = string.IsNullOrWhiteSpace(person.StatusText) ? "" : "has-status-text";
                     <button type="button"
-                            class="mr-person @onlineClass @selfClass status-@statusClass character-@person.CharacterPreset"
+                            class="mr-person @onlineClass @selfClass @statusTextClass status-@statusClass character-@person.CharacterPreset"
                             style="--x:@person.X;--y:@person.Y;--person-avatar-color:@person.AvatarColor;--avatar-skin:@person.SkinTone;--avatar-hair:@person.HairColor;--avatar-top:@person.TopColor;--avatar-jacket:@person.JacketColor;--avatar-bottom:@person.BottomColor;--avatar-shoes:@person.ShoesColor;"
                             data-user-id="@person.UserId"
                             data-emp-id="@(person.EmpId?.ToString() ?? "")"
@@ -5928,6 +6300,7 @@
                             data-username="@person.Username"
                             data-position="@person.Position"
                             data-avatar="@person.AvatarPath"
+                            data-joined-text="@person.JoinedText"
                             data-status="@person.Status"
                             data-status-label="@person.StatusLabel"
                             data-status-text="@person.StatusText"
@@ -5966,6 +6339,7 @@
                                 <img src="@person.AvatarPath" alt="" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                             </span>
                             <span class="mr-name-text">@person.DisplayName</span>
+                            <span class="mr-name-status">@person.StatusText</span>
                         </span>
                         <span class="mr-character">
                             <span class="mr-pixel-hair"></span>
@@ -6063,19 +6437,21 @@
                 </span>
                 <span class="mr-profile-name">
                     <h2 id="personName">Name</h2>
+                    <span class="mr-profile-meta" id="personMeta">Joined on</span>
                     <p id="personStatus">Available</p>
-                    <span class="mr-profile-meta" id="personMeta">Lobby</span>
                 </span>
                 <button class="mr-close" type="button" data-close-popover aria-label="Close">×</button>
             </div>
 
-            <div class="mr-divider"></div>
-
             <div class="mr-quick-actions mr-auth-only">
-                <button class="mr-action-btn" type="button" id="wavePerson">Wave</button>
-                <button class="mr-action-btn secondary" type="button" id="openMessageBox">Message</button>
-                <button class="mr-action-btn tertiary" type="button" id="walkToTalkPerson">Walk to talk</button>
-                <button class="mr-action-btn success" type="button" id="walkToMeetingPerson">Meet</button>
+                <button class="mr-action-btn icon-only" type="button" id="wavePerson" title="Wave" aria-label="Wave">👋</button>
+                <button class="mr-action-btn success primary-join" type="button" id="walkToMeetingPerson">
+                    <span aria-hidden="true">↪</span>
+                    <span>Join</span>
+                </button>
+                <button class="mr-action-btn secondary icon-only" type="button" id="walkToTalkPerson" title="Walk to talk" aria-label="Walk to talk">▣</button>
+                <button class="mr-action-btn secondary icon-only" type="button" id="openMessageBox" title="Message" aria-label="Message">☁</button>
+                <button class="mr-action-btn secondary icon-only" type="button" id="morePersonActions" title="More" aria-label="More">⋮</button>
             </div>
 
             <form class="mr-message-form mr-auth-only" id="messageForm" hidden>
@@ -6085,9 +6461,7 @@
 
             <p class="mr-guest-note mr-guest-only">Guest view เปิดให้ดูตำแหน่งและสถานะของทีมแบบ read-only ถ้าต้องการ Wave หรือ Message ให้ sign in ด้วยบัญชีในระบบ</p>
 
-            <div class="mr-divider"></div>
-
-            <div class="mr-menu-actions">
+            <div class="mr-menu-actions" id="personMoreActions" hidden>
                 <a class="mr-menu-action mr-auth-only" id="viewProfileLink" href="#">
                     <span class="mr-menu-icon">👤</span>
                     <span class="mr-menu-text">
@@ -6603,6 +6977,11 @@
     </div>
 
     <div class="mr-toast" id="meetingRoomToast" role="status" aria-live="polite"></div>
+    <div class="mr-wave-notification" id="waveNotification" role="status" aria-live="polite" hidden>
+        <strong id="waveNotificationText">Wave หาคุณ</strong>
+        <button class="mr-wave-walk" type="button" data-wave-action="walk">เดินไปหา</button>
+        <button class="mr-wave-close" type="button" data-wave-action="close" aria-label="Close wave notification">×</button>
+    </div>
 </div>
 
 @section Scripts {
@@ -6623,15 +7002,14 @@
             const focusUserId = Number(root.dataset.focusUserId || 0);
             const currentUserId = Number(root.dataset.currentUserId || 0);
             const token = document.querySelector('#meetingRoomAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
-            const globalAudioDesiredMicKey = 'meetingRoom:desiredMicOn';
-            const globalAudioOwnerKey = 'meetingRoom:audioOwner';
-            const meetingRoomAudioOwnerId = `meeting-room-${Date.now()}-${Math.random().toString(36).slice(2)}`;
             const personPopover = document.getElementById('personPopover');
             const selfPopover = document.getElementById('selfPopover');
             const meetingPanel = document.getElementById('meetingPanel');
             const meetingScreenViewer = document.getElementById('meetingScreenViewer');
             const meetingScreenViewport = document.getElementById('meetingScreenViewport');
             const toast = document.getElementById('meetingRoomToast');
+            const waveNotification = document.getElementById('waveNotification');
+            const waveNotificationText = document.getElementById('waveNotificationText');
             const rightPanelToggle = document.getElementById('toggleRightPanel');
             const peopleById = new Map(people.map(person => [Number(person.userId), person]));
             let selectedUserId = null;
@@ -6664,7 +7042,7 @@
             let liveKitRoom = null;
             let liveKitConnectedAreaKey = '';
             let liveKitConnectingPromise = null;
-            let desiredMicOn = readStoredDesiredMicOn();
+            let desiredMicOn = false;
             let desiredCameraOn = false;
             let desiredScreenOn = false;
             const liveKitRemoteTracks = new Map();
@@ -6698,7 +7076,6 @@
             let roomStateTimer = null;
             let roomStatePollingInterval = 0;
             let isPollingRoomState = false;
-            let meetingRoomAudioOwnerTimer = null;
             let objectDragState = null;
             let suppressObjectClick = false;
             let selectedObjectCategory = 'Desk';
@@ -7003,6 +7380,113 @@
                 AWAY: 'Away',
                 MEETING: 'In Meeting'
             };
+
+            function isDndStatus(status) {
+                return String(status || '').trim().toUpperCase() === 'DND';
+            }
+
+            function isCurrentDnd() {
+                return isDndStatus(peopleById.get(currentUserId)?.status);
+            }
+
+            function personIsDnd(userId) {
+                return isDndStatus(peopleById.get(Number(userId))?.status);
+            }
+
+            function dndBlockedMessage(person, actionLabel = 'ติดต่อ') {
+                return `${person?.displayName || 'คนนี้'} อยู่ในสถานะ Do Not Disturb ตอนนี้${actionLabel}ไม่ได้`;
+            }
+
+            function canContactPerson(userId, actionLabel = 'ติดต่อ') {
+                if (!userId || Number(userId) === currentUserId) return false;
+
+                if (isCurrentDnd()) {
+                    showToast(`คุณอยู่ในสถานะ Do Not Disturb ต้องเปลี่ยนสถานะก่อนถึงจะ${actionLabel}ได้`);
+                    return false;
+                }
+
+                const person = peopleById.get(Number(userId));
+                if (isDndStatus(person?.status)) {
+                    showToast(dndBlockedMessage(person, actionLabel));
+                    return false;
+                }
+
+                return true;
+            }
+
+            function setMarkerStatusText(marker, statusText) {
+                if (!marker) return;
+
+                const text = String(statusText || '').trim();
+                marker.dataset.statusText = text;
+                marker.classList.toggle('has-status-text', Boolean(text));
+                marker.querySelector('.mr-name-status')?.replaceChildren(document.createTextNode(text));
+            }
+
+            async function enforceCurrentDndMode(options = {}) {
+                if (!isCurrentDnd()) return false;
+
+                window.clearTimeout(proximityVoiceTimer);
+                closeWaveNotification();
+                closeAllRtcPeers();
+                stopSpeakingDetector(currentUserId);
+                desiredMicOn = false;
+                desiredCameraOn = false;
+                desiredScreenOn = false;
+
+                if (useLiveKitMedia()) {
+                    await disconnectLiveKitRoom();
+                } else {
+                    if (micStream) {
+                        removeStreamTracksFromRtcPeers(micStream);
+                        stopMediaStream(micStream);
+                        micStream = null;
+                    }
+
+                    if (cameraStream) {
+                        removeStreamTracksFromRtcPeers(cameraStream);
+                        stopMediaStream(cameraStream);
+                        cameraStream = null;
+                    }
+
+                    if (screenStream) {
+                        removeStreamTracksFromRtcPeers(screenStream);
+                        stopMediaStream(screenStream);
+                        screenStream = null;
+                    }
+
+                    setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
+                    setDockMediaState('toggleCamera', false, 'Camera on', 'Camera off');
+                    setDockMediaState('shareScreen', false, 'Screen sharing', 'Screen share off');
+                }
+
+                meetingMediaStates.set(currentUserId, {
+                    userId: currentUserId,
+                    areaKey: normalizeAreaKey(currentConversationArea().key),
+                    micOn: false,
+                    cameraOn: false,
+                    screenOn: false,
+                    isSpeaking: false,
+                    updatedAt: new Date().toISOString()
+                });
+
+                if (isMeetingPanelOpen()) {
+                    activeMeetingArea = null;
+                    closeMeetingScreenViewer();
+                    meetingPanel.hidden = true;
+                }
+
+                await broadcastMeetingMediaState({ micOn: false, cameraOn: false, screenOn: false, isSpeaking: false });
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
+                syncMeetingConnectionStatus();
+
+                if (options.toast !== false) {
+                    showToast('เปิด Do Not Disturb แล้ว ระบบจะไม่รับเสียง Wave Message หรือคำชวนประชุม');
+                }
+                return true;
+            }
+
             function showToast(message, options = {}) {
                 window.clearTimeout(toastTimer);
                 toast.replaceChildren();
@@ -7074,10 +7558,28 @@
                 window.setTimeout(() => marker.classList.remove('is-pulse'), 3200);
             }
 
+            function closeWaveNotification() {
+                if (!waveNotification) return;
+
+                waveNotification.hidden = true;
+                delete waveNotification.dataset.userId;
+            }
+
+            function showWaveNotification(sourceUserId, sourceName) {
+                if (!waveNotification || !waveNotificationText) return;
+
+                waveNotification.dataset.userId = String(sourceUserId);
+                waveNotificationText.textContent = `${sourceName} Wave หาคุณ`;
+                waveNotification.hidden = false;
+            }
+
             function handleRealtimeWave(payload) {
                 const sourceUserId = Number(payload?.sourceUserId ?? payload?.SourceUserId ?? 0);
                 const targetUserId = Number(payload?.targetUserId ?? payload?.TargetUserId ?? 0);
                 if (!sourceUserId || !targetUserId || targetUserId !== currentUserId || sourceUserId === currentUserId) {
+                    return;
+                }
+                if (isCurrentDnd()) {
                     return;
                 }
 
@@ -7085,13 +7587,7 @@
                 const sourceName = payload?.sourceName ?? payload?.SourceName ?? sourcePerson?.displayName ?? 'Someone';
                 showPersonWave(sourceUserId);
                 playWaveSound();
-                showToast(`${sourceName} Wave หาคุณ`, {
-                    actionLabel: 'เดินไปหา',
-                    duration: 8000,
-                    onAction: () => {
-                        void walkCurrentTo(sourceUserId, 'wave');
-                    }
-                });
+                showWaveNotification(sourceUserId, sourceName);
             }
 
             function normalizeAvatar(personOrAvatar = {}) {
@@ -7503,71 +7999,6 @@
                 }
 
                 return payload;
-            }
-
-            function readStorageJson(key) {
-                try {
-                    const raw = window.localStorage.getItem(key);
-                    return raw ? JSON.parse(raw) : null;
-                } catch {
-                    return null;
-                }
-            }
-
-            function writeStorageJson(key, value) {
-                try {
-                    window.localStorage.setItem(key, JSON.stringify(value));
-                } catch {
-                    // Local storage can be unavailable in private mode.
-                }
-            }
-
-            function readStoredDesiredMicOn() {
-                const saved = readStorageJson(globalAudioDesiredMicKey);
-                if (!saved || saved.value !== true) return false;
-
-                const updatedAt = Number(saved.updatedAt || 0);
-                return updatedAt > 0 && Date.now() - updatedAt < 12 * 60 * 60 * 1000;
-            }
-
-            function setStoredDesiredMicOn(value) {
-                writeStorageJson(globalAudioDesiredMicKey, {
-                    value: Boolean(value),
-                    updatedAt: Date.now()
-                });
-            }
-
-            function renewMeetingRoomAudioOwner() {
-                if (isGuest || !currentUserId) return;
-
-                writeStorageJson(globalAudioOwnerKey, {
-                    id: meetingRoomAudioOwnerId,
-                    scope: 'meeting-room',
-                    userId: currentUserId,
-                    expiresAt: Date.now() + 7000
-                });
-            }
-
-            function startMeetingRoomAudioOwner() {
-                if (isGuest || !currentUserId) return;
-
-                renewMeetingRoomAudioOwner();
-                window.clearInterval(meetingRoomAudioOwnerTimer);
-                meetingRoomAudioOwnerTimer = window.setInterval(renewMeetingRoomAudioOwner, 2000);
-            }
-
-            function releaseMeetingRoomAudioOwner() {
-                window.clearInterval(meetingRoomAudioOwnerTimer);
-                meetingRoomAudioOwnerTimer = null;
-
-                try {
-                    const owner = readStorageJson(globalAudioOwnerKey);
-                    if (owner?.id === meetingRoomAudioOwnerId) {
-                        window.localStorage.removeItem(globalAudioOwnerKey);
-                    }
-                } catch {
-                    // Best effort only.
-                }
             }
 
             async function copyToClipboard(text) {
@@ -8842,7 +9273,7 @@
             }
 
             function scheduleAutoMeetingMode(area) {
-                if (isGuest || !area || isCustomizeOpen) {
+                if (isGuest || !area || isCustomizeOpen || isCurrentDnd()) {
                     clearAutoMeetingTimer();
                     return;
                 }
@@ -9189,7 +9620,9 @@
             function updateMarkerStatusClasses(marker, status) {
                 if (!marker) return;
 
-                marker.className = marker.className.replace(/status-\S+/g, '').trim();
+                [...marker.classList]
+                    .filter(className => className.startsWith('status-'))
+                    .forEach(className => marker.classList.remove(className));
                 marker.classList.add(`status-${String(status || 'AVAILABLE').toLowerCase()}`);
                 marker.dataset.status = status || 'AVAILABLE';
             }
@@ -9261,6 +9694,7 @@
                 const displayName = state.displayName || person.displayName;
                 const initial = state.initial || person.initial;
                 const avatarPath = state.avatarPath || person.avatarPath;
+                const joinedText = state.joinedText || person.joinedText || '';
                 const homeX = Number(state.homeX);
                 const homeY = Number(state.homeY);
                 const homeZone = state.homeZone || person.homeZone || marker.dataset.homeZone || '';
@@ -9272,6 +9706,7 @@
                 person.displayName = displayName;
                 person.initial = initial;
                 person.avatarPath = avatarPath;
+                person.joinedText = joinedText;
                 if (Number.isFinite(homeX)) {
                     person.homeX = homeX;
                     marker.dataset.homeX = String(homeX);
@@ -9283,18 +9718,29 @@
                 person.homeZone = homeZone;
                 Object.assign(person, avatar);
                 person.isOnline = true;
+                if (isDndStatus(status)) {
+                    meetingMediaStates.delete(userId);
+                    closeRtcPeer(userId);
+                    forgetLiveKitRemoteTracksForUser(userId);
+                    setPersonSpeaking(userId, false);
+                    if (userId === currentUserId) {
+                        void enforceCurrentDndMode({ toast: false });
+                    }
+                }
 
                 marker.hidden = false;
                 marker.dataset.name = displayName;
                 marker.dataset.statusLabel = statusLabel;
                 marker.dataset.statusText = statusText;
                 marker.dataset.avatar = avatarPath;
+                marker.dataset.joinedText = joinedText;
                 marker.dataset.homeZone = homeZone;
                 marker.setAttribute('aria-label', displayName);
                 marker.title = displayName;
                 updateMarkerStatusClasses(marker, status);
                 applyAvatarToElement(marker, avatar);
                 marker.querySelector('.mr-name-text')?.replaceChildren(document.createTextNode(displayName));
+                setMarkerStatusText(marker, statusText);
                 setNameBadgeImage(marker, avatarPath);
 
                 const row = document.querySelector(`.mr-person-row[data-user-id="${userId}"]`);
@@ -9322,10 +9768,41 @@
                 }
 
                 if (selectedUserId === userId && !personPopover.hidden) {
-                    document.getElementById('personName').textContent = displayName;
-                    document.getElementById('personStatus').textContent = `${statusLabel}${statusText ? ` · ${statusText}` : ''}`;
-                    document.getElementById('personMeta').textContent = `${person.position || 'Team'} · ${marker.dataset.zone || person.zone || 'Lobby'} · ${person.workloadTotal} open work`;
+                    renderPersonPopoverDetails(person, marker.dataset.zone || person.zone || 'Lobby');
+                    updatePersonContactControls(person);
                 }
+            }
+
+            function hideRemotePerson(userId) {
+                userId = Number(userId || 0);
+                if (!userId || userId === currentUserId) return;
+
+                const marker = getPersonMarker(userId);
+                const person = peopleById.get(userId);
+                if (person) {
+                    person.isOnline = false;
+                }
+                if (marker) {
+                    marker.hidden = true;
+                    marker.classList.remove('is-walking', 'is-speaking');
+                    marker.dataset.remoteWalkToken = '';
+                }
+
+                const row = document.querySelector(`.mr-person-row[data-user-id="${userId}"]`);
+                if (row) {
+                    row.hidden = true;
+                }
+
+                meetingMediaStates.delete(userId);
+                setPersonSpeaking(userId, false);
+                closeRtcPeer(userId);
+                if (selectedUserId === userId && !personPopover.hidden) {
+                    closeAllPopovers();
+                }
+                scheduleProximityVoiceRefresh();
+                refreshMeetingPanel();
+                scheduleMeetingVideosRender();
+                scheduleMeetingParticipantsRender();
             }
 
             async function pollRoomState() {
@@ -9346,7 +9823,9 @@
                     document.querySelectorAll('.mr-person').forEach(marker => {
                         const userId = Number(marker.dataset.userId || 0);
                         if (!userId || userId === currentUserId) return;
-                        marker.hidden = !onlineIds.has(userId);
+                        if (!onlineIds.has(userId)) {
+                            hideRemotePerson(userId);
+                        }
                     });
                     document.querySelectorAll('.mr-person-row').forEach(row => {
                         const userId = Number(row.dataset.userId || 0);
@@ -9466,7 +9945,7 @@
             }
 
             function rtcTargetIds() {
-                if (!hasRtcLocalMedia() || !realtimeReady || isGuest) return [];
+                if (!hasRtcLocalMedia() || !realtimeReady || isGuest || isCurrentDnd()) return [];
 
                 return [...peopleById.keys()]
                     .filter(userId => userId && userId !== currentUserId)
@@ -9476,6 +9955,7 @@
             function isRtcPeerInRange(userId) {
                 userId = Number(userId || 0);
                 if (!userId || userId === currentUserId) return false;
+                if (isCurrentDnd() || personIsDnd(userId)) return false;
 
                 const currentMarker = getPersonMarker(currentUserId);
                 if (!currentMarker) return false;
@@ -9502,6 +9982,8 @@
             }
 
             function remoteVolumeFor(userId) {
+                if (isCurrentDnd() || personIsDnd(userId)) return 0;
+
                 const currentMarker = getPersonMarker(currentUserId);
                 const marker = getPersonMarker(userId);
                 if (!currentMarker || !marker) return 0;
@@ -9657,7 +10139,6 @@
 	                desiredMicOn = Boolean(micStream);
 	                desiredCameraOn = Boolean(cameraStream);
 	                desiredScreenOn = Boolean(screenStream);
-	                setStoredDesiredMicOn(desiredMicOn);
 
                 if (micStream) {
                     startSpeakingDetector(micStream, currentUserId);
@@ -9778,6 +10259,8 @@
             }
 
             function attachLiveKitRemoteAudio(key, track, publication, userId) {
+                if (isCurrentDnd() || personIsDnd(userId)) return;
+
                 let audio = liveKitRemoteAudio.get(key);
                 if (!audio) {
                     audio = document.createElement('audio');
@@ -9797,6 +10280,7 @@
             function rememberLiveKitRemoteTrack(track, publication, participant) {
                 const userId = liveKitParticipantUserId(participant);
                 if (!userId || userId === currentUserId || !isLiveKitTrackLive(track)) return;
+                if (isCurrentDnd() || personIsDnd(userId)) return;
 
                 const source = liveKitPublicationSource(publication) || track.source || track.kind || '';
                 const key = liveKitRemoteTrackKey(userId, track, publication);
@@ -10055,7 +10539,6 @@
                     desiredMicOn = false;
                     desiredCameraOn = false;
                     desiredScreenOn = false;
-                    setStoredDesiredMicOn(false);
                 }
 
                 scheduleMeetingVideosRender();
@@ -10064,6 +10547,10 @@
 
             async function ensureLiveKitRoom(area = currentConversationArea()) {
                 if (!useLiveKitMedia()) return false;
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    return false;
+                }
 
 	                const areaKey = normalizeAreaKey(area?.key || area?.title || 'meeting-area');
 	                if (liveKitRoom && liveKitConnectedAreaKey === areaKey) {
@@ -10214,6 +10701,18 @@
             }
 
             function currentMeetingMediaState(extra = {}) {
+                if (isCurrentDnd()) {
+                    return {
+                        userId: currentUserId,
+                        areaKey: normalizeAreaKey(currentConversationArea().key),
+                        ...extra,
+                        micOn: false,
+                        cameraOn: false,
+                        screenOn: false,
+                        isSpeaking: false
+                    };
+                }
+
                 const detector = speechDetectors.get(speakingDetectorKey(currentUserId));
                 const micOn = Boolean(micStream && liveAudioTracks(micStream).length);
                 const state = {
@@ -10238,6 +10737,8 @@
                 if (!userId) return;
 
                 const previous = meetingMediaStates.get(userId) || {};
+                const forceSilent = (userId === currentUserId && isCurrentDnd()) ||
+                    (userId !== currentUserId && personIsDnd(userId));
                 const hasMic = Object.prototype.hasOwnProperty.call(state || {}, 'micOn') ||
                     Object.prototype.hasOwnProperty.call(state || {}, 'MicOn');
                 const hasCamera = Object.prototype.hasOwnProperty.call(state || {}, 'cameraOn') ||
@@ -10246,14 +10747,14 @@
                     Object.prototype.hasOwnProperty.call(state || {}, 'ScreenOn');
                 const hasSpeaking = Object.prototype.hasOwnProperty.call(state || {}, 'isSpeaking') ||
                     Object.prototype.hasOwnProperty.call(state || {}, 'IsSpeaking');
-                const micOn = hasMic ? Boolean(state?.micOn ?? state?.MicOn) : Boolean(previous.micOn);
+                const micOn = forceSilent ? false : (hasMic ? Boolean(state?.micOn ?? state?.MicOn) : Boolean(previous.micOn));
                 const next = {
                     userId,
                     areaKey: normalizeAreaKey(state?.areaKey ?? state?.AreaKey ?? previous.areaKey ?? ''),
                     micOn,
-                    cameraOn: hasCamera ? Boolean(state?.cameraOn ?? state?.CameraOn) : Boolean(previous.cameraOn),
-                    screenOn: hasScreen ? Boolean(state?.screenOn ?? state?.ScreenOn) : Boolean(previous.screenOn),
-                    isSpeaking: micOn && (hasSpeaking ? Boolean(state?.isSpeaking ?? state?.IsSpeaking) : Boolean(previous.isSpeaking)),
+                    cameraOn: forceSilent ? false : (hasCamera ? Boolean(state?.cameraOn ?? state?.CameraOn) : Boolean(previous.cameraOn)),
+                    screenOn: forceSilent ? false : (hasScreen ? Boolean(state?.screenOn ?? state?.ScreenOn) : Boolean(previous.screenOn)),
+                    isSpeaking: !forceSilent && micOn && (hasSpeaking ? Boolean(state?.isSpeaking ?? state?.IsSpeaking) : Boolean(previous.isSpeaking)),
                     updatedAt: state?.updatedAt ?? state?.UpdatedAt ?? new Date().toISOString()
                 };
 
@@ -10299,6 +10800,7 @@
                 const id = Number(userId || 0);
                 if (!id) return { micOn: false, cameraOn: false, screenOn: false, isSpeaking: false };
                 if (id === currentUserId) return currentMeetingMediaState();
+                if (personIsDnd(id)) return { userId: id, micOn: false, cameraOn: false, screenOn: false, isSpeaking: false };
 
                 const saved = meetingMediaStates.get(id) || {};
                 const entries = remoteMediaEntriesForUser(id);
@@ -10359,6 +10861,7 @@
             function ensureRtcPeer(userId) {
                 userId = Number(userId);
                 if (!userId || userId === currentUserId) return null;
+                if (isCurrentDnd() || personIsDnd(userId)) return null;
                 if (!window.RTCPeerConnection) return null;
 
                 let peer = rtcPeers.get(userId);
@@ -10441,6 +10944,10 @@
 
             async function callRtcPeer(userId) {
                 if (!realtimeConnection || !realtimeReady || !hasRtcLocalMedia()) return;
+                if (isCurrentDnd() || personIsDnd(userId)) {
+                    closeRtcPeer(userId);
+                    return;
+                }
 
                 const peer = ensureRtcPeer(userId);
                 if (!peer) return;
@@ -10469,6 +10976,10 @@
                 const offer = message?.payload?.offer;
                 const offerAreaKey = normalizeAreaKey(message?.payload?.areaKey || '');
                 if (!fromUserId || !offer || !window.RTCSessionDescription) return;
+                if (isCurrentDnd() || personIsDnd(fromUserId)) {
+                    closeRtcPeer(fromUserId);
+                    return;
+                }
                 if (offerAreaKey && offerAreaKey !== normalizeAreaKey(currentConversationArea().key)) return;
 
                 const peer = ensureRtcPeer(fromUserId);
@@ -10520,6 +11031,10 @@
             async function handleRtcIceCandidate(message) {
                 const fromUserId = Number(message?.fromUserId || 0);
                 const candidate = message?.payload?.candidate;
+                if (isCurrentDnd() || personIsDnd(fromUserId)) {
+                    closeRtcPeer(fromUserId);
+                    return;
+                }
                 const peer = ensureRtcPeer(fromUserId);
                 if (!peer || !candidate || !window.RTCIceCandidate) return;
 
@@ -10603,6 +11118,11 @@
             }
 
             function refreshProximityVoice() {
+                if (isCurrentDnd()) {
+                    void enforceCurrentDndMode({ toast: false });
+                    return;
+                }
+
                 if (useLiveKitMedia()) {
                     closeAllRtcPeers();
                     const area = currentConversationArea();
@@ -10651,6 +11171,10 @@
 
             async function announceVoiceArea() {
                 if (!realtimeConnection || !realtimeReady || isGuest) return;
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    return;
+                }
 
                 try {
                     await realtimeConnection.invoke('JoinVoiceArea', currentConversationArea().key);
@@ -10667,7 +11191,7 @@
                 }
 
                 realtimeConnection = new signalR.HubConnectionBuilder()
-                    .withUrl(`${root.dataset.hubUrl}?userId=${currentUserId || 0}`)
+                    .withUrl(`${root.dataset.hubUrl}?userId=${currentUserId || 0}&client=meeting-room`)
                     .withAutomaticReconnect([0, 1500, 5000, 10000])
                     .configureLogging(signalR.LogLevel.Warning)
                     .build();
@@ -10678,6 +11202,13 @@
                 });
                 realtimeConnection.on('PersonUpdated', state => {
                     applyRemotePersonState(state);
+                    scheduleProximityVoiceRefresh();
+                });
+                realtimeConnection.on('PersonLeftRoom', state => {
+                    hideRemotePerson(Number(state?.userId || 0));
+                });
+                realtimeConnection.on('MeetingRoomPresenceChanged', () => {
+                    void pollRoomState();
                     scheduleProximityVoiceRefresh();
                 });
                 realtimeConnection.on('AreaSaved', area => {
@@ -11138,6 +11669,7 @@
                 const targetMarker = getPersonMarker(targetUserId);
                 const targetPerson = peopleById.get(Number(targetUserId));
                 if (!selfMarker || !targetMarker || !targetPerson) return;
+                if (!canContactPerson(targetUserId, intent === 'meeting' ? 'ประชุม' : 'คุย')) return;
 
                 const targetX = markerPercent(targetMarker, 'x', 50);
                 const targetY = markerPercent(targetMarker, 'y', 50);
@@ -11161,9 +11693,6 @@
 
                 if (intent === 'talk') {
                     openPerson(targetUserId, targetMarker);
-                    const form = document.getElementById('messageForm');
-                    form.hidden = false;
-                    document.getElementById('messageText').focus();
                     showToast(`เดินไปหา ${targetPerson.displayName} แล้ว`);
                     return;
                 }
@@ -11189,6 +11718,44 @@
                 }
             }
 
+            function updatePersonContactControls(person) {
+                const blocked = isCurrentDnd() || isDndStatus(person?.status);
+                const title = blocked
+                    ? (isCurrentDnd()
+                        ? 'คุณอยู่ในสถานะ Do Not Disturb'
+                        : dndBlockedMessage(person))
+                    : '';
+
+                ['wavePerson', 'openMessageBox', 'walkToTalkPerson', 'walkToMeetingPerson', 'requestJoinPerson'].forEach(id => {
+                    const button = document.getElementById(id);
+                    if (!button) return;
+
+                    button.disabled = blocked;
+                    button.title = title;
+                    button.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+                });
+
+                if (blocked) {
+                    document.getElementById('messageForm').hidden = true;
+                }
+            }
+
+            function personStatusSummary(person) {
+                const textStatus = (person?.statusText || '').trim();
+                return textStatus || person?.statusLabel || 'Available';
+            }
+
+            function renderPersonPopoverDetails(person, areaTitle) {
+                const statusSummary = personStatusSummary(person);
+                const joinedText = person?.joinedText || `${person?.position || 'Team'} · ${areaTitle || person?.zone || 'Lobby'}`;
+                const statusElement = document.getElementById('personStatus');
+
+                document.getElementById('personName').textContent = person?.displayName || 'Name';
+                document.getElementById('personMeta').textContent = joinedText;
+                statusElement.textContent = statusSummary;
+                statusElement.title = statusSummary;
+            }
+
             function openPerson(userId, source) {
                 const person = peopleById.get(Number(userId));
                 if (!person) return;
@@ -11205,12 +11772,12 @@
                 personPopover.dataset.status = person.status;
                 personPopover.dataset.online = String(person.isOnline).toLowerCase();
                 document.getElementById('personAvatar').src = person.avatarPath;
-                document.getElementById('personName').textContent = person.displayName;
-                document.getElementById('personStatus').textContent = `${person.statusLabel}${person.statusText ? ` · ${person.statusText}` : ''}`;
-                const workloadText = isGuest ? '' : ` · ${person.workloadTotal} open work`;
-                document.getElementById('personMeta').textContent = `${person.position || 'Team'} · ${area.title}${workloadText}`;
+                renderPersonPopoverDetails(person, area.title);
                 const profileUrl = person.empId ? `/Employees#employee-card-${person.empId}` : '/Employees';
                 document.getElementById('viewProfileLink').setAttribute('href', profileUrl);
+                document.getElementById('messageForm').hidden = true;
+                document.getElementById('personMoreActions').hidden = true;
+                updatePersonContactControls(person);
                 document.querySelectorAll(`.mr-person-row[data-user-id="${userId}"]`).forEach(row => row.classList.add('is-selected'));
                 syncFollowButton();
                 positionPopover(personPopover, source);
@@ -11245,10 +11812,14 @@
 
                 root.querySelectorAll(`[data-user-id="${currentUserId}"]`).forEach(element => {
                     if (element.classList.contains('mr-person')) {
-                        element.className = element.className.replace(/status-\S+/g, '').trim();
+                        [...element.classList]
+                            .filter(className => className.startsWith('status-'))
+                            .forEach(className => element.classList.remove(className));
                         element.classList.add(`status-${status.toLowerCase()}`);
+                        setMarkerStatusText(element, statusText);
                     }
                     element.dataset.status = status;
+                    element.dataset.statusText = statusText || '';
                 });
 
                 document.getElementById('selfStatusText').textContent = `${label || statusLabels[status] || status}${statusText ? ` · ${statusText}` : ''}`;
@@ -11257,6 +11828,14 @@
                 document.querySelectorAll('.mr-status-option').forEach(option => {
                     option.classList.toggle('is-active', option.dataset.status === status);
                 });
+                if (selectedUserId && !personPopover.hidden) {
+                    updatePersonContactControls(peopleById.get(selectedUserId));
+                }
+                if (isDndStatus(status)) {
+                    void enforceCurrentDndMode();
+                } else {
+                    scheduleProximityVoiceRefresh();
+                }
             }
 
             function updateCurrentDisplayName(displayName, roomDisplayName, initial) {
@@ -11478,10 +12057,15 @@
             }
 
             async function toggleMicrophone() {
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    showToast('คุณอยู่ในสถานะ Do Not Disturb ต้องเปลี่ยนสถานะก่อนเปิดไมค์');
+                    return;
+                }
+
                 if (useLiveKitMedia()) {
 	                    if (desiredMicOn || micStream) {
 	                        desiredMicOn = false;
-	                        setStoredDesiredMicOn(false);
 	                        stopSpeakingDetector(currentUserId);
                         try {
                             await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
@@ -11493,13 +12077,11 @@
                         scheduleMeetingParticipantsRender();
                         showToast('ปิดไมโครโฟนแล้ว');
                         return;
-                    }
+	                    }
 
 	                    desiredMicOn = true;
-	                    setStoredDesiredMicOn(true);
 	                    if (!await ensureLiveKitRoom(currentConversationArea())) {
 	                        desiredMicOn = false;
-	                        setStoredDesiredMicOn(false);
 	                        syncLiveKitLocalMediaStreams();
                         await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                         return;
@@ -11521,7 +12103,6 @@
                         showToast(`เปิดไมโครโฟนใน ${currentConversationArea().title} แล้ว`);
 	                    } catch (error) {
 	                        desiredMicOn = false;
-	                        setStoredDesiredMicOn(false);
 	                        stopSpeakingDetector(currentUserId);
                         try {
                             await liveKitRoom?.localParticipant?.setMicrophoneEnabled(false);
@@ -11536,7 +12117,6 @@
                 }
 
 	                if (micStream) {
-	                    setStoredDesiredMicOn(false);
 	                    stopSpeakingDetector(currentUserId);
                     removeStreamTracksFromRtcPeers(micStream);
                     stopMediaStream(micStream);
@@ -11562,18 +12142,16 @@
                         video: false
                     });
                     micStream.getAudioTracks().forEach(track => {
-                        track.addEventListener('ended', () => {
+	                        track.addEventListener('ended', () => {
 	                            removeStreamTracksFromRtcPeers(micStream);
 	                            stopSpeakingDetector(currentUserId);
 	                            micStream = null;
-	                            setStoredDesiredMicOn(false);
 	                            setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                             void broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                             scheduleMeetingParticipantsRender();
                         }, { once: true });
-                    });
+	                    });
 	                    startSpeakingDetector(micStream, currentUserId);
-	                    setStoredDesiredMicOn(true);
 	                    setDockMediaState('toggleMic', true, 'Microphone on', 'Microphone muted');
                     await broadcastMeetingMediaState({ micOn: true, isSpeaking: false });
                     await announceVoiceArea();
@@ -11582,7 +12160,6 @@
 	                } catch (error) {
 	                    stopSpeakingDetector(currentUserId);
 	                    micStream = null;
-	                    setStoredDesiredMicOn(false);
 	                    setDockMediaState('toggleMic', false, 'Microphone on', 'Microphone muted');
                     await broadcastMeetingMediaState({ micOn: false, isSpeaking: false });
                     showToast(mediaErrorMessage(error, 'ไมโครโฟน'));
@@ -11590,6 +12167,12 @@
             }
 
             async function toggleCameraStream() {
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    showToast('คุณอยู่ในสถานะ Do Not Disturb ต้องเปลี่ยนสถานะก่อนเปิดกล้อง');
+                    return;
+                }
+
                 if (useLiveKitMedia()) {
                     if (desiredCameraOn || cameraStream) {
                         desiredCameraOn = false;
@@ -11693,6 +12276,12 @@
             }
 
             async function toggleScreenShare() {
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    showToast('คุณอยู่ในสถานะ Do Not Disturb ต้องเปลี่ยนสถานะก่อนแชร์หน้าจอ');
+                    return;
+                }
+
                 if (useLiveKitMedia()) {
                     if (desiredScreenOn || screenStream) {
                         desiredScreenOn = false;
@@ -11959,6 +12548,7 @@
             function meetingParticipantsForArea(area) {
                 return [...peopleById.values()]
                     .filter(person => {
+                        if (isDndStatus(person.status)) return false;
                         const marker = getPersonMarker(person.userId);
                         if (!marker || marker.hidden) return false;
                         return markerArea(marker).key === area.key;
@@ -12140,6 +12730,12 @@
                     }));
                 }
 
+                const tileCount = grid.querySelectorAll(':scope > .mr-video-tile').length;
+                grid.dataset.tileCount = String(tileCount);
+                grid.classList.toggle('is-single', tileCount === 1);
+                grid.classList.toggle('is-many', tileCount >= 5);
+                grid.classList.toggle('is-crowded', tileCount >= 9);
+
                 if (activeScreenSourceId && !meetingScreenSources.has(activeScreenSourceId)) {
                     closeMeetingScreenViewer();
                 }
@@ -12276,6 +12872,13 @@
                     showToast('Guest view ต้อง sign in ก่อนเข้าประชุม');
                     return false;
                 }
+                if (isCurrentDnd()) {
+                    await enforceCurrentDndMode({ toast: false });
+                    if (reason !== 'auto') {
+                        showToast('คุณอยู่ในสถานะ Do Not Disturb ต้องเปลี่ยนสถานะก่อนเข้าประชุม');
+                    }
+                    return false;
+                }
 
                 activeMeetingArea = currentConversationArea();
                 if (reason !== 'auto') {
@@ -12376,7 +12979,9 @@
             async function uploadMeetingFile(file) {
                 if (!file || !root.dataset.shareFileUrl) return;
 
-                await openMeetingPanel();
+                const opened = await openMeetingPanel('file');
+                if (!opened) return;
+
                 const area = meetingArea();
                 const formData = new FormData();
                 formData.append('__RequestVerificationToken', token);
@@ -12743,6 +13348,7 @@
                 const idTarget = event.target.closest('[id]');
                 const targetId = idTarget?.id || '';
                 const close = event.target.closest('[data-close-popover]');
+                const waveAction = event.target.closest('[data-wave-action]');
                 const isEmptyMapClick = event.target.closest('.mr-map') &&
                     !event.target.closest('.mr-person, .mr-map-tools, .mr-popover, .mr-customize-panel, .mr-area-shape, .mr-room-object');
                 if (!(isCustomizeOpen && canCustomize && customizeMode === 'object' && isEmptyMapClick)) {
@@ -12755,6 +13361,23 @@
                 if (close) {
                     closePopovers();
                     return;
+                }
+
+                if (waveAction) {
+                    const action = waveAction.dataset.waveAction || '';
+                    if (action === 'close') {
+                        closeWaveNotification();
+                        return;
+                    }
+
+                    if (action === 'walk') {
+                        const sourceUserId = Number(waveNotification?.dataset.userId || 0);
+                        closeWaveNotification();
+                        if (sourceUserId) {
+                            await walkCurrentTo(sourceUserId, 'wave');
+                        }
+                        return;
+                    }
                 }
 
                 if (isCustomizeOpen && canCustomize && customizeMode === 'object' && isEmptyMapClick) {
@@ -13069,9 +13692,21 @@
                     return;
                 }
 
+                if (targetId === 'morePersonActions') {
+                    const menu = document.getElementById('personMoreActions');
+                    if (menu) {
+                        menu.hidden = !menu.hidden;
+                    }
+                    return;
+                }
+
                 if (targetId === 'openMessageBox') {
                     if (isGuest) {
                         showToast('Guest view ต้อง sign in ก่อนส่ง Message');
+                        return;
+                    }
+
+                    if (!canContactPerson(selectedUserId, 'ส่งข้อความ')) {
                         return;
                     }
 
@@ -13090,6 +13725,10 @@
                 if (targetId === 'wavePerson' && selectedUserId) {
                     if (isGuest) {
                         showToast('Guest view ต้อง sign in ก่อน Wave');
+                        return;
+                    }
+
+                    if (!canContactPerson(selectedUserId, 'Wave')) {
                         return;
                     }
 
@@ -13126,6 +13765,10 @@
                 if (targetId === 'requestJoinPerson' && selectedUserId) {
                     if (isGuest) {
                         showToast('Guest view ต้อง sign in ก่อนส่งคำขอ');
+                        return;
+                    }
+
+                    if (!canContactPerson(selectedUserId, 'ส่งคำชวน')) {
                         return;
                     }
 
@@ -13232,7 +13875,20 @@
             });
 
             map.addEventListener('dblclick', event => {
-                if (event.target.closest('.mr-person, .mr-map-tools, .mr-popover, .mr-customize-panel, .mr-room-object')) {
+                const personButton = event.target.closest('.mr-person');
+                if (personButton) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closePopovers();
+
+                    const targetUserId = Number(personButton.dataset.userId || 0);
+                    if (targetUserId && targetUserId !== currentUserId) {
+                        void walkCurrentTo(targetUserId, 'talk');
+                    }
+                    return;
+                }
+
+                if (event.target.closest('.mr-map-tools, .mr-popover, .mr-customize-panel, .mr-room-object')) {
                     return;
                 }
 
@@ -13281,10 +13937,8 @@
                 }
             });
 
-	            startMeetingRoomAudioOwner();
-
 	            window.addEventListener('beforeunload', () => {
-	                window.clearInterval(followTimer);
+		                window.clearInterval(followTimer);
                 window.clearInterval(roomStateTimer);
                 window.clearTimeout(pendingPositionSyncTimer);
                 window.clearTimeout(pendingObjectPlacementTimer);
@@ -13293,7 +13947,6 @@
 	                window.clearTimeout(proximityVoiceTimer);
 	                window.clearTimeout(meetingParticipantsRenderTimer);
 	                window.clearTimeout(meetingVideosRenderTimer);
-	                releaseMeetingRoomAudioOwner();
 	                stopAllSpeakingDetectors();
 	                void disconnectLiveKitRoom({ keepDesiredMedia: true });
                 closeAllRtcPeers();
@@ -13451,6 +14104,10 @@
                     return;
                 }
 
+                if (!canContactPerson(selectedUserId, 'ส่งข้อความ')) {
+                    return;
+                }
+
                 if (!requireSameConversationArea(selectedUserId, 'ส่งข้อความคุย')) {
                     return;
                 }
@@ -13463,18 +14120,6 @@
                 } catch (error) {
                     showToast(error.message);
                 }
-            });
-
-            document.getElementById('meetingRoomSearch').addEventListener('input', event => {
-                const query = event.target.value.trim().toLowerCase();
-                document.querySelectorAll('.mr-person-row').forEach(row => {
-                    row.hidden = query && !row.dataset.search.includes(query);
-                });
-                document.querySelectorAll('.mr-person').forEach(person => {
-                    const model = peopleById.get(Number(person.dataset.userId));
-                    const haystack = `${model?.displayName || ''} ${model?.username || ''} ${model?.position || ''}`.toLowerCase();
-                    person.hidden = query && !haystack.includes(query);
-                });
             });
 
             document.addEventListener('keydown', event => {

@@ -1,7 +1,5 @@
 ﻿@using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Antiforgery
 @inject ProjectTracking.Data.AppDbContext LayoutDb
-@inject IAntiforgery LayoutAntiforgery
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -2934,21 +2932,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 	    }, 60000);
 	</script>
-	@if (userId.HasValue && !isMeetingRoomPage)
-	{
-	    var globalMeetingAudioToken = LayoutAntiforgery.GetAndStoreTokens(Context!).RequestToken ?? "";
-	    <div id="globalMeetingAudio"
-	         hidden
-	         data-enabled="true"
-	         data-current-user-id="@userId.Value"
-	         data-state-url="@Url.Action("GlobalAudioState", "MeetingRoom")"
-	         data-livekit-token-url="@Url.Action("LiveKitToken", "MeetingRoom")"
-	         data-hub-url="/hubs/meeting-room"
-	         data-anti-forgery-token="@globalMeetingAudioToken"></div>
-	    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-	    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
-	    <script src="~/js/meeting-room/global-audio-listener.js" asp-append-version="true"></script>
-	}
 	@RenderSection("Scripts", required: false)
 	<script src="~/js/site.js" asp-append-version="true"></script>
 

@@ -25,6 +25,7 @@ namespace ProjectTracking.ViewModels
         public string Role { get; set; } = "";
         public string Position { get; set; } = "";
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+        public string JoinedText { get; set; } = "";
         public string Status { get; set; } = "AVAILABLE";
         public string StatusLabel { get; set; } = "Available";
         public string StatusText { get; set; } = "";

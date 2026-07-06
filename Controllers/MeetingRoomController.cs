@@ -8,6 +8,7 @@ using ProjectTracking.Hubs;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -600,14 +601,14 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> State()
         {
             var now = DateTime.Now;
-            var onlineCutoff = now.Subtract(OnlineWindow);
             var currentUserId = HttpContext.Session.GetInt32("UserId");
+            var activeRoomUserIds = MeetingRoomHub.ActiveMeetingRoomPageUserIds();
 
             var users = await _context.LoginUsers
                 .AsNoTracking()
                 .Where(user => user.Status == "ACTIVE" &&
-                    ((user.LastSeenAt.HasValue && user.LastSeenAt.Value >= onlineCutoff) ||
-                    (currentUserId.HasValue && user.UserId == currentUserId.Value)))
+                    ((currentUserId.HasValue && user.UserId == currentUserId.Value) ||
+                    activeRoomUserIds.Contains(user.UserId)))
                 .OrderByDescending(user => currentUserId.HasValue && user.UserId == currentUserId.Value)
                 .ThenBy(user => user.Username)
                 .ToListAsync();
@@ -633,6 +634,9 @@ namespace ProjectTracking.Controllers
                     status,
                     statusLabel = StatusLabel(status),
                     statusText = profile?.StatusText ?? "",
+                    joinedText = FormatJoinedText(user.CreatedAt),
+                    isOnline = currentUserId.HasValue && user.UserId == currentUserId.Value ||
+                        activeRoomUserIds.Contains(user.UserId),
                     avatarPath = ResolveProfileImagePath(user.ProfileImagePath),
                     x = ClampPercent(profile?.CurrentX ?? profile?.DeskX ?? slot.X),
                     y = ClampPercent(profile?.CurrentY ?? profile?.DeskY ?? slot.Y),
@@ -665,46 +669,6 @@ namespace ProjectTracking.Controllers
             }).ToList();
 
             return Json(new { ok = true, serverTime = now.ToString("O"), people });
-        }
-
-        [HttpGet]
-        [RequireMenu("MeetingRoom.Index")]
-        public async Task<IActionResult> GlobalAudioState()
-        {
-            var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (!currentUserId.HasValue)
-                return Unauthorized();
-
-            var profile = await EnsureCurrentProfileAsync(currentUserId.Value);
-            var customAreas = await _context.MeetingRoomAreas
-                .AsNoTracking()
-                .Where(area => area.IsActive)
-                .OrderBy(area => area.SortOrder)
-                .ThenBy(area => area.AreaId)
-                .ToListAsync();
-
-            var area = ResolveVoiceArea(profile, customAreas);
-            var liveKitConfigured =
-                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_URL")) &&
-                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_API_KEY")) &&
-                !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LIVEKIT_API_SECRET"));
-
-            var displayName = await ResolveDisplayNameAsync(currentUserId.Value);
-
-            return Json(new
-            {
-                ok = true,
-                enabled = true,
-                liveKitConfigured,
-                userId = currentUserId.Value,
-                displayName,
-                areaKey = area.Key,
-                areaTitle = area.Title,
-                areaType = area.AreaType,
-                x = ClampPercent(profile.CurrentX ?? profile.DeskX),
-                y = ClampPercent(profile.CurrentY ?? profile.DeskY),
-                updatedAt = DateTimeOffset.UtcNow.ToString("O")
-            });
         }
 
         private async Task BroadcastPersonStateAsync(string eventName, int userId, MeetingRoomProfile? profile = null)
@@ -747,6 +711,8 @@ namespace ProjectTracking.Controllers
                 status,
                 statusLabel = StatusLabel(status),
                 statusText = profile?.StatusText ?? "",
+                joinedText = FormatJoinedText(user.CreatedAt),
+                isOnline = MeetingRoomHub.IsUserInMeetingRoomPage(userId),
                 avatarPath = ResolveProfileImagePath(user.ProfileImagePath),
                 x = ClampPercent(profile?.CurrentX ?? profile?.DeskX ?? slot.X),
                 y = ClampPercent(profile?.CurrentY ?? profile?.DeskY ?? slot.Y),
@@ -983,6 +949,10 @@ namespace ProjectTracking.Controllers
             if (target == null)
                 return NotFound(new { ok = false, message = "User not found." });
 
+            var targetName = await ResolveDisplayNameAsync(target.UserId);
+            if (await IsDoNotDisturbAsync(target.UserId))
+                return BadRequest(new { ok = false, message = $"{targetName} อยู่ในสถานะ Do Not Disturb ตอนนี้ติดต่อไม่ได้" });
+
             var sourceName = await ResolveDisplayNameAsync(currentUserId.Value);
             var targetEmpId = await ResolveEmployeeIdAsync(target);
             var now = DateTime.Now;
@@ -1004,7 +974,6 @@ namespace ProjectTracking.Controllers
             await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
             await _context.SaveChangesAsync();
 
-            var targetName = await ResolveDisplayNameAsync(target.UserId);
             await _hubContext.Clients.Group(MeetingRoomHub.RoomGroup).SendAsync("WaveReceived", new
             {
                 sourceUserId = currentUserId.Value,
@@ -1040,6 +1009,10 @@ namespace ProjectTracking.Controllers
             if (target == null)
                 return NotFound(new { ok = false, message = "User not found." });
 
+            var targetName = await ResolveDisplayNameAsync(target.UserId);
+            if (await IsDoNotDisturbAsync(target.UserId))
+                return BadRequest(new { ok = false, message = $"{targetName} อยู่ในสถานะ Do Not Disturb ตอนนี้ติดต่อไม่ได้" });
+
             var sourceName = await ResolveDisplayNameAsync(currentUserId.Value);
             var targetEmpId = await ResolveEmployeeIdAsync(target);
             var now = DateTime.Now;
@@ -1061,7 +1034,6 @@ namespace ProjectTracking.Controllers
             await TouchCurrentUserAsync(currentUserId.Value, saveChanges: false);
             await _context.SaveChangesAsync();
 
-            var targetName = await ResolveDisplayNameAsync(target.UserId);
             return Json(new { ok = true, message = $"ส่ง Message หา {targetName} แล้ว" });
         }
 
@@ -1103,6 +1075,9 @@ namespace ProjectTracking.Controllers
 
             if (file == null || file.Length <= 0)
                 return BadRequest(new { ok = false, message = "กรุณาเลือกไฟล์ก่อนแชร์" });
+
+            if (await IsDoNotDisturbAsync(currentUserId.Value))
+                return BadRequest(new { ok = false, message = "คุณอยู่ในสถานะ Do Not Disturb จึงไม่สามารถแชร์ไฟล์ใน Meeting ได้" });
 
             if (file.Length > MaxMeetingFileSize)
                 return BadRequest(new { ok = false, message = "ไฟล์ใหญ่เกิน 50 MB" });
@@ -1170,6 +1145,9 @@ namespace ProjectTracking.Controllers
             if (!currentUserId.HasValue)
                 return Unauthorized();
 
+            if (await IsDoNotDisturbAsync(currentUserId.Value))
+                return Json(new { ok = false, message = "คุณอยู่ในสถานะ Do Not Disturb จึงไม่เชื่อมต่อเสียง/ประชุม" });
+
             var liveKitUrl = Environment.GetEnvironmentVariable("LIVEKIT_URL")?.Trim();
             var apiKey = Environment.GetEnvironmentVariable("LIVEKIT_API_KEY")?.Trim();
             var apiSecret = Environment.GetEnvironmentVariable("LIVEKIT_API_SECRET")?.Trim();
@@ -1221,9 +1199,9 @@ namespace ProjectTracking.Controllers
             int? focusUserId = null)
         {
             var now = DateTime.Now;
-            var onlineCutoff = now.Subtract(OnlineWindow);
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
+            var activeRoomUserIds = MeetingRoomHub.ActiveMeetingRoomPageUserIds();
 
             var users = await _context.LoginUsers
                 .AsNoTracking()
@@ -1320,7 +1298,7 @@ namespace ProjectTracking.Controllers
                     profiles.TryGetValue(user.UserId, out var profile);
                     var slot = DeskSlots[Math.Abs(user.UserId + index) % DeskSlots.Length];
                     var isOnline = (currentUserId.HasValue && user.UserId == currentUserId.Value) ||
-                        (user.LastSeenAt.HasValue && user.LastSeenAt.Value >= onlineCutoff);
+                        activeRoomUserIds.Contains(user.UserId);
                     var status = NormalizeStatus(profile?.Status ?? "AVAILABLE");
                     var empId = employee?.EmpId ?? user.EmpId;
                     var isCurrentUser = currentUserId.HasValue && user.UserId == currentUserId.Value;
@@ -1339,6 +1317,7 @@ namespace ProjectTracking.Controllers
                         Role = user.Role ?? "",
                         Position = employee?.Position ?? (user.Role ?? "Team"),
                         AvatarPath = ResolveProfileImagePath(user.ProfileImagePath),
+                        JoinedText = FormatJoinedText(user.CreatedAt),
                         Status = status,
                         StatusLabel = isOnline ? StatusLabel(status) : "Offline",
                         StatusText = profile?.StatusText ?? "",
@@ -2150,6 +2129,17 @@ namespace ProjectTracking.Controllers
             return RoomDisplayName(profile?.DisplayName, DisplayName(user, employee));
         }
 
+        private async Task<bool> IsDoNotDisturbAsync(int userId)
+        {
+            var status = await _context.MeetingRoomProfiles
+                .AsNoTracking()
+                .Where(profile => profile.UserId == userId)
+                .Select(profile => profile.Status)
+                .FirstOrDefaultAsync();
+
+            return NormalizeStatus(status) == "DND";
+        }
+
         private async Task<int?> ResolveEmployeeIdAsync(LoginUser user)
         {
             if (user.EmpId.HasValue)
@@ -2199,6 +2189,13 @@ namespace ProjectTracking.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? "?"
                 : value[..1].ToUpperInvariant();
+        }
+
+        private static string FormatJoinedText(DateTime createdAt)
+        {
+            return createdAt == default
+                ? ""
+                : $"Joined on {createdAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)}";
         }
 
         private string ResolveProfileImagePath(string? profileImagePath)
