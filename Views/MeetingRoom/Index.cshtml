@@ -4435,6 +4435,11 @@
             cursor: zoom-in;
         }
 
+        .mr-video-tile.is-speaking {
+            border-color: rgba(45,212,191,.72);
+            box-shadow: 0 0 0 1px rgba(45,212,191,.34), 0 16px 34px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.04);
+        }
+
         .mr-video-tile video {
             width: 100%;
             height: 100%;
@@ -9682,12 +9687,198 @@
                 }, duration + 50);
             }
 
+            function realtimePersonFromState(state) {
+                const userId = Number(state?.userId || 0);
+                if (!userId) return null;
+
+                const existing = peopleById.get(userId) || {};
+                const status = state.status || existing.status || 'AVAILABLE';
+                const statusLabel = state.statusLabel || existing.statusLabel || statusLabels[status] || status;
+                const displayName = state.displayName || existing.displayName || `User ${userId}`;
+                const avatarPath = state.avatarPath || existing.avatarPath || '/images/Profile/profile.png';
+                const homeX = Number(state.homeX ?? existing.homeX ?? state.x ?? existing.x ?? 50);
+                const homeY = Number(state.homeY ?? existing.homeY ?? state.y ?? existing.y ?? 50);
+
+                return {
+                    ...existing,
+                    ...state,
+                    userId,
+                    displayName,
+                    initial: state.initial || existing.initial || displayName.charAt(0).toUpperCase(),
+                    status,
+                    statusLabel,
+                    statusText: state.statusText || '',
+                    joinedText: state.joinedText || existing.joinedText || '',
+                    avatarPath,
+                    username: state.username || existing.username || '',
+                    position: state.position || existing.position || '',
+                    workloadTotal: Number(state.workloadTotal ?? existing.workloadTotal ?? 0),
+                    x: Number(state.x ?? existing.x ?? homeX),
+                    y: Number(state.y ?? existing.y ?? homeY),
+                    homeX: Number.isFinite(homeX) ? homeX : 50,
+                    homeY: Number.isFinite(homeY) ? homeY : 50,
+                    homeZone: state.homeZone || existing.homeZone || '',
+                    isOnline: state.isOnline !== false,
+                    ...normalizeAvatar({ ...existing, ...state, ...(state.avatar || {}) })
+                };
+            }
+
+            function createPersonMarker(person) {
+                const marker = document.createElement('button');
+                marker.type = 'button';
+                marker.className = `mr-person is-online${person.userId === currentUserId ? ' is-self' : ''}`;
+                marker.dataset.userId = String(person.userId);
+                marker.dataset.empId = String(person.empId || '');
+                marker.dataset.name = person.displayName;
+                marker.dataset.username = person.username || '';
+                marker.dataset.position = person.position || '';
+                marker.dataset.avatar = person.avatarPath || '';
+                marker.dataset.joinedText = person.joinedText || '';
+                marker.dataset.status = person.status || 'AVAILABLE';
+                marker.dataset.statusLabel = person.statusLabel || person.status || 'AVAILABLE';
+                marker.dataset.statusText = person.statusText || '';
+                marker.dataset.zone = person.zone || '';
+                marker.dataset.x = String(person.x);
+                marker.dataset.y = String(person.y);
+                marker.dataset.homeX = String(person.homeX);
+                marker.dataset.homeY = String(person.homeY);
+                marker.dataset.homeZone = person.homeZone || person.zone || '';
+                marker.dataset.online = 'true';
+                marker.dataset.workload = String(person.workloadTotal || 0);
+                marker.setAttribute('aria-label', person.displayName);
+                marker.title = person.displayName;
+
+                const name = document.createElement('span');
+                name.className = 'mr-person-name';
+                const badge = document.createElement('span');
+                badge.className = 'mr-name-badge';
+                const image = document.createElement('img');
+                image.alt = '';
+                image.onerror = () => {
+                    image.onerror = null;
+                    image.src = '/images/Profile/profile.png';
+                };
+                image.src = person.avatarPath || '/images/Profile/profile.png';
+                badge.appendChild(image);
+                const nameText = document.createElement('span');
+                nameText.className = 'mr-name-text';
+                nameText.textContent = person.displayName;
+                const nameStatus = document.createElement('span');
+                nameStatus.className = 'mr-name-status';
+                nameStatus.textContent = person.statusText || '';
+                name.append(badge, nameText, nameStatus);
+
+                const character = document.createElement('span');
+                character.className = 'mr-character';
+                [
+                    'mr-pixel-hair',
+                    'mr-pixel-head',
+                    'mr-pixel-face',
+                    'mr-pixel-facial-hair',
+                    'mr-pixel-glasses',
+                    'mr-pixel-hat',
+                    'mr-pixel-other',
+                    'mr-pixel-body',
+                    'mr-pixel-jacket',
+                    'mr-pixel-arm',
+                    'mr-pixel-arm two',
+                    'mr-pixel-leg one',
+                    'mr-pixel-leg two',
+                    'mr-pixel-shoe one',
+                    'mr-pixel-shoe two'
+                ].forEach(className => {
+                    const part = document.createElement('span');
+                    part.className = className;
+                    character.appendChild(part);
+                });
+                const speakingBubble = document.createElement('span');
+                speakingBubble.className = 'mr-speaking-bubble';
+                speakingBubble.setAttribute('aria-hidden', 'true');
+                speakingBubble.appendChild(document.createElement('span'));
+                character.appendChild(speakingBubble);
+
+                marker.append(name, character);
+                updateMarkerStatusClasses(marker, person.status);
+                setMarkerStatusText(marker, person.statusText);
+                applyAvatarToElement(marker, person);
+                setMarkerPosition(marker, person.x, person.y);
+                return marker;
+            }
+
+            function createPersonRow(person) {
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'mr-person-row';
+                row.dataset.userId = String(person.userId);
+                row.dataset.empId = String(person.empId || '');
+                row.dataset.status = person.status || 'AVAILABLE';
+                row.dataset.search = `${person.displayName} ${person.username || ''} ${person.position || ''}`.toLowerCase();
+
+                const avatar = document.createElement('span');
+                avatar.className = 'mr-row-avatar';
+                const image = document.createElement('img');
+                image.alt = '';
+                image.onerror = () => {
+                    image.onerror = null;
+                    image.src = '/images/Profile/profile.png';
+                };
+                image.src = person.avatarPath || '/images/Profile/profile.png';
+                avatar.append(image, document.createElement('span'));
+
+                const main = document.createElement('span');
+                main.className = 'mr-row-main';
+                const name = document.createElement('strong');
+                name.textContent = person.displayName;
+                const meta = document.createElement('span');
+                meta.textContent = `${person.statusLabel || person.status || 'Available'} · ${person.zone || 'Lobby'}`;
+                main.append(name, meta);
+
+                const load = document.createElement('span');
+                load.className = 'mr-row-load';
+                load.textContent = String(person.workloadTotal || 0);
+                row.append(avatar, main, load);
+                return row;
+            }
+
+            function updatePresenceSummary() {
+                const onlineCount = [...peopleById.values()].filter(person => person.isOnline !== false).length;
+                const totalCount = Math.max(onlineCount, peopleById.size);
+                const onlineStat = document.querySelector('.mr-stats .mr-stat:first-child strong');
+                if (onlineStat) {
+                    onlineStat.textContent = String(onlineCount);
+                }
+
+                const panelSummary = document.querySelector('.mr-panel-head span');
+                if (panelSummary) {
+                    panelSummary.textContent = `${onlineCount} / ${totalCount} online`;
+                }
+            }
+
+            function ensureRealtimePerson(state) {
+                const person = realtimePersonFromState(state);
+                if (!person) return null;
+
+                peopleById.set(person.userId, person);
+
+                if (!getPersonMarker(person.userId)) {
+                    world.appendChild(createPersonMarker(person));
+                }
+
+                const peopleList = document.getElementById('meetingRoomPeopleList');
+                if (peopleList && !peopleList.querySelector(`.mr-person-row[data-user-id="${person.userId}"]`)) {
+                    peopleList.appendChild(createPersonRow(person));
+                }
+
+                updatePresenceSummary();
+                return person;
+            }
+
             function applyRemotePersonState(state) {
                 const userId = Number(state?.userId || 0);
                 if (!userId) return;
 
+                const person = ensureRealtimePerson(state);
                 const marker = getPersonMarker(userId);
-                const person = peopleById.get(userId);
                 if (!marker || !person) return;
 
                 const status = state.status || person.status || 'AVAILABLE';
@@ -9731,12 +9922,15 @@
                 }
 
                 marker.hidden = false;
+                marker.classList.add('is-online');
+                marker.classList.remove('is-offline');
                 marker.dataset.name = displayName;
                 marker.dataset.statusLabel = statusLabel;
                 marker.dataset.statusText = statusText;
                 marker.dataset.avatar = avatarPath;
                 marker.dataset.joinedText = joinedText;
                 marker.dataset.homeZone = homeZone;
+                marker.dataset.online = 'true';
                 marker.setAttribute('aria-label', displayName);
                 marker.title = displayName;
                 updateMarkerStatusClasses(marker, status);
@@ -9748,8 +9942,18 @@
                 const row = document.querySelector(`.mr-person-row[data-user-id="${userId}"]`);
                 if (row) {
                     row.hidden = false;
+                    row.classList.remove('is-offline');
                     row.dataset.status = status;
+                    row.dataset.search = `${displayName} ${person.username || ''} ${person.position || ''}`.toLowerCase();
                     row.querySelector('.mr-row-main strong')?.replaceChildren(document.createTextNode(displayName));
+                    const rowImage = row.querySelector('.mr-row-avatar img');
+                    if (rowImage && avatarPath && rowImage.getAttribute('src') !== avatarPath) {
+                        rowImage.src = avatarPath;
+                    }
+                    const rowLoad = row.querySelector('.mr-row-load');
+                    if (rowLoad) {
+                        rowLoad.textContent = String(person.workloadTotal || 0);
+                    }
                 }
 
                 if (userId !== currentUserId) {
@@ -9773,6 +9977,7 @@
                     renderPersonPopoverDetails(person, marker.dataset.zone || person.zone || 'Lobby');
                     updatePersonContactControls(person);
                 }
+                updatePresenceSummary();
             }
 
             function hideRemotePerson(userId) {
@@ -9786,6 +9991,9 @@
                 }
                 if (marker) {
                     marker.hidden = true;
+                    marker.classList.remove('is-online');
+                    marker.classList.add('is-offline');
+                    marker.dataset.online = 'false';
                     marker.classList.remove('is-walking', 'is-speaking');
                     marker.dataset.remoteWalkToken = '';
                 }
@@ -9805,6 +10013,7 @@
                 refreshMeetingPanel();
                 scheduleMeetingVideosRender();
                 scheduleMeetingParticipantsRender();
+                updatePresenceSummary();
             }
 
             async function pollRoomState() {
@@ -9834,6 +10043,7 @@
                         if (!userId || userId === currentUserId) return;
                         row.hidden = !onlineIds.has(userId);
                     });
+                    updatePresenceSummary();
                 } finally {
                     isPollingRoomState = false;
                 }
@@ -11897,6 +12107,19 @@
                     marker.classList.toggle('is-speaking', Boolean(isSpeaking));
                 }
 
+                document.querySelectorAll(`.mr-video-tile[data-meeting-user-id="${id}"]`).forEach(tile => {
+                    if (tile.classList.contains('is-screen')) return;
+                    tile.classList.toggle('is-speaking', Boolean(isSpeaking));
+
+                    const media = meetingMediaStateForUser(id);
+                    const state = tile.querySelector(':scope > .mr-video-state');
+                    if (state) {
+                        state.classList.toggle('is-on', Boolean(media.micOn));
+                        state.classList.toggle('is-off', !media.micOn);
+                        state.textContent = isSpeaking ? 'Speaking' : (media.micOn ? 'Mic' : 'Mute');
+                    }
+                });
+
                 if (id === currentUserId) {
                     document.getElementById('avatarPreviewCharacter')?.classList.toggle('is-speaking', Boolean(isSpeaking));
                 }
@@ -12559,14 +12782,133 @@
                         String(a.displayName || '').localeCompare(String(b.displayName || ''), 'th'));
             }
 
-            function createVideoTile(label, stream, options = {}) {
-                const tile = document.createElement('div');
+            function meetingVideoTileSourceSignature(stream, options = {}) {
+                const liveKitTrack = options.liveKitTrack || null;
+                if (liveKitTrack && isLiveKitTrackLive(liveKitTrack)) {
+                    return `livekit:${liveKitTrackSid(liveKitTrack, options.liveKitPublication || null) || liveKitTrack.sid || liveKitTrack.mediaStreamTrack?.id || 'track'}`;
+                }
+
+                if (stream && liveVideoTracks(stream).length) {
+                    const trackIds = liveVideoTracks(stream).map(track => track.id).join(':');
+                    return `stream:${stream.id || trackIds || 'video'}`;
+                }
+
+                return 'none';
+            }
+
+            function clearVideoElementSource(video) {
+                if (!video) return;
+                detachLiveKitElement(video);
+                if (video.srcObject) {
+                    video.srcObject = null;
+                }
+            }
+
+            function setVideoElementSource(video, stream, options = {}) {
+                if (!video) return;
+
+                const liveKitTrack = options.liveKitTrack || null;
+                if (liveKitTrack && isLiveKitTrackLive(liveKitTrack)) {
+                    const sid = liveKitTrackSid(liveKitTrack, options.liveKitPublication || null) ||
+                        liveKitTrack.sid ||
+                        liveKitTrack.mediaStreamTrack?.id ||
+                        'track';
+                    if (video.dataset.livekitAttached === 'true' && video.dataset.livekitTrackSid === sid) {
+                        return;
+                    }
+
+                    clearVideoElementSource(video);
+                    attachLiveKitTrackToElement(liveKitTrack, video, options.liveKitPublication || null);
+                    video.dataset.livekitTrackSid = sid;
+                } else {
+                    detachLiveKitElement(video);
+                    if (video.srcObject !== stream) {
+                        video.srcObject = stream || null;
+                    }
+                }
+
+                video.play?.().catch(() => { });
+            }
+
+            function removeVideoTile(tile) {
+                tile?.querySelectorAll?.('video').forEach(clearVideoElementSource);
+                tile?.remove();
+            }
+
+            function ensureVideoTileMedia(tile, label, stream, options = {}) {
+                const hasVideo = Boolean((stream && liveVideoTracks(stream).length) ||
+                    (options.liveKitTrack && isLiveKitTrackLive(options.liveKitTrack)));
+                const signature = meetingVideoTileSourceSignature(stream, options);
+                let media = tile.querySelector(':scope > [data-video-media="true"]');
+
+                if (tile.dataset.mediaSignature !== signature || !media) {
+                    if (media?.tagName === 'VIDEO') {
+                        clearVideoElementSource(media);
+                    }
+                    media?.remove();
+                    tile.querySelector(':scope > .mr-video-expand')?.remove();
+
+                    if (hasVideo) {
+                        media = document.createElement('video');
+                        media.autoplay = true;
+                        media.playsInline = true;
+                        media.muted = options.muted !== false;
+                        media.dataset.videoMedia = 'true';
+                        tile.prepend(media);
+
+                        const expand = document.createElement('span');
+                        expand.className = 'mr-video-expand';
+                        expand.textContent = '⛶';
+                        media.after(expand);
+                    } else {
+                        media = document.createElement('div');
+                        media.className = 'mr-video-placeholder';
+                        media.dataset.videoMedia = 'true';
+                        tile.prepend(media);
+                    }
+
+                    tile.dataset.mediaSignature = signature;
+                }
+
+                if (hasVideo && media.tagName === 'VIDEO') {
+                    media.muted = options.muted !== false;
+                    setVideoElementSource(media, stream, options);
+                    return;
+                }
+
+                if (media.tagName !== 'VIDEO') {
+                    media.replaceChildren();
+                    if (options.initial) {
+                        const avatar = document.createElement('span');
+                        avatar.className = 'mr-video-avatar';
+                        avatar.textContent = options.initial;
+                        media.appendChild(avatar);
+                    }
+                    const placeholderText = document.createElement('span');
+                    placeholderText.textContent = options.placeholder || 'Camera off';
+                    media.appendChild(placeholderText);
+                }
+            }
+
+            function updateVideoTile(tile, label, stream, options = {}) {
                 const liveKitTrack = options.liveKitTrack || null;
                 const hasVideo = Boolean((stream && liveVideoTracks(stream).length) ||
                     (liveKitTrack && isLiveKitTrackLive(liveKitTrack)));
                 const sourceId = options.sourceId || '';
-                tile.className = `mr-video-tile${options.isScreen ? ' is-screen' : ''}${hasVideo ? ' is-expandable' : ''}`;
+                const isSpeaking = !options.isScreen && Boolean(options.isSpeaking);
+
+                tile.className = 'mr-video-tile';
+                tile.classList.toggle('is-screen', Boolean(options.isScreen));
+                tile.classList.toggle('is-expandable', hasVideo && Boolean(sourceId));
                 tile.classList.toggle('is-camera-off', !hasVideo);
+                tile.classList.toggle('is-speaking', isSpeaking);
+                tile.dataset.meetingTileKey = options.tileKey || sourceId || label;
+                if (options.userId) {
+                    tile.dataset.meetingUserId = String(options.userId);
+                } else {
+                    delete tile.dataset.meetingUserId;
+                }
+
                 if (hasVideo && sourceId) {
                     tile.dataset.screenSourceId = sourceId;
                     tile.tabIndex = 0;
@@ -12578,62 +12920,50 @@
                         track: liveKitTrack,
                         publication: options.liveKitPublication || null
                     });
-                }
-
-                if (hasVideo) {
-                    const video = document.createElement('video');
-                    video.autoplay = true;
-                    video.playsInline = true;
-                    video.muted = options.muted !== false;
-                    if (liveKitTrack) {
-                        attachLiveKitTrackToElement(liveKitTrack, video, options.liveKitPublication || null);
-                    } else {
-                        video.srcObject = stream;
-                    }
-                    tile.appendChild(video);
-                    const expand = document.createElement('span');
-                    expand.className = 'mr-video-expand';
-                    expand.textContent = '⛶';
-                    tile.appendChild(expand);
                 } else {
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'mr-video-placeholder';
-                    if (options.initial) {
-                        const avatar = document.createElement('span');
-                        avatar.className = 'mr-video-avatar';
-                        avatar.textContent = options.initial;
-                        placeholder.appendChild(avatar);
-                    }
-                    const placeholderText = document.createElement('span');
-                    placeholderText.textContent = options.placeholder || 'Camera off';
-                    placeholder.appendChild(placeholderText);
-                    tile.appendChild(placeholder);
+                    delete tile.dataset.screenSourceId;
+                    tile.removeAttribute('role');
+                    tile.removeAttribute('aria-label');
+                    tile.removeAttribute('tabindex');
                 }
 
-                const state = document.createElement('span');
-                state.className = `mr-video-state ${options.isScreen ? 'is-on' : (options.micOn ? 'is-on' : 'is-off')}`;
-                state.textContent = options.isScreen ? 'Share' : (options.micOn ? 'Mic' : 'Mute');
-                tile.appendChild(state);
+                ensureVideoTileMedia(tile, label, stream, options);
 
-                const caption = document.createElement('span');
-                caption.className = 'mr-video-label';
+                let state = tile.querySelector(':scope > .mr-video-state');
+                if (!state) {
+                    state = document.createElement('span');
+                    state.className = 'mr-video-state';
+                    tile.appendChild(state);
+                }
+                state.classList.toggle('is-on', Boolean(options.isScreen || options.micOn));
+                state.classList.toggle('is-off', !options.isScreen && !options.micOn);
+                state.textContent = options.isScreen ? 'Share' : (isSpeaking ? 'Speaking' : (options.micOn ? 'Mic' : 'Mute'));
+
+                let caption = tile.querySelector(':scope > .mr-video-label');
+                if (!caption) {
+                    caption = document.createElement('span');
+                    caption.className = 'mr-video-label';
+                    tile.appendChild(caption);
+                }
                 caption.textContent = label;
-                tile.appendChild(caption);
 
                 return tile;
+            }
+
+            function createVideoTile(label, stream, options = {}) {
+                return updateVideoTile(document.createElement('div'), label, stream, options);
             }
 
             function renderMeetingVideos() {
                 const grid = document.getElementById('meetingVideoGrid');
                 if (!grid) return;
 
-                detachLiveKitElements(grid);
-                grid.replaceChildren();
                 meetingScreenSources.clear();
                 const area = meetingArea();
                 const participants = meetingParticipantsForArea(area);
                 const current = peopleById.get(currentUserId);
                 const currentName = current?.displayName || 'You';
+                const tiles = [];
                 const localScreenPublication = liveKitLocalPublication((publication, track) =>
                     isLiveKitVideoEntry(track, publication) && isLiveKitScreenSource(liveKitPublicationSource(publication)));
                 const localScreenTrack = liveKitPublicationTrack(localScreenPublication);
@@ -12642,15 +12972,20 @@
                 const localCameraTrack = liveKitPublicationTrack(localCameraPublication);
 
                 if ((screenStream && liveVideoTracks(screenStream).length) || localScreenTrack) {
-                    grid.appendChild(createVideoTile(`${currentName} · Screen`, screenStream, {
+                    tiles.push({
+                        key: 'local-screen',
+                        label: `${currentName} · Screen`,
+                        stream: screenStream,
                         isScreen: true,
                         muted: true,
+                        tileKey: 'local-screen',
                         sourceId: 'local-screen',
+                        userId: currentUserId,
                         initial: current?.initial || 'Y',
                         micOn: Boolean(micStream),
                         liveKitTrack: localScreenTrack,
                         liveKitPublication: localScreenPublication
-                    }));
+                    });
                 }
 
                 participants
@@ -12660,15 +12995,21 @@
                         if (liveKitScreens.length) {
                             liveKitScreens.forEach(entry => {
                                 const media = meetingMediaStateForUser(person.userId);
-                                grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, null, {
+                                const sourceId = `livekit-screen-${person.userId}-${liveKitTrackSid(entry.track, entry.publication) || entry.updatedAt}`;
+                                tiles.push({
+                                    key: sourceId,
+                                    label: `${person.displayName || `User ${person.userId}`} · Screen`,
+                                    stream: null,
                                     muted: true,
                                     isScreen: true,
-                                    sourceId: `livekit-screen-${person.userId}-${liveKitTrackSid(entry.track, entry.publication) || entry.updatedAt}`,
+                                    tileKey: sourceId,
+                                    sourceId,
+                                    userId: person.userId,
                                     initial: person.initial || 'U',
                                     micOn: Boolean(media.micOn),
                                     liveKitTrack: entry.track,
                                     liveKitPublication: entry.publication
-                                }));
+                                });
                             });
                             return;
                         }
@@ -12678,13 +13019,19 @@
                             .filter(entry => isRemoteScreenStream(person.userId, entry.stream))
                             .forEach(entry => {
                                 const media = meetingMediaStateForUser(person.userId);
-                                grid.appendChild(createVideoTile(`${person.displayName || `User ${person.userId}`} · Screen`, entry.stream, {
+                                const sourceId = `remote-screen-${person.userId}-${entry.stream.id || 'video'}`;
+                                tiles.push({
+                                    key: sourceId,
+                                    label: `${person.displayName || `User ${person.userId}`} · Screen`,
+                                    stream: entry.stream,
                                     muted: true,
                                     isScreen: true,
-                                    sourceId: `remote-screen-${person.userId}-${entry.stream.id || 'video'}`,
+                                    tileKey: sourceId,
+                                    sourceId,
+                                    userId: person.userId,
                                     initial: person.initial || 'U',
                                     micOn: Boolean(media.micOn)
-                                }));
+                                });
                             });
                     });
 
@@ -12714,23 +13061,44 @@
                     }
 
                     const label = isSelf ? `${person.displayName || currentName} · You` : (person.displayName || `User ${userId}`);
-                    grid.appendChild(createVideoTile(label, stream, {
+                    const tileKey = `camera-${userId}`;
+                    tiles.push({
+                        key: tileKey,
+                        label,
+                        stream,
                         muted: true,
                         placeholder: stream || liveKitTrack ? 'Camera starting' : 'กล้องปิด',
+                        tileKey,
                         sourceId: isSelf ? 'local-camera' : `remote-camera-${userId}`,
+                        userId,
                         initial: person.initial || (isSelf ? 'Y' : 'U'),
                         micOn: Boolean(media.micOn),
+                        isSpeaking: Boolean(media.isSpeaking),
                         liveKitTrack,
                         liveKitPublication
-                    }));
+                    });
                 });
 
-                if (!grid.children.length) {
-                    grid.appendChild(createVideoTile('Meeting', null, {
+                if (!tiles.length) {
+                    tiles.push({
+                        key: 'meeting-empty',
+                        label: 'Meeting',
+                        stream: null,
                         muted: true,
+                        tileKey: 'meeting-empty',
                         placeholder: 'ยังไม่มีคนในเอเรียนี้'
-                    }));
+                    });
                 }
+
+                const existingTiles = new Map([...grid.querySelectorAll(':scope > .mr-video-tile[data-meeting-tile-key]')]
+                    .map(tile => [tile.dataset.meetingTileKey, tile]));
+                tiles.forEach(descriptor => {
+                    const tile = existingTiles.get(descriptor.key) || document.createElement('div');
+                    updateVideoTile(tile, descriptor.label, descriptor.stream, descriptor);
+                    grid.appendChild(tile);
+                    existingTiles.delete(descriptor.key);
+                });
+                existingTiles.forEach(removeVideoTile);
 
                 const tileCount = grid.querySelectorAll(':scope > .mr-video-tile').length;
                 grid.dataset.tileCount = String(tileCount);
