@@ -26,6 +26,8 @@
             "BRD" => "doc-type-brd",
             "TOR" => "doc-type-tor",
             "DESIGN" => "doc-type-design",
+            "BOOKIN" => "doc-type-bookin",
+            "BOOKOUT" => "doc-type-bookout",
             "OTHER" => "doc-type-other",
             _ => "doc-type-default"
         };
@@ -33,6 +35,16 @@
 }
 
 <style>
+    .project-documents-page,
+    .project-documents-page * {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif !important;
+        letter-spacing: 0 !important;
+        text-shadow: none !important;
+        text-rendering: geometricPrecision !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+    }
+
     .project-doc-select-card {
         position: relative;
         z-index: 10;
@@ -71,7 +83,8 @@
         border-radius: 0;
         background: transparent;
         box-shadow: none;
-        font-weight: 900;
+        font-size: .92rem;
+        font-weight: 650 !important;
         line-height: 1.35;
         white-space: normal;
     }
@@ -88,6 +101,14 @@
         color: #7c3aed;
     }
 
+    .project-doc-type.doc-type-bookin {
+        color: #0ea5e9;
+    }
+
+    .project-doc-type.doc-type-bookout {
+        color: #ea580c;
+    }
+
     .project-doc-type.doc-type-other,
     .project-doc-type.doc-type-default {
         color: #64748b;
@@ -95,15 +116,16 @@
 
     .project-doc-file-name {
         color: #10233f;
-        font-weight: 900;
+        font-size: .98rem;
+        font-weight: 650 !important;
         line-height: 1.35;
         overflow-wrap: anywhere;
     }
 
     .project-doc-uploaded {
         color: #64748b;
-        font-size: .86rem;
-        font-weight: 800;
+        font-size: .82rem;
+        font-weight: 500 !important;
         line-height: 1.35;
         margin-top: 4px;
     }
@@ -171,6 +193,8 @@
                                 <option value="BRD">BRD</option>
                                 <option value="TOR">TOR</option>
                                 <option value="DESIGN">Design</option>
+                                <option value="BOOKIN">BOOKIN</option>
+                                <option value="BOOKOUT">BOOKOUT</option>
                                 <option value="OTHER">Other</option>
                             </select>
                         </div>
