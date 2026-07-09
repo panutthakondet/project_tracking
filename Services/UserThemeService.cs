@@ -984,14 +984,7 @@ main.route-controller-projects :is(.sticky-col-1, .sticky-col-2) {
     background: var(--pt-surface) !important;
 }
 
-main.route-controller-projectissues {
-    color: var(--pt-text) !important;
-    background:
-        radial-gradient(circle at 18% 12%, var(--pt-accent-soft), transparent 26%),
-        linear-gradient(180deg, var(--pt-body-bg), var(--pt-body-bg-soft)) !important;
-}
-
-main.route-controller-projectissues :is(.issue-hero, .dev-issue-hero, .index-hero.pt-form-hero) {
+main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-hero) {
     color: var(--pt-sidebar-contrast) !important;
     background:
         radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
@@ -1000,11 +993,11 @@ main.route-controller-projectissues :is(.issue-hero, .dev-issue-hero, .index-her
     box-shadow: 0 18px 40px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
 }
 
-main.route-controller-projectissues :is(.issue-title, .issue-eyebrow, .dev-title, .dev-eyebrow, .dev-issue-title, .index-title, .index-eyebrow) {
+main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-hero) :is(.index-title, .index-eyebrow, .issue-title, .issue-eyebrow, .dev-title, .dev-eyebrow, .dev-issue-title) {
     color: var(--pt-sidebar-contrast) !important;
 }
 
-main.route-controller-projectissues :is(.issue-eyebrow, .dev-eyebrow, .issue-hero .index-subtitle, .dev-subtitle, .dev-issue-subtitle, .index-subtitle) {
+main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-hero) :is(.index-subtitle, .issue-eyebrow, .dev-eyebrow, .dev-subtitle, .dev-issue-subtitle) {
     color: var(--pt-sidebar-contrast-muted) !important;
 }
 
@@ -1021,93 +1014,10 @@ main.route-controller-projectissues :is(.issue-hero-actions, .dev-hero-actions, 
     border-color: transparent !important;
 }
 
-main.route-controller-projectissues :is(.issue-filter-form, .dev-filter-card, .issue-card, .dev-issue-card, .issue-summary-card, .dev-summary-card, .issue-panel, .dev-panel, .pt-form-card, .dev-git-panel) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background:
-        radial-gradient(circle at 86% 12%, var(--pt-chart-panel-glow), transparent 30%),
-        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 14px 30px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
-}
-
-main.route-controller-projectissues .issue-filter-form {
-    padding: 18px;
-    border: 1px solid var(--pt-border-strong);
-    border-radius: 18px;
-}
-
-main.route-controller-projectissues :is(.issue-card:hover, .dev-issue-card:hover) {
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-row-bg)) !important;
-    box-shadow: 0 18px 34px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.14) !important;
-}
-
-main.route-controller-projectissues :is(.issue-card.issue-urgent, .dev-issue-card.is-urgent) {
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 5px 0 0 var(--pt-chart-danger), 0 14px 30px var(--pt-shadow) !important;
-}
-
-main.route-controller-projectissues :is(.issue-card-index, .dev-issue-no, .issue-edit-count, .dev-edit-count, .dev-count, .issue-git-badge, .dev-git-badge) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-    box-shadow: 0 8px 16px var(--pt-accent-soft) !important;
-}
-
-main.route-controller-projectissues :is(.issue-title, .issue-detail, .issue-card-person, .issue-meta, .issue-info-line, .issue-info-value, .issue-summary-value, .issue-text-box, .issue-panel h3, .issue-detail-text-block h4, .dev-issue-name, .dev-issue-detail, .dev-issue-person, .dev-issue-meta, .dev-info-line, .dev-info-value, .dev-summary-value, .dev-text-box, .dev-panel h3, .dev-detail-text-block h4, .issue-edit-section-title, .dev-edit-section-title, .issue-git-id, .dev-git-id, .status-text, .pt-list-value:not(.badge)) {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-projectissues :is(.issue-summary-label, .issue-info-label, .issue-gallery-head h3, .issue-status-item small, .dev-summary-label, .dev-info-label, .dev-gallery-head h3, .dev-status-row small, .form-label, .pt-list-label, .issue-git-table th, .dev-git-table th, .text-muted) {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-main.route-controller-projectissues :is(.issue-info-block, .dev-info-block, .issue-text-box, .dev-text-box, .issue-image-card, .dev-image-card, .issue-edit-image-card, .dev-edit-image-card, .issue-empty, .dev-empty, .issue-edit-empty, .dev-edit-empty, .issue-edit-note, .dev-edit-note, .pt-readonly-field:not(.status-field)) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-projectissues :is(.issue-git-table td, .dev-git-table td) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-projectissues :is(.issue-card-person img, .dev-issue-person img) {
-    background: var(--pt-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-projectissues :is(.pt-form-card .form-control, .pt-form-card .form-select, .pt-form-card .pt-search-select__input, .issue-filter-form .form-select, .dev-filter-card .form-select, .dev-git-row .form-control, .dev-git-row .form-select) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background-color: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.10) !important;
-}
-
-main.route-controller-projectissues :is(.pt-form-card .form-control, .pt-form-card .form-select, .pt-form-card .pt-search-select__input, .issue-filter-form .form-select, .dev-filter-card .form-select, .dev-git-row .form-control, .dev-git-row .form-select)::placeholder {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-main.route-controller-projectissues :is(.pt-form-card .form-control:focus, .pt-form-card .form-select:focus, .pt-form-card .pt-search-select__input:focus, .issue-filter-form .form-select:focus, .dev-filter-card .form-select:focus, .dev-git-row .form-control:focus, .dev-git-row .form-select:focus) {
-    border-color: var(--pt-accent) !important;
-    box-shadow: 0 0 0 4px var(--pt-accent-soft) !important;
-}
-
-main.route-controller-projectissues :is(.pt-form-actions .btn-primary, .dev-git-head .btn-outline-primary) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
-}
-
-main.route-controller-projectissues :is(.pt-form-actions .btn-outline-secondary, .issue-actions .btn-outline-secondary, .dev-actions .btn-outline-secondary, .dev-actions .btn-outline-primary) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
+main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead,
+main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead th {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
     border-color: var(--pt-border) !important;
 }
 
