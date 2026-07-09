@@ -91,6 +91,7 @@ var keyPath =
         : Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspnet", "DataProtection-Keys", "ProjectTracking"));
+Directory.CreateDirectory(keyPath);
 
 builder.Services
     .AddDataProtection()
@@ -206,6 +207,16 @@ builder.Services.AddHostedService<MeetingReminderBackgroundService>();
 QuestPDF.Settings.License = LicenseType.Community;
 var app = builder.Build();
 
+var webRootPath = app.Environment.WebRootPath;
+if (string.IsNullOrWhiteSpace(webRootPath))
+{
+    webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+}
+
+Directory.CreateDirectory(webRootPath);
+var uploadsPath = Path.Combine(webRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath);
+
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureProjectPmEmpIdColumnAsync(app.Services);
@@ -254,17 +265,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseStaticFiles();
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads")
-    ),
-    RequestPath = "/uploads"
-});
-app.UseRouting();
-
-
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -283,6 +283,14 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
+app.UseRouting();
 
 app.UseCookiePolicy();
 app.UseSession();
