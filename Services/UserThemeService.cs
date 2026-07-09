@@ -1153,6 +1153,15 @@ main.route-controller-projectstatus .project-status-header.index-hero .status-ba
     box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
 }
 
+main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead,
+main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead th {
+    --bs-table-bg: var(--pt-sidebar-bg) !important;
+    --bs-table-color: var(--pt-sidebar-contrast) !important;
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
 body.pt-standalone-report {
     color: #10233f !important;
     background: #fff !important;
@@ -1168,6 +1177,13 @@ body.pt-standalone-report .print-header {
 
 body.pt-standalone-report .print-header :is(h1, h2, h3, div, p, span, strong, b) {
     color: var(--pt-sidebar-contrast) !important;
+}
+
+body.pt-standalone-report table thead,
+body.pt-standalone-report table thead th {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
 }
 
 @media print {
