@@ -994,6 +994,228 @@ main.route-controller-projects :is(.sticky-col-1, .sticky-col-2) {
     background: var(--pt-surface) !important;
 }
 
+main.route-controller-phaseworkload {
+    color: var(--pt-text) !important;
+    background:
+        radial-gradient(circle at 18% 12%, var(--pt-accent-soft), transparent 26%),
+        linear-gradient(180deg, var(--pt-body-bg), var(--pt-body-bg-soft)) !important;
+}
+
+main.route-controller-phaseworkload .workload-calendar-card {
+    color: var(--pt-text) !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 16px 38px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-content-card {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 84% 12%, var(--pt-chart-panel-glow), transparent 30%),
+        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 16px 38px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-calendar-toolbar {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 86% 12%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-phaseworkload :is(.workload-calendar-eyebrow, .workload-calendar-title, .workload-calendar-subtitle) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main.route-controller-phaseworkload :is(.workload-calendar-eyebrow, .workload-calendar-subtitle) {
+    opacity: .82;
+}
+
+main.route-controller-phaseworkload .workload-calendar-date {
+    color: var(--pt-text) !important;
+    background: var(--pt-field-bg) !important;
+    border: 1px solid var(--pt-border) !important;
+    box-shadow: 0 12px 26px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-calendar-action {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    border-color: transparent !important;
+    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
+}
+
+main.route-controller-phaseworkload :is(.filter-toolbar, .workload-table-topbar) {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+main.route-controller-phaseworkload .workload-filter-field {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+main.route-controller-phaseworkload .workload-filter-field > span {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+main.route-controller-phaseworkload :is(.workload-filter-select, .emp-select-fixed, #empFilter, .month-select, .form-select) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background-color: var(--pt-chart-panel-field-bg) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+main.route-controller-phaseworkload .workload-responsive-wrap {
+    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
+    border: 1px solid var(--pt-border-strong) !important;
+    box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-table {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: var(--pt-chart-panel-deep) !important;
+}
+
+main.route-controller-phaseworkload .workload-table thead.is-grouped th {
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload .workload-table th:not(.workload-year-header):not(.workload-month-header):not(.week-column-header):not(.day-column-header):not(.today-column-header),
+main.route-controller-phaseworkload .workload-table thead.is-grouped .grouped-sticky-employee {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-phaseworkload .workload-table thead.is-grouped .workload-year-header {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-phaseworkload .workload-table thead.is-grouped .workload-month-header {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-row-bg)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload .workload-table thead.is-grouped :is(.week-column-header, .day-column-header) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: var(--pt-chart-panel-field-bg) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload :is(.timeline-cell, .workload-table tbody tr td) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: var(--pt-chart-panel-deep) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload .phase-project-cell {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 4px 0 8px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .phase-project-cell > .fw-bold {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+main.route-controller-phaseworkload .phase-project-cell > div[style] {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+main.route-controller-phaseworkload .phase-project-cell > div[style*='font-size:13px'] {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+main.route-controller-phaseworkload .phase-project-cell > div[style*='color:#7c3aed'] {
+    color: var(--pt-chart-alt) !important;
+}
+
+main.route-controller-phaseworkload .weekend-column {
+    background: var(--pt-chart-panel-row-bg) !important;
+}
+
+main.route-controller-phaseworkload .newyear-column {
+    background: var(--pt-chart-danger-soft) !important;
+}
+
+main.route-controller-phaseworkload .today-column {
+    background: var(--pt-chart-primary-soft) !important;
+    box-shadow: inset 2px 0 0 var(--pt-chart-primary), inset -2px 0 0 var(--pt-chart-primary) !important;
+}
+
+main.route-controller-phaseworkload .today-column-header,
+main.route-controller-phaseworkload .workload-table thead.is-grouped .today-column-header {
+    color: var(--pt-chart-primary) !important;
+    background: linear-gradient(180deg, var(--pt-chart-primary-soft), var(--pt-chart-panel-field-bg)) !important;
+    box-shadow: inset 0 0 0 2px var(--pt-chart-primary) !important;
+}
+
+main.route-controller-phaseworkload .workload-view-tabs {
+    background: var(--pt-chart-panel-field-bg) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 8px 20px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-view-tab {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+main.route-controller-phaseworkload .workload-view-tab:hover {
+    color: var(--pt-accent-dark) !important;
+    background: var(--pt-accent-soft) !important;
+}
+
+main.route-controller-phaseworkload .workload-view-tab.is-active {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    box-shadow: 0 8px 16px var(--pt-accent-soft) !important;
+}
+
+main.route-controller-phaseworkload .workload-status-row-title {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+main.route-controller-phaseworkload .workload-status-divider {
+    background: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload .workload-phase-period {
+    color: var(--pt-accent) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-phaseworkload .workload-loading-box {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 22px 50px var(--pt-shadow) !important;
+}
+
+main.route-controller-phaseworkload .workload-loading-spinner {
+    border-color: var(--pt-accent-soft) !important;
+    border-top-color: var(--pt-accent) !important;
+}
+
+main.route-controller-phaseworkload .workload-toolbar,
+main.route-controller-phaseworkload .workload-responsive-wrap {
+    scrollbar-color: var(--pt-accent-dark) transparent !important;
+}
+
+main.route-controller-phaseworkload :is(.workload-toolbar, .workload-responsive-wrap)::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+main.route-controller-phaseworkload :is(.workload-toolbar, .workload-responsive-wrap)::-webkit-scrollbar-thumb {
+    background: var(--pt-accent-dark) !important;
+    border-radius: 999px !important;
+}
+
 .requirement-card-popup__header {
     color: var(--pt-sidebar-contrast) !important;
     background:
