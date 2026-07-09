@@ -510,17 +510,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     box-shadow: 0 10px 20px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.50) !important;
 }
 
-.dashboard-view .kpi-card {
-    --kpi-accent: var(--pt-accent) !important;
-    --kpi-deep: var(--pt-sidebar-deep) !important;
-    color: var(--pt-sidebar-contrast) !important;
-    border-color: var(--pt-accent) !important;
-    background:
-        radial-gradient(circle at 16% 28%, var(--pt-accent-soft), transparent 22%),
-        radial-gradient(circle at 80% 95%, var(--pt-accent-glow), transparent 32%),
-        linear-gradient(135deg, var(--pt-sidebar-bg) 0%, var(--pt-sidebar-deep) 100%) !important;
-}
-
 .dashboard-view :is(.glass-panel, .panel-project-overview, .overview-mini) {
     color: var(--pt-chart-panel-contrast) !important;
     background:
@@ -532,10 +521,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 
 .dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2, .overview-mini-head h3) {
     color: var(--pt-chart-panel-contrast) !important;
-}
-
-.dashboard-view .kpi-card :is(p, strong, small) {
-    color: var(--pt-sidebar-contrast) !important;
 }
 
 .dashboard-view :is(.project-overview-title-row small, .issues-overview-head small, .dashboard-card-title em, .dashboard-card-title h2 small, .overview-mini-head small) {
@@ -598,8 +583,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-view .project-overview-row {
-    --project-row-accent: var(--pt-accent) !important;
-    --project-row-icon-bg: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
     background: linear-gradient(180deg, var(--pt-panel-row-bg), var(--pt-panel-row-bg-deep)) !important;
     border-color: var(--pt-border-strong) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 14px 26px var(--pt-shadow) !important;
@@ -614,10 +597,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .dashboard-view .project-overview-head {
     border-bottom-color: var(--pt-border) !important;
     color: var(--pt-sidebar-contrast-muted) !important;
-}
-
-.dashboard-view .project-overview-icon {
-    border-color: var(--pt-border-strong) !important;
 }
 
 .dashboard-view :is(.project-overview-name, .project-overview-row time, .project-overview-date) {
