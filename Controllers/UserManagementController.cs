@@ -653,7 +653,7 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "✅ บันทึกสิทธิเมนูเรียบร้อย";
-            return RedirectToAction(nameof(Permissions), new { username });
+            return RedirectToAction(nameof(Index));
         }
 
         // =====================================================
