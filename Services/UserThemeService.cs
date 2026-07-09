@@ -311,6 +311,15 @@ namespace ProjectTracking.Services
             sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");
+            const string dropdownScrollbarSelector =
+                ":is(select, .form-select, .dropdown-menu, .dropdown-menu .inner, .pt-search-select__dropdown, " +
+                ".select2-results, .select2-results__options, .select2-dropdown, .choices__list, " +
+                ".choices__list--dropdown, .choices__list--dropdown .choices__list, .ts-dropdown, .ts-dropdown-content)";
+            sb.AppendLine($"{dropdownScrollbarSelector} {{ scrollbar-width: thin !important; scrollbar-color: var(--pt-accent-dark) transparent !important; }}");
+            sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar {{ width: 6px !important; height: 6px !important; }}");
+            sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-track {{ background: transparent !important; border-radius: 999px !important; }}");
+            sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-thumb {{ background: var(--pt-accent-dark) !important; border: 1px solid transparent !important; background-clip: content-box !important; border-radius: 999px !important; }}");
+            sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-thumb:hover {{ background: var(--pt-accent) !important; background-clip: content-box !important; }}");
             sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link.active-menu, .btn-primary, .system-update-ack { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
             sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link:hover, .navbar.navbar-dark .navbar-nav .nav-link:focus, .navbar.navbar-dark .navbar-nav .show > .nav-link { background: var(--pt-accent-soft) !important; }");
             sb.AppendLine(".btn-info, .bg-info, .form-check-input:checked, .active > .page-link, .page-link.active { background-color: var(--pt-accent) !important; border-color: var(--pt-accent) !important; color: var(--pt-accent-contrast) !important; }");
