@@ -179,7 +179,7 @@ namespace ProjectTracking.Services
             SidebarHex = "#081c42",
             SidebarDeepHex = "#031934",
             BodyBgHex = "#eef3f9",
-            ChartPanelHex = "#0A172E",
+            ChartPanelHex = "#041F4E",
             SurfaceHex = "#ffffff",
             TextHex = "#0f172a",
             MutedHex = "#64748b",
