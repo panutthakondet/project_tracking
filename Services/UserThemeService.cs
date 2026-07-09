@@ -173,9 +173,9 @@ namespace ProjectTracking.Services
             ThemeName = "ProjectTracking Default",
             IsDefault = true,
             SortOrder = 1,
-            AccentHex = "#14b8a6",
-            AccentDarkHex = "#0f766e",
-            AccentDeepHex = "#0d5f59",
+            AccentHex = "#1F4889",
+            AccentDarkHex = "#193B70",
+            AccentDeepHex = "#163260",
             SidebarHex = "#081c42",
             SidebarDeepHex = "#031934",
             BodyBgHex = "#eef3f9",
@@ -183,7 +183,7 @@ namespace ProjectTracking.Services
             SurfaceHex = "#ffffff",
             TextHex = "#0f172a",
             MutedHex = "#64748b",
-            ContrastHex = "#062b2f"
+            ContrastHex = "#FFFFFF"
         };
 
         private static ThemePresetOptionViewModel ToPresetOption(ThemePreset preset) => new()
@@ -192,13 +192,13 @@ namespace ProjectTracking.Services
             ThemeKey = preset.ThemeKey,
             ThemeName = preset.ThemeName,
             IsDefault = preset.IsDefault,
-            AccentHex = NormalizeHexOrDefault(preset.AccentHex, "#14b8a6"),
-            AccentDarkHex = NormalizeHexOrDefault(preset.AccentDarkHex, "#0f766e"),
+            AccentHex = NormalizeHexOrDefault(preset.AccentHex, "#1F4889"),
+            AccentDarkHex = NormalizeHexOrDefault(preset.AccentDarkHex, "#193B70"),
             SidebarHex = NormalizeHexOrDefault(preset.SidebarHex, "#081c42"),
             BodyBgHex = NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9"),
             ChartPanelHex = NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42")),
             TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
-            ContrastHex = NormalizeHexOrDefault(preset.ContrastHex, GetReadableContrast(NormalizeHexOrDefault(preset.AccentHex, "#14b8a6")))
+            ContrastHex = NormalizeHexOrDefault(preset.ContrastHex, GetReadableContrast(NormalizeHexOrDefault(preset.AccentHex, "#1F4889")))
         };
 
         private static ResolvedThemeViewModel ResolveTheme(
@@ -210,7 +210,7 @@ namespace ProjectTracking.Services
             string customChartPanelHex,
             decimal fontScale)
         {
-            var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#14b8a6");
+            var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#1F4889");
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
             var bodyBg = useCustom ? customBodyBgHex : NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9");
             var chartPanel = useCustom ? customChartPanelHex : NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42"));
@@ -1373,7 +1373,7 @@ main.route-controller-phaseworkload :is(.workload-toolbar, .workload-responsive-
 
         private static (int R, int G, int B) ParseHex(string hex)
         {
-            hex = NormalizeHexOrDefault(hex, "#14b8a6").TrimStart('#');
+            hex = NormalizeHexOrDefault(hex, "#1F4889").TrimStart('#');
             return (
                 int.Parse(hex[..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture),
                 int.Parse(hex.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture),

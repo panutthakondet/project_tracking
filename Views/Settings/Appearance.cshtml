@@ -77,9 +77,9 @@
     .appearance-alert {
         padding: 14px 16px;
         border-radius: 12px;
-        border: 1px solid rgba(20, 184, 166, .28);
-        background: rgba(20, 184, 166, .12);
-        color: #0f766e;
+        border: 1px solid rgba(31, 72, 137, .28);
+        background: rgba(31, 72, 137, .12);
+        color: #1F4889;
         font-weight: 800;
     }
 
@@ -190,8 +190,8 @@
         width: max-content;
         padding: 3px 9px;
         border-radius: 999px;
-        color: #0f766e;
-        background: rgba(20, 184, 166, .13);
+        color: #1F4889;
+        background: rgba(31, 72, 137, .13);
         font-size: .74rem;
         font-weight: 900;
     }
@@ -329,7 +329,7 @@
         width: 34px;
         height: 34px;
         border-radius: 10px;
-        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+        background: linear-gradient(135deg, var(--preview-accent, #1F4889), var(--preview-accent-dark, #193B70));
     }
 
     .preview-nav span {
@@ -360,7 +360,7 @@
 
     .preview-pill.is-active {
         height: 28px;
-        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+        background: linear-gradient(135deg, var(--preview-accent, #1F4889), var(--preview-accent-dark, #193B70));
     }
 
     .preview-content {
@@ -450,7 +450,7 @@
         width: 86px;
         height: 34px;
         border-radius: 10px;
-        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+        background: linear-gradient(135deg, var(--preview-accent, #1F4889), var(--preview-accent-dark, #193B70));
     }
 
     .preview-button.is-muted {
@@ -686,7 +686,7 @@
     }
 
     function parseHex(hex) {
-        hex = normalizeHex(hex, '#14B8A6').slice(1);
+        hex = normalizeHex(hex, '#1F4889').slice(1);
         return [
             parseInt(hex.slice(0, 2), 16),
             parseInt(hex.slice(2, 4), 16),
@@ -726,8 +726,8 @@
     function selectedPresetTheme() {
         const card = selectedPresetCard();
         return {
-            accent: normalizeHex(card?.dataset.accent, '#14B8A6'),
-            accentDark: normalizeHex(card?.dataset.accentDark, '#0F766E'),
+            accent: normalizeHex(card?.dataset.accent, '#1F4889'),
+            accentDark: normalizeHex(card?.dataset.accentDark, '#193B70'),
             sidebar: normalizeHex(card?.dataset.sidebar, '#081C42'),
             sidebarDeep: shiftHex(normalizeHex(card?.dataset.sidebar, '#081C42'), -0.20),
             body: normalizeHex(card?.dataset.body, '#EEF3F9'),
@@ -735,7 +735,7 @@
             chartPanel: normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
             chartPanelDeep: shiftHex(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')), -0.18),
             chartPanelContrast: contrast(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
-            contrast: normalizeHex(card?.dataset.contrast, '#062B2F')
+            contrast: normalizeHex(card?.dataset.contrast, '#FFFFFF')
         };
     }
 

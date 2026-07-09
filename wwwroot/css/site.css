@@ -3,9 +3,9 @@ html {
 }
 
 :root {
-  --pt-accent: #14b8a6;
-  --pt-accent-dark: #0f766e;
-  --pt-accent-soft: rgba(20, 184, 166, .18);
+  --pt-accent: #1F4889;
+  --pt-accent-dark: #193B70;
+  --pt-accent-soft: rgba(31, 72, 137, .18);
   --pt-sidebar-bg: #081c42;
   --pt-font-family: 'Prompt', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
   --pt-control-font-size: 1rem;
@@ -887,7 +887,7 @@ main.route-action-edit img {
   padding: 12px 14px;
   background:
     radial-gradient(circle at 95% 0%, rgba(45, 212, 191, .32), transparent 34%),
-    linear-gradient(135deg, #102746, #0f766e);
+    linear-gradient(135deg, #102746, var(--pt-accent-dark));
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -1026,8 +1026,8 @@ main.route-action-edit img {
   min-width: 38px;
   padding: 5px 10px;
   border-radius: 999px;
-  background: #d8faf4;
-  color: #0f766e;
+  background: var(--pt-accent-soft);
+  color: var(--pt-accent);
   text-align: center;
   font-weight: 900;
 }
@@ -1152,8 +1152,8 @@ main.route-action-edit img {
   min-height: 26px;
   padding: 4px 9px;
   border-radius: 999px;
-  background: #d8faf4;
-  color: #0f766e;
+  background: var(--pt-accent-soft);
+  color: var(--pt-accent);
   font-size: .78rem;
   font-weight: 900;
   white-space: nowrap;
@@ -1186,7 +1186,7 @@ main.route-action-edit img {
   border-radius: 10px;
   overflow: hidden;
   background: #e8f1fa;
-  color: #0f766e;
+  color: var(--pt-accent);
   font-weight: 900;
   text-decoration: none;
 }
@@ -1723,7 +1723,7 @@ main.route-controller-followups .followup-avatar,
 main.route-controller-followups .followup-dashboard-avatar {
   border-radius: 50% !important;
   object-fit: cover;
-  border: 3px solid #14b8a6 !important;
+  border: 3px solid var(--pt-accent) !important;
   box-shadow: 0 10px 22px rgba(15,23,42,.16);
 }
 
@@ -2608,10 +2608,10 @@ main.route-controller-meetings:is(.route-action-create, .route-action-edit) #tim
 main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn, button.btn, a.btn) {
   --pt-action-color: #10233f;
   --pt-action-bg: #ffffff;
-  --pt-action-border: #14b8a6;
+  --pt-action-border: var(--pt-accent);
   color: #10233f !important;
   background: #ffffff !important;
-  border-color: #14b8a6 !important;
+  border-color: var(--pt-accent) !important;
   box-shadow: 0 8px 18px rgba(15, 35, 64, .14);
 }
 
@@ -2716,7 +2716,7 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
 }
 
 .route-controller-meetings .fc .fc-day-today .fc-daygrid-day-number {
-  background: #0f766e;
+  background: var(--pt-accent-dark);
   color: #fff !important;
   border-radius: 50%;
   width: 34px;
@@ -3002,10 +3002,10 @@ main.route-controller-meetings.route-action-show .meeting-detail-actions.index-a
   align-items: center;
   gap: 8px;
   padding: 8px 10px 8px 12px;
-  border: 1px solid rgba(20, 184, 166, .28);
+  border: 1px solid var(--pt-border);
   border-radius: 999px;
-  color: #0f766e;
-  background: rgba(20, 184, 166, .12);
+  color: var(--pt-accent);
+  background: var(--pt-accent-soft);
   font-size: .94rem;
   font-weight: 650;
   line-height: 1.25;
@@ -3690,7 +3690,7 @@ html body main :is(
   object-fit: cover;
   display: block;
   background: #fff;
-  border: 3px solid #14b8a6;
+  border: 3px solid var(--pt-accent);
   box-shadow: 0 10px 22px rgba(15, 23, 42, .16);
 }
 
