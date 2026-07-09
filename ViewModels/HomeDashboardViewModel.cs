@@ -76,7 +76,7 @@ namespace ProjectTracking.ViewModels
         public int Count { get; set; }
         public decimal Percent { get; set; }
         public string Color { get; set; } = "blue";
-        public string HexColor { get; set; } = "#1688f5";
+        public string HexColor { get; set; } = "var(--pt-chart-primary, #1688f5)";
 
         public string CountPercentText => $"{Count} ({Percent:0.#}%)";
     }

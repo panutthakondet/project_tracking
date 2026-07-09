@@ -31,44 +31,26 @@
 
     string StatusHex(string color) => color switch
     {
-        "green" => "#7bdc49",
-        "blue" => "#2693f4",
-        "orange" => "#ff9f1c",
-        "cyan" => "#13d6c9",
-        "lime" => "#78df22",
-        "purple" => "#8b5cf6",
-        "violet" => "#b45cff",
-        "pink" => "#f55262",
-        "warning" => "#ff9f1c",
-        "info" => "#36a3ff",
-        "success" => "#10d58f",
-        "primary" => "#3b82f6",
-        "danger" => "#ff4747",
-        "dark" => "#64748b",
-        "secondary" => "#94a3b8",
-        "muted" => "#64748b",
-        _ => "#45d6c6"
+        "green" or "success" => "var(--pt-chart-success, #7bdc49)",
+        "blue" or "primary" => "var(--pt-chart-primary, #2693f4)",
+        "orange" or "warning" => "var(--pt-chart-warning, #ff9f1c)",
+        "cyan" or "lime" or "info" => "var(--pt-chart-info, #13d6c9)",
+        "purple" or "violet" => "var(--pt-chart-alt, #8b5cf6)",
+        "pink" or "danger" => "var(--pt-chart-danger, #f55262)",
+        "dark" or "secondary" or "muted" => "var(--pt-chart-muted, #64748b)",
+        _ => "var(--pt-chart-primary, #45d6c6)"
     };
 
     string StatusDarkHex(string color) => color switch
     {
-        "green" => "#4eaa2f",
-        "blue" => "#1269b8",
-        "orange" => "#b86100",
-        "cyan" => "#087f75",
-        "lime" => "#3f7c0f",
-        "purple" => "#6733b8",
-        "violet" => "#7428c9",
-        "pink" => "#c92d3d",
-        "warning" => "#b86100",
-        "info" => "#155ac7",
-        "success" => "#07845f",
-        "primary" => "#1d4ed8",
-        "danger" => "#b91c1c",
-        "dark" => "#334155",
-        "secondary" => "#64748b",
-        "muted" => "#334155",
-        _ => "#159b91"
+        "green" or "success" => "var(--pt-chart-success-dark, #4eaa2f)",
+        "blue" or "primary" => "var(--pt-chart-primary-dark, #1269b8)",
+        "orange" or "warning" => "var(--pt-chart-warning-dark, #b86100)",
+        "cyan" or "lime" or "info" => "var(--pt-chart-info-dark, #087f75)",
+        "purple" or "violet" => "var(--pt-chart-alt-dark, #6733b8)",
+        "pink" or "danger" => "var(--pt-chart-danger-dark, #c92d3d)",
+        "dark" or "secondary" or "muted" => "var(--pt-chart-muted, #334155)",
+        _ => "var(--pt-chart-primary-dark, #159b91)"
     };
 
     string PieSegmentPath(double start, double end, double offsetY = 0)
@@ -621,14 +603,14 @@
                                         <stop offset=".72" stop-color="#ffffff" stop-opacity="0" />
                                     </linearGradient>
                                     <radialGradient id="issuePieHoleShade" cx="50%" cy="34%" r="78%">
-                                        <stop offset="0" stop-color="#263b77" stop-opacity=".92" />
-                                        <stop offset=".42" stop-color="#172a5a" stop-opacity=".98" />
-                                        <stop offset="1" stop-color="#07132d" stop-opacity="1" />
+                                        <stop offset="0" stop-color="var(--pt-panel-row-hover-bg, #263b77)" stop-opacity=".92" />
+                                        <stop offset=".42" stop-color="var(--pt-panel-row-bg, #172a5a)" stop-opacity=".98" />
+                                        <stop offset="1" stop-color="var(--pt-sidebar-deep, #07132d)" stop-opacity="1" />
                                     </radialGradient>
                                     <linearGradient id="issueInnerRimColor" x1="18" y1="44" x2="138" y2="88" gradientUnits="userSpaceOnUse">
-                                        <stop offset="0" stop-color="#b45cff" stop-opacity=".9" />
-                                        <stop offset=".44" stop-color="#13d6c9" stop-opacity=".92" />
-                                        <stop offset="1" stop-color="#78df22" stop-opacity=".94" />
+                                        <stop offset="0" stop-color="var(--pt-chart-alt, #b45cff)" stop-opacity=".9" />
+                                        <stop offset=".44" stop-color="var(--pt-chart-primary, #13d6c9)" stop-opacity=".92" />
+                                        <stop offset="1" stop-color="var(--pt-chart-success, #78df22)" stop-opacity=".94" />
                                     </linearGradient>
                                 </defs>
                                 <ellipse class="overview-pie3d-shadow" cx="75" cy="100" rx="61" ry="17"></ellipse>
@@ -710,14 +692,14 @@
                                         <stop offset=".72" stop-color="#ffffff" stop-opacity="0" />
                                     </linearGradient>
                                     <radialGradient id="supportPieHoleShade" cx="50%" cy="34%" r="78%">
-                                        <stop offset="0" stop-color="#263b77" stop-opacity=".92" />
-                                        <stop offset=".42" stop-color="#172a5a" stop-opacity=".98" />
-                                        <stop offset="1" stop-color="#07132d" stop-opacity="1" />
+                                        <stop offset="0" stop-color="var(--pt-panel-row-hover-bg, #263b77)" stop-opacity=".92" />
+                                        <stop offset=".42" stop-color="var(--pt-panel-row-bg, #172a5a)" stop-opacity=".98" />
+                                        <stop offset="1" stop-color="var(--pt-sidebar-deep, #07132d)" stop-opacity="1" />
                                     </radialGradient>
                                     <linearGradient id="supportInnerRimColor" x1="18" y1="44" x2="138" y2="88" gradientUnits="userSpaceOnUse">
-                                        <stop offset="0" stop-color="#ff9f1c" stop-opacity=".94" />
-                                        <stop offset=".48" stop-color="#13d6c9" stop-opacity=".86" />
-                                        <stop offset="1" stop-color="#78df22" stop-opacity=".96" />
+                                        <stop offset="0" stop-color="var(--pt-chart-warning, #ff9f1c)" stop-opacity=".94" />
+                                        <stop offset=".48" stop-color="var(--pt-chart-primary, #13d6c9)" stop-opacity=".86" />
+                                        <stop offset="1" stop-color="var(--pt-chart-success, #78df22)" stop-opacity=".96" />
                                     </linearGradient>
                                 </defs>
                                 <ellipse class="overview-pie3d-shadow" cx="75" cy="100" rx="61" ry="17"></ellipse>

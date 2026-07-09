@@ -229,6 +229,24 @@ namespace ProjectTracking.Services
         {
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
             var sidebarContrast = GetReadableContrast(theme.SidebarHex);
+            var chartPrimary = theme.AccentHex;
+            var chartPrimaryLight = ShiftHex(chartPrimary, 0.18);
+            var chartPrimaryDark = ShiftHex(chartPrimary, -0.18);
+            var chartSuccess = ShiftHex(chartPrimary, 0.10);
+            var chartSuccessLight = ShiftHex(chartPrimary, 0.28);
+            var chartSuccessDark = ShiftHex(chartPrimary, -0.22);
+            var chartWarning = ShiftHex(chartPrimary, 0.32);
+            var chartWarningLight = ShiftHex(chartPrimary, 0.46);
+            var chartWarningDark = ShiftHex(chartPrimary, -0.30);
+            var chartDanger = ShiftHex(chartPrimary, -0.10);
+            var chartDangerLight = ShiftHex(chartPrimary, 0.12);
+            var chartDangerDark = ShiftHex(chartPrimary, -0.34);
+            var chartInfo = ShiftHex(chartPrimary, 0.22);
+            var chartInfoLight = ShiftHex(chartPrimary, 0.38);
+            var chartInfoDark = ShiftHex(chartPrimary, -0.16);
+            var chartAccentAlt = ShiftHex(chartPrimary, -0.26);
+            var chartAccentAltLight = ShiftHex(chartPrimary, 0.08);
+            var chartAccentAltDark = ShiftHex(chartPrimary, -0.42);
             var sb = new StringBuilder();
             sb.AppendLine(":root {");
             AppendVar(sb, "--pt-accent", theme.AccentHex);
@@ -258,6 +276,33 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-panel-row-bg-deep", ShiftHex(theme.SidebarDeepHex, -0.02));
             AppendVar(sb, "--pt-panel-row-hover-bg", ShiftHex(theme.SidebarHex, 0.04));
             AppendVar(sb, "--pt-shadow", ToRgba(theme.SidebarHex, .18));
+            AppendVar(sb, "--pt-chart-primary", chartPrimary);
+            AppendVar(sb, "--pt-chart-primary-light", chartPrimaryLight);
+            AppendVar(sb, "--pt-chart-primary-dark", chartPrimaryDark);
+            AppendVar(sb, "--pt-chart-primary-soft", ToRgba(chartPrimary, .18));
+            AppendVar(sb, "--pt-chart-success", chartSuccess);
+            AppendVar(sb, "--pt-chart-success-light", chartSuccessLight);
+            AppendVar(sb, "--pt-chart-success-dark", chartSuccessDark);
+            AppendVar(sb, "--pt-chart-success-soft", ToRgba(chartSuccess, .18));
+            AppendVar(sb, "--pt-chart-warning", chartWarning);
+            AppendVar(sb, "--pt-chart-warning-light", chartWarningLight);
+            AppendVar(sb, "--pt-chart-warning-dark", chartWarningDark);
+            AppendVar(sb, "--pt-chart-warning-soft", ToRgba(chartWarning, .18));
+            AppendVar(sb, "--pt-chart-danger", chartDanger);
+            AppendVar(sb, "--pt-chart-danger-light", chartDangerLight);
+            AppendVar(sb, "--pt-chart-danger-dark", chartDangerDark);
+            AppendVar(sb, "--pt-chart-danger-soft", ToRgba(chartDanger, .18));
+            AppendVar(sb, "--pt-chart-info", chartInfo);
+            AppendVar(sb, "--pt-chart-info-light", chartInfoLight);
+            AppendVar(sb, "--pt-chart-info-dark", chartInfoDark);
+            AppendVar(sb, "--pt-chart-info-soft", ToRgba(chartInfo, .18));
+            AppendVar(sb, "--pt-chart-alt", chartAccentAlt);
+            AppendVar(sb, "--pt-chart-alt-light", chartAccentAltLight);
+            AppendVar(sb, "--pt-chart-alt-dark", chartAccentAltDark);
+            AppendVar(sb, "--pt-chart-alt-soft", ToRgba(chartAccentAlt, .18));
+            AppendVar(sb, "--pt-chart-muted", ShiftHex(theme.SidebarHex, 0.20));
+            AppendVar(sb, "--pt-menu-accent", chartPrimary);
+            AppendVar(sb, "--pt-menu-accent-dark", chartPrimaryDark);
             AppendVar(sb, "--pt-user-font-scale", scale);
             sb.AppendLine("}");
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");
@@ -305,9 +350,22 @@ namespace ProjectTracking.Services
 .nav-ico:has(img[src$='attendance.svg']),
 .nav-ico:has(img[src$='reports.svg']),
 .nav-ico:has(img[src$='settings.svg']) {
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     color: var(--pt-accent-contrast) !important;
-    box-shadow: 0 8px 16px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
+    box-shadow: 0 8px 16px var(--pt-chart-primary-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
+}
+
+.navbar.navbar-dark .navbar-nav .nav-link.active-menu {
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 12px 24px var(--pt-chart-primary-soft), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+
+.navbar.navbar-dark .navbar-nav .nav-link:hover,
+.navbar.navbar-dark .navbar-nav .nav-link:focus,
+.navbar.navbar-dark .navbar-nav .show > .nav-link {
+    background: var(--pt-chart-primary-soft) !important;
+    border-color: var(--pt-border) !important;
 }
 
 .dropdown-header,
@@ -531,6 +589,112 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 
 .dashboard-view :is(.project-overview-name, .project-overview-row time, .project-overview-date) {
     color: var(--pt-sidebar-contrast) !important;
+}
+
+.dashboard-view :is(.dot.green, .dot.success) { color: var(--pt-chart-success) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.blue, .dot.primary, .dot.info) { color: var(--pt-chart-primary) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.orange, .dot.warning) { color: var(--pt-chart-warning) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.pink, .dot.danger) { color: var(--pt-chart-danger) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.purple, .dot.violet) { color: var(--pt-chart-alt) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.cyan, .dot.lime) { color: var(--pt-chart-info) !important; background: currentColor !important; }
+.dashboard-view :is(.dot.dark, .dot.secondary, .dot.muted) { color: var(--pt-chart-muted) !important; background: currentColor !important; }
+
+.dashboard-view .line.green { color: var(--pt-chart-success) !important; stroke: var(--pt-chart-success) !important; }
+.dashboard-view .line.blue { color: var(--pt-chart-primary) !important; stroke: var(--pt-chart-primary) !important; }
+.dashboard-view .line.orange { color: var(--pt-chart-warning) !important; stroke: var(--pt-chart-warning) !important; }
+.dashboard-view .line.pink { color: var(--pt-chart-danger) !important; stroke: var(--pt-chart-danger) !important; }
+
+.dashboard-view .project-overview-status {
+    color: var(--pt-chart-primary) !important;
+    background: var(--pt-chart-primary-soft) !important;
+    border-color: var(--pt-chart-primary) !important;
+}
+
+.dashboard-view .project-overview-status.green {
+    color: var(--pt-chart-success) !important;
+    background: var(--pt-chart-success-soft) !important;
+    border-color: var(--pt-chart-success) !important;
+}
+
+.dashboard-view .project-overview-status.orange {
+    color: var(--pt-chart-warning) !important;
+    background: var(--pt-chart-warning-soft) !important;
+    border-color: var(--pt-chart-warning) !important;
+}
+
+.dashboard-view .project-overview-status.pink {
+    color: var(--pt-chart-danger) !important;
+    background: var(--pt-chart-danger-soft) !important;
+    border-color: var(--pt-chart-danger) !important;
+}
+
+.dashboard-view .project-overview-status.purple {
+    color: var(--pt-chart-alt) !important;
+    background: var(--pt-chart-alt-soft) !important;
+    border-color: var(--pt-chart-alt) !important;
+}
+
+.dashboard-view .project-overview-status.blue,
+.dashboard-view .project-overview-status.cyan,
+.dashboard-view .project-overview-status.lime {
+    color: var(--pt-chart-primary) !important;
+    background: var(--pt-chart-primary-soft) !important;
+    border-color: var(--pt-chart-primary) !important;
+}
+
+.dashboard-view .project-status-donut {
+    box-shadow: 0 0 30px var(--pt-chart-primary-soft), 0 14px 30px var(--pt-shadow) !important;
+}
+
+.dashboard-view .project-status-donut-layout .metric-list > span {
+    border-color: var(--pt-border) !important;
+    background: var(--pt-panel-field-bg) !important;
+}
+
+.dashboard-view .bar-group span:nth-child(1) {
+    color: var(--pt-chart-success) !important;
+    background: linear-gradient(180deg, var(--pt-chart-success-light) 0%, var(--pt-chart-success) 54%, var(--pt-chart-success-dark) 100%) !important;
+}
+
+.dashboard-view .bar-group span:nth-child(2) {
+    color: var(--pt-chart-primary) !important;
+    background: linear-gradient(180deg, var(--pt-chart-primary-light) 0%, var(--pt-chart-primary) 55%, var(--pt-chart-primary-dark) 100%) !important;
+}
+
+.dashboard-view .owner-bar.done i,
+.dashboard-view .progress-track .green,
+.dashboard-view .time-pill.green {
+    background: linear-gradient(180deg, var(--pt-chart-success-light), var(--pt-chart-success-dark)) !important;
+}
+
+.dashboard-view .owner-bar.working i,
+.dashboard-view .progress-track .orange,
+.dashboard-view .time-pill.orange {
+    background: linear-gradient(180deg, var(--pt-chart-warning-light), var(--pt-chart-warning-dark)) !important;
+}
+
+.dashboard-view .owner-bar.stuck i,
+.dashboard-view .progress-track .pink,
+.dashboard-view .time-pill.pink {
+    background: linear-gradient(180deg, var(--pt-chart-danger-light), var(--pt-chart-danger-dark)) !important;
+}
+
+.dashboard-view .owner-bar.issue-open i,
+.dashboard-view .progress-track .purple,
+.dashboard-view .time-pill.purple {
+    background: linear-gradient(180deg, var(--pt-chart-alt-light), var(--pt-chart-alt-dark)) !important;
+}
+
+.dashboard-view .owner-bar.support-open i,
+.dashboard-view .progress-track .blue,
+.dashboard-view .progress-track .cyan,
+.dashboard-view .progress-track .lime,
+.dashboard-view .time-pill.blue {
+    background: linear-gradient(180deg, var(--pt-chart-primary-light), var(--pt-chart-primary-dark)) !important;
+}
+
+.dashboard-view :is(.yearly-chart, .project-status-donut-layout) {
+    border-color: var(--pt-border-strong) !important;
 }
 
 main.route-controller-projects .project-filter-form :is(.form-control, .form-select, .pt-search-select__input),

@@ -943,7 +943,7 @@ namespace ProjectTracking.Controllers
                 LongShiftCount = timeSummary.LongShiftCount,
                 LongDistanceCount = timeSummary.LongDistanceCount,
                 PendingCheckoutNames = timeSummary.PendingCheckoutNames,
-                TimeTrackingDonut = BuildThreePartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, timeSummary.TodayCheckinCount, "#10d58f", "#1688f5", "#22c7f5"),
+                TimeTrackingDonut = BuildThreePartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, timeSummary.TodayCheckinCount, ChartColorCss("success"), ChartColorCss("primary"), ChartColorCss("info")),
                 WorkHourTrendText = timeSummary.TrendText,
                 WorkHourTrendClass = timeSummary.TrendClass
             };
@@ -1475,14 +1475,14 @@ namespace ProjectTracking.Controllers
                 Count = count,
                 Percent = total <= 0 ? 0 : Math.Round(count * 100m / total, 1),
                 Color = color,
-                HexColor = ColorHex(color)
+                HexColor = ChartColorCss(color)
             };
         }
 
         private static string BuildDonut(IReadOnlyList<HomeDashboardMetric> metrics)
         {
             var nonZero = metrics.Where(m => m.Count > 0).ToList();
-            if (nonZero.Count == 0) return "conic-gradient(#263450 0 100%)";
+            if (nonZero.Count == 0) return "conic-gradient(var(--pt-chart-muted, #263450) 0 100%)";
 
             var cursor = 0m;
             var segments = new List<string>();
@@ -1500,7 +1500,7 @@ namespace ProjectTracking.Controllers
         private static string BuildTwoPartDonut(decimal first, decimal second, string firstColor, string secondColor)
         {
             var total = first + second;
-            if (total <= 0) return "conic-gradient(#263450 0 100%)";
+            if (total <= 0) return "conic-gradient(var(--pt-chart-muted, #263450) 0 100%)";
 
             var split = Math.Round(first * 100m / total, 1);
             return $"conic-gradient({firstColor} 0 {CssPercent(split)}%, {secondColor} {CssPercent(split)}% 100%)";
@@ -1509,7 +1509,7 @@ namespace ProjectTracking.Controllers
         private static string BuildThreePartDonut(decimal first, decimal second, decimal third, string firstColor, string secondColor, string thirdColor)
         {
             var total = first + second + third;
-            if (total <= 0) return "conic-gradient(#263450 0 100%)";
+            if (total <= 0) return "conic-gradient(var(--pt-chart-muted, #263450) 0 100%)";
 
             var firstEnd = Math.Round(first * 100m / total, 1);
             var secondEnd = Math.Round((first + second) * 100m / total, 1);
@@ -2653,27 +2653,18 @@ namespace ProjectTracking.Controllers
             return colors[Math.Abs(index) % colors.Length];
         }
 
-        private static string ColorHex(string color)
+        private static string ChartColorCss(string color)
         {
             return color switch
             {
-                "green" => "#10d58f",
-                "blue" => "#1688f5",
-                "orange" => "#fb9a13",
-                "pink" => "#ff2d62",
-                "purple" => "#8b4df4",
-                "violet" => "#a855f7",
-                "cyan" => "#0ad0c8",
-                "lime" => "#52d11f",
-                "warning" => "#f59e0b",
-                "info" => "#22c7f5",
-                "success" => "#10d58f",
-                "primary" => "#3b82f6",
-                "danger" => "#ef4444",
-                "dark" => "#64748b",
-                "secondary" => "#94a3b8",
-                "muted" => "#64748b",
-                _ => "#1688f5"
+                "green" or "success" => "var(--pt-chart-success, #10d58f)",
+                "blue" or "primary" => "var(--pt-chart-primary, #1688f5)",
+                "orange" or "warning" => "var(--pt-chart-warning, #fb9a13)",
+                "pink" or "danger" => "var(--pt-chart-danger, #ff2d62)",
+                "purple" or "violet" => "var(--pt-chart-alt, #8b4df4)",
+                "cyan" or "lime" or "info" => "var(--pt-chart-info, #0ad0c8)",
+                "dark" or "secondary" or "muted" => "var(--pt-chart-muted, #64748b)",
+                _ => "var(--pt-chart-primary, #1688f5)"
             };
         }
 
