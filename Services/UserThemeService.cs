@@ -254,6 +254,9 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-border-strong", ToRgba(theme.AccentHex, .48));
             AppendVar(sb, "--pt-field-bg", ToRgba(theme.SurfaceHex, .88));
             AppendVar(sb, "--pt-panel-field-bg", ToRgba(theme.SidebarDeepHex, .72));
+            AppendVar(sb, "--pt-panel-row-bg", ShiftHex(theme.SidebarHex, -0.08));
+            AppendVar(sb, "--pt-panel-row-bg-deep", ShiftHex(theme.SidebarDeepHex, -0.02));
+            AppendVar(sb, "--pt-panel-row-hover-bg", ShiftHex(theme.SidebarHex, 0.04));
             AppendVar(sb, "--pt-shadow", ToRgba(theme.SidebarHex, .18));
             AppendVar(sb, "--pt-user-font-scale", scale);
             sb.AppendLine("}");
@@ -506,13 +509,15 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .dashboard-view .project-overview-row {
     --project-row-accent: var(--pt-accent) !important;
     --project-row-icon-bg: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    background: linear-gradient(180deg, var(--pt-panel-field-bg), var(--pt-sidebar-soft)) !important;
-    border-color: var(--pt-border) !important;
+    background: linear-gradient(180deg, var(--pt-panel-row-bg), var(--pt-panel-row-bg-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 14px 26px var(--pt-shadow) !important;
 }
 
 .dashboard-view .project-overview-row:hover {
     border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 28px var(--pt-shadow) !important;
+    background: linear-gradient(180deg, var(--pt-panel-row-hover-bg), var(--pt-panel-row-bg)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 18px 32px var(--pt-shadow) !important;
 }
 
 .dashboard-view .project-overview-head {
