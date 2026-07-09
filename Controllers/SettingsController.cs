@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProjectTracking.Middleware;
 using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
@@ -14,6 +15,7 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
+        [RequireMenu("Settings.Appearance")]
         public async Task<IActionResult> Appearance(CancellationToken cancellationToken)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -26,6 +28,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("Settings.Appearance")]
         public async Task<IActionResult> Appearance(AppearancePostViewModel model, CancellationToken cancellationToken)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -45,6 +48,7 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("Settings.Appearance")]
         public async Task<IActionResult> ResetAppearance(CancellationToken cancellationToken)
         {
             var userId = HttpContext.Session.GetInt32("UserId");

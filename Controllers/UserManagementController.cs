@@ -737,6 +737,7 @@ namespace ProjectTracking.Controllers
                 "TestScenarios" => 200,
                 "TestScenarioTemplates" => 210,
                 "TestTemplateGroups" => 220,
+                "Settings" => 225,
                 "UserManagement" => 230,
                 "LineNotificationSettings" => 235,
                 "TelegramNotificationSettings" => 236,
@@ -752,6 +753,7 @@ namespace ProjectTracking.Controllers
             return action switch
             {
                 "Index" => 10,
+                "Appearance" => 15,
                 "ViewOnly" => 20,
                 "LineOverdue" => 25,
                 "View" => 30,
@@ -816,6 +818,7 @@ namespace ProjectTracking.Controllers
                 "TestScenarios" => "Test Scenario",
                 "TestScenarioTemplates" => "Template Test",
                 "TestTemplateGroups" => "กลุ่ม Template",
+                "Settings" => "Settings",
                 "UserManagement" => "ผู้ใช้งาน",
                 "LineNotificationSettings" => "Line Notification",
                 "TelegramNotificationSettings" => "Telegram Notification",
@@ -828,6 +831,7 @@ namespace ProjectTracking.Controllers
             var actionTh = action switch
             {
                 "Index" => "เข้าใช้งาน",
+                "Appearance" => "ธีมและหน้าตา",
                 "ViewOnly" => "ดูรายงาน",
                 "LineOverdue" => "แจ้งเตือนงานล่าช้า",
                 "View" => "ดูรายละเอียด",

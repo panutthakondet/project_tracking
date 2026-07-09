@@ -1912,7 +1912,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     var canFollowAtten = CanMenu("Attendance.Index")
                       || canFollowups;
 
-    var canAppearanceSettings = userId != null;
+    var canAppearanceSettings = CanMenu("Settings.Appearance");
 
     var canSettings = canAppearanceSettings
                    || CanMenu("UserManagement.Index")
