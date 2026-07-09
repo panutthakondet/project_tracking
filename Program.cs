@@ -225,6 +225,7 @@ await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
+await EnsureProjectDocumentsTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
@@ -701,6 +702,136 @@ static async Task EnsureProjectFollowupCreatedByColumnAsync(IServiceProvider ser
             SET `status` = 'OPEN'
             WHERE `status` = 'IN_PROGRESS';";
         await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectDocumentsTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_documents` (
+              `document_id` int(11) NOT NULL AUTO_INCREMENT,
+              `project_id` int(11) NOT NULL,
+              `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
+              `file_name` varchar(255) NULL,
+              `file_path` varchar(500) NOT NULL,
+              `uploaded_by` varchar(100) NULL,
+              `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`document_id`),
+              KEY `idx_project_documents_project` (`project_id`),
+              KEY `idx_project_documents_project_type` (`project_id`, `document_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        async Task<bool> ColumnExistsAsync(string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'project_documents'
+                  AND COLUMN_NAME = '{columnName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task EnsureColumnAsync(string columnName, string addColumnSql)
+        {
+            if (await ColumnExistsAsync(columnName)) return;
+
+            command.CommandText = addColumnSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        async Task EnsureIndexAsync(string indexName, string createIndexSql)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'project_documents'
+                  AND INDEX_NAME = '{indexName}';";
+
+            var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+            if (exists) return;
+
+            command.CommandText = createIndexSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureColumnAsync(
+            "project_id",
+            "ALTER TABLE `project_documents` ADD COLUMN `project_id` int(11) NOT NULL DEFAULT 0 AFTER `document_id`;");
+
+        await EnsureColumnAsync(
+            "document_type",
+            "ALTER TABLE `project_documents` ADD COLUMN `document_type` varchar(20) NOT NULL DEFAULT 'OTHER' AFTER `project_id`;");
+
+        await EnsureColumnAsync(
+            "file_name",
+            "ALTER TABLE `project_documents` ADD COLUMN `file_name` varchar(255) NULL AFTER `document_type`;");
+
+        await EnsureColumnAsync(
+            "file_path",
+            "ALTER TABLE `project_documents` ADD COLUMN `file_path` varchar(500) NOT NULL DEFAULT '' AFTER `file_name`;");
+
+        await EnsureColumnAsync(
+            "uploaded_by",
+            "ALTER TABLE `project_documents` ADD COLUMN `uploaded_by` varchar(100) NULL AFTER `file_path`;");
+
+        await EnsureColumnAsync(
+            "uploaded_at",
+            "ALTER TABLE `project_documents` ADD COLUMN `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `uploaded_by`;");
+
+        command.CommandText = @"
+            UPDATE `project_documents`
+            SET `document_type` = 'OTHER'
+            WHERE `document_type` IS NULL OR TRIM(`document_type`) = '';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_documents`
+            SET `file_path` = ''
+            WHERE `file_path` IS NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `project_documents`
+            SET `uploaded_at` = CURRENT_TIMESTAMP
+            WHERE `uploaded_at` IS NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `project_documents`
+              MODIFY COLUMN `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
+              MODIFY COLUMN `file_name` varchar(255) NULL,
+              MODIFY COLUMN `file_path` varchar(500) NOT NULL,
+              MODIFY COLUMN `uploaded_by` varchar(100) NULL,
+              MODIFY COLUMN `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;";
+        await command.ExecuteNonQueryAsync();
+
+        await EnsureIndexAsync(
+            "idx_project_documents_project",
+            "CREATE INDEX `idx_project_documents_project` ON `project_documents` (`project_id`);");
+
+        await EnsureIndexAsync(
+            "idx_project_documents_project_type",
+            "CREATE INDEX `idx_project_documents_project_type` ON `project_documents` (`project_id`, `document_type`);");
     }
     finally
     {

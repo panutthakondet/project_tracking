@@ -9,6 +9,16 @@ namespace ProjectTracking.Controllers
     [RequireMenu("ProjectDocuments.Index")]
     public class ProjectDocumentsController : Controller
     {
+        private static readonly HashSet<string> AllowedDocumentTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "BRD",
+            "TOR",
+            "DESIGN",
+            "BOOKIN",
+            "BOOKOUT",
+            "OTHER"
+        };
+
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
@@ -62,6 +72,13 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction("Index");
             }
 
+            var normalizedDocumentType = (documentType ?? "").Trim().ToUpperInvariant();
+            if (!AllowedDocumentTypes.Contains(normalizedDocumentType))
+            {
+                TempData["Error"] = "ประเภทเอกสารไม่ถูกต้อง";
+                return RedirectToAction("Index", new { projectId });
+            }
+
             if (file == null || file.Length == 0)
                 return RedirectToAction("Index", new { projectId });
 
@@ -71,14 +88,16 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction("Index", new { projectId });
             }
 
-            var folder = Path.Combine(_env.WebRootPath, "uploads", "documents", projectId.ToString());
+            var webRootPath = GetWebRootPath();
+            var folder = Path.Combine(webRootPath, "uploads", "documents", projectId.ToString());
             if (!Directory.Exists(folder))
                 Directory.CreateDirectory(folder);
 
-            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+            var originalFileName = Path.GetFileName(file.FileName);
+            var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(originalFileName)}";
             var filePath = Path.Combine(folder, fileName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            await using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
@@ -88,9 +107,10 @@ namespace ProjectTracking.Controllers
             var doc = new ProjectDocument
             {
                 ProjectId = projectId,
-                DocumentType = documentType,
-                FileName = file.FileName,
+                DocumentType = normalizedDocumentType,
+                FileName = string.IsNullOrWhiteSpace(originalFileName) ? fileName : originalFileName,
                 FilePath = dbPath,
+                UploadedBy = HttpContext.Session.GetString("Username"),
                 UploadedAt = DateTime.Now
             };
 
@@ -110,7 +130,7 @@ namespace ProjectTracking.Controllers
             if (doc == null)
                 return NotFound();
 
-            var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/'));
+            var fullPath = Path.Combine(GetWebRootPath(), doc.FilePath.TrimStart('/'));
 
             if (!System.IO.File.Exists(fullPath))
             {
@@ -144,7 +164,7 @@ namespace ProjectTracking.Controllers
             if (doc == null)
                 return NotFound();
 
-            var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/'));
+            var fullPath = Path.Combine(GetWebRootPath(), doc.FilePath.TrimStart('/'));
 
             if (!System.IO.File.Exists(fullPath))
             {
@@ -166,7 +186,7 @@ namespace ProjectTracking.Controllers
             if (doc == null)
                 return RedirectToAction("Index");
 
-            var fullPath = Path.Combine(_env.WebRootPath, doc.FilePath.TrimStart('/'));
+            var fullPath = Path.Combine(GetWebRootPath(), doc.FilePath.TrimStart('/'));
             if (System.IO.File.Exists(fullPath))
                 System.IO.File.Delete(fullPath);
 
@@ -174,6 +194,16 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index", new { projectId = doc.ProjectId });
+        }
+
+        private string GetWebRootPath()
+        {
+            var webRootPath = _env.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRootPath))
+                webRootPath = Path.Combine(_env.ContentRootPath, "wwwroot");
+
+            Directory.CreateDirectory(webRootPath);
+            return webRootPath;
         }
     }
 }
