@@ -836,8 +836,25 @@
         });
     });
 
+    function applyPresetCard(card) {
+        const input = card?.querySelector('input[name="ThemeId"]');
+        if (!input) return;
+
+        input.checked = true;
+        customToggle.checked = false;
+        syncCustomState();
+    }
+
+    form.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', function () {
+            window.setTimeout(() => applyPresetCard(card), 0);
+        });
+    });
+
     form.querySelectorAll('input[name="ThemeId"]').forEach(input => {
-        input.addEventListener('change', syncCustomState);
+        input.addEventListener('change', function () {
+            applyPresetCard(input.closest('.theme-card'));
+        });
     });
 
     customToggle.addEventListener('change', syncCustomState);
