@@ -697,6 +697,178 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     border-color: var(--pt-border-strong) !important;
 }
 
+:root {
+    --meeting-navy: var(--pt-sidebar-bg);
+    --meeting-teal: var(--pt-menu-accent);
+    --meeting-teal-dark: var(--pt-menu-accent-dark);
+    --meeting-blue: var(--pt-chart-primary);
+    --meeting-purple: var(--pt-chart-alt);
+    --meeting-orange: var(--pt-chart-warning);
+    --meeting-pink: var(--pt-chart-danger);
+    --meeting-border: var(--pt-border);
+}
+
+main.route-controller-meetings .calendar-card,
+main.route-controller-meetings .meeting-list-card,
+main.route-controller-meetings .meeting-card,
+main.route-controller-meetings .meeting-detail-card {
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 16px 34px var(--pt-shadow) !important;
+}
+
+main.route-controller-meetings .calendar-card__toolbar,
+main.route-controller-meetings :is(.meeting-hero, .meeting-form-hero, .meeting-detail-hero) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-meetings .calendar-heading__date {
+    color: var(--pt-text) !important;
+    background: var(--pt-field-bg) !important;
+    border: 1px solid var(--pt-border) !important;
+    box-shadow: 0 12px 26px var(--pt-shadow) !important;
+}
+
+main.route-controller-meetings :is(.calendar-heading__eyebrow, .calendar-heading__title, .calendar-heading__subtitle) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main.route-controller-meetings .calendar-heading__subtitle,
+main.route-controller-meetings .calendar-heading__eyebrow {
+    opacity: .82;
+}
+
+main.route-controller-meetings :is(.calendar-heading__action, .fc .fc-button-primary, .btn-primary) {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    border-color: transparent !important;
+    box-shadow: 0 10px 20px var(--pt-chart-primary-soft) !important;
+}
+
+main.route-controller-meetings :is(.calendar-heading__action:not(.primary), .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-meetings .fc .fc-button-primary:not(:disabled).fc-button-active,
+main.route-controller-meetings .fc .fc-button-primary:not(:disabled):active,
+main.route-controller-meetings .fc .fc-button-primary:not(:disabled):hover,
+main.route-controller-meetings .fc .fc-button-primary:not(:disabled):focus {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-chart-primary-light), var(--pt-chart-primary-dark)) !important;
+    border-color: transparent !important;
+}
+
+main.route-controller-meetings .calendar-card__body {
+    background: var(--pt-body-bg-soft) !important;
+}
+
+main.route-controller-meetings .fc {
+    color: var(--pt-text) !important;
+}
+
+main.route-controller-meetings .fc .fc-toolbar-title,
+main.route-controller-meetings .fc .fc-daygrid-day-number,
+main.route-controller-meetings :is(.meeting-project-text, .meeting-desc, .meeting-detail-value, .meeting-project-name) {
+    color: var(--pt-text) !important;
+}
+
+main.route-controller-meetings .fc .fc-scrollgrid,
+main.route-controller-meetings .fc .fc-list {
+    border-color: var(--pt-border) !important;
+    background: var(--pt-surface) !important;
+    box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
+main.route-controller-meetings .fc .fc-col-header-cell,
+main.route-controller-meetings .calendar-card .fc .fc-col-header-cell,
+main.route-controller-meetings .fc .fc-list-day-cushion,
+main.route-controller-meetings .meeting-list-card .card-header {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-meetings .fc .fc-col-header-cell .fc-col-header-cell-cushion,
+main.route-controller-meetings .calendar-card .fc .fc-col-header-cell .fc-col-header-cell-cushion {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main.route-controller-meetings .fc .fc-daygrid-day,
+main.route-controller-meetings .fc .fc-daygrid-day.fc-day-other,
+main.route-controller-meetings .fc .fc-day-today,
+main.route-controller-meetings .fc .fc-timegrid-axis,
+main.route-controller-meetings .fc .fc-timegrid-slot-label {
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-meetings .fc .fc-daygrid-day.fc-day-other {
+    background: var(--pt-surface-soft) !important;
+}
+
+main.route-controller-meetings .fc .fc-day-today .fc-daygrid-day-number {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    box-shadow: 0 8px 18px var(--pt-chart-primary-soft) !important;
+}
+
+main.route-controller-meetings :is(.fc-event, .meeting-row) {
+    --meeting-event-bg-start: var(--pt-field-bg);
+    --meeting-event-bg-end: var(--pt-surface-soft);
+    --meeting-event-border: var(--pt-border);
+    color: var(--pt-text) !important;
+    background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
+    border-color: var(--meeting-event-border) !important;
+    box-shadow: 0 8px 18px var(--pt-shadow) !important;
+}
+
+main.route-controller-meetings :is(.fc-event-title, .meeting-event-title, .meeting-event-subtitle, .meeting-event-meta) {
+    color: var(--pt-text) !important;
+}
+
+main.route-controller-meetings :is(.fc-event.customer-event, .meeting-row.customer-event) {
+    --meeting-event-bg-end: var(--pt-chart-success-soft);
+    --meeting-event-border: var(--pt-chart-success);
+}
+
+main.route-controller-meetings :is(.fc-event.team-event, .meeting-row.team-event, .fc-event.other-event, .meeting-row.other-event) {
+    --meeting-event-bg-end: var(--pt-chart-primary-soft);
+    --meeting-event-border: var(--pt-chart-primary);
+}
+
+main.route-controller-meetings :is(.fc-event.executive-event, .meeting-row.executive-event) {
+    --meeting-event-bg-end: var(--pt-chart-danger-soft);
+    --meeting-event-border: var(--pt-chart-danger);
+}
+
+main.route-controller-meetings :is(.fc-event.manager-event, .meeting-row.manager-event) {
+    --meeting-event-bg-end: var(--pt-chart-alt-soft);
+    --meeting-event-border: var(--pt-chart-alt);
+}
+
+main.route-controller-meetings :is(.fc-event.vendor-event, .meeting-row.vendor-event) {
+    --meeting-event-bg-end: var(--pt-chart-warning-soft);
+    --meeting-event-border: var(--pt-chart-warning);
+}
+
+main.route-controller-meetings :is(.meeting-icon, .meeting-project-icon) {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+}
+
+main.route-controller-meetings .fc-tooltip {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-sidebar-bg) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
 main.route-controller-projects .project-filter-form :is(.form-control, .form-select, .pt-search-select__input),
 main.route-controller-projects .project-table-wrapper,
 main.route-controller-projects .project-card {
