@@ -945,6 +945,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `custom_accent_hex` varchar(7) DEFAULT NULL,
               `custom_sidebar_hex` varchar(7) DEFAULT NULL,
               `custom_body_bg_hex` varchar(7) DEFAULT NULL,
+              `custom_chart_panel_hex` varchar(7) DEFAULT NULL,
               `font_scale` decimal(4,2) NOT NULL DEFAULT 1.00,
               `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
               PRIMARY KEY (`user_id`),
@@ -955,6 +956,22 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
                 FOREIGN KEY (`theme_id`) REFERENCES `theme_presets` (`theme_id`) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'user_theme_preferences'
+              AND COLUMN_NAME = 'custom_chart_panel_hex';";
+
+        var hasCustomChartPanelHex = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasCustomChartPanelHex)
+        {
+            command.CommandText = @"
+                ALTER TABLE `user_theme_preferences`
+                ADD COLUMN `custom_chart_panel_hex` varchar(7) DEFAULT NULL AFTER `custom_body_bg_hex`;";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {

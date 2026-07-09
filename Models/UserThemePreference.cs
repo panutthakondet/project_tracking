@@ -10,6 +10,7 @@ namespace ProjectTracking.Models
         public string? CustomAccentHex { get; set; }
         public string? CustomSidebarHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
+        public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public DateTime? UpdatedAt { get; set; }
 

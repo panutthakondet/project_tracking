@@ -342,6 +342,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.CustomAccentHex).HasColumnName("custom_accent_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomSidebarHex).HasColumnName("custom_sidebar_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomBodyBgHex).HasColumnName("custom_body_bg_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.CustomChartPanelHex).HasColumnName("custom_chart_panel_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.FontScale).HasColumnName("font_scale").HasColumnType("decimal(4,2)");
                 entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
 

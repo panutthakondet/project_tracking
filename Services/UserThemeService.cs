@@ -37,8 +37,9 @@ namespace ProjectTracking.Services
             var accent = NormalizeHexOrDefault(preference?.CustomAccentHex, selectedPreset.AccentHex);
             var sidebar = NormalizeHexOrDefault(preference?.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(preference?.CustomBodyBgHex, selectedPreset.BodyBgHex);
+            var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.SidebarHex);
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
-            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, fontScale);
+            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale);
 
             return new AppearanceViewModel
             {
@@ -48,6 +49,7 @@ namespace ProjectTracking.Services
                 CustomAccentHex = accent,
                 CustomSidebarHex = sidebar,
                 CustomBodyBgHex = bodyBg,
+                CustomChartPanelHex = chartPanel,
                 FontScale = fontScale,
                 EffectiveTheme = resolved
             };
@@ -64,12 +66,14 @@ namespace ProjectTracking.Services
             var accent = NormalizeHexOrDefault(model.CustomAccentHex, selectedPreset.AccentHex);
             var sidebar = NormalizeHexOrDefault(model.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(model.CustomBodyBgHex, selectedPreset.BodyBgHex);
+            var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.SidebarHex);
 
             if (model.UseCustom)
             {
                 if (!IsHexColor(model.CustomAccentHex) ||
                     !IsHexColor(model.CustomSidebarHex) ||
-                    !IsHexColor(model.CustomBodyBgHex))
+                    !IsHexColor(model.CustomBodyBgHex) ||
+                    !IsHexColor(model.CustomChartPanelHex))
                 {
                     return (false, "ค่าสีต้องอยู่ในรูปแบบ #RRGGBB");
                 }
@@ -90,6 +94,7 @@ namespace ProjectTracking.Services
             preference.CustomAccentHex = model.UseCustom ? accent : null;
             preference.CustomSidebarHex = model.UseCustom ? sidebar : null;
             preference.CustomBodyBgHex = model.UseCustom ? bodyBg : null;
+            preference.CustomChartPanelHex = model.UseCustom ? chartPanel : null;
             preference.FontScale = fontScale;
             preference.UpdatedAt = DateTime.Now;
 
@@ -117,25 +122,26 @@ namespace ProjectTracking.Services
                 var defaultPreset = PickDefaultPreset(presets);
 
                 if (userId == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.SidebarHex, 1.00m);
 
                 var preference = await _context.UserThemePreferences
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
 
                 if (preference == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.SidebarHex, 1.00m);
 
                 var preset = presets.FirstOrDefault(x => x.ThemeId == preference.ThemeId) ?? defaultPreset;
                 var accent = NormalizeHexOrDefault(preference.CustomAccentHex, preset.AccentHex);
                 var sidebar = NormalizeHexOrDefault(preference.CustomSidebarHex, preset.SidebarHex);
                 var bodyBg = NormalizeHexOrDefault(preference.CustomBodyBgHex, preset.BodyBgHex);
-                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, preference.FontScale);
+                var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.SidebarHex);
+                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale);
             }
             catch
             {
                 var fallback = CreateFallbackPreset();
-                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, 1.00m);
+                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.SidebarHex, 1.00m);
             }
         }
 
@@ -199,13 +205,16 @@ namespace ProjectTracking.Services
             string customAccentHex,
             string customSidebarHex,
             string customBodyBgHex,
+            string customChartPanelHex,
             decimal fontScale)
         {
             var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#14b8a6");
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
             var bodyBg = useCustom ? customBodyBgHex : NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9");
+            var chartPanel = useCustom ? customChartPanelHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
             var accentDark = useCustom ? ShiftHex(accent, -0.18) : NormalizeHexOrDefault(preset.AccentDarkHex, ShiftHex(accent, -0.18));
             var accentDeep = useCustom ? ShiftHex(accent, -0.30) : NormalizeHexOrDefault(preset.AccentDeepHex, ShiftHex(accent, -0.30));
+            var chartPanelContrast = GetReadableContrast(chartPanel);
 
             return new ResolvedThemeViewModel
             {
@@ -217,6 +226,10 @@ namespace ProjectTracking.Services
                 SidebarHex = sidebar,
                 SidebarDeepHex = useCustom ? ShiftHex(sidebar, -0.20) : NormalizeHexOrDefault(preset.SidebarDeepHex, ShiftHex(sidebar, -0.20)),
                 BodyBgHex = bodyBg,
+                ChartPanelHex = chartPanel,
+                ChartPanelDeepHex = ShiftHex(chartPanel, -0.18),
+                ChartPanelContrastHex = chartPanelContrast,
+                ChartPanelContrastMutedRgba = ToRgba(chartPanelContrast, .76),
                 SurfaceHex = NormalizeHexOrDefault(preset.SurfaceHex, "#ffffff"),
                 TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
                 MutedHex = NormalizeHexOrDefault(preset.MutedHex, "#64748b"),
@@ -229,24 +242,24 @@ namespace ProjectTracking.Services
         {
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
             var sidebarContrast = GetReadableContrast(theme.SidebarHex);
-            var chartPrimary = theme.AccentHex;
-            var chartPrimaryLight = ShiftHex(chartPrimary, 0.18);
-            var chartPrimaryDark = ShiftHex(chartPrimary, -0.18);
-            var chartSuccess = ShiftHex(chartPrimary, 0.10);
-            var chartSuccessLight = ShiftHex(chartPrimary, 0.28);
-            var chartSuccessDark = ShiftHex(chartPrimary, -0.22);
-            var chartWarning = ShiftHex(chartPrimary, 0.32);
-            var chartWarningLight = ShiftHex(chartPrimary, 0.46);
-            var chartWarningDark = ShiftHex(chartPrimary, -0.30);
-            var chartDanger = ShiftHex(chartPrimary, -0.10);
-            var chartDangerLight = ShiftHex(chartPrimary, 0.12);
-            var chartDangerDark = ShiftHex(chartPrimary, -0.34);
-            var chartInfo = ShiftHex(chartPrimary, 0.22);
-            var chartInfoLight = ShiftHex(chartPrimary, 0.38);
-            var chartInfoDark = ShiftHex(chartPrimary, -0.16);
-            var chartAccentAlt = ShiftHex(chartPrimary, -0.26);
-            var chartAccentAltLight = ShiftHex(chartPrimary, 0.08);
-            var chartAccentAltDark = ShiftHex(chartPrimary, -0.42);
+            const string chartPrimary = "#2693F4";
+            const string chartPrimaryLight = "#4CA5F6";
+            const string chartPrimaryDark = "#1269B8";
+            const string chartSuccess = "#7BDC49";
+            const string chartSuccessLight = "#9EEB74";
+            const string chartSuccessDark = "#4EAA2F";
+            const string chartWarning = "#FF9F1C";
+            const string chartWarningLight = "#FFBC57";
+            const string chartWarningDark = "#B86100";
+            const string chartDanger = "#F55262";
+            const string chartDangerLight = "#FF7A86";
+            const string chartDangerDark = "#C92D3D";
+            const string chartInfo = "#13D6C9";
+            const string chartInfoLight = "#54E3D9";
+            const string chartInfoDark = "#087F75";
+            const string chartAccentAlt = "#8B5CF6";
+            const string chartAccentAltLight = "#A78BFA";
+            const string chartAccentAltDark = "#6733B8";
             var sb = new StringBuilder();
             sb.AppendLine(":root {");
             AppendVar(sb, "--pt-accent", theme.AccentHex);
@@ -263,6 +276,13 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-sidebar-contrast-muted", ToRgba(sidebarContrast, .76));
             AppendVar(sb, "--pt-body-bg", theme.BodyBgHex);
             AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
+            AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
+            AppendVar(sb, "--pt-chart-panel-deep", theme.ChartPanelDeepHex);
+            AppendVar(sb, "--pt-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
+            AppendVar(sb, "--pt-chart-panel-field-bg", ToRgba(theme.ChartPanelDeepHex, .72));
+            AppendVar(sb, "--pt-chart-panel-glow", ToRgba(theme.AccentHex, .14));
+            AppendVar(sb, "--pt-chart-panel-contrast", theme.ChartPanelContrastHex);
+            AppendVar(sb, "--pt-chart-panel-contrast-muted", theme.ChartPanelContrastMutedRgba);
             AppendVar(sb, "--pt-surface", theme.SurfaceHex);
             AppendVar(sb, "--pt-surface-soft", ShiftHex(theme.SurfaceHex, -0.04));
             AppendVar(sb, "--pt-text", theme.TextHex);
@@ -300,9 +320,9 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-chart-alt-light", chartAccentAltLight);
             AppendVar(sb, "--pt-chart-alt-dark", chartAccentAltDark);
             AppendVar(sb, "--pt-chart-alt-soft", ToRgba(chartAccentAlt, .18));
-            AppendVar(sb, "--pt-chart-muted", ShiftHex(theme.SidebarHex, 0.20));
-            AppendVar(sb, "--pt-menu-accent", chartPrimary);
-            AppendVar(sb, "--pt-menu-accent-dark", chartPrimaryDark);
+            AppendVar(sb, "--pt-chart-muted", "#64748B");
+            AppendVar(sb, "--pt-menu-accent", theme.AccentHex);
+            AppendVar(sb, "--pt-menu-accent-dark", theme.AccentDarkHex);
             AppendVar(sb, "--pt-user-font-scale", scale);
             sb.AppendLine("}");
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");
@@ -361,19 +381,19 @@ namespace ProjectTracking.Services
 .nav-ico:has(img[src$='settings.svg']) {
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     color: var(--pt-accent-contrast) !important;
-    box-shadow: 0 8px 16px var(--pt-chart-primary-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
+    box-shadow: 0 8px 16px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
 }
 
 .navbar.navbar-dark .navbar-nav .nav-link.active-menu {
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 12px 24px var(--pt-chart-primary-soft), inset 0 1px 0 rgba(255,255,255,.14) !important;
+    box-shadow: 0 12px 24px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.14) !important;
 }
 
 .navbar.navbar-dark .navbar-nav .nav-link:hover,
 .navbar.navbar-dark .navbar-nav .nav-link:focus,
 .navbar.navbar-dark .navbar-nav .show > .nav-link {
-    background: var(--pt-chart-primary-soft) !important;
+    background: var(--pt-accent-soft) !important;
     border-color: var(--pt-border) !important;
 }
 
@@ -502,20 +522,24 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-view :is(.glass-panel, .panel-project-overview, .overview-mini) {
-    color: var(--pt-sidebar-contrast) !important;
+    color: var(--pt-chart-panel-contrast) !important;
     background:
-        radial-gradient(circle at 82% 16%, var(--pt-accent-soft), transparent 32%),
-        linear-gradient(180deg, var(--pt-sidebar-panel), var(--pt-sidebar-deep)) !important;
+        radial-gradient(circle at 82% 16%, var(--pt-chart-panel-glow), transparent 32%),
+        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border-strong) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 16px 32px var(--pt-shadow) !important;
 }
 
-.dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2, .overview-mini-head h3, .kpi-card p, .kpi-card strong, .kpi-card small) {
+.dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2, .overview-mini-head h3) {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+.dashboard-view .kpi-card :is(p, strong, small) {
     color: var(--pt-sidebar-contrast) !important;
 }
 
 .dashboard-view :is(.project-overview-title-row small, .issues-overview-head small, .dashboard-card-title em, .dashboard-card-title h2 small, .overview-mini-head small) {
-    color: var(--pt-sidebar-contrast-muted) !important;
+    color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
 .dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .panel-filter) {
@@ -657,7 +681,7 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 
 .dashboard-view .project-status-donut-layout .metric-list > span {
     border-color: var(--pt-border) !important;
-    background: var(--pt-panel-field-bg) !important;
+    background: var(--pt-chart-panel-field-bg) !important;
 }
 
 .dashboard-view .bar-group span:nth-child(1) {
@@ -703,6 +727,10 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-view :is(.yearly-chart, .project-status-donut-layout) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 50% 40%, var(--pt-chart-panel-glow), transparent 42%),
+        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border-strong) !important;
 }
 
@@ -755,7 +783,7 @@ main.route-controller-meetings :is(.calendar-heading__action, .fc .fc-button-pri
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     border-color: transparent !important;
-    box-shadow: 0 10px 20px var(--pt-chart-primary-soft) !important;
+    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
 }
 
 main.route-controller-meetings :is(.calendar-heading__action:not(.primary), .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
@@ -824,7 +852,7 @@ main.route-controller-meetings .fc .fc-daygrid-day.fc-day-other {
 main.route-controller-meetings .fc .fc-day-today .fc-daygrid-day-number {
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
-    box-shadow: 0 8px 18px var(--pt-chart-primary-soft) !important;
+    box-shadow: 0 8px 18px var(--pt-accent-soft) !important;
 }
 
 main.route-controller-meetings :is(.fc-event, .meeting-row) {

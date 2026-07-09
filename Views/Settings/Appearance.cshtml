@@ -213,7 +213,7 @@
 
     .appearance-controls {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         gap: 14px;
     }
 
@@ -397,6 +397,54 @@
         margin-top: 2px;
     }
 
+    .preview-chart-panel {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        align-items: center;
+        gap: 11px;
+        min-height: 74px;
+        padding: 12px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--preview-chart-panel, #081c42), var(--preview-chart-panel-deep, #031934));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+    }
+
+    .preview-chart-ring {
+        width: 48px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(#7bdc49 0 46%, #2693f4 46% 82%, #ff9f1c 82% 100%);
+    }
+
+    .preview-chart-ring::before {
+        content: "";
+        width: 25px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--preview-chart-panel-deep, #031934);
+    }
+
+    .preview-chart-lines {
+        display: grid;
+        gap: 8px;
+    }
+
+    .preview-chart-lines span {
+        height: 9px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--preview-chart-ink, #fff) 28%, transparent);
+    }
+
+    .preview-chart-lines span:nth-child(2) {
+        width: 72%;
+    }
+
+    .preview-chart-lines span:nth-child(3) {
+        width: 52%;
+    }
+
     .preview-button {
         width: 86px;
         height: 34px;
@@ -483,6 +531,7 @@
                                    data-accent-dark="@preset.AccentDarkHex"
                                    data-sidebar="@preset.SidebarHex"
                                    data-body="@preset.BodyBgHex"
+                                   data-chart-panel="@preset.SidebarHex"
                                    data-text="@preset.TextHex"
                                    data-contrast="@preset.ContrastHex">
                                 <input type="radio"
@@ -538,6 +587,13 @@
                                 <input type="text" id="CustomBodyBgHex" name="CustomBodyBgHex" value="@Model.CustomBodyBgHex" maxlength="7" />
                             </div>
                         </div>
+                        <div class="appearance-field">
+                            <label for="CustomChartPanelHex">Chart Background</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="CustomChartPanelColor" value="@Model.CustomChartPanelHex" />
+                                <input type="text" id="CustomChartPanelHex" name="CustomChartPanelHex" value="@Model.CustomChartPanelHex" maxlength="7" />
+                            </div>
+                        </div>
                     </div>
 
                     <div class="appearance-section__head" style="margin-top:18px;">
@@ -555,7 +611,7 @@
             </div>
 
             <aside class="appearance-preview" id="appearancePreview"
-                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex;">
+                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex; --preview-chart-panel:@Model.EffectiveTheme.ChartPanelHex; --preview-chart-panel-deep:@Model.EffectiveTheme.ChartPanelDeepHex; --preview-chart-ink:@Model.EffectiveTheme.ChartPanelContrastHex;">
                 <div class="appearance-preview__head">
                     <h2>Preview</h2>
                 </div>
@@ -576,6 +632,14 @@
                                 <div class="preview-line is-title"></div>
                                 <div class="preview-line"></div>
                                 <div class="preview-line is-short"></div>
+                                <div class="preview-chart-panel" aria-hidden="true">
+                                    <div class="preview-chart-ring"></div>
+                                    <div class="preview-chart-lines">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="preview-actions">
                                     <div class="preview-button"></div>
                                     <div class="preview-button is-muted"></div>
@@ -602,7 +666,8 @@
     const colorPairs = [
         ['CustomAccentColor', 'CustomAccentHex'],
         ['CustomSidebarColor', 'CustomSidebarHex'],
-        ['CustomBodyBgColor', 'CustomBodyBgHex']
+        ['CustomBodyBgColor', 'CustomBodyBgHex'],
+        ['CustomChartPanelColor', 'CustomChartPanelHex']
     ].map(([colorId, textId]) => ({
         color: document.getElementById(colorId),
         text: document.getElementById(textId)
@@ -664,6 +729,9 @@
             sidebar: normalizeHex(card?.dataset.sidebar, '#081C42'),
             sidebarDeep: shiftHex(normalizeHex(card?.dataset.sidebar, '#081C42'), -0.20),
             body: normalizeHex(card?.dataset.body, '#EEF3F9'),
+            chartPanel: normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
+            chartPanelDeep: shiftHex(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')), -0.18),
+            chartPanelContrast: contrast(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
             contrast: normalizeHex(card?.dataset.contrast, '#062B2F')
         };
     }
@@ -675,12 +743,16 @@
         const accent = normalizeHex(document.getElementById('CustomAccentHex').value, preset.accent);
         const sidebar = normalizeHex(document.getElementById('CustomSidebarHex').value, preset.sidebar);
         const body = normalizeHex(document.getElementById('CustomBodyBgHex').value, preset.body);
+        const chartPanel = normalizeHex(document.getElementById('CustomChartPanelHex').value, preset.chartPanel);
         return {
             accent,
             accentDark: shiftHex(accent, -0.18),
             sidebar,
             sidebarDeep: shiftHex(sidebar, -0.20),
             body,
+            chartPanel,
+            chartPanelDeep: shiftHex(chartPanel, -0.18),
+            chartPanelContrast: contrast(chartPanel),
             contrast: contrast(accent)
         };
     }
@@ -697,6 +769,12 @@
         root.setProperty('--pt-sidebar-bg', theme.sidebar);
         root.setProperty('--pt-sidebar-deep', theme.sidebarDeep);
         root.setProperty('--pt-body-bg', theme.body);
+        root.setProperty('--pt-chart-panel-bg', theme.chartPanel);
+        root.setProperty('--pt-chart-panel-deep', theme.chartPanelDeep);
+        root.setProperty('--pt-chart-panel-soft', rgba(theme.chartPanel, .88));
+        root.setProperty('--pt-chart-panel-field-bg', rgba(theme.chartPanelDeep, .72));
+        root.setProperty('--pt-chart-panel-contrast', theme.chartPanelContrast);
+        root.setProperty('--pt-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
         root.setProperty('--pt-user-font-scale', fontScale.value);
 
         if (preview) {
@@ -705,6 +783,9 @@
             preview.style.setProperty('--preview-sidebar', theme.sidebar);
             preview.style.setProperty('--preview-sidebar-deep', theme.sidebarDeep);
             preview.style.setProperty('--preview-body', theme.body);
+            preview.style.setProperty('--preview-chart-panel', theme.chartPanel);
+            preview.style.setProperty('--preview-chart-panel-deep', theme.chartPanelDeep);
+            preview.style.setProperty('--preview-chart-ink', theme.chartPanelContrast);
         }
 
         if (fontScaleValue) fontScaleValue.textContent = Number(fontScale.value).toFixed(2);
@@ -730,6 +811,8 @@
             document.getElementById('CustomSidebarColor').value = preset.sidebar;
             document.getElementById('CustomBodyBgHex').value = preset.body;
             document.getElementById('CustomBodyBgColor').value = preset.body;
+            document.getElementById('CustomChartPanelHex').value = preset.chartPanel;
+            document.getElementById('CustomChartPanelColor').value = preset.chartPanel;
         }
 
         applyTheme();

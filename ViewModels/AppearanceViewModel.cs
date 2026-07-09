@@ -18,6 +18,9 @@ namespace ProjectTracking.ViewModels
         [Display(Name = "Background")]
         public string CustomBodyBgHex { get; set; } = "#eef3f9";
 
+        [Display(Name = "Chart Background")]
+        public string CustomChartPanelHex { get; set; } = "#081c42";
+
         [Range(0.90, 1.15)]
         public decimal FontScale { get; set; } = 1.00m;
         public ResolvedThemeViewModel EffectiveTheme { get; set; } = new();
@@ -30,6 +33,7 @@ namespace ProjectTracking.ViewModels
         public string? CustomAccentHex { get; set; }
         public string? CustomSidebarHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
+        public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
     }
 
@@ -57,6 +61,10 @@ namespace ProjectTracking.ViewModels
         public string SidebarHex { get; set; } = "#081c42";
         public string SidebarDeepHex { get; set; } = "#031934";
         public string BodyBgHex { get; set; } = "#eef3f9";
+        public string ChartPanelHex { get; set; } = "#081c42";
+        public string ChartPanelDeepHex { get; set; } = "#031934";
+        public string ChartPanelContrastHex { get; set; } = "#ffffff";
+        public string ChartPanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
         public string SurfaceHex { get; set; } = "#ffffff";
         public string TextHex { get; set; } = "#0f172a";
         public string MutedHex { get; set; } = "#64748b";
