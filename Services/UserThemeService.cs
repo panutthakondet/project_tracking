@@ -228,6 +228,7 @@ namespace ProjectTracking.Services
         private static string BuildThemeCss(ResolvedThemeViewModel theme)
         {
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
+            var sidebarContrast = GetReadableContrast(theme.SidebarHex);
             var sb = new StringBuilder();
             sb.AppendLine(":root {");
             AppendVar(sb, "--pt-accent", theme.AccentHex);
@@ -238,16 +239,28 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-accent-contrast", theme.ContrastHex);
             AppendVar(sb, "--pt-sidebar-bg", theme.SidebarHex);
             AppendVar(sb, "--pt-sidebar-deep", theme.SidebarDeepHex);
+            AppendVar(sb, "--pt-sidebar-soft", ToRgba(theme.SidebarHex, .88));
+            AppendVar(sb, "--pt-sidebar-panel", ToRgba(theme.SidebarHex, .96));
+            AppendVar(sb, "--pt-sidebar-contrast", sidebarContrast);
+            AppendVar(sb, "--pt-sidebar-contrast-muted", ToRgba(sidebarContrast, .76));
             AppendVar(sb, "--pt-body-bg", theme.BodyBgHex);
+            AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
             AppendVar(sb, "--pt-surface", theme.SurfaceHex);
+            AppendVar(sb, "--pt-surface-soft", ShiftHex(theme.SurfaceHex, -0.04));
             AppendVar(sb, "--pt-text", theme.TextHex);
+            AppendVar(sb, "--pt-text-soft", ToRgba(theme.TextHex, .70));
             AppendVar(sb, "--pt-muted", theme.MutedHex);
+            AppendVar(sb, "--pt-border", ToRgba(theme.AccentHex, .28));
+            AppendVar(sb, "--pt-border-strong", ToRgba(theme.AccentHex, .48));
+            AppendVar(sb, "--pt-field-bg", ToRgba(theme.SurfaceHex, .88));
+            AppendVar(sb, "--pt-panel-field-bg", ToRgba(theme.SidebarDeepHex, .72));
+            AppendVar(sb, "--pt-shadow", ToRgba(theme.SidebarHex, .18));
             AppendVar(sb, "--pt-user-font-scale", scale);
             sb.AppendLine("}");
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");
             sb.AppendLine("@media (min-width: 768px) { html { font-size: calc(16px * var(--pt-user-font-scale)); } }");
             sb.AppendLine("body { background: var(--pt-body-bg) !important; color: var(--pt-text) !important; }");
-            sb.AppendLine(".navbar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
+            sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link.active-menu, .btn-primary, .system-update-ack { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
@@ -256,6 +269,307 @@ namespace ProjectTracking.Services
             sb.AppendLine(".btn-outline-info, .btn-outline-primary, .page-link, .footer-modern .footer-brand, .btn-logout { color: var(--pt-accent-dark) !important; border-color: var(--pt-accent) !important; }");
             sb.AppendLine(".form-control:focus, .form-select:focus, .btn:focus, .btn:active:focus, .form-check-input:focus { border-color: var(--pt-accent) !important; box-shadow: 0 0 0 4px var(--pt-accent-soft) !important; }");
             sb.AppendLine(".pt-swal-confirm { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
+            sb.AppendLine(@"
+.v2-shell,
+.v2-page {
+    background: var(--pt-body-bg) !important;
+}
+
+.v2-sidebar {
+    border-right-color: var(--pt-accent) !important;
+    box-shadow: 18px 0 38px var(--pt-shadow), inset -1px 0 0 var(--pt-border) !important;
+}
+
+.v2-sidebar::before {
+    background:
+        radial-gradient(circle at 50% 7%, var(--pt-accent-soft), transparent 30%),
+        linear-gradient(90deg, rgba(255,255,255,.05), transparent 20%, transparent 80%, rgba(0,0,0,.18)) !important;
+}
+
+.v2-avatar {
+    border-color: var(--pt-accent) !important;
+    box-shadow: 0 0 0 7px var(--pt-accent-soft), 0 18px 30px var(--pt-shadow) !important;
+}
+
+.v2-avatar-upload,
+.nav-ico,
+.nav-ico:has(img[src$='dashboard.svg']),
+.nav-ico:has(img[src$='requirement-board.svg']),
+.nav-ico:has(img[src$='meetings.svg']),
+.nav-ico:has(img[src$='employees.svg']),
+.nav-ico:has(img[src$='projects.svg']),
+.nav-ico:has(img[src$='test-scenarios.svg']),
+.nav-ico:has(img[src$='attendance.svg']),
+.nav-ico:has(img[src$='reports.svg']),
+.nav-ico:has(img[src$='settings.svg']) {
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    color: var(--pt-accent-contrast) !important;
+    box-shadow: 0 8px 16px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
+}
+
+.dropdown-header,
+.footer-modern strong,
+.dashboard-footer strong {
+    color: var(--pt-accent) !important;
+}
+
+.dropdown-divider {
+    border-color: var(--pt-border) !important;
+}
+
+main > :is(h1, h2, h3):first-child,
+main > .container:first-child > :is(h1, h2, h3):first-child,
+main > .container-fluid:first-child > :is(h1, h2, h3):first-child,
+.index-hero {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 84% 12%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 18px 40px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.index-title,
+.index-subtitle,
+.index-eyebrow {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+.index-subtitle,
+.index-eyebrow {
+    opacity: .86;
+}
+
+.index-actions :is(.btn, .btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px var(--pt-shadow) !important;
+}
+
+.index-actions :is(.btn-primary, .btn-info, .btn-success, .btn-light),
+.index-actions :is(.btn, .btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light):hover {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    border-color: transparent !important;
+}
+
+main :is(.card, .table-responsive):not(.glass-panel):not(.kpi-card):not(.project-overview-table) {
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
+main :is(.form-control, .form-select, .pt-search-select__input) {
+    background-color: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+    color: var(--pt-text) !important;
+}
+
+main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
+    color: var(--pt-muted) !important;
+}
+
+.pt-search-select__dropdown {
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 18px 34px var(--pt-shadow) !important;
+}
+
+.pt-search-select__option:hover,
+.pt-search-select__option:focus,
+.pt-search-select__option.is-selected {
+    background: var(--pt-accent-soft) !important;
+    color: var(--pt-text) !important;
+}
+
+.dashboard-view {
+    --panel: var(--pt-sidebar-bg);
+    color: var(--pt-text) !important;
+    background:
+        radial-gradient(circle at 18% 16%, var(--pt-accent-soft), transparent 28%),
+        linear-gradient(180deg, var(--pt-body-bg) 0%, var(--pt-body-bg-soft) 100%) !important;
+}
+
+.dashboard-global-search input {
+    color: var(--pt-text) !important;
+    -webkit-text-fill-color: var(--pt-text) !important;
+    background: linear-gradient(180deg, var(--pt-field-bg), var(--pt-surface-soft)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 12px 24px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.68) !important;
+}
+
+.dashboard-global-search input:focus {
+    border-color: var(--pt-accent) !important;
+    box-shadow: 0 14px 30px var(--pt-accent-soft), 0 0 0 3px var(--pt-accent-soft) !important;
+}
+
+.dashboard-global-search-icon,
+.dashboard-view :is(.top-icon-button, .dashboard-card-icon, .project-overview-title-icon, .issues-overview-icon, .overview-mini-icon, .task-progress-icon) {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 12px 24px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.dashboard-global-search-clear,
+.dashboard-online-users,
+.dashboard-view :is(.dashboard-global-tool, .dashboard-global-tool.notification, .dashboard-global-tool.open-work, .dashboard-global-tool.attendance) {
+    color: var(--pt-accent-dark) !important;
+    background: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 10px 20px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.50) !important;
+}
+
+.dashboard-view .kpi-card {
+    --kpi-accent: var(--pt-accent) !important;
+    --kpi-deep: var(--pt-sidebar-deep) !important;
+    color: var(--pt-sidebar-contrast) !important;
+    border-color: var(--pt-accent) !important;
+    background:
+        radial-gradient(circle at 16% 28%, var(--pt-accent-soft), transparent 22%),
+        radial-gradient(circle at 80% 95%, var(--pt-accent-glow), transparent 32%),
+        linear-gradient(135deg, var(--pt-sidebar-bg) 0%, var(--pt-sidebar-deep) 100%) !important;
+}
+
+.dashboard-view :is(.glass-panel, .panel-project-overview, .overview-mini) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 82% 16%, var(--pt-accent-soft), transparent 32%),
+        linear-gradient(180deg, var(--pt-sidebar-panel), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 16px 32px var(--pt-shadow) !important;
+}
+
+.dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2, .overview-mini-head h3, .kpi-card p, .kpi-card strong, .kpi-card small) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+.dashboard-view :is(.project-overview-title-row small, .issues-overview-head small, .dashboard-card-title em, .dashboard-card-title h2 small, .overview-mini-head small) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .panel-filter) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 22px var(--pt-shadow) !important;
+}
+
+.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .panel-filter):hover {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+}
+
+.dashboard-view .project-overview-search input {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    caret-color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-panel-field-bg), var(--pt-sidebar-soft)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+.dashboard-view .project-overview-search input::placeholder,
+.dashboard-view .project-overview-search i {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+.dashboard-view .project-overview-search input:focus {
+    border-color: var(--pt-accent) !important;
+    box-shadow: 0 0 0 3px var(--pt-accent-soft) !important;
+}
+
+.dashboard-view .project-overview-scroll {
+    scrollbar-color: var(--pt-accent) var(--pt-sidebar-soft) !important;
+}
+
+.dashboard-view .project-overview-scroll::-webkit-scrollbar-track {
+    background: var(--pt-sidebar-soft) !important;
+}
+
+.dashboard-view .project-overview-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+}
+
+.dashboard-view :is(.progress-list, .workload-list, .yearly-plot) {
+    scrollbar-color: var(--pt-accent) var(--pt-sidebar-soft) !important;
+}
+
+.dashboard-view :is(.progress-list, .workload-list, .yearly-plot)::-webkit-scrollbar-track {
+    background: var(--pt-sidebar-soft) !important;
+}
+
+.dashboard-view :is(.progress-list, .workload-list, .yearly-plot)::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+}
+
+.dashboard-view .project-overview-row {
+    --project-row-accent: var(--pt-accent) !important;
+    --project-row-icon-bg: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    background: linear-gradient(180deg, var(--pt-panel-field-bg), var(--pt-sidebar-soft)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+.dashboard-view .project-overview-row:hover {
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 28px var(--pt-shadow) !important;
+}
+
+.dashboard-view .project-overview-head {
+    border-bottom-color: var(--pt-border) !important;
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+.dashboard-view .project-overview-icon {
+    border-color: var(--pt-border-strong) !important;
+}
+
+.dashboard-view :is(.project-overview-name, .project-overview-row time, .project-overview-date) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main.route-controller-projects .project-filter-form :is(.form-control, .form-select, .pt-search-select__input),
+main.route-controller-projects .project-table-wrapper,
+main.route-controller-projects .project-card {
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-projects .project-card {
+    background: var(--pt-surface) !important;
+    box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
+main.route-controller-projects .project-row-number {
+    color: var(--pt-accent-dark) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+main.route-controller-projects .project-table thead,
+main.route-controller-projects .project-table thead .sticky-col-1,
+main.route-controller-projects .project-table thead .sticky-col-2 {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+}
+
+main.route-controller-projects :is(.sticky-col-1, .sticky-col-2) {
+    background: var(--pt-surface) !important;
+}
+
+.requirement-card-popup__header {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 8%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+}
+
+.requirement-card-popup__eyebrow,
+.requirement-card-popup__meta,
+.requirement-card-popup__count,
+.requirement-card-popup__phase-pill {
+    color: var(--pt-accent) !important;
+}
+");
             return sb.ToString();
         }
 
