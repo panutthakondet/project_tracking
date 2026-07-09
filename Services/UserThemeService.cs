@@ -511,6 +511,22 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
         linear-gradient(180deg, var(--pt-body-bg) 0%, var(--pt-body-bg-soft) 100%) !important;
 }
 
+.dashboard-view .kpi-card {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 16% 28%, color-mix(in srgb, var(--kpi-accent) 26%, transparent), transparent 18%),
+        radial-gradient(circle at 80% 95%, color-mix(in srgb, var(--kpi-accent) 18%, transparent), transparent 28%),
+        linear-gradient(135deg, var(--pt-sidebar-bg) 0%, var(--pt-sidebar-deep) 100%) !important;
+}
+
+.dashboard-view .kpi-card :is(p, strong, .kpi-menu) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+.dashboard-view .kpi-card small {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
 .dashboard-global-search input {
     color: var(--pt-text) !important;
     -webkit-text-fill-color: var(--pt-text) !important;
