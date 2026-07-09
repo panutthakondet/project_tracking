@@ -1021,6 +1021,43 @@ main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead 
     border-color: var(--pt-border) !important;
 }
 
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-hero, .support-hero, .support-detail-hero, .support-dev-hero) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 18px 40px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-hero, .support-hero, .support-detail-hero, .support-dev-hero) :is(.index-title, .index-eyebrow, .support-title, .support-subtitle, .support-detail-title, .support-eyebrow, .support-dev-title, .support-dev-eyebrow) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-hero, .support-hero, .support-detail-hero, .support-dev-hero) :is(.index-subtitle, .support-detail-subtitle, .support-dev-subtitle) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-actions, .support-detail-actions, .support-dev-actions) :is(.btn, .btn-primary, .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px var(--pt-shadow) !important;
+}
+
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-actions, .support-detail-actions, .support-dev-actions) :is(.btn-primary, .btn:hover, .btn:focus) {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    border-color: transparent !important;
+}
+
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead,
+main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead th {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
 main.route-controller-reports .report-center-hero,
 main.route-controller-weeklyreports :is(.weekly-hero, .report-hero),
 main.route-controller-assignedemployeesreport .index-hero,
