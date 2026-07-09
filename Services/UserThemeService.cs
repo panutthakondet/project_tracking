@@ -1058,6 +1058,13 @@ main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is
     border-color: var(--pt-border) !important;
 }
 
+main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead,
+main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead th {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
 main.route-controller-reports .report-center-hero,
 main.route-controller-weeklyreports :is(.weekly-hero, .report-hero),
 main.route-controller-assignedemployeesreport .index-hero,

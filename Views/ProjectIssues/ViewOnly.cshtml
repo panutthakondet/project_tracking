@@ -463,8 +463,9 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_StandaloneTheme")
 </head>
-<body>
+<body class="pt-standalone-report">
     <div class="report-actions">
         <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
         <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
