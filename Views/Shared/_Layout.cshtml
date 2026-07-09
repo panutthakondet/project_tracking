@@ -1754,6 +1754,63 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     <style id="pt-user-theme">
         @Html.Raw(layoutThemeCss)
     </style>
+    <style id="pt-scrollbar-auto-hide">
+        html,
+        body,
+        .v2-sidebar,
+        .v2-page,
+        .dropdown-menu,
+        .dropdown-menu .inner,
+        .pt-search-select__dropdown,
+        .select2-results,
+        .select2-results__options,
+        .select2-dropdown,
+        .choices__list,
+        .choices__list--dropdown,
+        .choices__list--dropdown .choices__list,
+        .ts-dropdown,
+        .ts-dropdown-content,
+        .project-overview-scroll,
+        .owner-overview-scroll,
+        .progress-list,
+        .workload-list,
+        .yearly-plot,
+        .table-responsive,
+        .modal-body {
+            scrollbar-color: transparent transparent !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: transparent !important;
+            border-color: transparent !important;
+            background-clip: content-box !important;
+        }
+
+        html.pt-window-scrolling,
+        .pt-scrollbar-active {
+            scrollbar-color: var(--pt-accent-dark, #0f766e) transparent !important;
+        }
+
+        html.pt-window-scrolling::-webkit-scrollbar-thumb,
+        html.pt-window-scrolling body::-webkit-scrollbar-thumb,
+        .pt-scrollbar-active::-webkit-scrollbar-thumb {
+            background: var(--pt-accent-dark, #0f766e) !important;
+            border: 2px solid transparent !important;
+            border-radius: 999px !important;
+            background-clip: content-box !important;
+        }
+
+        html.pt-window-scrolling::-webkit-scrollbar-thumb:hover,
+        html.pt-window-scrolling body::-webkit-scrollbar-thumb:hover,
+        .pt-scrollbar-active::-webkit-scrollbar-thumb:hover {
+            background: var(--pt-accent, #14b8a6) !important;
+            background-clip: content-box !important;
+        }
+    </style>
 </head>
 <body>
 @{
@@ -2608,6 +2665,91 @@ document.addEventListener('DOMContentLoaded', function () {
     responsiveSidebar.addEventListener('change', function () {
         if (!shouldUseOverlayMenu()) collapseSidebar();
     });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.documentElement;
+    const activeClass = 'pt-scrollbar-active';
+    const windowActiveClass = 'pt-window-scrolling';
+    const idleDelay = 900;
+    const timers = new WeakMap();
+    let windowTimer = null;
+
+    function markWindowScrolling() {
+        root.classList.add(windowActiveClass);
+        window.clearTimeout(windowTimer);
+        windowTimer = window.setTimeout(function () {
+            root.classList.remove(windowActiveClass);
+        }, idleDelay);
+    }
+
+    function markElementScrolling(element) {
+        if (!element) return;
+
+        element.classList.add(activeClass);
+        window.clearTimeout(timers.get(element));
+        timers.set(element, window.setTimeout(function () {
+            element.classList.remove(activeClass);
+        }, idleDelay));
+    }
+
+    function registerScrollable(element) {
+        if (!element || element.dataset.ptScrollbarAutoHide === '1') return;
+
+        element.dataset.ptScrollbarAutoHide = '1';
+        element.addEventListener('scroll', function () {
+            markElementScrolling(element);
+        }, { passive: true });
+    }
+
+    const scrollableSelector = [
+        '.v2-sidebar',
+        '.dropdown-menu',
+        '.dropdown-menu .inner',
+        '.pt-search-select__dropdown',
+        '.select2-results',
+        '.select2-results__options',
+        '.select2-dropdown',
+        '.choices__list',
+        '.choices__list--dropdown',
+        '.choices__list--dropdown .choices__list',
+        '.ts-dropdown',
+        '.ts-dropdown-content',
+        '.project-overview-scroll',
+        '.owner-overview-scroll',
+        '.progress-list',
+        '.workload-list',
+        '.yearly-plot',
+        '.table-responsive',
+        '.modal-body'
+    ].join(',');
+
+    function registerAllScrollables(rootNode) {
+        if (!rootNode) return;
+
+        if (rootNode.matches?.(scrollableSelector)) {
+            registerScrollable(rootNode);
+        }
+
+        rootNode.querySelectorAll?.(scrollableSelector).forEach(registerScrollable);
+    }
+
+    window.addEventListener('scroll', markWindowScrolling, { passive: true });
+    registerAllScrollables(document);
+
+    const observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    registerAllScrollables(node);
+                }
+            });
+        });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 });
 </script>
 
