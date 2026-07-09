@@ -18,7 +18,7 @@ namespace ProjectTracking.ViewModels
         [Display(Name = "Background")]
         public string CustomBodyBgHex { get; set; } = "#eef3f9";
 
-        [Display(Name = "Chart Background")]
+        [Display(Name = "Chart/List/Menu Background")]
         public string CustomChartPanelHex { get; set; } = "#081c42";
 
         [Range(0.90, 1.15)]

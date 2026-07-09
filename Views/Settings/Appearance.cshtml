@@ -353,8 +353,9 @@
     .preview-pill {
         height: 12px;
         margin-bottom: 9px;
-        border-radius: 999px;
-        background: rgba(255,255,255,.24);
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--preview-chart-panel, #081c42), var(--preview-chart-panel-deep, #031934));
     }
 
     .preview-pill.is-active {
@@ -519,7 +520,7 @@
                 <section class="appearance-section">
                     <div class="appearance-section__head">
                         <h2>Theme Presets</h2>
-                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล และธีมที่เป็น default จะถูกใช้เมื่อยังไม่ได้ตั้งค่าส่วนตัว</p>
+                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล โดยสีช่องที่ 4 ใช้กับพื้นกล่องกราฟ แถวรายการ และแถบเมนู</p>
                     </div>
 
                     <div class="theme-grid" id="themePresetGrid">
@@ -589,7 +590,7 @@
                             </div>
                         </div>
                         <div class="appearance-field">
-                            <label for="CustomChartPanelHex">Chart Background</label>
+                            <label for="CustomChartPanelHex">Chart/List/Menu Background</label>
                             <div class="color-input" data-color-wrap>
                                 <input type="color" id="CustomChartPanelColor" value="@Model.CustomChartPanelHex" />
                                 <input type="text" id="CustomChartPanelHex" name="CustomChartPanelHex" value="@Model.CustomChartPanelHex" maxlength="7" />
@@ -774,6 +775,8 @@
         root.setProperty('--pt-chart-panel-deep', theme.chartPanelDeep);
         root.setProperty('--pt-chart-panel-soft', rgba(theme.chartPanel, .88));
         root.setProperty('--pt-chart-panel-field-bg', rgba(theme.chartPanelDeep, .72));
+        root.setProperty('--pt-chart-panel-row-bg', shiftHex(theme.chartPanel, -0.08));
+        root.setProperty('--pt-chart-panel-row-hover-bg', shiftHex(theme.chartPanel, 0.04));
         root.setProperty('--pt-chart-panel-contrast', theme.chartPanelContrast);
         root.setProperty('--pt-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
         root.setProperty('--pt-user-font-scale', fontScale.value);
