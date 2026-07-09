@@ -731,6 +731,7 @@
             sidebar: normalizeHex(card?.dataset.sidebar, '#081C42'),
             sidebarDeep: shiftHex(normalizeHex(card?.dataset.sidebar, '#081C42'), -0.20),
             body: normalizeHex(card?.dataset.body, '#EEF3F9'),
+            text: normalizeHex(card?.dataset.text, '#0F172A'),
             chartPanel: normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
             chartPanelDeep: shiftHex(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')), -0.18),
             chartPanelContrast: contrast(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
@@ -752,6 +753,7 @@
             sidebar,
             sidebarDeep: shiftHex(sidebar, -0.20),
             body,
+            text: preset.text,
             chartPanel,
             chartPanelDeep: shiftHex(chartPanel, -0.18),
             chartPanelContrast: contrast(chartPanel),
@@ -770,13 +772,30 @@
         root.setProperty('--pt-accent-contrast', theme.contrast);
         root.setProperty('--pt-sidebar-bg', theme.sidebar);
         root.setProperty('--pt-sidebar-deep', theme.sidebarDeep);
+        root.setProperty('--pt-sidebar-soft', rgba(theme.sidebar, .88));
+        root.setProperty('--pt-sidebar-panel', rgba(theme.sidebar, .96));
+        root.setProperty('--pt-sidebar-contrast', contrast(theme.sidebar));
+        root.setProperty('--pt-sidebar-contrast-muted', rgba(contrast(theme.sidebar), .76));
         root.setProperty('--pt-body-bg', theme.body);
+        root.setProperty('--pt-body-bg-soft', shiftHex(theme.body, -0.04));
+        root.setProperty('--pt-text', theme.text);
+        root.setProperty('--pt-text-soft', rgba(theme.text, .70));
+        root.setProperty('--pt-border', rgba(theme.accent, .28));
+        root.setProperty('--pt-border-strong', rgba(theme.accent, .48));
+        root.setProperty('--pt-panel-field-bg', rgba(theme.sidebarDeep, .72));
+        root.setProperty('--pt-panel-row-bg', shiftHex(theme.sidebar, -0.08));
+        root.setProperty('--pt-panel-row-bg-deep', shiftHex(theme.sidebarDeep, -0.02));
+        root.setProperty('--pt-panel-row-hover-bg', shiftHex(theme.sidebar, 0.04));
+        root.setProperty('--pt-shadow', rgba(theme.sidebar, .18));
+        root.setProperty('--pt-menu-accent', theme.accent);
+        root.setProperty('--pt-menu-accent-dark', theme.accentDark);
         root.setProperty('--pt-chart-panel-bg', theme.chartPanel);
         root.setProperty('--pt-chart-panel-deep', theme.chartPanelDeep);
         root.setProperty('--pt-chart-panel-soft', rgba(theme.chartPanel, .88));
         root.setProperty('--pt-chart-panel-field-bg', rgba(theme.chartPanelDeep, .72));
         root.setProperty('--pt-chart-panel-row-bg', shiftHex(theme.chartPanel, -0.08));
         root.setProperty('--pt-chart-panel-row-hover-bg', shiftHex(theme.chartPanel, 0.04));
+        root.setProperty('--pt-chart-panel-glow', rgba(theme.accent, .14));
         root.setProperty('--pt-chart-panel-contrast', theme.chartPanelContrast);
         root.setProperty('--pt-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
         root.setProperty('--pt-user-font-scale', fontScale.value);
