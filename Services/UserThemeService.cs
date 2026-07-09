@@ -390,17 +390,7 @@ namespace ProjectTracking.Services
     background: var(--pt-chart-panel-field-bg) !important;
 }
 
-.v2-avatar-upload,
-.nav-ico,
-.nav-ico:has(img[src$='dashboard.svg']),
-.nav-ico:has(img[src$='requirement-board.svg']),
-.nav-ico:has(img[src$='meetings.svg']),
-.nav-ico:has(img[src$='employees.svg']),
-.nav-ico:has(img[src$='projects.svg']),
-.nav-ico:has(img[src$='test-scenarios.svg']),
-.nav-ico:has(img[src$='attendance.svg']),
-.nav-ico:has(img[src$='reports.svg']),
-.nav-ico:has(img[src$='settings.svg']) {
+.v2-avatar-upload {
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     color: var(--pt-accent-contrast) !important;
     box-shadow: 0 8px 16px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.20) !important;
@@ -541,7 +531,7 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-global-search-icon,
-.dashboard-view :is(.top-icon-button, .dashboard-card-icon, .project-overview-title-icon, .issues-overview-icon, .overview-mini-icon, .task-progress-icon) {
+.dashboard-view .top-icon-button {
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
     border-color: var(--pt-border-strong) !important;
