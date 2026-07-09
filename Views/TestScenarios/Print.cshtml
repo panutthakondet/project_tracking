@@ -296,13 +296,15 @@
             justify-content: space-between;
             gap: 12px;
             padding: 10px 13px;
-            color: #fff;
-            background: #18365e;
+            color: #10233f;
+            background: transparent;
+            border-top: 2px solid #102443;
+            border-bottom: 1px solid #d8e3ef;
             font-size: 13px;
             font-weight: 900;
         }
         .scenario-project__label {
-            color: #8df1e4;
+            color: #0f766e;
             font-size: 11px;
             font-weight: 900;
             letter-spacing: .05em;
@@ -310,7 +312,7 @@
         }
         .scenario-project__count {
             flex: 0 0 auto;
-            color: rgba(255, 255, 255, .78);
+            color: #64748b;
             font-size: 11px;
             font-weight: 800;
             white-space: nowrap;
@@ -331,7 +333,7 @@
             gap: 12px;
             padding: 9px 11px;
             color: #102443;
-            background: #f8fbff;
+            background: transparent;
             border-left: 4px solid #14b8a6;
             border-bottom: 1px solid #d8e3ef;
         }
@@ -435,8 +437,9 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_StandaloneTheme")
 </head>
-<body>
+<body class="pt-standalone-report">
     <div class="report-actions">
         <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
         <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
