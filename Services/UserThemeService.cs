@@ -1111,98 +1111,51 @@ main.route-controller-projectissues :is(.pt-form-actions .btn-outline-secondary,
     border-color: var(--pt-border) !important;
 }
 
-main.route-controller-reports,
-main.route-controller-weeklyreports,
-main.route-controller-assignedemployeesreport,
-main.route-controller-statusapprovals,
-main.route-controller-projectstatus {
-    color: var(--pt-text) !important;
+main.route-controller-reports .report-center-hero,
+main.route-controller-weeklyreports :is(.weekly-hero, .report-hero),
+main.route-controller-assignedemployeesreport .index-hero,
+main.route-controller-statusapprovals .index-hero,
+main.route-controller-projectstatus .project-status-header.index-hero {
+    color: var(--pt-sidebar-contrast) !important;
     background:
-        radial-gradient(circle at 18% 12%, var(--pt-accent-soft), transparent 26%),
-        linear-gradient(180deg, var(--pt-body-bg), var(--pt-body-bg-soft)) !important;
-}
-
-main.route-controller-reports :is(.report-toolbar, .report-group, .report-empty),
-main.route-controller-weeklyreports :is(.weekly-card, .weekly-panel, .weekly-empty, .report-panel, .pending-item, .attachment-row),
-main.route-controller-assignedemployeesreport :is(form.no-print, .table-responsive),
-main.route-controller-statusapprovals :is(.approval-tabs, .approval-table-wrap),
-main.route-controller-projectstatus :is(.project-status-filter-card, .status-board-card, .project-status-showcase, .project-status-total-card, .org-chart-card, .week-task-card, .task-overview-card, .role-column, .role-member-card, .week-task-table-wrap, .task-member-card) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background:
-        radial-gradient(circle at 86% 12%, var(--pt-chart-panel-glow), transparent 30%),
-        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
     border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 14px 30px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
+    box-shadow: 0 18px 40px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
 }
 
-main.route-controller-reports .report-card {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
+main.route-controller-reports .report-center-hero :is(.index-eyebrow, .index-title, .index-subtitle, .report-hero-stats strong),
+main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-eyebrow, .weekly-title, .report-eyebrow, h1),
+main.route-controller-assignedemployeesreport .index-hero :is(.index-eyebrow, .index-title, .index-subtitle),
+main.route-controller-statusapprovals .index-hero :is(.index-eyebrow, .index-title, .index-subtitle),
+main.route-controller-projectstatus .project-status-header.index-hero :is(.index-eyebrow, .index-title, .index-subtitle) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+main.route-controller-reports .report-center-hero .report-hero-stats span,
+main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-subtitle, .report-meta) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-btn, .report-btn),
+main.route-controller-projectstatus .project-status-header.index-hero .status-back-link {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
     border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 12px 26px var(--pt-shadow) !important;
 }
 
-main.route-controller-reports .report-card:hover {
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-row-bg)) !important;
-    box-shadow: 0 18px 34px var(--pt-shadow) !important;
-}
-
-main.route-controller-reports :is(.report-group-head h3, .report-card-body strong),
-main.route-controller-weeklyreports :is(.weekly-card h3, .weekly-panel h3, .weekly-title, .report-panel h3, .report-hero h1, .summary-box, .attachment-row),
-main.route-controller-assignedemployeesreport :is(table, td, .form-label),
-main.route-controller-statusapprovals :is(.approval-title, .approval-target, .approval-table th, .approval-table td),
-main.route-controller-projectstatus :is(.project-status-showcase h2, .project-status-total-card strong, .light-report-title h2, .role-member-card b, .week-task-copy b, .task-member-card b, .week-task-table td) {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-reports :is(.report-group-head small, .report-card-body small, .report-hero-stats span),
-main.route-controller-weeklyreports :is(.weekly-meta, .weekly-subtitle, .weekly-label, .report-meta, .text-muted, .pending-meta),
-main.route-controller-assignedemployeesreport :is(.text-muted),
-main.route-controller-statusapprovals :is(.approval-subtitle, .approval-meta, .approval-note),
-main.route-controller-projectstatus :is(.project-status-showcase p, .light-report-title p, .week-task-copy small, .task-y-axis, .task-y-title, .task-x-title, .task-member-card small) {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-main.route-controller-reports :is(.report-filter-pill, .report-group-count, .report-card-label),
-main.route-controller-weeklyreports :is(.weekly-btn.ghost, .attachment-pill),
-main.route-controller-statusapprovals :is(.approval-tab),
-main.route-controller-projectstatus :is(.status-back-link) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-reports :is(.report-filter-pill.is-active, .report-card-action),
-main.route-controller-weeklyreports :is(.weekly-btn.primary, .weekly-btn.dark, .report-btn.primary),
-main.route-controller-statusapprovals :is(.approval-tab.active),
-main.route-controller-projectstatus :is(.status-back-link:hover, .status-back-link:focus) {
+main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-btn.primary, .report-btn.primary, .weekly-btn:hover, .report-btn:hover),
+main.route-controller-projectstatus .project-status-header.index-hero .status-back-link:hover,
+main.route-controller-projectstatus .project-status-header.index-hero .status-back-link:focus {
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
     border-color: transparent !important;
     box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
 }
 
-main.route-controller-weeklyreports :is(.weekly-input, .weekly-textarea),
-main.route-controller-assignedemployeesreport :is(.form-select),
-main.route-controller-statusapprovals :is(.approval-note-input),
-main.route-controller-projectstatus :is(.form-select) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background-color: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-assignedemployeesreport thead,
-main.route-controller-projectstatus :is(.week-task-table th) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
-}
-
 body.pt-standalone-report {
-    color: var(--pt-text) !important;
-    background:
-        radial-gradient(circle at 18% 12%, var(--pt-accent-soft), transparent 26%),
-        linear-gradient(180deg, var(--pt-body-bg), var(--pt-body-bg-soft)) !important;
+    color: #10233f !important;
+    background: #fff !important;
 }
 
 body.pt-standalone-report .print-header {
@@ -1215,65 +1168,6 @@ body.pt-standalone-report .print-header {
 
 body.pt-standalone-report .print-header :is(h1, h2, h3, div, p, span, strong, b) {
     color: var(--pt-sidebar-contrast) !important;
-}
-
-body.pt-standalone-report :is(.filter-panel, .kpi, .report-section, .coop-group, .work-type-group, .table-wrap, .empty, .empty-state, .phase-report-empty) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 10px 24px var(--pt-shadow) !important;
-}
-
-body.pt-standalone-report :is(.report-btn, .field select, .pt-search-select__input) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-body.pt-standalone-report :is(.report-btn.primary, .filter-submit) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-}
-
-body.pt-standalone-report :is(.field label, .kpi span, .kpi small, .section-title small, .coop-title small, .pt-search-select__empty) {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-body.pt-standalone-report :is(.kpi strong, .section-title, .coop-title, h1, h2, h3, h4, strong, b) {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-body.pt-standalone-report table {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-deep) !important;
-    border-color: var(--pt-border) !important;
-}
-
-body.pt-standalone-report table th {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
-}
-
-body.pt-standalone-report table td {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-body.pt-standalone-report tr:nth-child(even) td {
-    background: var(--pt-chart-panel-row-bg) !important;
-}
-
-body.pt-standalone-report :is(.pt-search-select__dropdown, .pt-search-select__option) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-deep) !important;
-    border-color: var(--pt-border) !important;
-}
-
-body.pt-standalone-report :is(.pt-search-select__option:hover, .pt-search-select__option.is-selected) {
-    background: var(--pt-chart-panel-field-bg) !important;
 }
 
 @media print {
