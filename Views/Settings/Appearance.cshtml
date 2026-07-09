@@ -510,11 +510,11 @@
                         <p>ปรับสีหลักของบัญชีนี้โดยไม่กระทบผู้ใช้อื่น</p>
                     </div>
 
-                    <input type="hidden" name="UseCustom" value="false" />
                     <label class="custom-toggle">
                         <input type="checkbox" id="UseCustom" name="UseCustom" value="true" @(Model.UseCustom ? "checked" : "") />
                         <span>ใช้สีที่กำหนดเอง</span>
                     </label>
+                    <input type="hidden" name="UseCustom" value="false" />
 
                     <div class="appearance-controls">
                         <div class="appearance-field">
