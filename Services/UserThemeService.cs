@@ -37,7 +37,7 @@ namespace ProjectTracking.Services
             var accent = NormalizeHexOrDefault(preference?.CustomAccentHex, selectedPreset.AccentHex);
             var sidebar = NormalizeHexOrDefault(preference?.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(preference?.CustomBodyBgHex, selectedPreset.BodyBgHex);
-            var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.SidebarHex);
+            var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.ChartPanelHex);
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
             var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale);
 
@@ -66,7 +66,7 @@ namespace ProjectTracking.Services
             var accent = NormalizeHexOrDefault(model.CustomAccentHex, selectedPreset.AccentHex);
             var sidebar = NormalizeHexOrDefault(model.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(model.CustomBodyBgHex, selectedPreset.BodyBgHex);
-            var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.SidebarHex);
+            var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.ChartPanelHex);
 
             if (model.UseCustom)
             {
@@ -122,26 +122,26 @@ namespace ProjectTracking.Services
                 var defaultPreset = PickDefaultPreset(presets);
 
                 if (userId == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.SidebarHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m);
 
                 var preference = await _context.UserThemePreferences
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
 
                 if (preference == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.SidebarHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m);
 
                 var preset = presets.FirstOrDefault(x => x.ThemeId == preference.ThemeId) ?? defaultPreset;
                 var accent = NormalizeHexOrDefault(preference.CustomAccentHex, preset.AccentHex);
                 var sidebar = NormalizeHexOrDefault(preference.CustomSidebarHex, preset.SidebarHex);
                 var bodyBg = NormalizeHexOrDefault(preference.CustomBodyBgHex, preset.BodyBgHex);
-                var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.SidebarHex);
+                var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.ChartPanelHex);
                 return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale);
             }
             catch
             {
                 var fallback = CreateFallbackPreset();
-                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.SidebarHex, 1.00m);
+                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m);
             }
         }
 
@@ -179,6 +179,7 @@ namespace ProjectTracking.Services
             SidebarHex = "#081c42",
             SidebarDeepHex = "#031934",
             BodyBgHex = "#eef3f9",
+            ChartPanelHex = "#081c42",
             SurfaceHex = "#ffffff",
             TextHex = "#0f172a",
             MutedHex = "#64748b",
@@ -195,6 +196,7 @@ namespace ProjectTracking.Services
             AccentDarkHex = NormalizeHexOrDefault(preset.AccentDarkHex, "#0f766e"),
             SidebarHex = NormalizeHexOrDefault(preset.SidebarHex, "#081c42"),
             BodyBgHex = NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9"),
+            ChartPanelHex = NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42")),
             TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
             ContrastHex = NormalizeHexOrDefault(preset.ContrastHex, GetReadableContrast(NormalizeHexOrDefault(preset.AccentHex, "#14b8a6")))
         };
@@ -211,7 +213,7 @@ namespace ProjectTracking.Services
             var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#14b8a6");
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
             var bodyBg = useCustom ? customBodyBgHex : NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9");
-            var chartPanel = useCustom ? customChartPanelHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
+            var chartPanel = useCustom ? customChartPanelHex : NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42"));
             var accentDark = useCustom ? ShiftHex(accent, -0.18) : NormalizeHexOrDefault(preset.AccentDarkHex, ShiftHex(accent, -0.18));
             var accentDeep = useCustom ? ShiftHex(accent, -0.30) : NormalizeHexOrDefault(preset.AccentDeepHex, ShiftHex(accent, -0.30));
             var chartPanelContrast = GetReadableContrast(chartPanel);

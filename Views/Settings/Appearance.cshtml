@@ -168,7 +168,7 @@
 
     .theme-swatch {
         display: grid;
-        grid-template-columns: 1.2fr .9fr .9fr;
+        grid-template-columns: 1.15fr .9fr .85fr .85fr;
         gap: 6px;
         height: 54px;
     }
@@ -531,7 +531,7 @@
                                    data-accent-dark="@preset.AccentDarkHex"
                                    data-sidebar="@preset.SidebarHex"
                                    data-body="@preset.BodyBgHex"
-                                   data-chart-panel="@preset.SidebarHex"
+                                   data-chart-panel="@preset.ChartPanelHex"
                                    data-text="@preset.TextHex"
                                    data-contrast="@preset.ContrastHex">
                                 <input type="radio"
@@ -542,6 +542,7 @@
                                     <span style="background:@preset.AccentHex"></span>
                                     <span style="background:@preset.SidebarHex"></span>
                                     <span style="background:@preset.BodyBgHex"></span>
+                                    <span style="background:@preset.ChartPanelHex"></span>
                                 </span>
                                 <span class="theme-name">@preset.ThemeName</span>
                                 @if (preset.IsDefault)

@@ -47,6 +47,7 @@ namespace ProjectTracking.ViewModels
         public string AccentDarkHex { get; set; } = "#0f766e";
         public string SidebarHex { get; set; } = "#081c42";
         public string BodyBgHex { get; set; } = "#eef3f9";
+        public string ChartPanelHex { get; set; } = "#081c42";
         public string TextHex { get; set; } = "#0f172a";
         public string ContrastHex { get; set; } = "#062b2f";
     }

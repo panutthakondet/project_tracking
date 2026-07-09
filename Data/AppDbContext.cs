@@ -320,6 +320,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.SidebarHex).HasColumnName("sidebar_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.SidebarDeepHex).HasColumnName("sidebar_deep_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.BodyBgHex).HasColumnName("body_bg_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.ChartPanelHex).HasColumnName("chart_panel_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.SurfaceHex).HasColumnName("surface_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.TextHex).HasColumnName("text_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.MutedHex).HasColumnName("muted_hex").HasColumnType("varchar(7)").IsRequired();

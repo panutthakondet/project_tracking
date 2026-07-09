@@ -856,6 +856,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `sidebar_hex` varchar(7) NOT NULL DEFAULT '#081c42',
               `sidebar_deep_hex` varchar(7) NOT NULL DEFAULT '#031934',
               `body_bg_hex` varchar(7) NOT NULL DEFAULT '#eef3f9',
+              `chart_panel_hex` varchar(7) NOT NULL DEFAULT '#081c42',
               `surface_hex` varchar(7) NOT NULL DEFAULT '#ffffff',
               `text_hex` varchar(7) NOT NULL DEFAULT '#0f172a',
               `muted_hex` varchar(7) NOT NULL DEFAULT '#64748b',
@@ -869,47 +870,63 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'theme_presets'
+              AND COLUMN_NAME = 'chart_panel_hex';";
+
+        var hasPresetChartPanelHex = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasPresetChartPanelHex)
+        {
+            command.CommandText = @"
+                ALTER TABLE `theme_presets`
+                ADD COLUMN `chart_panel_hex` varchar(7) NOT NULL DEFAULT '#081c42' AFTER `body_bg_hex`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
             INSERT INTO `theme_presets`
                 (`theme_key`, `theme_name`, `is_system`, `is_default`, `is_active`, `sort_order`,
                  `accent_hex`, `accent_dark_hex`, `accent_deep_hex`, `sidebar_hex`, `sidebar_deep_hex`,
-                 `body_bg_hex`, `surface_hex`, `text_hex`, `muted_hex`, `contrast_hex`, `created_at`, `updated_at`)
+                 `body_bg_hex`, `chart_panel_hex`, `surface_hex`, `text_hex`, `muted_hex`, `contrast_hex`, `created_at`, `updated_at`)
             VALUES
                 ('projecttracking-default', 'ProjectTracking Default', 1, 1, 1, 10,
                  '#14b8a6', '#0f766e', '#0d5f59', '#081c42', '#031934',
-                 '#eef3f9', '#ffffff', '#0f172a', '#64748b', '#062b2f', NOW(), NOW()),
+                 '#eef3f9', '#081c42', '#ffffff', '#0f172a', '#64748b', '#062b2f', NOW(), NOW()),
                 ('ocean-focus', 'Ocean Focus', 1, 0, 1, 20,
                  '#0ea5e9', '#0369a1', '#075985', '#082f49', '#031a2c',
-                 '#eef7ff', '#ffffff', '#0f172a', '#475569', '#ffffff', NOW(), NOW()),
+                 '#eef7ff', '#082f49', '#ffffff', '#0f172a', '#475569', '#ffffff', NOW(), NOW()),
                 ('forest-calm', 'Forest Calm', 1, 0, 1, 30,
                  '#22c55e', '#15803d', '#166534', '#10351f', '#081d11',
-                 '#effaf2', '#ffffff', '#102015', '#5f7468', '#06210f', NOW(), NOW()),
+                 '#effaf2', '#10351f', '#ffffff', '#102015', '#5f7468', '#06210f', NOW(), NOW()),
                 ('violet-night', 'Violet Night', 1, 0, 1, 40,
                  '#8b5cf6', '#6d28d9', '#5b21b6', '#22133f', '#12091f',
-                 '#f5f3ff', '#ffffff', '#17122a', '#6b617d', '#ffffff', NOW(), NOW()),
+                 '#f5f3ff', '#22133f', '#ffffff', '#17122a', '#6b617d', '#ffffff', NOW(), NOW()),
                 ('rose-board', 'Rose Board', 1, 0, 1, 50,
                  '#f43f5e', '#be123c', '#9f1239', '#3d1020', '#220813',
-                 '#fff1f4', '#ffffff', '#29131a', '#7f5d67', '#ffffff', NOW(), NOW()),
+                 '#fff1f4', '#3d1020', '#ffffff', '#29131a', '#7f5d67', '#ffffff', NOW(), NOW()),
                 ('amber-work', 'Amber Work', 1, 0, 1, 60,
                  '#f59e0b', '#b45309', '#92400e', '#3a2509', '#211303',
-                 '#fff8e7', '#ffffff', '#24170a', '#765f36', '#422006', NOW(), NOW()),
+                 '#fff8e7', '#3a2509', '#ffffff', '#24170a', '#765f36', '#422006', NOW(), NOW()),
                 ('slate-pro', 'Slate Pro', 1, 0, 1, 70,
                  '#475569', '#334155', '#1e293b', '#111827', '#030712',
-                 '#f8fafc', '#ffffff', '#0f172a', '#64748b', '#ffffff', NOW(), NOW()),
+                 '#f8fafc', '#111827', '#ffffff', '#0f172a', '#64748b', '#ffffff', NOW(), NOW()),
                 ('royal-blue', 'Royal Blue', 1, 0, 1, 80,
                  '#2563eb', '#1d4ed8', '#1e40af', '#111f4d', '#070f2f',
-                 '#eef4ff', '#ffffff', '#0f172a', '#5b6b85', '#ffffff', NOW(), NOW()),
+                 '#eef4ff', '#111f4d', '#ffffff', '#0f172a', '#5b6b85', '#ffffff', NOW(), NOW()),
                 ('cyan-mint', 'Cyan Mint', 1, 0, 1, 90,
                  '#06b6d4', '#0891b2', '#0e7490', '#083344', '#04202a',
-                 '#ecfeff', '#ffffff', '#0c1f27', '#5a7280', '#062b2f', NOW(), NOW()),
+                 '#ecfeff', '#083344', '#ffffff', '#0c1f27', '#5a7280', '#062b2f', NOW(), NOW()),
                 ('coral-sprint', 'Coral Sprint', 1, 0, 1, 100,
                  '#fb7185', '#e11d48', '#be123c', '#40111d', '#21070e',
-                 '#fff1f3', '#ffffff', '#2a1217', '#7b5961', '#ffffff', NOW(), NOW()),
+                 '#fff1f3', '#40111d', '#ffffff', '#2a1217', '#7b5961', '#ffffff', NOW(), NOW()),
                 ('lime-pulse', 'Lime Pulse', 1, 0, 1, 110,
                  '#84cc16', '#4d7c0f', '#3f6212', '#1d2e0b', '#0f1905',
-                 '#f7fee7', '#ffffff', '#18230c', '#63704f', '#1a2e05', NOW(), NOW()),
+                 '#f7fee7', '#1d2e0b', '#ffffff', '#18230c', '#63704f', '#1a2e05', NOW(), NOW()),
                 ('graphite-gold', 'Graphite Gold', 1, 0, 1, 120,
                  '#eab308', '#a16207', '#854d0e', '#171717', '#0a0a0a',
-                 '#fafaf5', '#ffffff', '#18181b', '#71717a', '#422006', NOW(), NOW())
+                 '#fafaf5', '#171717', '#ffffff', '#18181b', '#71717a', '#422006', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
               `theme_name` = VALUES(`theme_name`),
               `is_system` = VALUES(`is_system`),
@@ -921,6 +938,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `sidebar_hex` = VALUES(`sidebar_hex`),
               `sidebar_deep_hex` = VALUES(`sidebar_deep_hex`),
               `body_bg_hex` = VALUES(`body_bg_hex`),
+              `chart_panel_hex` = VALUES(`chart_panel_hex`),
               `surface_hex` = VALUES(`surface_hex`),
               `text_hex` = VALUES(`text_hex`),
               `muted_hex` = VALUES(`muted_hex`),
