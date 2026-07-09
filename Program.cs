@@ -192,6 +192,7 @@ builder.Services.AddScoped<StatusApprovalService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
+builder.Services.AddScoped<UserThemeService>();
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
@@ -214,6 +215,7 @@ await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
+await EnsureThemePresetTablesAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
 await EnsureTelegramRecipientTableAsync(app.Services);
@@ -817,6 +819,123 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
               ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
             ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";
 
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `theme_presets` (
+              `theme_id` int NOT NULL AUTO_INCREMENT,
+              `theme_key` varchar(80) NOT NULL,
+              `theme_name` varchar(120) NOT NULL,
+              `is_system` tinyint(1) NOT NULL DEFAULT 1,
+              `is_default` tinyint(1) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `sort_order` int NOT NULL DEFAULT 0,
+              `accent_hex` varchar(7) NOT NULL DEFAULT '#14b8a6',
+              `accent_dark_hex` varchar(7) NOT NULL DEFAULT '#0f766e',
+              `accent_deep_hex` varchar(7) NOT NULL DEFAULT '#0d5f59',
+              `sidebar_hex` varchar(7) NOT NULL DEFAULT '#081c42',
+              `sidebar_deep_hex` varchar(7) NOT NULL DEFAULT '#031934',
+              `body_bg_hex` varchar(7) NOT NULL DEFAULT '#eef3f9',
+              `surface_hex` varchar(7) NOT NULL DEFAULT '#ffffff',
+              `text_hex` varchar(7) NOT NULL DEFAULT '#0f172a',
+              `muted_hex` varchar(7) NOT NULL DEFAULT '#64748b',
+              `contrast_hex` varchar(7) NOT NULL DEFAULT '#062b2f',
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (`theme_id`),
+              UNIQUE KEY `uq_theme_presets_key` (`theme_key`),
+              KEY `idx_theme_presets_active_sort` (`is_active`, `sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `theme_presets`
+                (`theme_key`, `theme_name`, `is_system`, `is_default`, `is_active`, `sort_order`,
+                 `accent_hex`, `accent_dark_hex`, `accent_deep_hex`, `sidebar_hex`, `sidebar_deep_hex`,
+                 `body_bg_hex`, `surface_hex`, `text_hex`, `muted_hex`, `contrast_hex`, `created_at`, `updated_at`)
+            VALUES
+                ('projecttracking-default', 'ProjectTracking Default', 1, 1, 1, 10,
+                 '#14b8a6', '#0f766e', '#0d5f59', '#081c42', '#031934',
+                 '#eef3f9', '#ffffff', '#0f172a', '#64748b', '#062b2f', NOW(), NOW()),
+                ('ocean-focus', 'Ocean Focus', 1, 0, 1, 20,
+                 '#0ea5e9', '#0369a1', '#075985', '#082f49', '#031a2c',
+                 '#eef7ff', '#ffffff', '#0f172a', '#475569', '#ffffff', NOW(), NOW()),
+                ('forest-calm', 'Forest Calm', 1, 0, 1, 30,
+                 '#22c55e', '#15803d', '#166534', '#10351f', '#081d11',
+                 '#effaf2', '#ffffff', '#102015', '#5f7468', '#06210f', NOW(), NOW()),
+                ('violet-night', 'Violet Night', 1, 0, 1, 40,
+                 '#8b5cf6', '#6d28d9', '#5b21b6', '#22133f', '#12091f',
+                 '#f5f3ff', '#ffffff', '#17122a', '#6b617d', '#ffffff', NOW(), NOW()),
+                ('rose-board', 'Rose Board', 1, 0, 1, 50,
+                 '#f43f5e', '#be123c', '#9f1239', '#3d1020', '#220813',
+                 '#fff1f4', '#ffffff', '#29131a', '#7f5d67', '#ffffff', NOW(), NOW()),
+                ('amber-work', 'Amber Work', 1, 0, 1, 60,
+                 '#f59e0b', '#b45309', '#92400e', '#3a2509', '#211303',
+                 '#fff8e7', '#ffffff', '#24170a', '#765f36', '#422006', NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+              `theme_name` = VALUES(`theme_name`),
+              `is_system` = VALUES(`is_system`),
+              `is_active` = VALUES(`is_active`),
+              `sort_order` = VALUES(`sort_order`),
+              `accent_hex` = VALUES(`accent_hex`),
+              `accent_dark_hex` = VALUES(`accent_dark_hex`),
+              `accent_deep_hex` = VALUES(`accent_deep_hex`),
+              `sidebar_hex` = VALUES(`sidebar_hex`),
+              `sidebar_deep_hex` = VALUES(`sidebar_deep_hex`),
+              `body_bg_hex` = VALUES(`body_bg_hex`),
+              `surface_hex` = VALUES(`surface_hex`),
+              `text_hex` = VALUES(`text_hex`),
+              `muted_hex` = VALUES(`muted_hex`),
+              `contrast_hex` = VALUES(`contrast_hex`);";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = "SELECT COUNT(*) FROM `theme_presets` WHERE `is_default` = 1;";
+        var defaultCount = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (defaultCount == 0)
+        {
+            command.CommandText = @"
+                UPDATE `theme_presets`
+                SET `is_default` = CASE WHEN `theme_key` = 'projecttracking-default' THEN 1 ELSE 0 END;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `user_theme_preferences` (
+              `user_id` int NOT NULL,
+              `theme_id` int NOT NULL,
+              `use_custom` tinyint(1) NOT NULL DEFAULT 0,
+              `custom_accent_hex` varchar(7) DEFAULT NULL,
+              `custom_sidebar_hex` varchar(7) DEFAULT NULL,
+              `custom_body_bg_hex` varchar(7) DEFAULT NULL,
+              `font_scale` decimal(4,2) NOT NULL DEFAULT 1.00,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (`user_id`),
+              KEY `idx_user_theme_preferences_theme` (`theme_id`),
+              CONSTRAINT `fk_user_theme_preferences_user`
+                FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`) ON DELETE CASCADE,
+              CONSTRAINT `fk_user_theme_preferences_theme`
+                FOREIGN KEY (`theme_id`) REFERENCES `theme_presets` (`theme_id`) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await command.ExecuteNonQueryAsync();
     }
     finally

@@ -32,7 +32,8 @@ namespace ProjectTracking.Middleware
                 "Followups",
                 "Attendance",
                 "PhaseWorkload",
-                "PhaseCalendar"
+                "PhaseCalendar",
+                "Settings"
             };
 
         // ✅ บังคับสิทธิ์เมนูเฉพาะบาง action (ถ้าใน session มีรายการเมนู)

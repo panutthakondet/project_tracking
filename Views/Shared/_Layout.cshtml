@@ -1,5 +1,6 @@
 ﻿@using Microsoft.EntityFrameworkCore
 @inject ProjectTracking.Data.AppDbContext LayoutDb
+@inject ProjectTracking.Services.UserThemeService LayoutThemeService
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -1747,6 +1748,12 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         }
     </style>
     <link rel="stylesheet" href="~/css/typography-overrides.css" asp-append-version="true" />
+    @{
+        var layoutThemeCss = await LayoutThemeService.GetThemeCssAsync(Context.Session.GetInt32("UserId"));
+    }
+    <style id="pt-user-theme">
+        @Html.Raw(layoutThemeCss)
+    </style>
 </head>
 <body>
 @{
@@ -1905,7 +1912,10 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     var canFollowAtten = CanMenu("Attendance.Index")
                       || canFollowups;
 
-    var canSettings = CanMenu("UserManagement.Index")
+    var canAppearanceSettings = userId != null;
+
+    var canSettings = canAppearanceSettings
+                   || CanMenu("UserManagement.Index")
                    || CanMenu("StatusApprovals.Index")
                    || CanMenu("LineNotificationSettings.Index")
                    || CanMenu("TelegramNotificationSettings.Index")
@@ -2234,13 +2244,21 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                         @if (canSettings)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="UserManagement" || controller=="StatusApprovals" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Settings" || controller=="UserManagement" || controller=="StatusApprovals" || controller=="LineNotificationSettings" || controller=="TelegramNotificationSettings" || controller=="NotificationSendLogs" || controller=="SystemConfigs" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/settings.svg" alt="" /></span>
                                     <span class="nav-label">Settings</span>
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><h6 class="dropdown-header">Settings</h6></li>
+	                                    <li><h6 class="dropdown-header">Settings</h6></li>
+                                    @if (canAppearanceSettings)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Settings" asp-action="Appearance">Theme &amp; Appearance</a></li>
+                                    }
+                                    @if (canAppearanceSettings && (CanMenu("UserManagement.Index") || CanMenu("StatusApprovals.Index") || CanMenu("LineNotificationSettings.Index") || CanMenu("TelegramNotificationSettings.Index") || CanMenu("NotificationSendLogs.Index") || CanMenu("SystemConfigs.Index")))
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                    }
                                     @if (CanMenu("UserManagement.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">UserManagement</a></li>

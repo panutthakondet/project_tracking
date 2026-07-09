@@ -21,6 +21,8 @@ namespace ProjectTracking.Data
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
         public DbSet<LoginUser> LoginUsers { get; set; }
         public DbSet<UserMenu> UserMenus { get; set; }
+        public DbSet<ThemePreset> ThemePresets { get; set; }
+        public DbSet<UserThemePreference> UserThemePreferences { get; set; }
 
         // ===== Meetings =====
         public DbSet<Meeting> Meetings { get; set; }
@@ -295,6 +297,63 @@ namespace ProjectTracking.Data
                     .IsRequired();
 
                 entity.HasIndex(x => new { x.Username, x.MenuKey }).IsUnique();
+            });
+
+            // =========================
+            // USER THEME PREFERENCES
+            // =========================
+            modelBuilder.Entity<ThemePreset>(entity =>
+            {
+                entity.ToTable("theme_presets");
+                entity.HasKey(x => x.ThemeId);
+
+                entity.Property(x => x.ThemeId).HasColumnName("theme_id");
+                entity.Property(x => x.ThemeKey).HasColumnName("theme_key").HasColumnType("varchar(80)").IsRequired();
+                entity.Property(x => x.ThemeName).HasColumnName("theme_name").HasColumnType("varchar(120)").IsRequired();
+                entity.Property(x => x.IsSystem).HasColumnName("is_system").HasColumnType("tinyint(1)");
+                entity.Property(x => x.IsDefault).HasColumnName("is_default").HasColumnType("tinyint(1)");
+                entity.Property(x => x.IsActive).HasColumnName("is_active").HasColumnType("tinyint(1)");
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order");
+                entity.Property(x => x.AccentHex).HasColumnName("accent_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.AccentDarkHex).HasColumnName("accent_dark_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.AccentDeepHex).HasColumnName("accent_deep_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.SidebarHex).HasColumnName("sidebar_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.SidebarDeepHex).HasColumnName("sidebar_deep_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.BodyBgHex).HasColumnName("body_bg_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.SurfaceHex).HasColumnName("surface_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.TextHex).HasColumnName("text_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.MutedHex).HasColumnName("muted_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.ContrastHex).HasColumnName("contrast_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasIndex(x => x.ThemeKey).IsUnique().HasDatabaseName("uq_theme_presets_key");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder }).HasDatabaseName("idx_theme_presets_active_sort");
+            });
+
+            modelBuilder.Entity<UserThemePreference>(entity =>
+            {
+                entity.ToTable("user_theme_preferences");
+                entity.HasKey(x => x.UserId);
+
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.ThemeId).HasColumnName("theme_id");
+                entity.Property(x => x.UseCustom).HasColumnName("use_custom").HasColumnType("tinyint(1)");
+                entity.Property(x => x.CustomAccentHex).HasColumnName("custom_accent_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.CustomSidebarHex).HasColumnName("custom_sidebar_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.CustomBodyBgHex).HasColumnName("custom_body_bg_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.FontScale).HasColumnName("font_scale").HasColumnType("decimal(4,2)");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasOne(x => x.ThemePreset)
+                    .WithMany(x => x.UserPreferences)
+                    .HasForeignKey(x => x.ThemeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // =========================

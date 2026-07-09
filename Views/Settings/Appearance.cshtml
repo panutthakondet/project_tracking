@@ -1,0 +1,764 @@
+@model ProjectTracking.ViewModels.AppearanceViewModel
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Theme & Appearance";
+    var fontScale = Model.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
+}
+
+@section Styles {
+<style>
+    .appearance-page {
+        display: grid;
+        gap: 22px;
+        padding: 8px 0 28px;
+        color: #0f172a;
+    }
+
+    .appearance-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        min-height: 148px;
+        padding: 26px clamp(18px, 3vw, 34px);
+        border-radius: 0;
+        background: var(--pt-sidebar-bg);
+        background:
+            linear-gradient(135deg, color-mix(in srgb, var(--pt-sidebar-bg) 92%, #ffffff 8%), var(--pt-sidebar-deep)),
+            var(--pt-sidebar-bg);
+        color: #fff;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, .16);
+    }
+
+    .appearance-hero__content {
+        min-width: 0;
+    }
+
+    .appearance-eyebrow {
+        margin: 0 0 6px;
+        color: #99f6e4;
+        font-size: .78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .appearance-title {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(1.8rem, 3vw, 2.45rem);
+        font-weight: 900;
+        line-height: 1.15;
+    }
+
+    .appearance-subtitle {
+        max-width: 720px;
+        margin: 9px 0 0;
+        color: rgba(255, 255, 255, .78);
+        font-size: .98rem;
+        font-weight: 500;
+        line-height: 1.55;
+    }
+
+    .appearance-reset-form {
+        flex: 0 0 auto;
+    }
+
+    .appearance-reset {
+        min-height: 42px;
+        padding: 0 16px;
+        border: 1px solid rgba(255,255,255,.35);
+        border-radius: 12px;
+        color: #fff;
+        background: rgba(255,255,255,.1);
+        font-weight: 800;
+    }
+
+    .appearance-alert {
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(20, 184, 166, .28);
+        background: rgba(20, 184, 166, .12);
+        color: #0f766e;
+        font-weight: 800;
+    }
+
+    .appearance-alert.is-error {
+        border-color: rgba(225, 29, 72, .25);
+        background: rgba(225, 29, 72, .1);
+        color: #be123c;
+    }
+
+    .appearance-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(320px, .7fr);
+        gap: 22px;
+        align-items: start;
+    }
+
+    .appearance-section,
+    .appearance-preview {
+        background: #fff;
+        border: 1px solid rgba(148, 163, 184, .22);
+        border-radius: 8px;
+        box-shadow: 0 14px 34px rgba(15, 35, 64, .08);
+    }
+
+    .appearance-section {
+        padding: 22px;
+    }
+
+    .appearance-section + .appearance-section {
+        margin-top: 18px;
+    }
+
+    .appearance-section__head {
+        margin-bottom: 16px;
+    }
+
+    .appearance-section__head h2,
+    .appearance-preview h2 {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.12rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .appearance-section__head p {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-weight: 500;
+        line-height: 1.45;
+    }
+
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .theme-card {
+        position: relative;
+        min-height: 128px;
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid #dbe4ef;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .theme-card:hover,
+    .theme-card.is-selected {
+        transform: translateY(-1px);
+        border-color: var(--pt-accent);
+        box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
+    }
+
+    .theme-card input {
+        position: absolute;
+        inset: 12px 12px auto auto;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--pt-accent);
+    }
+
+    .theme-swatch {
+        display: grid;
+        grid-template-columns: 1.2fr .9fr .9fr;
+        gap: 6px;
+        height: 54px;
+    }
+
+    .theme-swatch span {
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+    }
+
+    .theme-name {
+        margin: 0;
+        color: #10233f;
+        font-size: .96rem;
+        font-weight: 900;
+        line-height: 1.25;
+    }
+
+    .theme-default {
+        width: max-content;
+        padding: 3px 9px;
+        border-radius: 999px;
+        color: #0f766e;
+        background: rgba(20, 184, 166, .13);
+        font-size: .74rem;
+        font-weight: 900;
+    }
+
+    .custom-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        color: #10233f;
+        font-weight: 900;
+    }
+
+    .custom-toggle input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--pt-accent);
+    }
+
+    .appearance-controls {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .appearance-field {
+        display: grid;
+        gap: 7px;
+    }
+
+    .appearance-field label {
+        color: #334155;
+        font-size: .86rem;
+        font-weight: 800;
+    }
+
+    .color-input {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        min-height: 52px;
+        padding: 8px 10px;
+        border: 1px solid #dbe4ef;
+        border-radius: 8px;
+        background: #f8fbff;
+    }
+
+    .color-input input[type="color"] {
+        width: 42px;
+        height: 34px;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+    }
+
+    .color-input input[type="text"] {
+        width: 100%;
+        min-height: 34px;
+        border: 0;
+        background: transparent;
+        color: #10233f;
+        font-weight: 800;
+        outline: none;
+        text-transform: uppercase;
+    }
+
+    .color-input.is-disabled {
+        opacity: .58;
+    }
+
+    .font-scale-row {
+        display: grid;
+        grid-template-columns: 1fr 60px;
+        gap: 12px;
+        align-items: center;
+        min-height: 52px;
+        padding: 0 2px;
+    }
+
+    .font-scale-row input {
+        accent-color: var(--pt-accent);
+    }
+
+    .font-scale-value {
+        color: #10233f;
+        font-weight: 900;
+        text-align: right;
+    }
+
+    .appearance-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .appearance-save {
+        min-height: 46px;
+        min-width: 132px;
+        border-radius: 12px !important;
+        font-weight: 900 !important;
+    }
+
+    .appearance-preview {
+        position: sticky;
+        top: 16px;
+        overflow: hidden;
+    }
+
+    .appearance-preview__head {
+        padding: 18px 18px 0;
+    }
+
+    .preview-shell {
+        margin: 16px 18px 18px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, .28);
+        border-radius: 8px;
+        background: var(--preview-body, #eef3f9);
+    }
+
+    .preview-nav {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        background: linear-gradient(135deg, var(--preview-sidebar, #081c42), var(--preview-sidebar-deep, #031934));
+        color: #fff;
+    }
+
+    .preview-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+    }
+
+    .preview-nav span {
+        display: block;
+        min-width: 0;
+        color: #fff;
+        font-weight: 900;
+    }
+
+    .preview-body {
+        display: grid;
+        grid-template-columns: 86px 1fr;
+        min-height: 230px;
+    }
+
+    .preview-side {
+        padding: 12px 10px;
+        background: var(--preview-sidebar, #081c42);
+    }
+
+    .preview-pill {
+        height: 12px;
+        margin-bottom: 9px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.24);
+    }
+
+    .preview-pill.is-active {
+        height: 28px;
+        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+    }
+
+    .preview-content {
+        padding: 16px;
+    }
+
+    .preview-panel {
+        display: grid;
+        gap: 13px;
+        padding: 16px;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 12px 24px rgba(15, 35, 64, .08);
+    }
+
+    .preview-line {
+        height: 12px;
+        border-radius: 999px;
+        background: #e2e8f0;
+    }
+
+    .preview-line.is-title {
+        width: 62%;
+        height: 17px;
+        background: #10233f;
+    }
+
+    .preview-line.is-short {
+        width: 42%;
+    }
+
+    .preview-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
+    }
+
+    .preview-button {
+        width: 86px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--preview-accent, #14b8a6), var(--preview-accent-dark, #0f766e));
+    }
+
+    .preview-button.is-muted {
+        width: 62px;
+        background: #e2e8f0;
+    }
+
+    @@media (max-width: 1080px) {
+        .appearance-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .appearance-preview {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .appearance-hero {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .theme-grid,
+        .appearance-controls {
+            grid-template-columns: 1fr;
+        }
+
+        .appearance-actions {
+            justify-content: stretch;
+        }
+
+        .appearance-save,
+        .appearance-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+}
+
+<div class="appearance-page">
+    <div class="appearance-hero">
+        <div class="appearance-hero__content">
+            <p class="appearance-eyebrow">Settings</p>
+            <h1 class="appearance-title">ธีมและการแสดงผล</h1>
+            <p class="appearance-subtitle">เลือกโทนสีสำหรับพื้นที่ทำงานของคุณ สีนี้มีผลกับเมนู ปุ่มหลัก สถานะ และจุดเน้นของระบบ</p>
+        </div>
+        <form class="appearance-reset-form" asp-action="ResetAppearance" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="appearance-reset">Reset Default</button>
+        </form>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="appearance-alert">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="appearance-alert is-error">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Appearance" method="post" id="appearanceForm">
+        @Html.AntiForgeryToken()
+        <div class="appearance-layout">
+            <div>
+                <section class="appearance-section">
+                    <div class="appearance-section__head">
+                        <h2>Theme Presets</h2>
+                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล และธีมที่เป็น default จะถูกใช้เมื่อยังไม่ได้ตั้งค่าส่วนตัว</p>
+                    </div>
+
+                    <div class="theme-grid" id="themePresetGrid">
+                        @foreach (var preset in Model.Presets)
+                        {
+                            var selected = preset.ThemeId == Model.ThemeId;
+                            <label class="theme-card @(selected ? "is-selected" : "")"
+                                   data-accent="@preset.AccentHex"
+                                   data-accent-dark="@preset.AccentDarkHex"
+                                   data-sidebar="@preset.SidebarHex"
+                                   data-body="@preset.BodyBgHex"
+                                   data-text="@preset.TextHex"
+                                   data-contrast="@preset.ContrastHex">
+                                <input type="radio"
+                                       name="ThemeId"
+                                       value="@preset.ThemeId"
+                                       @(selected ? "checked" : "") />
+                                <span class="theme-swatch" aria-hidden="true">
+                                    <span style="background:@preset.AccentHex"></span>
+                                    <span style="background:@preset.SidebarHex"></span>
+                                    <span style="background:@preset.BodyBgHex"></span>
+                                </span>
+                                <span class="theme-name">@preset.ThemeName</span>
+                                @if (preset.IsDefault)
+                                {
+                                    <span class="theme-default">Default</span>
+                                }
+                            </label>
+                        }
+                    </div>
+                </section>
+
+                <section class="appearance-section">
+                    <div class="appearance-section__head">
+                        <h2>Custom</h2>
+                        <p>ปรับสีหลักของบัญชีนี้โดยไม่กระทบผู้ใช้อื่น</p>
+                    </div>
+
+                    <input type="hidden" name="UseCustom" value="false" />
+                    <label class="custom-toggle">
+                        <input type="checkbox" id="UseCustom" name="UseCustom" value="true" @(Model.UseCustom ? "checked" : "") />
+                        <span>ใช้สีที่กำหนดเอง</span>
+                    </label>
+
+                    <div class="appearance-controls">
+                        <div class="appearance-field">
+                            <label for="CustomAccentHex">Accent</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="CustomAccentColor" value="@Model.CustomAccentHex" />
+                                <input type="text" id="CustomAccentHex" name="CustomAccentHex" value="@Model.CustomAccentHex" maxlength="7" />
+                            </div>
+                        </div>
+                        <div class="appearance-field">
+                            <label for="CustomSidebarHex">Sidebar</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="CustomSidebarColor" value="@Model.CustomSidebarHex" />
+                                <input type="text" id="CustomSidebarHex" name="CustomSidebarHex" value="@Model.CustomSidebarHex" maxlength="7" />
+                            </div>
+                        </div>
+                        <div class="appearance-field">
+                            <label for="CustomBodyBgHex">Background</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="CustomBodyBgColor" value="@Model.CustomBodyBgHex" />
+                                <input type="text" id="CustomBodyBgHex" name="CustomBodyBgHex" value="@Model.CustomBodyBgHex" maxlength="7" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="appearance-section__head" style="margin-top:18px;">
+                        <h2>Text Scale</h2>
+                    </div>
+                    <div class="font-scale-row">
+                        <input type="range" id="FontScale" name="FontScale" min="0.90" max="1.15" step="0.01" value="@fontScale" />
+                        <span class="font-scale-value" id="FontScaleValue">@fontScale</span>
+                    </div>
+
+                    <div class="appearance-actions">
+                        <button type="submit" class="btn btn-primary appearance-save">Save Theme</button>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="appearance-preview" id="appearancePreview"
+                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex;">
+                <div class="appearance-preview__head">
+                    <h2>Preview</h2>
+                </div>
+                <div class="preview-shell">
+                    <div class="preview-nav">
+                        <div class="preview-logo"></div>
+                        <span>ProjectTracking</span>
+                    </div>
+                    <div class="preview-body">
+                        <div class="preview-side">
+                            <div class="preview-pill is-active"></div>
+                            <div class="preview-pill"></div>
+                            <div class="preview-pill"></div>
+                            <div class="preview-pill"></div>
+                        </div>
+                        <div class="preview-content">
+                            <div class="preview-panel">
+                                <div class="preview-line is-title"></div>
+                                <div class="preview-line"></div>
+                                <div class="preview-line is-short"></div>
+                                <div class="preview-actions">
+                                    <div class="preview-button"></div>
+                                    <div class="preview-button is-muted"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('appearanceForm');
+    if (!form) return;
+
+    const customToggle = document.getElementById('UseCustom');
+    const fontScale = document.getElementById('FontScale');
+    const fontScaleValue = document.getElementById('FontScaleValue');
+    const preview = document.getElementById('appearancePreview');
+    const colorPairs = [
+        ['CustomAccentColor', 'CustomAccentHex'],
+        ['CustomSidebarColor', 'CustomSidebarHex'],
+        ['CustomBodyBgColor', 'CustomBodyBgHex']
+    ].map(([colorId, textId]) => ({
+        color: document.getElementById(colorId),
+        text: document.getElementById(textId)
+    }));
+
+    function isHex(value) {
+        return /^#[0-9a-f]{6}$/i.test((value || '').trim());
+    }
+
+    function normalizeHex(value, fallback) {
+        value = (value || '').trim();
+        if (/^[0-9a-f]{6}$/i.test(value)) value = '#' + value;
+        return isHex(value) ? value.toUpperCase() : fallback;
+    }
+
+    function parseHex(hex) {
+        hex = normalizeHex(hex, '#14B8A6').slice(1);
+        return [
+            parseInt(hex.slice(0, 2), 16),
+            parseInt(hex.slice(2, 4), 16),
+            parseInt(hex.slice(4, 6), 16)
+        ];
+    }
+
+    function toHex(channel) {
+        return Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0').toUpperCase();
+    }
+
+    function shiftHex(hex, amount) {
+        const rgb = parseHex(hex);
+        const target = amount >= 0 ? 255 : 0;
+        const factor = Math.abs(amount);
+        return '#' + rgb.map(channel => toHex(channel + (target - channel) * factor)).join('');
+    }
+
+    function rgba(hex, alpha) {
+        const [r, g, b] = parseHex(hex);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function contrast(hex) {
+        const [r, g, b] = parseHex(hex).map(channel => {
+            const c = channel / 255;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        });
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 0.55 ? '#062B2F' : '#FFFFFF';
+    }
+
+    function selectedPresetCard() {
+        const checked = form.querySelector('input[name="ThemeId"]:checked');
+        return checked ? checked.closest('.theme-card') : form.querySelector('.theme-card');
+    }
+
+    function selectedPresetTheme() {
+        const card = selectedPresetCard();
+        return {
+            accent: normalizeHex(card?.dataset.accent, '#14B8A6'),
+            accentDark: normalizeHex(card?.dataset.accentDark, '#0F766E'),
+            sidebar: normalizeHex(card?.dataset.sidebar, '#081C42'),
+            sidebarDeep: shiftHex(normalizeHex(card?.dataset.sidebar, '#081C42'), -0.20),
+            body: normalizeHex(card?.dataset.body, '#EEF3F9'),
+            contrast: normalizeHex(card?.dataset.contrast, '#062B2F')
+        };
+    }
+
+    function currentTheme() {
+        const preset = selectedPresetTheme();
+        if (!customToggle.checked) return preset;
+
+        const accent = normalizeHex(document.getElementById('CustomAccentHex').value, preset.accent);
+        const sidebar = normalizeHex(document.getElementById('CustomSidebarHex').value, preset.sidebar);
+        const body = normalizeHex(document.getElementById('CustomBodyBgHex').value, preset.body);
+        return {
+            accent,
+            accentDark: shiftHex(accent, -0.18),
+            sidebar,
+            sidebarDeep: shiftHex(sidebar, -0.20),
+            body,
+            contrast: contrast(accent)
+        };
+    }
+
+    function applyTheme() {
+        const theme = currentTheme();
+        const root = document.documentElement.style;
+        root.setProperty('--pt-accent', theme.accent);
+        root.setProperty('--pt-accent-dark', theme.accentDark);
+        root.setProperty('--pt-accent-deep', shiftHex(theme.accent, -0.30));
+        root.setProperty('--pt-accent-soft', rgba(theme.accent, .18));
+        root.setProperty('--pt-accent-glow', rgba(theme.accent, .30));
+        root.setProperty('--pt-accent-contrast', theme.contrast);
+        root.setProperty('--pt-sidebar-bg', theme.sidebar);
+        root.setProperty('--pt-sidebar-deep', theme.sidebarDeep);
+        root.setProperty('--pt-body-bg', theme.body);
+        root.setProperty('--pt-user-font-scale', fontScale.value);
+
+        if (preview) {
+            preview.style.setProperty('--preview-accent', theme.accent);
+            preview.style.setProperty('--preview-accent-dark', theme.accentDark);
+            preview.style.setProperty('--preview-sidebar', theme.sidebar);
+            preview.style.setProperty('--preview-sidebar-deep', theme.sidebarDeep);
+            preview.style.setProperty('--preview-body', theme.body);
+        }
+
+        if (fontScaleValue) fontScaleValue.textContent = Number(fontScale.value).toFixed(2);
+        document.querySelectorAll('.theme-card').forEach(card => {
+            const input = card.querySelector('input[type="radio"]');
+            card.classList.toggle('is-selected', !!input && input.checked);
+        });
+    }
+
+    function syncCustomState() {
+        const preset = selectedPresetTheme();
+        const disabled = !customToggle.checked;
+        colorPairs.forEach(pair => {
+            pair.color.disabled = disabled;
+            pair.text.disabled = disabled;
+            pair.color.closest('[data-color-wrap]')?.classList.toggle('is-disabled', disabled);
+        });
+
+        if (disabled) {
+            document.getElementById('CustomAccentHex').value = preset.accent;
+            document.getElementById('CustomAccentColor').value = preset.accent;
+            document.getElementById('CustomSidebarHex').value = preset.sidebar;
+            document.getElementById('CustomSidebarColor').value = preset.sidebar;
+            document.getElementById('CustomBodyBgHex').value = preset.body;
+            document.getElementById('CustomBodyBgColor').value = preset.body;
+        }
+
+        applyTheme();
+    }
+
+    colorPairs.forEach(pair => {
+        pair.color.addEventListener('input', function () {
+            pair.text.value = normalizeHex(pair.color.value, pair.text.value);
+            applyTheme();
+        });
+        pair.text.addEventListener('input', function () {
+            const value = normalizeHex(pair.text.value, pair.color.value);
+            if (isHex(value)) pair.color.value = value;
+            applyTheme();
+        });
+        pair.text.addEventListener('blur', function () {
+            pair.text.value = normalizeHex(pair.text.value, pair.color.value);
+            pair.color.value = pair.text.value;
+            applyTheme();
+        });
+    });
+
+    form.querySelectorAll('input[name="ThemeId"]').forEach(input => {
+        input.addEventListener('change', syncCustomState);
+    });
+
+    customToggle.addEventListener('change', syncCustomState);
+    fontScale.addEventListener('input', applyTheme);
+    syncCustomState();
+})();
+</script>
+}
