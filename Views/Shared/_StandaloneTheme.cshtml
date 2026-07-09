@@ -1,0 +1,8 @@
+@using Microsoft.AspNetCore.Http
+@inject ProjectTracking.Services.UserThemeService StandaloneThemeService
+@{
+    var standaloneThemeCss = await StandaloneThemeService.GetThemeCssAsync(Context.Session.GetInt32("UserId"));
+}
+<style id="pt-user-theme">
+    @Html.Raw(standaloneThemeCss)
+</style>

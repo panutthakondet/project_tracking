@@ -425,8 +425,9 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_StandaloneTheme")
 </head>
-<body>
+<body class="pt-standalone-report">
     <div class="report-actions">
         @if (CanMenu("PhaseStatusReport.Print"))
         {

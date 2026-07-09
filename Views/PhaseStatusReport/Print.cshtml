@@ -398,9 +398,10 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_StandaloneTheme")
 </head>
 
-<body onload="window.print()">
+<body class="pt-standalone-report" onload="window.print()">
     <header class="print-header">
         <h2>รายงานสถานะงานตามพนักงาน</h2>
         <div class="print-meta">

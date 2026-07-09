@@ -412,8 +412,9 @@
             a { color: #10233f; text-decoration: none; }
         }
     </style>
+    @await Html.PartialAsync("_StandaloneTheme")
 </head>
-<body>
+<body class="pt-standalone-report">
     <div class="report-actions">
         <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
         <a asp-action="Index" class="report-btn">Report Center</a>

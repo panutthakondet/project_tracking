@@ -88,8 +88,9 @@
             font-weight: 400 !important;
         }
 </style>
+@await Html.PartialAsync("_StandaloneTheme")
 </head>
-<body>
+<body class="pt-standalone-report">
 
 <h2>📊 Assigned Employees Report</h2>
 <p>Printed at : @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)</p>
