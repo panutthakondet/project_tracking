@@ -1072,89 +1072,6 @@ main.route-controller-phaseworkload .workload-responsive-wrap {
     box-shadow: 0 12px 28px var(--pt-shadow) !important;
 }
 
-main.route-controller-phaseworkload .workload-table {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-deep) !important;
-}
-
-main.route-controller-phaseworkload .workload-table thead.is-grouped th {
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-phaseworkload .workload-table th:not(.workload-year-header):not(.workload-month-header):not(.week-column-header):not(.day-column-header):not(.today-column-header),
-main.route-controller-phaseworkload .workload-table thead.is-grouped .grouped-sticky-employee {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border-strong) !important;
-}
-
-main.route-controller-phaseworkload .workload-table thead.is-grouped .workload-year-header {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border-strong) !important;
-}
-
-main.route-controller-phaseworkload .workload-table thead.is-grouped .workload-month-header {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-row-bg)) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-phaseworkload .workload-table thead.is-grouped :is(.week-column-header, .day-column-header) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-phaseworkload :is(.timeline-cell, .workload-table tbody tr td) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-deep) !important;
-    border-color: var(--pt-border) !important;
-}
-
-main.route-controller-phaseworkload .phase-project-cell {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
-    border-color: var(--pt-border) !important;
-    box-shadow: 4px 0 8px var(--pt-shadow) !important;
-}
-
-main.route-controller-phaseworkload .phase-project-cell > .fw-bold {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-phaseworkload .phase-project-cell > div[style] {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-main.route-controller-phaseworkload .phase-project-cell > div[style*='font-size:13px'] {
-    color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-phaseworkload .phase-project-cell > div[style*='color:#7c3aed'] {
-    color: var(--pt-chart-alt) !important;
-}
-
-main.route-controller-phaseworkload .weekend-column {
-    background: var(--pt-chart-panel-row-bg) !important;
-}
-
-main.route-controller-phaseworkload .newyear-column {
-    background: var(--pt-chart-danger-soft) !important;
-}
-
-main.route-controller-phaseworkload .today-column {
-    background: var(--pt-chart-primary-soft) !important;
-    box-shadow: inset 2px 0 0 var(--pt-chart-primary), inset -2px 0 0 var(--pt-chart-primary) !important;
-}
-
-main.route-controller-phaseworkload .today-column-header,
-main.route-controller-phaseworkload .workload-table thead.is-grouped .today-column-header {
-    color: var(--pt-chart-primary) !important;
-    background: linear-gradient(180deg, var(--pt-chart-primary-soft), var(--pt-chart-panel-field-bg)) !important;
-    box-shadow: inset 0 0 0 2px var(--pt-chart-primary) !important;
-}
-
 main.route-controller-phaseworkload .workload-view-tabs {
     background: var(--pt-chart-panel-field-bg) !important;
     border-color: var(--pt-border) !important;
@@ -1182,12 +1099,6 @@ main.route-controller-phaseworkload .workload-status-row-title {
 
 main.route-controller-phaseworkload .workload-status-divider {
     background: var(--pt-border) !important;
-}
-
-main.route-controller-phaseworkload .workload-phase-period {
-    color: var(--pt-accent) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border) !important;
 }
 
 main.route-controller-phaseworkload .workload-loading-box {
