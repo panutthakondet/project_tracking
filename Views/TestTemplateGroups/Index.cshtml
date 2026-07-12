@@ -64,16 +64,23 @@
         color: #062b2f;
         background: rgba(20, 184, 166, .18);
         cursor: grab;
-        font-weight: 900;
+        font-weight: 400 !important;
     }
 
     .group-card-title {
         color: #10233f;
         font-size: 1rem;
-        font-weight: 900;
+        font-weight: 300 !important;
         line-height: 1.35;
         margin: 0;
         overflow-wrap: anywhere;
+    }
+
+    .group-card-subtitle {
+        color: #64748b;
+        font-size: .95rem;
+        font-weight: 300 !important;
+        line-height: 1.3;
     }
 
     .group-card-meta {
@@ -90,7 +97,22 @@
         border-radius: 999px;
         padding: 4px 10px;
         font-size: .84rem;
-        font-weight: 800;
+        font-weight: 400 !important;
+    }
+
+    main.route-controller-testtemplategroups .group-card .group-card-title,
+    main.route-controller-testtemplategroups .group-card .group-card-subtitle,
+    main.route-controller-testtemplategroups .group-card .group-pill,
+    main.route-controller-testtemplategroups .group-card .group-drag {
+        font-synthesis-weight: none;
+    }
+
+    main.route-controller-testtemplategroups .group-card .group-card-title {
+        font-weight: 300 !important;
+    }
+
+    main.route-controller-testtemplategroups .group-card .group-card-subtitle {
+        font-weight: 300 !important;
     }
 
     .group-actions {
@@ -155,8 +177,8 @@
                     <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
                 }
                 <div>
-                    <h3 class="group-card-title">@g.group_name</h3>
-                    <div class="text-muted fw-semibold">Template Group</div>
+                    <div class="group-card-title">@g.group_name</div>
+                    <div class="group-card-subtitle">Template Group</div>
                 </div>
             </div>
 
