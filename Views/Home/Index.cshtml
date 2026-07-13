@@ -1205,6 +1205,8 @@
     width:18px;
     height:8px;
     clip-path:polygon(0 42%, 100% 0, 100% 72%, 0 72%);
+    transform-origin:100% 50%;
+    animation:dashboardDinoTailWag .72s ease-in-out infinite;
 }
 
 .dino-body {
@@ -1257,6 +1259,17 @@
     top:27px;
     width:5px;
     height:8px;
+    transform-origin:50% 0;
+}
+
+.dino-leg::after {
+    content:"";
+    position:absolute;
+    left:0;
+    bottom:-2px;
+    width:9px;
+    height:3px;
+    background:currentColor;
 }
 
 .dino-leg-a {
@@ -1267,6 +1280,10 @@
 .dino-leg-b {
     left:30px;
     animation:dashboardDinoLegB .5s steps(1, end) infinite;
+}
+
+.dino-leg-b::after {
+    left:-4px;
 }
 
 @@keyframes dashboardDinoCardHop {
@@ -1388,13 +1405,18 @@
 }
 
 @@keyframes dashboardDinoLegA {
-    0%, 49% { transform:translate(0, 0); height:8px; }
-    50%, 100% { transform:translate(4px, 3px); height:5px; }
+    0%, 49% { transform:translate(0, 0); }
+    50%, 100% { transform:translate(4px, 1px); }
 }
 
 @@keyframes dashboardDinoLegB {
-    0%, 49% { transform:translate(-3px, 3px); height:5px; }
-    50%, 100% { transform:translate(0, 0); height:8px; }
+    0%, 49% { transform:translate(-3px, 1px); }
+    50%, 100% { transform:translate(0, 0); }
+}
+
+@@keyframes dashboardDinoTailWag {
+    0%, 100% { transform:rotate(0deg) translateY(0); }
+    50% { transform:rotate(-8deg) translateY(-1px); }
 }
 
 @@keyframes dashboardDinoFeedPulse {
@@ -1405,6 +1427,7 @@
 
 @@media (prefers-reduced-motion: reduce) {
     .dashboard-dino-runner,
+    .dino-tail,
     .dino-leg-a,
     .dino-leg-b,
     .dashboard-dino-feed.is-feeding .dino-food-icon {
