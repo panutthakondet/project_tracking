@@ -264,6 +264,10 @@
         opacity: .58;
     }
 
+    .dino-color-controls {
+        margin-top: 14px;
+    }
+
     .font-scale-row {
         display: grid;
         grid-template-columns: 1fr 60px;
@@ -468,6 +472,62 @@
         display: flex;
         gap: 8px;
         margin-top: 2px;
+    }
+
+    .preview-dino-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 32px;
+        padding: 7px 10px;
+        border: 1px solid rgba(15, 35, 64, .10);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--preview-chart-panel, #041F4E) 8%, #fff);
+    }
+
+    .preview-dino {
+        position: relative;
+        width: 42px;
+        height: 22px;
+        color: var(--preview-dino-color, #fff);
+        image-rendering: pixelated;
+    }
+
+    .preview-dino::before,
+    .preview-dino::after {
+        content: "";
+        position: absolute;
+        display: block;
+        background: currentColor;
+    }
+
+    .preview-dino::before {
+        left: 7px;
+        bottom: 4px;
+        width: 24px;
+        height: 12px;
+        box-shadow:
+            16px -8px 0 -2px currentColor,
+            23px -7px 0 -4px currentColor,
+            -8px 3px 0 -2px currentColor,
+            6px 10px 0 -4px currentColor,
+            17px 10px 0 -4px currentColor;
+    }
+
+    .preview-dino::after {
+        left: 30px;
+        top: 4px;
+        width: 3px;
+        height: 3px;
+        background: var(--preview-chart-panel-deep, #031940);
+    }
+
+    .preview-food {
+        width: 38px;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--preview-dino-food-color, #45D6C6), color-mix(in srgb, var(--preview-dino-food-color, #45D6C6) 55%, #fff));
     }
 
     .preview-chart-panel {
@@ -693,6 +753,23 @@
                     </label>
                     <input type="hidden" name="ProfileBallEnabled" value="false" />
 
+                    <div class="appearance-controls dino-color-controls">
+                        <div class="appearance-field">
+                            <label for="DinoColorHex">Dino Color</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="DinoColor" value="@Model.DinoColorHex" />
+                                <input type="text" id="DinoColorHex" name="DinoColorHex" value="@Model.DinoColorHex" maxlength="7" />
+                            </div>
+                        </div>
+                        <div class="appearance-field">
+                            <label for="DinoFoodColorHex">Food Color</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="DinoFoodColor" value="@Model.DinoFoodColorHex" />
+                                <input type="text" id="DinoFoodColorHex" name="DinoFoodColorHex" value="@Model.DinoFoodColorHex" maxlength="7" />
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="appearance-actions">
                         <button type="submit" class="btn btn-primary appearance-save">Save Theme</button>
                     </div>
@@ -700,7 +777,7 @@
             </div>
 
             <aside class="appearance-preview" id="appearancePreview"
-                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex; --preview-chart-panel:@Model.EffectiveTheme.ChartPanelHex; --preview-chart-panel-deep:@Model.EffectiveTheme.ChartPanelDeepHex; --preview-chart-ink:@Model.EffectiveTheme.ChartPanelContrastHex;">
+                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex; --preview-chart-panel:@Model.EffectiveTheme.ChartPanelHex; --preview-chart-panel-deep:@Model.EffectiveTheme.ChartPanelDeepHex; --preview-chart-ink:@Model.EffectiveTheme.ChartPanelContrastHex; --preview-dino-color:@Model.EffectiveTheme.DinoColorHex; --preview-dino-food-color:@Model.EffectiveTheme.DinoFoodColorHex;">
                 <div class="appearance-preview__head">
                     <h2>Preview</h2>
                 </div>
@@ -733,6 +810,10 @@
                                     <div class="preview-button"></div>
                                     <div class="preview-button is-muted"></div>
                                 </div>
+                                <div class="preview-dino-row" aria-hidden="true">
+                                    <span class="preview-dino"></span>
+                                    <span class="preview-food"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -753,14 +834,17 @@
     const fontScaleValue = document.getElementById('FontScaleValue');
     const preview = document.getElementById('appearancePreview');
     const colorPairs = [
-        ['CustomAccentColor', 'CustomAccentHex'],
-        ['CustomSidebarColor', 'CustomSidebarHex'],
-        ['CustomBodyBgColor', 'CustomBodyBgHex'],
-        ['CustomChartPanelColor', 'CustomChartPanelHex']
-    ].map(([colorId, textId]) => ({
+        ['CustomAccentColor', 'CustomAccentHex', true],
+        ['CustomSidebarColor', 'CustomSidebarHex', true],
+        ['CustomBodyBgColor', 'CustomBodyBgHex', true],
+        ['CustomChartPanelColor', 'CustomChartPanelHex', true],
+        ['DinoColor', 'DinoColorHex', false],
+        ['DinoFoodColor', 'DinoFoodColorHex', false]
+    ].map(([colorId, textId, customOnly]) => ({
         color: document.getElementById(colorId),
-        text: document.getElementById(textId)
-    }));
+        text: document.getElementById(textId),
+        customOnly
+    })).filter(pair => pair.color && pair.text);
 
     function isHex(value) {
         return /^#[0-9a-f]{6}$/i.test((value || '').trim());
@@ -826,9 +910,17 @@
         };
     }
 
+    function currentDinoTheme() {
+        return {
+            dinoColor: normalizeHex(document.getElementById('DinoColorHex')?.value, '#FFFFFF'),
+            dinoFoodColor: normalizeHex(document.getElementById('DinoFoodColorHex')?.value, '#45D6C6')
+        };
+    }
+
     function currentTheme() {
         const preset = selectedPresetTheme();
-        if (!customToggle.checked) return preset;
+        const dinoTheme = currentDinoTheme();
+        if (!customToggle.checked) return { ...preset, ...dinoTheme };
 
         const accent = normalizeHex(document.getElementById('CustomAccentHex').value, preset.accent);
         const sidebar = normalizeHex(document.getElementById('CustomSidebarHex').value, preset.sidebar);
@@ -844,7 +936,8 @@
             chartPanel,
             chartPanelDeep: shiftHex(chartPanel, -0.18),
             chartPanelContrast: contrast(chartPanel),
-            contrast: contrast(accent)
+            contrast: contrast(accent),
+            ...dinoTheme
         };
     }
 
@@ -885,6 +978,9 @@
         root.setProperty('--pt-chart-panel-glow', rgba(theme.accent, .14));
         root.setProperty('--pt-chart-panel-contrast', theme.chartPanelContrast);
         root.setProperty('--pt-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
+        root.setProperty('--pt-dino-color', theme.dinoColor);
+        root.setProperty('--pt-dino-food-color', theme.dinoFoodColor);
+        root.setProperty('--pt-dino-food-soft', rgba(theme.dinoFoodColor, .24));
         root.setProperty('--pt-user-font-scale', fontScale.value);
 
         if (preview) {
@@ -896,6 +992,8 @@
             preview.style.setProperty('--preview-chart-panel', theme.chartPanel);
             preview.style.setProperty('--preview-chart-panel-deep', theme.chartPanelDeep);
             preview.style.setProperty('--preview-chart-ink', theme.chartPanelContrast);
+            preview.style.setProperty('--preview-dino-color', theme.dinoColor);
+            preview.style.setProperty('--preview-dino-food-color', theme.dinoFoodColor);
         }
 
         if (fontScaleValue) fontScaleValue.textContent = Number(fontScale.value).toFixed(2);
@@ -909,9 +1007,10 @@
         const preset = selectedPresetTheme();
         const disabled = !customToggle.checked;
         colorPairs.forEach(pair => {
-            pair.color.disabled = disabled;
-            pair.text.disabled = disabled;
-            pair.color.closest('[data-color-wrap]')?.classList.toggle('is-disabled', disabled);
+            const pairDisabled = disabled && pair.customOnly;
+            pair.color.disabled = pairDisabled;
+            pair.text.disabled = pairDisabled;
+            pair.color.closest('[data-color-wrap]')?.classList.toggle('is-disabled', pairDisabled);
         });
 
         if (disabled) {

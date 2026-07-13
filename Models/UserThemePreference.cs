@@ -13,6 +13,8 @@ namespace ProjectTracking.Models
         public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        public string? DinoColorHex { get; set; }
+        public string? DinoFoodColorHex { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         public ThemePreset? ThemePreset { get; set; }

@@ -1105,6 +1105,8 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `custom_chart_panel_hex` varchar(7) DEFAULT NULL,
               `font_scale` decimal(4,2) NOT NULL DEFAULT 1.00,
               `profile_ball_enabled` tinyint(1) NOT NULL DEFAULT 0,
+              `dino_color_hex` varchar(7) NOT NULL DEFAULT '#FFFFFF',
+              `dino_food_color_hex` varchar(7) NOT NULL DEFAULT '#45D6C6',
               `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
               PRIMARY KEY (`user_id`),
               KEY `idx_user_theme_preferences_theme` (`theme_id`),
@@ -1144,6 +1146,38 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
             command.CommandText = @"
                 ALTER TABLE `user_theme_preferences`
                 ADD COLUMN `profile_ball_enabled` tinyint(1) NOT NULL DEFAULT 0 AFTER `font_scale`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'user_theme_preferences'
+              AND COLUMN_NAME = 'dino_color_hex';";
+
+        var hasDinoColorHex = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasDinoColorHex)
+        {
+            command.CommandText = @"
+                ALTER TABLE `user_theme_preferences`
+                ADD COLUMN `dino_color_hex` varchar(7) NOT NULL DEFAULT '#FFFFFF' AFTER `profile_ball_enabled`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'user_theme_preferences'
+              AND COLUMN_NAME = 'dino_food_color_hex';";
+
+        var hasDinoFoodColorHex = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasDinoFoodColorHex)
+        {
+            command.CommandText = @"
+                ALTER TABLE `user_theme_preferences`
+                ADD COLUMN `dino_food_color_hex` varchar(7) NOT NULL DEFAULT '#45D6C6' AFTER `dino_color_hex`;";
             await command.ExecuteNonQueryAsync();
         }
     }

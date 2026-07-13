@@ -11,6 +11,8 @@ namespace ProjectTracking.Services
     public class UserThemeService
     {
         public const string DefaultThemeKey = "projecttracking-default";
+        private const string DefaultDinoColorHex = "#FFFFFF";
+        private const string DefaultDinoFoodColorHex = "#45D6C6";
         private readonly AppDbContext _context;
 
         public UserThemeService(AppDbContext context)
@@ -40,7 +42,9 @@ namespace ProjectTracking.Services
             var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.ChartPanelHex);
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
             var profileBallEnabled = preference?.ProfileBallEnabled ?? false;
-            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale, profileBallEnabled);
+            var dinoColor = NormalizeHexOrDefault(preference?.DinoColorHex, DefaultDinoColorHex);
+            var dinoFoodColor = NormalizeHexOrDefault(preference?.DinoFoodColorHex, DefaultDinoFoodColorHex);
+            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
 
             return new AppearanceViewModel
             {
@@ -53,6 +57,8 @@ namespace ProjectTracking.Services
                 CustomChartPanelHex = chartPanel,
                 FontScale = fontScale,
                 ProfileBallEnabled = profileBallEnabled,
+                DinoColorHex = dinoColor,
+                DinoFoodColorHex = dinoFoodColor,
                 EffectiveTheme = resolved
             };
         }
@@ -69,6 +75,8 @@ namespace ProjectTracking.Services
             var sidebar = NormalizeHexOrDefault(model.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(model.CustomBodyBgHex, selectedPreset.BodyBgHex);
             var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.ChartPanelHex);
+            var dinoColor = NormalizeHexOrDefault(model.DinoColorHex, DefaultDinoColorHex);
+            var dinoFoodColor = NormalizeHexOrDefault(model.DinoFoodColorHex, DefaultDinoFoodColorHex);
 
             if (model.UseCustom)
             {
@@ -80,6 +88,9 @@ namespace ProjectTracking.Services
                     return (false, "ค่าสีต้องอยู่ในรูปแบบ #RRGGBB");
                 }
             }
+
+            if (!IsHexColor(model.DinoColorHex) || !IsHexColor(model.DinoFoodColorHex))
+                return (false, "ค่าสีไดโนเสาร์และสีอาหารต้องอยู่ในรูปแบบ #RRGGBB");
 
             var fontScale = ClampFontScale(model.FontScale);
             var preference = await _context.UserThemePreferences
@@ -99,6 +110,8 @@ namespace ProjectTracking.Services
             preference.CustomChartPanelHex = model.UseCustom ? chartPanel : null;
             preference.FontScale = fontScale;
             preference.ProfileBallEnabled = model.ProfileBallEnabled;
+            preference.DinoColorHex = dinoColor;
+            preference.DinoFoodColorHex = dinoFoodColor;
             preference.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -125,26 +138,28 @@ namespace ProjectTracking.Services
                 var defaultPreset = PickDefaultPreset(presets);
 
                 if (userId == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
 
                 var preference = await _context.UserThemePreferences
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
 
                 if (preference == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
 
                 var preset = presets.FirstOrDefault(x => x.ThemeId == preference.ThemeId) ?? defaultPreset;
                 var accent = NormalizeHexOrDefault(preference.CustomAccentHex, preset.AccentHex);
                 var sidebar = NormalizeHexOrDefault(preference.CustomSidebarHex, preset.SidebarHex);
                 var bodyBg = NormalizeHexOrDefault(preference.CustomBodyBgHex, preset.BodyBgHex);
                 var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.ChartPanelHex);
-                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale, preference.ProfileBallEnabled);
+                var dinoColor = NormalizeHexOrDefault(preference.DinoColorHex, DefaultDinoColorHex);
+                var dinoFoodColor = NormalizeHexOrDefault(preference.DinoFoodColorHex, DefaultDinoFoodColorHex);
+                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
             }
             catch
             {
                 var fallback = CreateFallbackPreset();
-                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m, false);
+                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
             }
         }
 
@@ -212,7 +227,9 @@ namespace ProjectTracking.Services
             string customBodyBgHex,
             string customChartPanelHex,
             decimal fontScale,
-            bool profileBallEnabled = false)
+            bool profileBallEnabled = false,
+            string? dinoColorHex = null,
+            string? dinoFoodColorHex = null)
         {
             var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#1F4889");
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
@@ -221,6 +238,8 @@ namespace ProjectTracking.Services
             var accentDark = useCustom ? ShiftHex(accent, -0.18) : NormalizeHexOrDefault(preset.AccentDarkHex, ShiftHex(accent, -0.18));
             var accentDeep = useCustom ? ShiftHex(accent, -0.30) : NormalizeHexOrDefault(preset.AccentDeepHex, ShiftHex(accent, -0.30));
             var chartPanelContrast = GetReadableContrast(chartPanel);
+            var dinoColor = NormalizeHexOrDefault(dinoColorHex, DefaultDinoColorHex);
+            var dinoFoodColor = NormalizeHexOrDefault(dinoFoodColorHex, DefaultDinoFoodColorHex);
 
             return new ResolvedThemeViewModel
             {
@@ -237,6 +256,9 @@ namespace ProjectTracking.Services
                 ChartPanelContrastHex = chartPanelContrast,
                 ChartPanelContrastMutedRgba = ToRgba(chartPanelContrast, .76),
                 ProfileBallEnabled = profileBallEnabled,
+                DinoColorHex = dinoColor,
+                DinoFoodColorHex = dinoFoodColor,
+                DinoFoodColorSoftRgba = ToRgba(dinoFoodColor, .24),
                 SurfaceHex = NormalizeHexOrDefault(preset.SurfaceHex, "#ffffff"),
                 TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
                 MutedHex = NormalizeHexOrDefault(preset.MutedHex, "#64748b"),
@@ -333,6 +355,9 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-chart-muted", "#64748B");
             AppendVar(sb, "--pt-menu-accent", theme.AccentHex);
             AppendVar(sb, "--pt-menu-accent-dark", theme.AccentDarkHex);
+            AppendVar(sb, "--pt-dino-color", theme.DinoColorHex);
+            AppendVar(sb, "--pt-dino-food-color", theme.DinoFoodColorHex);
+            AppendVar(sb, "--pt-dino-food-soft", theme.DinoFoodColorSoftRgba);
             AppendVar(sb, "--pt-user-font-scale", scale);
             sb.AppendLine("}");
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");

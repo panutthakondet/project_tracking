@@ -1124,10 +1124,10 @@
     display:none;
     align-items:center;
     justify-content:center;
-    border:1.5px solid rgba(255,255,255,.28);
+    border:1.5px solid color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 48%, transparent);
     border-radius:999px;
-    color:rgba(255,255,255,.96);
-    background:linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+    color:var(--pt-dino-food-color, #45D6C6);
+    background:linear-gradient(135deg, var(--pt-dino-food-soft, rgba(69, 214, 198, .24)), rgba(255,255,255,.04));
     box-shadow:none;
     cursor:pointer;
     overflow:hidden;
@@ -1136,8 +1136,8 @@
 
 .dashboard-dino-feed:hover {
     transform:translateY(-1px);
-    border-color:rgba(255,255,255,.48);
-    background:linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.07));
+    border-color:color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 70%, transparent);
+    background:linear-gradient(135deg, color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 34%, transparent), rgba(255,255,255,.07));
 }
 
 .dashboard-dino-feed:active {
@@ -1189,7 +1189,7 @@
     bottom:4px;
     height:3px;
     border-radius:999px;
-    background:linear-gradient(90deg, #7bdc49, #45d6c6);
+    background:linear-gradient(90deg, var(--pt-dino-food-color, #45D6C6), color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 58%, #fff));
     transform:scaleX(0);
     transform-origin:left center;
     transition:transform 1.2s ease;
@@ -1211,7 +1211,7 @@
     display:none;
     align-items:flex-end;
     justify-content:center;
-    color:rgba(255,255,255,.96);
+    color:var(--pt-dino-color, rgba(255,255,255,.96));
     pointer-events:none;
     animation:dashboardDinoWalk 30s linear infinite;
     will-change:left, transform;
