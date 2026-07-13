@@ -281,6 +281,7 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
             AppendVar(sb, "--pt-chart-panel-deep", theme.ChartPanelDeepHex);
             AppendVar(sb, "--pt-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
+            AppendVar(sb, "--pt-chart-panel-center-bg", ShiftHex(theme.ChartPanelHex, -0.10));
             AppendVar(sb, "--pt-chart-panel-field-bg", ToRgba(theme.ChartPanelDeepHex, .72));
             AppendVar(sb, "--pt-chart-panel-row-bg", ShiftHex(theme.ChartPanelHex, -0.08));
             AppendVar(sb, "--pt-chart-panel-row-hover-bg", ShiftHex(theme.ChartPanelHex, 0.04));
@@ -572,6 +573,38 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     border-color: var(--pt-border-strong) !important;
 }
 
+.dashboard-view :is(.donut > div, .gauge > div, .project-status-donut > div, .line-overdue-donut > div, .donut-small > div) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 50% 24%, var(--pt-chart-panel-row-hover-bg), transparent 52%),
+        linear-gradient(180deg, var(--pt-chart-panel-center-bg), var(--pt-chart-panel-deep)) !important;
+    box-shadow: inset 0 0 24px var(--pt-chart-panel-glow), 0 10px 20px var(--pt-shadow) !important;
+}
+
+.dashboard-view .time-donut {
+    background:
+        radial-gradient(circle at 50% 50%, var(--pt-chart-panel-center-bg) 0 35%, transparent 36%),
+        var(--donut) !important;
+}
+
+.dashboard-view :is(.donut strong, .donut span, .gauge strong, .gauge span, .time-donut strong, .time-donut span) {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+.dashboard-view :is(.overview-pie3d-center, .overview-pie3d-center-core) {
+    fill: var(--pt-chart-panel-center-bg) !important;
+}
+
+.dashboard-view .overview-pie3d-center-shadow {
+    fill: var(--pt-chart-panel-deep) !important;
+    opacity: .64 !important;
+}
+
+.dashboard-view .overview-pie3d-center-highlight {
+    fill: var(--pt-chart-panel-glow) !important;
+    opacity: .76 !important;
+}
+
 .dashboard-view .owner-overview-chart {
     background:
         linear-gradient(90deg, var(--pt-chart-panel-contrast-muted) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
@@ -588,30 +621,40 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
-.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .panel-filter) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
+.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .dashboard-action-link, .panel-filter) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 24% 20%, var(--pt-chart-panel-glow), transparent 48%),
+        linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border-strong) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 22px var(--pt-shadow) !important;
 }
 
-.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .panel-filter):hover {
+.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .dashboard-action-link, .panel-filter):hover {
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
 }
 
 .dashboard-view .project-overview-search input {
-    color: var(--pt-sidebar-contrast) !important;
-    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
-    caret-color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-panel-field-bg), var(--pt-sidebar-soft)) !important;
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+    caret-color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 8% 45%, var(--pt-chart-panel-glow), transparent 38%),
+        linear-gradient(180deg, var(--pt-chart-panel-field-bg), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 10px 20px var(--pt-shadow) !important;
 }
 
 .dashboard-view .project-overview-search input::placeholder,
 .dashboard-view .project-overview-search i {
-    color: var(--pt-sidebar-contrast-muted) !important;
-    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+.dashboard-view .project-overview-search input::-webkit-search-cancel-button {
+    filter: none !important;
+    opacity: .65 !important;
 }
 
 .dashboard-view .project-overview-search input:focus {
@@ -725,10 +768,47 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     box-shadow: 0 0 30px var(--pt-chart-primary-soft), 0 14px 30px var(--pt-shadow) !important;
 }
 
-.dashboard-view :is(.project-status-donut-layout, .overview-mini, .panel-issues) .metric-list > span {
+.dashboard-view :is(.project-status-donut-layout, .project-status-inline, .overview-mini, .panel-issues, .panel-line-overdue) .metric-list > span {
     color: var(--pt-chart-panel-contrast) !important;
     border-color: var(--pt-border) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
+    background:
+        radial-gradient(circle at 14% 30%, var(--pt-chart-panel-glow), transparent 42%),
+        linear-gradient(180deg, var(--pt-chart-panel-field-bg), var(--pt-chart-panel-deep)) !important;
+}
+
+.dashboard-view .task-summary-card {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 14% 30%, var(--pt-chart-panel-glow), transparent 42%),
+        linear-gradient(180deg, var(--pt-chart-panel-field-bg), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 24px var(--pt-shadow) !important;
+}
+
+.dashboard-view .task-summary-card b {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+.dashboard-view .task-summary-card em {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+.dashboard-view .task-summary-card.completed strong,
+.dashboard-view .task-summary-card.completed .task-summary-dot {
+    color: var(--pt-chart-success) !important;
+    background: var(--pt-chart-success) !important;
+}
+
+.dashboard-view .task-summary-card.progress strong,
+.dashboard-view .task-summary-card.progress .task-summary-dot {
+    color: var(--pt-chart-primary) !important;
+    background: var(--pt-chart-primary) !important;
+}
+
+.dashboard-view .issues-overview-foot {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    background: linear-gradient(180deg, var(--pt-chart-panel-field-bg), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border) !important;
 }
 
 .dashboard-view :is(.workload-row, .activity-row, .meeting-row, .time-number, .time-detail-grid > span) {
