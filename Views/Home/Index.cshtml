@@ -1173,7 +1173,7 @@
     justify-content:center;
     color:var(--pt-dino-color, rgba(255,255,255,.96));
     pointer-events:none;
-    animation:dashboardDinoCardHop 42s linear infinite;
+    animation:dashboardDinoCardHop 56s linear infinite;
     will-change:left, top, transform;
 }
 
@@ -1219,7 +1219,7 @@
     width:46px;
     height:34px;
     transform-origin:center bottom;
-    animation:dashboardDinoFace 42s linear infinite;
+    animation:dashboardDinoFace 56s linear infinite;
 }
 
 .dashboard-dino {
@@ -1344,105 +1344,75 @@
         top:var(--dashboard-dino-card-1-top);
         transform:translateY(0);
     }
-    10% {
+    8% {
         left:var(--dashboard-dino-card-1-end);
         top:var(--dashboard-dino-card-1-top);
         transform:translateY(0);
+    }
+    10% {
+        left:var(--dashboard-dino-card-2-start);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(-24px);
     }
     12% {
         left:var(--dashboard-dino-card-2-start);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(-24px);
-    }
-    14% {
-        left:var(--dashboard-dino-card-2-start);
-        top:var(--dashboard-dino-card-2-top);
         transform:translateY(0);
     }
-    24% {
+    20% {
         left:var(--dashboard-dino-card-2-end);
         top:var(--dashboard-dino-card-2-top);
         transform:translateY(0);
     }
-    26% {
+    22% {
         left:var(--dashboard-dino-card-3-start);
         top:var(--dashboard-dino-card-3-top);
         transform:translateY(-24px);
     }
-    28% {
+    24% {
         left:var(--dashboard-dino-card-3-start);
         top:var(--dashboard-dino-card-3-top);
         transform:translateY(0);
     }
-    38% {
+    32% {
         left:var(--dashboard-dino-card-3-end);
         top:var(--dashboard-dino-card-3-top);
         transform:translateY(0);
     }
-    40% {
+    34% {
         left:var(--dashboard-dino-card-4-start);
         top:var(--dashboard-dino-card-4-top);
         transform:translateY(-24px);
     }
-    42% {
+    36% {
         left:var(--dashboard-dino-card-4-start);
         top:var(--dashboard-dino-card-4-top);
         transform:translateY(0);
     }
-    50% {
+    42% {
         left:var(--dashboard-dino-card-4-end);
         top:var(--dashboard-dino-card-4-top);
         transform:translateY(0);
     }
-    58% {
-        left:var(--dashboard-dino-card-4-start);
-        top:var(--dashboard-dino-card-4-top);
+    44% {
+        left:var(--dashboard-dino-overview-end);
+        top:var(--dashboard-dino-overview-top);
+        transform:translateY(-34px);
+    }
+    46% {
+        left:var(--dashboard-dino-overview-end);
+        top:var(--dashboard-dino-overview-top);
         transform:translateY(0);
     }
-    60% {
-        left:var(--dashboard-dino-card-3-end);
-        top:var(--dashboard-dino-card-3-top);
-        transform:translateY(-24px);
-    }
-    62% {
-        left:var(--dashboard-dino-card-3-end);
-        top:var(--dashboard-dino-card-3-top);
+    96% {
+        left:var(--dashboard-dino-overview-start);
+        top:var(--dashboard-dino-overview-top);
         transform:translateY(0);
     }
-    72% {
-        left:var(--dashboard-dino-card-3-start);
-        top:var(--dashboard-dino-card-3-top);
-        transform:translateY(0);
-    }
-    74% {
-        left:var(--dashboard-dino-card-2-end);
-        top:var(--dashboard-dino-card-2-top);
-        transform:translateY(-24px);
-    }
-    76% {
-        left:var(--dashboard-dino-card-2-end);
-        top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0);
-    }
-    86% {
-        left:var(--dashboard-dino-card-2-start);
-        top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0);
-    }
-    88% {
-        left:var(--dashboard-dino-card-1-end);
-        top:var(--dashboard-dino-card-1-top);
-        transform:translateY(-24px);
-    }
-    90% {
-        left:var(--dashboard-dino-card-1-end);
-        top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0);
-    }
-    99.99% {
+    98% {
         left:var(--dashboard-dino-card-1-start);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0);
+        transform:translateY(-34px);
     }
     100% {
         left:var(--dashboard-dino-card-1-start);
@@ -1452,10 +1422,10 @@
 }
 
 @@keyframes dashboardDinoFace {
-    0%, 50% {
+    0%, 45.99% {
         transform:scaleX(1);
     }
-    50.01%, 99.99% {
+    46%, 99.99% {
         transform:scaleX(-1);
     }
     100% {
@@ -2120,6 +2090,10 @@
     --kpi-card-min-height:176px;
     --dashboard-dino-card-width:calc((100% - (var(--kpi-grid-gap) * 3)) / 4);
     --dashboard-dino-row-step:calc(var(--kpi-card-min-height) + var(--kpi-grid-gap));
+    --dashboard-dino-overview-gap:20px;
+    --dashboard-dino-overview-top:calc(var(--kpi-card-min-height) + var(--dashboard-dino-overview-gap) + var(--dashboard-dino-edge-top));
+    --dashboard-dino-overview-start:var(--dashboard-dino-inset);
+    --dashboard-dino-overview-end:calc(100% - var(--dashboard-dino-width) - var(--dashboard-dino-inset));
     --dashboard-dino-card-1-top:var(--dashboard-dino-edge-top);
     --dashboard-dino-card-2-top:var(--dashboard-dino-edge-top);
     --dashboard-dino-card-3-top:var(--dashboard-dino-edge-top);
@@ -6368,6 +6342,7 @@
         --dashboard-dino-card-2-top:var(--dashboard-dino-edge-top);
         --dashboard-dino-card-3-top:calc(var(--dashboard-dino-row-step) - var(--dashboard-dino-height) + 2px);
         --dashboard-dino-card-4-top:calc(var(--dashboard-dino-row-step) - var(--dashboard-dino-height) + 2px);
+        --dashboard-dino-overview-top:calc(var(--dashboard-dino-row-step) + var(--kpi-card-min-height) + var(--dashboard-dino-overview-gap) + var(--dashboard-dino-edge-top));
         --dashboard-dino-card-1-start:var(--dashboard-dino-inset);
         --dashboard-dino-card-1-end:calc(var(--dashboard-dino-card-1-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
         --dashboard-dino-card-2-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
