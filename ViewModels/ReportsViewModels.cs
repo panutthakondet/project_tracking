@@ -102,10 +102,12 @@ namespace ProjectTracking.ViewModels
         public int Year { get; set; }
         public int? ProjectId { get; set; }
         public int? EmpId { get; set; }
+        public int? BaEmpId { get; set; }
         public string Status { get; set; } = "";
         public List<int> YearOptions { get; set; } = new();
         public List<ProjectReportOptionViewModel> ProjectOptions { get; set; } = new();
         public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public List<EmployeeReportOptionViewModel> BaOptions { get; set; } = new();
         public TaskProgressSummaryViewModel Summary { get; set; } = new();
         public List<TaskProgressMonthViewModel> Months { get; set; } = new();
         public List<TaskProgressReportRowViewModel> Rows { get; set; } = new();
@@ -137,6 +139,7 @@ namespace ProjectTracking.ViewModels
         public int AssignId { get; set; }
         public int ProjectId { get; set; }
         public int EmpId { get; set; }
+        public int? BaEmpId { get; set; }
         public string ProjectName { get; set; } = "";
         public string EmployeeName { get; set; } = "";
         public string PhaseName { get; set; } = "";
@@ -204,6 +207,7 @@ namespace ProjectTracking.ViewModels
         public string Priority { get; set; } = "";
         public DateTime? StartDate { get; set; }
         public DateTime? DueDate { get; set; }
+        public DateTime? PeriodEndDate { get; set; }
         public int OverdueDays { get; set; }
         public int DaysUntilDue { get; set; }
         public string TargetUrl { get; set; } = "";

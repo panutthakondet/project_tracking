@@ -1,4 +1,5 @@
 @using System.Globalization
+@using System.Text.RegularExpressions
 @model IEnumerable<ProjectTracking.Models.Project>
 @using Microsoft.AspNetCore.Http
 
@@ -48,6 +49,42 @@
         "DONE" => "เสร็จสิ้น",
         _ => string.IsNullOrWhiteSpace(status) ? "-" : status!
     };
+    IReadOnlyList<(string Label, string? Url)> ProjectSystemItems(string? linkName)
+    {
+        if (string.IsNullOrWhiteSpace(linkName))
+        {
+            return Array.Empty<(string Label, string? Url)>();
+        }
+
+        var raw = linkName.Trim();
+        var matches = Regex.Matches(raw, @"https?://\S+", RegexOptions.IgnoreCase);
+        if (matches.Count == 0)
+        {
+            return new[] { (raw, (string?)null) };
+        }
+
+        var items = new List<(string Label, string? Url)>();
+        var lastIndex = 0;
+        foreach (Match match in matches)
+        {
+            var label = raw[lastIndex..match.Index].Trim().TrimEnd(':', '：').Trim();
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                label = "Link";
+            }
+
+            items.Add((label, match.Value.Trim()));
+            lastIndex = match.Index + match.Length;
+        }
+
+        var trailing = raw[lastIndex..].Trim();
+        if (!string.IsNullOrWhiteSpace(trailing))
+        {
+            items.Add((trailing.TrimEnd(':', '：').Trim(), null));
+        }
+
+        return items;
+    }
     var orderedProjects = projects
         .OrderBy(x => ProjectSortOrder(x.Status))
         .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
@@ -373,23 +410,27 @@
                     </td>
 
                     <td class="col-system">
-                        @if (!string.IsNullOrEmpty(p.LinkName))
+                        @{
+                            var tableSystemItems = ProjectSystemItems(p.LinkName);
+                        }
+                        @if (tableSystemItems.Count > 0)
                         {
-                            var parts = p.LinkName.Split(' ');
-
-                            foreach (var part in parts)
-                            {
-                                if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                            <span class="project-system-value is-table">
+                                @foreach (var item in tableSystemItems)
                                 {
-                                    <a href="@part" target="_blank" rel="noopener noreferrer">@part</a>
-                                    <text> </text>
+                                    <span class="project-system-chip">
+                                        @if (!string.IsNullOrWhiteSpace(item.Url))
+                                        {
+                                            <span class="project-system-key">@item.Label</span>
+                                            <a href="@item.Url" target="_blank" rel="noopener noreferrer">@item.Url</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="project-system-text">@item.Label</span>
+                                        }
+                                    </span>
                                 }
-                                else
-                                {
-                                    <span>@part</span>
-                                    <text> </text>
-                                }
-                            }
+                            </span>
                         }
                         else
                         {
@@ -543,6 +584,24 @@
                     <div class="project-header-content">
                         <div class="project-card-topline">
                             <span class="project-row-number">@mobileRow</span>
+                            <span class="project-top-people">
+                                <span class="project-person is-profile">
+                                    <img class="pt-owner-avatar"
+                                         src="@ProfileImage(p.PM)"
+                                         alt="@(p.PM?.EmpName ?? "Project Manager")"
+                                         loading="lazy"
+                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text"><strong>PM:</strong> @(p.PM?.EmpName ?? "-")</span>
+                                </span>
+                                <span class="project-person is-profile">
+                                    <img class="pt-owner-avatar"
+                                         src="@ProfileImage(p.BA)"
+                                         alt="@(p.BA?.EmpName ?? "Business Analyst")"
+                                         loading="lazy"
+                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text"><strong>BA:</strong> @(p.BA?.EmpName ?? "-")</span>
+                                </span>
+                            </span>
                         </div>
 
                         <div class="project-title-row">
@@ -589,25 +648,28 @@
                         <span class="project-label">ระบบ</span>
 
                         <span class="project-system-value">
-                            @if (!string.IsNullOrEmpty(p.LinkName))
+                            @{
+                                var cardSystemItems = ProjectSystemItems(p.LinkName);
+                            }
+                            @if (cardSystemItems.Count > 0)
                             {
-                                var parts = p.LinkName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                                foreach (var part in parts)
+                                foreach (var item in cardSystemItems)
                                 {
-                                    if (part.StartsWith("https", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        <a href="@part"
-                                           target="_blank"
-                                           rel="noopener noreferrer">
-                                            @part
-                                        </a>
-                                        <text> </text>
-                                    }
-                                    else
-                                    {
-                                        <span>@part </span>
-                                    }
+                                    <span class="project-system-chip">
+                                        @if (!string.IsNullOrWhiteSpace(item.Url))
+                                        {
+                                            <span class="project-system-key">@item.Label</span>
+                                            <a href="@item.Url"
+                                               target="_blank"
+                                               rel="noopener noreferrer">
+                                                @item.Url
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="project-system-text">@item.Label</span>
+                                        }
+                                    </span>
                                 }
                             }
                             else
@@ -650,25 +712,6 @@
                             <span class="project-date-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                         </div>
                     </div>
-                </div>
-
-                <div class="project-people">
-                    <span class="project-person is-profile">
-                        <img class="pt-owner-avatar"
-                             src="@ProfileImage(p.PM)"
-                             alt="@(p.PM?.EmpName ?? "Project Manager")"
-                             loading="lazy"
-                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                        <span class="project-person-text"><strong>PM:</strong> @(p.PM?.EmpName ?? "-")</span>
-                    </span>
-                    <span class="project-person is-profile">
-                        <img class="pt-owner-avatar"
-                             src="@ProfileImage(p.BA)"
-                             alt="@(p.BA?.EmpName ?? "Business Analyst")"
-                             loading="lazy"
-                             onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                        <span class="project-person-text"><strong>BA:</strong> @(p.BA?.EmpName ?? "-")</span>
-                    </span>
                 </div>
 
                 <div class="project-actions">
@@ -919,6 +962,26 @@
 .project-people .project-person.is-profile {
     width: auto;
     max-width: calc(50% - 14px);
+}
+
+.project-top-people {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+}
+
+.project-top-people .project-person.is-profile {
+    width: auto;
+    max-width: calc(50% - 9px);
+}
+
+.project-top-people .project-person.is-profile img {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
 }
 
 #coopFilterDropdown,
@@ -1284,6 +1347,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-card-topline {
     display: flex;
+    align-items: center;
+    gap: 12px;
     justify-content: flex-start;
     margin-bottom: 12px;
 }
@@ -1333,6 +1398,17 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     white-space: nowrap;
 }
 
+.project-system-row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    column-gap: 8px;
+}
+
+.project-system-row .project-label {
+    white-space: nowrap;
+}
+
 .project-system-value,
 .project-value {
     min-width: 0;
@@ -1344,11 +1420,48 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     overflow-wrap: anywhere;
 }
 
+.project-system-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+}
+
+.project-system-value.is-table {
+    gap: 4px 10px;
+}
+
+.project-system-chip {
+    min-width: 0;
+    max-width: 100%;
+    display: inline-grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 4px;
+}
+
+.project-system-key {
+    color: #0f172a;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.project-system-key::after {
+    content: ":";
+}
+
+.project-system-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .project-detail-value {
     white-space: pre-line;
 }
 
 .project-system-value a {
+    min-width: 0;
+    max-width: 100%;
     overflow-wrap: anywhere;
     word-break: break-word;
 }

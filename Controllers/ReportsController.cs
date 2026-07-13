@@ -172,7 +172,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Index")]
-        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, string? status)
+        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, int? baEmpId, string? status)
         {
             var th = new System.Globalization.CultureInfo("th-TH");
             var selectedYear = year ?? DateTime.Today.Year;
@@ -182,6 +182,7 @@ namespace ProjectTracking.Controllers
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Include(p => p.BA)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -193,6 +194,18 @@ namespace ProjectTracking.Controllers
                     ProjectName = p.ProjectDisplayName,
                     CoopName = p.Coop?.CoopName ?? ""
                 })
+                .ToList();
+
+            var baOptions = projects
+                .Where(p => p.BaEmpId.HasValue)
+                .Select(p => new EmployeeReportOptionViewModel
+                {
+                    EmpId = p.BaEmpId!.Value,
+                    EmpName = p.BA?.EmpName ?? $"BA #{p.BaEmpId.Value}"
+                })
+                .GroupBy(x => x.EmpId)
+                .Select(x => x.First())
+                .OrderBy(x => x.EmpName)
                 .ToList();
 
             var employees = await _context.Employees
@@ -228,6 +241,7 @@ namespace ProjectTracking.Controllers
                         AssignId = a.AssignId,
                         ProjectId = phase.ProjectId,
                         EmpId = a.EmpId,
+                        BaEmpId = project?.BaEmpId,
                         ProjectName = project?.ProjectDisplayName ?? "-",
                         EmployeeName = a.Employee?.EmpName ?? "-",
                         PhaseName = phase.PhaseName,
@@ -250,6 +264,7 @@ namespace ProjectTracking.Controllers
             var rows = allRows
                 .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
                 .Where(r => !empId.HasValue || r.EmpId == empId.Value)
+                .Where(r => !baEmpId.HasValue || r.BaEmpId == baEmpId.Value)
                 .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.StatusCategory == selectedStatus)
                 .OrderBy(r => r.ProjectName)
                 .ThenBy(r => r.Month)
@@ -291,10 +306,12 @@ namespace ProjectTracking.Controllers
                 Year = selectedYear,
                 ProjectId = projectId,
                 EmpId = empId,
+                BaEmpId = baEmpId,
                 Status = selectedStatus,
                 YearOptions = availableYears,
                 ProjectOptions = projectOptions,
                 EmployeeOptions = employees,
+                BaOptions = baOptions,
                 Summary = new TaskProgressSummaryViewModel
                 {
                     Total = rows.Count,
@@ -421,6 +438,7 @@ namespace ProjectTracking.Controllers
                     Priority = "-",
                     StartDate = startDate,
                     DueDate = dueDate,
+                    PeriodEndDate = phase?.PeriodEndDate,
                     OverdueDays = DaysOverdue(today, dueDate),
                     DaysUntilDue = DaysUntil(today, dueDate),
                     TargetUrl = project?.ProjectId == null ? "/PhaseAssigns/Index" : $"/PhaseAssigns/Index?projectId={project.ProjectId}"

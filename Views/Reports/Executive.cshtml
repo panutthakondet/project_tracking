@@ -74,9 +74,56 @@
             margin-bottom: 12px;
         }
         .kpi {
+            --kpi-tone: #14b8a6;
+            --kpi-soft: rgba(20, 184, 166, .18);
+            --kpi-faint: rgba(20, 184, 166, .045);
             padding: 10px;
             border: 1px solid #d8e3ef;
-            border-left: 4px solid #14b8a6;
+            border-color: color-mix(in srgb, var(--kpi-tone) 22%, #d8e3ef);
+            border-left: 4px solid var(--kpi-tone);
+            background:
+                linear-gradient(90deg, var(--kpi-soft) 0%, var(--kpi-faint) 42%, #fff 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .78);
+        }
+        .kpi.blue,
+        .kpi.info {
+            --kpi-tone: #258cfb;
+            --kpi-soft: rgba(37, 140, 251, .18);
+            --kpi-faint: rgba(37, 140, 251, .045);
+        }
+        .kpi.pink {
+            --kpi-tone: #ec4899;
+            --kpi-soft: rgba(236, 72, 153, .18);
+            --kpi-faint: rgba(236, 72, 153, .045);
+        }
+        .kpi.orange,
+        .kpi.warning {
+            --kpi-tone: #f59e0b;
+            --kpi-soft: rgba(245, 158, 11, .2);
+            --kpi-faint: rgba(245, 158, 11, .055);
+        }
+        .kpi.red,
+        .kpi.danger {
+            --kpi-tone: #ef4444;
+            --kpi-soft: rgba(239, 68, 68, .18);
+            --kpi-faint: rgba(239, 68, 68, .045);
+        }
+        .kpi.green,
+        .kpi.success {
+            --kpi-tone: #22c55e;
+            --kpi-soft: rgba(34, 197, 94, .18);
+            --kpi-faint: rgba(34, 197, 94, .045);
+        }
+        .kpi.cyan,
+        .kpi.teal {
+            --kpi-tone: #14b8a6;
+            --kpi-soft: rgba(20, 184, 166, .18);
+            --kpi-faint: rgba(20, 184, 166, .045);
+        }
+        .kpi.purple {
+            --kpi-tone: #8b5cf6;
+            --kpi-soft: rgba(139, 92, 246, .18);
+            --kpi-faint: rgba(139, 92, 246, .045);
         }
         .kpi span,
         .kpi small {
@@ -208,7 +255,7 @@
     <section class="kpi-grid">
         @foreach (var kpi in report.Kpis)
         {
-            <article class="kpi">
+            <article class="kpi @kpi.Tone">
                 <span>@kpi.Label</span>
                 <strong>@kpi.Value</strong>
                 <small>@kpi.Note</small>

@@ -206,6 +206,69 @@
             font-size: 12px;
             font-weight: 400;
         }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .pt-search-select {
+            position: relative;
+            width: 100%;
+        }
+        .pt-search-select__input {
+            width: 100%;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            color: #10233f;
+            background: #fff;
+            font-family: "Prompt", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .pt-search-select__input:focus {
+            border-color: #14b8a6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .12);
+        }
+        .pt-search-select__dropdown {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            z-index: 20;
+            max-height: 240px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #d8e3ef;
+            background: #fff;
+            box-shadow: 0 12px 24px rgba(15, 35, 64, .14);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown {
+            display: block;
+        }
+        .pt-search-select__option,
+        .pt-search-select__empty {
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            border-bottom: 1px solid #edf2f7;
+            color: #10233f;
+            background: #fff;
+            font-family: "Prompt", "Noto Sans Thai", Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: left;
+        }
+        .pt-search-select__option:hover,
+        .pt-search-select__option.is-selected {
+            background: #d9f7f2;
+        }
+        .pt-search-select__empty {
+            color: #64748b;
+        }
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -213,14 +276,57 @@
             margin-bottom: 12px;
         }
         .kpi {
+            --kpi-tone: #14b8a6;
+            --kpi-soft: rgba(20, 184, 166, .18);
+            --kpi-faint: rgba(20, 184, 166, .045);
             padding: 10px;
             border: 1px solid #d8e3ef;
-            border-left: 4px solid #14b8a6;
-            background: #fff;
+            border-color: color-mix(in srgb, var(--kpi-tone) 22%, #d8e3ef);
+            border-left: 4px solid var(--kpi-tone);
+            background:
+                linear-gradient(90deg, var(--kpi-soft) 0%, var(--kpi-faint) 42%, #fff 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .78);
         }
-        .kpi.danger { border-left-color: #ef4444; }
-        .kpi.warning { border-left-color: #f59e0b; }
-        .kpi.info { border-left-color: #258cfb; }
+        .kpi.danger,
+        .kpi.red {
+            --kpi-tone: #ef4444;
+            --kpi-soft: rgba(239, 68, 68, .18);
+            --kpi-faint: rgba(239, 68, 68, .045);
+        }
+        .kpi.warning,
+        .kpi.orange {
+            --kpi-tone: #f59e0b;
+            --kpi-soft: rgba(245, 158, 11, .2);
+            --kpi-faint: rgba(245, 158, 11, .055);
+        }
+        .kpi.info,
+        .kpi.blue {
+            --kpi-tone: #258cfb;
+            --kpi-soft: rgba(37, 140, 251, .18);
+            --kpi-faint: rgba(37, 140, 251, .045);
+        }
+        .kpi.success,
+        .kpi.green {
+            --kpi-tone: #22c55e;
+            --kpi-soft: rgba(34, 197, 94, .18);
+            --kpi-faint: rgba(34, 197, 94, .045);
+        }
+        .kpi.pink {
+            --kpi-tone: #ec4899;
+            --kpi-soft: rgba(236, 72, 153, .18);
+            --kpi-faint: rgba(236, 72, 153, .045);
+        }
+        .kpi.cyan,
+        .kpi.teal {
+            --kpi-tone: #14b8a6;
+            --kpi-soft: rgba(20, 184, 166, .18);
+            --kpi-faint: rgba(20, 184, 166, .045);
+        }
+        .kpi.purple {
+            --kpi-tone: #8b5cf6;
+            --kpi-soft: rgba(139, 92, 246, .18);
+            --kpi-faint: rgba(139, 92, 246, .045);
+        }
         .kpi span,
         .kpi small {
             display: block;
@@ -432,7 +538,7 @@
     <form method="get" asp-action="PendingWork" class="filter-panel">
         <div class="field">
             <label for="projectId">โครงการ</label>
-            <select id="projectId" name="projectId">
+            <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหาโครงการ...">
                 <option value="">ทุกโครงการ</option>
                 @foreach (var project in report.ProjectOptions)
                 {
@@ -444,7 +550,7 @@
         </div>
         <div class="field">
             <label for="empId">ผู้รับผิดชอบ</label>
-            <select id="empId" name="empId">
+            <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหาผู้รับผิดชอบ...">
                 <option value="">ทุกคน</option>
                 @foreach (var employee in report.EmployeeOptions)
                 {
@@ -456,7 +562,7 @@
         </div>
         <div class="field">
             <label for="baEmpId">BA</label>
-            <select id="baEmpId" name="baEmpId">
+            <select id="baEmpId" name="baEmpId" data-placeholder="พิมพ์ค้นหา BA...">
                 <option value="">ทุกคน</option>
                 @foreach (var ba in report.BaOptions)
                 {
@@ -468,7 +574,7 @@
         </div>
         <div class="field">
             <label for="workType">ประเภทงาน</label>
-            <select id="workType" name="workType">
+            <select id="workType" name="workType" data-placeholder="พิมพ์ค้นหาประเภทงาน...">
                 @foreach (var option in workTypeOptions)
                 {
                     <option value="@option.Value" selected="@(string.Equals(report.WorkType, option.Value, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
@@ -479,7 +585,7 @@
         </div>
         <div class="field">
             <label for="section">หมวดงาน</label>
-            <select id="section" name="section">
+            <select id="section" name="section" data-placeholder="พิมพ์ค้นหาหมวดงาน...">
                 @foreach (var option in sectionOptions)
                 {
                     <option value="@option.Value" selected="@(string.Equals(report.Section, option.Value, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
@@ -562,6 +668,10 @@
                                             <th style="width:135px;">ผู้รับผิดชอบ</th>
                                             <th style="width:125px;">BA</th>
                                             <th style="width:128px;">วันที่</th>
+                                            @if (string.Equals(workTypeGroup.WorkType, "ASSIGN", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <th style="width:118px;">กำหนดส่งวันที่</th>
+                                            }
                                             <th style="width:130px;">สถานะ</th>
                                             <th style="width:72px;">ลิงก์</th>
                                         </tr>
@@ -583,6 +693,10 @@
                                                     <span class="cell-label">กำหนด:</span> <span>@DateText(row.DueDate)</span><br />
                                                     <span class="tone @row.Tone">@DueText(row)</span>
                                                 </td>
+                                                @if (string.Equals(workTypeGroup.WorkType, "ASSIGN", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <td class="text-center">@DateText(row.PeriodEndDate)</td>
+                                                }
                                                 <td>
                                                     <span>@row.Status</span>
                                                     @if (!string.IsNullOrWhiteSpace(row.Priority) && row.Priority != "-")
@@ -612,5 +726,115 @@
             </section>
         }
     }
+    <script>
+        (function () {
+            function normalize(value) {
+                return (value || "").toString().trim().toLowerCase();
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event("input", { bubbles: true }));
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains("pt-dropdown-enhanced")) return;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "pt-search-select";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "pt-search-select__input";
+                input.autocomplete = "off";
+                input.placeholder = select.dataset.placeholder || getSelectedOption(select)?.text || "พิมพ์ค้นหา...";
+
+                const dropdown = document.createElement("div");
+                dropdown.className = "pt-search-select__dropdown";
+
+                select.insertAdjacentElement("afterend", wrapper);
+                wrapper.appendChild(input);
+                wrapper.appendChild(dropdown);
+                select.classList.add("pt-dropdown-enhanced", "pt-native-select-hidden");
+                select.tabIndex = -1;
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected ? selected.text : "";
+                }
+
+                function closeDropdown() {
+                    wrapper.classList.remove("is-open");
+                }
+
+                function renderOptions(filter = "") {
+                    dropdown.innerHTML = "";
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options)
+                        .filter(option => {
+                            const haystack = normalize(`${option.text} ${option.value}`);
+                            return !keyword || haystack.includes(keyword);
+                        });
+
+                    if (options.length === 0) {
+                        const empty = document.createElement("div");
+                        empty.className = "pt-search-select__empty";
+                        empty.textContent = "ไม่พบข้อมูล";
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    options.forEach(option => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "pt-search-select__option";
+                        if (option.value === select.value) button.classList.add("is-selected");
+                        button.textContent = option.text;
+                        button.addEventListener("click", function () {
+                            select.value = option.value;
+                            closeDropdown();
+                            syncInput();
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                function openDropdown() {
+                    input.value = "";
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                }
+
+                input.addEventListener("focus", openDropdown);
+                input.addEventListener("click", openDropdown);
+                input.addEventListener("input", function () {
+                    renderOptions(input.value);
+                    wrapper.classList.add("is-open");
+                });
+                input.addEventListener("keydown", function (event) {
+                    if (event.key === "Escape") {
+                        closeDropdown();
+                        syncInput();
+                    }
+                });
+                select.addEventListener("change", syncInput);
+                document.addEventListener("click", function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInput();
+                    }
+                });
+
+                syncInput();
+            }
+
+            document.querySelectorAll(".filter-panel select").forEach(enhanceSelect);
+        })();
+    </script>
 </body>
 </html>

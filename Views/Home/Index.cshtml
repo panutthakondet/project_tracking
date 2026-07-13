@@ -1085,7 +1085,7 @@
     top:-48px;
     left:0;
     right:0;
-    z-index:11;
+    z-index:42;
     height:58px;
     display:none;
     cursor:crosshair;
@@ -1093,7 +1093,7 @@
 
 .dashboard-dino-food {
     position:absolute;
-    z-index:10;
+    z-index:43;
     left:0;
     top:0;
     width:38px;
@@ -1163,9 +1163,9 @@
     --dino-width: var(--dashboard-dino-width);
     --dino-height: var(--dashboard-dino-height);
     position:absolute;
-    top:var(--dashboard-dino-card-1-top);
-    left:var(--dashboard-dino-card-1-start);
-    z-index:8;
+    top:var(--dashboard-dino-route-start-top, var(--dashboard-dino-card-1-top));
+    left:var(--dashboard-dino-route-start-left, var(--dashboard-dino-card-1-start));
+    z-index:44;
     width:var(--dino-width);
     height:var(--dino-height);
     display:none;
@@ -1340,58 +1340,58 @@
 
 @@keyframes dashboardDinoCardHop {
     0% {
-        left:var(--dashboard-dino-card-1-start);
-        top:var(--dashboard-dino-card-1-top);
+        left:var(--dashboard-dino-route-start-left, var(--dashboard-dino-card-1-start));
+        top:var(--dashboard-dino-route-start-top, var(--dashboard-dino-card-1-top));
         transform:translateY(0);
     }
     8% {
-        left:var(--dashboard-dino-card-1-end);
-        top:var(--dashboard-dino-card-1-top);
+        left:var(--dashboard-dino-route-step-1-end-left, var(--dashboard-dino-card-1-end));
+        top:var(--dashboard-dino-route-step-1-end-top, var(--dashboard-dino-card-1-top));
         transform:translateY(0);
     }
     10% {
-        left:var(--dashboard-dino-card-2-start);
-        top:var(--dashboard-dino-card-2-top);
-        transform:translateY(-24px);
+        left:var(--dashboard-dino-route-step-2-start-left, var(--dashboard-dino-card-2-start));
+        top:var(--dashboard-dino-route-step-2-start-top, var(--dashboard-dino-card-2-top));
+        transform:translateY(var(--dashboard-dino-route-step-2-hop, -24px));
     }
     12% {
-        left:var(--dashboard-dino-card-2-start);
-        top:var(--dashboard-dino-card-2-top);
+        left:var(--dashboard-dino-route-step-2-start-left, var(--dashboard-dino-card-2-start));
+        top:var(--dashboard-dino-route-step-2-start-top, var(--dashboard-dino-card-2-top));
         transform:translateY(0);
     }
     20% {
-        left:var(--dashboard-dino-card-2-end);
-        top:var(--dashboard-dino-card-2-top);
+        left:var(--dashboard-dino-route-step-2-end-left, var(--dashboard-dino-card-2-end));
+        top:var(--dashboard-dino-route-step-2-end-top, var(--dashboard-dino-card-2-top));
         transform:translateY(0);
     }
     22% {
-        left:var(--dashboard-dino-card-3-start);
-        top:var(--dashboard-dino-card-3-top);
-        transform:translateY(-24px);
+        left:var(--dashboard-dino-route-step-3-start-left, var(--dashboard-dino-card-3-start));
+        top:var(--dashboard-dino-route-step-3-start-top, var(--dashboard-dino-card-3-top));
+        transform:translateY(var(--dashboard-dino-route-step-3-hop, -24px));
     }
     24% {
-        left:var(--dashboard-dino-card-3-start);
-        top:var(--dashboard-dino-card-3-top);
+        left:var(--dashboard-dino-route-step-3-start-left, var(--dashboard-dino-card-3-start));
+        top:var(--dashboard-dino-route-step-3-start-top, var(--dashboard-dino-card-3-top));
         transform:translateY(0);
     }
     32% {
-        left:var(--dashboard-dino-card-3-end);
-        top:var(--dashboard-dino-card-3-top);
+        left:var(--dashboard-dino-route-step-3-end-left, var(--dashboard-dino-card-3-end));
+        top:var(--dashboard-dino-route-step-3-end-top, var(--dashboard-dino-card-3-top));
         transform:translateY(0);
     }
     34% {
-        left:var(--dashboard-dino-card-4-start);
-        top:var(--dashboard-dino-card-4-top);
-        transform:translateY(-24px);
+        left:var(--dashboard-dino-route-step-4-start-left, var(--dashboard-dino-card-4-start));
+        top:var(--dashboard-dino-route-step-4-start-top, var(--dashboard-dino-card-4-top));
+        transform:translateY(var(--dashboard-dino-route-step-4-hop, -24px));
     }
     36% {
-        left:var(--dashboard-dino-card-4-start);
-        top:var(--dashboard-dino-card-4-top);
+        left:var(--dashboard-dino-route-step-4-start-left, var(--dashboard-dino-card-4-start));
+        top:var(--dashboard-dino-route-step-4-start-top, var(--dashboard-dino-card-4-top));
         transform:translateY(0);
     }
     42% {
-        left:var(--dashboard-dino-card-4-end);
-        top:var(--dashboard-dino-card-4-top);
+        left:var(--dashboard-dino-route-step-4-end-left, var(--dashboard-dino-card-4-end));
+        top:var(--dashboard-dino-route-step-4-end-top, var(--dashboard-dino-card-4-top));
         transform:translateY(0);
     }
     44% {
@@ -1410,26 +1410,32 @@
         transform:translateY(0);
     }
     98% {
-        left:var(--dashboard-dino-card-1-start);
-        top:var(--dashboard-dino-card-1-top);
+        left:var(--dashboard-dino-route-loop-left, var(--dashboard-dino-card-1-start));
+        top:var(--dashboard-dino-route-loop-top, var(--dashboard-dino-card-1-top));
         transform:translateY(-34px);
     }
     100% {
-        left:var(--dashboard-dino-card-1-start);
-        top:var(--dashboard-dino-card-1-top);
+        left:var(--dashboard-dino-route-loop-left, var(--dashboard-dino-card-1-start));
+        top:var(--dashboard-dino-route-loop-top, var(--dashboard-dino-card-1-top));
         transform:translateY(0);
     }
 }
 
 @@keyframes dashboardDinoFace {
-    0%, 45.99% {
+    0%, 8% {
+        transform:scaleX(var(--dashboard-dino-route-start-face, 1));
+    }
+    10%, 45.99% {
         transform:scaleX(1);
     }
-    46%, 99.99% {
+    46%, 96% {
         transform:scaleX(-1);
     }
+    98%, 99.99% {
+        transform:scaleX(var(--dashboard-dino-route-return-face, -1));
+    }
     100% {
-        transform:scaleX(1);
+        transform:scaleX(var(--dashboard-dino-route-start-face, 1));
     }
 }
 
@@ -2083,6 +2089,12 @@
     --dashboard-dino-width:46px;
     --dashboard-dino-height:34px;
     --dashboard-dino-inset:18px;
+    --dashboard-dino-search-clearance:42px;
+    --dashboard-dino-route-start-face:1;
+    --dashboard-dino-route-return-face:-1;
+    --dashboard-dino-route-step-2-hop:-24px;
+    --dashboard-dino-route-step-3-hop:-24px;
+    --dashboard-dino-route-step-4-hop:-24px;
     --dashboard-dino-edge-top:calc((var(--dashboard-dino-height) * -1) + 2px);
     --dashboard-dino-growth:0;
     --dashboard-dino-scale:calc(1 + (var(--dashboard-dino-growth) * .55));
@@ -2110,7 +2122,7 @@
     display:grid;
     grid-template-columns:repeat(4, minmax(190px, 1fr));
     gap:18px;
-    margin-top:42px;
+    margin-top:var(--dashboard-dino-search-clearance);
     margin-bottom:20px;
 }
 
@@ -2313,6 +2325,8 @@
 }
 
 .dashboard-grid {
+    position:relative;
+    z-index:1;
     display:grid;
     grid-template-columns:repeat(24, minmax(0, 1fr));
     gap:12px;
@@ -6785,13 +6799,19 @@
         const feedAmount = 22;
         const decayPerMinute = 7;
         const syncIntervalMs = 10000;
-        let memoryState = { level: 0, updatedAt: Date.now() };
+        let memoryState = { level: 0, updatedAt: Date.now(), routeStartLeft: null, routeStartTop: null };
         let seekTimer = null;
         let eatTimer = null;
         let resumeTimer = null;
 
         const clampLevel = value => Math.max(0, Math.min(maxFood, Number.isFinite(value) ? value : 0));
         const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+        const optionalNumber = value => {
+            if (value === null || value === undefined || value === '') return null;
+
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : null;
+        };
 
         const readState = () => {
             try {
@@ -6801,7 +6821,9 @@
                 const parsed = JSON.parse(stored);
                 return {
                     level: clampLevel(Number(parsed.level)),
-                    updatedAt: Number(parsed.updatedAt) || Date.now()
+                    updatedAt: Number(parsed.updatedAt) || Date.now(),
+                    routeStartLeft: optionalNumber(parsed.routeStartLeft),
+                    routeStartTop: optionalNumber(parsed.routeStartTop)
                 };
             } catch {
                 return memoryState;
@@ -6809,9 +6831,14 @@
         };
 
         const writeState = state => {
-            memoryState = state;
+            memoryState = {
+                level: clampLevel(Number(state.level)),
+                updatedAt: Number(state.updatedAt) || Date.now(),
+                routeStartLeft: optionalNumber(state.routeStartLeft),
+                routeStartTop: optionalNumber(state.routeStartTop)
+            };
             try {
-                window.localStorage?.setItem(storageKey, JSON.stringify(state));
+                window.localStorage?.setItem(storageKey, JSON.stringify(memoryState));
             } catch {
                 // localStorage can be unavailable in private or locked-down browsers.
             }
@@ -6835,16 +6862,18 @@
 
         const sync = () => {
             const at = Date.now();
-            const level = decayedLevel(readState(), at);
-            const state = { level, updatedAt: at };
+            const currentState = readState();
+            const level = decayedLevel(currentState, at);
+            const state = { ...currentState, level, updatedAt: at };
             render(level);
             writeState(state);
         };
 
         const feedDino = () => {
             const at = Date.now();
-            const level = clampLevel(decayedLevel(readState(), at) + feedAmount);
-            const state = { level, updatedAt: at };
+            const currentState = readState();
+            const level = clampLevel(decayedLevel(currentState, at) + feedAmount);
+            const state = { ...currentState, level, updatedAt: at };
 
             writeState(state);
             render(level);
@@ -6856,14 +6885,158 @@
             window.clearTimeout(resumeTimer);
         };
 
-        const resumeRoute = () => {
+        const restartRouteAnimation = () => {
+            runner.style.animation = 'none';
+            stage.style.animation = 'none';
+            void runner.offsetWidth;
+            runner.style.animation = '';
+            stage.style.animation = '';
+        };
+
+        const setRouteStart = (left, top) => {
+            if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+
+            const habitatRect = habitat.getBoundingClientRect();
+            const runnerRect = runner.getBoundingClientRect();
+            const maxLeft = Math.max(0, habitatRect.width - runnerRect.width);
+            const safeLeft = habitatRect.width > 0 ? clamp(left, 0, maxLeft) : left;
+            const safeTop = clamp(top, -44, 8);
+
+            habitat.style.setProperty('--dashboard-dino-route-start-left', `${safeLeft}px`);
+            habitat.style.setProperty('--dashboard-dino-route-start-top', `${safeTop}px`);
+            planRouteFromStart(safeLeft, safeTop);
+            return { left: safeLeft, top: safeTop };
+        };
+
+        const getRouteMetrics = () => {
+            const styles = window.getComputedStyle(habitat);
+            const habitatRect = habitat.getBoundingClientRect();
+            const runnerRect = runner.getBoundingClientRect();
+            const cssPx = (name, fallback) => {
+                const value = parseFloat(styles.getPropertyValue(name));
+                return Number.isFinite(value) ? value : fallback;
+            };
+            const width = habitatRect.width;
+            const dinoWidth = runnerRect.width || cssPx('--dashboard-dino-width', 46);
+            const dinoHeight = runnerRect.height || cssPx('--dashboard-dino-height', 34);
+            const inset = cssPx('--dashboard-dino-inset', 18);
+            const columnGap = parseFloat(styles.columnGap) || cssPx('--kpi-grid-gap', 18);
+            const rowGap = parseFloat(styles.rowGap) || columnGap;
+            const cardMinHeight = cssPx('--kpi-card-min-height', 176);
+            const overviewGap = cssPx('--dashboard-dino-overview-gap', 20);
+            const tracks = styles.gridTemplateColumns
+                .split(' ')
+                .map(track => track.trim())
+                .filter(Boolean);
+            const columns = tracks.length || (width <= 1024 ? 2 : 4);
+            const cardWidth = columns > 0
+                ? (width - (columnGap * Math.max(0, columns - 1))) / columns
+                : width;
+            const edgeTop = (dinoHeight * -1) + 2;
+            const rowStep = cardMinHeight + rowGap;
+            const cards = Array.from({ length: 4 }, (_, index) => {
+                const col = columns > 0 ? index % columns : index;
+                const row = columns > 0 ? Math.floor(index / columns) : 0;
+                const start = col * (cardWidth + columnGap) + inset;
+                const top = row * rowStep + edgeTop;
+
+                return {
+                    start,
+                    end: Math.max(start, start + cardWidth - dinoWidth - inset - inset),
+                    top
+                };
+            });
+            const rows = Math.max(1, Math.ceil(cards.length / Math.max(1, columns)));
+
+            return {
+                cards,
+                overviewStart: inset,
+                overviewEnd: Math.max(inset, width - dinoWidth - inset),
+                overviewTop: ((rows - 1) * rowStep) + cardMinHeight + overviewGap + edgeTop
+            };
+        };
+
+        const planRouteFromStart = (startLeft, startTop) => {
+            const route = getRouteMetrics();
+            const activeCardIndex = route.cards.findIndex(card => startLeft <= card.end);
+            const firstStepIndex = activeCardIndex >= 0 ? activeCardIndex : route.cards.length;
+            const forwardCards = route.cards.slice(firstStepIndex);
+            const currentPoint = { start: startLeft, end: startLeft, top: startTop };
+            const routeSteps = [...forwardCards];
+
+            while (routeSteps.length < 4) {
+                const lastStep = routeSteps[routeSteps.length - 1] ?? currentPoint;
+                routeSteps.push({ start: lastStep.end, end: lastStep.end, top: lastStep.top });
+            }
+
+            const step1End = routeSteps[0] ?? currentPoint;
+            const step2 = routeSteps[1] ?? currentPoint;
+            const step3 = routeSteps[2] ?? currentPoint;
+            const step4 = routeSteps[3] ?? currentPoint;
+            const setPoint = (name, left, top) => {
+                habitat.style.setProperty(`${name}-left`, `${left}px`);
+                habitat.style.setProperty(`${name}-top`, `${top}px`);
+            };
+            const setHop = (name, from, to) => {
+                const changed =
+                    Math.abs((to.start ?? to.end) - from.end) > 0.5 ||
+                    Math.abs(to.top - from.top) > 0.5;
+
+                habitat.style.setProperty(name, changed ? '-24px' : '0px');
+            };
+            const startFace = step1End.end >= startLeft ? 1 : -1;
+            const returnFace = startLeft >= route.overviewStart ? 1 : -1;
+
+            setPoint('--dashboard-dino-route-step-1-end', step1End.end, step1End.top);
+            setPoint('--dashboard-dino-route-step-2-start', step2.start, step2.top);
+            setPoint('--dashboard-dino-route-step-2-end', step2.end, step2.top);
+            setPoint('--dashboard-dino-route-step-3-start', step3.start, step3.top);
+            setPoint('--dashboard-dino-route-step-3-end', step3.end, step3.top);
+            setPoint('--dashboard-dino-route-step-4-start', step4.start, step4.top);
+            setPoint('--dashboard-dino-route-step-4-end', step4.end, step4.top);
+            setPoint('--dashboard-dino-route-loop', route.cards[0]?.start ?? route.overviewStart, route.cards[0]?.top ?? startTop);
+            setHop('--dashboard-dino-route-step-2-hop', step1End, step2);
+            setHop('--dashboard-dino-route-step-3-hop', step2, step3);
+            setHop('--dashboard-dino-route-step-4-hop', step3, step4);
+
+            habitat.style.setProperty('--dashboard-dino-route-start-face', String(startFace));
+            habitat.style.setProperty('--dashboard-dino-route-return-face', String(returnFace));
+        };
+
+        const applyDefaultRouteStart = () => {
+            const route = getRouteMetrics();
+            const firstCard = route.cards[0];
+            if (!firstCard) return;
+
+            setRouteStart(firstCard.start, firstCard.top);
+        };
+
+        const saveRouteStart = (left, top) => {
+            const routeStart = setRouteStart(left, top);
+            if (!routeStart) return;
+
+            writeState({
+                ...readState(),
+                routeStartLeft: routeStart.left,
+                routeStartTop: routeStart.top
+            });
+        };
+
+        const applyStoredRouteStart = () => {
+            const state = readState();
+            setRouteStart(optionalNumber(state.routeStartLeft), optionalNumber(state.routeStartTop));
+        };
+
+        const resumeRoute = (startLeft, startTop) => {
             runner.classList.remove('is-seeking-food', 'is-eating');
+            saveRouteStart(startLeft, startTop);
             runner.style.left = '';
             runner.style.top = '';
             runner.style.transition = '';
             runner.style.removeProperty('--dino-seek-duration');
             stage.style.transform = '';
             food.classList.remove('is-ready', 'is-eaten');
+            restartRouteAnimation();
         };
 
         const placeFood = event => {
@@ -6911,12 +7084,22 @@
                     food.classList.remove('is-ready', 'is-eaten');
                 }, 620);
 
-                resumeTimer = window.setTimeout(resumeRoute, 980);
+                resumeTimer = window.setTimeout(() => resumeRoute(targetLeft, targetTop), 980);
             }, duration + 80);
         };
 
         feedZone.addEventListener('dblclick', placeFood);
+        runner.addEventListener('animationiteration', event => {
+            if (event.target !== runner || event.animationName !== 'dashboardDinoCardHop')
+                return;
 
+            if (runner.classList.contains('is-seeking-food') || runner.classList.contains('is-eating'))
+                return;
+
+            applyDefaultRouteStart();
+        });
+
+        applyStoredRouteStart();
         sync();
         window.setInterval(sync, syncIntervalMs);
         document.addEventListener('visibilitychange', () => {

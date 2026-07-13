@@ -308,6 +308,8 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-sidebar-panel", ToRgba(theme.SidebarHex, .96));
             AppendVar(sb, "--pt-sidebar-contrast", sidebarContrast);
             AppendVar(sb, "--pt-sidebar-contrast-muted", ToRgba(sidebarContrast, .76));
+            AppendVar(sb, "--pt-report-head-text", theme.TextHex);
+            AppendVar(sb, "--pt-report-head-border", ToRgba(theme.TextHex, .34));
             AppendVar(sb, "--pt-body-bg", theme.BodyBgHex);
             AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
             AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
@@ -390,12 +392,11 @@ namespace ProjectTracking.Services
             sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-track {{ background: transparent !important; border-radius: 999px !important; }}");
             sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-thumb {{ background: var(--pt-accent-dark) !important; border: 1px solid transparent !important; background-clip: content-box !important; border-radius: 999px !important; }}");
             sb.AppendLine($"{dropdownScrollbarSelector}::-webkit-scrollbar-thumb:hover {{ background: var(--pt-accent) !important; background-clip: content-box !important; }}");
-            sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link.active-menu, .btn-primary, .system-update-ack { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
+            sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link.active-menu { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
             sb.AppendLine(".navbar.navbar-dark .navbar-nav .nav-link:hover, .navbar.navbar-dark .navbar-nav .nav-link:focus, .navbar.navbar-dark .navbar-nav .show > .nav-link { background: var(--pt-accent-soft) !important; }");
-            sb.AppendLine(".btn-info, .bg-info, .form-check-input:checked, .active > .page-link, .page-link.active { background-color: var(--pt-accent) !important; border-color: var(--pt-accent) !important; color: var(--pt-accent-contrast) !important; }");
-            sb.AppendLine(".btn-outline-info, .btn-outline-primary, .page-link, .footer-modern .footer-brand, .btn-logout { color: var(--pt-accent-dark) !important; border-color: var(--pt-accent) !important; }");
-            sb.AppendLine(".form-control:focus, .form-select:focus, .btn:focus, .btn:active:focus, .form-check-input:focus { border-color: var(--pt-accent) !important; box-shadow: 0 0 0 4px var(--pt-accent-soft) !important; }");
-            sb.AppendLine(".pt-swal-confirm { background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important; color: var(--pt-accent-contrast) !important; }");
+            sb.AppendLine(".bg-info, .form-check-input:checked { background-color: var(--pt-accent) !important; border-color: var(--pt-accent) !important; color: var(--pt-accent-contrast) !important; }");
+            sb.AppendLine(".footer-modern .footer-brand { color: var(--pt-accent-dark) !important; border-color: var(--pt-accent) !important; }");
+            sb.AppendLine(".form-control:focus, .form-select:focus, .form-check-input:focus { border-color: var(--pt-accent) !important; box-shadow: 0 0 0 4px var(--pt-accent-soft) !important; }");
             sb.AppendLine(@"
 .v2-shell,
 .v2-page {
@@ -497,20 +498,6 @@ main > .container-fluid:first-child > :is(h1, h2, h3):first-child,
     opacity: .86;
 }
 
-.index-actions :is(.btn, .btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px var(--pt-shadow) !important;
-}
-
-.index-actions :is(.btn-primary, .btn-info, .btn-success, .btn-light),
-.index-actions :is(.btn, .btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light):hover {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-}
-
 main :is(.card, .table-responsive):not(.glass-panel):not(.kpi-card):not(.project-overview-table) {
     background: var(--pt-surface) !important;
     border-color: var(--pt-border) !important;
@@ -574,23 +561,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .dashboard-global-search input:focus {
     border-color: var(--pt-accent) !important;
     box-shadow: 0 14px 30px var(--pt-accent-soft), 0 0 0 3px var(--pt-accent-soft) !important;
-}
-
-.dashboard-global-search-icon,
-.dashboard-view .top-icon-button {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: 0 12px 24px var(--pt-accent-soft), inset 0 1px 0 rgba(255,255,255,.18) !important;
-}
-
-.dashboard-global-search-clear,
-.dashboard-online-users,
-.dashboard-view :is(.dashboard-global-tool, .dashboard-global-tool.notification, .dashboard-global-tool.open-work, .dashboard-global-tool.attendance) {
-    color: var(--pt-accent-dark) !important;
-    background: var(--pt-field-bg) !important;
-    border-color: var(--pt-border) !important;
-    box-shadow: 0 10px 20px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.50) !important;
 }
 
 .dashboard-view :is(.glass-panel, .panel-project-overview) {
@@ -664,20 +634,6 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 
 .dashboard-view :is(.overview-mini-head small, .project-status-updated, .owner-overview-y-axis, .owner-overview-y-title, .owner-overview-member small, .owner-overview-footer, .dashboard-section-foot, .meeting-row small, .activity-row small, .activity-row em, .workload-row .workload-name small, .time-detail-grid small) {
     color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .dashboard-action-link, .panel-filter) {
-    color: var(--pt-chart-panel-contrast) !important;
-    background:
-        radial-gradient(circle at 24% 20%, var(--pt-chart-panel-glow), transparent 48%),
-        linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 22px var(--pt-shadow) !important;
-}
-
-.dashboard-view :is(.project-overview-action, .project-overview-action.team, .overview-detail-btn, .overview-detail-btn.green, .overview-detail-btn.orange, .dashboard-action-link, .panel-filter):hover {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
 }
 
 .dashboard-view .project-overview-search input {
@@ -954,28 +910,6 @@ main.route-controller-meetings .calendar-heading__eyebrow {
     opacity: .82;
 }
 
-main.route-controller-meetings :is(.calendar-heading__action, .fc .fc-button-primary, .btn-primary) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
-    border-color: transparent !important;
-    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
-}
-
-main.route-controller-meetings :is(.calendar-heading__action:not(.primary), .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border-strong) !important;
-}
-
-main.route-controller-meetings .fc .fc-button-primary:not(:disabled).fc-button-active,
-main.route-controller-meetings .fc .fc-button-primary:not(:disabled):active,
-main.route-controller-meetings .fc .fc-button-primary:not(:disabled):hover,
-main.route-controller-meetings .fc .fc-button-primary:not(:disabled):focus {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-chart-primary-light), var(--pt-chart-primary-dark)) !important;
-    border-color: transparent !important;
-}
-
 main.route-controller-meetings .calendar-card__body {
     background: var(--pt-body-bg-soft) !important;
 }
@@ -1126,19 +1060,6 @@ main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-her
     color: var(--pt-sidebar-contrast-muted) !important;
 }
 
-main.route-controller-projectissues :is(.issue-hero-actions, .dev-hero-actions, .index-actions) :is(.btn, .btn-primary, .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px var(--pt-shadow) !important;
-}
-
-main.route-controller-projectissues :is(.issue-hero-actions, .dev-hero-actions, .index-actions) :is(.btn-primary, .btn:hover, .btn:focus) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-}
-
 main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead,
 main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead th {
     color: var(--pt-sidebar-contrast) !important;
@@ -1163,19 +1084,6 @@ main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is
     color: var(--pt-sidebar-contrast-muted) !important;
 }
 
-main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-actions, .support-detail-actions, .support-dev-actions) :is(.btn, .btn-primary, .btn-outline-light, .btn-outline-secondary, .btn-outline-primary) {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border-strong) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 20px var(--pt-shadow) !important;
-}
-
-main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-actions, .support-detail-actions, .support-dev-actions) :is(.btn-primary, .btn:hover, .btn:focus) {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-}
-
 main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead,
 main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead th {
     color: var(--pt-sidebar-contrast) !important;
@@ -1185,9 +1093,12 @@ main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is
 
 main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead,
 main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead th {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
+    color: var(--pt-report-head-text) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: var(--pt-report-head-border) !important;
+    border-width: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--pt-report-head-border) !important;
 }
 
 main.route-controller-reports .report-center-hero,
@@ -1216,29 +1127,16 @@ main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-
     color: var(--pt-sidebar-contrast-muted) !important;
 }
 
-main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-btn, .report-btn),
-main.route-controller-projectstatus .project-status-header.index-hero .status-back-link {
-    color: var(--pt-sidebar-contrast) !important;
-    background: var(--pt-accent-soft) !important;
-    border-color: var(--pt-border-strong) !important;
-}
-
-main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-btn.primary, .report-btn.primary, .weekly-btn:hover, .report-btn:hover),
-main.route-controller-projectstatus .project-status-header.index-hero .status-back-link:hover,
-main.route-controller-projectstatus .project-status-header.index-hero .status-back-link:focus {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    border-color: transparent !important;
-    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
-}
-
 main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead,
 main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead th {
-    --bs-table-bg: var(--pt-sidebar-bg) !important;
-    --bs-table-color: var(--pt-sidebar-contrast) !important;
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--pt-report-head-text) !important;
+    color: var(--pt-report-head-text) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: var(--pt-report-head-border) !important;
+    border-width: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--pt-report-head-border) !important;
 }
 
 body.pt-standalone-report {
@@ -1260,9 +1158,12 @@ body.pt-standalone-report .print-header :is(h1, h2, h3, div, p, span, strong, b)
 
 body.pt-standalone-report table thead,
 body.pt-standalone-report table thead th {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
+    color: var(--pt-report-head-text) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: var(--pt-report-head-border) !important;
+    border-width: 2px !important;
+    box-shadow: inset 0 -2px 0 var(--pt-report-head-border) !important;
 }
 
 @media print {
@@ -1318,13 +1219,6 @@ main.route-controller-phaseworkload .workload-calendar-date {
     box-shadow: 0 12px 26px var(--pt-shadow) !important;
 }
 
-main.route-controller-phaseworkload .workload-calendar-action {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
-    border-color: transparent !important;
-    box-shadow: 0 10px 20px var(--pt-accent-soft) !important;
-}
-
 main.route-controller-phaseworkload :is(.filter-toolbar, .workload-table-topbar) {
     color: var(--pt-chart-panel-contrast) !important;
 }
@@ -1358,17 +1252,6 @@ main.route-controller-phaseworkload .workload-view-tabs {
 
 main.route-controller-phaseworkload .workload-view-tab {
     color: var(--pt-chart-panel-contrast) !important;
-}
-
-main.route-controller-phaseworkload .workload-view-tab:hover {
-    color: var(--pt-accent-dark) !important;
-    background: var(--pt-accent-soft) !important;
-}
-
-main.route-controller-phaseworkload .workload-view-tab.is-active {
-    color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
-    box-shadow: 0 8px 16px var(--pt-accent-soft) !important;
 }
 
 main.route-controller-phaseworkload .workload-status-row-title {

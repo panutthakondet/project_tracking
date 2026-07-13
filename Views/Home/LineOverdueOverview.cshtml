@@ -95,10 +95,16 @@
     }
 
     .overdue-overview-kpi {
+        --overview-tone: #22c7b8;
+        --overview-soft: rgba(34, 199, 184, .18);
+        --overview-faint: rgba(34, 199, 184, .045);
         padding: 16px;
         border-radius: 16px;
-        background: #fff;
         border: 1px solid #d8e3ef;
+        border-color: color-mix(in srgb, var(--overview-tone) 22%, #d8e3ef);
+        border-left: 5px solid var(--overview-tone);
+        background:
+            linear-gradient(90deg, var(--overview-soft) 0%, var(--overview-faint) 42%, #fff 100%);
         box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
     }
 
@@ -117,6 +123,21 @@
         margin-top: 8px;
     }
 
+    .overdue-overview-kpi.danger {
+        --overview-tone: #f43f5e;
+        --overview-soft: rgba(244, 63, 94, .18);
+        --overview-faint: rgba(244, 63, 94, .045);
+    }
+    .overdue-overview-kpi.warning {
+        --overview-tone: #f59e0b;
+        --overview-soft: rgba(245, 158, 11, .2);
+        --overview-faint: rgba(245, 158, 11, .055);
+    }
+    .overdue-overview-kpi.done {
+        --overview-tone: #10b981;
+        --overview-soft: rgba(16, 185, 129, .18);
+        --overview-faint: rgba(16, 185, 129, .045);
+    }
     .overdue-overview-kpi.danger strong { color: #dc2626; }
     .overdue-overview-kpi.warning strong { color: #d97706; }
     .overdue-overview-kpi.done strong { color: #16a34a; }
@@ -210,17 +231,22 @@
     }
 
     .overdue-overview-card {
+        --overview-tone: #22c7b8;
+        --overview-soft: rgba(34, 199, 184, .16);
+        --overview-faint: rgba(34, 199, 184, .04);
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
         gap: 14px;
         align-items: start;
-        background: #fff;
         border: 1px solid #dbe6f3;
-        border-left: 6px solid #22c7b8;
+        border-color: color-mix(in srgb, var(--overview-tone) 20%, #dbe6f3);
+        border-left: 6px solid var(--overview-tone);
         border-radius: 20px;
         padding: 14px 16px;
         color: #10223e;
         text-decoration: none;
+        background:
+            linear-gradient(90deg, var(--overview-soft) 0%, var(--overview-faint) 36%, #fff 100%);
         box-shadow: 0 12px 26px rgba(15, 40, 74, .08);
         transition: transform .18s ease, box-shadow .18s ease;
         font-size: 1rem;
@@ -228,15 +254,21 @@
     }
 
     .overdue-overview-card.danger {
-        border-left-color: #f43f5e;
+        --overview-tone: #f43f5e;
+        --overview-soft: rgba(244, 63, 94, .16);
+        --overview-faint: rgba(244, 63, 94, .04);
     }
 
     .overdue-overview-card.warning {
-        border-left-color: #f59e0b;
+        --overview-tone: #f59e0b;
+        --overview-soft: rgba(245, 158, 11, .18);
+        --overview-faint: rgba(245, 158, 11, .05);
     }
 
     .overdue-overview-card.done {
-        border-left-color: #10b981;
+        --overview-tone: #10b981;
+        --overview-soft: rgba(16, 185, 129, .16);
+        --overview-faint: rgba(16, 185, 129, .04);
     }
 
     .overdue-overview-card:hover {
