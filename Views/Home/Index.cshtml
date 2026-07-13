@@ -281,43 +281,7 @@
             <span class="dino-food-icon" aria-hidden="true"></span>
             <span class="dino-food-meter" data-dino-meter aria-hidden="true"></span>
         </button>
-        <span class="dashboard-dino-runner is-card-1" aria-hidden="true">
-            <span class="dashboard-dino">
-                <span class="dino-tail"></span>
-                <span class="dino-body"></span>
-                <span class="dino-neck"></span>
-                <span class="dino-head"></span>
-                <span class="dino-eye"></span>
-                <span class="dino-arm"></span>
-                <span class="dino-leg dino-leg-a"></span>
-                <span class="dino-leg dino-leg-b"></span>
-            </span>
-        </span>
-        <span class="dashboard-dino-runner is-card-2" aria-hidden="true">
-            <span class="dashboard-dino">
-                <span class="dino-tail"></span>
-                <span class="dino-body"></span>
-                <span class="dino-neck"></span>
-                <span class="dino-head"></span>
-                <span class="dino-eye"></span>
-                <span class="dino-arm"></span>
-                <span class="dino-leg dino-leg-a"></span>
-                <span class="dino-leg dino-leg-b"></span>
-            </span>
-        </span>
-        <span class="dashboard-dino-runner is-card-3" aria-hidden="true">
-            <span class="dashboard-dino">
-                <span class="dino-tail"></span>
-                <span class="dino-body"></span>
-                <span class="dino-neck"></span>
-                <span class="dino-head"></span>
-                <span class="dino-eye"></span>
-                <span class="dino-arm"></span>
-                <span class="dino-leg dino-leg-a"></span>
-                <span class="dino-leg dino-leg-b"></span>
-            </span>
-        </span>
-        <span class="dashboard-dino-runner is-card-4" aria-hidden="true">
+        <span class="dashboard-dino-runner" aria-hidden="true">
             <span class="dashboard-dino">
                 <span class="dino-tail"></span>
                 <span class="dino-body"></span>
@@ -1203,8 +1167,8 @@
     --dino-width: var(--dashboard-dino-width);
     --dino-height: var(--dashboard-dino-height);
     position:absolute;
-    top:var(--dashboard-dino-top);
-    left:var(--dashboard-dino-start);
+    top:var(--dashboard-dino-card-1-top);
+    left:var(--dashboard-dino-card-1-start);
     z-index:8;
     width:var(--dino-width);
     height:var(--dino-height);
@@ -1213,8 +1177,8 @@
     justify-content:center;
     color:var(--pt-dino-color, rgba(255,255,255,.96));
     pointer-events:none;
-    animation:dashboardDinoWalk 30s linear infinite;
-    will-change:left, transform;
+    animation:dashboardDinoCardHop 42s linear infinite;
+    will-change:left, top, transform;
 }
 
 .dashboard-dino {
@@ -1305,26 +1269,121 @@
     animation:dashboardDinoLegB .5s steps(1, end) infinite;
 }
 
-@@keyframes dashboardDinoWalk {
+@@keyframes dashboardDinoCardHop {
     0% {
-        left:var(--dashboard-dino-start);
-        transform:scaleX(1);
+        left:var(--dashboard-dino-card-1-start);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(0) scaleX(1);
     }
-    49.9% {
-        left:var(--dashboard-dino-end);
-        transform:scaleX(1);
+    10% {
+        left:var(--dashboard-dino-card-1-end);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(0) scaleX(1);
+    }
+    12% {
+        left:var(--dashboard-dino-card-2-start);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(-24px) scaleX(1);
+    }
+    14% {
+        left:var(--dashboard-dino-card-2-start);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(0) scaleX(1);
+    }
+    24% {
+        left:var(--dashboard-dino-card-2-end);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(0) scaleX(1);
+    }
+    26% {
+        left:var(--dashboard-dino-card-3-start);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(-24px) scaleX(1);
+    }
+    28% {
+        left:var(--dashboard-dino-card-3-start);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(0) scaleX(1);
+    }
+    38% {
+        left:var(--dashboard-dino-card-3-end);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(0) scaleX(1);
+    }
+    40% {
+        left:var(--dashboard-dino-card-4-start);
+        top:var(--dashboard-dino-card-4-top);
+        transform:translateY(-24px) scaleX(1);
+    }
+    42% {
+        left:var(--dashboard-dino-card-4-start);
+        top:var(--dashboard-dino-card-4-top);
+        transform:translateY(0) scaleX(1);
     }
     50% {
-        left:var(--dashboard-dino-end);
-        transform:scaleX(-1);
+        left:var(--dashboard-dino-card-4-end);
+        top:var(--dashboard-dino-card-4-top);
+        transform:translateY(0) scaleX(1);
     }
-    99.9% {
-        left:var(--dashboard-dino-start);
-        transform:scaleX(-1);
+    50.01% {
+        left:var(--dashboard-dino-card-4-end);
+        top:var(--dashboard-dino-card-4-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    58% {
+        left:var(--dashboard-dino-card-4-start);
+        top:var(--dashboard-dino-card-4-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    60% {
+        left:var(--dashboard-dino-card-3-end);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(-24px) scaleX(-1);
+    }
+    62% {
+        left:var(--dashboard-dino-card-3-end);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    72% {
+        left:var(--dashboard-dino-card-3-start);
+        top:var(--dashboard-dino-card-3-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    74% {
+        left:var(--dashboard-dino-card-2-end);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(-24px) scaleX(-1);
+    }
+    76% {
+        left:var(--dashboard-dino-card-2-end);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    86% {
+        left:var(--dashboard-dino-card-2-start);
+        top:var(--dashboard-dino-card-2-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    88% {
+        left:var(--dashboard-dino-card-1-end);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(-24px) scaleX(-1);
+    }
+    90% {
+        left:var(--dashboard-dino-card-1-end);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(0) scaleX(-1);
+    }
+    99.99% {
+        left:var(--dashboard-dino-card-1-start);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(0) scaleX(-1);
     }
     100% {
-        left:var(--dashboard-dino-start);
-        transform:scaleX(1);
+        left:var(--dashboard-dino-card-1-start);
+        top:var(--dashboard-dino-card-1-top);
+        transform:translateY(0) scaleX(1);
     }
 }
 
@@ -1986,33 +2045,6 @@
     gap:18px;
     margin-top:42px;
     margin-bottom:20px;
-}
-
-.dashboard-dino-runner.is-card-1 {
-    --dashboard-dino-top:var(--dashboard-dino-card-1-top);
-    --dashboard-dino-start:var(--dashboard-dino-card-1-start);
-    --dashboard-dino-end:var(--dashboard-dino-card-1-end);
-}
-
-.dashboard-dino-runner.is-card-2 {
-    --dashboard-dino-top:var(--dashboard-dino-card-2-top);
-    --dashboard-dino-start:var(--dashboard-dino-card-2-start);
-    --dashboard-dino-end:var(--dashboard-dino-card-2-end);
-    animation-delay:-8s;
-}
-
-.dashboard-dino-runner.is-card-3 {
-    --dashboard-dino-top:var(--dashboard-dino-card-3-top);
-    --dashboard-dino-start:var(--dashboard-dino-card-3-start);
-    --dashboard-dino-end:var(--dashboard-dino-card-3-end);
-    animation-delay:-16s;
-}
-
-.dashboard-dino-runner.is-card-4 {
-    --dashboard-dino-top:var(--dashboard-dino-card-4-top);
-    --dashboard-dino-start:var(--dashboard-dino-card-4-start);
-    --dashboard-dino-end:var(--dashboard-dino-card-4-end);
-    animation-delay:-24s;
 }
 
 .kpi-card {
