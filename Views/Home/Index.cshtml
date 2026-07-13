@@ -835,20 +835,12 @@
                 </div>
                 <div class="task-progress-summary" aria-label="สรุปสถานะงานรายปี">
                     <div class="task-summary-card completed">
-                        <span class="task-summary-dot"></span>
-                        <span>
-                            <b>Completed</b>
-                            <strong>@yearlyCompletedTotal</strong>
-                            <em>งาน</em>
-                        </span>
+                        <b>Completed</b>
+                        <strong>@yearlyCompletedTotal</strong>
                     </div>
                     <div class="task-summary-card progress">
-                        <span class="task-summary-dot"></span>
-                        <span>
-                            <b>In Progress</b>
-                            <strong>@yearlyInProgressTotal</strong>
-                            <em>งาน</em>
-                        </span>
+                        <b>In Progress</b>
+                        <strong>@yearlyInProgressTotal</strong>
                     </div>
                 </div>
             </div>
@@ -2772,10 +2764,10 @@
 .task-summary-card {
     min-width:156px;
     min-height:58px;
-    display:grid;
-    grid-template-columns:26px minmax(0, 1fr);
+    display:inline-flex;
     align-items:center;
-    gap:10px;
+    justify-content:center;
+    gap:14px;
     padding:9px 14px;
     border-radius:13px;
     color:#fff;
@@ -2784,46 +2776,36 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 24px rgba(2,8,23,.18);
 }
 
-.task-summary-dot {
-    width:13px;
-    height:13px;
-    border-radius:50%;
-    background:#10d58f;
-    box-shadow:0 0 18px rgba(16,213,143,.5);
-}
-
-.task-summary-card.progress .task-summary-dot {
-    background:#1688f5;
-    box-shadow:0 0 18px rgba(22,136,245,.5);
-}
-
 .task-summary-card b {
-    display:block;
+    order:2;
+    min-width:0;
     color:#f8fbff;
     font-size:13px;
     font-weight:900;
     line-height:1.1;
+    white-space:nowrap;
 }
 
 .task-summary-card strong {
-    display:inline-block;
-    margin-top:5px;
-    color:#10d58f;
-    font-size:22px;
+    order:1;
+    min-width:46px;
+    padding:0 10px;
+    height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#062b19;
+    background:#74d947;
+    font-size:18px;
     line-height:1;
     font-weight:1000;
+    box-shadow:0 10px 20px rgba(116,217,71,.18);
 }
 
 .task-summary-card.progress strong {
-    color:#1688f5;
-}
-
-.task-summary-card em {
-    margin-left:6px;
-    color:#b8c7e4;
-    font-size:12px;
-    font-style:normal;
-    font-weight:800;
+    color:#061f3b;
+    background:#2d9cf0;
+    box-shadow:0 10px 20px rgba(45,156,240,.18);
 }
 
 .panel-head {
@@ -2907,6 +2889,9 @@
 }
 
 .project-overview-action {
+    --dashboard-action-bg: linear-gradient(135deg, #3157d7 0%, #243fae 100%);
+    --dashboard-action-border: #5f83ff;
+    --dashboard-action-shadow: rgba(37,99,235,.22);
     width:150px;
     min-width:150px;
     height:46px;
@@ -2919,8 +2904,8 @@
     gap:9px;
     padding:0 18px !important;
     border-radius:14px !important;
-    background:linear-gradient(135deg, rgba(31,74,205,.96), rgba(34,67,168,.9)) !important;
-    border:2px solid rgba(83,139,255,.86) !important;
+    background:var(--dashboard-action-bg) !important;
+    border:2px solid var(--dashboard-action-border) !important;
     color:#f7fbff !important;
     font-size:14px !important;
     font-weight:900 !important;
@@ -2929,20 +2914,25 @@
     white-space:nowrap;
     box-shadow:
         0 0 0 1px rgba(147,197,253,.18),
-        0 16px 28px rgba(37,99,235,.2),
+        0 16px 28px var(--dashboard-action-shadow),
         inset 0 1px 0 rgba(255,255,255,.2);
 }
 
 .project-overview-action.team {
-    background:linear-gradient(135deg, rgba(13,148,136,.94), rgba(16,121,111,.88)) !important;
-    border-color:rgba(45,212,191,.82) !important;
+    --dashboard-action-bg: linear-gradient(135deg, #2c9d93 0%, #207f78 100%);
+    --dashboard-action-border: #45d8c7;
+    --dashboard-action-shadow: rgba(20,184,166,.2);
     box-shadow:
         0 0 0 1px rgba(153,246,228,.14),
-        0 16px 28px rgba(20,184,166,.18),
+        0 16px 28px var(--dashboard-action-shadow),
         inset 0 1px 0 rgba(255,255,255,.18);
 }
 
-.project-overview-action:hover {
+.project-overview-action:hover,
+.project-overview-action:focus-visible {
+    background:var(--dashboard-action-bg) !important;
+    border-color:var(--dashboard-action-border) !important;
+    color:#f7fbff !important;
     transform:translateY(-1px);
     filter:brightness(1.05);
 }
@@ -3787,11 +3777,11 @@
 }
 
 .panel-line-overdue .line-overdue-donut > div {
-    width:108px;
+    width:138px;
 }
 
 .panel-line-overdue .line-overdue-donut strong {
-    font-size:38px;
+    font-size:34px;
 }
 
 .panel-line-overdue .line-overdue-metric-list {
@@ -5493,7 +5483,7 @@
     place-self:center;
     border-radius:50%;
     background:
-        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 35%, transparent 36%),
+        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 47%, transparent 48%),
         var(--donut);
     filter:drop-shadow(0 0 26px rgba(16,213,143,.24));
 }
@@ -5505,8 +5495,8 @@
     border-radius:50%;
     background:var(--donut);
     box-shadow:0 0 42px rgba(16,213,143,.34), inset 0 8px 20px rgba(255,255,255,.14), inset 0 -22px 28px rgba(1,55,48,.35);
-    -webkit-mask:radial-gradient(circle, transparent 0 42%, #000 43%);
-    mask:radial-gradient(circle, transparent 0 42%, #000 43%);
+    -webkit-mask:radial-gradient(circle, transparent 0 55%, #000 56%);
+    mask:radial-gradient(circle, transparent 0 55%, #000 56%);
 }
 
 .time-donut > div {
@@ -5710,14 +5700,14 @@
 .panel-time .time-donut {
     width:min(100%, 230px);
     background:
-        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 44%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(4,19,43,.98) 0 47%, transparent 48%),
         var(--donut);
 }
 
 .panel-time .time-donut::before {
     inset:10px;
-    -webkit-mask:radial-gradient(circle, transparent 0 55%, #000 56%);
-    mask:radial-gradient(circle, transparent 0 55%, #000 56%);
+    -webkit-mask:radial-gradient(circle, transparent 0 58%, #000 59%);
+    mask:radial-gradient(circle, transparent 0 58%, #000 59%);
 }
 
 .panel-time .time-donut strong {
@@ -6770,6 +6760,64 @@
 ) {
     width:100% !important;
     height:100% !important;
+}
+
+html body main .dashboard-view .panel-project-overview .project-overview-action.panel-filter.compact {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #345bd7 0%, #243faf 100%) !important;
+    border:2px solid #6687ff !important;
+    box-shadow:
+        0 0 0 2px rgba(122,162,255,.26),
+        0 16px 28px rgba(37,99,235,.22),
+        inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+html body main .dashboard-view .panel-project-overview .project-overview-action.panel-filter.compact.team {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #319f95 0%, #217f78 100%) !important;
+    border:2px solid #48d9c8 !important;
+    box-shadow:
+        0 0 0 2px rgba(94,234,212,.26),
+        0 16px 28px rgba(20,184,166,.20),
+        inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+html body main .dashboard-view .panel-project-overview .project-overview-action.panel-filter.compact:hover,
+html body main .dashboard-view .panel-project-overview .project-overview-action.panel-filter.compact:focus-visible {
+    color:#ffffff !important;
+    filter:brightness(1.05);
+}
+
+html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link) {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #345bd7 0%, #243faf 100%) !important;
+    border:2px solid #6687ff !important;
+    box-shadow:
+        0 0 0 2px rgba(122,162,255,.22),
+        0 16px 28px rgba(37,99,235,.20),
+        inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+html body main .dashboard-view :is(.overview-detail-btn.green, .dashboard-action-link.team) {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #319f95 0%, #217f78 100%) !important;
+    border:2px solid #48d9c8 !important;
+    box-shadow:
+        0 0 0 2px rgba(94,234,212,.22),
+        0 16px 28px rgba(20,184,166,.18),
+        inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+html body main .dashboard-view :is(.overview-detail-btn.orange, .overview-detail-btn.blue) {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #345bd7 0%, #243faf 100%) !important;
+    border-color:#6687ff !important;
+}
+
+html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link):hover,
+html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link):focus-visible {
+    color:#ffffff !important;
+    filter:brightness(1.05);
 }
 </style>
 }

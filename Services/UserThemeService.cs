@@ -598,7 +598,7 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 
 .dashboard-view .time-donut {
     background:
-        radial-gradient(circle at 50% 50%, var(--pt-chart-panel-center-bg) 0 35%, transparent 36%),
+        radial-gradient(circle at 50% 50%, var(--pt-chart-panel-center-bg) 0 47%, transparent 48%),
         var(--donut) !important;
 }
 
@@ -790,19 +790,13 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     color: var(--pt-chart-panel-contrast) !important;
 }
 
-.dashboard-view .task-summary-card em {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
-.dashboard-view .task-summary-card.completed strong,
-.dashboard-view .task-summary-card.completed .task-summary-dot {
-    color: var(--pt-chart-success) !important;
+.dashboard-view .task-summary-card.completed strong {
+    color: var(--pt-chart-panel-deep) !important;
     background: var(--pt-chart-success) !important;
 }
 
-.dashboard-view .task-summary-card.progress strong,
-.dashboard-view .task-summary-card.progress .task-summary-dot {
-    color: var(--pt-chart-primary) !important;
+.dashboard-view .task-summary-card.progress strong {
+    color: var(--pt-chart-panel-deep) !important;
     background: var(--pt-chart-primary) !important;
 }
 
