@@ -1,4 +1,5 @@
 @model ProjectTracking.ViewModels.HomeDashboardViewModel
+@using Microsoft.AspNetCore.Http
 @using System.Globalization
 @using ProjectTracking.ViewModels
 
@@ -20,6 +21,7 @@
         : new List<RequirementBoardOnlineUserViewModel>();
     var visibleOnlineUsers = onlineUsers.Take(5).ToList();
     var hiddenOnlineCount = Math.Max(0, onlineUsers.Count - visibleOnlineUsers.Count);
+    var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
 
     string SvgNumber(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
@@ -267,7 +269,18 @@
         </div>
     </section>
 
-    <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก">
+    <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก" data-dashboard-dino data-dino-key="ProjectTracking.DashboardDino.@dashboardDinoUserKey">
+        <button type="button"
+                class="dashboard-dino-feed"
+                data-dino-feed
+                aria-label="ให้อาหารไดโนเสาร์"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                title="ให้อาหารไดโนเสาร์">
+            <span class="dino-food-icon" aria-hidden="true"></span>
+            <span class="dino-food-meter" data-dino-meter aria-hidden="true"></span>
+        </button>
         <span class="dashboard-dino-runner is-card-1" aria-hidden="true">
             <span class="dashboard-dino">
                 <span class="dino-tail"></span>
@@ -1101,6 +1114,91 @@
     margin:2px 0 18px;
 }
 
+.dashboard-dino-feed {
+    position:absolute;
+    top:-42px;
+    right:18px;
+    z-index:10;
+    width:46px;
+    height:30px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border:1.5px solid rgba(255,255,255,.28);
+    border-radius:999px;
+    color:rgba(255,255,255,.96);
+    background:linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+    box-shadow:none;
+    cursor:pointer;
+    overflow:hidden;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.dashboard-dino-feed:hover {
+    transform:translateY(-1px);
+    border-color:rgba(255,255,255,.48);
+    background:linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.07));
+}
+
+.dashboard-dino-feed:active {
+    transform:scale(.96);
+}
+
+.dashboard-dino-feed:focus-visible {
+    outline:3px solid rgba(255,255,255,.72);
+    outline-offset:3px;
+}
+
+.dino-food-icon {
+    position:relative;
+    z-index:1;
+    width:18px;
+    height:13px;
+    border:2px solid currentColor;
+    border-top:0;
+    border-radius:0 0 9px 9px;
+}
+
+.dino-food-icon::before {
+    content:"";
+    position:absolute;
+    left:3px;
+    top:-7px;
+    width:10px;
+    height:8px;
+    border-radius:999px 999px 5px 5px;
+    background:currentColor;
+}
+
+.dino-food-icon::after {
+    content:"";
+    position:absolute;
+    right:-5px;
+    top:1px;
+    width:5px;
+    height:5px;
+    border:2px solid currentColor;
+    border-left:0;
+    border-radius:0 999px 999px 0;
+}
+
+.dino-food-meter {
+    position:absolute;
+    left:5px;
+    right:5px;
+    bottom:4px;
+    height:3px;
+    border-radius:999px;
+    background:linear-gradient(90deg, #7bdc49, #45d6c6);
+    transform:scaleX(0);
+    transform-origin:left center;
+    transition:transform 1.2s ease;
+}
+
+.dashboard-dino-feed.is-feeding .dino-food-icon {
+    animation:dashboardDinoFeedPulse .42s ease;
+}
+
 .dashboard-dino-runner {
     --dino-width: var(--dashboard-dino-width);
     --dino-height: var(--dashboard-dino-height);
@@ -1125,6 +1223,9 @@
     height:34px;
     color:inherit;
     image-rendering:pixelated;
+    transform:scale(var(--dashboard-dino-scale));
+    transform-origin:center bottom;
+    transition:transform 1.2s ease;
 }
 
 .dashboard-dino > span {
@@ -1237,10 +1338,17 @@
     50%, 100% { transform:translate(0, 0); height:8px; }
 }
 
+@@keyframes dashboardDinoFeedPulse {
+    0% { transform:translateY(0) scale(1); }
+    40% { transform:translateY(-2px) scale(1.12); }
+    100% { transform:translateY(0) scale(1); }
+}
+
 @@media (prefers-reduced-motion: reduce) {
     .dashboard-dino-runner,
     .dino-leg-a,
-    .dino-leg-b {
+    .dino-leg-b,
+    .dashboard-dino-feed.is-feeding .dino-food-icon {
         animation:none;
     }
 }
@@ -1854,6 +1962,8 @@
     --dashboard-dino-height:34px;
     --dashboard-dino-inset:18px;
     --dashboard-dino-edge-top:calc((var(--dashboard-dino-height) * -1) + 2px);
+    --dashboard-dino-growth:0;
+    --dashboard-dino-scale:calc(1 + (var(--dashboard-dino-growth) * .55));
     --kpi-grid-gap:18px;
     --kpi-card-min-height:176px;
     --dashboard-dino-card-width:calc((100% - (var(--kpi-grid-gap) * 3)) / 4);
@@ -6558,6 +6668,99 @@
         const reveal = () => dashboard.classList.remove('is-loading');
         requestAnimationFrame(() => requestAnimationFrame(reveal));
         window.setTimeout(reveal, 180);
+    })();
+
+    (() => {
+        const habitat = document.querySelector('[data-dashboard-dino]');
+        if (!habitat) return;
+
+        const feedButton = habitat.querySelector('[data-dino-feed]');
+        const meter = habitat.querySelector('[data-dino-meter]');
+        if (!feedButton) return;
+
+        const storageKey = habitat.dataset.dinoKey || 'ProjectTracking.DashboardDino.guest';
+        const maxFood = 100;
+        const feedAmount = 18;
+        const decayPerMinute = 7;
+        const syncIntervalMs = 10000;
+        let memoryState = { level: 0, updatedAt: Date.now() };
+
+        const clampLevel = value => Math.max(0, Math.min(maxFood, Number.isFinite(value) ? value : 0));
+
+        const readState = () => {
+            try {
+                const stored = window.localStorage?.getItem(storageKey);
+                if (!stored) return memoryState;
+
+                const parsed = JSON.parse(stored);
+                return {
+                    level: clampLevel(Number(parsed.level)),
+                    updatedAt: Number(parsed.updatedAt) || Date.now()
+                };
+            } catch {
+                return memoryState;
+            }
+        };
+
+        const writeState = state => {
+            memoryState = state;
+            try {
+                window.localStorage?.setItem(storageKey, JSON.stringify(state));
+            } catch {
+                // localStorage can be unavailable in private or locked-down browsers.
+            }
+        };
+
+        const decayedLevel = (state, at) => {
+            const updatedAt = Number(state.updatedAt) || at;
+            const elapsedMs = Math.max(0, at - updatedAt);
+            const decay = elapsedMs / 60000 * decayPerMinute;
+            return clampLevel(clampLevel(Number(state.level)) - decay);
+        };
+
+        const render = level => {
+            const safeLevel = clampLevel(level);
+            const ratio = safeLevel / maxFood;
+            const ratioText = ratio.toFixed(3);
+
+            habitat.style.setProperty('--dashboard-dino-growth', ratioText);
+            habitat.classList.toggle('is-dino-fed', safeLevel > 1);
+            feedButton.setAttribute('aria-valuenow', String(Math.round(safeLevel)));
+
+            if (meter) {
+                meter.style.transform = `scaleX(${ratioText})`;
+            }
+        };
+
+        const sync = () => {
+            const at = Date.now();
+            const level = decayedLevel(readState(), at);
+            const state = { level, updatedAt: at };
+            render(level);
+            writeState(state);
+        };
+
+        feedButton.addEventListener('click', () => {
+            const at = Date.now();
+            const level = clampLevel(decayedLevel(readState(), at) + feedAmount);
+            const state = { level, updatedAt: at };
+
+            writeState(state);
+            render(level);
+            feedButton.classList.remove('is-feeding');
+            void feedButton.offsetWidth;
+            feedButton.classList.add('is-feeding');
+        });
+
+        feedButton.addEventListener('animationend', () => {
+            feedButton.classList.remove('is-feeding');
+        });
+
+        sync();
+        window.setInterval(sync, syncIntervalMs);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sync();
+        });
     })();
 
     (() => {

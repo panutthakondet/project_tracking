@@ -339,10 +339,10 @@ namespace ProjectTracking.Services
             sb.AppendLine("@media (min-width: 768px) { html { font-size: calc(16px * var(--pt-user-font-scale)); } }");
             sb.AppendLine("body { background: var(--pt-body-bg) !important; color: var(--pt-text) !important; }");
             sb.AppendLine(theme.ProfileBallEnabled
-                ? ".dashboard-view .dashboard-dino-runner { display: flex !important; }"
-                : ".dashboard-view .dashboard-dino-runner { display: none !important; }");
+                ? ".dashboard-view :is(.dashboard-dino-runner, .dashboard-dino-feed) { display: flex !important; }"
+                : ".dashboard-view :is(.dashboard-dino-runner, .dashboard-dino-feed) { display: none !important; }");
             if (theme.ProfileBallEnabled)
-                sb.AppendLine("@media (max-width: 980px) { .dashboard-view .dashboard-dino-runner { display: none !important; } }");
+                sb.AppendLine("@media (max-width: 980px) { .dashboard-view :is(.dashboard-dino-runner, .dashboard-dino-feed) { display: none !important; } }");
             sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");
