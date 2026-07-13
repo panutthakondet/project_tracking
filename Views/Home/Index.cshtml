@@ -22,6 +22,11 @@
     var visibleOnlineUsers = onlineUsers.Take(5).ToList();
     var hiddenOnlineCount = Math.Max(0, onlineUsers.Count - visibleOnlineUsers.Count);
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
+    var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
+    if (string.IsNullOrWhiteSpace(dashboardDinoName))
+    {
+        dashboardDinoName = "Dino";
+    }
 
     string SvgNumber(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
@@ -282,15 +287,18 @@
             <span class="dino-food-meter" data-dino-meter aria-hidden="true"></span>
         </button>
         <span class="dashboard-dino-runner" aria-hidden="true">
-            <span class="dashboard-dino">
-                <span class="dino-tail"></span>
-                <span class="dino-body"></span>
-                <span class="dino-neck"></span>
-                <span class="dino-head"></span>
-                <span class="dino-eye"></span>
-                <span class="dino-arm"></span>
-                <span class="dino-leg dino-leg-a"></span>
-                <span class="dino-leg dino-leg-b"></span>
+            <span class="dashboard-dino-name">@dashboardDinoName</span>
+            <span class="dashboard-dino-stage">
+                <span class="dashboard-dino">
+                    <span class="dino-tail"></span>
+                    <span class="dino-body"></span>
+                    <span class="dino-neck"></span>
+                    <span class="dino-head"></span>
+                    <span class="dino-eye"></span>
+                    <span class="dino-arm"></span>
+                    <span class="dino-leg dino-leg-a"></span>
+                    <span class="dino-leg dino-leg-b"></span>
+                </span>
             </span>
         </span>
         <a class="kpi-card kpi-blue"
@@ -1181,6 +1189,35 @@
     will-change:left, top, transform;
 }
 
+.dashboard-dino-name {
+    position:absolute;
+    left:50%;
+    bottom:30px;
+    max-width:96px;
+    padding:2px 7px;
+    border:1px solid color-mix(in srgb, var(--pt-dino-color, #fff) 58%, transparent);
+    border-radius:999px;
+    color:var(--pt-dino-color, #fff);
+    background:color-mix(in srgb, var(--pt-chart-panel-bg, #041F4E) 88%, transparent);
+    font-size:10px;
+    font-weight:900;
+    line-height:1.2;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    transform:translateX(-50%);
+}
+
+.dashboard-dino-stage {
+    position:relative;
+    display:block;
+    width:46px;
+    height:34px;
+    transform-origin:center bottom;
+    animation:dashboardDinoFace 42s linear infinite;
+}
+
 .dashboard-dino {
     position:relative;
     width:46px;
@@ -1290,117 +1327,124 @@
     0% {
         left:var(--dashboard-dino-card-1-start);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     10% {
         left:var(--dashboard-dino-card-1-end);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     12% {
         left:var(--dashboard-dino-card-2-start);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(-24px) scaleX(1);
+        transform:translateY(-24px);
     }
     14% {
         left:var(--dashboard-dino-card-2-start);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     24% {
         left:var(--dashboard-dino-card-2-end);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     26% {
         left:var(--dashboard-dino-card-3-start);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(-24px) scaleX(1);
+        transform:translateY(-24px);
     }
     28% {
         left:var(--dashboard-dino-card-3-start);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     38% {
         left:var(--dashboard-dino-card-3-end);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     40% {
         left:var(--dashboard-dino-card-4-start);
         top:var(--dashboard-dino-card-4-top);
-        transform:translateY(-24px) scaleX(1);
+        transform:translateY(-24px);
     }
     42% {
         left:var(--dashboard-dino-card-4-start);
         top:var(--dashboard-dino-card-4-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
     }
     50% {
         left:var(--dashboard-dino-card-4-end);
         top:var(--dashboard-dino-card-4-top);
-        transform:translateY(0) scaleX(1);
-    }
-    50.01% {
-        left:var(--dashboard-dino-card-4-end);
-        top:var(--dashboard-dino-card-4-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     58% {
         left:var(--dashboard-dino-card-4-start);
         top:var(--dashboard-dino-card-4-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     60% {
         left:var(--dashboard-dino-card-3-end);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(-24px) scaleX(-1);
+        transform:translateY(-24px);
     }
     62% {
         left:var(--dashboard-dino-card-3-end);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     72% {
         left:var(--dashboard-dino-card-3-start);
         top:var(--dashboard-dino-card-3-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     74% {
         left:var(--dashboard-dino-card-2-end);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(-24px) scaleX(-1);
+        transform:translateY(-24px);
     }
     76% {
         left:var(--dashboard-dino-card-2-end);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     86% {
         left:var(--dashboard-dino-card-2-start);
         top:var(--dashboard-dino-card-2-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     88% {
         left:var(--dashboard-dino-card-1-end);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(-24px) scaleX(-1);
+        transform:translateY(-24px);
     }
     90% {
         left:var(--dashboard-dino-card-1-end);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     99.99% {
         left:var(--dashboard-dino-card-1-start);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0) scaleX(-1);
+        transform:translateY(0);
     }
     100% {
         left:var(--dashboard-dino-card-1-start);
         top:var(--dashboard-dino-card-1-top);
-        transform:translateY(0) scaleX(1);
+        transform:translateY(0);
+    }
+}
+
+@@keyframes dashboardDinoFace {
+    0%, 50% {
+        transform:scaleX(1);
+    }
+    50.01%, 99.99% {
+        transform:scaleX(-1);
+    }
+    100% {
+        transform:scaleX(1);
     }
 }
 
@@ -1427,6 +1471,7 @@
 
 @@media (prefers-reduced-motion: reduce) {
     .dashboard-dino-runner,
+    .dashboard-dino-stage,
     .dino-tail,
     .dino-leg-a,
     .dino-leg-b,

@@ -268,6 +268,22 @@
         margin-top: 14px;
     }
 
+    .dino-name-input {
+        min-height: 52px;
+        padding: 8px 12px;
+        border: 1px solid #dbe4ef;
+        border-radius: 8px;
+        color: #10233f;
+        background: #f8fbff;
+        font-weight: 800;
+        outline: none;
+    }
+
+    .dino-name-input:focus {
+        border-color: var(--pt-accent);
+        box-shadow: 0 0 0 4px var(--pt-accent-soft);
+    }
+
     .font-scale-row {
         display: grid;
         grid-template-columns: 1fr 60px;
@@ -484,6 +500,21 @@
         border: 1px solid rgba(15, 35, 64, .10);
         border-radius: 8px;
         background: color-mix(in srgb, var(--preview-chart-panel, #041F4E) 8%, #fff);
+    }
+
+    .preview-dino-name {
+        max-width: 82px;
+        padding: 2px 7px;
+        border: 1px solid color-mix(in srgb, var(--preview-dino-color, #fff) 58%, transparent);
+        border-radius: 999px;
+        color: var(--preview-dino-color, #fff);
+        background: var(--preview-chart-panel, #041F4E);
+        font-size: .7rem;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .preview-dino {
@@ -755,6 +786,10 @@
 
                     <div class="appearance-controls dino-color-controls">
                         <div class="appearance-field">
+                            <label for="DinoName">Dino Name</label>
+                            <input class="dino-name-input" type="text" id="DinoName" name="DinoName" value="@Model.DinoName" maxlength="24" autocomplete="off" />
+                        </div>
+                        <div class="appearance-field">
                             <label for="DinoColorHex">Dino Color</label>
                             <div class="color-input" data-color-wrap>
                                 <input type="color" id="DinoColor" value="@Model.DinoColorHex" />
@@ -811,6 +846,7 @@
                                     <div class="preview-button is-muted"></div>
                                 </div>
                                 <div class="preview-dino-row" aria-hidden="true">
+                                    <span class="preview-dino-name" id="previewDinoName">@Model.DinoName</span>
                                     <span class="preview-dino"></span>
                                     <span class="preview-food"></span>
                                 </div>
@@ -833,6 +869,8 @@
     const fontScale = document.getElementById('FontScale');
     const fontScaleValue = document.getElementById('FontScaleValue');
     const preview = document.getElementById('appearancePreview');
+    const dinoNameInput = document.getElementById('DinoName');
+    const previewDinoName = document.getElementById('previewDinoName');
     const colorPairs = [
         ['CustomAccentColor', 'CustomAccentHex', true],
         ['CustomSidebarColor', 'CustomSidebarHex', true],
@@ -911,7 +949,9 @@
     }
 
     function currentDinoTheme() {
+        const dinoName = (dinoNameInput?.value || '').trim() || 'Dino';
         return {
+            dinoName: dinoName.length <= 24 ? dinoName : dinoName.slice(0, 24),
             dinoColor: normalizeHex(document.getElementById('DinoColorHex')?.value, '#FFFFFF'),
             dinoFoodColor: normalizeHex(document.getElementById('DinoFoodColorHex')?.value, '#45D6C6')
         };
@@ -994,6 +1034,7 @@
             preview.style.setProperty('--preview-chart-ink', theme.chartPanelContrast);
             preview.style.setProperty('--preview-dino-color', theme.dinoColor);
             preview.style.setProperty('--preview-dino-food-color', theme.dinoFoodColor);
+            if (previewDinoName) previewDinoName.textContent = theme.dinoName;
         }
 
         if (fontScaleValue) fontScaleValue.textContent = Number(fontScale.value).toFixed(2);
@@ -1067,6 +1108,7 @@
 
     customToggle.addEventListener('change', syncCustomState);
     fontScale.addEventListener('input', applyTheme);
+    dinoNameInput?.addEventListener('input', applyTheme);
     syncCustomState();
 })();
 </script>

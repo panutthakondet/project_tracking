@@ -24,6 +24,8 @@ namespace ProjectTracking.ViewModels
         [Range(0.90, 1.15)]
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        [StringLength(24)]
+        public string DinoName { get; set; } = "Dino";
         public string DinoColorHex { get; set; } = "#FFFFFF";
         public string DinoFoodColorHex { get; set; } = "#45D6C6";
         public ResolvedThemeViewModel EffectiveTheme { get; set; } = new();
@@ -39,6 +41,7 @@ namespace ProjectTracking.ViewModels
         public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
+        public string? DinoName { get; set; }
         public string? DinoColorHex { get; set; }
         public string? DinoFoodColorHex { get; set; }
     }

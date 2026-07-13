@@ -33,6 +33,17 @@ namespace ProjectTracking.Controllers
             // ส่งข้อมูลที่จำเป็นให้ View
             // ===============================
             ViewBag.Username = HttpContext.Session.GetString("Username") ?? "-";
+            var themeUserId = HttpContext.Session.GetInt32("UserId");
+            ViewBag.DashboardDinoName = "Dino";
+            if (themeUserId.HasValue)
+            {
+                var dinoName = await _context.UserThemePreferences
+                    .AsNoTracking()
+                    .Where(x => x.UserId == themeUserId.Value)
+                    .Select(x => x.DinoName)
+                    .FirstOrDefaultAsync();
+                ViewBag.DashboardDinoName = NormalizeDashboardDinoName(dinoName);
+            }
 
             // ===============================
             // ⏰ เวลาเข้า-ออกวันนี้
@@ -2645,6 +2656,15 @@ namespace ProjectTracking.Controllers
         private static string Norm(string? value)
         {
             return (value ?? "").Trim().ToUpperInvariant();
+        }
+
+        private static string NormalizeDashboardDinoName(string? value)
+        {
+            var name = (value ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                return "Dino";
+
+            return name.Length <= 24 ? name : name[..24];
         }
 
         private static string ColorByIndex(int index)

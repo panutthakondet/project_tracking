@@ -11,6 +11,7 @@ namespace ProjectTracking.Services
     public class UserThemeService
     {
         public const string DefaultThemeKey = "projecttracking-default";
+        private const string DefaultDinoName = "Dino";
         private const string DefaultDinoColorHex = "#FFFFFF";
         private const string DefaultDinoFoodColorHex = "#45D6C6";
         private readonly AppDbContext _context;
@@ -42,6 +43,7 @@ namespace ProjectTracking.Services
             var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.ChartPanelHex);
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
             var profileBallEnabled = preference?.ProfileBallEnabled ?? false;
+            var dinoName = NormalizeDinoName(preference?.DinoName);
             var dinoColor = NormalizeHexOrDefault(preference?.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(preference?.DinoFoodColorHex, DefaultDinoFoodColorHex);
             var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
@@ -57,6 +59,7 @@ namespace ProjectTracking.Services
                 CustomChartPanelHex = chartPanel,
                 FontScale = fontScale,
                 ProfileBallEnabled = profileBallEnabled,
+                DinoName = dinoName,
                 DinoColorHex = dinoColor,
                 DinoFoodColorHex = dinoFoodColor,
                 EffectiveTheme = resolved
@@ -75,6 +78,7 @@ namespace ProjectTracking.Services
             var sidebar = NormalizeHexOrDefault(model.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(model.CustomBodyBgHex, selectedPreset.BodyBgHex);
             var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.ChartPanelHex);
+            var dinoName = NormalizeDinoName(model.DinoName);
             var dinoColor = NormalizeHexOrDefault(model.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(model.DinoFoodColorHex, DefaultDinoFoodColorHex);
 
@@ -110,6 +114,7 @@ namespace ProjectTracking.Services
             preference.CustomChartPanelHex = model.UseCustom ? chartPanel : null;
             preference.FontScale = fontScale;
             preference.ProfileBallEnabled = model.ProfileBallEnabled;
+            preference.DinoName = dinoName;
             preference.DinoColorHex = dinoColor;
             preference.DinoFoodColorHex = dinoFoodColor;
             preference.UpdatedAt = DateTime.Now;
@@ -1426,6 +1431,15 @@ main.route-controller-phaseworkload :is(.workload-toolbar, .workload-responsive-
             if (value < 0.90m) return 0.90m;
             if (value > 1.15m) return 1.15m;
             return decimal.Round(value, 2);
+        }
+
+        private static string NormalizeDinoName(string? value)
+        {
+            var name = (value ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                return DefaultDinoName;
+
+            return name.Length <= 24 ? name : name[..24];
         }
 
         private static string NormalizeHexOrDefault(string? value, string fallback)

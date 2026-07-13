@@ -1105,6 +1105,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `custom_chart_panel_hex` varchar(7) DEFAULT NULL,
               `font_scale` decimal(4,2) NOT NULL DEFAULT 1.00,
               `profile_ball_enabled` tinyint(1) NOT NULL DEFAULT 0,
+              `dino_name` varchar(24) NOT NULL DEFAULT 'Dino',
               `dino_color_hex` varchar(7) NOT NULL DEFAULT '#FFFFFF',
               `dino_food_color_hex` varchar(7) NOT NULL DEFAULT '#45D6C6',
               `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1154,6 +1155,22 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'user_theme_preferences'
+              AND COLUMN_NAME = 'dino_name';";
+
+        var hasDinoName = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasDinoName)
+        {
+            command.CommandText = @"
+                ALTER TABLE `user_theme_preferences`
+                ADD COLUMN `dino_name` varchar(24) NOT NULL DEFAULT 'Dino' AFTER `profile_ball_enabled`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'user_theme_preferences'
               AND COLUMN_NAME = 'dino_color_hex';";
 
         var hasDinoColorHex = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
@@ -1161,7 +1178,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
         {
             command.CommandText = @"
                 ALTER TABLE `user_theme_preferences`
-                ADD COLUMN `dino_color_hex` varchar(7) NOT NULL DEFAULT '#FFFFFF' AFTER `profile_ball_enabled`;";
+                ADD COLUMN `dino_color_hex` varchar(7) NOT NULL DEFAULT '#FFFFFF' AFTER `dino_name`;";
             await command.ExecuteNonQueryAsync();
         }
 
