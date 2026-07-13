@@ -275,17 +275,11 @@
     </section>
 
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก" data-dashboard-dino data-dino-key="ProjectTracking.DashboardDino.@dashboardDinoUserKey">
-        <button type="button"
-                class="dashboard-dino-feed"
-                data-dino-feed
-                aria-label="ให้อาหารไดโนเสาร์"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow="0"
-                title="ให้อาหารไดโนเสาร์">
-            <span class="dino-food-icon" aria-hidden="true"></span>
-            <span class="dino-food-meter" data-dino-meter aria-hidden="true"></span>
-        </button>
+        <span class="dashboard-dino-feed-zone" data-dino-feed-zone title="ดับเบิลคลิกเพื่อวางขาไก่" aria-hidden="true"></span>
+        <span class="dashboard-dino-food" data-dino-food aria-hidden="true">
+            <span class="dino-food-bone"></span>
+            <span class="dino-food-meat"></span>
+        </span>
         <span class="dashboard-dino-runner" aria-hidden="true">
             <span class="dashboard-dino-name">@dashboardDinoName</span>
             <span class="dashboard-dino-stage">
@@ -1086,89 +1080,83 @@
     margin:2px 0 18px;
 }
 
-.dashboard-dino-feed {
+.dashboard-dino-feed-zone {
     position:absolute;
-    top:-42px;
-    right:18px;
-    z-index:10;
-    width:46px;
-    height:30px;
+    top:-48px;
+    left:0;
+    right:0;
+    z-index:11;
+    height:58px;
     display:none;
-    align-items:center;
-    justify-content:center;
-    border:1.5px solid color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 48%, transparent);
+    cursor:crosshair;
+}
+
+.dashboard-dino-food {
+    position:absolute;
+    z-index:10;
+    left:0;
+    top:0;
+    width:38px;
+    height:26px;
+    display:none;
+    pointer-events:none;
+    transform:translate(-50%, -60%);
+    filter:drop-shadow(0 5px 6px rgba(4, 15, 35, .22));
+}
+
+.dashboard-dino-food.is-ready {
+    display:block;
+    animation:dashboardDinoFoodDrop .28s ease both;
+}
+
+.dashboard-dino-food.is-eaten {
+    animation:dashboardDinoFoodEat .52s ease forwards;
+}
+
+.dino-food-bone {
+    position:absolute;
+    left:4px;
+    top:13px;
+    width:23px;
+    height:6px;
+    border:1px solid rgba(15, 35, 64, .18);
     border-radius:999px;
-    color:var(--pt-dino-food-color, #45D6C6);
-    background:linear-gradient(135deg, var(--pt-dino-food-soft, rgba(69, 214, 198, .24)), rgba(255,255,255,.04));
-    box-shadow:none;
-    cursor:pointer;
-    overflow:hidden;
-    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+    background:#fff;
+    transform:rotate(-18deg);
 }
 
-.dashboard-dino-feed:hover {
-    transform:translateY(-1px);
-    border-color:color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 70%, transparent);
-    background:linear-gradient(135deg, color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 34%, transparent), rgba(255,255,255,.07));
-}
-
-.dashboard-dino-feed:active {
-    transform:scale(.96);
-}
-
-.dashboard-dino-feed:focus-visible {
-    outline:3px solid rgba(255,255,255,.72);
-    outline-offset:3px;
-}
-
-.dino-food-icon {
-    position:relative;
-    z-index:1;
-    width:18px;
-    height:13px;
-    border:2px solid currentColor;
-    border-top:0;
-    border-radius:0 0 9px 9px;
-}
-
-.dino-food-icon::before {
+.dino-food-bone::before,
+.dino-food-bone::after {
     content:"";
     position:absolute;
-    left:3px;
-    top:-7px;
-    width:10px;
+    left:-5px;
+    width:8px;
     height:8px;
-    border-radius:999px 999px 5px 5px;
-    background:currentColor;
+    border:1px solid rgba(15, 35, 64, .14);
+    border-radius:50%;
+    background:#fff;
 }
 
-.dino-food-icon::after {
-    content:"";
+.dino-food-bone::before {
+    top:-5px;
+}
+
+.dino-food-bone::after {
+    bottom:-5px;
+}
+
+.dino-food-meat {
     position:absolute;
-    right:-5px;
-    top:1px;
-    width:5px;
-    height:5px;
-    border:2px solid currentColor;
-    border-left:0;
-    border-radius:0 999px 999px 0;
-}
-
-.dino-food-meter {
-    position:absolute;
-    left:5px;
-    right:5px;
-    bottom:4px;
-    height:3px;
-    border-radius:999px;
-    background:linear-gradient(90deg, var(--pt-dino-food-color, #45D6C6), color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 58%, #fff));
-    transform:scaleX(0);
-    transform-origin:left center;
-    transition:transform 1.2s ease;
-}
-
-.dashboard-dino-feed.is-feeding .dino-food-icon {
-    animation:dashboardDinoFeedPulse .42s ease;
+    right:1px;
+    top:3px;
+    width:19px;
+    height:17px;
+    border:1px solid color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 72%, #10233f);
+    border-radius:68% 48% 62% 50%;
+    background:
+        radial-gradient(circle at 35% 28%, rgba(255,255,255,.46), transparent 22%),
+        linear-gradient(135deg, var(--pt-dino-food-color, #45D6C6), color-mix(in srgb, var(--pt-dino-food-color, #45D6C6) 62%, #9b2d1c));
+    transform:rotate(-18deg);
 }
 
 .dashboard-dino-runner {
@@ -1187,6 +1175,22 @@
     pointer-events:none;
     animation:dashboardDinoCardHop 42s linear infinite;
     will-change:left, top, transform;
+}
+
+.dashboard-dino-runner.is-seeking-food {
+    animation:none !important;
+    transition:
+        left var(--dino-seek-duration, 1800ms) linear,
+        top var(--dino-seek-duration, 1800ms) ease-in-out;
+}
+
+.dashboard-dino-runner.is-seeking-food .dashboard-dino-stage {
+    animation:none !important;
+}
+
+.dashboard-dino-runner.is-eating .dino-head,
+.dashboard-dino-runner.is-eating .dino-neck {
+    animation:dashboardDinoNibble .28s steps(2, end) infinite;
 }
 
 .dashboard-dino-name {
@@ -1473,10 +1477,21 @@
     50% { transform:rotate(-8deg) translateY(-1px); }
 }
 
-@@keyframes dashboardDinoFeedPulse {
-    0% { transform:translateY(0) scale(1); }
-    40% { transform:translateY(-2px) scale(1.12); }
-    100% { transform:translateY(0) scale(1); }
+@@keyframes dashboardDinoFoodDrop {
+    0% { opacity:0; transform:translate(-50%, -110%) scale(.72) rotate(-10deg); }
+    72% { opacity:1; transform:translate(-50%, -56%) scale(1.08) rotate(2deg); }
+    100% { opacity:1; transform:translate(-50%, -60%) scale(1) rotate(0deg); }
+}
+
+@@keyframes dashboardDinoFoodEat {
+    0% { opacity:1; transform:translate(-50%, -60%) scale(1); }
+    55% { opacity:1; transform:translate(-50%, -60%) scale(.58) rotate(-8deg); }
+    100% { opacity:0; transform:translate(-50%, -62%) scale(.1) rotate(-18deg); }
+}
+
+@@keyframes dashboardDinoNibble {
+    0%, 100% { transform:translateY(0); }
+    50% { transform:translateY(2px); }
 }
 
 @@media (prefers-reduced-motion: reduce) {
@@ -1484,8 +1499,7 @@
     .dashboard-dino-stage,
     .dino-tail,
     .dino-leg-a,
-    .dino-leg-b,
-    .dashboard-dino-feed.is-feeding .dino-food-icon {
+    .dino-leg-b {
         animation:none;
     }
 }
@@ -6784,18 +6798,24 @@
         const habitat = document.querySelector('[data-dashboard-dino]');
         if (!habitat) return;
 
-        const feedButton = habitat.querySelector('[data-dino-feed]');
-        const meter = habitat.querySelector('[data-dino-meter]');
-        if (!feedButton) return;
+        const feedZone = habitat.querySelector('[data-dino-feed-zone]');
+        const food = habitat.querySelector('[data-dino-food]');
+        const runner = habitat.querySelector('.dashboard-dino-runner');
+        const stage = habitat.querySelector('.dashboard-dino-stage');
+        if (!feedZone || !food || !runner || !stage) return;
 
         const storageKey = habitat.dataset.dinoKey || 'ProjectTracking.DashboardDino.guest';
         const maxFood = 100;
-        const feedAmount = 18;
+        const feedAmount = 22;
         const decayPerMinute = 7;
         const syncIntervalMs = 10000;
         let memoryState = { level: 0, updatedAt: Date.now() };
+        let seekTimer = null;
+        let eatTimer = null;
+        let resumeTimer = null;
 
         const clampLevel = value => Math.max(0, Math.min(maxFood, Number.isFinite(value) ? value : 0));
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
         const readState = () => {
             try {
@@ -6835,11 +6855,6 @@
 
             habitat.style.setProperty('--dashboard-dino-growth', ratioText);
             habitat.classList.toggle('is-dino-fed', safeLevel > 1);
-            feedButton.setAttribute('aria-valuenow', String(Math.round(safeLevel)));
-
-            if (meter) {
-                meter.style.transform = `scaleX(${ratioText})`;
-            }
         };
 
         const sync = () => {
@@ -6850,21 +6865,81 @@
             writeState(state);
         };
 
-        feedButton.addEventListener('click', () => {
+        const feedDino = () => {
             const at = Date.now();
             const level = clampLevel(decayedLevel(readState(), at) + feedAmount);
             const state = { level, updatedAt: at };
 
             writeState(state);
             render(level);
-            feedButton.classList.remove('is-feeding');
-            void feedButton.offsetWidth;
-            feedButton.classList.add('is-feeding');
-        });
+        };
 
-        feedButton.addEventListener('animationend', () => {
-            feedButton.classList.remove('is-feeding');
-        });
+        const clearSeekTimers = () => {
+            window.clearTimeout(seekTimer);
+            window.clearTimeout(eatTimer);
+            window.clearTimeout(resumeTimer);
+        };
+
+        const resumeRoute = () => {
+            runner.classList.remove('is-seeking-food', 'is-eating');
+            runner.style.left = '';
+            runner.style.top = '';
+            runner.style.transition = '';
+            runner.style.removeProperty('--dino-seek-duration');
+            stage.style.transform = '';
+            food.classList.remove('is-ready', 'is-eaten');
+        };
+
+        const placeFood = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            clearSeekTimers();
+
+            const habitatRect = habitat.getBoundingClientRect();
+            const runnerRect = runner.getBoundingClientRect();
+            const currentLeft = runnerRect.left - habitatRect.left;
+            const currentTop = runnerRect.top - habitatRect.top;
+            const clickX = event.clientX - habitatRect.left;
+            const clickY = event.clientY - habitatRect.top;
+            const foodX = clamp(clickX, 18, habitatRect.width - 18);
+            const foodY = clamp(clickY, -34, 10);
+            const targetLeft = clamp(foodX - runnerRect.width / 2, 0, habitatRect.width - runnerRect.width);
+            const targetTop = clamp(foodY - runnerRect.height + 10, -44, 8);
+            const distance = Math.hypot(targetLeft - currentLeft, targetTop - currentTop);
+            const duration = clamp(distance * 8, 950, 4200);
+
+            food.classList.remove('is-ready', 'is-eaten');
+            food.style.left = `${foodX}px`;
+            food.style.top = `${foodY}px`;
+            void food.offsetWidth;
+            food.classList.add('is-ready');
+
+            runner.classList.remove('is-eating');
+            runner.classList.add('is-seeking-food');
+            runner.style.transition = 'none';
+            runner.style.left = `${currentLeft}px`;
+            runner.style.top = `${currentTop}px`;
+            stage.style.transform = targetLeft >= currentLeft ? 'scaleX(1)' : 'scaleX(-1)';
+            void runner.offsetWidth;
+            runner.style.setProperty('--dino-seek-duration', `${duration}ms`);
+            runner.style.transition = '';
+            runner.style.left = `${targetLeft}px`;
+            runner.style.top = `${targetTop}px`;
+
+            seekTimer = window.setTimeout(() => {
+                runner.classList.add('is-eating');
+                food.classList.add('is-eaten');
+                feedDino();
+
+                eatTimer = window.setTimeout(() => {
+                    food.classList.remove('is-ready', 'is-eaten');
+                }, 620);
+
+                resumeTimer = window.setTimeout(resumeRoute, 980);
+            }, duration + 80);
+        };
+
+        feedZone.addEventListener('dblclick', placeFood);
 
         sync();
         window.setInterval(sync, syncIntervalMs);
