@@ -23,6 +23,7 @@ namespace ProjectTracking.ViewModels
 
         [Range(0.90, 1.15)]
         public decimal FontScale { get; set; } = 1.00m;
+        public bool ProfileBallEnabled { get; set; }
         public ResolvedThemeViewModel EffectiveTheme { get; set; } = new();
     }
 
@@ -35,6 +36,7 @@ namespace ProjectTracking.ViewModels
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
+        public bool ProfileBallEnabled { get; set; }
     }
 
     public class ThemePresetOptionViewModel
@@ -66,6 +68,7 @@ namespace ProjectTracking.ViewModels
         public string ChartPanelDeepHex { get; set; } = "#031934";
         public string ChartPanelContrastHex { get; set; } = "#ffffff";
         public string ChartPanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
+        public bool ProfileBallEnabled { get; set; }
         public string SurfaceHex { get; set; } = "#ffffff";
         public string TextHex { get; set; } = "#0f172a";
         public string MutedHex { get; set; } = "#64748b";

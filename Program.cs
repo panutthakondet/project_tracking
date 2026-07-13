@@ -1104,6 +1104,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `custom_body_bg_hex` varchar(7) DEFAULT NULL,
               `custom_chart_panel_hex` varchar(7) DEFAULT NULL,
               `font_scale` decimal(4,2) NOT NULL DEFAULT 1.00,
+              `profile_ball_enabled` tinyint(1) NOT NULL DEFAULT 0,
               `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
               PRIMARY KEY (`user_id`),
               KEY `idx_user_theme_preferences_theme` (`theme_id`),
@@ -1127,6 +1128,22 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
             command.CommandText = @"
                 ALTER TABLE `user_theme_preferences`
                 ADD COLUMN `custom_chart_panel_hex` varchar(7) DEFAULT NULL AFTER `custom_body_bg_hex`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'user_theme_preferences'
+              AND COLUMN_NAME = 'profile_ball_enabled';";
+
+        var hasProfileBallEnabled = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasProfileBallEnabled)
+        {
+            command.CommandText = @"
+                ALTER TABLE `user_theme_preferences`
+                ADD COLUMN `profile_ball_enabled` tinyint(1) NOT NULL DEFAULT 0 AFTER `font_scale`;";
             await command.ExecuteNonQueryAsync();
         }
     }

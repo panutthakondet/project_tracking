@@ -12,6 +12,7 @@ namespace ProjectTracking.Models
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
+        public bool ProfileBallEnabled { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
         public ThemePreset? ThemePreset { get; set; }

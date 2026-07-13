@@ -39,7 +39,8 @@ namespace ProjectTracking.Services
             var bodyBg = NormalizeHexOrDefault(preference?.CustomBodyBgHex, selectedPreset.BodyBgHex);
             var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.ChartPanelHex);
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
-            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale);
+            var profileBallEnabled = preference?.ProfileBallEnabled ?? false;
+            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale, profileBallEnabled);
 
             return new AppearanceViewModel
             {
@@ -51,6 +52,7 @@ namespace ProjectTracking.Services
                 CustomBodyBgHex = bodyBg,
                 CustomChartPanelHex = chartPanel,
                 FontScale = fontScale,
+                ProfileBallEnabled = profileBallEnabled,
                 EffectiveTheme = resolved
             };
         }
@@ -96,6 +98,7 @@ namespace ProjectTracking.Services
             preference.CustomBodyBgHex = model.UseCustom ? bodyBg : null;
             preference.CustomChartPanelHex = model.UseCustom ? chartPanel : null;
             preference.FontScale = fontScale;
+            preference.ProfileBallEnabled = model.ProfileBallEnabled;
             preference.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -122,26 +125,26 @@ namespace ProjectTracking.Services
                 var defaultPreset = PickDefaultPreset(presets);
 
                 if (userId == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false);
 
                 var preference = await _context.UserThemePreferences
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
 
                 if (preference == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false);
 
                 var preset = presets.FirstOrDefault(x => x.ThemeId == preference.ThemeId) ?? defaultPreset;
                 var accent = NormalizeHexOrDefault(preference.CustomAccentHex, preset.AccentHex);
                 var sidebar = NormalizeHexOrDefault(preference.CustomSidebarHex, preset.SidebarHex);
                 var bodyBg = NormalizeHexOrDefault(preference.CustomBodyBgHex, preset.BodyBgHex);
                 var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.ChartPanelHex);
-                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale);
+                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale, preference.ProfileBallEnabled);
             }
             catch
             {
                 var fallback = CreateFallbackPreset();
-                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m);
+                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m, false);
             }
         }
 
@@ -208,7 +211,8 @@ namespace ProjectTracking.Services
             string customSidebarHex,
             string customBodyBgHex,
             string customChartPanelHex,
-            decimal fontScale)
+            decimal fontScale,
+            bool profileBallEnabled = false)
         {
             var accent = useCustom ? customAccentHex : NormalizeHexOrDefault(preset.AccentHex, "#1F4889");
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
@@ -232,6 +236,7 @@ namespace ProjectTracking.Services
                 ChartPanelDeepHex = ShiftHex(chartPanel, -0.18),
                 ChartPanelContrastHex = chartPanelContrast,
                 ChartPanelContrastMutedRgba = ToRgba(chartPanelContrast, .76),
+                ProfileBallEnabled = profileBallEnabled,
                 SurfaceHex = NormalizeHexOrDefault(preset.SurfaceHex, "#ffffff"),
                 TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
                 MutedHex = NormalizeHexOrDefault(preset.MutedHex, "#64748b"),
@@ -333,6 +338,11 @@ namespace ProjectTracking.Services
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");
             sb.AppendLine("@media (min-width: 768px) { html { font-size: calc(16px * var(--pt-user-font-scale)); } }");
             sb.AppendLine("body { background: var(--pt-body-bg) !important; color: var(--pt-text) !important; }");
+            sb.AppendLine(theme.ProfileBallEnabled
+                ? ".dashboard-view .dashboard-dino-runner { display: flex !important; }"
+                : ".dashboard-view .dashboard-dino-runner { display: none !important; }");
+            if (theme.ProfileBallEnabled)
+                sb.AppendLine("@media (max-width: 980px) { .dashboard-view .dashboard-dino-runner { display: none !important; } }");
             sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");

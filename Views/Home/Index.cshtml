@@ -268,6 +268,54 @@
     </section>
 
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก">
+        <span class="dashboard-dino-runner is-card-1" aria-hidden="true">
+            <span class="dashboard-dino">
+                <span class="dino-tail"></span>
+                <span class="dino-body"></span>
+                <span class="dino-neck"></span>
+                <span class="dino-head"></span>
+                <span class="dino-eye"></span>
+                <span class="dino-arm"></span>
+                <span class="dino-leg dino-leg-a"></span>
+                <span class="dino-leg dino-leg-b"></span>
+            </span>
+        </span>
+        <span class="dashboard-dino-runner is-card-2" aria-hidden="true">
+            <span class="dashboard-dino">
+                <span class="dino-tail"></span>
+                <span class="dino-body"></span>
+                <span class="dino-neck"></span>
+                <span class="dino-head"></span>
+                <span class="dino-eye"></span>
+                <span class="dino-arm"></span>
+                <span class="dino-leg dino-leg-a"></span>
+                <span class="dino-leg dino-leg-b"></span>
+            </span>
+        </span>
+        <span class="dashboard-dino-runner is-card-3" aria-hidden="true">
+            <span class="dashboard-dino">
+                <span class="dino-tail"></span>
+                <span class="dino-body"></span>
+                <span class="dino-neck"></span>
+                <span class="dino-head"></span>
+                <span class="dino-eye"></span>
+                <span class="dino-arm"></span>
+                <span class="dino-leg dino-leg-a"></span>
+                <span class="dino-leg dino-leg-b"></span>
+            </span>
+        </span>
+        <span class="dashboard-dino-runner is-card-4" aria-hidden="true">
+            <span class="dashboard-dino">
+                <span class="dino-tail"></span>
+                <span class="dino-body"></span>
+                <span class="dino-neck"></span>
+                <span class="dino-head"></span>
+                <span class="dino-eye"></span>
+                <span class="dino-arm"></span>
+                <span class="dino-leg dino-leg-a"></span>
+                <span class="dino-leg dino-leg-b"></span>
+            </span>
+        </span>
         <a class="kpi-card kpi-blue"
            asp-controller="Projects"
            asp-action="ViewOnly"
@@ -1053,6 +1101,150 @@
     margin:2px 0 18px;
 }
 
+.dashboard-dino-runner {
+    --dino-width: var(--dashboard-dino-width);
+    --dino-height: var(--dashboard-dino-height);
+    position:absolute;
+    top:var(--dashboard-dino-top);
+    left:var(--dashboard-dino-start);
+    z-index:8;
+    width:var(--dino-width);
+    height:var(--dino-height);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    color:rgba(255,255,255,.96);
+    pointer-events:none;
+    animation:dashboardDinoWalk 30s linear infinite;
+    will-change:left, transform;
+}
+
+.dashboard-dino {
+    position:relative;
+    width:46px;
+    height:34px;
+    color:inherit;
+    image-rendering:pixelated;
+}
+
+.dashboard-dino > span {
+    position:absolute;
+    display:block;
+    background:currentColor;
+    box-shadow:none;
+}
+
+.dino-tail {
+    left:1px;
+    top:18px;
+    width:18px;
+    height:8px;
+    clip-path:polygon(0 42%, 100% 0, 100% 72%, 0 72%);
+}
+
+.dino-body {
+    left:16px;
+    top:15px;
+    width:22px;
+    height:13px;
+}
+
+.dino-neck {
+    left:31px;
+    top:11px;
+    width:9px;
+    height:12px;
+}
+
+.dino-head {
+    left:35px;
+    top:5px;
+    width:15px;
+    height:13px;
+}
+
+.dino-head::after {
+    content:"";
+    position:absolute;
+    right:-7px;
+    top:4px;
+    width:7px;
+    height:7px;
+    background:currentColor;
+}
+
+.dino-eye {
+    left:44px;
+    top:8px;
+    width:3px;
+    height:3px;
+    background:#081632;
+}
+
+.dino-arm {
+    left:34px;
+    top:21px;
+    width:8px;
+    height:3px;
+}
+
+.dino-leg {
+    top:27px;
+    width:5px;
+    height:8px;
+}
+
+.dino-leg-a {
+    left:20px;
+    animation:dashboardDinoLegA .5s steps(1, end) infinite;
+}
+
+.dino-leg-b {
+    left:30px;
+    animation:dashboardDinoLegB .5s steps(1, end) infinite;
+}
+
+@@keyframes dashboardDinoWalk {
+    0% {
+        left:var(--dashboard-dino-start);
+        transform:scaleX(1);
+    }
+    49.9% {
+        left:var(--dashboard-dino-end);
+        transform:scaleX(1);
+    }
+    50% {
+        left:var(--dashboard-dino-end);
+        transform:scaleX(-1);
+    }
+    99.9% {
+        left:var(--dashboard-dino-start);
+        transform:scaleX(-1);
+    }
+    100% {
+        left:var(--dashboard-dino-start);
+        transform:scaleX(1);
+    }
+}
+
+@@keyframes dashboardDinoLegA {
+    0%, 49% { transform:translate(0, 0); height:8px; }
+    50%, 100% { transform:translate(4px, 3px); height:5px; }
+}
+
+@@keyframes dashboardDinoLegB {
+    0%, 49% { transform:translate(-3px, 3px); height:5px; }
+    50%, 100% { transform:translate(0, 0); height:8px; }
+}
+
+@@media (prefers-reduced-motion: reduce) {
+    .dashboard-dino-runner,
+    .dino-leg-a,
+    .dino-leg-b {
+        animation:none;
+    }
+}
+
 .dashboard-global-search {
     position:relative;
     width:min(520px, 100%);
@@ -1658,11 +1850,59 @@
 }
 
 .kpi-grid {
+    --dashboard-dino-width:46px;
+    --dashboard-dino-height:34px;
+    --dashboard-dino-inset:18px;
+    --dashboard-dino-edge-top:calc((var(--dashboard-dino-height) * -1) + 2px);
+    --kpi-grid-gap:18px;
+    --kpi-card-min-height:176px;
+    --dashboard-dino-card-width:calc((100% - (var(--kpi-grid-gap) * 3)) / 4);
+    --dashboard-dino-row-step:calc(var(--kpi-card-min-height) + var(--kpi-grid-gap));
+    --dashboard-dino-card-1-top:var(--dashboard-dino-edge-top);
+    --dashboard-dino-card-2-top:var(--dashboard-dino-edge-top);
+    --dashboard-dino-card-3-top:var(--dashboard-dino-edge-top);
+    --dashboard-dino-card-4-top:var(--dashboard-dino-edge-top);
+    --dashboard-dino-card-1-start:var(--dashboard-dino-inset);
+    --dashboard-dino-card-1-end:calc(var(--dashboard-dino-card-1-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+    --dashboard-dino-card-2-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
+    --dashboard-dino-card-2-end:calc(var(--dashboard-dino-card-2-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+    --dashboard-dino-card-3-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
+    --dashboard-dino-card-3-end:calc(var(--dashboard-dino-card-3-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+    --dashboard-dino-card-4-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
+    --dashboard-dino-card-4-end:calc(var(--dashboard-dino-card-4-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+    position:relative;
     display:grid;
     grid-template-columns:repeat(4, minmax(190px, 1fr));
     gap:18px;
-    margin-top:32px;
+    margin-top:42px;
     margin-bottom:20px;
+}
+
+.dashboard-dino-runner.is-card-1 {
+    --dashboard-dino-top:var(--dashboard-dino-card-1-top);
+    --dashboard-dino-start:var(--dashboard-dino-card-1-start);
+    --dashboard-dino-end:var(--dashboard-dino-card-1-end);
+}
+
+.dashboard-dino-runner.is-card-2 {
+    --dashboard-dino-top:var(--dashboard-dino-card-2-top);
+    --dashboard-dino-start:var(--dashboard-dino-card-2-start);
+    --dashboard-dino-end:var(--dashboard-dino-card-2-end);
+    animation-delay:-8s;
+}
+
+.dashboard-dino-runner.is-card-3 {
+    --dashboard-dino-top:var(--dashboard-dino-card-3-top);
+    --dashboard-dino-start:var(--dashboard-dino-card-3-start);
+    --dashboard-dino-end:var(--dashboard-dino-card-3-end);
+    animation-delay:-16s;
+}
+
+.dashboard-dino-runner.is-card-4 {
+    --dashboard-dino-top:var(--dashboard-dino-card-4-top);
+    --dashboard-dino-start:var(--dashboard-dino-card-4-start);
+    --dashboard-dino-end:var(--dashboard-dino-card-4-end);
+    animation-delay:-24s;
 }
 
 .kpi-card {
@@ -5708,6 +5948,8 @@
     }
 
     .kpi-grid {
+        --kpi-grid-gap:12px;
+        --kpi-card-min-height:166px;
         grid-template-columns:repeat(4, minmax(0, 1fr));
         gap:12px;
     }
@@ -5885,7 +6127,22 @@
     .dashboard-topbar { grid-template-columns:1fr; }
     .brand-cluster { min-width:0; }
     .dashboard-actions { justify-content:flex-start; }
-    .kpi-grid { grid-template-columns:repeat(2, minmax(180px, 1fr)); }
+    .kpi-grid {
+        --dashboard-dino-card-width:calc((100% - var(--kpi-grid-gap)) / 2);
+        --dashboard-dino-card-1-top:var(--dashboard-dino-edge-top);
+        --dashboard-dino-card-2-top:var(--dashboard-dino-edge-top);
+        --dashboard-dino-card-3-top:calc(var(--dashboard-dino-row-step) - var(--dashboard-dino-height) + 2px);
+        --dashboard-dino-card-4-top:calc(var(--dashboard-dino-row-step) - var(--dashboard-dino-height) + 2px);
+        --dashboard-dino-card-1-start:var(--dashboard-dino-inset);
+        --dashboard-dino-card-1-end:calc(var(--dashboard-dino-card-1-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+        --dashboard-dino-card-2-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
+        --dashboard-dino-card-2-end:calc(var(--dashboard-dino-card-2-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+        --dashboard-dino-card-3-start:var(--dashboard-dino-inset);
+        --dashboard-dino-card-3-end:calc(var(--dashboard-dino-card-3-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+        --dashboard-dino-card-4-start:calc(var(--dashboard-dino-card-width) + var(--kpi-grid-gap) + var(--dashboard-dino-inset));
+        --dashboard-dino-card-4-end:calc(var(--dashboard-dino-card-4-start) + var(--dashboard-dino-card-width) - var(--dashboard-dino-width) - var(--dashboard-dino-inset) - var(--dashboard-dino-inset));
+        grid-template-columns:repeat(2, minmax(180px, 1fr));
+    }
     .panel-wide,
     .panel-project-status,
     .panel-activity,
@@ -5996,7 +6253,11 @@
     .brand-cluster strong { font-size:22px; }
     .dashboard-actions { gap:10px; flex-wrap:wrap; }
     .top-icon-button { width:48px; height:48px; }
-    .kpi-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .kpi-grid {
+        --kpi-card-min-height:118px;
+        --dashboard-dino-card-width:calc((100% - var(--kpi-grid-gap)) / 2);
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
     .kpi-card {
         min-height:118px;
         padding:14px;
