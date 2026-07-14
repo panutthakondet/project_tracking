@@ -68,6 +68,10 @@ namespace ProjectTracking.ViewModels
         public string TimeTrackingDonut { get; set; } = "conic-gradient(#263450 0 100%)";
         public string WorkHourTrendText { get; set; } = "ข้อมูลเดือนนี้จาก attendance";
         public string WorkHourTrendClass { get; set; } = "neutral";
+        public decimal TimeTargetHours { get; set; }
+        public decimal TimeTargetProgressPercent { get; set; }
+        public List<HomeDashboardTimeTrendDay> TimeTrendDays { get; set; } = new();
+        public List<HomeDashboardTimeHeatDay> TimeHeatmapDays { get; set; } = new();
     }
 
     public class HomeDashboardMetric
@@ -79,6 +83,23 @@ namespace ProjectTracking.ViewModels
         public string HexColor { get; set; } = "var(--pt-chart-primary, #1688f5)";
 
         public string CountPercentText => $"{Count} ({Percent:0.#}%)";
+    }
+
+    public class HomeDashboardTimeTrendDay
+    {
+        public string Label { get; set; } = "";
+        public decimal Hours { get; set; }
+        public int Percent { get; set; }
+        public string Tone { get; set; } = "empty";
+    }
+
+    public class HomeDashboardTimeHeatDay
+    {
+        public int Day { get; set; }
+        public string Label { get; set; } = "";
+        public decimal Hours { get; set; }
+        public string Tone { get; set; } = "empty";
+        public bool IsToday { get; set; }
     }
 
     public class HomeDashboardChartSeries

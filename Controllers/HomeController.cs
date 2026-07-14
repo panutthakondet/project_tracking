@@ -954,9 +954,13 @@ namespace ProjectTracking.Controllers
                 LongShiftCount = timeSummary.LongShiftCount,
                 LongDistanceCount = timeSummary.LongDistanceCount,
                 PendingCheckoutNames = timeSummary.PendingCheckoutNames,
-                TimeTrackingDonut = BuildThreePartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, timeSummary.TodayCheckinCount, ChartColorCss("success"), ChartColorCss("primary"), ChartColorCss("info")),
+                TimeTrackingDonut = BuildTwoPartDonut(timeSummary.ClosedWorkHours, timeSummary.OpenWorkHours, ChartColorCss("success"), ChartColorCss("primary")),
                 WorkHourTrendText = timeSummary.TrendText,
-                WorkHourTrendClass = timeSummary.TrendClass
+                WorkHourTrendClass = timeSummary.TrendClass,
+                TimeTargetHours = timeSummary.TimeTargetHours,
+                TimeTargetProgressPercent = timeSummary.TimeTargetProgressPercent,
+                TimeTrendDays = timeSummary.TimeTrendDays,
+                TimeHeatmapDays = timeSummary.TimeHeatmapDays
             };
         }
 
@@ -2142,6 +2146,87 @@ namespace ProjectTracking.Controllers
                 .Distinct()
                 .Take(4)
                 .ToList();
+            decimal AttendanceHoursForDay(DashboardAttendanceRow row)
+            {
+                if (row.CheckoutTime.HasValue)
+                {
+                    return WorkHours(row.CheckinTime, row.CheckoutTime);
+                }
+
+                return row.WorkDate.Date == today
+                    ? WorkHours(row.CheckinTime, now)
+                    : 0m;
+            }
+
+            var dailyHours = monthRows
+                .GroupBy(a => a.WorkDate.Date)
+                .ToDictionary(
+                    group => group.Key,
+                    group => Math.Round(group.Sum(AttendanceHoursForDay), 1));
+            var lastSevenDays = Enumerable.Range(0, 7)
+                .Select(offset => today.AddDays(offset - 6).Date)
+                .ToList();
+            var lastSevenHours = lastSevenDays
+                .Select(day => dailyHours.TryGetValue(day, out var hours) ? hours : 0m)
+                .ToList();
+            var trendMaxHours = Math.Max(1m, lastSevenHours.DefaultIfEmpty(0m).Max());
+            var timeTrendDays = lastSevenDays
+                .Select((day, index) =>
+                {
+                    var hours = lastSevenHours[index];
+                    var percent = hours <= 0
+                        ? 4
+                        : Math.Clamp((int)Math.Round(hours * 100m / trendMaxHours), 8, 100);
+                    var tone = hours <= 0
+                        ? "empty"
+                        : day == today ? "today"
+                        : percent >= 72 ? "high"
+                        : percent >= 36 ? "medium"
+                        : "low";
+
+                    return new HomeDashboardTimeTrendDay
+                    {
+                        Label = day.ToString("dd/MM", CultureInfo.InvariantCulture),
+                        Hours = Math.Round(hours, 1),
+                        Percent = percent,
+                        Tone = tone
+                    };
+                })
+                .ToList();
+            var elapsedWorkDays = Enumerable.Range(0, Math.Max(0, (today.Date - monthStart.Date).Days) + 1)
+                .Select(offset => monthStart.Date.AddDays(offset))
+                .Count(day => day < nextMonthStart.Date && day.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday);
+            var targetHours = activeEmployeeIds.Count * elapsedWorkDays * 8m;
+            var targetProgress = targetHours <= 0
+                ? 0m
+                : Math.Round(monthHours * 100m / targetHours, 1);
+            var heatmapDays = Enumerable.Range(0, Math.Max(0, (nextMonthStart.Date - monthStart.Date).Days))
+                .Select(offset =>
+                {
+                    var day = monthStart.Date.AddDays(offset);
+                    var hours = dailyHours.TryGetValue(day, out var value) ? value : 0m;
+                    var expected = activeEmployeeIds.Count * 8m;
+                    var percentOfExpected = expected <= 0 ? 0m : hours * 100m / expected;
+                    var hasOpenCheckout = day == today &&
+                        monthRows.Any(row => row.WorkDate.Date == day && row.CheckinTime != null && row.CheckoutTime == null);
+                    var tone = day > today
+                        ? "future"
+                        : hours <= 0 ? "empty"
+                        : hasOpenCheckout ? "open"
+                        : percentOfExpected >= 85m ? "high"
+                        : percentOfExpected >= 45m ? "medium"
+                        : "low";
+
+                    return new HomeDashboardTimeHeatDay
+                    {
+                        Day = day.Day,
+                        Label = $"{day:dd/MM/yyyy} · {hours:0.#} ชม.",
+                        Hours = Math.Round(hours, 1),
+                        Tone = tone,
+                        IsToday = day == today
+                    };
+                })
+                .ToList();
 
             var trendClass = "neutral";
             var trendText = "ข้อมูลเดือนนี้จาก attendance";
@@ -2170,6 +2255,10 @@ namespace ProjectTracking.Controllers
                 LongShiftCount = longShiftCount,
                 LongDistanceCount = longDistanceCount,
                 PendingCheckoutNames = pendingCheckoutNames,
+                TimeTargetHours = Math.Round(targetHours, 1),
+                TimeTargetProgressPercent = targetProgress,
+                TimeTrendDays = timeTrendDays,
+                TimeHeatmapDays = heatmapDays,
                 TrendClass = trendClass,
                 TrendText = trendText
             };
@@ -2682,7 +2771,8 @@ namespace ProjectTracking.Controllers
                 "orange" or "warning" => "var(--pt-chart-warning, #fb9a13)",
                 "pink" or "danger" => "var(--pt-chart-danger, #ff2d62)",
                 "purple" or "violet" => "var(--pt-chart-alt, #8b4df4)",
-                "cyan" or "lime" or "info" => "var(--pt-chart-info, #0ad0c8)",
+                "cyan" or "info" => "var(--pt-chart-info, #0ad0c8)",
+                "lime" => "#8cff3f",
                 "dark" or "secondary" or "muted" => "var(--pt-chart-muted, #64748b)",
                 _ => "var(--pt-chart-primary, #1688f5)"
             };
@@ -2902,6 +2992,10 @@ namespace ProjectTracking.Controllers
             public int LongShiftCount { get; set; }
             public int LongDistanceCount { get; set; }
             public List<string> PendingCheckoutNames { get; set; } = new();
+            public decimal TimeTargetHours { get; set; }
+            public decimal TimeTargetProgressPercent { get; set; }
+            public List<HomeDashboardTimeTrendDay> TimeTrendDays { get; set; } = new();
+            public List<HomeDashboardTimeHeatDay> TimeHeatmapDays { get; set; } = new();
             public string TrendText { get; set; } = "";
             public string TrendClass { get; set; } = "neutral";
         }

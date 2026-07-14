@@ -117,13 +117,23 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: repeat(5, minmax(160px, 1fr));
+            grid-template-columns: minmax(320px, 1fr) minmax(180px, 260px);
+            grid-template-areas:
+                "coop coop"
+                "project status"
+                "group priority";
             gap: 10px;
+            align-items: end;
             margin-bottom: 12px;
             padding: 12px;
             border: 1px solid #d8e3ef;
             background: #f8fbff;
         }
+        .field.coop-field { grid-area: coop; }
+        .field.project-field { grid-area: project; }
+        .field.status-field { grid-area: status; }
+        .field.group-field { grid-area: group; }
+        .field.priority-field { grid-area: priority; }
         .field label {
             display: block;
             margin-bottom: 5px;
@@ -411,9 +421,26 @@
             tr { page-break-inside: avoid; }
         }
         @@media (max-width: 900px) {
-            .filter-panel,
+            .filter-panel {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "coop coop"
+                    "project status"
+                    "group priority";
+            }
             .kpi-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+        @@media (max-width: 640px) {
+            .filter-panel {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "coop"
+                    "project"
+                    "status"
+                    "group"
+                    "priority";
             }
         }
     
@@ -459,7 +486,7 @@
     </header>
 
     <form method="get" class="filter-panel no-print">
-        <div class="field">
+        <div class="field coop-field">
             <label for="coopFilter">Cooperative</label>
             <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
                 <option value="">-- All Cooperatives --</option>
@@ -472,7 +499,7 @@
             </select>
         </div>
 
-        <div class="field">
+        <div class="field project-field">
             <label for="projectId">Project</label>
             <select id="projectId" name="projectId" data-placeholder="🔍 พิมพ์ค้นหา Project..." onchange="this.form.submit()">
                 <option value="">-- All Projects --</option>
@@ -487,7 +514,7 @@
             </select>
         </div>
 
-        <div class="field">
+        <div class="field group-field">
             <label for="groupId">Group</label>
             <select id="groupId" name="groupId" data-placeholder="🔍 พิมพ์ค้นหา Group..." onchange="this.form.submit()">
                 <option value="">-- All Groups --</option>
@@ -500,7 +527,7 @@
             </select>
         </div>
 
-        <div class="field">
+        <div class="field status-field">
             <label for="status">สถานะ</label>
             <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหาสถานะ..." onchange="this.form.submit()">
                 <option value="">-- ทุกสถานะ --</option>
@@ -513,7 +540,7 @@
             </select>
         </div>
 
-        <div class="field">
+        <div class="field priority-field">
             <label for="priority">Priority</label>
             <select id="priority" name="priority" data-placeholder="🔍 พิมพ์ค้นหา Priority..." onchange="this.form.submit()">
                 <option value="">-- All Priorities --</option>

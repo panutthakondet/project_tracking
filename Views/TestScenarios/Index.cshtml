@@ -16,6 +16,11 @@
     }
 
     var list = Model?.ToList() ?? new List<ProjectTracking.Models.TestScenario>();
+    var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var coopOptions = ViewBag.CoopOptions as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var selectedCoopName = (ViewBag.SelectedCoopName as string) ?? "";
+    var statusList = ViewBag.StatusList as IEnumerable<(string Value, string Text)> ?? Enumerable.Empty<(string Value, string Text)>();
+    var selectedStatus = ((ViewBag.SelectedStatus as string) ?? "").Trim().ToUpperInvariant();
 }
 
 @{
@@ -450,6 +455,49 @@
         font-weight: 800;
     }
 
+    .scenario-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+        grid-template-areas:
+            "coop coop"
+            "project status"
+            "groups groups";
+        gap: 16px;
+        align-items: end;
+    }
+
+    .scenario-filter-coop,
+    .scenario-filter-project,
+    .scenario-filter-status,
+    .scenario-filter-groups {
+        min-width: 0;
+    }
+
+    .scenario-filter-coop {
+        grid-area: coop;
+    }
+
+    .scenario-filter-project {
+        grid-area: project;
+    }
+
+    .scenario-filter-status {
+        grid-area: status;
+    }
+
+    .scenario-filter-groups {
+        grid-area: groups;
+    }
+
+    .scenario-results {
+        transition: opacity .16s ease;
+    }
+
+    .scenario-results.is-loading {
+        opacity: .55;
+        pointer-events: none;
+    }
+
     @@media (max-width: 992px) {
         .scenario-detail-grid {
             grid-template-columns: 1fr;
@@ -457,6 +505,19 @@
     }
 
     @@media (max-width: 575.98px) {
+        .scenario-filter-grid {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "coop"
+                "project"
+                "status"
+                "groups";
+        }
+
+        .scenario-filter-groups {
+            grid-area: groups;
+        }
+
         .scenario-card-head,
         .scenario-group-header {
             flex-direction: column;
@@ -484,8 +545,26 @@
 <div class="page-header-card mb-4">
     <div class="card-body">
         <form id="scenarioFilterForm" method="get">
-            <div class="row g-3">
-                <div class="col-12">
+            <div class="scenario-filter-grid">
+                <div class="scenario-filter-coop">
+                    <label class="form-label">🏢 สหกรณ์</label>
+                    <select name="coopName"
+                            class="form-select"
+                            data-scenario-coop-filter
+                            data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์..."
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                        <option value="">-- ทุกสหกรณ์ --</option>
+                        @foreach (var coop in coopOptions)
+                        {
+                            <option value="@coop"
+                                    selected="@(string.Equals(selectedCoopName, coop, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                                @coop
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="scenario-filter-project">
                     <label class="form-label">📁 โครงการ</label>
                     @{
                         int? selProject = null;
@@ -496,22 +575,38 @@
                     }
                     <select name="projectId"
                             class="form-select"
-                            onchange="this.form.submit()">
+                            data-scenario-project-filter
+                            data-project-coop-filter="off"
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
                         <option value="">-- เลือกโครงการ --</option>
-                        @if (ViewBag.Projects != null)
+                        @foreach (var p in projects)
                         {
-                            foreach (var p in ViewBag.Projects)
-                            {
-                                <option value="@p.ProjectId"
-                                        selected="@(selProject == p.ProjectId ? "selected" : null)">
-                                    @p.ProjectDisplayName
-                                </option>
-                            }
+                            <option value="@p.ProjectId"
+                                    data-coop-name="@(p.Coop?.CoopName ?? "")"
+                                    selected="@(selProject == p.ProjectId ? "selected" : null)">
+                                @p.ProjectDisplayName
+                            </option>
                         }
                     </select>
                 </div>
 
-                <div class="col-12">
+                <div class="scenario-filter-status">
+                    <label class="form-label">สถานะ</label>
+                    <select name="status"
+                            class="form-select"
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                        <option value="">-- ทุกสถานะ --</option>
+                        @foreach (var statusOption in statusList)
+                        {
+                            <option value="@statusOption.Value"
+                                    selected="@(selectedStatus == statusOption.Value ? "selected" : null)">
+                                @statusOption.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="scenario-filter-groups">
                     <label class="form-label">Select Group</label>
                     @{
                         var selectedGroupIds = ViewBag.SelectedGroupIds as IEnumerable<int> ?? Enumerable.Empty<int>();
@@ -548,15 +643,16 @@
     </div>
 </div>
 
-@if (ViewBag.SelectedProject != null)
-{
-    @if (TempData["Error"] != null)
+<div id="scenarioResults" class="scenario-results" data-scenario-results>
+    @if (ViewBag.SelectedProject != null)
     {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <div class="toolbar">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="toolbar">
 
             @if (CanMenu("TestScenarios.Create"))
             {
@@ -584,6 +680,8 @@
                       onsubmit="return importSelectedGroups();">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
+                    <input type="hidden" name="coopName" value="@selectedCoopName" />
+                    <input type="hidden" name="status" value="@selectedStatus" />
                     <button type="submit"
                             class="btn btn-primary"
                             title="Import Template">
@@ -634,122 +732,127 @@
 
         </div>
 
-        <div class="d-flex flex-wrap gap-3">
-            <span class="scenario-status-summary is-muted">ทั้งหมด: @list.Count</span>
-            <span class="scenario-status-summary is-success">@TestScenarioDisplay.StatusText("PASSED"): @list.Count(x => x.status == "PASSED")</span>
-            <span class="scenario-status-summary is-danger">@TestScenarioDisplay.StatusText("FAILED"): @list.Count(x => x.status == "FAILED")</span>
-            <span class="scenario-status-summary is-primary">@TestScenarioDisplay.StatusText("READY"): @list.Count(x => TestScenarioDisplay.NormalizeStatus(x.status) == "READY")</span>
+            <div class="d-flex flex-wrap gap-3">
+                <span class="scenario-status-summary is-muted">ทั้งหมด: @list.Count</span>
+                <span class="scenario-status-summary is-success">@TestScenarioDisplay.StatusText("PASSED"): @list.Count(x => x.status == "PASSED")</span>
+                <span class="scenario-status-summary is-danger">@TestScenarioDisplay.StatusText("FAILED"): @list.Count(x => x.status == "FAILED")</span>
+                <span class="scenario-status-summary is-primary">@TestScenarioDisplay.StatusText("READY"): @list.Count(x => TestScenarioDisplay.NormalizeStatus(x.status) == "READY")</span>
+            </div>
         </div>
-    </div>
 
-    <div class="scenario-card-groups">
-        @{ var rowNo = 1; }
-        @foreach (var grp in list.GroupBy(x => x.Group?.group_name ?? "No Group"))
-        {
-            <section class="scenario-group-card">
-                <div class="scenario-group-header">
-                    <h3 class="scenario-group-title">Group : @grp.Key</h3>
-                    <span class="scenario-group-count">@grp.Count() รายการ</span>
-                </div>
+        <div class="scenario-card-groups">
+            @{ var rowNo = 1; }
+            @foreach (var grp in list.GroupBy(x => x.Group?.group_name ?? "No Group"))
+            {
+                <section class="scenario-group-card">
+                    <div class="scenario-group-header">
+                        <h3 class="scenario-group-title">Group : @grp.Key</h3>
+                        <span class="scenario-group-count">@grp.Count() รายการ</span>
+                    </div>
 
-                <div class="scenario-card-list" data-group="@grp.Key">
-                    @foreach (var item in grp)
-                    {
-                        <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key">
-                            <div class="scenario-card-head">
-                                <div class="d-flex align-items-start gap-2">
-                                    @if (CanMenu("TestScenarios.Sort"))
-                                    {
-                                        <span class="scenario-drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
-                                    }
-                                    <div class="scenario-card-title">
-                                        <div class="scenario-code">#@rowNo · @item.scenario_code</div>
-                                        <div class="scenario-title">@item.title</div>
+                    <div class="scenario-card-list" data-group="@grp.Key">
+                        @foreach (var item in grp)
+                        {
+                            <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key">
+                                <div class="scenario-card-head">
+                                    <div class="d-flex align-items-start gap-2">
+                                        @if (CanMenu("TestScenarios.Sort"))
+                                        {
+                                            <span class="scenario-drag-handle" title="ลากเพื่อสลับลำดับ">☰</span>
+                                        }
+                                        <div class="scenario-card-title">
+                                            <div class="scenario-code">#@rowNo · @item.scenario_code</div>
+                                            <div class="scenario-title">@item.title</div>
+                                        </div>
+                                    </div>
+                                    <span class="scenario-status-text @StatusTextClass(item.status)">@TestScenarioDisplay.StatusText(item.status)</span>
+                                </div>
+
+                                <div class="scenario-meta">
+                                    <span class="scenario-pill">Priority: @item.priority</span>
+                                    <span class="scenario-pill">Created: @item.created_at.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span class="scenario-pill">Updated: @(item.updated_at?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                                </div>
+
+                                <div class="scenario-detail-grid">
+                                    <div class="scenario-detail-box scenario-detail-box--precondition">
+                                        <div class="scenario-detail-label">Precondition</div>
+                                        <div class="scenario-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
+                                    </div>
+                                    <div class="scenario-detail-box scenario-detail-box--steps">
+                                        <div class="scenario-detail-label">Steps</div>
+                                        <div class="scenario-detail-text">@item.steps</div>
+                                    </div>
+                                    <div class="scenario-detail-box scenario-detail-box--expected">
+                                        <div class="scenario-detail-label">Expected Result</div>
+                                        <div class="scenario-detail-text">@item.expected_result</div>
                                     </div>
                                 </div>
-                                <span class="scenario-status-text @StatusTextClass(item.status)">@TestScenarioDisplay.StatusText(item.status)</span>
-                            </div>
 
-                            <div class="scenario-meta">
-                                <span class="scenario-pill">Priority: @item.priority</span>
-                                <span class="scenario-pill">Created: @item.created_at.ToString("dd/MM/yyyy HH:mm")</span>
-                                <span class="scenario-pill">Updated: @(item.updated_at?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
-                            </div>
+                                <div class="scenario-card-actions">
+                                    @if (CanMenu("TestScenarios.Edit"))
+                                    {
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.scenario_id"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="แก้ไข">
+                                            Edit
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                            Edit
+                                        </button>
+                                    }
 
-                            <div class="scenario-detail-grid">
-                                <div class="scenario-detail-box scenario-detail-box--precondition">
-                                    <div class="scenario-detail-label">Precondition</div>
-                                    <div class="scenario-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
-                                </div>
-                                <div class="scenario-detail-box scenario-detail-box--steps">
-                                    <div class="scenario-detail-label">Steps</div>
-                                    <div class="scenario-detail-text">@item.steps</div>
-                                </div>
-                                <div class="scenario-detail-box scenario-detail-box--expected">
-                                    <div class="scenario-detail-label">Expected Result</div>
-                                    <div class="scenario-detail-text">@item.expected_result</div>
-                                </div>
-                            </div>
-
-                            <div class="scenario-card-actions">
-                                @if (CanMenu("TestScenarios.Edit"))
-                                {
-                                    <a asp-action="Edit"
-                                       asp-route-id="@item.scenario_id"
-                                       class="btn btn-sm btn-outline-primary"
-                                       title="แก้ไข">
-                                        Edit
-                                    </a>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                        Edit
-                                    </button>
-                                }
-
-                                @if (CanMenu("TestScenarios.Delete"))
-                                {
-                                    <form asp-action="Delete"
-                                          asp-route-id="@item.scenario_id"
-                                          method="post"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Delete this scenario?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                    @if (CanMenu("TestScenarios.Delete"))
+                                    {
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.scenario_id"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Delete this scenario?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
                                             Delete
                                         </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                        Delete
-                                    </button>
-                                }
-                            </div>
-                        </article>
+                                    }
+                                </div>
+                            </article>
 
-                        rowNo++;
-                    }
-                </div>
-            </section>
-        }
+                            rowNo++;
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            กรุณาเลือก Group และโครงการก่อน เพื่อดู/เพิ่ม Test Scenario
+        </div>
+    }
     </div>
-}
-else
-{
-    <div class="alert alert-info">
-        กรุณาเลือก Group และโครงการก่อน เพื่อดู/เพิ่ม Test Scenario
-    </div>
-}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        if (!@CanMenu("TestScenarios.Sort").ToString().ToLower()) return;
+    const canSortScenarios = @CanMenu("TestScenarios.Sort").ToString().ToLower();
 
+    function initScenarioSortable() {
+        if (!canSortScenarios || !window.Sortable) return;
         document.querySelectorAll(".scenario-card-list").forEach(function (listEl) {
+            if (listEl.dataset.sortableReady === "true") return;
+            listEl.dataset.sortableReady = "true";
+
             new Sortable(listEl, {
                 animation: 150,
                 handle: ".scenario-drag-handle",
@@ -775,9 +878,82 @@ else
                 }
             });
         });
-    });
+    }
 
     const selectedGroups = new Map();
+
+    function buildScenarioFilterUrl() {
+        const form = document.getElementById('scenarioFilterForm');
+        const url = new URL(form?.getAttribute('action') || window.location.pathname, window.location.origin);
+        const formData = new FormData(form);
+        url.search = new URLSearchParams(formData).toString();
+        return url;
+    }
+
+    async function submitScenarioFilter() {
+        const results = document.querySelector('[data-scenario-results]');
+        const url = buildScenarioFilterUrl();
+
+        if (!results) {
+            window.location.href = url.toString();
+            return;
+        }
+
+        results.classList.add('is-loading');
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const nextResults = doc.querySelector('[data-scenario-results]');
+            if (!nextResults) throw new Error('Missing scenario results');
+
+            results.replaceWith(nextResults);
+            window.history.pushState({}, '', url.toString());
+            initScenarioSortable();
+        } catch (_) {
+            window.location.href = url.toString();
+        }
+    }
+
+    window.submitScenarioFilter = submitScenarioFilter;
+
+    function initScenarioProjectCoopFilter() {
+        const coopFilter = document.querySelector('[data-scenario-coop-filter]');
+        const projectFilter = document.querySelector('[data-scenario-project-filter]');
+        if (!coopFilter || !projectFilter) return;
+
+        function normalize(value) {
+            return (value || '').trim().toLowerCase();
+        }
+
+        function syncProjectOptions() {
+            const selectedCoop = normalize(coopFilter.value);
+            Array.from(projectFilter.options).forEach(option => {
+                if (!option.value) {
+                    option.disabled = false;
+                    return;
+                }
+
+                option.disabled = selectedCoop !== '' &&
+                    normalize(option.dataset.coopName) !== selectedCoop;
+            });
+
+            if (projectFilter.selectedOptions[0]?.disabled) {
+                projectFilter.value = '';
+            }
+
+            projectFilter.dispatchEvent(new Event('pt-dropdown-refresh'));
+        }
+
+        coopFilter.addEventListener('change', syncProjectOptions, true);
+        syncProjectOptions();
+    }
 
     function initScenarioGroupPicker() {
         const picker = document.querySelector('[data-group-picker]');
@@ -815,6 +991,11 @@ else
 
         function applyGroupFilter() {
             syncInputs();
+            if (window.submitScenarioFilter) {
+                window.submitScenarioFilter();
+                return;
+            }
+
             filterForm?.submit();
         }
 
@@ -922,7 +1103,7 @@ else
     }
 
     function previewPdf() {
-        const projectId = '@ViewBag.SelectedProject';
+        const projectId = document.querySelector('select[name="projectId"]')?.value || '';
 
         if (!projectId) {
             alert('กรุณาเลือก Project ก่อน');
@@ -930,6 +1111,11 @@ else
         }
 
         let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
+        const status = document.querySelector('select[name="status"]')?.value;
+
+        if (status) {
+            url += `&status=${encodeURIComponent(status)}`;
+        }
 
         selectedGroups.forEach((label, id) => {
                 url += `&groupIds=${id}`;
@@ -938,5 +1124,7 @@ else
         window.open(url, '_blank');
     }
 
+    initScenarioProjectCoopFilter();
     initScenarioGroupPicker();
+    initScenarioSortable();
 </script>

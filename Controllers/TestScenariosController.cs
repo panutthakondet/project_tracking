@@ -20,6 +20,14 @@ namespace ProjectTracking.Controllers
 {
     public class TestScenariosController : BaseController
     {
+        private const string IndexStatusFilterKey = "TestScenarios.Filter.Status";
+        private static readonly (string Value, string Text)[] ScenarioStatusFilters =
+        {
+            ("READY", "พร้อมทดสอบ"),
+            ("PASSED", "ผ่าน"),
+            ("FAILED", "ไม่ผ่าน")
+        };
+
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
@@ -164,8 +172,32 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? groupId, List<int>? groupIds)
+        public async Task<IActionResult> Index(int? projectId, int? groupId, List<int>? groupIds, string? status, string? coopName)
         {
+            var selectedStatus = ResolveIndexStatusFilter(status);
+            var selectedCoopName = (coopName ?? "").Trim();
+            var projects = await _context.Projects
+                .Include(p => p.Coop)
+                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
+                .ThenBy(p => p.ProjectName)
+                .ToListAsync();
+            var coopOptions = projects
+                .Select(p => p.Coop?.CoopName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name)
+                .ToList();
+            if (!string.IsNullOrWhiteSpace(selectedCoopName) &&
+                !coopOptions.Any(name => string.Equals(name, selectedCoopName, StringComparison.OrdinalIgnoreCase)))
+            {
+                selectedCoopName = "";
+            }
+            var selectedCoopProjectIds = string.IsNullOrWhiteSpace(selectedCoopName)
+                ? new List<int>()
+                : projects
+                    .Where(p => string.Equals(p.Coop?.CoopName, selectedCoopName, StringComparison.OrdinalIgnoreCase))
+                    .Select(p => p.ProjectId)
+                    .ToList();
             var selectedGroupIds = (groupIds ?? new List<int>())
                 .Where(id => id > 0)
                 .Distinct()
@@ -177,7 +209,9 @@ namespace ProjectTracking.Controllers
             var scenarios = await _context.TestScenarios
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
-                    (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)))
+                    (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
+                    (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value))) &&
+                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
                 .Join(
                     _context.TestTemplateGroups,
@@ -196,15 +230,15 @@ namespace ProjectTracking.Controllers
                 .OrderBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();
-            ViewBag.Projects = _context.Projects
-                .Include(p => p.Coop)
-                .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
-                .ThenBy(p => p.ProjectName)
-                .ToList();
+            ViewBag.Projects = projects;
+            ViewBag.CoopOptions = coopOptions;
 
             ViewBag.SelectedProject = projectId;
+            ViewBag.SelectedCoopName = selectedCoopName;
             ViewBag.SelectedGroup = selectedGroupIds.Count == 1 ? (int?)selectedGroupIds[0] : null;
             ViewBag.SelectedGroupIds = selectedGroupIds;
+            ViewBag.StatusList = ScenarioStatusFilters;
+            ViewBag.SelectedStatus = selectedStatus;
 
             return View(scenarios);
         }
@@ -409,6 +443,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarios.Export")]
         public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority)
         {
+            var selectedStatus = ResolveIndexStatusFilter(status);
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
@@ -444,11 +479,8 @@ namespace ProjectTracking.Controllers
             if (groupId.HasValue && !groups.Any(x => x.group_id == groupId.Value))
                 groupId = null;
 
-            var statusList = allScenarios
-                .Select(x => TestScenarioDisplay.NormalizeStatus(x.status))
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => x)
+            var statusList = ScenarioStatusFilters
+                .Select(x => x.Value)
                 .ToList();
 
             var priorityList = allScenarios
@@ -466,10 +498,9 @@ namespace ProjectTracking.Controllers
             if (groupId.HasValue)
                 result = result.Where(x => x.group_id == groupId.Value);
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
             {
-                var normalizedStatus = TestScenarioDisplay.NormalizeStatus(status);
-                result = result.Where(x => string.Equals(TestScenarioDisplay.NormalizeStatus(x.status), normalizedStatus, StringComparison.OrdinalIgnoreCase));
+                result = result.Where(x => string.Equals(TestScenarioDisplay.NormalizeStatus(x.status), selectedStatus, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrWhiteSpace(priority))
@@ -481,7 +512,7 @@ namespace ProjectTracking.Controllers
             ViewBag.PriorityList = priorityList;
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedGroup = groupId;
-            ViewBag.SelectedStatus = status;
+            ViewBag.SelectedStatus = selectedStatus;
             ViewBag.SelectedPriority = priority;
             ViewBag.ProjectNames = projects.ToDictionary(x => x.ProjectId, x => x.ProjectDisplayName);
 
@@ -496,8 +527,9 @@ namespace ProjectTracking.Controllers
         }
         [HttpGet]
         [RequireMenu("TestScenarios.Export")]
-        public IActionResult ExportPdf(int projectId, List<int> groupIds)
+        public IActionResult ExportPdf(int projectId, List<int> groupIds, string? status)
         {
+            var selectedStatus = NormalizeIndexStatus(status);
             var data = _context.TestScenarios
                 .Where(x =>
                     x.project_id == projectId &&
@@ -505,7 +537,8 @@ namespace ProjectTracking.Controllers
                         groupIds == null ||
                         groupIds.Count == 0 ||
                         (x.group_id.HasValue && groupIds.Contains(x.group_id.Value))
-                    )
+                    ) &&
+                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
                 .Join(
                     _context.TestTemplateGroups,
@@ -624,6 +657,28 @@ namespace ProjectTracking.Controllers
             }
 
             return Ok();
+        }
+
+        private string ResolveIndexStatusFilter(string? status)
+        {
+            if (!Request.Query.ContainsKey("status"))
+                return NormalizeIndexStatus(HttpContext.Session.GetString(IndexStatusFilterKey));
+
+            var selectedStatus = NormalizeIndexStatus(status);
+            if (string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                HttpContext.Session.Remove(IndexStatusFilterKey);
+                return "";
+            }
+
+            HttpContext.Session.SetString(IndexStatusFilterKey, selectedStatus);
+            return selectedStatus;
+        }
+
+        private static string NormalizeIndexStatus(string? status)
+        {
+            var value = (status ?? "").Trim().ToUpperInvariant();
+            return ScenarioStatusFilters.Any(x => x.Value == value) ? value : "";
         }
 
         private async Task RenumberScenarioCodesAsync(int projectId)

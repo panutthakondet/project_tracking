@@ -588,6 +588,55 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     border-color: var(--pt-border-strong) !important;
 }
 
+.dashboard-view .panel-time .time-metric-grid {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.dashboard-view .panel-time :is(.time-goal, .time-trend-card, .time-heatmap-card, .time-metric-grid > span, .time-detail-grid > span) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 18%, var(--pt-accent-soft), transparent 44%),
+        linear-gradient(180deg, var(--pt-sidebar-soft), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+.dashboard-view .panel-time :is(.time-goal span, .time-goal small, .time-goal-trend small, .time-subhead small, .time-trend-bar small, .time-metric-grid span i, .time-detail-grid small) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+.dashboard-view .panel-time :is(.time-subhead b, .time-trend-bar b, .time-metric-grid b, .time-detail-grid b) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+.dashboard-view .panel-time .time-goal b,
+.dashboard-view .panel-time .time-metric-grid span:nth-child(1) b {
+    color: var(--pt-chart-success) !important;
+}
+
+.dashboard-view .panel-time .time-metric-grid span:nth-child(2) b {
+    color: var(--pt-chart-primary) !important;
+}
+
+.dashboard-view .panel-time .time-metric-grid span:nth-child(3) b {
+    color: var(--pt-chart-warning) !important;
+}
+
+.dashboard-view .panel-time .time-metric-grid span:nth-child(4) b {
+    color: var(--pt-chart-info) !important;
+}
+
+.dashboard-view .panel-time .time-goal-trend small.negative,
+.dashboard-view .panel-time .time-goal-trend small.danger {
+    color: var(--pt-chart-danger) !important;
+}
+
+.dashboard-view .panel-time .time-goal-trend small.positive,
+.dashboard-view .panel-time .time-goal-trend small.success {
+    color: var(--pt-chart-success) !important;
+}
+
 .dashboard-view :is(.donut > div, .gauge > div, .project-status-donut > div, .line-overdue-donut > div, .donut-small > div) {
     color: var(--pt-chart-panel-contrast) !important;
     background:
@@ -719,7 +768,8 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .dashboard-view :is(.dot.orange, .dot.warning) { color: var(--pt-chart-warning) !important; background: currentColor !important; }
 .dashboard-view :is(.dot.pink, .dot.danger) { color: var(--pt-chart-danger) !important; background: currentColor !important; }
 .dashboard-view :is(.dot.purple, .dot.violet) { color: var(--pt-chart-alt) !important; background: currentColor !important; }
-.dashboard-view :is(.dot.cyan, .dot.lime) { color: var(--pt-chart-info) !important; background: currentColor !important; }
+.dashboard-view .dot.cyan { color: var(--pt-chart-info) !important; background: currentColor !important; }
+.dashboard-view .dot.lime { color: #8cff3f !important; background: currentColor !important; }
 .dashboard-view :is(.dot.dark, .dot.secondary, .dot.muted) { color: var(--pt-chart-muted) !important; background: currentColor !important; }
 
 .dashboard-view .line.green { color: var(--pt-chart-success) !important; stroke: var(--pt-chart-success) !important; }
@@ -806,7 +856,7 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     border-color: var(--pt-border) !important;
 }
 
-.dashboard-view :is(.workload-row, .activity-row, .meeting-row, .time-number, .time-detail-grid > span) {
+.dashboard-view :is(.workload-row, .activity-row, .meeting-row) {
     color: var(--pt-chart-panel-contrast) !important;
     background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border) !important;
@@ -854,9 +904,12 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .dashboard-view .owner-bar.support-open i,
 .dashboard-view .progress-track .blue,
 .dashboard-view .progress-track .cyan,
-.dashboard-view .progress-track .lime,
 .dashboard-view .time-pill.blue {
     background: linear-gradient(180deg, var(--pt-chart-primary-light), var(--pt-chart-primary-dark)) !important;
+}
+
+.dashboard-view .progress-track .lime {
+    background: linear-gradient(180deg, #b9ff6a, #63d32f) !important;
 }
 
 :root {
