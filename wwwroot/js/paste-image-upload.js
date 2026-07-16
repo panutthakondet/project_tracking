@@ -263,6 +263,19 @@
         });
     }
 
+    function notifyFilesChanged(input) {
+        const state = inputStates.get(input);
+        if (!state) return;
+
+        input.dispatchEvent(new CustomEvent("paste-image-upload:files-changed", {
+            bubbles: true,
+            detail: {
+                files: state.files.slice(),
+                count: state.files.length
+            }
+        }));
+    }
+
     function syncInput(input) {
         const state = inputStates.get(input);
         if (!state) return;
@@ -271,6 +284,19 @@
         input.files = fileArrayToDataTransfer(state.files).files;
         state.applying = false;
         render(input);
+        notifyFilesChanged(input);
+    }
+
+    function clearInput(input) {
+        const state = inputStates.get(input);
+        if (!state) {
+            if (input) input.value = "";
+            return;
+        }
+
+        input.value = "";
+        state.files = [];
+        syncInput(input);
     }
 
     function addFiles(input, files) {
@@ -381,6 +407,13 @@
     document.addEventListener("DOMContentLoaded", function () {
         ensureStyles();
         document.querySelectorAll("input[type='file'][data-paste-image-upload]").forEach(initInput);
+    });
+
+    window.PasteImageUpload = Object.assign(window.PasteImageUpload || {}, {
+        clear: clearInput,
+        files(input) {
+            return inputStates.get(input)?.files.slice() || [];
+        }
     });
 
     document.addEventListener("paste", function (event) {

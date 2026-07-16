@@ -565,8 +565,7 @@ namespace ProjectTracking.Controllers
 
             if (isAjax)
             {
-                var attachmentCount = await _context.RequirementCardAttachments
-                    .CountAsync(x => x.CardId == card.CardId);
+                var attachments = await LoadCardAttachmentPayloadAsync(card.CardId);
 
                 return Json(new
                 {
@@ -578,7 +577,8 @@ namespace ProjectTracking.Controllers
                     coverImagePath = card.CoverImagePath ?? "",
                     coverImageName = card.CoverImageName ?? "",
                     updatedAt = card.UpdatedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
-                    attachmentCount,
+                    attachmentCount = attachments.Count,
+                    attachments,
                     labels = await LoadCardLabelPayloadAsync(card.CardId)
                 });
             }
@@ -682,20 +682,7 @@ namespace ProjectTracking.Controllers
                 ? card.CreatedByEmployee.EmpName
                 : (!string.IsNullOrWhiteSpace(card.CreatedByUser?.Username) ? card.CreatedByUser.Username : "ไม่ระบุผู้สร้าง");
 
-            var attachments = card.Attachments
-                .OrderByDescending(x => x.UploadedAt)
-                .Select(file => new
-                {
-                    attachmentId = file.AttachmentId,
-                    fileName = file.FileName,
-                    fileSize = FormatFileSize(file.FileSize),
-                    uploadedAt = file.UploadedAt.ToString("dd/MM/yyyy HH:mm"),
-                    isImage = IsImageContentType(file.ContentType),
-                    filePath = file.FilePath,
-                    previewUrl = Url.Action(nameof(PreviewAttachment), new { id = file.AttachmentId }),
-                    downloadUrl = Url.Action(nameof(DownloadAttachment), new { id = file.AttachmentId })
-                })
-                .ToList();
+            var attachments = await LoadCardAttachmentPayloadAsync(card.CardId);
 
             var phaseItems = card.PhaseItems
                 .OrderBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
@@ -1111,6 +1098,38 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
         }
 
+        private async Task<List<RequirementAttachmentPayload>> LoadCardAttachmentPayloadAsync(int cardId)
+        {
+            var files = await _context.RequirementCardAttachments
+                .AsNoTracking()
+                .Where(x => x.CardId == cardId)
+                .OrderByDescending(x => x.UploadedAt)
+                .Select(x => new
+                {
+                    x.AttachmentId,
+                    x.FileName,
+                    x.FileSize,
+                    x.UploadedAt,
+                    x.ContentType,
+                    x.FilePath
+                })
+                .ToListAsync();
+
+            return files
+                .Select(file => new RequirementAttachmentPayload
+                {
+                    AttachmentId = file.AttachmentId,
+                    FileName = file.FileName,
+                    FileSize = FormatFileSize(file.FileSize),
+                    UploadedAt = file.UploadedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                    IsImage = IsImageContentType(file.ContentType),
+                    FilePath = file.FilePath,
+                    PreviewUrl = Url.Action(nameof(PreviewAttachment), new { id = file.AttachmentId }) ?? "",
+                    DownloadUrl = Url.Action(nameof(DownloadAttachment), new { id = file.AttachmentId }) ?? ""
+                })
+                .ToList();
+        }
+
         private async Task ReplaceCardLabelsAsync(int cardId, List<int>? labelIds)
         {
             var existingLabels = await _context.RequirementCardLabels
@@ -1440,6 +1459,18 @@ namespace ProjectTracking.Controllers
             public int LabelId { get; set; }
             public string LabelName { get; set; } = "";
             public string ColorHex { get; set; } = "";
+        }
+
+        private sealed class RequirementAttachmentPayload
+        {
+            public int AttachmentId { get; set; }
+            public string FileName { get; set; } = "";
+            public string FileSize { get; set; } = "";
+            public string UploadedAt { get; set; } = "";
+            public bool IsImage { get; set; }
+            public string FilePath { get; set; } = "";
+            public string PreviewUrl { get; set; } = "";
+            public string DownloadUrl { get; set; } = "";
         }
     }
 }

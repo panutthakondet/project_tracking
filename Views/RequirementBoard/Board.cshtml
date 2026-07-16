@@ -1944,6 +1944,11 @@
             background: #fff;
         }
 
+        .rb-file-row.is-pending {
+            border-style: dashed;
+            background: #f8fcff;
+        }
+
         .rb-file-thumb {
             width: 58px;
             height: 46px;
@@ -1986,6 +1991,19 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: flex-end;
+        }
+
+        .rb-file-pending-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #075985;
+            font-size: .85rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .rb-file-upload-grid {
@@ -3136,60 +3154,62 @@
                                     <label class="rb-field-label mb-0">เพิ่มไฟล์แนบ</label>
                                     <div class="rb-file-info">เลือกได้หลายไฟล์</div>
                                     <input class="form-control" type="file" name="files" multiple data-paste-image-upload data-paste-upload-scroll="x" />
-                                    <div class="rb-attachment-inline">
+                                    <div class="rb-attachment-inline" data-attachment-region>
                                         <h3 class="rb-field-label mb-0" data-attachment-heading data-attachment-count="@card.Attachments.Count">ไฟล์แนบ (@card.Attachments.Count)</h3>
-                                        @if (card.Attachments.Count == 0)
-                                        {
-                                            <div class="alert alert-light border">ยังไม่มีไฟล์แนบ</div>
-                                        }
-                                        else
-                                        {
-                                            <div class="rb-file-list">
-                                                @foreach (var file in card.Attachments.OrderByDescending(x => x.UploadedAt))
-                                                {
-                                                    <div class="rb-file-row">
-                                                        @if (IsImage(file))
-                                                        {
-                                                            <a class="rb-file-thumb-link"
-                                                               asp-action="PreviewAttachment"
-                                                               asp-route-id="@file.AttachmentId"
-                                                               target="_blank"
-                                                               rel="noopener">
-                                                                <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
-                                                            </a>
-                                                        }
-                                                        else
-                                                        {
-                                                            <a class="rb-file-thumb-link rb-file-thumb"
-                                                               asp-action="PreviewAttachment"
-                                                               asp-route-id="@file.AttachmentId"
-                                                               target="_blank"
-                                                               rel="noopener">FILE</a>
-                                                        }
-                                                        <div>
-                                                            <div class="rb-file-name">@file.FileName</div>
-                                                            <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
-                                                        </div>
-                                                        <div class="rb-file-actions">
-                                                            <a class="rb-btn secondary"
-                                                               asp-action="PreviewAttachment"
-                                                               asp-route-id="@file.AttachmentId"
-                                                               target="_blank"
-                                                               rel="noopener">Preview</a>
-                                                            <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
-                                                            @if (canDelete)
+                                        <div data-attachment-list>
+                                            @if (card.Attachments.Count == 0)
+                                            {
+                                                <div class="alert alert-light border" data-attachment-empty>ยังไม่มีไฟล์แนบ</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="rb-file-list">
+                                                    @foreach (var file in card.Attachments.OrderByDescending(x => x.UploadedAt))
+                                                    {
+                                                        <div class="rb-file-row">
+                                                            @if (IsImage(file))
                                                             {
-                                                                <button class="rb-btn danger"
-                                                                        type="submit"
-                                                                        form="deleteAttachmentForm-@file.AttachmentId">
-                                                                    ลบ
-                                                                </button>
+                                                                <a class="rb-file-thumb-link"
+                                                                   asp-action="PreviewAttachment"
+                                                                   asp-route-id="@file.AttachmentId"
+                                                                   target="_blank"
+                                                                   rel="noopener">
+                                                                    <img class="rb-file-thumb" src="@file.FilePath" alt="@file.FileName" />
+                                                                </a>
                                                             }
+                                                            else
+                                                            {
+                                                                <a class="rb-file-thumb-link rb-file-thumb"
+                                                                   asp-action="PreviewAttachment"
+                                                                   asp-route-id="@file.AttachmentId"
+                                                                   target="_blank"
+                                                                   rel="noopener">FILE</a>
+                                                            }
+                                                            <div>
+                                                                <div class="rb-file-name">@file.FileName</div>
+                                                                <div class="rb-file-info">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                                            </div>
+                                                            <div class="rb-file-actions">
+                                                                <a class="rb-btn secondary"
+                                                                   asp-action="PreviewAttachment"
+                                                                   asp-route-id="@file.AttachmentId"
+                                                                   target="_blank"
+                                                                   rel="noopener">Preview</a>
+                                                                <a class="rb-btn secondary" asp-action="DownloadAttachment" asp-route-id="@file.AttachmentId">ดาวน์โหลด</a>
+                                                                @if (canDelete)
+                                                                {
+                                                                    <button class="rb-btn danger"
+                                                                            type="submit"
+                                                                            form="deleteAttachmentForm-@file.AttachmentId">
+                                                                        ลบ
+                                                                    </button>
+                                                                }
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3246,6 +3266,8 @@
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
             const createLabelUrl = '@Url.Action("CreateLabel", "RequirementBoard")';
             const updateCardLabelsUrl = '@Url.Action("UpdateCardLabels", "RequirementBoard")';
+            const deleteAttachmentUrl = '@Url.Action("DeleteAttachment", "RequirementBoard")';
+            const canDeleteAttachments = @canDelete.ToString().ToLowerInvariant();
             const boardLabels = @Html.Raw(labelOptionsJson);
             const openCardId = Number('@(ViewBag.OpenCardId ?? 0)');
             const searchInput = document.getElementById('requirementBoardSearch');
@@ -4215,6 +4237,257 @@
                 cover.alt = title || '';
             }
 
+            function formatAttachmentFileSize(bytes) {
+                const size = Number(bytes || 0);
+                if (!size) return '-';
+                if (size >= 1048576) return `${(size / 1048576).toFixed(1)} MB`;
+                return `${Math.max(1, Math.round(size / 1024)).toLocaleString()} KB`;
+            }
+
+            function attachmentExtension(fileName) {
+                const name = String(fileName || '');
+                const dot = name.lastIndexOf('.');
+                if (dot < 0) return 'FILE';
+                return name.substring(dot + 1, dot + 5).toUpperCase() || 'FILE';
+            }
+
+            function attachmentData(file) {
+                return {
+                    attachmentId: file.attachmentId ?? file.AttachmentId ?? 0,
+                    fileName: file.fileName ?? file.FileName ?? '-',
+                    fileSize: file.fileSize ?? file.FileSize ?? '-',
+                    uploadedAt: file.uploadedAt ?? file.UploadedAt ?? '-',
+                    isImage: Boolean(file.isImage ?? file.IsImage),
+                    filePath: file.filePath ?? file.FilePath ?? '',
+                    previewUrl: file.previewUrl ?? file.PreviewUrl ?? '',
+                    downloadUrl: file.downloadUrl ?? file.DownloadUrl ?? ''
+                };
+            }
+
+            function ensureAttachmentDeleteForm(attachmentId) {
+                if (!canDeleteAttachments || !attachmentId || !deleteAttachmentUrl) return '';
+
+                const formId = `deleteAttachmentForm-${attachmentId}`;
+                let form = document.getElementById(formId);
+                if (form) return formId;
+
+                form = document.createElement('form');
+                form.id = formId;
+                form.method = 'post';
+                form.action = deleteAttachmentUrl;
+                form.addEventListener('submit', event => {
+                    if (!window.confirm('ลบไฟล์แนบนี้หรือไม่?')) event.preventDefault();
+                });
+
+                if (token) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '__RequestVerificationToken';
+                    tokenInput.value = token;
+                    form.appendChild(tokenInput);
+                }
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'attachmentId';
+                idInput.value = attachmentId;
+                form.appendChild(idInput);
+                document.body.appendChild(form);
+                return formId;
+            }
+
+            function createAttachmentActionLink(label, url) {
+                const link = document.createElement('a');
+                link.className = 'rb-btn secondary';
+                link.href = url || '#';
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = label;
+                return link;
+            }
+
+            function createAttachmentThumb(file, pendingFile = null) {
+                const wrapper = pendingFile ? document.createElement('div') : document.createElement('a');
+                wrapper.className = 'rb-file-thumb-link';
+
+                if (!pendingFile) {
+                    wrapper.href = file.previewUrl || '#';
+                    wrapper.target = '_blank';
+                    wrapper.rel = 'noopener';
+                }
+
+                const pendingIsImage = Boolean(pendingFile?.type?.startsWith('image/'));
+                const imageSrc = file.isImage && file.filePath
+                    ? file.filePath
+                    : (pendingIsImage && pendingFile ? URL.createObjectURL(pendingFile) : '');
+
+                if (imageSrc) {
+                    const img = document.createElement('img');
+                    img.className = 'rb-file-thumb';
+                    img.src = imageSrc;
+                    img.alt = file.fileName || '';
+                    if (pendingFile) {
+                        img.onload = () => URL.revokeObjectURL(imageSrc);
+                    }
+                    wrapper.appendChild(img);
+                } else {
+                    wrapper.classList.add('rb-file-thumb');
+                    wrapper.textContent = attachmentExtension(file.fileName);
+                }
+
+                return wrapper;
+            }
+
+            function createAttachmentRow(rawFile, options = {}) {
+                const file = attachmentData(rawFile);
+                const row = document.createElement('div');
+                row.className = 'rb-file-row';
+
+                if (options.pendingFile) {
+                    row.classList.add('is-pending');
+                    row.dataset.pendingAttachment = 'true';
+                    file.fileName = options.pendingFile.name || file.fileName;
+                    file.fileSize = formatAttachmentFileSize(options.pendingFile.size);
+                    file.uploadedAt = 'รอบันทึก';
+                    file.isImage = Boolean(options.pendingFile.type?.startsWith('image/'));
+                }
+
+                const info = document.createElement('div');
+                const name = document.createElement('div');
+                name.className = 'rb-file-name';
+                name.textContent = file.fileName || '-';
+
+                const meta = document.createElement('div');
+                meta.className = 'rb-file-info';
+                meta.textContent = `${file.fileSize || '-'} · ${file.uploadedAt || '-'}`;
+
+                info.append(name, meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'rb-file-actions';
+
+                if (options.pendingFile) {
+                    const badge = document.createElement('span');
+                    badge.className = 'rb-file-pending-badge';
+                    badge.textContent = 'รอบันทึก';
+                    actions.appendChild(badge);
+                } else {
+                    if (file.previewUrl) actions.appendChild(createAttachmentActionLink('Preview', file.previewUrl));
+                    if (file.downloadUrl) actions.appendChild(createAttachmentActionLink('ดาวน์โหลด', file.downloadUrl));
+
+                    const deleteFormId = ensureAttachmentDeleteForm(file.attachmentId);
+                    if (deleteFormId) {
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'rb-btn danger';
+                        deleteButton.type = 'submit';
+                        deleteButton.setAttribute('form', deleteFormId);
+                        deleteButton.textContent = 'ลบ';
+                        actions.appendChild(deleteButton);
+                    }
+                }
+
+                row.append(createAttachmentThumb(file, options.pendingFile), info, actions);
+                return row;
+            }
+
+            function updateAttachmentHeading(region, pendingCount = 0) {
+                const heading = region?.querySelector('[data-attachment-heading]');
+                if (!heading) return;
+
+                const savedCount = Number(heading.dataset.attachmentCount || 0);
+                heading.textContent = `ไฟล์แนบ (${savedCount + pendingCount})`;
+            }
+
+            function showAttachmentEmpty(region) {
+                const body = region?.querySelector('[data-attachment-list]');
+                if (!body) return;
+
+                body.innerHTML = '';
+                const empty = document.createElement('div');
+                empty.className = 'alert alert-light border';
+                empty.dataset.attachmentEmpty = '';
+                empty.textContent = 'ยังไม่มีไฟล์แนบ';
+                body.appendChild(empty);
+            }
+
+            function ensureAttachmentFileList(region) {
+                const body = region?.querySelector('[data-attachment-list]');
+                if (!body) return null;
+
+                body.querySelector('[data-attachment-empty]')?.remove();
+                let list = body.querySelector('.rb-file-list');
+                if (!list) {
+                    list = document.createElement('div');
+                    list.className = 'rb-file-list';
+                    body.appendChild(list);
+                }
+
+                return list;
+            }
+
+            function renderSavedAttachments(modal, attachments) {
+                const region = modal?.querySelector('[data-attachment-region]');
+                const heading = region?.querySelector('[data-attachment-heading]');
+                if (!region || !heading) return;
+
+                const safeAttachments = Array.isArray(attachments) ? attachments : [];
+                heading.dataset.attachmentCount = String(safeAttachments.length);
+                updateAttachmentHeading(region, 0);
+
+                if (safeAttachments.length === 0) {
+                    showAttachmentEmpty(region);
+                    return;
+                }
+
+                const body = region.querySelector('[data-attachment-list]');
+                if (!body) return;
+
+                body.innerHTML = '';
+                const list = document.createElement('div');
+                list.className = 'rb-file-list';
+                safeAttachments.forEach(file => list.appendChild(createAttachmentRow(file)));
+                body.appendChild(list);
+            }
+
+            function syncPendingAttachments(input) {
+                if (!input?.matches('input[type="file"][name="files"]')) return;
+
+                const region = input.closest('.rb-file-upload-card')?.querySelector('[data-attachment-region]');
+                if (!region) return;
+
+                const files = Array.from(input.files || []);
+                const body = region.querySelector('[data-attachment-list]');
+                if (!body) return;
+
+                body.querySelectorAll('[data-pending-attachment]').forEach(row => row.remove());
+
+                if (files.length > 0) {
+                    const list = ensureAttachmentFileList(region);
+                    files.forEach(file => {
+                        list?.appendChild(createAttachmentRow({}, { pendingFile: file }));
+                    });
+                }
+
+                const rowCount = body.querySelectorAll('.rb-file-row').length;
+                if (rowCount === 0) {
+                    showAttachmentEmpty(region);
+                } else {
+                    body.querySelector('[data-attachment-empty]')?.remove();
+                }
+
+                updateAttachmentHeading(region, files.length);
+            }
+
+            function clearUploadInput(input) {
+                if (window.PasteImageUpload?.clear) {
+                    window.PasteImageUpload.clear(input);
+                    return;
+                }
+
+                input.value = '';
+                syncPendingAttachments(input);
+            }
+
             function updateBoardCard(data, form) {
                 const cardId = data.cardId || form.dataset.cardId;
                 const card = document.querySelector(`.rb-card[data-card-id="${cardId}"]`);
@@ -4263,10 +4536,14 @@
                     modalCoverImage.src = data.coverImagePath;
                 }
 
-                const attachmentHeading = modal.querySelector('[data-attachment-heading]');
-                if (attachmentHeading && Number.isFinite(Number(data.attachmentCount))) {
-                    attachmentHeading.dataset.attachmentCount = data.attachmentCount;
-                    attachmentHeading.textContent = `ไฟล์แนบ (${data.attachmentCount})`;
+                if (Array.isArray(data.attachments)) {
+                    renderSavedAttachments(modal, data.attachments);
+                } else {
+                    const attachmentHeading = modal.querySelector('[data-attachment-heading]');
+                    if (attachmentHeading && Number.isFinite(Number(data.attachmentCount))) {
+                        attachmentHeading.dataset.attachmentCount = data.attachmentCount;
+                        attachmentHeading.textContent = `ไฟล์แนบ (${data.attachmentCount})`;
+                    }
                 }
             }
 
@@ -4276,6 +4553,17 @@
 
                 window.bootstrap.Modal.getOrCreateInstance(modal).hide();
             }
+
+            document.addEventListener('paste-image-upload:files-changed', event => {
+                syncPendingAttachments(event.target);
+            });
+
+            document.addEventListener('change', event => {
+                const input = event.target.closest?.('input[type="file"][name="files"]');
+                if (!input) return;
+
+                window.setTimeout(() => syncPendingAttachments(input), 0);
+            });
 
             document.addEventListener('submit', async event => {
                 const createForm = event.target.closest('.rb-create-card-form');
@@ -4318,7 +4606,7 @@
 
                     updateBoardCard(result, form);
                     form.querySelectorAll('input[type="file"]').forEach(input => {
-                        input.value = '';
+                        clearUploadInput(input);
                     });
                     setSaveStatus(status, result.message || 'บันทึกแล้ว', 'success');
                     closeCardModal(form);
