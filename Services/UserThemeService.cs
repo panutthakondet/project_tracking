@@ -2588,9 +2588,19 @@ html body main.route-controller-requirementboard :is(
 }
 
 html body main.route-controller-requirementboard :is(.boards-danger-button, .rb-btn.danger) {
-    color: #ffffff !important;
-    background: #e11d48 !important;
-    border-color: transparent !important;
+    color: var(--pt-chart-danger-dark) !important;
+    -webkit-text-fill-color: var(--pt-chart-danger-dark) !important;
+    background: transparent !important;
+    border-color: var(--pt-chart-danger) !important;
+    box-shadow: inset 0 0 0 1px var(--pt-chart-danger-soft) !important;
+}
+
+html body main.route-controller-requirementboard :is(.boards-danger-button, .rb-btn.danger):hover,
+html body main.route-controller-requirementboard :is(.boards-danger-button, .rb-btn.danger):focus {
+    color: var(--pt-chart-danger-dark) !important;
+    -webkit-text-fill-color: var(--pt-chart-danger-dark) !important;
+    background: var(--pt-chart-danger-soft) !important;
+    border-color: var(--pt-chart-danger) !important;
 }
 
 html body main.route-controller-requirementboard :is(
