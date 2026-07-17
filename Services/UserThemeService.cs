@@ -655,6 +655,17 @@ main > .container-fluid:first-child > :is(h1, h2, h3):first-child,
     color: var(--pt-sidebar-contrast) !important;
 }
 
+html body main .index-hero :is(.index-title, .index-subtitle, .index-eyebrow) {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main .index-hero :is(.index-subtitle, .index-eyebrow) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+    opacity: 1 !important;
+}
+
 .index-subtitle,
 .index-eyebrow {
     opacity: .86;
@@ -1071,6 +1082,29 @@ html body main .dashboard-view :is(
 ) {
     color: var(--pt-chart-panel-contrast-muted) !important;
     -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+html body main .dashboard-view :is(
+    .project-overview-title-row h2,
+    .task-progress-title h2,
+    .issues-overview-head h2,
+    .dashboard-card-title h2,
+    .line-overdue-title-row h2
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main .dashboard-view :is(
+    .project-overview-title-row small,
+    .task-progress-title small,
+    .issues-overview-head small,
+    .dashboard-card-title em,
+    .dashboard-card-title h2 small,
+    .line-overdue-title-row small
+) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
 }
 
 html body main .dashboard-view :is(
