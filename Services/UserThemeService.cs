@@ -1408,6 +1408,7 @@ html body main .dashboard-view .workload-rank {
     padding: 3px 6px 2px !important;
     border: 1px solid var(--pt-border) !important;
     border-radius: 999px !important;
+    font-weight: 700 !important;
     color: var(--pt-chart-panel-contrast) !important;
     -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
     background: var(--pt-chart-panel-center-bg) !important;
