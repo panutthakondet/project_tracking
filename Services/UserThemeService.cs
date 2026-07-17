@@ -2569,6 +2569,14 @@ html body main.route-controller-requirementboard :is(
 
 html body main.route-controller-requirementboard .rb-add-card-action {
     border-radius: 14px !important;
+    background:
+        radial-gradient(circle at 18% 14%, rgba(255,255,255,.26), transparent 34%),
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--pt-menu-accent) 78%, var(--pt-surface) 22%) 0%,
+            color-mix(in srgb, var(--pt-menu-accent) 70%, var(--pt-menu-panel-bg) 30%) 48%,
+            color-mix(in srgb, var(--pt-menu-accent-dark) 72%, var(--pt-menu-panel-deep) 28%) 100%) !important;
+    border-color: color-mix(in srgb, var(--pt-menu-accent) 48%, var(--pt-border) 52%) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px color-mix(in srgb, var(--pt-menu-accent) 18%, transparent) !important;
     overflow: hidden !important;
 }
 
