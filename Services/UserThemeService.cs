@@ -569,6 +569,18 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
     box-shadow: 0 0 0 7px var(--pt-accent-soft), 0 18px 30px var(--pt-shadow) !important;
 }
 
+.v2-sidebar,
+.v2-sidebar .v2-profile-name,
+.v2-sidebar .v2-profile-name-row,
+.v2-sidebar .sidebar-logo-text {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+.v2-sidebar .v2-profile-role,
+.v2-sidebar .v2-profile-role-row {
+    color: var(--pt-sidebar-contrast-muted) !important;
+}
+
 .v2-sidebar .navbar-dark .navbar-nav .nav-link,
 .v2-sidebar .navbar-dark .navbar-nav .dropdown-toggle,
 .v2-sidebar .dropdown-menu {
@@ -1004,6 +1016,94 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     color: var(--pt-chart-panel-contrast-muted) !important;
     background: linear-gradient(180deg, var(--pt-chart-panel-field-bg), var(--pt-chart-panel-deep)) !important;
     border-color: var(--pt-border) !important;
+}
+
+html body main .dashboard-view :is(
+    .project-overview-title-row h2,
+    .task-progress-title h2,
+    .issues-overview-head h2,
+    .dashboard-card-title h2,
+    .overview-mini-head h3,
+    .project-status-card-title,
+    .metric-name,
+    .metric-list b,
+    .task-summary-card b,
+    .owner-overview-member b,
+    .yearly-legend,
+    .yearly-legend span,
+    .workload-row .workload-name,
+    .workload-row .workload-name strong,
+    .activity-row b,
+    .meeting-row b
+) {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view :is(
+    .project-overview-title-row small,
+    .task-progress-title small,
+    .issues-overview-head small,
+    .dashboard-card-title em,
+    .overview-mini-head small,
+    .project-status-updated,
+    .owner-overview-y-axis,
+    .owner-overview-y-title,
+    .owner-overview-member small,
+    .owner-overview-footer,
+    .dashboard-section-foot,
+    .issues-overview-foot,
+    .yearly-y-title,
+    .yearly-x-title,
+    .yearly-y-axis,
+    .yearly-y-axis span,
+    .yearly-x-axis,
+    .yearly-x-axis span,
+    .workload-row .workload-name small,
+    .meeting-row small,
+    .activity-row small,
+    .activity-row em,
+    .time-detail-grid small
+) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+html body main .dashboard-view :is(
+    .overview-mini,
+    .yearly-chart,
+    .project-status-donut-layout,
+    .owner-overview-chart,
+    .owner-overview-member,
+    .owner-overview-footer,
+    .metric-card,
+    .metric-list > span,
+    .task-summary-card,
+    .issues-overview-foot,
+    .workload-row,
+    .activity-row,
+    .meeting-row,
+    .time-detail-grid > span
+) {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view :is(
+    .overview-pie3d-total,
+    .overview-pie3d-caption,
+    .overview-pie3d-labels text
+) {
+    fill: var(--pt-chart-panel-contrast) !important;
+    stroke: var(--pt-chart-panel-center-bg) !important;
+}
+
+html body main .dashboard-view .overview-pie3d-caption {
+    fill: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+html body main .dashboard-view .bar-chart::before {
+    border-color: var(--pt-chart-panel-contrast-muted) !important;
+    background: repeating-linear-gradient(to bottom, var(--pt-border) 0 1px, transparent 1px 38px) !important;
 }
 
 .dashboard-view :is(.workload-row, .activity-row, .meeting-row) {
