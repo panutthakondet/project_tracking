@@ -1415,6 +1415,15 @@ html body main .dashboard-view .workload-rank {
     text-shadow: none !important;
 }
 
+.dashboard-view .panel-owner-overview .owner-bar em {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+    background: color-mix(in srgb, var(--pt-chart-panel-center-bg) 92%, transparent) !important;
+    border-color: var(--pt-border) !important;
+    box-shadow: 0 8px 18px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.14) !important;
+    text-shadow: none !important;
+}
+
 .dashboard-view .owner-bar.done i,
 .dashboard-view .progress-track .green,
 .dashboard-view .time-pill.green {
