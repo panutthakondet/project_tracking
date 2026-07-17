@@ -2427,10 +2427,23 @@ html body main.route-controller-requirementboard :is(
     .rb-stat strong,
     .rb-stat span,
     .rb-boards-btn,
-    .rb-boards-btn span:first-child,
     .rb-modal .modal-header:not(.has-cover) :is(.modal-title, h1, h2, h3, h4, h5, h6, p, span)
 ) {
     color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-requirementboard .rb-boards-btn span:first-child {
+    color: var(--pt-accent-contrast) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px var(--pt-shadow) !important;
+}
+
+html body main.route-controller-requirementboard .rb-boards-btn:hover span:first-child,
+html body main.route-controller-requirementboard .rb-boards-btn:focus span:first-child {
+    color: var(--pt-accent-contrast) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-accent-light), var(--pt-accent)) !important;
 }
 
 html body main.route-controller-requirementboard :is(
