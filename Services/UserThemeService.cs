@@ -1399,6 +1399,32 @@ html body main .dashboard-view .workload-rank {
     background: linear-gradient(180deg, var(--pt-chart-primary-light) 0%, var(--pt-chart-primary) 55%, var(--pt-chart-primary-dark) 100%) !important;
 }
 
+.dashboard-view .yearly-chart .bar-group span i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 22px !important;
+    min-height: 18px !important;
+    padding: 3px 6px 2px !important;
+    border: 1px solid var(--pt-border) !important;
+    border-radius: 999px !important;
+    color: currentColor !important;
+    -webkit-text-fill-color: currentColor !important;
+    background: color-mix(in srgb, var(--pt-chart-panel-center-bg) 92%, transparent) !important;
+    box-shadow: 0 8px 18px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.14) !important;
+    text-shadow: none !important;
+}
+
+.dashboard-view .yearly-chart .bar-group span:nth-child(1) i {
+    color: var(--pt-chart-success-light) !important;
+    -webkit-text-fill-color: var(--pt-chart-success-light) !important;
+}
+
+.dashboard-view .yearly-chart .bar-group span:nth-child(2) i {
+    color: var(--pt-chart-primary-light) !important;
+    -webkit-text-fill-color: var(--pt-chart-primary-light) !important;
+}
+
 .dashboard-view .owner-bar.done i,
 .dashboard-view .progress-track .green,
 .dashboard-view .time-pill.green {
