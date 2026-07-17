@@ -1842,6 +1842,407 @@ main.route-controller-phaseworkload :is(.workload-toolbar, .workload-responsive-
     border-radius: 999px !important;
 }
 
+html body main.route-controller-meetings {
+    color: var(--pt-body-contrast) !important;
+    background: var(--pt-body-bg) !important;
+}
+
+html body main.route-controller-meetings :is(.meeting-page, .meeting-create-wrap) {
+    color: var(--pt-body-contrast) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .meeting-header,
+    .meeting-hero,
+    .meeting-form-hero,
+    .meeting-detail-hero,
+    .calendar-card__toolbar
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .meeting-title,
+    .meeting-subtitle,
+    .meeting-hero__title,
+    .meeting-hero__subtitle,
+    .meeting-detail-title,
+    .meeting-detail-subtitle,
+    .calendar-heading__eyebrow,
+    .calendar-heading__title,
+    .calendar-heading__subtitle,
+    .calendar-heading__pill,
+    .calendar-card__toolbar .text-muted
+) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .calendar-card,
+    .meeting-list-card,
+    .meeting-card,
+    .meeting-detail-card,
+    .meeting-card__header,
+    .meeting-card__body,
+    .meeting-detail-card__header,
+    .meeting-detail-card__body,
+    .meeting-detail-item,
+    .meeting-attendee-card,
+    .meeting-attendee-picker,
+    .meeting-detail-title-card,
+    .meeting-detail-summary-block,
+    .meeting-detail-description-card,
+    .meeting-detail-meta-card
+) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .calendar-card__body,
+    .meeting-list-card .card-body,
+    .meeting-selected-attendee,
+    .meeting-attendee-empty
+) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface-soft) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .calendar-heading__date,
+    .fc .fc-header-toolbar,
+    .fc .fc-scrollgrid,
+    .fc .fc-list,
+    .fc .fc-daygrid-day,
+    .fc .fc-daygrid-day.fc-day-sun,
+    .fc .fc-daygrid-day.fc-day-mon,
+    .fc .fc-daygrid-day.fc-day-tue,
+    .fc .fc-daygrid-day.fc-day-wed,
+    .fc .fc-daygrid-day.fc-day-thu,
+    .fc .fc-daygrid-day.fc-day-fri,
+    .fc .fc-daygrid-day.fc-day-sat,
+    .fc .fc-timegrid-axis,
+    .fc .fc-timegrid-slot-label,
+    .fc .fc-timegrid-slot,
+    .fc .fc-timegrid-col
+) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .fc .fc-daygrid-day.fc-day-other,
+    .fc .fc-list-event:hover td,
+    .fc .fc-timegrid-col.fc-day-today
+) {
+    color: var(--pt-surface-contrast-muted) !important;
+    background: var(--pt-surface-soft) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .fc .fc-col-header-cell,
+    .calendar-card .fc .fc-col-header-cell,
+    .fc .fc-list-day-cushion,
+    .meeting-list-card .card-header
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .fc .fc-col-header-cell .fc-col-header-cell-cushion,
+    .calendar-card .fc .fc-col-header-cell .fc-col-header-cell-cushion,
+    .fc .fc-day-head-weekday,
+    .fc .fc-day-head-date
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    text-shadow: none !important;
+}
+
+html body main.route-controller-meetings :is(
+    .fc .fc-toolbar-title,
+    .fc .fc-daygrid-day-number,
+    .fc-day-sun .fc-daygrid-day-number,
+    .fc-day-mon .fc-daygrid-day-number,
+    .fc-day-tue .fc-daygrid-day-number,
+    .fc-day-wed .fc-daygrid-day-number,
+    .fc-day-thu .fc-daygrid-day-number,
+    .fc-day-fri .fc-daygrid-day-number,
+    .fc-day-sat .fc-daygrid-day-number,
+    .fc .fc-list-event td,
+    .fc .fc-timegrid-slot-label-cushion,
+    .section-title,
+    .meeting-project-text,
+    .meeting-project-name,
+    .meeting-desc,
+    .meeting-detail-value,
+    .meeting-selected-attendee > span
+) {
+    color: var(--pt-surface-contrast) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .section-subtitle,
+    .form-hint,
+    .meeting-detail-label,
+    .meeting-event-subtitle,
+    .meeting-event-meta,
+    .meeting-location,
+    .meeting-time-field > span,
+    .text-muted
+) {
+    color: var(--pt-surface-contrast-muted) !important;
+}
+
+html body main.route-controller-meetings .fc .fc-button-primary,
+html body main.route-controller-meetings .calendar-heading__action.primary {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    border-color: transparent !important;
+}
+
+html body main.route-controller-meetings .calendar-heading__action:not(.primary),
+html body main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn, button.btn, a.btn) {
+    color: var(--pt-sidebar-contrast) !important;
+    background: var(--pt-accent-soft) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-meetings :is(.fc-event, .meeting-row) {
+    --meeting-event-bg-start: var(--pt-field-bg);
+    --meeting-event-bg-end: var(--pt-surface-soft);
+    --meeting-event-border: var(--pt-border);
+    color: var(--pt-surface-contrast) !important;
+    background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
+    border-color: var(--meeting-event-border) !important;
+}
+
+html body main.route-controller-meetings :is(.fc-event-title, .meeting-event-title) {
+    color: var(--pt-surface-contrast) !important;
+}
+
+html body main.route-controller-meetings :is(
+    .form-control,
+    .form-select,
+    input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+    textarea,
+    select,
+    option
+) {
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
+    background-color: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+}
+
+body:has(main.route-controller-requirementboard),
+body:has(main.route-controller-requirementboard) .v2-shell,
+body:has(main.route-controller-requirementboard) .v2-page,
+body:has(main.route-controller-requirementboard) .v2-shell-requirement-board {
+    color: var(--pt-body-contrast) !important;
+    background: var(--pt-body-bg) !important;
+}
+
+html body main.route-controller-requirementboard,
+html body main.route-controller-requirementboard .boards-page,
+html body main.route-controller-requirementboard .rb-page,
+html body main.route-controller-requirementboard .v2-shell-requirement-board {
+    color: var(--pt-body-contrast) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .index-hero,
+    .rb-hero,
+    .rb-board-strip,
+    .rb-modal .modal-header:not(.has-cover)
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 8%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .index-eyebrow,
+    .index-title,
+    .index-subtitle,
+    .rb-eyebrow,
+    .rb-hero h1,
+    .rb-hero p,
+    .rb-stat,
+    .rb-stat strong,
+    .rb-stat span,
+    .rb-boards-btn,
+    .rb-boards-btn span:first-child,
+    .rb-modal .modal-header:not(.has-cover) :is(.modal-title, h1, h2, h3, h4, h5, h6, p, span)
+) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-sidebar,
+    .boards-section,
+    .boards-nav-link,
+    .boards-create-summary,
+    .boards-group-link,
+    .boards-create-box,
+    .boards-online-users,
+    .boards-stat,
+    .boards-rename summary,
+    .boards-rename-panel,
+    .boards-create-panel,
+    .boards-card,
+    .boards-create-board,
+    .rb-column,
+    .rb-add-list-column,
+    .rb-add-list-column form,
+    .rb-card,
+    .rb-modal .modal-content,
+    .rb-modal .modal-body,
+    .rb-file-upload-card,
+    .rb-file-row,
+    .rb-phase-draft,
+    .rb-description-view,
+    .rb-description-editor,
+    .rb-description-rich,
+    .rb-label-picker,
+    .rb-label-panel,
+    .rb-label-option
+) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-search,
+    .boards-input,
+    .rb-search-input,
+    .rb-input,
+    .rb-textarea,
+    .rb-phase-row .form-control,
+    .rb-date-input-wrap .form-control,
+    .rb-file-upload-card .form-control,
+    .rb-description-font-size-button,
+    .rb-description-font-size-menu,
+    .rb-description-color-menu
+) {
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
+    background: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .rb-description-placeholder
+) {
+    color: var(--pt-surface-contrast-muted) !important;
+    opacity: .78 !important;
+}
+
+html body main.route-controller-requirementboard .boards-search::placeholder,
+html body main.route-controller-requirementboard .boards-input::placeholder,
+html body main.route-controller-requirementboard .rb-search-input::placeholder,
+html body main.route-controller-requirementboard .rb-input::placeholder,
+html body main.route-controller-requirementboard .rb-textarea::placeholder,
+html body main.route-controller-requirementboard .rb-phase-row .form-control::placeholder {
+    color: var(--pt-surface-contrast-muted) !important;
+    opacity: .78 !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-sidebar-title,
+    .boards-group-meta,
+    .boards-section-subtitle,
+    .boards-card-meta,
+    .boards-online-more,
+    .boards-search-icon,
+    .rb-search-icon,
+    .rb-column-count,
+    .rb-column-drag-hint,
+    .rb-card-detail,
+    .rb-card-meta,
+    .rb-file-info,
+    .rb-description-title,
+    .rb-field-label,
+    .rb-save-status
+) {
+    color: var(--pt-surface-contrast-muted) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-nav-link,
+    .boards-create-summary,
+    .boards-group-link,
+    .boards-section-title,
+    .boards-card-title,
+    .boards-picker-title,
+    .rb-column-title,
+    .rb-card-title,
+    .rb-file-name,
+    .rb-description-view,
+    .rb-description-view h3,
+    .rb-description-rich,
+    .rb-description-rich h3,
+    .rb-modal :is(.modal-title, h1, h2, h3, h4, h5, h6, label, strong)
+) {
+    color: var(--pt-surface-contrast) !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-button,
+    .rb-btn:not(.secondary):not(.danger),
+    .rb-dashboard-btn,
+    .rb-add-card-action
+) {
+    color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+    border-color: transparent !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-button.secondary,
+    .boards-close-button,
+    .boards-more-button,
+    .rb-btn.secondary,
+    .rb-search-clear,
+    .rb-description-tool,
+    .rb-description-font-size-option,
+    .rb-description-color-auto
+) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface-soft) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-requirementboard :is(.boards-danger-button, .rb-btn.danger) {
+    color: #ffffff !important;
+    background: #e11d48 !important;
+    border-color: transparent !important;
+}
+
+html body main.route-controller-requirementboard :is(
+    .boards-card-cover,
+    .boards-image-swatch,
+    .boards-color-visual,
+    .rb-card-cover-frame,
+    .rb-card-cover,
+    .rb-card-label,
+    .rb-label-color,
+    .rb-description-color-option
+) {
+    forced-color-adjust: none;
+}
+
 .requirement-card-popup__header {
     color: var(--pt-sidebar-contrast) !important;
     background:
