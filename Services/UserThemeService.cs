@@ -611,9 +611,7 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
     position: relative !important;
     z-index: 1 !important;
     color: var(--pt-profile-panel-contrast) !important;
-    background:
-        radial-gradient(circle at 50% 8%, var(--pt-accent-soft), transparent 34%),
-        linear-gradient(180deg, var(--pt-profile-panel-bg), var(--pt-profile-panel-deep)) !important;
+    background: var(--pt-profile-panel-bg) !important;
 }
 
 .v2-avatar {
