@@ -919,6 +919,55 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
     box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 16px 32px var(--pt-shadow) !important;
 }
 
+html body main .dashboard-view .panel-owner-overview .dashboard-card-title h2 {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main .dashboard-view .panel-owner-overview .dashboard-card-title em,
+html body main .dashboard-view .panel-owner-overview :is(.owner-overview-y-axis, .owner-overview-y-title) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main .dashboard-view .panel-owner-overview :is(.owner-overview-legend, .owner-overview-legend span) {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    opacity: 1 !important;
+}
+
+html body main .dashboard-view .panel-meetings .empty-state {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    opacity: .92 !important;
+}
+
+html body main.route-controller-projectstatus .project-status-page .task-overview-card :is(
+    .light-report-title h2,
+    .task-chart-legend,
+    .task-chart-legend span,
+    .task-y-axis,
+    .task-y-axis span:not(.task-y-title),
+    .task-member-card b,
+    .task-x-title,
+    .task-overview-footer b
+) {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+    opacity: 1 !important;
+}
+
+html body main.route-controller-projectstatus .project-status-page .task-overview-card :is(
+    .light-report-title p,
+    .task-y-title,
+    .task-member-card small,
+    .task-overview-footer,
+    .task-overview-footer span
+) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
 .dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2) {
     color: var(--pt-sidebar-contrast) !important;
 }
@@ -942,19 +991,19 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-view .panel-time :is(.time-goal, .time-trend-card, .time-heatmap-card, .time-metric-grid > span, .time-detail-grid > span) {
-    color: var(--pt-sidebar-contrast) !important;
+    color: var(--pt-chart-panel-contrast) !important;
     background:
-        radial-gradient(circle at 88% 18%, var(--pt-accent-soft), transparent 44%),
-        linear-gradient(180deg, var(--pt-sidebar-soft), var(--pt-sidebar-deep)) !important;
+        radial-gradient(circle at 88% 18%, var(--pt-chart-panel-glow), transparent 44%),
+        linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-row-bg)) !important;
     border-color: var(--pt-border) !important;
 }
 
 .dashboard-view .panel-time :is(.time-goal span, .time-goal small, .time-goal-trend small, .time-subhead small, .time-trend-bar small, .time-metric-grid span i, .time-detail-grid small) {
-    color: var(--pt-sidebar-contrast-muted) !important;
+    color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
 .dashboard-view .panel-time :is(.time-subhead b, .time-trend-bar b, .time-metric-grid b, .time-detail-grid b) {
-    color: var(--pt-sidebar-contrast) !important;
+    color: var(--pt-chart-panel-contrast) !important;
 }
 
 .dashboard-view .panel-time .time-goal b,
