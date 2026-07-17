@@ -27,7 +27,7 @@
         background:
             linear-gradient(135deg, color-mix(in srgb, var(--pt-sidebar-bg) 92%, #ffffff 8%), var(--pt-sidebar-deep)),
             var(--pt-sidebar-bg);
-        color: #fff;
+        color: var(--pt-sidebar-contrast);
         box-shadow: 0 18px 42px rgba(15, 23, 42, .16);
     }
 
@@ -37,7 +37,7 @@
 
     .appearance-eyebrow {
         margin: 0 0 6px;
-        color: #99f6e4;
+        color: var(--pt-sidebar-contrast-muted);
         font-size: .78rem;
         font-weight: 800;
         text-transform: uppercase;
@@ -45,7 +45,7 @@
 
     .appearance-title {
         margin: 0;
-        color: #fff;
+        color: var(--pt-sidebar-contrast);
         font-size: clamp(1.8rem, 3vw, 2.45rem);
         font-weight: 900;
         line-height: 1.15;
@@ -54,7 +54,7 @@
     .appearance-subtitle {
         max-width: 720px;
         margin: 9px 0 0;
-        color: rgba(255, 255, 255, .78);
+        color: var(--pt-sidebar-contrast-muted);
         font-size: .98rem;
         font-weight: 500;
         line-height: 1.55;
@@ -67,11 +67,23 @@
     .appearance-reset {
         min-height: 42px;
         padding: 0 16px;
-        border: 1px solid rgba(255,255,255,.35);
+        border: 1px solid var(--pt-accent-dark);
         border-radius: 12px;
-        color: #fff;
-        background: rgba(255,255,255,.1);
+        color: var(--pt-accent-contrast);
+        -webkit-text-fill-color: var(--pt-accent-contrast);
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+        box-shadow: 0 12px 24px var(--pt-accent-glow);
         font-weight: 800;
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    }
+
+    .appearance-reset:hover,
+    .appearance-reset:focus {
+        color: var(--pt-accent-contrast);
+        -webkit-text-fill-color: var(--pt-accent-contrast);
+        filter: brightness(1.04);
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px var(--pt-accent-glow);
     }
 
     .appearance-alert {
