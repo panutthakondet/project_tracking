@@ -1606,6 +1606,38 @@ main.route-controller-projects :is(.sticky-col-1, .sticky-col-2) {
     background: var(--pt-surface) !important;
 }
 
+main.route-controller-projectdocuments .project-documents-page :is(.card, .card-body) {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-projectdocuments .project-documents-page .card-header {
+    color: var(--pt-surface-contrast) !important;
+    background: var(--pt-surface-soft) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-projectdocuments .project-documents-page table thead.table-dark,
+main.route-controller-projectdocuments .project-documents-page table thead.table-dark th {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--pt-sidebar-contrast) !important;
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+main.route-controller-projectdocuments .project-documents-page :is(.project-doc-file-name, tbody td, tbody td strong) {
+    color: var(--pt-surface-contrast) !important;
+}
+
+main.route-controller-projectdocuments .project-documents-page :is(.project-doc-uploaded, .text-muted) {
+    color: var(--pt-surface-contrast-muted) !important;
+}
+
 main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-hero) {
     color: var(--pt-sidebar-contrast) !important;
     background:
