@@ -942,32 +942,6 @@ html body main .dashboard-view .panel-meetings .empty-state {
     opacity: .92 !important;
 }
 
-html body main.route-controller-projectstatus .project-status-page .task-overview-card :is(
-    .light-report-title h2,
-    .task-chart-legend,
-    .task-chart-legend span,
-    .task-y-axis,
-    .task-y-axis span:not(.task-y-title),
-    .task-member-card b,
-    .task-x-title,
-    .task-overview-footer b
-) {
-    color: var(--pt-chart-panel-contrast) !important;
-    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
-    opacity: 1 !important;
-}
-
-html body main.route-controller-projectstatus .project-status-page .task-overview-card :is(
-    .light-report-title p,
-    .task-y-title,
-    .task-member-card small,
-    .task-overview-footer,
-    .task-overview-footer span
-) {
-    color: var(--pt-chart-panel-contrast-muted) !important;
-    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
-}
-
 .dashboard-view :is(.project-overview-title-row h2, .issues-overview-head h2, .dashboard-card-title h2) {
     color: var(--pt-sidebar-contrast) !important;
 }
@@ -1977,9 +1951,16 @@ main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.as
 main.route-controller-reports .report-center-hero,
 main.route-controller-weeklyreports :is(.weekly-hero, .report-hero),
 main.route-controller-assignedemployeesreport .index-hero,
-main.route-controller-statusapprovals .index-hero,
-main.route-controller-projectstatus .project-status-header.index-hero {
+main.route-controller-statusapprovals .index-hero {
     color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+    box-shadow: 0 18px 40px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+main.route-controller-projectstatus .project-status-header.index-hero {
     background:
         radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
         linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
@@ -1990,8 +1971,7 @@ main.route-controller-projectstatus .project-status-header.index-hero {
 main.route-controller-reports .report-center-hero :is(.index-eyebrow, .index-title, .index-subtitle, .report-hero-stats strong),
 main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-eyebrow, .weekly-title, .report-eyebrow, h1),
 main.route-controller-assignedemployeesreport .index-hero :is(.index-eyebrow, .index-title, .index-subtitle),
-main.route-controller-statusapprovals .index-hero :is(.index-eyebrow, .index-title, .index-subtitle),
-main.route-controller-projectstatus .project-status-header.index-hero :is(.index-eyebrow, .index-title, .index-subtitle) {
+main.route-controller-statusapprovals .index-hero :is(.index-eyebrow, .index-title, .index-subtitle) {
     color: var(--pt-sidebar-contrast) !important;
 }
 
@@ -2000,8 +1980,8 @@ main.route-controller-weeklyreports :is(.weekly-hero, .report-hero) :is(.weekly-
     color: var(--pt-sidebar-contrast-muted) !important;
 }
 
-main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead,
-main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals, .route-controller-projectstatus) table thead th {
+main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals) table thead,
+main:is(.route-controller-reports, .route-controller-weeklyreports, .route-controller-assignedemployeesreport, .route-controller-statusapprovals) table thead th {
     --bs-table-bg: transparent !important;
     --bs-table-color: var(--pt-report-head-text) !important;
     color: var(--pt-report-head-text) !important;
