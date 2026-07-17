@@ -2939,11 +2939,11 @@ document.addEventListener('DOMContentLoaded', function () {
     .pt-swal-popup {
         width: min(520px, calc(100vw - 36px)) !important;
         padding: 0 !important;
-        border: 1px solid rgba(20, 184, 166, .22) !important;
+        border: 1px solid var(--pt-border, rgba(20, 184, 166, .22)) !important;
         border-radius: 22px !important;
-        color: #10233f !important;
-        background: #ffffff !important;
-        box-shadow: 0 24px 56px rgba(15, 35, 64, .26) !important;
+        color: var(--pt-surface-contrast, #10233f) !important;
+        background: var(--pt-surface, #ffffff) !important;
+        box-shadow: 0 24px 56px var(--pt-shadow, rgba(15, 35, 64, .26)) !important;
         overflow: hidden !important;
         font-family: "Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif !important;
     }
@@ -2952,10 +2952,10 @@ document.addEventListener('DOMContentLoaded', function () {
         content: "ProjectTracking";
         display: block;
         padding: 16px 22px;
-        color: #99f6e4;
+        color: var(--pt-sidebar-contrast-muted, #99f6e4);
         background:
-            radial-gradient(circle at 92% 8%, rgba(20, 184, 166, .24), transparent 32%),
-            linear-gradient(135deg, #10233f, #174c5b);
+            radial-gradient(circle at 92% 8%, var(--pt-accent-glow, rgba(20, 184, 166, .24)), transparent 32%),
+            linear-gradient(135deg, var(--pt-sidebar-bg, #10233f), var(--pt-sidebar-deep, #174c5b));
         font-size: 12px;
         font-weight: 800;
         line-height: 1.2;
@@ -2971,7 +2971,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     .pt-swal-popup .swal2-title {
         padding: 0 28px !important;
-        color: #10233f !important;
+        color: var(--pt-surface-contrast, #10233f) !important;
         font-size: clamp(24px, 3vw, 32px) !important;
         font-weight: 800 !important;
         line-height: 1.25 !important;
@@ -2980,7 +2980,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     .pt-swal-popup .swal2-html-container {
         margin: 12px 28px 0 !important;
-        color: #0f172a !important;
+        color: var(--pt-surface-contrast, #0f172a) !important;
         font-size: 16px !important;
         font-weight: 400 !important;
         line-height: 1.55 !important;
@@ -2996,15 +2996,15 @@ document.addEventListener('DOMContentLoaded', function () {
         min-height: 42px;
         border: 0 !important;
         border-radius: 999px !important;
-        color: #062b2f !important;
-        background: linear-gradient(135deg, #8df1e4, #23c7c8) !important;
-        box-shadow: 0 10px 22px rgba(20, 184, 166, .24) !important;
+        color: var(--pt-accent-contrast, #062b2f) !important;
+        background: linear-gradient(135deg, var(--pt-menu-accent, #8df1e4), var(--pt-menu-accent-dark, #23c7c8)) !important;
+        box-shadow: 0 10px 22px var(--pt-accent-soft, rgba(20, 184, 166, .24)) !important;
         font-size: 15px !important;
         font-weight: 800 !important;
     }
 
     .pt-swal-confirm:focus {
-        box-shadow: 0 0 0 4px rgba(20, 184, 166, .22), 0 10px 22px rgba(20, 184, 166, .24) !important;
+        box-shadow: 0 0 0 4px var(--pt-accent-soft, rgba(20, 184, 166, .22)), 0 10px 22px var(--pt-accent-soft, rgba(20, 184, 166, .24)) !important;
     }
 
     .pt-swal-backdrop {

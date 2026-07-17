@@ -693,7 +693,7 @@ html body .dev-detail-page :is(
   .dev-summary-card small,
   .dev-info-label
 ) {
-  color: #10233f !important;
+  color: var(--pt-detail-color) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   font-variation-settings: normal !important;
@@ -727,7 +727,7 @@ html body main.route-controller-supportordersdev .support-dev-card .support-dev-
 html body main.route-controller-supportordersdev .support-dev-card .support-dev-pill strong,
 html body main.route-controller-supportordersdev .support-dev-card .support-dev-card-person strong,
 html body main.route-controller-supportordersdev .support-dev-card .support-dev-status-row > small {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 700 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -1018,7 +1018,7 @@ html body main:is(
 }
 
 html body main.route-controller-projects:is(.route-action-create, .route-action-edit) .pt-form-card :is(label, .form-label) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .95rem !important;
   line-height: 1.35 !important;
   font-weight: 700 !important;
@@ -1049,7 +1049,7 @@ html body main:is(
   .route-controller-supportorders,
   .route-controller-supportordersdev
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   text-shadow: none !important;
 }
 
@@ -1068,7 +1068,7 @@ html body main:is(
   .support-dev-panel,
   .pt-form-card
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   text-shadow: none !important;
 }
 
@@ -1076,7 +1076,7 @@ html body main.route-controller-projectissues .issue-card .issue-title,
 html body main.route-controller-projectissues .dev-issue-card .dev-issue-name,
 html body main.route-controller-supportorders .support-order-card .support-order-title,
 html body main.route-controller-supportordersdev .support-dev-card .support-dev-order-title {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .98rem !important;
   font-weight: 400 !important;
   line-height: 1.35 !important;
@@ -1142,7 +1142,7 @@ html body main:is(
   .issue-help-box,
   .issue-edit-note
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .93rem !important;
   font-weight: 400 !important;
   line-height: 1.42 !important;
@@ -1172,7 +1172,7 @@ html body main:is(
   .support-summary-card b,
   .support-dev-summary-card b
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .92rem !important;
   font-weight: 400 !important;
   line-height: 1.35 !important;
@@ -1195,7 +1195,7 @@ html body main:is(
   .support-dev-card-people,
   .support-dev-card-person
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .95rem !important;
   font-weight: 400 !important;
   line-height: 1.25 !important;
@@ -1244,7 +1244,7 @@ html body main:is(
   .support-summary-card small,
   .support-dev-summary-card small
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .92rem !important;
   font-weight: 700 !important;
   line-height: 1.35 !important;
@@ -1273,7 +1273,7 @@ html body main:is(
   .support-dev-detail-text-block h4,
   .issue-edit-section-title
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .98rem !important;
   font-weight: 700 !important;
   line-height: 1.35 !important;
@@ -1305,7 +1305,7 @@ html body main:is(
   .select2-results__option,
   .select2-search__field
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: .95rem !important;
   font-weight: 400 !important;
   line-height: 1.4 !important;
@@ -1336,7 +1336,7 @@ html body main.route-controller-projectissues .issue-card .issue-title,
 html body main.route-controller-projectissues .dev-issue-card .dev-issue-name,
 html body main.route-controller-supportorders .support-order-card .support-order-title,
 html body main.route-controller-supportordersdev .support-dev-card .support-dev-order-title {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-size: 1.06rem !important;
   font-weight: 400 !important;
   line-height: 1.35 !important;
@@ -1373,7 +1373,7 @@ html body main.route-controller-supportordersdev .support-dev-card :is(
   .support-dev-card-person,
   .support-dev-card-person span
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 400 !important;
   letter-spacing: 0 !important;
   font-variation-settings: normal !important;
@@ -1410,7 +1410,7 @@ html body main.route-controller-supportordersdev .support-dev-card :is(
   .support-dev-card-person strong,
   .support-dev-status-row > small
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 900 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -1431,7 +1431,7 @@ html body main.route-controller-projectissues .issue-card .reopen-badge {
 
 /* Final direct label/value classes for ProjectIssues and SupportOrders cards. */
 html body :is(.issue-card, .dev-issue-card, .support-order-card, .support-dev-card) .pt-list-label {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 900 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -1768,7 +1768,7 @@ html body main :is(
   [class*="__label"],
   [class*="Label"]
 ):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 700 !important;
 }
 
@@ -1981,7 +1981,7 @@ html body main.route-controller-supportordersdev .support-dev-details-page :is(
   .support-dev-panel h3,
   .support-dev-gallery-head h3
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 700 !important;
   text-transform: none !important;
 }
@@ -2011,7 +2011,7 @@ html body main.route-controller-supportordersdev .support-dev-details-page :is(
   .support-dev-text-box,
   .status-text
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 400 !important;
 }
 
@@ -2051,7 +2051,7 @@ html body main [data-placeholder]:empty::before {
    the global typography guards above also target card title/name patterns. */
 html body main.route-controller-requirementboard .rb-card .rb-card-title,
 html body main.route-controller-requirementboard .rb-card div.rb-card-title[data-card-title] {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-family: "Prompt", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", "Noto Sans", Arial, sans-serif !important;
   font-size: .84rem !important;
   font-weight: 300 !important;
@@ -2067,7 +2067,7 @@ html body main.route-controller-requirementboard .rb-card div.rb-card-title[data
 }
 
 html body main.route-controller-requirementboard .rb-card .rb-card-label {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-family: "Prompt", system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", "Noto Sans", Arial, sans-serif !important;
   font-size: .72rem !important;
   font-weight: 500 !important;
@@ -2112,7 +2112,7 @@ html body main.route-controller-requirementboard .rb-modal :is(
   .rb-file-actions .rb-btn,
   .rb-modal-actions .rb-btn
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 500 !important;
 }
 
@@ -2120,7 +2120,7 @@ html body main.route-controller-requirementboard .rb-modal :is(
   .rb-file-upload-card .form-control,
   .rb-file-info
 ) {
-  color: #0f172a !important;
+  color: var(--pt-detail-color) !important;
   font-weight: 400 !important;
 }
 

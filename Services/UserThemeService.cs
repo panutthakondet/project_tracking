@@ -276,6 +276,8 @@ namespace ProjectTracking.Services
         {
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
             var sidebarContrast = GetReadableContrast(theme.SidebarHex);
+            var bodyContrast = GetReadableContrast(theme.BodyBgHex);
+            var surfaceContrast = GetReadableContrast(theme.SurfaceHex);
             const string chartPrimary = "#2693F4";
             const string chartPrimaryLight = "#4CA5F6";
             const string chartPrimaryDark = "#1269B8";
@@ -312,6 +314,8 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-report-head-border", ToRgba(theme.TextHex, .34));
             AppendVar(sb, "--pt-body-bg", theme.BodyBgHex);
             AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
+            AppendVar(sb, "--pt-body-contrast", bodyContrast);
+            AppendVar(sb, "--pt-body-contrast-muted", ToRgba(bodyContrast, .72));
             AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
             AppendVar(sb, "--pt-chart-panel-deep", theme.ChartPanelDeepHex);
             AppendVar(sb, "--pt-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
@@ -324,6 +328,11 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-chart-panel-contrast-muted", theme.ChartPanelContrastMutedRgba);
             AppendVar(sb, "--pt-surface", theme.SurfaceHex);
             AppendVar(sb, "--pt-surface-soft", ShiftHex(theme.SurfaceHex, -0.04));
+            AppendVar(sb, "--pt-surface-contrast", surfaceContrast);
+            AppendVar(sb, "--pt-surface-contrast-muted", ToRgba(surfaceContrast, .68));
+            AppendVar(sb, "--pt-detail-color", surfaceContrast);
+            AppendVar(sb, "--pt-detail-muted", ToRgba(surfaceContrast, .70));
+            AppendVar(sb, "--pt-label-color", ToRgba(surfaceContrast, .78));
             AppendVar(sb, "--pt-text", theme.TextHex);
             AppendVar(sb, "--pt-text-soft", ToRgba(theme.TextHex, .70));
             AppendVar(sb, "--pt-muted", theme.MutedHex);
@@ -369,7 +378,7 @@ namespace ProjectTracking.Services
             sb.AppendLine("}");
             sb.AppendLine("html { font-size: calc(14px * var(--pt-user-font-scale)); }");
             sb.AppendLine("@media (min-width: 768px) { html { font-size: calc(16px * var(--pt-user-font-scale)); } }");
-            sb.AppendLine("body { background: var(--pt-body-bg) !important; color: var(--pt-text) !important; }");
+            sb.AppendLine("body { background: var(--pt-body-bg) !important; color: var(--pt-body-contrast) !important; }");
             if (theme.ProfileBallEnabled)
             {
                 sb.AppendLine(".dashboard-view .dashboard-dino-runner { display: flex !important; }");
@@ -380,6 +389,147 @@ namespace ProjectTracking.Services
             {
                 sb.AppendLine(".dashboard-view :is(.dashboard-dino-runner, .dashboard-dino-feed-zone, .dashboard-dino-food) { display: none !important; }");
             }
+            sb.AppendLine(@"
+body:not(.pt-standalone-report) .v2-page,
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) {
+    --pt-local-text: var(--pt-body-contrast);
+    --pt-local-muted: var(--pt-body-contrast-muted);
+    color: var(--pt-local-text) !important;
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    .card,
+    .card-body,
+    .modal-content,
+    .list-group-item,
+    .table-responsive,
+    .filter-panel,
+    .filter-card,
+    .project-filter-form,
+    .phase-filter-form,
+    .pt-form-card,
+    .form-card,
+    .employee-card,
+    .followup-card,
+    .notification-card,
+    .send-log-panel,
+    .approval-card,
+    .config-card,
+    .settings-card,
+    .line-overdue-card,
+    .project-card,
+    .phase-card,
+    .support-card,
+    .issue-card,
+    .weekly-card,
+    .report-card,
+    .report-section,
+    .page-card,
+    .content-card
+):not(.index-hero):not(.glass-panel):not(.kpi-card):not(.dashboard-card):not(.workload-content-card) {
+    --pt-local-text: var(--pt-surface-contrast);
+    --pt-local-muted: var(--pt-surface-contrast-muted);
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    .index-hero,
+    .page-hero,
+    .report-hero,
+    .weekly-hero,
+    .issue-hero,
+    .dev-issue-hero,
+    .support-hero,
+    .support-detail-hero,
+    .support-dev-hero,
+    .meeting-hero,
+    .meeting-form-hero,
+    .meeting-detail-hero,
+    .workload-calendar-toolbar,
+    [class$='-hero']
+) {
+    --pt-local-text: var(--pt-sidebar-contrast);
+    --pt-local-muted: var(--pt-sidebar-contrast-muted);
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    li,
+    dt,
+    dd,
+    td,
+    th,
+    label,
+    .form-label,
+    .text-dark,
+    .text-body,
+    .card-title,
+    .section-title,
+    [class*='title'],
+    [class*='heading'],
+    [class*='name'],
+    [class*='value'],
+    [class*='detail'],
+    [class*='content'],
+    [class*='number'],
+    [class*='count']
+):not(.btn):not(.badge):not(.alert):not(.dropdown-item):not(.dropdown-header):not([class*='status']):not([class*='Status']):not([class*='tone']):not([class*='Tone']):not([class*='dot']):not([class*='line']):not([class*='icon']):not([class*='chart']):not([class*='Chart']) {
+    color: var(--pt-local-text, var(--pt-body-contrast)) !important;
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    .text-muted,
+    .text-secondary,
+    .small,
+    small,
+    em,
+    time,
+    .form-text,
+    [class*='muted'],
+    [class*='label'],
+    [class*='meta'],
+    [class*='subtitle'],
+    [class*='description'],
+    [class*='desc'],
+    [class*='note'],
+    [class*='help'],
+    [class*='hint'],
+    [class*='empty']
+):not(.btn):not(.badge):not(.alert):not(.dropdown-item):not([class*='status']):not([class*='Status']):not([class*='tone']):not([class*='Tone']):not([class*='dot']):not([class*='line']):not([class*='icon']):not([class*='chart']):not([class*='Chart']) {
+    color: var(--pt-local-muted, var(--pt-body-contrast-muted)) !important;
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    .form-control,
+    .form-select,
+    .pt-search-select__input,
+    textarea,
+    input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+    select
+) {
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
+    background-color: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+}
+
+body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-controller-meetingroom):not(.route-controller-requirementboard) :is(
+    .form-control,
+    .form-select,
+    .pt-search-select__input,
+    textarea,
+    input,
+    select
+)::placeholder {
+    color: var(--pt-surface-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast-muted) !important;
+}
+");
             sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");
@@ -507,11 +657,11 @@ main :is(.card, .table-responsive):not(.glass-panel):not(.kpi-card):not(.project
 main :is(.form-control, .form-select, .pt-search-select__input) {
     background-color: var(--pt-field-bg) !important;
     border-color: var(--pt-border) !important;
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
 }
 
 main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
-    color: var(--pt-muted) !important;
+    color: var(--pt-surface-contrast-muted) !important;
 }
 
 .pt-search-select__dropdown {
@@ -523,12 +673,12 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 .pt-search-select__option:focus,
 .pt-search-select__option.is-selected {
     background: var(--pt-accent-soft) !important;
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
 }
 
 .dashboard-view {
     --panel: var(--pt-sidebar-bg);
-    color: var(--pt-text) !important;
+    color: var(--pt-body-contrast) !important;
     background:
         radial-gradient(circle at 18% 16%, var(--pt-accent-soft), transparent 28%),
         linear-gradient(180deg, var(--pt-body-bg) 0%, var(--pt-body-bg-soft) 100%) !important;
@@ -551,8 +701,8 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-global-search input {
-    color: var(--pt-text) !important;
-    -webkit-text-fill-color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
     background: linear-gradient(180deg, var(--pt-field-bg), var(--pt-surface-soft)) !important;
     border-color: var(--pt-border-strong) !important;
     box-shadow: 0 12px 24px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.68) !important;
@@ -942,7 +1092,7 @@ main.route-controller-meetings :is(.meeting-hero, .meeting-form-hero, .meeting-d
 }
 
 main.route-controller-meetings .calendar-heading__date {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
     background: var(--pt-field-bg) !important;
     border: 1px solid var(--pt-border) !important;
     box-shadow: 0 12px 26px var(--pt-shadow) !important;
@@ -962,13 +1112,13 @@ main.route-controller-meetings .calendar-card__body {
 }
 
 main.route-controller-meetings .fc {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
 }
 
 main.route-controller-meetings .fc .fc-toolbar-title,
 main.route-controller-meetings .fc .fc-daygrid-day-number,
 main.route-controller-meetings :is(.meeting-project-text, .meeting-desc, .meeting-detail-value, .meeting-project-name) {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
 }
 
 main.route-controller-meetings .fc .fc-scrollgrid,
@@ -1015,14 +1165,14 @@ main.route-controller-meetings :is(.fc-event, .meeting-row) {
     --meeting-event-bg-start: var(--pt-field-bg);
     --meeting-event-bg-end: var(--pt-surface-soft);
     --meeting-event-border: var(--pt-border);
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
     background: linear-gradient(180deg, var(--meeting-event-bg-start), var(--meeting-event-bg-end)) !important;
     border-color: var(--meeting-event-border) !important;
     box-shadow: 0 8px 18px var(--pt-shadow) !important;
 }
 
 main.route-controller-meetings :is(.fc-event-title, .meeting-event-title, .meeting-event-subtitle, .meeting-event-meta) {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
 }
 
 main.route-controller-meetings :is(.fc-event.customer-event, .meeting-row.customer-event) {
@@ -1060,6 +1210,93 @@ main.route-controller-meetings .fc-tooltip {
     background: var(--pt-sidebar-bg) !important;
     border-color: var(--pt-border) !important;
     box-shadow: 0 12px 28px var(--pt-shadow) !important;
+}
+
+html body main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) {
+    color: var(--pt-body-contrast) !important;
+}
+
+html body main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) :is(
+    .meeting-card,
+    .meeting-card__header,
+    .meeting-card__body,
+    .meeting-detail-card,
+    .meeting-detail-card__header,
+    .meeting-detail-card__body,
+    .meeting-detail-item,
+    .meeting-attendee-card,
+    .meeting-attendee-picker,
+    .meeting-selected-attendee,
+    .meeting-selected-attendee > span,
+    .meeting-attendee-empty,
+    .section-title,
+    .section-subtitle,
+    .form-hint,
+    .form-label,
+    label,
+    .meeting-detail-label,
+    .meeting-detail-value,
+    .meeting-project-text,
+    .meeting-project-name,
+    .text-muted
+) {
+    color: var(--pt-surface-contrast) !important;
+}
+
+html body main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) :is(
+    .meeting-hero,
+    .meeting-form-hero,
+    .meeting-detail-hero
+) {
+    color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) :is(
+    .meeting-hero,
+    .meeting-form-hero,
+    .meeting-detail-hero
+) :is(.meeting-hero__title, .meeting-hero__subtitle, .meeting-detail-title, .meeting-detail-subtitle, .index-eyebrow, .index-title, .index-subtitle) {
+    color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-meetings:is(.route-action-create, .route-action-edit, .route-action-show) :is(
+    .form-control,
+    .form-select,
+    input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='file']),
+    textarea,
+    select,
+    option
+) {
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
+    background-color: var(--pt-field-bg) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn, button.btn, a.btn) {
+    --pt-action-color: var(--pt-surface-contrast);
+    --pt-action-bg: var(--pt-surface);
+    --pt-action-border: var(--pt-border);
+    color: var(--pt-action-color) !important;
+    background: var(--pt-action-bg) !important;
+    border-color: var(--pt-action-border) !important;
+    box-shadow: 0 8px 18px var(--pt-shadow) !important;
+}
+
+html body main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions :is(.btn-primary, .btn-success) {
+    --pt-action-color: var(--pt-accent-contrast);
+    --pt-action-bg: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark));
+    --pt-action-border: transparent;
+}
+
+html body main.route-controller-meetings.route-action-show .meeting-detail-actions.index-actions .btn-danger {
+    --pt-action-color: #ffffff;
+    --pt-action-bg: #e11d48;
+    --pt-action-border: transparent;
 }
 
 main.route-controller-projects .project-filter-form :is(.form-control, .form-select, .pt-search-select__input),
@@ -1136,6 +1373,165 @@ main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is
     color: var(--pt-sidebar-contrast) !important;
     background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
     border-color: var(--pt-border) !important;
+}
+
+html body main:is(
+    .route-controller-projectissues,
+    .route-controller-supportorders,
+    .route-controller-supportordersdev
+) {
+    color: var(--pt-body-contrast) !important;
+}
+
+html body main:is(
+    .route-controller-projectissues,
+    .route-controller-supportorders,
+    .route-controller-supportordersdev
+) :is(
+    .issue-card,
+    .dev-issue-card,
+    .support-order-card,
+    .support-dev-card,
+    .issue-panel,
+    .dev-panel,
+    .support-panel,
+    .support-dev-panel,
+    .issue-summary-card,
+    .dev-summary-card,
+    .support-summary-card,
+    .support-dev-summary-card,
+    .issue-text-box,
+    .dev-text-box,
+    .support-text-box,
+    .support-dev-text-box,
+    .issue-info-block,
+    .dev-info-block,
+    .support-info-block,
+    .support-dev-info-block,
+    .issue-help-box,
+    .issue-edit-note,
+    .dev-readonly,
+    .support-dev-readonly,
+    .support-dev-info,
+    .issue-empty,
+    .dev-empty,
+    .support-empty,
+    .support-dev-empty
+) {
+    --pt-local-text: var(--pt-chart-panel-contrast);
+    --pt-local-muted: var(--pt-chart-panel-contrast-muted);
+    color: var(--pt-local-text) !important;
+}
+
+html body main:is(
+    .route-controller-projectissues,
+    .route-controller-supportorders,
+    .route-controller-supportordersdev
+) .pt-form-card {
+    --pt-local-text: var(--pt-surface-contrast);
+    --pt-local-muted: var(--pt-surface-contrast-muted);
+    color: var(--pt-local-text) !important;
+}
+
+html body main:is(
+    .route-controller-projectissues,
+    .route-controller-supportorders,
+    .route-controller-supportordersdev
+) :is(
+    .issue-title,
+    .issue-detail,
+    .issue-view-detail,
+    .issue-meta,
+    .issue-view-meta,
+    .issue-card-people,
+    .issue-card-person,
+    .issue-info-line,
+    .issue-info-label,
+    .issue-info-value,
+    .issue-summary-label,
+    .issue-summary-value,
+    .issue-status-item,
+    .issue-status-row,
+    .issue-count,
+    .dev-title,
+    .dev-detail-title,
+    .dev-issue-name,
+    .dev-issue-detail,
+    .dev-issue-meta,
+    .dev-issue-people,
+    .dev-issue-person,
+    .dev-info-line,
+    .dev-info-label,
+    .dev-info-value,
+    .dev-summary-label,
+    .dev-summary-value,
+    .dev-status-row,
+    .dev-count,
+    .support-title,
+    .support-detail-title,
+    .support-order-title,
+    .support-project-name,
+    .support-detail,
+    .support-meta,
+    .support-meta-text,
+    .support-card-people,
+    .support-card-person,
+    .support-info-line,
+    .support-info-label,
+    .support-info-value,
+    .support-summary-label,
+    .support-summary-value,
+    .support-status-row,
+    .support-count,
+    .support-dev-title,
+    .support-dev-edit-title,
+    .support-dev-order-title,
+    .support-dev-project,
+    .support-dev-detail,
+    .support-dev-meta,
+    .support-dev-pill,
+    .support-dev-card-people,
+    .support-dev-card-person,
+    .support-dev-info-line,
+    .support-dev-info-label,
+    .support-dev-info-value,
+    .support-dev-summary-label,
+    .support-dev-summary-value,
+    .support-dev-status-row,
+    .support-dev-count,
+    .issue-panel h3,
+    .dev-panel h3,
+    .support-panel h3,
+    .support-dev-panel h3,
+    .issue-gallery-head h3,
+    .dev-gallery-head h3,
+    .support-gallery-head h3,
+    .support-dev-gallery-head h3,
+    .issue-detail-text-block h4,
+    .dev-detail-text-block h4,
+    .support-detail-text-block h4,
+    .support-dev-detail-text-block h4,
+    .issue-edit-section-title,
+    .status-text
+) {
+    color: var(--pt-local-text, var(--pt-chart-panel-contrast)) !important;
+}
+
+html body main:is(
+    .route-controller-projectissues,
+    .route-controller-supportorders,
+    .route-controller-supportordersdev
+) :is(
+    .issue-eyebrow,
+    .dev-eyebrow,
+    .support-eyebrow,
+    .support-dev-eyebrow,
+    .issue-summary-card small,
+    .dev-summary-card small,
+    .support-summary-card small,
+    .support-dev-summary-card small
+) {
+    color: var(--pt-local-muted, var(--pt-chart-panel-contrast-muted)) !important;
 }
 
 main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead,
@@ -1221,14 +1617,14 @@ body.pt-standalone-report table thead th {
 }
 
 main.route-controller-phaseworkload {
-    color: var(--pt-text) !important;
+    color: var(--pt-body-contrast) !important;
     background:
         radial-gradient(circle at 18% 12%, var(--pt-accent-soft), transparent 26%),
         linear-gradient(180deg, var(--pt-body-bg), var(--pt-body-bg-soft)) !important;
 }
 
 main.route-controller-phaseworkload .workload-calendar-card {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
     background: var(--pt-surface) !important;
     border-color: var(--pt-border) !important;
     box-shadow: 0 16px 38px var(--pt-shadow) !important;
@@ -1260,7 +1656,7 @@ main.route-controller-phaseworkload :is(.workload-calendar-eyebrow, .workload-ca
 }
 
 main.route-controller-phaseworkload .workload-calendar-date {
-    color: var(--pt-text) !important;
+    color: var(--pt-surface-contrast) !important;
     background: var(--pt-field-bg) !important;
     border: 1px solid var(--pt-border) !important;
     box-shadow: 0 12px 26px var(--pt-shadow) !important;
