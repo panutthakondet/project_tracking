@@ -172,11 +172,12 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Index")]
-        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, int? baEmpId, string? status)
+        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, int? baEmpId, string? status, string? assignStatus)
         {
             var th = new System.Globalization.CultureInfo("th-TH");
             var selectedYear = year ?? DateTime.Today.Year;
             var selectedStatus = Norm(status);
+            var selectedAssignStatus = Norm(assignStatus);
             var username = HttpContext.Session.GetString("Username") ?? "-";
 
             var projects = await _context.Projects
@@ -250,6 +251,9 @@ namespace ProjectTracking.Controllers
                         StatusCategory = statusMeta.Category,
                         StatusText = statusMeta.Text,
                         StatusTone = statusMeta.Tone,
+                        AssignStatus = Norm(a.WorkStatus),
+                        AssignStatusText = AssignStatusText(a.WorkStatus),
+                        AssignStatusTone = AssignStatusTone(a.WorkStatus),
                         PlanStart = a.PlanStart ?? phase.PlanStart,
                         PlanEnd = a.PlanEnd ?? phase.PlanEnd,
                         PeriodEnd = phase.PeriodEndDate,
@@ -266,6 +270,7 @@ namespace ProjectTracking.Controllers
                 .Where(r => !empId.HasValue || r.EmpId == empId.Value)
                 .Where(r => !baEmpId.HasValue || r.BaEmpId == baEmpId.Value)
                 .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.StatusCategory == selectedStatus)
+                .Where(r => string.IsNullOrWhiteSpace(selectedAssignStatus) || r.AssignStatus == selectedAssignStatus)
                 .OrderBy(r => r.ProjectName)
                 .ThenBy(r => r.Month)
                 .ThenBy(r => r.EmployeeName)
@@ -299,6 +304,16 @@ namespace ProjectTracking.Controllers
                 .OrderByDescending(x => x)
                 .ToList();
 
+            var assignStatusOptions = allRows
+                .Select(r => r.AssignStatus)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Append(selectedAssignStatus)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => AssignStatusSort(x))
+                .ThenBy(x => x)
+                .ToList();
+
             var model = new TaskProgressReportViewModel
             {
                 GeneratedAt = DateTime.Now,
@@ -308,10 +323,12 @@ namespace ProjectTracking.Controllers
                 EmpId = empId,
                 BaEmpId = baEmpId,
                 Status = selectedStatus,
+                AssignStatus = selectedAssignStatus,
                 YearOptions = availableYears,
                 ProjectOptions = projectOptions,
                 EmployeeOptions = employees,
                 BaOptions = baOptions,
+                AssignStatusOptions = assignStatusOptions,
                 Summary = new TaskProgressSummaryViewModel
                 {
                     Total = rows.Count,
@@ -1182,6 +1199,36 @@ namespace ProjectTracking.Controllers
             }
 
             return ("OTHER", string.IsNullOrWhiteSpace(status) ? "-" : status.Trim(), "muted");
+        }
+
+        private static string AssignStatusText(string? status)
+        {
+            return Norm(status) switch
+            {
+                "DONE" => "เสร็จสิ้น",
+                "IN_PROGRESS" => "กำลังดำเนินการ",
+                _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+            };
+        }
+
+        private static string AssignStatusTone(string? status)
+        {
+            return Norm(status) switch
+            {
+                "DONE" => "success",
+                "IN_PROGRESS" => "info",
+                _ => "muted"
+            };
+        }
+
+        private static int AssignStatusSort(string? status)
+        {
+            return Norm(status) switch
+            {
+                "IN_PROGRESS" => 1,
+                "DONE" => 2,
+                _ => 99
+            };
         }
 
         private static bool IsIssueResolved(ProjectIssue issue)

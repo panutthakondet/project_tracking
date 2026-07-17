@@ -51,17 +51,31 @@
             "DONE" => "ส่งงวดงานแล้ว",
             "IN_PROGRESS" => "กำลังดำเนินการ",
             "PENDING" => "วางแผน",
-            _ => "All Statuses"
+            _ => "All Phase Statuses"
+        };
+    }
+
+    string AssignStatusName(string? status)
+    {
+        return (status ?? "").Trim().ToUpperInvariant() switch
+        {
+            "DONE" => "เสร็จสิ้น",
+            "IN_PROGRESS" => "กำลังดำเนินการ",
+            _ => string.IsNullOrWhiteSpace(status) ? "All Assign Statuses" : status.Trim()
         };
     }
 
     var statusOptions = new[]
     {
-        new { Value = "", Text = "-- All Statuses --" },
+        new { Value = "", Text = "-- All Phase Statuses --" },
         new { Value = "DONE", Text = "ส่งงวดงานแล้ว" },
         new { Value = "IN_PROGRESS", Text = "กำลังดำเนินการ" },
         new { Value = "PENDING", Text = "วางแผน" }
     };
+
+    var assignStatusOptions = report.AssignStatusOptions.Any()
+        ? report.AssignStatusOptions
+        : new List<string> { "IN_PROGRESS", "DONE" };
 
     var coopOptions = report.ProjectOptions
         .Select(x => x.CoopName)
@@ -137,7 +151,7 @@
         }
         .filter-panel {
             display: grid;
-            grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.35fr) minmax(200px, .9fr) minmax(180px, .8fr) minmax(120px, .45fr) minmax(180px, .7fr) auto;
+            grid-template-columns: minmax(180px, .9fr) minmax(240px, 1.25fr) minmax(180px, .85fr) minmax(160px, .75fr) minmax(110px, .45fr) minmax(150px, .65fr) minmax(160px, .7fr) auto;
             align-items: end;
             gap: 10px;
             margin-bottom: 12px;
@@ -332,12 +346,13 @@
         .monthly-table col.col-month { width: 13%; }
         .monthly-table col.col-count { width: 14.5%; }
         .task-table col.col-seq { width: 4%; }
-        .task-table col.col-employee { width: 15%; }
-        .task-table col.col-phase { width: 26%; }
-        .task-table col.col-role { width: 20%; }
+        .task-table col.col-employee { width: 13%; }
+        .task-table col.col-phase { width: 24%; }
+        .task-table col.col-role { width: 15%; }
         .task-table col.col-status { width: 10%; }
-        .task-table col.col-date { width: 10%; }
-        .task-table col.col-month { width: 7%; }
+        .task-table col.col-assign-status { width: 10%; }
+        .task-table col.col-date { width: 9%; }
+        .task-table col.col-month { width: 6%; }
         .project-group-row td {
             padding: 8px 10px;
             color: #10233f;
@@ -464,7 +479,8 @@
             Project: @ProjectName()<br />
             Employee: @EmployeeName()<br />
             BA: @BaName()<br />
-            Status: @StatusName(report.Status)<br />
+            Phase Status: @StatusName(report.Status)<br />
+            Assign Status: @AssignStatusName(report.AssignStatus)<br />
             ข้อมูล ณ @report.GeneratedAt.ToString("dd MMM yyyy HH:mm", th)<br />
             ผู้พิมพ์: @(string.IsNullOrWhiteSpace(report.GeneratedBy) ? "-" : report.GeneratedBy)
         </div>
@@ -532,12 +548,24 @@
             </select>
         </div>
         <div class="field">
-            <label for="status">Status</label>
-            <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Status..." onchange="this.form.submit()">
+            <label for="status">Phase Status</label>
+            <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Phase Status..." onchange="this.form.submit()">
                 @foreach (var option in statusOptions)
                 {
                     <option value="@option.Value" selected="@(report.Status == option.Value ? "selected" : null)">
                         @option.Text
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="assignStatus">Assign Status</label>
+            <select id="assignStatus" name="assignStatus" data-placeholder="พิมพ์ค้นหา Assign Status..." onchange="this.form.submit()">
+                <option value="">-- All Assign Statuses --</option>
+                @foreach (var option in assignStatusOptions)
+                {
+                    <option value="@option" selected="@(string.Equals(report.AssignStatus, option, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @AssignStatusName(option)
                     </option>
                 }
             </select>
@@ -627,6 +655,7 @@
                     <col class="col-phase" />
                     <col class="col-role" />
                     <col class="col-status" />
+                    <col class="col-assign-status" />
                     <col class="col-date" />
                     <col class="col-date" />
                     <col class="col-month" />
@@ -637,7 +666,8 @@
                         <th>Employee</th>
                         <th>ส่วน / งวด / งาน</th>
                         <th>Role</th>
-                        <th>Status</th>
+                        <th>Phase Status</th>
+                        <th>Assign Status</th>
                         <th>Plan</th>
                         <th>กำหนดส่งงวดงาน</th>
                         <th>Month</th>
@@ -647,7 +677,7 @@
                     @foreach (var group in projectGroups)
                     {
                         <tr class="project-group-row">
-                            <td colspan="8">
+                            <td colspan="9">
                                 <span class="project-group-name">
                                     <span>@group.Key.ProjectName</span>
                                     <span class="project-group-count">@group.Count() งาน</span>
@@ -666,6 +696,9 @@
                                 <td>@row.Role</td>
                                 <td class="text-center">
                                     <span class="status-text @row.StatusTone">@row.StatusText</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="status-text @row.AssignStatusTone">@row.AssignStatusText</span>
                                 </td>
                                 <td class="text-center">
                                     @DateText(row.PlanStart)<br />
