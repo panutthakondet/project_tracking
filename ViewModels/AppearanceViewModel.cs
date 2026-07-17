@@ -15,6 +15,9 @@ namespace ProjectTracking.ViewModels
         [Display(Name = "Sidebar")]
         public string CustomSidebarHex { get; set; } = "#081c42";
 
+        [Display(Name = "Profile Background")]
+        public string CustomProfilePanelHex { get; set; } = "#081c42";
+
         [Display(Name = "Background")]
         public string CustomBodyBgHex { get; set; } = "#eef3f9";
 
@@ -40,6 +43,7 @@ namespace ProjectTracking.ViewModels
         public bool UseCustom { get; set; }
         public string? CustomAccentHex { get; set; }
         public string? CustomSidebarHex { get; set; }
+        public string? CustomProfilePanelHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
         public string? CustomMenuPanelHex { get; set; }
@@ -59,6 +63,7 @@ namespace ProjectTracking.ViewModels
         public string AccentHex { get; set; } = "#14b8a6";
         public string AccentDarkHex { get; set; } = "#0f766e";
         public string SidebarHex { get; set; } = "#081c42";
+        public string ProfilePanelHex { get; set; } = "#081c42";
         public string BodyBgHex { get; set; } = "#eef3f9";
         public string ChartPanelHex { get; set; } = "#081c42";
         public string MenuPanelHex { get; set; } = "#081c42";
@@ -75,6 +80,10 @@ namespace ProjectTracking.ViewModels
         public string AccentGlowRgba { get; set; } = "rgba(20, 184, 166, .30)";
         public string SidebarHex { get; set; } = "#081c42";
         public string SidebarDeepHex { get; set; } = "#031934";
+        public string ProfilePanelHex { get; set; } = "#081c42";
+        public string ProfilePanelDeepHex { get; set; } = "#031934";
+        public string ProfilePanelContrastHex { get; set; } = "#ffffff";
+        public string ProfilePanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
         public string BodyBgHex { get; set; } = "#eef3f9";
         public string ChartPanelHex { get; set; } = "#081c42";
         public string ChartPanelDeepHex { get; set; } = "#031934";

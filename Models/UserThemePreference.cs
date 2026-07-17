@@ -9,6 +9,7 @@ namespace ProjectTracking.Models
         public bool UseCustom { get; set; }
         public string? CustomAccentHex { get; set; }
         public string? CustomSidebarHex { get; set; }
+        public string? CustomProfilePanelHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
         public string? CustomMenuPanelHex { get; set; }

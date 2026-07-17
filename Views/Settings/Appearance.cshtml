@@ -168,7 +168,7 @@
 
     .theme-swatch {
         display: grid;
-        grid-template-columns: 1.1fr .85fr .85fr .85fr .85fr;
+        grid-template-columns: 1.1fr .85fr .85fr .85fr .85fr .85fr;
         gap: 6px;
         height: 54px;
     }
@@ -442,6 +442,16 @@
         background: var(--preview-sidebar, #081c42);
     }
 
+    .preview-profile-zone {
+        height: 38px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 8px;
+        background:
+            radial-gradient(circle at 50% 14%, rgba(255,255,255,.16), transparent 42%),
+            linear-gradient(180deg, var(--preview-profile-panel, #081c42), var(--preview-profile-panel-deep, #031934));
+    }
+
     .preview-pill {
         height: 12px;
         margin-bottom: 9px;
@@ -683,7 +693,7 @@
                 <section class="appearance-section">
                     <div class="appearance-section__head">
                         <h2>Theme Presets</h2>
-                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล โดยสีช่องที่ 4 ใช้กับพื้นกล่องกราฟ/รายการ และสีช่องที่ 5 ใช้กับพื้นเมนู</p>
+                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล โดยสีช่องที่ 3 ใช้กับพื้นโปรไฟล์ด้านบน สีช่องที่ 5 ใช้กับพื้นกล่องกราฟ/รายการ และสีช่องที่ 6 ใช้กับพื้นเมนู</p>
                     </div>
 
                     <div class="theme-grid" id="themePresetGrid">
@@ -694,6 +704,7 @@
                                    data-accent="@preset.AccentHex"
                                    data-accent-dark="@preset.AccentDarkHex"
                                    data-sidebar="@preset.SidebarHex"
+                                   data-profile-panel="@preset.ProfilePanelHex"
                                    data-body="@preset.BodyBgHex"
                                    data-chart-panel="@preset.ChartPanelHex"
                                    data-menu-panel="@preset.MenuPanelHex"
@@ -706,6 +717,7 @@
                                 <span class="theme-swatch" aria-hidden="true">
                                     <span style="background:@preset.AccentHex"></span>
                                     <span style="background:@preset.SidebarHex"></span>
+                                    <span style="background:@preset.ProfilePanelHex"></span>
                                     <span style="background:@preset.BodyBgHex"></span>
                                     <span style="background:@preset.ChartPanelHex"></span>
                                     <span style="background:@preset.MenuPanelHex"></span>
@@ -745,6 +757,13 @@
                             <div class="color-input" data-color-wrap>
                                 <input type="color" id="CustomSidebarColor" value="@Model.CustomSidebarHex" />
                                 <input type="text" id="CustomSidebarHex" name="CustomSidebarHex" value="@Model.CustomSidebarHex" maxlength="7" />
+                            </div>
+                        </div>
+                        <div class="appearance-field">
+                            <label for="CustomProfilePanelHex">Profile Background</label>
+                            <div class="color-input" data-color-wrap>
+                                <input type="color" id="CustomProfilePanelColor" value="@Model.CustomProfilePanelHex" />
+                                <input type="text" id="CustomProfilePanelHex" name="CustomProfilePanelHex" value="@Model.CustomProfilePanelHex" maxlength="7" />
                             </div>
                         </div>
                         <div class="appearance-field">
@@ -821,7 +840,7 @@
             </div>
 
             <aside class="appearance-preview" id="appearancePreview"
-                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex; --preview-chart-panel:@Model.EffectiveTheme.ChartPanelHex; --preview-chart-panel-deep:@Model.EffectiveTheme.ChartPanelDeepHex; --preview-chart-ink:@Model.EffectiveTheme.ChartPanelContrastHex; --preview-menu-panel:@Model.EffectiveTheme.MenuPanelHex; --preview-menu-panel-deep:@Model.EffectiveTheme.MenuPanelDeepHex; --preview-dino-color:@Model.EffectiveTheme.DinoColorHex; --preview-dino-food-color:@Model.EffectiveTheme.DinoFoodColorHex;">
+                   style="--preview-accent:@Model.EffectiveTheme.AccentHex; --preview-accent-dark:@Model.EffectiveTheme.AccentDarkHex; --preview-sidebar:@Model.EffectiveTheme.SidebarHex; --preview-sidebar-deep:@Model.EffectiveTheme.SidebarDeepHex; --preview-profile-panel:@Model.EffectiveTheme.ProfilePanelHex; --preview-profile-panel-deep:@Model.EffectiveTheme.ProfilePanelDeepHex; --preview-body:@Model.EffectiveTheme.BodyBgHex; --preview-chart-panel:@Model.EffectiveTheme.ChartPanelHex; --preview-chart-panel-deep:@Model.EffectiveTheme.ChartPanelDeepHex; --preview-chart-ink:@Model.EffectiveTheme.ChartPanelContrastHex; --preview-menu-panel:@Model.EffectiveTheme.MenuPanelHex; --preview-menu-panel-deep:@Model.EffectiveTheme.MenuPanelDeepHex; --preview-dino-color:@Model.EffectiveTheme.DinoColorHex; --preview-dino-food-color:@Model.EffectiveTheme.DinoFoodColorHex;">
                 <div class="appearance-preview__head">
                     <h2>Preview</h2>
                 </div>
@@ -832,6 +851,7 @@
                     </div>
                     <div class="preview-body">
                         <div class="preview-side">
+                            <div class="preview-profile-zone"></div>
                             <div class="preview-pill is-active"></div>
                             <div class="preview-pill"></div>
                             <div class="preview-pill"></div>
@@ -883,6 +903,7 @@
     const colorPairs = [
         ['CustomAccentColor', 'CustomAccentHex', true],
         ['CustomSidebarColor', 'CustomSidebarHex', true],
+        ['CustomProfilePanelColor', 'CustomProfilePanelHex', true],
         ['CustomBodyBgColor', 'CustomBodyBgHex', true],
         ['CustomChartPanelColor', 'CustomChartPanelHex', true],
         ['CustomMenuPanelColor', 'CustomMenuPanelHex', true],
@@ -949,6 +970,9 @@
             accentDark: normalizeHex(card?.dataset.accentDark, '#193B70'),
             sidebar: normalizeHex(card?.dataset.sidebar, '#081C42'),
             sidebarDeep: shiftHex(normalizeHex(card?.dataset.sidebar, '#081C42'), -0.20),
+            profilePanel: normalizeHex(card?.dataset.profilePanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
+            profilePanelDeep: shiftHex(normalizeHex(card?.dataset.profilePanel, normalizeHex(card?.dataset.sidebar, '#081C42')), -0.18),
+            profilePanelContrast: contrast(normalizeHex(card?.dataset.profilePanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
             body: normalizeHex(card?.dataset.body, '#EEF3F9'),
             text: normalizeHex(card?.dataset.text, '#0F172A'),
             chartPanel: normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
@@ -977,6 +1001,7 @@
 
         const accent = normalizeHex(document.getElementById('CustomAccentHex').value, preset.accent);
         const sidebar = normalizeHex(document.getElementById('CustomSidebarHex').value, preset.sidebar);
+        const profilePanel = normalizeHex(document.getElementById('CustomProfilePanelHex').value, preset.profilePanel);
         const body = normalizeHex(document.getElementById('CustomBodyBgHex').value, preset.body);
         const chartPanel = normalizeHex(document.getElementById('CustomChartPanelHex').value, preset.chartPanel);
         const menuPanel = normalizeHex(document.getElementById('CustomMenuPanelHex').value, preset.menuPanel);
@@ -985,6 +1010,9 @@
             accentDark: shiftHex(accent, -0.18),
             sidebar,
             sidebarDeep: shiftHex(sidebar, -0.20),
+            profilePanel,
+            profilePanelDeep: shiftHex(profilePanel, -0.18),
+            profilePanelContrast: contrast(profilePanel),
             body,
             text: preset.text,
             chartPanel,
@@ -1013,6 +1041,11 @@
         root.setProperty('--pt-sidebar-panel', rgba(theme.sidebar, .96));
         root.setProperty('--pt-sidebar-contrast', contrast(theme.sidebar));
         root.setProperty('--pt-sidebar-contrast-muted', rgba(contrast(theme.sidebar), .76));
+        root.setProperty('--pt-profile-panel-bg', theme.profilePanel);
+        root.setProperty('--pt-profile-panel-deep', theme.profilePanelDeep);
+        root.setProperty('--pt-profile-panel-soft', rgba(theme.profilePanel, .90));
+        root.setProperty('--pt-profile-panel-contrast', theme.profilePanelContrast);
+        root.setProperty('--pt-profile-panel-contrast-muted', rgba(theme.profilePanelContrast, .76));
         root.setProperty('--pt-body-bg', theme.body);
         root.setProperty('--pt-body-bg-soft', shiftHex(theme.body, -0.04));
         root.setProperty('--pt-text', theme.text);
@@ -1053,6 +1086,8 @@
             preview.style.setProperty('--preview-accent-dark', theme.accentDark);
             preview.style.setProperty('--preview-sidebar', theme.sidebar);
             preview.style.setProperty('--preview-sidebar-deep', theme.sidebarDeep);
+            preview.style.setProperty('--preview-profile-panel', theme.profilePanel);
+            preview.style.setProperty('--preview-profile-panel-deep', theme.profilePanelDeep);
             preview.style.setProperty('--preview-body', theme.body);
             preview.style.setProperty('--preview-chart-panel', theme.chartPanel);
             preview.style.setProperty('--preview-chart-panel-deep', theme.chartPanelDeep);
@@ -1086,6 +1121,8 @@
             document.getElementById('CustomAccentColor').value = preset.accent;
             document.getElementById('CustomSidebarHex').value = preset.sidebar;
             document.getElementById('CustomSidebarColor').value = preset.sidebar;
+            document.getElementById('CustomProfilePanelHex').value = preset.profilePanel;
+            document.getElementById('CustomProfilePanelColor').value = preset.profilePanel;
             document.getElementById('CustomBodyBgHex').value = preset.body;
             document.getElementById('CustomBodyBgColor').value = preset.body;
             document.getElementById('CustomChartPanelHex').value = preset.chartPanel;

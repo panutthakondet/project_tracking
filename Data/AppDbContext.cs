@@ -319,6 +319,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.AccentDeepHex).HasColumnName("accent_deep_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.SidebarHex).HasColumnName("sidebar_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.SidebarDeepHex).HasColumnName("sidebar_deep_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.ProfilePanelHex).HasColumnName("profile_panel_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.BodyBgHex).HasColumnName("body_bg_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.ChartPanelHex).HasColumnName("chart_panel_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.MenuPanelHex).HasColumnName("menu_panel_hex").HasColumnType("varchar(7)").IsRequired();
@@ -343,6 +344,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.UseCustom).HasColumnName("use_custom").HasColumnType("tinyint(1)");
                 entity.Property(x => x.CustomAccentHex).HasColumnName("custom_accent_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomSidebarHex).HasColumnName("custom_sidebar_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.CustomProfilePanelHex).HasColumnName("custom_profile_panel_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomBodyBgHex).HasColumnName("custom_body_bg_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomChartPanelHex).HasColumnName("custom_chart_panel_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomMenuPanelHex).HasColumnName("custom_menu_panel_hex").HasColumnType("varchar(7)");
