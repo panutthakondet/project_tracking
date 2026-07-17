@@ -2560,8 +2560,7 @@ html body main.route-controller-requirementboard :is(
 
 html body main.route-controller-requirementboard :is(
     .boards-button,
-    .rb-btn:not(.secondary):not(.danger),
-    .rb-dashboard-btn
+    .rb-btn:not(.secondary):not(.danger)
 ) {
     color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;

@@ -1054,52 +1054,6 @@
             color: #20324c;
         }
 
-        .rb-dashboard-btn {
-            min-height: 44px;
-            min-width: 148px;
-            padding: 0 20px 0 12px;
-            border: 1px solid rgba(255, 255, 255, .88);
-            border-radius: 999px;
-            background:
-                linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(220, 252, 247, .94)),
-                #fff;
-            color: #0f766e;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, .95),
-                0 10px 24px rgba(8, 47, 73, .18),
-                0 0 0 3px rgba(20, 184, 166, .10);
-            font-size: .95rem;
-            letter-spacing: 0;
-            text-shadow: none;
-            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease;
-        }
-
-        .rb-dashboard-btn svg {
-            width: 30px;
-            height: 30px;
-            padding: 7px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #21d4c2, #0f8f80);
-            color: #fff;
-            flex: 0 0 auto;
-            box-shadow: 0 8px 16px rgba(15, 118, 110, .26);
-            filter: none;
-        }
-
-        .rb-dashboard-btn:hover,
-        .rb-dashboard-btn:focus {
-            color: #075985;
-            border-color: rgba(255, 255, 255, .96);
-            background:
-                linear-gradient(135deg, #ffffff, #e0f2fe);
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, .98),
-                0 16px 30px rgba(8, 47, 73, .24),
-                0 0 0 4px rgba(14, 165, 233, .16);
-            filter: none;
-            transform: translateY(-2px);
-        }
-
         .rb-btn.danger {
             background: #fff;
             border: 1px solid #fb7185;
@@ -2566,13 +2520,6 @@
                     <span>@currentBoard.BoardName</span>
                 </div>
             }
-            <a class="rb-btn rb-dashboard-btn" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M4 13.5h6.5V4H4v9.5Zm9.5 6.5H20v-9.5h-6.5V20ZM4 20h6.5v-3.5H4V20Zm9.5-12.5H20V4h-6.5v3.5Z"
-                          fill="currentColor" opacity=".92" />
-                </svg>
-                <span>Dashboard</span>
-            </a>
         </div>
     </section>
 
