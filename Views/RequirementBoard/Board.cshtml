@@ -1564,21 +1564,49 @@
 
         .rb-add-card-action {
             width: 100%;
-            min-height: 44px;
-            padding: 8px 12px;
-            border: 1px solid #e4edf6;
-            border-radius: 14px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-radius: 12px;
             background: transparent;
-            color: #0f766e;
-            font-size: .94rem;
+            color: #5f636d;
+            font-size: 1rem;
             font-weight: 800;
             text-align: left;
             cursor: pointer;
             overflow: hidden;
+            box-shadow: none;
         }
 
         .rb-add-card-action:hover {
-            color: #0d9488;
+            color: #172b4d;
+            background: rgba(9, 30, 66, .08);
+        }
+
+        .rb-add-card-action span:first-child {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .rb-add-card-action span:first-child::before {
+            content: "+";
+            font-size: 1.65rem;
+            font-weight: 400;
+            line-height: 1;
+        }
+
+        .rb-add-card-action span:last-child {
+            margin-left: auto;
+            color: currentColor;
+            font-size: 1.25rem;
+            line-height: 1;
+            opacity: .92;
         }
 
         .rb-add-list-column summary,
