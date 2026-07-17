@@ -2567,6 +2567,11 @@ html body main.route-controller-requirementboard :is(
     border-color: transparent !important;
 }
 
+html body main.route-controller-requirementboard .rb-add-card-action {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
 html body main.route-controller-requirementboard :is(
     .boards-button.secondary,
     .boards-close-button,
