@@ -41,12 +41,13 @@ namespace ProjectTracking.Services
             var sidebar = NormalizeHexOrDefault(preference?.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(preference?.CustomBodyBgHex, selectedPreset.BodyBgHex);
             var chartPanel = NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.ChartPanelHex);
+            var menuPanel = NormalizeHexOrDefault(preference?.CustomMenuPanelHex, NormalizeHexOrDefault(preference?.CustomChartPanelHex, selectedPreset.MenuPanelHex));
             var fontScale = ClampFontScale(preference?.FontScale ?? 1.00m);
             var profileBallEnabled = preference?.ProfileBallEnabled ?? false;
             var dinoName = NormalizeDinoName(preference?.DinoName);
             var dinoColor = NormalizeHexOrDefault(preference?.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(preference?.DinoFoodColorHex, DefaultDinoFoodColorHex);
-            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
+            var resolved = ResolveTheme(selectedPreset, useCustom, accent, sidebar, bodyBg, chartPanel, menuPanel, fontScale, profileBallEnabled, dinoColor, dinoFoodColor);
 
             return new AppearanceViewModel
             {
@@ -57,6 +58,7 @@ namespace ProjectTracking.Services
                 CustomSidebarHex = sidebar,
                 CustomBodyBgHex = bodyBg,
                 CustomChartPanelHex = chartPanel,
+                CustomMenuPanelHex = menuPanel,
                 FontScale = fontScale,
                 ProfileBallEnabled = profileBallEnabled,
                 DinoName = dinoName,
@@ -78,6 +80,7 @@ namespace ProjectTracking.Services
             var sidebar = NormalizeHexOrDefault(model.CustomSidebarHex, selectedPreset.SidebarHex);
             var bodyBg = NormalizeHexOrDefault(model.CustomBodyBgHex, selectedPreset.BodyBgHex);
             var chartPanel = NormalizeHexOrDefault(model.CustomChartPanelHex, selectedPreset.ChartPanelHex);
+            var menuPanel = NormalizeHexOrDefault(model.CustomMenuPanelHex, selectedPreset.MenuPanelHex);
             var dinoName = NormalizeDinoName(model.DinoName);
             var dinoColor = NormalizeHexOrDefault(model.DinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(model.DinoFoodColorHex, DefaultDinoFoodColorHex);
@@ -87,7 +90,8 @@ namespace ProjectTracking.Services
                 if (!IsHexColor(model.CustomAccentHex) ||
                     !IsHexColor(model.CustomSidebarHex) ||
                     !IsHexColor(model.CustomBodyBgHex) ||
-                    !IsHexColor(model.CustomChartPanelHex))
+                    !IsHexColor(model.CustomChartPanelHex) ||
+                    !IsHexColor(model.CustomMenuPanelHex))
                 {
                     return (false, "ค่าสีต้องอยู่ในรูปแบบ #RRGGBB");
                 }
@@ -112,6 +116,7 @@ namespace ProjectTracking.Services
             preference.CustomSidebarHex = model.UseCustom ? sidebar : null;
             preference.CustomBodyBgHex = model.UseCustom ? bodyBg : null;
             preference.CustomChartPanelHex = model.UseCustom ? chartPanel : null;
+            preference.CustomMenuPanelHex = model.UseCustom ? menuPanel : null;
             preference.FontScale = fontScale;
             preference.ProfileBallEnabled = model.ProfileBallEnabled;
             preference.DinoName = dinoName;
@@ -143,28 +148,29 @@ namespace ProjectTracking.Services
                 var defaultPreset = PickDefaultPreset(presets);
 
                 if (userId == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, defaultPreset.MenuPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
 
                 var preference = await _context.UserThemePreferences
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.UserId == userId.Value, cancellationToken);
 
                 if (preference == null)
-                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
+                    return ResolveTheme(defaultPreset, false, defaultPreset.AccentHex, defaultPreset.SidebarHex, defaultPreset.BodyBgHex, defaultPreset.ChartPanelHex, defaultPreset.MenuPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
 
                 var preset = presets.FirstOrDefault(x => x.ThemeId == preference.ThemeId) ?? defaultPreset;
                 var accent = NormalizeHexOrDefault(preference.CustomAccentHex, preset.AccentHex);
                 var sidebar = NormalizeHexOrDefault(preference.CustomSidebarHex, preset.SidebarHex);
                 var bodyBg = NormalizeHexOrDefault(preference.CustomBodyBgHex, preset.BodyBgHex);
                 var chartPanel = NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.ChartPanelHex);
+                var menuPanel = NormalizeHexOrDefault(preference.CustomMenuPanelHex, NormalizeHexOrDefault(preference.CustomChartPanelHex, preset.MenuPanelHex));
                 var dinoColor = NormalizeHexOrDefault(preference.DinoColorHex, DefaultDinoColorHex);
                 var dinoFoodColor = NormalizeHexOrDefault(preference.DinoFoodColorHex, DefaultDinoFoodColorHex);
-                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
+                return ResolveTheme(preset, preference.UseCustom, accent, sidebar, bodyBg, chartPanel, menuPanel, preference.FontScale, preference.ProfileBallEnabled, dinoColor, dinoFoodColor);
             }
             catch
             {
                 var fallback = CreateFallbackPreset();
-                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
+                return ResolveTheme(fallback, false, fallback.AccentHex, fallback.SidebarHex, fallback.BodyBgHex, fallback.ChartPanelHex, fallback.MenuPanelHex, 1.00m, false, DefaultDinoColorHex, DefaultDinoFoodColorHex);
             }
         }
 
@@ -203,6 +209,7 @@ namespace ProjectTracking.Services
             SidebarDeepHex = "#031934",
             BodyBgHex = "#eef3f9",
             ChartPanelHex = "#041F4E",
+            MenuPanelHex = "#041F4E",
             SurfaceHex = "#ffffff",
             TextHex = "#0f172a",
             MutedHex = "#64748b",
@@ -220,6 +227,7 @@ namespace ProjectTracking.Services
             SidebarHex = NormalizeHexOrDefault(preset.SidebarHex, "#081c42"),
             BodyBgHex = NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9"),
             ChartPanelHex = NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42")),
+            MenuPanelHex = NormalizeHexOrDefault(preset.MenuPanelHex, NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42"))),
             TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
             ContrastHex = NormalizeHexOrDefault(preset.ContrastHex, GetReadableContrast(NormalizeHexOrDefault(preset.AccentHex, "#1F4889")))
         };
@@ -231,6 +239,7 @@ namespace ProjectTracking.Services
             string customSidebarHex,
             string customBodyBgHex,
             string customChartPanelHex,
+            string customMenuPanelHex,
             decimal fontScale,
             bool profileBallEnabled = false,
             string? dinoColorHex = null,
@@ -240,9 +249,11 @@ namespace ProjectTracking.Services
             var sidebar = useCustom ? customSidebarHex : NormalizeHexOrDefault(preset.SidebarHex, "#081c42");
             var bodyBg = useCustom ? customBodyBgHex : NormalizeHexOrDefault(preset.BodyBgHex, "#eef3f9");
             var chartPanel = useCustom ? customChartPanelHex : NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42"));
+            var menuPanel = useCustom ? customMenuPanelHex : NormalizeHexOrDefault(preset.MenuPanelHex, chartPanel);
             var accentDark = useCustom ? ShiftHex(accent, -0.18) : NormalizeHexOrDefault(preset.AccentDarkHex, ShiftHex(accent, -0.18));
             var accentDeep = useCustom ? ShiftHex(accent, -0.30) : NormalizeHexOrDefault(preset.AccentDeepHex, ShiftHex(accent, -0.30));
             var chartPanelContrast = GetReadableContrast(chartPanel);
+            var menuPanelContrast = GetReadableContrast(menuPanel);
             var dinoColor = NormalizeHexOrDefault(dinoColorHex, DefaultDinoColorHex);
             var dinoFoodColor = NormalizeHexOrDefault(dinoFoodColorHex, DefaultDinoFoodColorHex);
 
@@ -260,6 +271,10 @@ namespace ProjectTracking.Services
                 ChartPanelDeepHex = ShiftHex(chartPanel, -0.18),
                 ChartPanelContrastHex = chartPanelContrast,
                 ChartPanelContrastMutedRgba = ToRgba(chartPanelContrast, .76),
+                MenuPanelHex = menuPanel,
+                MenuPanelDeepHex = ShiftHex(menuPanel, -0.18),
+                MenuPanelContrastHex = menuPanelContrast,
+                MenuPanelContrastMutedRgba = ToRgba(menuPanelContrast, .76),
                 ProfileBallEnabled = profileBallEnabled,
                 DinoColorHex = dinoColor,
                 DinoFoodColorHex = dinoFoodColor,
@@ -326,6 +341,14 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-chart-panel-glow", ToRgba(theme.AccentHex, .14));
             AppendVar(sb, "--pt-chart-panel-contrast", theme.ChartPanelContrastHex);
             AppendVar(sb, "--pt-chart-panel-contrast-muted", theme.ChartPanelContrastMutedRgba);
+            AppendVar(sb, "--pt-menu-panel-bg", theme.MenuPanelHex);
+            AppendVar(sb, "--pt-menu-panel-deep", theme.MenuPanelDeepHex);
+            AppendVar(sb, "--pt-menu-panel-soft", ToRgba(theme.MenuPanelHex, .88));
+            AppendVar(sb, "--pt-menu-panel-field-bg", ToRgba(theme.MenuPanelDeepHex, .72));
+            AppendVar(sb, "--pt-menu-panel-row-bg", ShiftHex(theme.MenuPanelHex, -0.08));
+            AppendVar(sb, "--pt-menu-panel-row-hover-bg", ShiftHex(theme.MenuPanelHex, 0.04));
+            AppendVar(sb, "--pt-menu-panel-contrast", theme.MenuPanelContrastHex);
+            AppendVar(sb, "--pt-menu-panel-contrast-muted", theme.MenuPanelContrastMutedRgba);
             AppendVar(sb, "--pt-surface", theme.SurfaceHex);
             AppendVar(sb, "--pt-surface-soft", ShiftHex(theme.SurfaceHex, -0.04));
             AppendVar(sb, "--pt-surface-contrast", surfaceContrast);
@@ -584,19 +607,19 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
 .v2-sidebar .navbar-dark .navbar-nav .nav-link,
 .v2-sidebar .navbar-dark .navbar-nav .dropdown-toggle,
 .v2-sidebar .dropdown-menu {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
+    color: var(--pt-menu-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-menu-panel-soft), var(--pt-menu-panel-deep)) !important;
     border-color: var(--pt-border) !important;
 }
 
 .v2-sidebar .dropdown-item {
-    color: var(--pt-chart-panel-contrast-muted) !important;
+    color: var(--pt-menu-panel-contrast-muted) !important;
 }
 
 .v2-sidebar .dropdown-item:hover,
 .v2-sidebar .dropdown-item:focus {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: var(--pt-chart-panel-field-bg) !important;
+    color: var(--pt-menu-panel-contrast) !important;
+    background: var(--pt-menu-panel-field-bg) !important;
 }
 
 .v2-avatar-upload {
@@ -614,8 +637,8 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
 .navbar.navbar-dark .navbar-nav .nav-link:hover,
 .navbar.navbar-dark .navbar-nav .nav-link:focus,
 .navbar.navbar-dark .navbar-nav .show > .nav-link {
-    color: var(--pt-chart-panel-contrast) !important;
-    background: linear-gradient(180deg, var(--pt-chart-panel-row-hover-bg), var(--pt-chart-panel-deep)) !important;
+    color: var(--pt-menu-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-menu-panel-row-hover-bg), var(--pt-menu-panel-deep)) !important;
     border-color: var(--pt-border-strong) !important;
 }
 

@@ -321,6 +321,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.SidebarDeepHex).HasColumnName("sidebar_deep_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.BodyBgHex).HasColumnName("body_bg_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.ChartPanelHex).HasColumnName("chart_panel_hex").HasColumnType("varchar(7)").IsRequired();
+                entity.Property(x => x.MenuPanelHex).HasColumnName("menu_panel_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.SurfaceHex).HasColumnName("surface_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.TextHex).HasColumnName("text_hex").HasColumnType("varchar(7)").IsRequired();
                 entity.Property(x => x.MutedHex).HasColumnName("muted_hex").HasColumnType("varchar(7)").IsRequired();
@@ -344,6 +345,7 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.CustomSidebarHex).HasColumnName("custom_sidebar_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomBodyBgHex).HasColumnName("custom_body_bg_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.CustomChartPanelHex).HasColumnName("custom_chart_panel_hex").HasColumnType("varchar(7)");
+                entity.Property(x => x.CustomMenuPanelHex).HasColumnName("custom_menu_panel_hex").HasColumnType("varchar(7)");
                 entity.Property(x => x.FontScale).HasColumnName("font_scale").HasColumnType("decimal(4,2)");
                 entity.Property(x => x.ProfileBallEnabled).HasColumnName("profile_ball_enabled").HasColumnType("tinyint(1)").HasDefaultValue(false);
                 entity.Property(x => x.DinoName).HasColumnName("dino_name").HasColumnType("varchar(24)").HasDefaultValue("Dino");

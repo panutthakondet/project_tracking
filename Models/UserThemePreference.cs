@@ -11,6 +11,7 @@ namespace ProjectTracking.Models
         public string? CustomSidebarHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
+        public string? CustomMenuPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
         public string? DinoName { get; set; }

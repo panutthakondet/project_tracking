@@ -18,8 +18,11 @@ namespace ProjectTracking.ViewModels
         [Display(Name = "Background")]
         public string CustomBodyBgHex { get; set; } = "#eef3f9";
 
-        [Display(Name = "Chart/List/Menu Background")]
+        [Display(Name = "Chart/List Background")]
         public string CustomChartPanelHex { get; set; } = "#081c42";
+
+        [Display(Name = "Menu Background")]
+        public string CustomMenuPanelHex { get; set; } = "#081c42";
 
         [Range(0.90, 1.15)]
         public decimal FontScale { get; set; } = 1.00m;
@@ -39,6 +42,7 @@ namespace ProjectTracking.ViewModels
         public string? CustomSidebarHex { get; set; }
         public string? CustomBodyBgHex { get; set; }
         public string? CustomChartPanelHex { get; set; }
+        public string? CustomMenuPanelHex { get; set; }
         public decimal FontScale { get; set; } = 1.00m;
         public bool ProfileBallEnabled { get; set; }
         public string? DinoName { get; set; }
@@ -57,6 +61,7 @@ namespace ProjectTracking.ViewModels
         public string SidebarHex { get; set; } = "#081c42";
         public string BodyBgHex { get; set; } = "#eef3f9";
         public string ChartPanelHex { get; set; } = "#081c42";
+        public string MenuPanelHex { get; set; } = "#081c42";
         public string TextHex { get; set; } = "#0f172a";
         public string ContrastHex { get; set; } = "#062b2f";
     }
@@ -75,6 +80,10 @@ namespace ProjectTracking.ViewModels
         public string ChartPanelDeepHex { get; set; } = "#031934";
         public string ChartPanelContrastHex { get; set; } = "#ffffff";
         public string ChartPanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
+        public string MenuPanelHex { get; set; } = "#081c42";
+        public string MenuPanelDeepHex { get; set; } = "#031934";
+        public string MenuPanelContrastHex { get; set; } = "#ffffff";
+        public string MenuPanelContrastMutedRgba { get; set; } = "rgba(255, 255, 255, .76)";
         public bool ProfileBallEnabled { get; set; }
         public string DinoColorHex { get; set; } = "#FFFFFF";
         public string DinoFoodColorHex { get; set; } = "#45D6C6";
