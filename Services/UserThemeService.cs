@@ -1410,8 +1410,10 @@ html body main .dashboard-view .workload-rank {
     border-radius: 999px !important;
     color: var(--pt-chart-panel-contrast) !important;
     -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
-    background: color-mix(in srgb, var(--pt-chart-panel-center-bg) 92%, transparent) !important;
-    box-shadow: 0 8px 18px var(--pt-shadow), inset 0 1px 0 rgba(255,255,255,.14) !important;
+    background: var(--pt-chart-panel-center-bg) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
+    filter: none !important;
+    backdrop-filter: none !important;
     text-shadow: none !important;
 }
 
