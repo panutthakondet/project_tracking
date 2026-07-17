@@ -1107,6 +1107,27 @@ html body main .dashboard-view :is(
     -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
 }
 
+html body main .dashboard-view .panel-activity :is(.activity-row, .activity-list .empty-state) {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: linear-gradient(180deg, var(--pt-chart-panel-row-bg), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border) !important;
+}
+
+html body main .dashboard-view .panel-activity .activity-row :is(b, small, em, time, time strong, time small) {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view .panel-activity .activity-row :is(small, em, time small) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+html body main .dashboard-view .panel-activity .dashboard-refresh-link {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
 html body main .dashboard-view :is(
     .overview-mini,
     .yearly-chart,
@@ -1999,6 +2020,22 @@ html body main.route-controller-meetings :is(
 ) {
     color: var(--pt-sidebar-contrast) !important;
     text-shadow: none !important;
+}
+
+html body main.route-controller-meetings .meeting-list-card > .card-header {
+    color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-meetings .meeting-list-card > .card-header strong {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-meetings .meeting-list-card > .card-header span {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
 }
 
 html body main.route-controller-meetings :is(
