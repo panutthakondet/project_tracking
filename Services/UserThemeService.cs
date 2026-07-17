@@ -1033,6 +1033,7 @@ html body main .dashboard-view :is(
     .yearly-legend span,
     .workload-row .workload-name,
     .workload-row .workload-name strong,
+    .workload-row b,
     .activity-row time,
     .activity-row time strong,
     .activity-row b,
