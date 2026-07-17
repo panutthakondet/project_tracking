@@ -316,15 +316,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            min-height: 44px;
-            min-width: auto;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
             padding: 0;
-            border: 0;
-            border-radius: 0;
-            background: transparent !important;
-            color: #ffffff;
-            box-shadow: none !important;
+            border: 1px solid rgba(148, 163, 184, .36);
+            border-radius: 14px;
+            background: #ffffff !important;
+            color: #172b4d;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, .12), inset 0 1px 0 rgba(255, 255, 255, .92) !important;
             font-size: 1rem;
             font-weight: 900;
             letter-spacing: 0;
@@ -335,36 +335,21 @@
             transition: color .16s ease, opacity .16s ease;
         }
 
-        .rb-boards-btn span:first-child {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 7px;
-            background: #172b4d;
-            color: #dbeafe;
-            font-size: 1rem;
-            font-weight: 900;
-            line-height: 1;
+        .rb-boards-btn svg {
+            width: 22px;
+            height: 22px;
             flex: 0 0 auto;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 14px rgba(15, 23, 42, .16);
+            stroke: currentColor;
         }
 
         .rb-boards-btn:hover,
         .rb-boards-btn:focus {
-            color: #ffffff;
-            background: transparent !important;
-            border-color: transparent !important;
-            box-shadow: none !important;
+            color: #0f766e;
+            background: #ffffff !important;
+            border-color: rgba(20, 184, 166, .42) !important;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, .16), 0 0 0 4px rgba(20, 184, 166, .12) !important;
             filter: none !important;
             opacity: .88;
-        }
-
-        .rb-boards-btn:hover span:first-child,
-        .rb-boards-btn:focus span:first-child {
-            background: #0f2342;
-            color: #ffffff;
         }
 
         .rb-search {
@@ -2535,9 +2520,11 @@
 <div class="rb-page" style="@boardPageStyle">
     <section class="rb-toolbar rb-board-strip">
         <div class="rb-toolbar-start">
-            <a class="rb-boards-btn" asp-controller="RequirementBoard" asp-action="Index" title="กลับหน้ากระดานทั้งหมด">
-                <span aria-hidden="true">▮▮</span>
-                <span>Boards</span>
+            <a class="rb-boards-btn" asp-controller="RequirementBoard" asp-action="Index" title="กลับหน้ากระดานทั้งหมด" aria-label="กลับหน้ากระดานทั้งหมด">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3.5 10.8 12 3.8l8.5 7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M5.6 9.8v9.4h4.5v-5.4h3.8v5.4h4.5V9.8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
             </a>
             <div class="rb-search">
                 <span class="rb-search-icon" aria-hidden="true">

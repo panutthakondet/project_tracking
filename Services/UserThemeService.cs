@@ -2426,24 +2426,26 @@ html body main.route-controller-requirementboard :is(
     .rb-stat,
     .rb-stat strong,
     .rb-stat span,
-    .rb-boards-btn,
     .rb-modal .modal-header:not(.has-cover) :is(.modal-title, h1, h2, h3, h4, h5, h6, p, span)
 ) {
     color: var(--pt-sidebar-contrast) !important;
 }
 
-html body main.route-controller-requirementboard .rb-boards-btn span:first-child {
-    color: var(--pt-accent-contrast) !important;
-    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px var(--pt-shadow) !important;
+html body main.route-controller-requirementboard .rb-boards-btn {
+    color: #172b4d !important;
+    -webkit-text-fill-color: #172b4d !important;
+    background: #ffffff !important;
+    border-color: rgba(148, 163, 184, .36) !important;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, .12), inset 0 1px 0 rgba(255,255,255,.92) !important;
 }
 
-html body main.route-controller-requirementboard .rb-boards-btn:hover span:first-child,
-html body main.route-controller-requirementboard .rb-boards-btn:focus span:first-child {
-    color: var(--pt-accent-contrast) !important;
-    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-accent-light), var(--pt-accent)) !important;
+html body main.route-controller-requirementboard .rb-boards-btn:hover,
+html body main.route-controller-requirementboard .rb-boards-btn:focus {
+    color: var(--pt-accent-dark) !important;
+    -webkit-text-fill-color: var(--pt-accent-dark) !important;
+    background: #ffffff !important;
+    border-color: var(--pt-accent) !important;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, .16), 0 0 0 4px var(--pt-accent-soft) !important;
 }
 
 html body main.route-controller-requirementboard :is(
