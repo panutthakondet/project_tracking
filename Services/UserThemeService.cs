@@ -666,6 +666,119 @@ html body main .index-hero :is(.index-subtitle, .index-eyebrow) {
     opacity: 1 !important;
 }
 
+html body main .index-actions :is(.btn, button.btn, a.btn):not(.btn-close) {
+    --pt-button-readable: var(--pt-local-text, var(--pt-surface-contrast));
+    --pt-action-color: var(--pt-button-readable) !important;
+    color: var(--pt-button-readable) !important;
+    -webkit-text-fill-color: var(--pt-button-readable) !important;
+    text-shadow: none !important;
+}
+
+html body main .index-actions :is(.btn-primary, .btn-success, .btn-info, .btn-light):not(.btn-close) {
+    --pt-button-readable: #062B2F;
+    --pt-action-color: #062B2F !important;
+}
+
+html body main .index-actions .btn-warning:not(.btn-close) {
+    --pt-button-readable: #422006;
+    --pt-action-color: #422006 !important;
+}
+
+html body main .index-actions :is(.btn-danger, .btn-secondary):not(.btn-close) {
+    --pt-button-readable: #FFFFFF;
+    --pt-action-color: #FFFFFF !important;
+}
+
+html body main .index-actions :is(.btn:disabled, .btn.disabled, button.btn:disabled):not(.btn-close) {
+    --pt-button-readable: var(--pt-local-muted, var(--pt-surface-contrast-muted));
+    --pt-action-color: var(--pt-button-readable) !important;
+    color: var(--pt-button-readable) !important;
+    -webkit-text-fill-color: var(--pt-button-readable) !important;
+}
+
+html body main :is(
+    .issue-hero-actions,
+    .dev-hero-actions,
+    .support-actions,
+    .support-dev-actions,
+    .project-actions,
+    .issue-actions,
+    .dev-actions,
+    .followup-actions,
+    .notification-actions,
+    .open-work-actions
+) :is(.btn-outline-light, .btn-outline-secondary, .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-outline-warning):not(.btn-close) {
+    --pt-button-readable: var(--pt-local-text, var(--pt-surface-contrast));
+    --pt-action-color: var(--pt-button-readable) !important;
+    color: var(--pt-button-readable) !important;
+    -webkit-text-fill-color: var(--pt-button-readable) !important;
+    text-shadow: none !important;
+}
+
+html body main :is(.issue-hero-actions, .dev-hero-actions, .support-actions, .support-dev-actions, .project-actions, .issue-actions, .dev-actions, .followup-actions) :is(.btn-outline-danger):not(.btn-close) {
+    color: var(--pt-chart-danger-dark) !important;
+    -webkit-text-fill-color: var(--pt-chart-danger-dark) !important;
+}
+
+body.pt-standalone-report .report-btn {
+    color: #10233F !important;
+    -webkit-text-fill-color: #10233F !important;
+    background: #FFFFFF !important;
+    border-color: var(--pt-border-strong) !important;
+    text-shadow: none !important;
+}
+
+body.pt-standalone-report .report-btn.primary {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    background:
+        radial-gradient(circle at 88% 10%, var(--pt-accent-glow), transparent 30%),
+        linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main.route-controller-weeklyreports .weekly-btn {
+    color: var(--pt-local-text, var(--pt-sidebar-contrast)) !important;
+    -webkit-text-fill-color: var(--pt-local-text, var(--pt-sidebar-contrast)) !important;
+    text-shadow: none !important;
+}
+
+html body main.route-controller-weeklyreports .weekly-btn.primary {
+    color: #062B2F !important;
+    -webkit-text-fill-color: #062B2F !important;
+}
+
+html body main.route-controller-weeklyreports .weekly-btn.dark {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
+html body main :is(.permission-btn, .system-config-btn, .line-notification-btn) {
+    color: var(--pt-surface-contrast) !important;
+    -webkit-text-fill-color: var(--pt-surface-contrast) !important;
+    text-shadow: none !important;
+}
+
+html body main :is(.permission-btn.primary, .system-config-btn.primary, .line-notification-btn.primary) {
+    color: var(--pt-accent-contrast) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
+    background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
+}
+
+html body main:is(.route-controller-meetings, .route-controller-phasecalendar) .calendar-heading__action:not(.primary) {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    text-shadow: none !important;
+}
+
+html body main:is(.route-controller-meetings, .route-controller-phasecalendar) .calendar-heading__action.primary {
+    color: var(--pt-accent-contrast) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
+    text-shadow: none !important;
+}
+
 .index-subtitle,
 .index-eyebrow {
     opacity: .86;
