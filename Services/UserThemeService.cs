@@ -1050,10 +1050,12 @@ html body main .dashboard-view .panel-meetings .empty-state {
 .dashboard-view .owner-overview-chart {
     border: 0 !important;
     border-radius: 0 !important;
-    background:
-        linear-gradient(90deg, var(--pt-chart-panel-contrast-muted) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
-        linear-gradient(var(--pt-chart-panel-contrast-muted) 1px, transparent 1px) 0 var(--owner-bar-area) / 100% 1px no-repeat,
-        repeating-linear-gradient(to bottom, rgba(255,255,255,.16) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat !important;
+    background: none !important;
+}
+
+.dashboard-view .owner-overview-chart::before {
+    border-color: var(--pt-chart-panel-contrast-muted) !important;
+    background: repeating-linear-gradient(to bottom, var(--pt-border) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) !important;
 }
 
 .dashboard-view :is(.overview-mini-head h3, .project-status-card-title, .owner-overview-member b, .metric-list b, .metric-name, .meeting-row b, .activity-row b) {

@@ -2518,10 +2518,21 @@
     padding:0 18px;
     border:0;
     border-radius:0;
-    background:
-        linear-gradient(90deg, rgba(184,214,243,.72) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
-        linear-gradient(rgba(184,214,243,.72) 1px, transparent 1px) 0 var(--owner-bar-area) / 100% 1px no-repeat,
-        repeating-linear-gradient(to bottom, rgba(117,146,185,.2) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat;
+    background:none;
+}
+
+.owner-overview-chart::before {
+    content:"";
+    position:absolute;
+    z-index:0;
+    left:0;
+    right:0;
+    top:0;
+    height:var(--owner-bar-area);
+    border-left:1px solid rgba(184,214,243,.72);
+    border-bottom:1px solid rgba(184,214,243,.72);
+    background:repeating-linear-gradient(to bottom, rgba(117,146,185,.2) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5));
+    pointer-events:none;
 }
 
 .owner-overview-item {
@@ -2532,6 +2543,8 @@
     align-items:end;
     justify-items:center;
     gap:0;
+    position:relative;
+    z-index:1;
 }
 
 .owner-overview-bars {
