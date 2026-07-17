@@ -1065,12 +1065,21 @@ html body main.route-controller-projectstatus .project-status-page .task-overvie
     opacity: .76 !important;
 }
 
+.dashboard-view .owner-overview-chart-wrap {
+    color: var(--pt-chart-panel-contrast) !important;
+    background:
+        radial-gradient(circle at 50% 40%, var(--pt-chart-panel-glow), transparent 42%),
+        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
+    border-color: var(--pt-border-strong) !important;
+}
+
 .dashboard-view .owner-overview-chart {
+    border: 0 !important;
+    border-radius: 0 !important;
     background:
         linear-gradient(90deg, var(--pt-chart-panel-contrast-muted) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
         linear-gradient(var(--pt-chart-panel-contrast-muted) 1px, transparent 1px) 0 var(--owner-bar-area) / 100% 1px no-repeat,
-        repeating-linear-gradient(to bottom, rgba(255,255,255,.16) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat,
-        linear-gradient(180deg, var(--pt-chart-panel-soft), var(--pt-chart-panel-deep)) !important;
+        repeating-linear-gradient(to bottom, rgba(255,255,255,.16) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat !important;
 }
 
 .dashboard-view :is(.overview-mini-head h3, .project-status-card-title, .owner-overview-member b, .metric-list b, .metric-name, .meeting-row b, .activity-row b) {

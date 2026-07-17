@@ -2455,8 +2455,11 @@
     display:grid;
     grid-template-columns:70px minmax(0, 1fr);
     gap:10px;
-    padding-top:24px;
+    padding:24px 12px 0;
     min-height:calc(var(--owner-bar-area) + var(--owner-member-area) + 18px);
+    border:1px solid rgba(148,190,230,.36);
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(8,24,54,.64), rgba(7,22,50,.48));
 }
 
 .owner-overview-y-axis {
@@ -2513,13 +2516,12 @@
     gap:18px;
     align-items:start;
     padding:0 18px;
-    border:1px solid rgba(148,190,230,.36);
-    border-radius:12px;
+    border:0;
+    border-radius:0;
     background:
         linear-gradient(90deg, rgba(184,214,243,.72) 1px, transparent 1px) 0 0 / 1px var(--owner-bar-area) no-repeat,
         linear-gradient(rgba(184,214,243,.72) 1px, transparent 1px) 0 var(--owner-bar-area) / 100% 1px no-repeat,
-        repeating-linear-gradient(to bottom, rgba(117,146,185,.2) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat,
-        linear-gradient(180deg, rgba(8,24,54,.64), rgba(7,22,50,.48));
+        repeating-linear-gradient(to bottom, rgba(117,146,185,.2) 0 1px, transparent 1px calc(var(--owner-bar-area) / 5)) 0 0 / 100% var(--owner-bar-area) no-repeat;
 }
 
 .owner-overview-item {
