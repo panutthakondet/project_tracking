@@ -597,8 +597,8 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
 }
 
 .v2-sidebar {
-    border-right-color: var(--pt-accent) !important;
-    box-shadow: 18px 0 38px var(--pt-shadow), inset -1px 0 0 var(--pt-border) !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
 }
 
 .v2-sidebar::before {
