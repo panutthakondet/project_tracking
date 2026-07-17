@@ -711,7 +711,7 @@
 
 .v2-sidebar{
     width:280px;
-    background:linear-gradient(180deg,#02173c 0%, #062356 55%, #03132d 100%);
+    background:#081c42;
     position:fixed;
     left:0;
     top:0;
@@ -924,9 +924,7 @@
     border-radius:0;
     overflow-y:auto;
     overflow-x:hidden;
-    background:
-        radial-gradient(circle at 50% 118%, rgba(17,213,205,.2) 0 34%, transparent 35%),
-        linear-gradient(180deg,#032245 0%, #062b57 48%, #031934 100%);
+    background:var(--pt-sidebar-bg, #081c42);
     box-shadow:10px 0 34px rgba(3,18,42,.24);
     scrollbar-width: thin;
     scrollbar-color: var(--pt-accent-dark) rgba(3,25,52,.9);
@@ -957,9 +955,8 @@
     position:absolute;
     inset:0;
     pointer-events:none;
-    background:
-        radial-gradient(circle at 50% 7%, rgba(16,211,209,.14), transparent 28%),
-        linear-gradient(90deg, rgba(255,255,255,.05), transparent 20%, transparent 80%, rgba(0,0,0,.18));
+    display:none;
+    background:transparent;
 }
 
 .v2-profile-card{

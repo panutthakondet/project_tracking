@@ -573,7 +573,7 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
     -webkit-text-fill-color: var(--pt-surface-contrast-muted) !important;
 }
 ");
-            sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important; }");
+            sb.AppendLine(".navbar, .v2-sidebar, footer.footer-modern { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-track { background: var(--pt-sidebar-bg) !important; }");
             sb.AppendLine("::-webkit-scrollbar-thumb { background: var(--pt-accent-dark) !important; border-color: var(--pt-sidebar-bg) !important; }");
             const string dropdownScrollbarSelector =
@@ -602,9 +602,8 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
 }
 
 .v2-sidebar::before {
-    background:
-        radial-gradient(circle at 50% 7%, var(--pt-accent-soft), transparent 30%),
-        linear-gradient(90deg, rgba(255,255,255,.05), transparent 20%, transparent 80%, rgba(0,0,0,.18)) !important;
+    display: none !important;
+    background: transparent !important;
 }
 
 .v2-profile-card {
