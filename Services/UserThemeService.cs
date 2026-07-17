@@ -1033,6 +1033,8 @@ html body main .dashboard-view :is(
     .yearly-legend span,
     .workload-row .workload-name,
     .workload-row .workload-name strong,
+    .activity-row time,
+    .activity-row time strong,
     .activity-row b,
     .meeting-row b
 ) {
@@ -1060,6 +1062,7 @@ html body main .dashboard-view :is(
     .yearly-x-axis,
     .yearly-x-axis span,
     .workload-row .workload-name small,
+    .activity-row time small,
     .meeting-row small,
     .activity-row small,
     .activity-row em,
@@ -1104,6 +1107,13 @@ html body main .dashboard-view .overview-pie3d-caption {
 html body main .dashboard-view .bar-chart::before {
     border-color: var(--pt-chart-panel-contrast-muted) !important;
     background: repeating-linear-gradient(to bottom, var(--pt-border) 0 1px, transparent 1px 38px) !important;
+}
+
+html body main .dashboard-view .workload-rank {
+    color: var(--pt-chart-panel-contrast) !important;
+    background: var(--pt-chart-success-soft) !important;
+    border-color: var(--pt-chart-success) !important;
+    box-shadow: 0 0 14px var(--pt-chart-success-soft) !important;
 }
 
 .dashboard-view :is(.workload-row, .activity-row, .meeting-row) {
