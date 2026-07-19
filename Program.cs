@@ -954,6 +954,9 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
             INSERT INTO `system_config` (`config_key`, `config_value`, `description`, `updated_at`)
             VALUES
               ('MEETING_NOTIFICATION_RUN_AT', '06:00', 'Meeting Auto - เวลาส่งแจ้งเตือนประชุมอัตโนมัติ เวลาไทย', NOW()),
+              ('ATTENDANCE_WORK_START_TIME', '09:00', 'Attendance - เวลาเริ่มงานปกติ', NOW()),
+              ('ATTENDANCE_LATE_GRACE_MINUTES', '15', 'Attendance - จำนวนนาทีผ่อนผันก่อนนับว่ามาสาย', NOW()),
+              ('ATTENDANCE_TARGET_PERCENT', '95', 'Attendance - เป้าหมายอัตราเข้างานรายเดือน (เปอร์เซ็นต์)', NOW()),
               ('OVERDUE_NOTIFICATION_RISK_DAYS', '7', 'Overdue Auto - จำนวนวันล่วงหน้าที่ถือว่าเสี่ยงล่าช้า', NOW()),
               ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
             ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";

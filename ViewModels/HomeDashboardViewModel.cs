@@ -70,6 +70,23 @@ namespace ProjectTracking.ViewModels
         public string WorkHourTrendClass { get; set; } = "neutral";
         public decimal TimeTargetHours { get; set; }
         public decimal TimeTargetProgressPercent { get; set; }
+        public int ActiveEmployeeCount { get; set; }
+        public int TodayOnTimeCount { get; set; }
+        public int TodayLateCount { get; set; }
+        public int MonthLateCount { get; set; }
+        public int MonthIncompleteCheckoutCount { get; set; }
+        public int YearLateCount { get; set; }
+        public int MonthRecordedEmployeeDays { get; set; }
+        public int MonthExpectedEmployeeDays { get; set; }
+        public decimal TodayAttendanceRate { get; set; }
+        public decimal MonthAttendanceRate { get; set; }
+        public decimal MonthPunctualityRate { get; set; }
+        public decimal YearAttendanceRate { get; set; }
+        public decimal AttendanceTargetPercent { get; set; } = 95m;
+        public string AttendancePolicyText { get; set; } = "ตรงเวลาไม่เกิน 09:15 น.";
+        public string AttendanceTrendText { get; set; } = "ยังไม่มีข้อมูลเดือนก่อน";
+        public string AttendanceTrendClass { get; set; } = "neutral";
+        public string AttendanceDonut { get; set; } = "conic-gradient(#263450 0 100%)";
         public List<HomeDashboardTimeTrendDay> TimeTrendDays { get; set; } = new();
         public List<HomeDashboardTimeHeatDay> TimeHeatmapDays { get; set; } = new();
     }
@@ -89,8 +106,12 @@ namespace ProjectTracking.ViewModels
     {
         public string Label { get; set; } = "";
         public decimal Hours { get; set; }
+        public decimal AttendanceRate { get; set; }
+        public int PresentCount { get; set; }
+        public int ExpectedCount { get; set; }
         public int Percent { get; set; }
         public string Tone { get; set; } = "empty";
+        public bool IsWorkday { get; set; }
     }
 
     public class HomeDashboardTimeHeatDay
@@ -98,8 +119,12 @@ namespace ProjectTracking.ViewModels
         public int Day { get; set; }
         public string Label { get; set; } = "";
         public decimal Hours { get; set; }
+        public decimal AttendanceRate { get; set; }
+        public int PresentCount { get; set; }
+        public int ExpectedCount { get; set; }
         public string Tone { get; set; } = "empty";
         public bool IsToday { get; set; }
+        public bool IsWorkday { get; set; }
     }
 
     public class HomeDashboardChartSeries

@@ -106,7 +106,8 @@ namespace ProjectTracking.Controllers
                 return "Auto Meetings";
             if (key.StartsWith("OVERDUE_NOTIFICATION_", StringComparison.Ordinal))
                 return "Auto Overdue";
-            if (key.StartsWith("WFH_", StringComparison.Ordinal))
+            if (key.StartsWith("WFH_", StringComparison.Ordinal)
+                || key.StartsWith("ATTENDANCE_", StringComparison.Ordinal))
                 return "Attendance";
 
             return "System";

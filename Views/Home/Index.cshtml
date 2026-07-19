@@ -7,11 +7,7 @@
     ViewData["Title"] = "Dashboard";
 
     var dashboard = Model ?? new HomeDashboardViewModel();
-    var closedHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.ClosedWorkHours * 100m / dashboard.MonthWorkHours, 1);
-    var openHoursPercent = dashboard.MonthWorkHours <= 0 ? 0 : Math.Round(dashboard.OpenWorkHours * 100m / dashboard.MonthWorkHours, 1);
-    var todayAttendanceTotal = dashboard.TodayCheckinCount + dashboard.TodayMissingCheckinCount;
-    var todayCheckinPercent = todayAttendanceTotal <= 0 ? 0 : Math.Round(dashboard.TodayCheckinCount * 100m / todayAttendanceTotal, 1);
-    var timeTargetProgressWidth = Math.Clamp(dashboard.TimeTargetProgressPercent, 0m, 100m).ToString("0.#", CultureInfo.InvariantCulture);
+    var attendanceProgressWidth = Math.Clamp(dashboard.MonthAttendanceRate, 0m, 100m).ToString("0.#", CultureInfo.InvariantCulture);
     var yearlyTaskAxisTicks = new[] { 30, 25, 20, 15, 10, 5, 0 };
     var yearlyCompletedTotal = dashboard.YearlyTasks.Sum(task => task.Completed);
     var yearlyInProgressTotal = dashboard.YearlyTasks.Sum(task => task.InProgress);
@@ -198,33 +194,6 @@
         .Select(group => group.Select(x => x.Member).ToList())
         .Where(group => group.Count > 0)
         .ToList();
-    var timeTrackingMetrics = new List<HomeDashboardMetric>
-    {
-        new()
-        {
-            Label = "บันทึกครบ",
-            Count = (int)Math.Round(dashboard.ClosedWorkHours),
-            Percent = closedHoursPercent,
-            Color = "green",
-            HexColor = StatusHex("green")
-        },
-        new()
-        {
-            Label = "ยังไม่ออกงาน",
-            Count = (int)Math.Round(dashboard.OpenWorkHours),
-            Percent = openHoursPercent,
-            Color = "blue",
-            HexColor = StatusHex("blue")
-        },
-        new()
-        {
-            Label = "เข้างาน",
-            Count = dashboard.TodayCheckinCount,
-            Percent = todayCheckinPercent,
-            Color = "cyan",
-            HexColor = StatusHex("cyan")
-        }
-    };
 }
 
 <div class="dashboard-view is-loading">
@@ -890,52 +859,55 @@
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon time" aria-hidden="true">
-                        <img src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" />
+                        <img src="~/images/dashboard/time-icon-calendar.svg" alt="" loading="lazy" />
                     </span>
                     <span>
-                        <h2>Time Tracking (ชั่วโมงทำงาน)</h2>
-                        <em>ติดตามเวลาการทำงานของคุณ</em>
+                        <h2>ภาพรวมการเข้างาน</h2>
+                        <em>ข้อมูลประกอบการประเมินความสม่ำเสมอและวินัยการเข้างาน</em>
                     </span>
                 </div>
                 <a asp-controller="Attendance" asp-action="Map" class="panel-link dashboard-action-link details">ดูรายละเอียด</a>
             </div>
             <div class="time-layout">
                 <div class="time-hero">
-                    <div class="donut time-donut" style="--donut:@dashboard.TimeTrackingDonut" aria-label="กราฟ Time Tracking แบบ 2 มิติ">
+                    <div class="donut time-donut" style="--donut:@dashboard.AttendanceDonut" aria-label="กราฟอัตราเข้างานเดือนนี้">
                         <div>
-                            <strong>@dashboard.MonthWorkHours.ToString("0.#")</strong>
-                            <span>ชั่วโมง</span>
+                            <strong>@dashboard.MonthAttendanceRate.ToString("0.#")</strong>
+                            <span>เปอร์เซ็นต์</span>
                             <em>เดือนนี้</em>
                         </div>
                     </div>
                     <div class="time-goal">
-                        <span>เป้าถึงวันนี้</span>
-                        <b>@dashboard.TimeTargetProgressPercent.ToString("0.#")%</b>
-                        <i aria-hidden="true"><em style="width:@timeTargetProgressWidth%"></em></i>
-                        <small>@dashboard.MonthWorkHours.ToString("0.#") / @dashboard.TimeTargetHours.ToString("0.#") ชม.</small>
+                        <span>เป้าหมายองค์กร</span>
+                        <b>≥ @dashboard.AttendanceTargetPercent.ToString("0.#")%</b>
+                        <i aria-hidden="true"><em style="width:@attendanceProgressWidth%"></em></i>
+                        <small>ลงเวลา @dashboard.MonthRecordedEmployeeDays / @dashboard.MonthExpectedEmployeeDays คน-วัน</small>
                         <span class="time-goal-trend">
                             <span class="time-goal-trend-icon" aria-hidden="true"><img src="~/images/dashboard/time-icon-trend.svg" alt="" loading="lazy" /></span>
-                            <small class="@dashboard.WorkHourTrendClass">@dashboard.WorkHourTrendText</small>
+                            <small class="@dashboard.AttendanceTrendClass">@dashboard.AttendanceTrendText</small>
                         </span>
                     </div>
                 </div>
                 <div class="metric-card time-metric-grid">
-                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-check.svg" alt="" loading="lazy" /><i>บันทึกครบ</i> <b>@dashboard.ClosedWorkHours.ToString("0.#") ชม.</b></span>
-                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" /><i>ยังไม่ออกงาน</i> <b>@dashboard.OpenWorkHours.ToString("0.#") ชม.</b></span>
-                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-bar.svg" alt="" loading="lazy" /><i>เฉลี่ยต่อวัน</i> <b>@dashboard.AverageHoursPerDay.ToString("0.#") ชม.</b></span>
                     <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-user.svg" alt="" loading="lazy" /><i>เข้างานวันนี้</i> <b>@dashboard.TodayCheckinCount คน</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-check.svg" alt="" loading="lazy" /><i>ตรงเวลาวันนี้</i> <b>@dashboard.TodayOnTimeCount คน</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-warning.svg" alt="" loading="lazy" /><i>มาสายวันนี้</i> <b>@dashboard.TodayLateCount คน</b></span>
+                    <span><img class="time-metric-icon" src="~/images/dashboard/time-icon-pending.svg" alt="" loading="lazy" /><i>ยังไม่ลงเวลา</i> <b>@dashboard.TodayMissingCheckinCount คน</b></span>
                 </div>
                 <div class="time-trend-card">
                     <div class="time-subhead">
                         <b>7 วันล่าสุด</b>
-                        <small>ชั่วโมงทำงานรายวัน</small>
+                        <small>อัตราเข้างานรายวัน</small>
                     </div>
-                    <div class="time-trend-bars" aria-label="ชั่วโมงทำงาน 7 วันล่าสุด">
+                    <div class="time-trend-bars" aria-label="อัตราเข้างาน 7 วันล่าสุด">
                         @foreach (var day in dashboard.TimeTrendDays)
                         {
-                            <span class="time-trend-bar @day.Tone" title="@($"{day.Label} · {day.Hours:0.#} ชม.")">
+                            var trendTitle = day.ExpectedCount > 0
+                                ? $"{day.Label} · เข้างาน {day.PresentCount}/{day.ExpectedCount} คน ({day.AttendanceRate:0.#}%)"
+                                : day.IsWorkday ? $"{day.Label} · ยังไม่ถึงเวลาประเมิน" : $"{day.Label} · วันหยุด";
+                            <span class="time-trend-bar @day.Tone" title="@trendTitle">
                                 <i style="height:@day.Percent%"></i>
-                                <b>@day.Hours.ToString("0.#")</b>
+                                <b>@(day.ExpectedCount > 0 ? $"{day.AttendanceRate:0.#}%" : "-")</b>
                                 <small>@day.Label</small>
                             </span>
                         }
@@ -944,9 +916,9 @@
                 <div class="time-heatmap-card">
                     <div class="time-subhead">
                         <b>เดือนนี้</b>
-                        <small>ความหนาแน่นชั่วโมงทำงาน</small>
+                        <small>อัตราเข้างานรายวัน</small>
                     </div>
-                    <div class="time-heatmap" aria-label="Heatmap ชั่วโมงทำงานเดือนนี้">
+                    <div class="time-heatmap" aria-label="ปฏิทินอัตราเข้างานเดือนนี้">
                         @foreach (var day in dashboard.TimeHeatmapDays)
                         {
                             <span class="time-heat-cell @day.Tone @(day.IsToday ? "today" : "")" title="@day.Label">
@@ -957,12 +929,12 @@
                 </div>
             </div>
             <div class="time-detail-grid">
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-checkout.svg" alt="" loading="lazy" /><span><small>ออกงานแล้ว</small><b>@dashboard.TodayCheckoutCount คน</b></span></span>
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-pending.svg" alt="" loading="lazy" /><span><small>ยังไม่ออกงาน</small><b>@dashboard.PendingCheckoutCount คน</b></span></span>
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-users.svg" alt="" loading="lazy" /><span><small>ยังไม่เข้างาน</small><b>@dashboard.TodayMissingCheckinCount คน</b></span></span>
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-calendar.svg" alt="" loading="lazy" /><span><small>วันที่มีบันทึก</small><b>@dashboard.MonthAttendanceDays วัน</b></span></span>
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" /><span><small>เกิน 12 ชม.</small><b>@dashboard.LongShiftCount ครั้ง</b></span></span>
-                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-warning.svg" alt="" loading="lazy" /><span><small>ระยะเกิน 5 กม.</small><b>@dashboard.LongDistanceCount ครั้ง</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-users.svg" alt="" loading="lazy" /><span><small>พนักงาน Active</small><b>@dashboard.ActiveEmployeeCount คน</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-check.svg" alt="" loading="lazy" /><span><small>ตรงเวลาเดือนนี้</small><b>@dashboard.MonthPunctualityRate.ToString("0.#")%</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-warning.svg" alt="" loading="lazy" /><span><small>มาสายเดือนนี้</small><b>@dashboard.MonthLateCount ครั้ง</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-pending.svg" alt="" loading="lazy" /><span><small>ลงเวลาไม่ครบเดือนนี้</small><b>@dashboard.MonthIncompleteCheckoutCount ครั้ง</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-calendar.svg" alt="" loading="lazy" /><span><small>อัตราเข้างานปีนี้</small><b>@dashboard.YearAttendanceRate.ToString("0.#")%</b></span></span>
+                <span><img class="time-detail-icon" src="~/images/dashboard/time-icon-clock.svg" alt="" loading="lazy" /><span><small>@dashboard.AttendancePolicyText</small><b>สาย @dashboard.YearLateCount ครั้ง/ปี</b></span></span>
             </div>
         </article>
 
@@ -6035,7 +6007,7 @@
 .panel-time .time-metric-grid span:nth-child(1) b { color:#86efac; }
 .panel-time .time-metric-grid span:nth-child(2) b { color:#60a5fa; }
 .panel-time .time-metric-grid span:nth-child(3) b { color:#fbbf24; }
-.panel-time .time-metric-grid span:nth-child(4) b { color:#22d3ee; }
+.panel-time .time-metric-grid span:nth-child(4) b { color:var(--pt-chart-danger, #ff385b); }
 
 .panel-time .time-number {
     grid-area:auto;
@@ -6122,6 +6094,8 @@
 .time-trend-bar.low i { background:linear-gradient(180deg, #fbbf24, #f97316); }
 .time-trend-bar.today i { background:linear-gradient(180deg, #f0abfc, #8b5cf6); }
 .time-trend-bar.empty i { background:rgba(148,163,184,.22); box-shadow:none; }
+.time-trend-bar.weekend i,
+.time-trend-bar.future i { background:rgba(148,163,184,.14); box-shadow:none; }
 
 .time-trend-bar b {
     color:var(--pt-chart-panel-contrast, #f8fbff);
@@ -6178,6 +6152,12 @@
 .time-heat-cell.future {
     color:rgba(203,213,225,.42);
     background:rgba(148,163,184,.06);
+}
+
+.time-heat-cell.weekend {
+    color:var(--pt-chart-panel-contrast-muted, rgba(203,213,225,.62));
+    background:var(--pt-chart-panel-deep, rgba(148,163,184,.08));
+    border-color:var(--pt-border, rgba(148,163,184,.12));
 }
 
 .time-heat-cell.today {

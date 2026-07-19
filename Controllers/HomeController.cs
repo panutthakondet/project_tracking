@@ -480,6 +480,8 @@ namespace ProjectTracking.Controllers
             var monthStart = new DateTime(today.Year, today.Month, 1);
             var nextMonthStart = monthStart.AddMonths(1);
             var previousMonthStart = monthStart.AddMonths(-1);
+            var yearStart = new DateTime(today.Year, 1, 1);
+            var attendanceRangeStart = previousMonthStart < yearStart ? previousMonthStart : yearStart;
 
             var projects = await _context.Projects
                 .AsNoTracking()
@@ -659,7 +661,7 @@ namespace ProjectTracking.Controllers
 
             var currentAndPreviousMonthAttendance = await _context.Attendances
                 .AsNoTracking()
-                .Where(a => a.WorkDate >= previousMonthStart && a.WorkDate < nextMonthStart)
+                .Where(a => a.WorkDate >= attendanceRangeStart && a.WorkDate < nextMonthStart)
                 .Select(a => new DashboardAttendanceRow
                 {
                     EmpId = a.EmpId,
@@ -669,6 +671,7 @@ namespace ProjectTracking.Controllers
                     DistanceKm = a.DistanceKm ?? 0m
                 })
                 .ToListAsync();
+            var attendancePolicy = await GetAttendancePolicyAsync();
 
             var empNameById = employees
                 .GroupBy(e => e.EmpId)
@@ -847,7 +850,17 @@ namespace ProjectTracking.Controllers
             var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
             var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
-            var timeSummary = BuildTimeSummary(currentAndPreviousMonthAttendance, employees, EmployeeName, monthStart, nextMonthStart, previousMonthStart, today, now);
+            var timeSummary = BuildTimeSummary(
+                currentAndPreviousMonthAttendance,
+                employees,
+                EmployeeName,
+                monthStart,
+                nextMonthStart,
+                previousMonthStart,
+                yearStart,
+                today,
+                now,
+                attendancePolicy);
             var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
             var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
@@ -959,6 +972,27 @@ namespace ProjectTracking.Controllers
                 WorkHourTrendClass = timeSummary.TrendClass,
                 TimeTargetHours = timeSummary.TimeTargetHours,
                 TimeTargetProgressPercent = timeSummary.TimeTargetProgressPercent,
+                ActiveEmployeeCount = timeSummary.ActiveEmployeeCount,
+                TodayOnTimeCount = timeSummary.TodayOnTimeCount,
+                TodayLateCount = timeSummary.TodayLateCount,
+                MonthLateCount = timeSummary.MonthLateCount,
+                MonthIncompleteCheckoutCount = timeSummary.MonthIncompleteCheckoutCount,
+                YearLateCount = timeSummary.YearLateCount,
+                MonthRecordedEmployeeDays = timeSummary.MonthRecordedEmployeeDays,
+                MonthExpectedEmployeeDays = timeSummary.MonthExpectedEmployeeDays,
+                TodayAttendanceRate = timeSummary.TodayAttendanceRate,
+                MonthAttendanceRate = timeSummary.MonthAttendanceRate,
+                MonthPunctualityRate = timeSummary.MonthPunctualityRate,
+                YearAttendanceRate = timeSummary.YearAttendanceRate,
+                AttendanceTargetPercent = timeSummary.AttendanceTargetPercent,
+                AttendancePolicyText = timeSummary.AttendancePolicyText,
+                AttendanceTrendText = timeSummary.TrendText,
+                AttendanceTrendClass = timeSummary.TrendClass,
+                AttendanceDonut = BuildTwoPartDonut(
+                    timeSummary.MonthRecordedEmployeeDays,
+                    Math.Max(0, timeSummary.MonthExpectedEmployeeDays - timeSummary.MonthRecordedEmployeeDays),
+                    ChartColorCss("success"),
+                    ChartColorCss("muted")),
                 TimeTrendDays = timeSummary.TimeTrendDays,
                 TimeHeatmapDays = timeSummary.TimeHeatmapDays
             };
@@ -2101,42 +2135,96 @@ namespace ProjectTracking.Controllers
             DateTime monthStart,
             DateTime nextMonthStart,
             DateTime previousMonthStart,
+            DateTime yearStart,
             DateTime today,
-            DateTime now)
+            DateTime now,
+            DashboardAttendancePolicy policy)
         {
-            var monthRows = attendances
-                .Where(a => a.WorkDate >= monthStart && a.WorkDate < nextMonthStart)
-                .ToList();
-            var previousRows = attendances
-                .Where(a => a.WorkDate >= previousMonthStart && a.WorkDate < monthStart)
-                .ToList();
-
-            var closedHours = monthRows.Sum(a => WorkHours(a.CheckinTime, a.CheckoutTime));
-            var openRows = monthRows
-                .Where(a => a.WorkDate.Date == today && a.CheckinTime != null && a.CheckoutTime == null)
-                .ToList();
-            var openHours = openRows.Sum(a => WorkHours(a.CheckinTime, now));
-            var monthHours = closedHours + openHours;
-            var previousHours = previousRows.Sum(a => WorkHours(a.CheckinTime, a.CheckoutTime));
-            var todayRows = monthRows
-                .Where(a => a.WorkDate.Date == today)
-                .ToList();
             var activeEmployeeIds = employees
                 .Where(e => Norm(e.Status) == "ACTIVE")
                 .Select(e => e.EmpId)
                 .ToHashSet();
-            var todayCheckinCount = todayRows
-                .Count(a => activeEmployeeIds.Contains(a.EmpId) && a.CheckinTime != null);
-            var todayCheckoutCount = todayRows
-                .Count(a => activeEmployeeIds.Contains(a.EmpId) && a.CheckoutTime != null);
+            var canonicalRows = attendances
+                .Where(a => activeEmployeeIds.Contains(a.EmpId))
+                .GroupBy(a => new { a.EmpId, WorkDate = a.WorkDate.Date })
+                .Select(group => new DashboardAttendanceRow
+                {
+                    EmpId = group.Key.EmpId,
+                    WorkDate = group.Key.WorkDate,
+                    CheckinTime = group
+                        .Where(row => row.CheckinTime.HasValue)
+                        .Select(row => row.CheckinTime)
+                        .Min(),
+                    CheckoutTime = group
+                        .Where(row => row.CheckoutTime.HasValue)
+                        .Select(row => row.CheckoutTime)
+                        .Max(),
+                    DistanceKm = group.Max(row => row.DistanceKm)
+                })
+                .ToList();
+            var monthRows = canonicalRows
+                .Where(a => a.WorkDate >= monthStart && a.WorkDate < nextMonthStart)
+                .ToList();
+            var previousRows = canonicalRows
+                .Where(a => a.WorkDate >= previousMonthStart && a.WorkDate < monthStart)
+                .ToList();
+            var yearRows = canonicalRows
+                .Where(a => a.WorkDate >= yearStart && a.WorkDate < nextMonthStart)
+                .ToList();
+            var lateThreshold = policy.WorkStart.Add(TimeSpan.FromMinutes(policy.LateGraceMinutes));
+
+            static bool IsWorkday(DateTime day) =>
+                day.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday;
+            bool IsElapsedWorkday(DateTime day) =>
+                IsWorkday(day) && (day.Date < today.Date || (day.Date == today.Date && now.TimeOfDay >= lateThreshold));
+            bool HasCheckin(DashboardAttendanceRow row) => row.CheckinTime.HasValue;
+            bool IsLate(DashboardAttendanceRow row) =>
+                row.CheckinTime.HasValue && row.CheckinTime.Value.TimeOfDay > lateThreshold;
+            static decimal Rate(int actual, int expected) => expected <= 0
+                ? 0m
+                : Math.Round(Math.Clamp(actual * 100m / expected, 0m, 100m), 1);
+            int CountWorkdays(DateTime start, DateTime endExclusive, bool elapsedOnly) =>
+                Enumerable.Range(0, Math.Max(0, (endExclusive.Date - start.Date).Days))
+                    .Select(offset => start.Date.AddDays(offset))
+                    .Count(day => IsWorkday(day) && (!elapsedOnly || IsElapsedWorkday(day)));
+
+            var closedHours = monthRows.Sum(a => WorkHours(a.CheckinTime, a.CheckoutTime));
+            var openRows = monthRows
+                .Where(a => a.WorkDate.Date == today.Date && a.CheckinTime != null && a.CheckoutTime == null)
+                .ToList();
+            var openHours = openRows.Sum(a => WorkHours(a.CheckinTime, now));
+            var monthHours = closedHours + openHours;
+            var todayRows = monthRows.Where(a => a.WorkDate.Date == today.Date).ToList();
+            var todayCheckinCount = todayRows.Count(HasCheckin);
+            var todayCheckoutCount = todayRows.Count(a => a.CheckoutTime.HasValue);
+            var todayOnTimeCount = todayRows.Count(a => HasCheckin(a) && !IsLate(a));
+            var todayLateCount = todayRows.Count(IsLate);
+            var todayExpectedCount = IsElapsedWorkday(today) ? activeEmployeeIds.Count : 0;
+            var todayMissingCheckinCount = Math.Max(0, todayExpectedCount - todayCheckinCount);
+            var monthExpectedEmployeeDays = activeEmployeeIds.Count * CountWorkdays(monthStart, nextMonthStart, true);
+            var monthRecordedEmployeeDays = monthRows.Count(row => HasCheckin(row) && IsElapsedWorkday(row.WorkDate));
+            var monthAttendanceRate = Rate(monthRecordedEmployeeDays, monthExpectedEmployeeDays);
+            var monthPunctualityRows = monthRows
+                .Where(row => HasCheckin(row) && IsWorkday(row.WorkDate) && row.WorkDate.Date <= today.Date)
+                .ToList();
+            var monthLateCount = monthPunctualityRows.Count(IsLate);
+            var monthPunctualityRate = Rate(monthPunctualityRows.Count - monthLateCount, monthPunctualityRows.Count);
+            var previousExpectedEmployeeDays = activeEmployeeIds.Count * CountWorkdays(previousMonthStart, monthStart, false);
+            var previousRecordedEmployeeDays = previousRows.Count(row => HasCheckin(row) && IsWorkday(row.WorkDate));
+            var previousAttendanceRate = Rate(previousRecordedEmployeeDays, previousExpectedEmployeeDays);
+            var yearExpectedEmployeeDays = activeEmployeeIds.Count * CountWorkdays(yearStart, nextMonthStart, true);
+            var yearRecordedEmployeeDays = yearRows.Count(row => HasCheckin(row) && IsElapsedWorkday(row.WorkDate));
+            var yearAttendanceRate = Rate(yearRecordedEmployeeDays, yearExpectedEmployeeDays);
+            var yearLateCount = yearRows.Count(row =>
+                HasCheckin(row) && IsWorkday(row.WorkDate) && row.WorkDate.Date <= today.Date && IsLate(row));
+            var monthIncompleteCheckoutCount = monthRows.Count(row =>
+                row.WorkDate.Date < today.Date && row.CheckinTime.HasValue && !row.CheckoutTime.HasValue);
             var monthAttendanceDays = monthRows
                 .Where(a => a.CheckinTime != null || a.CheckoutTime != null)
                 .Select(a => a.WorkDate.Date)
                 .Distinct()
                 .Count();
-            var averageHoursPerDay = monthAttendanceDays <= 0
-                ? 0m
-                : Math.Round(monthHours / monthAttendanceDays, 1);
+            var averageHoursPerDay = monthAttendanceDays <= 0 ? 0m : Math.Round(monthHours / monthAttendanceDays, 1);
             var longShiftCount = monthRows.Count(a => RawWorkHours(a.CheckinTime, a.CheckoutTime) > 12m);
             var longDistanceCount = monthRows.Count(a => a.DistanceKm > 5m);
             var pendingCheckoutNames = openRows
@@ -2146,99 +2234,85 @@ namespace ProjectTracking.Controllers
                 .Distinct()
                 .Take(4)
                 .ToList();
-            decimal AttendanceHoursForDay(DashboardAttendanceRow row)
-            {
-                if (row.CheckoutTime.HasValue)
-                {
-                    return WorkHours(row.CheckinTime, row.CheckoutTime);
-                }
-
-                return row.WorkDate.Date == today
-                    ? WorkHours(row.CheckinTime, now)
-                    : 0m;
-            }
-
-            var dailyHours = monthRows
-                .GroupBy(a => a.WorkDate.Date)
-                .ToDictionary(
-                    group => group.Key,
-                    group => Math.Round(group.Sum(AttendanceHoursForDay), 1));
+            var presentByDay = canonicalRows
+                .Where(HasCheckin)
+                .GroupBy(row => row.WorkDate.Date)
+                .ToDictionary(group => group.Key, group => group.Count());
             var lastSevenDays = Enumerable.Range(0, 7)
                 .Select(offset => today.AddDays(offset - 6).Date)
                 .ToList();
-            var lastSevenHours = lastSevenDays
-                .Select(day => dailyHours.TryGetValue(day, out var hours) ? hours : 0m)
-                .ToList();
-            var trendMaxHours = Math.Max(1m, lastSevenHours.DefaultIfEmpty(0m).Max());
             var timeTrendDays = lastSevenDays
-                .Select((day, index) =>
+                .Select(day =>
                 {
-                    var hours = lastSevenHours[index];
-                    var percent = hours <= 0
-                        ? 4
-                        : Math.Clamp((int)Math.Round(hours * 100m / trendMaxHours), 8, 100);
-                    var tone = hours <= 0
-                        ? "empty"
-                        : day == today ? "today"
-                        : percent >= 72 ? "high"
-                        : percent >= 36 ? "medium"
+                    var isWorkday = IsWorkday(day);
+                    var isElapsed = IsElapsedWorkday(day);
+                    var presentCount = isElapsed && presentByDay.TryGetValue(day, out var count) ? count : 0;
+                    var expectedCount = isElapsed ? activeEmployeeIds.Count : 0;
+                    var attendanceRate = Rate(presentCount, expectedCount);
+                    var percent = expectedCount <= 0 ? 4 : Math.Clamp((int)Math.Round(attendanceRate), 6, 100);
+                    var tone = !isWorkday
+                        ? "weekend"
+                        : !isElapsed ? "future"
+                        : attendanceRate >= policy.TargetPercent ? "high"
+                        : attendanceRate >= 80m ? "medium"
                         : "low";
 
                     return new HomeDashboardTimeTrendDay
                     {
                         Label = day.ToString("dd/MM", CultureInfo.InvariantCulture),
-                        Hours = Math.Round(hours, 1),
+                        AttendanceRate = attendanceRate,
+                        PresentCount = presentCount,
+                        ExpectedCount = expectedCount,
                         Percent = percent,
-                        Tone = tone
+                        Tone = tone,
+                        IsWorkday = isWorkday
                     };
                 })
                 .ToList();
-            var elapsedWorkDays = Enumerable.Range(0, Math.Max(0, (today.Date - monthStart.Date).Days) + 1)
-                .Select(offset => monthStart.Date.AddDays(offset))
-                .Count(day => day < nextMonthStart.Date && day.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday);
-            var targetHours = activeEmployeeIds.Count * elapsedWorkDays * 8m;
-            var targetProgress = targetHours <= 0
-                ? 0m
-                : Math.Round(monthHours * 100m / targetHours, 1);
             var heatmapDays = Enumerable.Range(0, Math.Max(0, (nextMonthStart.Date - monthStart.Date).Days))
                 .Select(offset =>
                 {
                     var day = monthStart.Date.AddDays(offset);
-                    var hours = dailyHours.TryGetValue(day, out var value) ? value : 0m;
-                    var expected = activeEmployeeIds.Count * 8m;
-                    var percentOfExpected = expected <= 0 ? 0m : hours * 100m / expected;
-                    var hasOpenCheckout = day == today &&
-                        monthRows.Any(row => row.WorkDate.Date == day && row.CheckinTime != null && row.CheckoutTime == null);
-                    var tone = day > today
+                    var isWorkday = IsWorkday(day);
+                    var isElapsed = IsElapsedWorkday(day);
+                    var presentCount = isElapsed && presentByDay.TryGetValue(day, out var count) ? count : 0;
+                    var expectedCount = isElapsed ? activeEmployeeIds.Count : 0;
+                    var attendanceRate = Rate(presentCount, expectedCount);
+                    var tone = day > today || (day == today && !isElapsed)
                         ? "future"
-                        : hours <= 0 ? "empty"
-                        : hasOpenCheckout ? "open"
-                        : percentOfExpected >= 85m ? "high"
-                        : percentOfExpected >= 45m ? "medium"
+                        : !isWorkday ? "weekend"
+                        : attendanceRate >= policy.TargetPercent ? "high"
+                        : attendanceRate >= 80m ? "medium"
                         : "low";
+                    var label = !isWorkday
+                        ? $"{day:dd/MM/yyyy} · วันหยุด"
+                        : !isElapsed
+                            ? $"{day:dd/MM/yyyy} · ยังไม่ถึงเวลาประเมิน"
+                            : $"{day:dd/MM/yyyy} · เข้างาน {presentCount}/{expectedCount} คน ({attendanceRate:0.#}%)";
 
                     return new HomeDashboardTimeHeatDay
                     {
                         Day = day.Day,
-                        Label = $"{day:dd/MM/yyyy} · {hours:0.#} ชม.",
-                        Hours = Math.Round(hours, 1),
+                        Label = label,
+                        AttendanceRate = attendanceRate,
+                        PresentCount = presentCount,
+                        ExpectedCount = expectedCount,
                         Tone = tone,
-                        IsToday = day == today
+                        IsToday = day == today,
+                        IsWorkday = isWorkday
                     };
                 })
                 .ToList();
 
             var trendClass = "neutral";
-            var trendText = "ข้อมูลเดือนนี้จาก attendance";
-            if (previousHours > 0)
+            var trendText = "ยังไม่มีข้อมูลเดือนก่อน";
+            if (previousExpectedEmployeeDays > 0)
             {
-                var diff = Math.Round((monthHours - previousHours) * 100m / previousHours, 1);
-                trendClass = diff >= 0 ? "positive" : "negative";
-                trendText = $"{Math.Abs(diff):0.#}% จากเดือนที่แล้ว";
-            }
-            else if (monthHours > 0)
-            {
-                trendText = "ยังไม่มีข้อมูลเดือนก่อน";
+                var diff = Math.Round(monthAttendanceRate - previousAttendanceRate, 1);
+                trendClass = diff > 0 ? "positive" : diff < 0 ? "negative" : "neutral";
+                trendText = Math.Abs(diff) < 0.1m
+                    ? "ใกล้เคียงเดือนก่อน"
+                    : $"{(diff > 0 ? "สูงขึ้น" : "ลดลง")} {Math.Abs(diff):0.#} จุดจากเดือนก่อน";
             }
 
             return new DashboardTimeSummary
@@ -2249,14 +2323,28 @@ namespace ProjectTracking.Controllers
                 PendingCheckoutCount = openRows.Count,
                 TodayCheckinCount = todayCheckinCount,
                 TodayCheckoutCount = todayCheckoutCount,
-                TodayMissingCheckinCount = Math.Max(0, activeEmployeeIds.Count - todayCheckinCount),
+                TodayMissingCheckinCount = todayMissingCheckinCount,
                 MonthAttendanceDays = monthAttendanceDays,
                 AverageHoursPerDay = averageHoursPerDay,
                 LongShiftCount = longShiftCount,
                 LongDistanceCount = longDistanceCount,
                 PendingCheckoutNames = pendingCheckoutNames,
-                TimeTargetHours = Math.Round(targetHours, 1),
-                TimeTargetProgressPercent = targetProgress,
+                TimeTargetHours = policy.TargetPercent,
+                TimeTargetProgressPercent = monthAttendanceRate,
+                ActiveEmployeeCount = activeEmployeeIds.Count,
+                TodayOnTimeCount = todayOnTimeCount,
+                TodayLateCount = todayLateCount,
+                MonthLateCount = monthLateCount,
+                MonthIncompleteCheckoutCount = monthIncompleteCheckoutCount,
+                YearLateCount = yearLateCount,
+                MonthRecordedEmployeeDays = monthRecordedEmployeeDays,
+                MonthExpectedEmployeeDays = monthExpectedEmployeeDays,
+                TodayAttendanceRate = Rate(todayCheckinCount, todayExpectedCount),
+                MonthAttendanceRate = monthAttendanceRate,
+                MonthPunctualityRate = monthPunctualityRate,
+                YearAttendanceRate = yearAttendanceRate,
+                AttendanceTargetPercent = policy.TargetPercent,
+                AttendancePolicyText = $"ตรงเวลาไม่เกิน {DateTime.Today.Add(lateThreshold):HH:mm} น. · วันทำการ จ.-ศ.",
                 TimeTrendDays = timeTrendDays,
                 TimeHeatmapDays = heatmapDays,
                 TrendClass = trendClass,
@@ -2978,6 +3066,48 @@ namespace ProjectTracking.Controllers
             return Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
         }
 
+        private async Task<DashboardAttendancePolicy> GetAttendancePolicyAsync()
+        {
+            string[] keys =
+            {
+                "ATTENDANCE_WORK_START_TIME",
+                "ATTENDANCE_LATE_GRACE_MINUTES",
+                "ATTENDANCE_TARGET_PERCENT"
+            };
+            var values = await _context.SystemConfigs
+                .AsNoTracking()
+                .Where(config => config.ConfigKey != null && keys.Contains(config.ConfigKey))
+                .ToDictionaryAsync(config => config.ConfigKey!, config => config.ConfigValue);
+
+            var workStart = TimeSpan.FromHours(9);
+            if (values.TryGetValue("ATTENDANCE_WORK_START_TIME", out var workStartValue)
+                && TimeSpan.TryParse(workStartValue, CultureInfo.InvariantCulture, out var parsedWorkStart))
+            {
+                workStart = parsedWorkStart;
+            }
+
+            var lateGraceMinutes = 15;
+            if (values.TryGetValue("ATTENDANCE_LATE_GRACE_MINUTES", out var graceValue)
+                && int.TryParse(graceValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedGrace))
+            {
+                lateGraceMinutes = Math.Clamp(parsedGrace, 0, 180);
+            }
+
+            var targetPercent = 95m;
+            if (values.TryGetValue("ATTENDANCE_TARGET_PERCENT", out var targetValue)
+                && decimal.TryParse(targetValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedTarget))
+            {
+                targetPercent = Math.Clamp(parsedTarget, 1m, 100m);
+            }
+
+            return new DashboardAttendancePolicy
+            {
+                WorkStart = workStart,
+                LateGraceMinutes = lateGraceMinutes,
+                TargetPercent = targetPercent
+            };
+        }
+
         private sealed class DashboardTimeSummary
         {
             public decimal MonthWorkHours { get; set; }
@@ -2994,10 +3124,31 @@ namespace ProjectTracking.Controllers
             public List<string> PendingCheckoutNames { get; set; } = new();
             public decimal TimeTargetHours { get; set; }
             public decimal TimeTargetProgressPercent { get; set; }
+            public int ActiveEmployeeCount { get; set; }
+            public int TodayOnTimeCount { get; set; }
+            public int TodayLateCount { get; set; }
+            public int MonthLateCount { get; set; }
+            public int MonthIncompleteCheckoutCount { get; set; }
+            public int YearLateCount { get; set; }
+            public int MonthRecordedEmployeeDays { get; set; }
+            public int MonthExpectedEmployeeDays { get; set; }
+            public decimal TodayAttendanceRate { get; set; }
+            public decimal MonthAttendanceRate { get; set; }
+            public decimal MonthPunctualityRate { get; set; }
+            public decimal YearAttendanceRate { get; set; }
+            public decimal AttendanceTargetPercent { get; set; }
+            public string AttendancePolicyText { get; set; } = "";
             public List<HomeDashboardTimeTrendDay> TimeTrendDays { get; set; } = new();
             public List<HomeDashboardTimeHeatDay> TimeHeatmapDays { get; set; } = new();
             public string TrendText { get; set; } = "";
             public string TrendClass { get; set; } = "neutral";
+        }
+
+        private sealed class DashboardAttendancePolicy
+        {
+            public TimeSpan WorkStart { get; set; } = TimeSpan.FromHours(9);
+            public int LateGraceMinutes { get; set; } = 15;
+            public decimal TargetPercent { get; set; } = 95m;
         }
 
         private sealed class LineOverdueOverviewResult
