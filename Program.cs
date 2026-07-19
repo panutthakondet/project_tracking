@@ -955,11 +955,22 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
             VALUES
               ('MEETING_NOTIFICATION_RUN_AT', '06:00', 'Meeting Auto - เวลาส่งแจ้งเตือนประชุมอัตโนมัติ เวลาไทย', NOW()),
               ('ATTENDANCE_WORK_START_TIME', '09:00', 'Attendance - เวลาเริ่มงานปกติ', NOW()),
-              ('ATTENDANCE_LATE_GRACE_MINUTES', '15', 'Attendance - จำนวนนาทีผ่อนผันก่อนนับว่ามาสาย', NOW()),
+              ('ATTENDANCE_LATE_GRACE_MINUTES', '0', 'Attendance - นาทีผ่อนผันก่อนนับว่ามาสาย (0 = ไม่เกินเวลาเริ่มงาน)', NOW()),
               ('ATTENDANCE_TARGET_PERCENT', '95', 'Attendance - เป้าหมายอัตราเข้างานรายเดือน (เปอร์เซ็นต์)', NOW()),
               ('OVERDUE_NOTIFICATION_RISK_DAYS', '7', 'Overdue Auto - จำนวนวันล่วงหน้าที่ถือว่าเสี่ยงล่าช้า', NOW()),
               ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
             ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";
+
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `system_config`
+            SET `config_value` = '0',
+                `description` = 'Attendance - นาทีผ่อนผันก่อนนับว่ามาสาย (0 = ไม่เกินเวลาเริ่มงาน)',
+                `updated_at` = NOW()
+            WHERE `config_key` = 'ATTENDANCE_LATE_GRACE_MINUTES'
+              AND `config_value` = '15'
+              AND `description` = 'Attendance - จำนวนนาทีผ่อนผันก่อนนับว่ามาสาย';";
 
         await command.ExecuteNonQueryAsync();
     }

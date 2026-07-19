@@ -3086,7 +3086,7 @@ namespace ProjectTracking.Controllers
                 workStart = parsedWorkStart;
             }
 
-            var lateGraceMinutes = 15;
+            var lateGraceMinutes = 0;
             if (values.TryGetValue("ATTENDANCE_LATE_GRACE_MINUTES", out var graceValue)
                 && int.TryParse(graceValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedGrace))
             {
@@ -3147,7 +3147,7 @@ namespace ProjectTracking.Controllers
         private sealed class DashboardAttendancePolicy
         {
             public TimeSpan WorkStart { get; set; } = TimeSpan.FromHours(9);
-            public int LateGraceMinutes { get; set; } = 15;
+            public int LateGraceMinutes { get; set; }
             public decimal TargetPercent { get; set; } = 95m;
         }
 
