@@ -924,10 +924,14 @@ html body main .dashboard-view .panel-owner-overview .dashboard-card-title h2 {
     -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
 }
 
-html body main .dashboard-view .panel-owner-overview .dashboard-card-title em,
-html body main .dashboard-view .panel-owner-overview :is(.owner-overview-y-axis, .owner-overview-y-title) {
+html body main .dashboard-view .panel-owner-overview .dashboard-card-title em {
     color: var(--pt-sidebar-contrast-muted) !important;
     -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main .dashboard-view .panel-owner-overview :is(.owner-overview-y-axis, .owner-overview-y-title) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
 html body main .dashboard-view .panel-owner-overview :is(.owner-overview-legend, .owner-overview-legend span) {
@@ -1132,7 +1136,7 @@ html body main .dashboard-view .panel-meetings .empty-state {
 
 .dashboard-view .project-overview-head {
     border-bottom-color: var(--pt-border) !important;
-    color: var(--pt-sidebar-contrast-muted) !important;
+    color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
 .dashboard-view :is(.project-overview-name, .project-overview-row time, .project-overview-date) {
@@ -1238,10 +1242,6 @@ html body main .dashboard-view .panel-meetings .empty-state {
 }
 
 html body main .dashboard-view :is(
-    .project-overview-title-row h2,
-    .task-progress-title h2,
-    .issues-overview-head h2,
-    .dashboard-card-title h2,
     .overview-mini-head h3,
     .project-status-card-title,
     .metric-name,
@@ -1263,10 +1263,6 @@ html body main .dashboard-view :is(
 }
 
 html body main .dashboard-view :is(
-    .project-overview-title-row small,
-    .task-progress-title small,
-    .issues-overview-head small,
-    .dashboard-card-title em,
     .overview-mini-head small,
     .project-status-updated,
     .owner-overview-y-axis,
@@ -1297,6 +1293,7 @@ html body main .dashboard-view :is(
     .task-progress-title h2,
     .issues-overview-head h2,
     .dashboard-card-title h2,
+    .dashboard-card-title h2 small,
     .line-overdue-title-row h2
 ) {
     color: var(--pt-sidebar-contrast) !important;
@@ -1308,7 +1305,6 @@ html body main .dashboard-view :is(
     .task-progress-title small,
     .issues-overview-head small,
     .dashboard-card-title em,
-    .dashboard-card-title h2 small,
     .line-overdue-title-row small
 ) {
     color: var(--pt-sidebar-contrast-muted) !important;
@@ -1334,6 +1330,23 @@ html body main .dashboard-view .panel-activity .activity-row :is(small, em, time
 html body main .dashboard-view .panel-activity .dashboard-refresh-link {
     color: var(--pt-sidebar-contrast) !important;
     -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main .dashboard-view :is(
+    .panel-owner-overview > .empty-state,
+    .panel-meetings .meeting-list > .empty-state,
+    .panel-team .workload-list > .empty-state
+) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main .dashboard-view :is(
+    .panel-project-overview .project-overview-scroll > .empty-state,
+    .panel-activity .activity-list > .empty-state
+) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
 }
 
 html body main .dashboard-view :is(
