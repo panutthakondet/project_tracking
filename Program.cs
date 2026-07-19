@@ -1008,7 +1008,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `accent_deep_hex` varchar(7) NOT NULL DEFAULT '#163260',
               `sidebar_hex` varchar(7) NOT NULL DEFAULT '#081c42',
               `sidebar_deep_hex` varchar(7) NOT NULL DEFAULT '#031934',
-              `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#081c42',
+              `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#163D73',
               `body_bg_hex` varchar(7) NOT NULL DEFAULT '#eef3f9',
               `chart_panel_hex` varchar(7) NOT NULL DEFAULT '#041F4E',
               `menu_panel_hex` varchar(7) NOT NULL DEFAULT '#041F4E',
@@ -1068,7 +1068,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
         {
             command.CommandText = @"
                 ALTER TABLE `theme_presets`
-                ADD COLUMN `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#081c42' AFTER `sidebar_deep_hex`;";
+                ADD COLUMN `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#163D73' AFTER `sidebar_deep_hex`;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -1079,40 +1079,40 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
                  `body_bg_hex`, `chart_panel_hex`, `menu_panel_hex`, `surface_hex`, `text_hex`, `muted_hex`, `contrast_hex`, `created_at`, `updated_at`)
             VALUES
                 ('projecttracking-default', 'ProjectTracking Default', 1, 1, 1, 10,
-                 '#1F4889', '#193B70', '#163260', '#081c42', '#031934', '#081c42',
+                 '#1F4889', '#193B70', '#163260', '#081c42', '#031934', '#163D73',
                  '#eef3f9', '#041F4E', '#041F4E', '#ffffff', '#0f172a', '#64748b', '#FFFFFF', NOW(), NOW()),
                 ('ocean-focus', 'Ocean Focus', 1, 0, 1, 20,
-                 '#0ea5e9', '#0369a1', '#075985', '#082f49', '#031a2c', '#082f49',
+                 '#0ea5e9', '#0369a1', '#075985', '#082f49', '#031a2c', '#0B5275',
                  '#eef7ff', '#082f49', '#082f49', '#ffffff', '#0f172a', '#475569', '#ffffff', NOW(), NOW()),
                 ('forest-calm', 'Forest Calm', 1, 0, 1, 30,
-                 '#22c55e', '#15803d', '#166534', '#10351f', '#081d11', '#10351f',
+                 '#22c55e', '#15803d', '#166534', '#10351f', '#081d11', '#1B5A33',
                  '#effaf2', '#10351f', '#10351f', '#ffffff', '#102015', '#5f7468', '#06210f', NOW(), NOW()),
                 ('violet-night', 'Violet Night', 1, 0, 1, 40,
-                 '#8b5cf6', '#6d28d9', '#5b21b6', '#22133f', '#12091f', '#22133f',
+                 '#8b5cf6', '#6d28d9', '#5b21b6', '#22133f', '#12091f', '#43256D',
                  '#f5f3ff', '#22133f', '#22133f', '#ffffff', '#17122a', '#6b617d', '#ffffff', NOW(), NOW()),
                 ('rose-board', 'Rose Board', 1, 0, 1, 50,
-                 '#f43f5e', '#be123c', '#9f1239', '#3d1020', '#220813', '#3d1020',
+                 '#f43f5e', '#be123c', '#9f1239', '#3d1020', '#220813', '#6B2038',
                  '#fff1f4', '#3d1020', '#3d1020', '#ffffff', '#29131a', '#7f5d67', '#ffffff', NOW(), NOW()),
                 ('amber-work', 'Amber Work', 1, 0, 1, 60,
-                 '#f59e0b', '#b45309', '#92400e', '#3a2509', '#211303', '#3a2509',
+                 '#f59e0b', '#b45309', '#92400e', '#3a2509', '#211303', '#654512',
                  '#fff8e7', '#3a2509', '#3a2509', '#ffffff', '#24170a', '#765f36', '#422006', NOW(), NOW()),
                 ('slate-pro', 'Slate Pro', 1, 0, 1, 70,
-                 '#475569', '#334155', '#1e293b', '#111827', '#030712', '#111827',
+                 '#475569', '#334155', '#1e293b', '#111827', '#030712', '#334155',
                  '#f8fafc', '#111827', '#111827', '#ffffff', '#0f172a', '#64748b', '#ffffff', NOW(), NOW()),
                 ('royal-blue', 'Royal Blue', 1, 0, 1, 80,
-                 '#2563eb', '#1d4ed8', '#1e40af', '#111f4d', '#070f2f', '#111f4d',
+                 '#2563eb', '#1d4ed8', '#1e40af', '#111f4d', '#070f2f', '#25427A',
                  '#eef4ff', '#111f4d', '#111f4d', '#ffffff', '#0f172a', '#5b6b85', '#ffffff', NOW(), NOW()),
                 ('cyan-mint', 'Cyan Mint', 1, 0, 1, 90,
-                 '#06b6d4', '#0891b2', '#0e7490', '#083344', '#04202a', '#083344',
+                 '#06b6d4', '#0891b2', '#0e7490', '#083344', '#04202a', '#0D5B70',
                  '#ecfeff', '#083344', '#083344', '#ffffff', '#0c1f27', '#5a7280', '#062b2f', NOW(), NOW()),
                 ('coral-sprint', 'Coral Sprint', 1, 0, 1, 100,
-                 '#fb7185', '#e11d48', '#be123c', '#40111d', '#21070e', '#40111d',
+                 '#fb7185', '#e11d48', '#be123c', '#40111d', '#21070e', '#76243A',
                  '#fff1f3', '#40111d', '#40111d', '#ffffff', '#2a1217', '#7b5961', '#ffffff', NOW(), NOW()),
                 ('lime-pulse', 'Lime Pulse', 1, 0, 1, 110,
-                 '#84cc16', '#4d7c0f', '#3f6212', '#1d2e0b', '#0f1905', '#1d2e0b',
+                 '#84cc16', '#4d7c0f', '#3f6212', '#1d2e0b', '#0f1905', '#46651A',
                  '#f7fee7', '#1d2e0b', '#1d2e0b', '#ffffff', '#18230c', '#63704f', '#1a2e05', NOW(), NOW()),
                 ('graphite-gold', 'Graphite Gold', 1, 0, 1, 120,
-                 '#eab308', '#a16207', '#854d0e', '#171717', '#0a0a0a', '#171717',
+                 '#eab308', '#a16207', '#854d0e', '#171717', '#0a0a0a', '#3F3B2D',
                  '#fafaf5', '#171717', '#171717', '#ffffff', '#18181b', '#71717a', '#422006', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
               `theme_name` = VALUES(`theme_name`),
