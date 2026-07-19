@@ -1477,6 +1477,59 @@ html body main .dashboard-view .workload-rank {
     background: linear-gradient(180deg, #b9ff6a, #63d32f) !important;
 }
 
+/* Time Tracking content lives on Chart/List Background layers. */
+html body main .dashboard-view .panel-time :is(
+    .time-layout,
+    .time-hero,
+    .time-goal,
+    .time-metric-grid,
+    .time-metric-grid > span,
+    .time-trend-card,
+    .time-heatmap-card,
+    .time-detail-grid,
+    .time-detail-grid > span
+) {
+    color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view .panel-time :is(
+    .time-donut strong,
+    .time-donut span,
+    .time-donut em,
+    .time-goal b,
+    .time-metric-grid b,
+    .time-subhead b,
+    .time-trend-bar,
+    .time-trend-bar b,
+    .time-detail-grid b
+) {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view .panel-time :is(
+    .time-goal span,
+    .time-goal small,
+    .time-goal-trend small,
+    .time-metric-grid span i,
+    .time-subhead small,
+    .time-trend-bar small,
+    .time-detail-grid small
+) {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
+html body main .dashboard-view .panel-time .time-heat-cell:not(.low):not(.medium):not(.high):not(.open) {
+    color: var(--pt-chart-panel-contrast) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast) !important;
+}
+
+html body main .dashboard-view .panel-time .time-heat-cell.future {
+    color: var(--pt-chart-panel-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-chart-panel-contrast-muted) !important;
+}
+
 :root {
     --meeting-navy: var(--pt-sidebar-bg);
     --meeting-teal: var(--pt-menu-accent);
