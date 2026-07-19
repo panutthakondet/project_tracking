@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Meeting date">
+  <rect x="17" y="20" width="62" height="59" rx="10" fill="#ffffff"/>
+  <path d="M17 34h62v14H17z" fill="#dbeafe"/>
+  <path d="M31 15v15M65 15v15" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#1f4889">
+    <rect x="29" y="55" width="10" height="8" rx="2"/>
+    <rect x="43" y="55" width="10" height="8" rx="2"/>
+    <rect x="57" y="55" width="10" height="8" rx="2"/>
+    <rect x="29" y="68" width="10" height="8" rx="2"/>
+    <rect x="43" y="68" width="10" height="8" rx="2"/>
+  </g>
+</svg>

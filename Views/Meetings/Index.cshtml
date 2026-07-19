@@ -751,16 +751,30 @@
         align-items: flex-start;
     }
 
-    .meeting-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 12px;
+    .meeting-icon,
+    .meeting-project-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        flex: 0 0 40px;
+        aspect-ratio: 1;
+        border-radius: 50%;
         background: rgba(20, 184, 166, .16);
         color: #062b2f;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 18px;
+        line-height: 1;
+        overflow: hidden;
+    }
+
+    .meeting-icon img,
+    .meeting-project-icon img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
 
     .meeting-day {
@@ -773,23 +787,13 @@
         gap: 10px;
     }
 
-    .meeting-project-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(20, 184, 166, .16);
-        color: #062b2f;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-    }
-
     .meeting-project-text {
+        min-width: 0;
         font-size: .9rem;
         line-height: 1.5;
         color: #10233f;
         font-weight: 600;
+        overflow-wrap: anywhere;
     }
 
     .meeting-desc {
@@ -1467,7 +1471,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         div.innerHTML = `
     <div class="meeting-col">
         <div class="meeting-date-box">
-            <div class="meeting-icon">📅</div>
+            <div class="meeting-icon" aria-hidden="true">
+                <img src="/images/meetings/list-date.svg" alt="" loading="lazy" />
+            </div>
             <div>
                 <div class="meeting-date">${date}</div>
                 <div class="meeting-time">⏰ ${start}${end ? ' - ' + end : ''}</div>
@@ -1477,7 +1483,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="meeting-col">
         <div class="meeting-project">
-            <div class="meeting-project-icon">💼</div>
+            <div class="meeting-project-icon" aria-hidden="true">
+                <img src="/images/meetings/list-project.svg" alt="" loading="lazy" />
+            </div>
             <div class="meeting-project-text">${project}</div>
         </div>
     </div>

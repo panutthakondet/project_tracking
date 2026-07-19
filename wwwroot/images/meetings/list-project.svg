@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Meeting project">
+  <path fill="#ffffff" d="M14 31c0-5.5 4.5-10 10-10h18c3 0 5.8 1.3 7.7 3.6l4.7 5.4H74c5.5 0 10 4.5 10 10v29c0 5.5-4.5 10-10 10H24c-5.5 0-10-4.5-10-10V31z"/>
+  <path fill="#dbeafe" d="M14 40h70v10H14z"/>
+  <path fill="#1f4889" d="M29 59h10v10H29zM44 51h10v18H44zM59 44h10v25H59z"/>
+  <path d="M29 48h21l9-9" fill="none" stroke="#1f4889" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
