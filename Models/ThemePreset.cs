@@ -17,7 +17,7 @@ namespace ProjectTracking.Models
         public string AccentDeepHex { get; set; } = "#163260";
         public string SidebarHex { get; set; } = "#081c42";
         public string SidebarDeepHex { get; set; } = "#031934";
-        public string ProfilePanelHex { get; set; } = "#163D73";
+        public string ProfilePanelHex { get; set; } = "#0D2A52";
         public string BodyBgHex { get; set; } = "#eef3f9";
         public string ChartPanelHex { get; set; } = "#041F4E";
         public string MenuPanelHex { get; set; } = "#041F4E";

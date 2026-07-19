@@ -1008,7 +1008,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
               `accent_deep_hex` varchar(7) NOT NULL DEFAULT '#163260',
               `sidebar_hex` varchar(7) NOT NULL DEFAULT '#081c42',
               `sidebar_deep_hex` varchar(7) NOT NULL DEFAULT '#031934',
-              `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#163D73',
+              `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#0D2A52',
               `body_bg_hex` varchar(7) NOT NULL DEFAULT '#eef3f9',
               `chart_panel_hex` varchar(7) NOT NULL DEFAULT '#041F4E',
               `menu_panel_hex` varchar(7) NOT NULL DEFAULT '#041F4E',
@@ -1068,7 +1068,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
         {
             command.CommandText = @"
                 ALTER TABLE `theme_presets`
-                ADD COLUMN `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#163D73' AFTER `sidebar_deep_hex`;";
+                ADD COLUMN `profile_panel_hex` varchar(7) NOT NULL DEFAULT '#0D2A52' AFTER `sidebar_deep_hex`;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -1079,7 +1079,7 @@ static async Task EnsureThemePresetTablesAsync(IServiceProvider services)
                  `body_bg_hex`, `chart_panel_hex`, `menu_panel_hex`, `surface_hex`, `text_hex`, `muted_hex`, `contrast_hex`, `created_at`, `updated_at`)
             VALUES
                 ('projecttracking-default', 'ProjectTracking Default', 1, 1, 1, 10,
-                 '#1F4889', '#193B70', '#163260', '#081c42', '#031934', '#163D73',
+                 '#1F4889', '#193B70', '#163260', '#081c42', '#031934', '#0D2A52',
                  '#eef3f9', '#041F4E', '#041F4E', '#ffffff', '#0f172a', '#64748b', '#FFFFFF', NOW(), NOW()),
                 ('ocean-focus', 'Ocean Focus', 1, 0, 1, 20,
                  '#0ea5e9', '#0369a1', '#075985', '#082f49', '#031a2c', '#0B5275',

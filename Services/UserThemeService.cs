@@ -213,7 +213,7 @@ namespace ProjectTracking.Services
             AccentDeepHex = "#163260",
             SidebarHex = "#081c42",
             SidebarDeepHex = "#031934",
-            ProfilePanelHex = "#163D73",
+            ProfilePanelHex = "#0D2A52",
             BodyBgHex = "#eef3f9",
             ChartPanelHex = "#041F4E",
             MenuPanelHex = "#041F4E",
