@@ -641,6 +641,89 @@
         background: #e2e8f0;
     }
 
+    /* Appearance is an editor surface: its labels stay readable while preview colors change. */
+    #appearancePage .appearance-hero .appearance-eyebrow {
+        color: var(--pt-sidebar-contrast-muted) !important;
+        -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+    }
+
+    #appearancePage .appearance-hero .appearance-title {
+        color: var(--pt-sidebar-contrast) !important;
+        -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+    }
+
+    #appearancePage .appearance-hero .appearance-subtitle {
+        color: var(--pt-sidebar-contrast-muted) !important;
+        -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+    }
+
+    #appearancePage .appearance-reset,
+    #appearancePage .appearance-reset:hover,
+    #appearancePage .appearance-reset:focus,
+    #appearancePage .appearance-save,
+    #appearancePage .appearance-save:hover,
+    #appearancePage .appearance-save:focus {
+        border-color: var(--pt-accent-dark) !important;
+        color: var(--pt-accent-contrast) !important;
+        -webkit-text-fill-color: var(--pt-accent-contrast) !important;
+        background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark)) !important;
+    }
+
+    #appearancePage .appearance-alert {
+        color: #1F4889 !important;
+        -webkit-text-fill-color: #1F4889 !important;
+    }
+
+    #appearancePage .appearance-alert.is-error {
+        color: #be123c !important;
+        -webkit-text-fill-color: #be123c !important;
+    }
+
+    #appearancePage .appearance-section,
+    #appearancePage .appearance-preview {
+        --pt-local-text: #10233f !important;
+        --pt-local-muted: #64748b !important;
+        color: #10233f !important;
+    }
+
+    #appearancePage .appearance-section__head h2,
+    #appearancePage .appearance-preview__head h2,
+    #appearancePage .theme-name,
+    #appearancePage .custom-toggle,
+    #appearancePage .font-scale-value,
+    #appearancePage .motion-option strong {
+        color: #10233f !important;
+        -webkit-text-fill-color: #10233f !important;
+    }
+
+    #appearancePage .appearance-section__head p,
+    #appearancePage .motion-option small {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important;
+    }
+
+    #appearancePage .theme-default {
+        color: #1F4889 !important;
+        -webkit-text-fill-color: #1F4889 !important;
+    }
+
+    #appearancePage .appearance-field label {
+        color: #334155 !important;
+        -webkit-text-fill-color: #334155 !important;
+    }
+
+    #appearancePage .color-input input[type="text"],
+    #appearancePage .dino-name-input,
+    #appearancePage .preview-dino-name {
+        color: #10233f !important;
+        -webkit-text-fill-color: #10233f !important;
+    }
+
+    #appearancePage .preview-nav span {
+        color: #fff !important;
+        -webkit-text-fill-color: #fff !important;
+    }
+
     @@media (max-width: 1080px) {
         .appearance-layout {
             grid-template-columns: 1fr;
@@ -674,7 +757,7 @@
 </style>
 }
 
-<div class="appearance-page">
+<div class="appearance-page" id="appearancePage">
     <div class="appearance-hero">
         <div class="appearance-hero__content">
             <p class="appearance-eyebrow">Settings</p>
