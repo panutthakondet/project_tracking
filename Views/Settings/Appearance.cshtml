@@ -802,6 +802,7 @@
                                    data-chart-panel="@preset.ChartPanelHex"
                                    data-menu-panel="@preset.MenuPanelHex"
                                    data-text="@preset.TextHex"
+                                   data-muted="@preset.MutedHex"
                                    data-contrast="@preset.ContrastHex">
                                 <input type="radio"
                                        name="ThemeId"
@@ -1068,6 +1069,7 @@
             profilePanelContrast: contrast(normalizeHex(card?.dataset.profilePanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
             body: normalizeHex(card?.dataset.body, '#EEF3F9'),
             text: normalizeHex(card?.dataset.text, '#0F172A'),
+            muted: normalizeHex(card?.dataset.muted, '#64748B'),
             chartPanel: normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')),
             chartPanelDeep: shiftHex(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42')), -0.18),
             chartPanelContrast: contrast(normalizeHex(card?.dataset.chartPanel, normalizeHex(card?.dataset.sidebar, '#081C42'))),
@@ -1108,6 +1110,7 @@
             profilePanelContrast: contrast(profilePanel),
             body,
             text: preset.text,
+            muted: preset.muted,
             chartPanel,
             chartPanelDeep: shiftHex(chartPanel, -0.18),
             chartPanelContrast: contrast(chartPanel),
@@ -1141,8 +1144,11 @@
         root.setProperty('--pt-profile-panel-contrast-muted', rgba(theme.profilePanelContrast, .76));
         root.setProperty('--pt-body-bg', theme.body);
         root.setProperty('--pt-body-bg-soft', shiftHex(theme.body, -0.04));
+        root.setProperty('--pt-body-contrast', theme.text);
+        root.setProperty('--pt-body-contrast-muted', theme.muted);
         root.setProperty('--pt-text', theme.text);
         root.setProperty('--pt-text-soft', rgba(theme.text, .70));
+        root.setProperty('--pt-muted', theme.muted);
         root.setProperty('--pt-border', rgba(theme.accent, .28));
         root.setProperty('--pt-border-strong', rgba(theme.accent, .48));
         root.setProperty('--pt-panel-field-bg', rgba(theme.sidebarDeep, .72));

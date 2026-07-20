@@ -68,6 +68,7 @@ namespace ProjectTracking.ViewModels
         public string ChartPanelHex { get; set; } = "#081c42";
         public string MenuPanelHex { get; set; } = "#081c42";
         public string TextHex { get; set; } = "#0f172a";
+        public string MutedHex { get; set; } = "#64748b";
         public string ContrastHex { get; set; } = "#062b2f";
     }
 

@@ -237,6 +237,7 @@ namespace ProjectTracking.Services
             ChartPanelHex = NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42")),
             MenuPanelHex = NormalizeHexOrDefault(preset.MenuPanelHex, NormalizeHexOrDefault(preset.ChartPanelHex, NormalizeHexOrDefault(preset.SidebarHex, "#081c42"))),
             TextHex = NormalizeHexOrDefault(preset.TextHex, "#0f172a"),
+            MutedHex = NormalizeHexOrDefault(preset.MutedHex, "#64748b"),
             ContrastHex = NormalizeHexOrDefault(preset.ContrastHex, GetReadableContrast(NormalizeHexOrDefault(preset.AccentHex, "#1F4889")))
         };
 
@@ -306,7 +307,9 @@ namespace ProjectTracking.Services
         {
             var scale = theme.FontScale.ToString("0.00", CultureInfo.InvariantCulture);
             var sidebarContrast = GetReadableContrast(theme.SidebarHex);
-            var bodyContrast = GetReadableContrast(theme.BodyBgHex);
+            // Custom Background changes the page canvas only; page text follows the selected preset.
+            var bodyText = NormalizeHexOrDefault(theme.TextHex, "#0f172a");
+            var bodyMuted = NormalizeHexOrDefault(theme.MutedHex, "#64748b");
             var surfaceContrast = GetReadableContrast(theme.SurfaceHex);
             const string chartPrimary = "#2693F4";
             const string chartPrimaryLight = "#4CA5F6";
@@ -349,8 +352,8 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-report-head-border", ToRgba(theme.TextHex, .34));
             AppendVar(sb, "--pt-body-bg", theme.BodyBgHex);
             AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
-            AppendVar(sb, "--pt-body-contrast", bodyContrast);
-            AppendVar(sb, "--pt-body-contrast-muted", ToRgba(bodyContrast, .72));
+            AppendVar(sb, "--pt-body-contrast", bodyText);
+            AppendVar(sb, "--pt-body-contrast-muted", bodyMuted);
             AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
             AppendVar(sb, "--pt-chart-panel-deep", theme.ChartPanelDeepHex);
             AppendVar(sb, "--pt-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
