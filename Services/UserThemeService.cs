@@ -597,10 +597,18 @@ body:not(.pt-standalone-report) main:not(.route-controller-home):not(.route-cont
 .v2-shell,
 .v2-page {
     background: var(--pt-body-bg) !important;
+    border-radius: 0 !important;
+}
+
+html,
+body,
+.dashboard-view {
+    border-radius: 0 !important;
 }
 
 .v2-sidebar {
     border-right: 0 !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
 }
 
