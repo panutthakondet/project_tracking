@@ -2709,13 +2709,19 @@ html body main.route-controller-requirementboard :is(
     .boards-card-meta,
     .boards-online-more,
     .boards-search-icon,
+    .boards-cover-modal-title,
+    .boards-cover-modal-search span,
+    .boards-library-empty,
+    .boards-empty,
     .rb-search-icon,
+    .rb-online-more,
     .rb-column-count,
     .rb-column-drag-hint,
     .rb-card-detail,
     .rb-card-meta,
     .rb-file-info,
     .rb-description-title,
+    .rb-description-color-label,
     .rb-field-label,
     .rb-save-status
 ) {
@@ -2729,8 +2735,12 @@ html body main.route-controller-requirementboard :is(
     .boards-section-title,
     .boards-card-title,
     .boards-picker-title,
+    .boards-cover-modal-icon,
     .rb-column-title,
     .rb-card-title,
+    .rb-board-title-pill,
+    .rb-add-list-column summary,
+    .rb-add-card-action,
     .rb-file-name,
     .rb-description-view,
     .rb-description-view h3,
@@ -2741,11 +2751,28 @@ html body main.route-controller-requirementboard :is(
     color: var(--pt-surface-contrast) !important;
 }
 
+html body main.route-controller-requirementboard .rb-modal .modal-header.has-cover :is(
+    .modal-title,
+    .rb-modal-meta,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    span
+) {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
 html body main.route-controller-requirementboard :is(
     .boards-button,
     .rb-btn:not(.secondary):not(.danger)
 ) {
     color: var(--pt-accent-contrast) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast) !important;
     background: linear-gradient(135deg, var(--pt-menu-accent), var(--pt-menu-accent-dark)) !important;
     border-color: transparent !important;
 }
