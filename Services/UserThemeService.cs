@@ -2117,6 +2117,35 @@ html body main:is(
     color: var(--pt-local-muted, var(--pt-chart-panel-contrast-muted)) !important;
 }
 
+html body main.route-controller-projectissues.route-action-devdetails :is(
+    .dev-summary-card,
+    .dev-panel,
+    .dev-info-block,
+    .dev-text-box,
+    .dev-empty
+) {
+    --pt-local-text: var(--pt-surface-contrast);
+    --pt-local-muted: var(--pt-surface-contrast-muted);
+    color: var(--pt-local-text) !important;
+}
+
+html body main.route-controller-projectissues.route-action-devdetails :is(
+    .dev-summary-label,
+    .dev-summary-value,
+    .dev-info-line,
+    .dev-info-label,
+    .dev-info-value,
+    .dev-panel h3,
+    .dev-gallery-head h3,
+    .dev-detail-text-block h4,
+    .dev-text-box,
+    .dev-count,
+    .dev-empty,
+    .status-text
+) {
+    color: var(--pt-surface-contrast) !important;
+}
+
 main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead,
 main:is(.route-controller-phaseassigns, .route-controller-projectphases) :is(.assign-report-table, .phase-report-table) thead th {
     color: var(--pt-report-head-text) !important;
