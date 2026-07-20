@@ -786,7 +786,7 @@
                 <section class="appearance-section">
                     <div class="appearance-section__head">
                         <h2>Theme Presets</h2>
-                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล โดยสีช่องที่ 3 ใช้กับพื้นโปรไฟล์ด้านบน สีช่องที่ 5 ใช้กับพื้นกล่องกราฟ/รายการ และสีช่องที่ 6 ใช้กับพื้นเมนู</p>
+                        <p>ธีมระบบถูกเก็บไว้ในฐานข้อมูล โดยสีช่องที่ 3 ใช้กับพื้นโปรไฟล์ด้านบน สีช่องที่ 5 ใช้กับพื้นกล่องกราฟ/รายการบน Dashboard เท่านั้น และสีช่องที่ 6 ใช้กับพื้นเมนู</p>
                     </div>
 
                     <div class="theme-grid" id="themePresetGrid">
@@ -868,7 +868,7 @@
                             </div>
                         </div>
                         <div class="appearance-field">
-                            <label for="CustomChartPanelHex">Chart/List Background</label>
+                            <label for="CustomChartPanelHex">Dashboard Chart/List Background</label>
                             <div class="color-input" data-color-wrap>
                                 <input type="color" id="CustomChartPanelColor" value="@Model.CustomChartPanelHex" />
                                 <input type="text" id="CustomChartPanelHex" name="CustomChartPanelHex" value="@Model.CustomChartPanelHex" maxlength="7" />
@@ -1158,15 +1158,26 @@
         root.setProperty('--pt-shadow', rgba(theme.sidebar, .18));
         root.setProperty('--pt-menu-accent', theme.accent);
         root.setProperty('--pt-menu-accent-dark', theme.accentDark);
-        root.setProperty('--pt-chart-panel-bg', theme.chartPanel);
-        root.setProperty('--pt-chart-panel-deep', theme.chartPanelDeep);
-        root.setProperty('--pt-chart-panel-soft', rgba(theme.chartPanel, .88));
-        root.setProperty('--pt-chart-panel-field-bg', rgba(theme.chartPanelDeep, .72));
-        root.setProperty('--pt-chart-panel-row-bg', shiftHex(theme.chartPanel, -0.08));
-        root.setProperty('--pt-chart-panel-row-hover-bg', shiftHex(theme.chartPanel, 0.04));
-        root.setProperty('--pt-chart-panel-glow', rgba(theme.accent, .14));
-        root.setProperty('--pt-chart-panel-contrast', theme.chartPanelContrast);
-        root.setProperty('--pt-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
+        root.setProperty('--pt-chart-panel-bg', 'var(--pt-surface)');
+        root.setProperty('--pt-chart-panel-deep', 'var(--pt-surface-soft)');
+        root.setProperty('--pt-chart-panel-soft', 'var(--pt-surface)');
+        root.setProperty('--pt-chart-panel-center-bg', 'var(--pt-surface-soft)');
+        root.setProperty('--pt-chart-panel-field-bg', 'var(--pt-field-bg)');
+        root.setProperty('--pt-chart-panel-row-bg', 'var(--pt-surface-soft)');
+        root.setProperty('--pt-chart-panel-row-hover-bg', 'var(--pt-surface)');
+        root.setProperty('--pt-chart-panel-glow', 'var(--pt-accent-soft)');
+        root.setProperty('--pt-chart-panel-contrast', 'var(--pt-surface-contrast)');
+        root.setProperty('--pt-chart-panel-contrast-muted', 'var(--pt-surface-contrast-muted)');
+        root.setProperty('--pt-dashboard-chart-panel-bg', theme.chartPanel);
+        root.setProperty('--pt-dashboard-chart-panel-deep', theme.chartPanelDeep);
+        root.setProperty('--pt-dashboard-chart-panel-soft', rgba(theme.chartPanel, .88));
+        root.setProperty('--pt-dashboard-chart-panel-center-bg', shiftHex(theme.chartPanel, -0.10));
+        root.setProperty('--pt-dashboard-chart-panel-field-bg', rgba(theme.chartPanelDeep, .72));
+        root.setProperty('--pt-dashboard-chart-panel-row-bg', shiftHex(theme.chartPanel, -0.08));
+        root.setProperty('--pt-dashboard-chart-panel-row-hover-bg', shiftHex(theme.chartPanel, 0.04));
+        root.setProperty('--pt-dashboard-chart-panel-glow', rgba(theme.accent, .14));
+        root.setProperty('--pt-dashboard-chart-panel-contrast', theme.chartPanelContrast);
+        root.setProperty('--pt-dashboard-chart-panel-contrast-muted', rgba(theme.chartPanelContrast, .76));
         root.setProperty('--pt-menu-panel-bg', theme.menuPanel);
         root.setProperty('--pt-menu-panel-deep', theme.menuPanelDeep);
         root.setProperty('--pt-menu-panel-soft', rgba(theme.menuPanel, .88));

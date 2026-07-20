@@ -354,16 +354,26 @@ namespace ProjectTracking.Services
             AppendVar(sb, "--pt-body-bg-soft", ShiftHex(theme.BodyBgHex, -0.04));
             AppendVar(sb, "--pt-body-contrast", bodyText);
             AppendVar(sb, "--pt-body-contrast-muted", bodyMuted);
-            AppendVar(sb, "--pt-chart-panel-bg", theme.ChartPanelHex);
-            AppendVar(sb, "--pt-chart-panel-deep", theme.ChartPanelDeepHex);
-            AppendVar(sb, "--pt-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
-            AppendVar(sb, "--pt-chart-panel-center-bg", ShiftHex(theme.ChartPanelHex, -0.10));
-            AppendVar(sb, "--pt-chart-panel-field-bg", ToRgba(theme.ChartPanelDeepHex, .72));
-            AppendVar(sb, "--pt-chart-panel-row-bg", ShiftHex(theme.ChartPanelHex, -0.08));
-            AppendVar(sb, "--pt-chart-panel-row-hover-bg", ShiftHex(theme.ChartPanelHex, 0.04));
-            AppendVar(sb, "--pt-chart-panel-glow", ToRgba(theme.AccentHex, .14));
-            AppendVar(sb, "--pt-chart-panel-contrast", theme.ChartPanelContrastHex);
-            AppendVar(sb, "--pt-chart-panel-contrast-muted", theme.ChartPanelContrastMutedRgba);
+            AppendVar(sb, "--pt-chart-panel-bg", "var(--pt-surface)");
+            AppendVar(sb, "--pt-chart-panel-deep", "var(--pt-surface-soft)");
+            AppendVar(sb, "--pt-chart-panel-soft", "var(--pt-surface)");
+            AppendVar(sb, "--pt-chart-panel-center-bg", "var(--pt-surface-soft)");
+            AppendVar(sb, "--pt-chart-panel-field-bg", "var(--pt-field-bg)");
+            AppendVar(sb, "--pt-chart-panel-row-bg", "var(--pt-surface-soft)");
+            AppendVar(sb, "--pt-chart-panel-row-hover-bg", "var(--pt-surface)");
+            AppendVar(sb, "--pt-chart-panel-glow", "var(--pt-accent-soft)");
+            AppendVar(sb, "--pt-chart-panel-contrast", "var(--pt-surface-contrast)");
+            AppendVar(sb, "--pt-chart-panel-contrast-muted", "var(--pt-surface-contrast-muted)");
+            AppendVar(sb, "--pt-dashboard-chart-panel-bg", theme.ChartPanelHex);
+            AppendVar(sb, "--pt-dashboard-chart-panel-deep", theme.ChartPanelDeepHex);
+            AppendVar(sb, "--pt-dashboard-chart-panel-soft", ToRgba(theme.ChartPanelHex, .88));
+            AppendVar(sb, "--pt-dashboard-chart-panel-center-bg", ShiftHex(theme.ChartPanelHex, -0.10));
+            AppendVar(sb, "--pt-dashboard-chart-panel-field-bg", ToRgba(theme.ChartPanelDeepHex, .72));
+            AppendVar(sb, "--pt-dashboard-chart-panel-row-bg", ShiftHex(theme.ChartPanelHex, -0.08));
+            AppendVar(sb, "--pt-dashboard-chart-panel-row-hover-bg", ShiftHex(theme.ChartPanelHex, 0.04));
+            AppendVar(sb, "--pt-dashboard-chart-panel-glow", ToRgba(theme.AccentHex, .14));
+            AppendVar(sb, "--pt-dashboard-chart-panel-contrast", theme.ChartPanelContrastHex);
+            AppendVar(sb, "--pt-dashboard-chart-panel-contrast-muted", theme.ChartPanelContrastMutedRgba);
             AppendVar(sb, "--pt-menu-panel-bg", theme.MenuPanelHex);
             AppendVar(sb, "--pt-menu-panel-deep", theme.MenuPanelDeepHex);
             AppendVar(sb, "--pt-menu-panel-soft", ToRgba(theme.MenuPanelHex, .88));
@@ -885,6 +895,16 @@ main :is(.form-control, .form-select, .pt-search-select__input)::placeholder {
 }
 
 .dashboard-view {
+    --pt-chart-panel-bg: var(--pt-dashboard-chart-panel-bg);
+    --pt-chart-panel-deep: var(--pt-dashboard-chart-panel-deep);
+    --pt-chart-panel-soft: var(--pt-dashboard-chart-panel-soft);
+    --pt-chart-panel-center-bg: var(--pt-dashboard-chart-panel-center-bg);
+    --pt-chart-panel-field-bg: var(--pt-dashboard-chart-panel-field-bg);
+    --pt-chart-panel-row-bg: var(--pt-dashboard-chart-panel-row-bg);
+    --pt-chart-panel-row-hover-bg: var(--pt-dashboard-chart-panel-row-hover-bg);
+    --pt-chart-panel-glow: var(--pt-dashboard-chart-panel-glow);
+    --pt-chart-panel-contrast: var(--pt-dashboard-chart-panel-contrast);
+    --pt-chart-panel-contrast-muted: var(--pt-dashboard-chart-panel-contrast-muted);
     --panel: var(--pt-sidebar-bg);
     color: var(--pt-body-contrast) !important;
     background:
