@@ -2105,6 +2105,35 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                             </li>
                         }
 
+                        @if (canEmployees)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" || controller=="Meetings" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown" title="Employees">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
+                                    <span class="nav-label">Employees</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><h6 class="dropdown-header">Employees</h6></li>
+                                    }
+                                    @if (CanMenu("Employees.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
+                                    }
+                                    @if (CanMenu("Employees.LineOverdue"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="LineOverdue">แจ้งเตือนงานล่าช้า</a></li>
+                                    }
+                                    @if (CanMenu("PhaseWorkload.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
                         @if (canFieldService)
                         {
                             <li class="nav-item dropdown">
@@ -2131,35 +2160,6 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     @if (CanMenu("FieldService.Report"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Report">Service Report</a></li>
-                                    }
-                                </ul>
-                            </li>
-                        }
-
-                        @if (canEmployees)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" || controller=="Meetings" ? "active-menu" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown" title="Employees">
-                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
-                                    <span class="nav-label">Employees</span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
-                                    {
-                                        <li><h6 class="dropdown-header">Employees</h6></li>
-                                    }
-                                    @if (CanMenu("Employees.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
-                                    }
-                                    @if (CanMenu("Employees.LineOverdue"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="LineOverdue">แจ้งเตือนงานล่าช้า</a></li>
-                                    }
-                                    @if (CanMenu("PhaseWorkload.Index"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
                                     }
                                 </ul>
                             </li>
