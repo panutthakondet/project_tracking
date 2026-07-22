@@ -58,6 +58,7 @@ public class FieldServiceController : BaseController
             .Include(x => x.Assignees).ThenInclude(x => x.Employee).ThenInclude(x => x!.LoginUser)
             .Include(x => x.Attachments)
             .FirstOrDefaultAsync(x => x.VisitId == id);
+        if (item != null) NormalizeAssigneeProfiles(new[] { item });
         if (item?.CreatedBy is int creatorId)
         {
             ViewBag.CreatedByName = await _context.Employees.AsNoTracking()
@@ -91,10 +92,12 @@ public class FieldServiceController : BaseController
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
         ViewBag.Query = q;
         ViewBag.Status = status;
-        return View(await query
+        var items = await query
             .OrderBy(x => x.Status == "COMPLETED" ? 1 : 0)
             .ThenByDescending(x => x.VisitDate)
-            .ToListAsync());
+            .ToListAsync();
+        NormalizeAssigneeProfiles(items);
+        return View(items);
     }
 
     [HttpGet, RequireMenu("FieldService.Result")]
@@ -479,12 +482,34 @@ public class FieldServiceController : BaseController
         ? $"{value.Value:dd/MM/}{value.Value.Year + 543}"
         : string.Empty;
 
-    private static string NormalizeProfilePath(string? path)
+    private string NormalizeProfilePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
-        path = path.Trim();
+        path = path.Trim().Replace("\\", "/");
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return path;
         if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
-        return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path.TrimStart('/');
+        if (path.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase))
+            path = path["wwwroot".Length..];
+        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
+
+        var webRoot = _environment.WebRootPath
+            ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var physicalPath = Path.Combine(webRoot, path.TrimStart('/'));
+        return System.IO.File.Exists(physicalPath) ? path : "/images/Profile/profile.png";
+    }
+
+    private void NormalizeAssigneeProfiles(IEnumerable<FieldServiceVisit> visits)
+    {
+        foreach (var loginUser in visits
+            .SelectMany(x => x.Assignees)
+            .Select(x => x.Employee?.LoginUser)
+            .Where(x => x != null)
+            .Distinct())
+        {
+            loginUser!.ProfileImagePath = NormalizeProfilePath(loginUser.ProfileImagePath);
+        }
     }
 
     private bool IsAdminUser() => string.Equals(
