@@ -31,17 +31,55 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var permissions = await GetCurrentMeetingPermissionsAsync();
+            var groups = await _context.MeetingGroups
+                .AsNoTracking().AsSplitQuery()
+                .Where(x => x.IsActive)
+                .Include(x => x.Calendars.Where(c => c.IsActive))
+                    .ThenInclude(x => x.Meetings)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.GroupName)
+                .ToListAsync();
+
+            foreach (var group in groups)
+                group.Calendars = group.Calendars.OrderBy(x => x.SortOrder).ThenBy(x => x.CalendarName).ToList();
+
+            return View("Groups", new MeetingHomeViewModel
+            {
+                Groups = groups,
+                TotalCalendars = groups.Sum(x => x.Calendars.Count),
+                TotalMeetings = groups.SelectMany(x => x.Calendars).Sum(x => x.Meetings.Count),
+                CanCreateGroup = permissions.Contains("Meetings.GroupCreate"),
+                CanEditGroup = permissions.Contains("Meetings.GroupEdit"),
+                CanDeleteGroup = permissions.Contains("Meetings.GroupDelete"),
+                CanCreateCalendar = permissions.Contains("Meetings.CalendarCreate"),
+                CanEditCalendar = permissions.Contains("Meetings.CalendarEdit"),
+                CanDeleteCalendar = permissions.Contains("Meetings.CalendarDelete")
+            });
         }
 
         [HttpGet]
-        public async Task<IActionResult> List()
+        public async Task<IActionResult> Schedule(int id)
+        {
+            await GetCurrentMeetingPermissionsAsync();
+            var calendar = await _context.MeetingCalendars.AsNoTracking()
+                .Include(x => x.Group)
+                .FirstOrDefaultAsync(x => x.CalendarId == id && x.IsActive && x.Group != null && x.Group.IsActive);
+            if (calendar == null) return NotFound();
+            ViewBag.CalendarId = calendar.CalendarId;
+            ViewBag.CalendarName = calendar.CalendarName;
+            ViewBag.GroupName = calendar.Group!.GroupName;
+            return View("Index");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> List(int calendarId)
         {
             // โหลดข้อมูลดิบจาก DB ก่อน แล้วค่อย format เวลาใน memory (กัน All-day/FormatException)
             var rows = await _context.Meetings
                 .AsNoTracking()
+                .Where(m => m.CalendarId == calendarId)
                 .Select(m => new
                 {
                     m.Id,
@@ -82,7 +120,7 @@ namespace ProjectTracking.Controllers
 
         [RequireMenu("Meetings.Index")]
         [HttpGet]
-        public async Task<IActionResult> ViewOnly(int? projectId, DateTime? fromDate, DateTime? toDate, string? audience)
+        public async Task<IActionResult> ViewOnly(int? calendarId, int? projectId, DateTime? fromDate, DateTime? toDate, string? audience)
         {
             var projects = await _context.Projects
                 .AsNoTracking()
@@ -93,7 +131,7 @@ namespace ProjectTracking.Controllers
 
             var audienceList = await _context.Meetings
                 .AsNoTracking()
-                .Where(m => m.MeetingAudience != null && m.MeetingAudience != "")
+                .Where(m => (!calendarId.HasValue || m.CalendarId == calendarId.Value) && m.MeetingAudience != null && m.MeetingAudience != "")
                 .Select(m => m.MeetingAudience!)
                 .Distinct()
                 .OrderBy(x => x)
@@ -104,6 +142,8 @@ namespace ProjectTracking.Controllers
                 .Include(m => m.Project)
                     .ThenInclude(p => p!.Coop)
                 .AsQueryable();
+            if (calendarId.HasValue)
+                query = query.Where(m => m.CalendarId == calendarId.Value);
 
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(m => m.ProjectId == projectId.Value);
@@ -198,14 +238,20 @@ namespace ProjectTracking.Controllers
             ViewBag.ToDate = toDate;
             ViewBag.AudienceList = audienceList;
             ViewBag.SelectedAudience = audience ?? "";
+            ViewBag.CalendarId = calendarId;
 
             return View(reportRows);
         }
 
         [RequireMenu("Meetings.Create")]
         [HttpGet]
-        public async Task<IActionResult> Create(DateTime? date)
+        public async Task<IActionResult> Create(int calendarId, DateTime? date)
         {
+            var calendar = await _context.MeetingCalendars.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CalendarId == calendarId && x.IsActive);
+            if (calendar == null) return RedirectToAction(nameof(Index));
+            ViewBag.CalendarId = calendarId;
+            ViewBag.CalendarName = calendar.CalendarName;
             ViewBag.Date = date?.ToString("yyyy-MM-dd");
 
             // ส่งรายการโครงการไปให้ View ทำ dropdown
@@ -302,6 +348,7 @@ namespace ProjectTracking.Controllers
             ViewBag.CoopName = coopName;
             ViewBag.ProjectName = projectName;
             ViewBag.Attendees = attendees;
+            ViewBag.CalendarId = meeting.CalendarId;
 
             return View(meeting);
         }
@@ -349,6 +396,7 @@ namespace ProjectTracking.Controllers
                 .Where(a => a.MeetingId == id)
                 .Select(a => a.UserId)
                 .ToList();
+            ViewBag.CalendarId = meeting.CalendarId;
 
             return View(meeting);
         }
@@ -367,6 +415,9 @@ namespace ProjectTracking.Controllers
             model.UpdatedAt = model.CreatedAt;
             model.CreatedBy = await GetCurrentEntryIdAsync();
             model.Status = NormalizeMeetingStatus(model.Status);
+
+            if (!await _context.MeetingCalendars.AnyAsync(x => x.CalendarId == model.CalendarId && x.IsActive))
+                return BadRequest("Invalid meeting calendar");
 
             var createdMeetingId = 0;
             await using var tx = await _context.Database.BeginTransactionAsync();
@@ -435,7 +486,7 @@ namespace ProjectTracking.Controllers
                 TempData["Error"] = "สร้าง Meeting สำเร็จ แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(Schedule), new { id = model.CalendarId });
         }
 
         private List<int> ReadSelectedMeetingUsers(List<int>? boundUsers)
@@ -608,6 +659,85 @@ namespace ProjectTracking.Controllers
         private static string NormalizeText(string? value)
             => (value ?? "").Trim();
 
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.GroupCreate")]
+        public async Task<IActionResult> CreateGroup(string groupName)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.GroupCreate"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.GroupCreate" });
+            groupName = (groupName ?? "").Trim();
+            if (groupName.Length == 0) return RedirectToAction(nameof(Index));
+            var sort = await _context.MeetingGroups.Select(x => (int?)x.SortOrder).MaxAsync() ?? 0;
+            _context.MeetingGroups.Add(new MeetingGroup { GroupName = groupName, SortOrder = sort + 1 });
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.CalendarCreate")]
+        public async Task<IActionResult> CreateCalendar(int groupId, string calendarName, string? coverColor)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.CalendarCreate"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.CalendarCreate" });
+            calendarName = (calendarName ?? "").Trim();
+            if (calendarName.Length == 0 || !await _context.MeetingGroups.AnyAsync(x => x.GroupId == groupId && x.IsActive))
+                return RedirectToAction(nameof(Index));
+            var sort = await _context.MeetingCalendars.Where(x => x.GroupId == groupId)
+                .Select(x => (int?)x.SortOrder).MaxAsync() ?? 0;
+            var safeColor = System.Text.RegularExpressions.Regex.IsMatch(coverColor ?? "", "^#[0-9A-Fa-f]{6}$")
+                ? coverColor! : "#14b8a6";
+            var calendar = new MeetingCalendar { GroupId = groupId, CalendarName = calendarName, CoverColor = safeColor, SortOrder = sort + 1 };
+            _context.MeetingCalendars.Add(calendar);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Schedule), new { id = calendar.CalendarId });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.GroupEdit")]
+        public async Task<IActionResult> RenameGroup(int groupId, string groupName)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.GroupEdit"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.GroupEdit" });
+            var group = await _context.MeetingGroups.FirstOrDefaultAsync(x => x.GroupId == groupId && x.IsActive);
+            groupName = (groupName ?? "").Trim();
+            if (group != null && groupName.Length > 0) { group.GroupName = groupName; group.UpdatedAt = DateTime.Now; await _context.SaveChangesAsync(); }
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.CalendarEdit")]
+        public async Task<IActionResult> RenameCalendar(int calendarId, string calendarName, string? coverColor)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.CalendarEdit"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.CalendarEdit" });
+            var calendar = await _context.MeetingCalendars.FirstOrDefaultAsync(x => x.CalendarId == calendarId && x.IsActive);
+            calendarName = (calendarName ?? "").Trim();
+            if (calendar != null && calendarName.Length > 0)
+            {
+                calendar.CalendarName = calendarName;
+                if (System.Text.RegularExpressions.Regex.IsMatch(coverColor ?? "", "^#[0-9A-Fa-f]{6}$")) calendar.CoverColor = coverColor!;
+                calendar.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.GroupDelete")]
+        public async Task<IActionResult> DeleteGroup(int groupId)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.GroupDelete"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.GroupDelete" });
+            var group = await _context.MeetingGroups.Include(x => x.Calendars).FirstOrDefaultAsync(x => x.GroupId == groupId && x.IsActive);
+            if (group != null) { group.IsActive = false; foreach (var c in group.Calendars) c.IsActive = false; await _context.SaveChangesAsync(); }
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("Meetings.CalendarDelete")]
+        public async Task<IActionResult> DeleteCalendar(int calendarId)
+        {
+            if (!await HasCurrentMeetingPermissionAsync("Meetings.CalendarDelete"))
+                return RedirectToAction("AccessDenied", "Auth", new { key = "Meetings.CalendarDelete" });
+            var calendar = await _context.MeetingCalendars.FirstOrDefaultAsync(x => x.CalendarId == calendarId && x.IsActive);
+            if (calendar != null) { calendar.IsActive = false; calendar.UpdatedAt = DateTime.Now; await _context.SaveChangesAsync(); }
+            return RedirectToAction(nameof(Index));
+        }
+
         [HttpPost]
         public async Task<IActionResult> Move([FromBody] MoveRequest req)
         {
@@ -670,10 +800,11 @@ namespace ProjectTracking.Controllers
             var attendees = _context.MeetingAttendees.Where(a => a.MeetingId == id);
             _context.MeetingAttendees.RemoveRange(attendees);
 
+            var calendarId = meeting.CalendarId;
             _context.Meetings.Remove(meeting);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(Schedule), new { id = calendarId });
         }
 
         private async Task<int?> GetCurrentEntryIdAsync()
@@ -695,5 +826,51 @@ namespace ProjectTracking.Controllers
                 .Select(u => u.EmpId)
                 .FirstOrDefaultAsync();
         }
+
+        private bool CanMenu(string key)
+        {
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim();
+            if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+            var menus = HttpContext.Session.GetString("Menus") ?? "";
+            return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Contains(key, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private async Task<HashSet<string>> GetCurrentMeetingPermissionsAsync()
+        {
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim();
+            if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                return new HashSet<string>(new[]
+                {
+                    "Meetings.Index", "Meetings.Show", "Meetings.Create", "Meetings.Edit", "Meetings.Delete",
+                    "Meetings.GroupCreate", "Meetings.GroupEdit", "Meetings.GroupDelete",
+                    "Meetings.CalendarCreate", "Meetings.CalendarEdit", "Meetings.CalendarDelete"
+                }, StringComparer.OrdinalIgnoreCase);
+            }
+
+            var username = (HttpContext.Session.GetString("Username") ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(username))
+                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var keys = await _context.UserMenus
+                .AsNoTracking()
+                .Where(x => x.Username != null && x.Username.Trim().ToLower() == username.ToLower())
+                .Select(x => x.MenuKey)
+                .ToListAsync();
+
+            var permissions = new HashSet<string>(
+                keys.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+
+            // Keep Razor CanMenu(...) and authorization filters in sync with the
+            // latest permissions, so revoked action buttons disappear immediately.
+            HttpContext.Session.SetString("Menus", string.Join(',', permissions));
+            return permissions;
+        }
+
+        private async Task<bool> HasCurrentMeetingPermissionAsync(string key)
+            => (await GetCurrentMeetingPermissionsAsync()).Contains(key);
     }
 }

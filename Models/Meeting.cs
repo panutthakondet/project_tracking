@@ -53,6 +53,12 @@ namespace ProjectTracking.Models
         [Column("project_id")]
         public int? ProjectId { get; set; }
 
+        [Column("calendar_id")]
+        public int CalendarId { get; set; }
+
+        [ForeignKey(nameof(CalendarId))]
+        public MeetingCalendar? Calendar { get; set; }
+
         [ForeignKey("ProjectId")]
         public virtual Project? Project { get; set; }
 

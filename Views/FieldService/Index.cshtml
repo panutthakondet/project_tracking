@@ -1,0 +1,81 @@
+@model IEnumerable<FieldServiceVisit>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "MA Site Visits";
+    var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    var admin = string.Equals(Context.Session.GetString("Role"), "ADMIN", StringComparison.OrdinalIgnoreCase);
+    bool Can(string key) => admin || menus.Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    string StatusText(string status) => status switch { "PLANNED" => "วางแผนแล้ว", "IN_PROGRESS" => "กำลังดำเนินการ", "COMPLETED" => "เสร็จสิ้น", "CANCELLED" => "ยกเลิก", _ => status };
+    string StatusClass(string status) => status switch { "COMPLETED" => "success", "IN_PROGRESS" => "warning", "CANCELLED" => "secondary", _ => "info" };
+    string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "";
+}
+
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">Field Service</span>
+        <h2 class="index-title">งานเข้าไซต์ MA</h2>
+        <p class="index-subtitle">จัดการงานบริการนอกโครงการและทีมผู้ปฏิบัติงาน</p>
+    </div>
+    <div class="index-actions">
+        @if (Can("FieldService.Calendar")) { <a asp-action="Calendar" class="btn btn-outline-info">ปฏิทินงาน</a> }
+        @if (Can("FieldService.Report")) { <a asp-action="Report" class="btn btn-outline-primary">รายงาน</a> }
+        @if (Can("FieldService.Create")) { <a asp-action="Create" class="btn btn-primary">เพิ่มงานออกไซต์</a> }
+        else { <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มงาน">เพิ่มงานออกไซต์</button> }
+    </div>
+</div>
+
+@if (TempData["Success"] is string success) { <div class="alert alert-success shadow-sm">@success</div> }
+
+<div class="card shadow-sm border-0 rounded-4 mb-3 field-service-filter-card">
+    <div class="card-body py-3">
+        <form method="get" class="field-service-filter">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4"><label class="form-label fw-bold">ค้นหา</label><input name="q" value="@ViewBag.Query" class="form-control form-control-lg" placeholder="ชื่องานหรือสหกรณ์" /></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">สถานะ</label><select name="status" class="form-select form-select-lg"><option value="">ทั้งหมด</option><option value="PLANNED" selected="@(ViewBag.Status=="PLANNED")">วางแผนแล้ว</option><option value="IN_PROGRESS" selected="@(ViewBag.Status=="IN_PROGRESS")">กำลังดำเนินการ</option><option value="COMPLETED" selected="@(ViewBag.Status=="COMPLETED")">เสร็จสิ้น</option><option value="CANCELLED" selected="@(ViewBag.Status=="CANCELLED")">ยกเลิก</option></select></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">ตั้งแต่วันที่</label><input type="text" name="from" value="@ViewBag.From" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">ถึงวันที่</label><input type="text" name="to" value="@ViewBag.To" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+                <div class="col-md-3 col-lg-2 d-flex gap-2"><button class="btn btn-primary btn-lg flex-fill">ค้นหา</button><a asp-action="Index" class="btn btn-outline-secondary btn-lg">ล้าง</a></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 field-service-list-card">
+    <div class="card-header bg-white border-0 px-4 pt-4 pb-2 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">รายการงานออกไซต์</h5><span class="badge rounded-pill bg-primary-subtle text-primary px-3 py-2">@Model.Count() งาน</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 field-service-table">
+            <thead><tr><th>วันที่</th><th>งาน</th><th>ประเภท</th><th>พนักงาน</th><th>สถานะ</th><th class="text-end">จัดการ</th></tr></thead>
+            <tbody>
+            @foreach (var coopGroup in Model.GroupBy(x => new { x.CoopId, Name = x.Coop?.CoopName ?? "ไม่ระบุสหกรณ์" }).OrderBy(x => x.Key.Name))
+            {
+                <tr class="field-service-coop-group-row"><td colspan="6"><div><span class="field-service-coop-group-icon">🏢</span><strong>@coopGroup.Key.Name</strong><span class="badge rounded-pill">@coopGroup.Count() งาน</span></div></td></tr>
+                @foreach (var item in coopGroup.OrderByDescending(x => x.VisitDate))
+                {
+                <tr>
+                    <td class="text-nowrap"><strong>@ThaiDate(item.VisitDate)</strong>@if((item.EndVisitDate??item.VisitDate).Date>item.VisitDate.Date){<div class="fw-semibold">ถึง @ThaiDate(item.EndVisitDate??item.VisitDate)</div>}<div class="text-muted small">@item.StartTime?.ToString(@"hh\:mm") @if(item.EndTime.HasValue){<text>- @item.EndTime.Value.ToString(@"hh\:mm")</text>}</div></td>
+                    <td><div class="fw-bold">@item.Title</div></td>
+                    <td><span class="badge bg-light text-dark border">@item.ServiceType</span></td>
+                    <td>@(item.Assignees.Any() ? string.Join(", ", item.Assignees.Select(x => x.Employee?.EmpName)) : "-")</td>
+                    <td><span class="badge rounded-pill text-bg-@StatusClass(item.Status) px-3 py-2">@StatusText(item.Status)</span></td>
+                    <td class="text-end text-nowrap">
+                        @if (Can("FieldService.Show")) { <a asp-action="Show" asp-route-id="@item.VisitId" class="btn btn-sm btn-outline-primary">ดู</a> }
+                        @if (Can("FieldService.Edit")) { <a asp-action="Edit" asp-route-id="@item.VisitId" class="btn btn-sm btn-outline-warning">แก้ไข</a> }
+                    </td>
+                </tr>
+                }
+            }
+            @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-5">ยังไม่มีงานออกไซต์ตามเงื่อนไขที่ค้นหา</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.field-service-list-card { overflow:hidden; }
+.field-service-table th { background:var(--pt-surface-soft, #f8fafc); color:var(--pt-surface-contrast-muted, #475569); font-weight:800; white-space:nowrap; padding:1rem 1.25rem; }
+.field-service-table td { padding:1rem 1.25rem; }
+.field-service-filter .form-control, .field-service-filter .form-select { min-height:50px; }
+@@media (max-width: 767.98px) { .field-service-table { min-width:980px; } }
+</style>

@@ -1,0 +1,108 @@
+@model ProjectTracking.ViewModels.MeetingHomeViewModel
+@{
+    ViewData["Title"] = "Meeting Calendars";
+    var tones = new[] { "teal", "blue", "violet", "rose", "amber", "green" };
+    var colors = new[] { "#14b8a6", "#2563eb", "#7c3aed", "#db2777", "#f59e0b", "#16a34a" };
+}
+
+@section Styles {
+<style>
+    .mc-page{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:calc(100vh - 82px);background:#f5f7fb;color:#10233f}
+    .mc-sidebar{padding:24px 18px;border-right:1px solid #dce4ee;background:#fff}.mc-brand{display:flex;align-items:center;gap:11px;padding:0 8px 22px;font-size:19px;font-weight:900}.mc-brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;color:#fff;background:linear-gradient(135deg,#14b8a6,#0f4aa5);font-size:20px}
+    .mc-nav{display:grid;gap:7px}.mc-nav-link{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:10px;color:#465a73;text-decoration:none;font-weight:800}.mc-nav-link:hover,.mc-nav-link.active{color:#0f766e;background:#e9fbf8}.mc-nav-icon{width:24px;text-align:center;font-size:18px}
+    .mc-side-title{margin:26px 10px 10px;color:#94a3b8;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.mc-group-list{display:grid;gap:5px}.mc-group-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:#334155;text-decoration:none;font-weight:800}.mc-group-link:hover{background:#f1f5f9}.mc-avatar{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:9px;color:#fff;background:#14b8a6;font-weight:900}.mc-group-link.blue .mc-avatar,.mc-section.blue .mc-avatar{background:#2563eb}.mc-group-link.violet .mc-avatar,.mc-section.violet .mc-avatar{background:#7c3aed}.mc-group-link.rose .mc-avatar,.mc-section.rose .mc-avatar{background:#db2777}.mc-group-link.amber .mc-avatar,.mc-section.amber .mc-avatar{background:#f59e0b}.mc-group-link.green .mc-avatar,.mc-section.green .mc-avatar{background:#16a34a}.mc-group-copy{min-width:0}.mc-group-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mc-group-meta{display:block;color:#94a3b8;font-size:10px}
+    .mc-side-create{margin-top:22px;padding-top:18px;border-top:1px solid #e2e8f0}.mc-main{min-width:0;padding:26px 30px 60px}.mc-topbar{display:grid;grid-template-columns:minmax(250px,560px) 1fr;align-items:center;gap:20px;margin-bottom:26px}.mc-search-wrap{position:relative}.mc-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:21px}.mc-search{width:100%;height:44px;padding:0 16px 0 43px;border:1px solid #d6e0eb;border-radius:12px;background:#fff;font:inherit;font-weight:700;outline:none}.mc-search:focus{border-color:#14b8a6;box-shadow:0 0 0 3px rgba(20,184,166,.12)}.mc-stats{text-align:right;color:#64748b;font-size:13px;font-weight:800}
+    .mc-empty{padding:38px;border:1px dashed #cbd5e1;border-radius:16px;background:#fff;color:#64748b;text-align:center;font-weight:800}.mc-section{margin-bottom:34px}.mc-section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}.mc-title{display:flex;align-items:center;gap:11px;margin:0;font-size:20px;font-weight:900}.mc-section-actions{display:flex;align-items:center;gap:9px}.mc-section-count{color:#94a3b8;font-size:12px;font-weight:800}.mc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:17px}.mc-tile{position:relative}.mc-card{position:relative;display:block;height:160px;overflow:hidden;border-radius:15px;color:#fff;text-decoration:none;box-shadow:0 12px 25px rgba(15,35,64,.13);transition:transform .18s,box-shadow .18s}.mc-card:hover{color:#fff;transform:translateY(-3px);box-shadow:0 17px 32px rgba(15,35,64,.2)}.mc-card:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,var(--cover),#102443)}.mc-card:after{content:"";position:absolute;right:-35px;top:-50px;width:155px;height:155px;border-radius:50%;background:rgba(255,255,255,.12)}.mc-card-content{position:relative;z-index:1;display:flex;height:100%;flex-direction:column;justify-content:space-between;padding:20px}.mc-card-label{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;opacity:.8}.mc-card-title{max-width:90%;font-size:20px;font-weight:900;line-height:1.25}.mc-card-meta{font-size:12px;font-weight:800;opacity:.82}
+    details.mc-menu{position:relative}details.mc-menu>summary{display:grid;place-items:center;min-width:38px;height:38px;padding:0;border:1px solid #d8e2ec;border-radius:10px;background:#fff;color:#475569;cursor:pointer;font-weight:900;list-style:none}details.mc-menu>summary::-webkit-details-marker{display:none}.mc-panel{position:absolute;right:0;z-index:30;width:min(360px,calc(100vw - 36px));margin-top:7px;padding:14px;border:1px solid #dce4ee;border-radius:13px;background:#fff;box-shadow:0 18px 45px rgba(15,35,64,.18)}.mc-card-menu{position:absolute!important;right:9px;top:9px;z-index:4}.mc-card-menu>summary{color:#fff!important;border-color:rgba(255,255,255,.35)!important;background:rgba(15,35,64,.42)!important;backdrop-filter:blur(5px)}.mc-card-menu .mc-panel{top:39px}.mc-form{display:grid;gap:9px}.mc-input{width:100%;height:40px;padding:0 11px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;font-weight:700}.mc-color-row{display:flex;align-items:center;gap:10px;color:#64748b;font-size:12px;font-weight:800}.mc-color{width:46px;height:36px;padding:2px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.mc-form-actions{display:flex;gap:7px}.mc-btn{min-height:37px;padding:7px 13px;border:0;border-radius:9px;color:#fff;background:#0f766e;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.mc-btn.secondary{color:#475569;background:#edf2f7}.mc-btn.danger{background:#dc2626}.mc-divider{height:1px;margin:12px 0;background:#e2e8f0}.mc-create-card{display:grid;place-items:center;height:160px;border:2px dashed #cbd5e1;border-radius:15px;color:#64748b;background:#fff;cursor:pointer;font-weight:900}.mc-create-card:hover{color:#0f766e;border-color:#14b8a6;background:#f0fdfa}
+    @@media(max-width:900px){.mc-page{grid-template-columns:1fr}.mc-sidebar{border-right:0;border-bottom:1px solid #dce4ee}.mc-group-list{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.mc-main{padding:20px 16px 45px}.mc-topbar{grid-template-columns:1fr}.mc-stats{text-align:left}.mc-section-head{align-items:flex-start}.mc-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}
+</style>
+<style>
+    :root{--mc-page-bg:linear-gradient(180deg,rgba(226,239,251,.96) 0,rgba(238,244,251,.96) 360px,#eef4fb 100%)}
+    body:has(main.route-controller-meetings.route-action-index),body:has(main.route-controller-meetings.route-action-index) .v2-shell,body:has(main.route-controller-meetings.route-action-index) .v2-page,main.route-controller-meetings.route-action-index{background:var(--mc-page-bg)!important}
+    .mc-hero{margin-bottom:18px}.mc-page{grid-template-columns:288px minmax(0,1fr);gap:30px;width:100%;min-height:calc(100vh - 88px);padding:18px 0 46px;background:transparent;color:#172033}
+    .mc-sidebar{position:sticky;top:18px;align-self:start;display:grid;gap:20px;padding:18px;border:1px solid rgba(126,164,207,.82);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(244,249,255,.93));box-shadow:0 24px 52px rgba(20,42,73,.16),inset 0 0 0 1px rgba(255,255,255,.72)}
+    .mc-brand{padding:0 2px;font-size:1.05rem}.mc-brand-mark{width:42px;height:42px;border-radius:8px;font-size:18px}.mc-nav{gap:8px}.mc-nav-link{min-height:58px;padding:8px 12px 8px 16px;border:1px solid rgba(191,211,235,.86);border-radius:8px;color:#243044;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(248,252,255,.88));box-shadow:0 10px 22px rgba(28,44,72,.055)}.mc-nav-link:hover,.mc-nav-link.active{color:#084e74;border-color:rgba(20,184,166,.56);background:linear-gradient(135deg,rgba(224,242,254,.96),rgba(204,251,241,.94))}.mc-nav-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:8px;color:#0b63e5;background:#dbeafe}
+    .mc-side-title{display:flex;align-items:center;gap:8px;margin:0 0 10px;color:#52657e;font-size:.78rem}.mc-side-title:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,rgba(100,116,139,.24),transparent)}.mc-group-list{gap:8px}.mc-group-link{display:grid;grid-template-columns:42px minmax(0,1fr);min-height:62px;padding:9px 12px;border:1px solid rgba(211,225,241,.82);border-radius:8px;background:rgba(255,255,255,.9);box-shadow:0 12px 24px rgba(28,44,72,.07)}.mc-avatar{width:42px;height:42px;flex-basis:42px;border-radius:8px}.mc-side-create{margin:0;padding-top:14px;border-top:1px solid rgba(148,163,184,.22)}
+    .mc-main{display:grid;align-content:start;gap:26px;padding:0}.mc-topbar{grid-template-columns:minmax(280px,620px) auto;margin:0;padding:2px 0 8px}.mc-search{height:42px;border:2px solid #bfd1e6;border-radius:8px;box-shadow:0 12px 28px rgba(28,44,72,.1)}.mc-stats{padding:10px 12px;border:1px solid #d7e1ec;border-radius:8px;background:#fff;color:#273246;white-space:nowrap}
+    .mc-section{display:grid;gap:16px;margin:0;padding:18px 20px 24px;border:1px solid rgba(203,213,225,.75);border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.28));box-shadow:0 18px 38px rgba(28,44,72,.06)}.mc-section-head{margin:0}.mc-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}.mc-tile{min-height:150px}
+    .mc-card{display:block;height:auto;min-height:150px;border:1px solid rgba(203,213,225,.88);border-radius:8px;color:#172033;background:#fff;box-shadow:0 16px 30px rgba(28,44,72,.12)}.mc-card:hover{color:#172033;transform:translateY(-4px);box-shadow:0 22px 42px rgba(28,44,72,.18)}.mc-card:before{position:static;display:block;height:74px;background:linear-gradient(135deg,var(--cover),#102443)}.mc-card:after{right:-15px;top:-45px;width:125px;height:125px}.mc-card-content{position:static;display:block;height:auto;padding:14px 16px 12px}.mc-card-label{display:none}.mc-card-title{display:block;max-width:calc(100% - 42px);font-size:1.02rem;line-height:1.35}.mc-card-meta{position:absolute;right:10px;top:10px;padding:5px 9px;border-radius:999px;color:#334155;background:rgba(255,255,255,.94);font-size:.75rem;opacity:1;box-shadow:0 7px 16px rgba(15,23,42,.12)}
+    .mc-card-menu{right:10px!important;top:auto!important;bottom:10px}.mc-card-menu>summary{width:34px!important;min-width:34px!important;height:30px!important;color:#475569!important;border-color:#d7e1ec!important;background:rgba(255,255,255,.94)!important}.mc-card-menu .mc-panel{top:auto;bottom:38px}.mc-create-card{height:150px;border-color:#bfd1e6;border-radius:8px;background:rgba(255,255,255,.74)}
+    .mc-card-menu .mc-panel:has(>.mc-form)>.mc-divider{display:none}.mc-card-menu .mc-panel:has(>.mc-form)>.mc-form .mc-form-actions{justify-content:flex-end;padding-left:118px}.mc-card-menu .mc-panel:has(>.mc-form)>form:last-child{position:absolute;left:14px;bottom:14px;margin:0}.mc-card-menu .mc-panel:has(>.mc-form)>form:last-child .mc-btn.danger{min-width:108px}
+    .mc-section-head .mc-panel:has(>.mc-form)>.mc-divider{display:none}.mc-section-head .mc-panel:has(>.mc-form)>.mc-form .mc-form-actions{justify-content:flex-end;padding-left:104px}.mc-section-head .mc-panel:has(>.mc-form)>form:last-child{position:absolute;left:14px;bottom:14px;margin:0}.mc-section-head .mc-panel:has(>.mc-form)>form:last-child .mc-btn.danger{min-width:94px}
+    .mc-grid>details.mc-menu>.mc-panel .mc-form-actions,.mc-side-create .mc-form-actions{justify-content:flex-end}
+    .mc-sidebar{z-index:100}.mc-main{position:relative;z-index:1}.mc-side-create{position:relative;z-index:110}.mc-side-create .mc-panel{z-index:1200}.mc-section,.mc-tile{z-index:auto}
+    @@media(max-width:900px){.mc-page{grid-template-columns:1fr}.mc-sidebar{position:static}.mc-main{padding:0}.mc-topbar{grid-template-columns:1fr}.mc-stats{text-align:left}.mc-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}}
+</style>
+}
+
+<div class="index-hero mc-hero">
+    <div class="index-hero__content"><span class="index-eyebrow">PROJECTTRACKING</span><h2 class="index-title">Meeting Calendars</h2><p class="index-subtitle">จัดการปฏิทินประชุมแยกตามทีมและพื้นที่ทำงาน</p></div>
+</div>
+
+<div class="mc-page">
+    <aside class="mc-sidebar">
+        <div class="mc-brand"><span class="mc-brand-mark">◫</span><span>Meeting Calendars</span></div>
+        <nav class="mc-nav">
+            <a class="mc-nav-link active" asp-action="Index"><span class="mc-nav-icon">▦</span><span>ปฏิทินประชุม</span></a>
+            <a class="mc-nav-link" asp-controller="Home" asp-action="Index"><span class="mc-nav-icon">⌂</span><span>Dashboard</span></a>
+        </nav>
+        <div class="mc-side-title">พื้นที่ทำงานต่างๆ</div>
+        <div class="mc-group-list">
+            @foreach (var item in Model.Groups.Select((Group, Index) => new { Group, Index }))
+            {
+                var tone = tones[item.Index % tones.Length];
+                var initial = string.IsNullOrWhiteSpace(item.Group.GroupName) ? "?" : item.Group.GroupName.Trim()[0].ToString().ToUpperInvariant();
+                <a class="mc-group-link @tone" href="#meeting-group-@item.Group.GroupId">
+                    <span class="mc-avatar">@initial</span><span class="mc-group-copy"><span class="mc-group-name">@item.Group.GroupName</span><span class="mc-group-meta">@item.Group.Calendars.Count calendar</span></span>
+                </a>
+            }
+        </div>
+        @if (Model.CanCreateGroup)
+        {
+            <div class="mc-side-create"><details class="mc-menu"><summary>＋ เพิ่ม Group</summary><div class="mc-panel" style="left:0;right:auto"><form class="mc-form" asp-action="CreateGroup" method="post">@Html.AntiForgeryToken()<input class="mc-input" name="groupName" maxlength="150" placeholder="ชื่อ Group" required /><div class="mc-form-actions"><button class="mc-btn" type="submit">สร้าง Group</button><button class="mc-btn secondary" type="button" data-close-details>ปิด</button></div></form></div></details></div>
+        }
+    </aside>
+
+    <main class="mc-main">
+        <div class="mc-topbar"><div class="mc-search-wrap"><span class="mc-search-icon">⌕</span><input class="mc-search" type="search" placeholder="ค้นหา Calendar..." data-calendar-search autocomplete="off" /></div><div class="mc-stats">@Model.TotalCalendars calendars · @Model.TotalMeetings meetings</div></div>
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (Model.Groups.Count == 0) { <div class="mc-empty">ยังไม่มี Group สำหรับปฏิทินประชุม</div> }
+
+        @foreach (var item in Model.Groups.Select((Group, Index) => new { Group, Index }))
+        {
+            var group = item.Group; var tone = tones[item.Index % tones.Length];
+            var initial = string.IsNullOrWhiteSpace(group.GroupName) ? "?" : group.GroupName.Trim()[0].ToString().ToUpperInvariant();
+            <section class="mc-section @tone" id="meeting-group-@group.GroupId" data-calendar-section>
+                <div class="mc-section-head"><h2 class="mc-title"><span class="mc-avatar">@initial</span><span>@group.GroupName</span></h2><div class="mc-section-actions"><span class="mc-section-count">@group.Calendars.Count calendar · @group.Calendars.Sum(x => x.Meetings.Count) meetings</span>
+                    @if (Model.CanEditGroup || Model.CanDeleteGroup) { <details class="mc-menu"><summary title="จัดการ Group">•••</summary><div class="mc-panel">@if(Model.CanEditGroup){<form class="mc-form" asp-action="RenameGroup" method="post">@Html.AntiForgeryToken()<input type="hidden" name="groupId" value="@group.GroupId"/><input class="mc-input" name="groupName" value="@group.GroupName" maxlength="150" required/><div class="mc-form-actions"><button class="mc-btn">บันทึกชื่อ</button><button class="mc-btn secondary" type="button" data-close-details>ปิด</button></div></form>}@if(Model.CanEditGroup && Model.CanDeleteGroup){<div class="mc-divider"></div>}@if(Model.CanDeleteGroup){<form asp-action="DeleteGroup" method="post" onsubmit="return confirm('ซ่อน Group และ Calendar ทั้งหมดหรือไม่?')">@Html.AntiForgeryToken()<input type="hidden" name="groupId" value="@group.GroupId"/><button class="mc-btn danger" type="submit">ลบ Group</button></form>}</div></details> }
+                </div></div>
+                <div class="mc-grid">
+                    @foreach (var calendar in group.Calendars)
+                    {
+                        <div class="mc-tile" data-calendar-card data-calendar-text="@($"{group.GroupName} {calendar.CalendarName}")">
+                            <a class="mc-card" asp-action="Schedule" asp-route-id="@calendar.CalendarId" style="--cover:@calendar.CoverColor"><span class="mc-card-content"><span><span class="mc-card-label">Meeting Calendar</span><span class="mc-card-title">@calendar.CalendarName</span></span><span class="mc-card-meta">@calendar.Meetings.Count meetings</span></span></a>
+                            @if(Model.CanEditCalendar || Model.CanDeleteCalendar){<details class="mc-menu mc-card-menu"><summary title="จัดการ Calendar">•••</summary><div class="mc-panel">@if(Model.CanEditCalendar){<form class="mc-form" asp-action="RenameCalendar" method="post">@Html.AntiForgeryToken()<input type="hidden" name="calendarId" value="@calendar.CalendarId"/><input class="mc-input" name="calendarName" value="@calendar.CalendarName" maxlength="150" required/><label class="mc-color-row">สีปก <input class="mc-color" type="color" name="coverColor" value="@calendar.CoverColor"/></label><div class="mc-form-actions"><button class="mc-btn">บันทึก</button><button class="mc-btn secondary" type="button" data-close-details>ปิด</button></div></form>}@if(Model.CanEditCalendar && Model.CanDeleteCalendar){<div class="mc-divider"></div>}@if(Model.CanDeleteCalendar){<form asp-action="DeleteCalendar" method="post" onsubmit="return confirm('ซ่อน Calendar นี้หรือไม่?')">@Html.AntiForgeryToken()<input type="hidden" name="calendarId" value="@calendar.CalendarId"/><button class="mc-btn danger">ลบ Calendar</button></form>}</div></details>}
+                        </div>
+                    }
+                    @if(Model.CanCreateCalendar){<details class="mc-menu"><summary class="mc-create-card">＋ สร้าง Calendar ใหม่</summary><div class="mc-panel" style="left:0;right:auto"><form class="mc-form" asp-action="CreateCalendar" method="post">@Html.AntiForgeryToken()<input type="hidden" name="groupId" value="@group.GroupId"/><input class="mc-input" name="calendarName" maxlength="150" placeholder="ชื่อ Calendar" required/><label class="mc-color-row">สีปก <input class="mc-color" type="color" name="coverColor" value="@colors[item.Index % colors.Length]"/></label><div class="mc-form-actions"><button class="mc-btn">สร้าง Calendar</button><button class="mc-btn secondary" type="button" data-close-details>ปิด</button></div></form></div></details>}
+                </div>
+            </section>
+        }
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const search = document.querySelector('[data-calendar-search]');
+    search?.addEventListener('input', function () {
+        const keyword = this.value.trim().toLowerCase();
+        document.querySelectorAll('[data-calendar-card]').forEach(card => card.hidden = !((card.dataset.calendarText || '').toLowerCase().includes(keyword)));
+        document.querySelectorAll('[data-calendar-section]').forEach(section => {
+            const cards = Array.from(section.querySelectorAll('[data-calendar-card]'));
+            section.hidden = keyword.length > 0 && cards.length > 0 && cards.every(card => card.hidden);
+        });
+    });
+    document.querySelectorAll('[data-close-details]').forEach(button => button.addEventListener('click', () => button.closest('details')?.removeAttribute('open')));
+    document.addEventListener('click', function(event){ document.querySelectorAll('details.mc-menu[open]').forEach(detail => { if(!detail.contains(event.target)) detail.removeAttribute('open'); }); });
+});
+</script>

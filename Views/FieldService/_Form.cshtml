@@ -1,0 +1,110 @@
+@model ProjectTracking.ViewModels.FieldServiceFormViewModel
+@{
+    string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "";
+}
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<div class="row g-3">
+    <div class="col-lg-8"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+    <div class="col-lg-4"><label asp-for="ServiceType" class="form-label"></label><select asp-for="ServiceType" class="form-select"><option value="MA">MA</option><option value="PM">Preventive Maintenance</option><option value="SUPPORT">On-site Support</option><option value="TRAINING">Training</option><option value="OTHER">อื่น ๆ</option></select></div>
+    <div class="col-12"><label asp-for="CoopId" class="form-label"></label><select asp-for="CoopId" asp-items="Model.Cooperatives" class="form-select"><option value="">-- เลือกสหกรณ์ --</option></select><span asp-validation-for="CoopId" class="text-danger"></span></div>
+    <div class="col-md-3"><label asp-for="VisitDate" class="form-label"></label><input asp-for="VisitDate" type="text" value="@ThaiDate(Model.VisitDate)" class="form-control thai-date" placeholder="วัน/เดือน/พ.ศ." /><span asp-validation-for="VisitDate" class="text-danger"></span></div>
+    <div class="col-md-3"><label asp-for="EndVisitDate" class="form-label"></label><input asp-for="EndVisitDate" type="text" value="@ThaiDate(Model.EndVisitDate)" class="form-control thai-date" placeholder="วัน/เดือน/พ.ศ." /><span asp-validation-for="EndVisitDate" class="text-danger"></span></div>
+    <div class="col-md-3"><label asp-for="StartTime" class="form-label"></label><input asp-for="StartTime" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="EndTime" class="form-label"></label><input asp-for="EndTime" class="form-control" /><span asp-validation-for="EndTime" class="text-danger"></span></div>
+    <div class="col-12"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option value="PLANNED">วางแผนแล้ว</option><option value="IN_PROGRESS">กำลังดำเนินการ</option><option value="COMPLETED">เสร็จสิ้น</option><option value="CANCELLED">ยกเลิก</option></select></div>
+    <div class="col-md-6"><label asp-for="ContactName" class="form-label"></label><input asp-for="ContactName" class="form-control" /></div>
+    <div class="col-md-6"><label asp-for="ContactPhone" class="form-label"></label><input asp-for="ContactPhone" class="form-control" /></div>
+    <div class="col-12">
+        <label asp-for="AssigneeIds" class="form-label"></label>
+        <div class="meeting-attendee-picker" data-employee-picker>
+            <div class="meeting-attendee-picker__controls">
+                <select class="form-select" data-employee-select>
+                    <option value="">-- เลือกพนักงาน --</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Value" data-label="@employee.Text" data-selected="@(employee.Selected ? "true" : "false")">@employee.Text</option>
+                    }
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-employee-add>เพิ่ม</button>
+            </div>
+            <div class="meeting-selected-attendees" data-employee-list></div>
+            <div data-employee-inputs></div>
+        </div>
+        <div class="form-text">เลือกทีละคน กดเพิ่ม และลบรายชื่อเพื่อเลือกใหม่ได้</div>
+    </div>
+    <div class="col-12"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="4"></textarea></div>
+    <div class="col-12"><label asp-for="ServiceResult" class="form-label"></label><textarea asp-for="ServiceResult" class="form-control" rows="4"></textarea></div>
+    <div class="col-md-4"><label asp-for="NextVisitDate" class="form-label"></label><input asp-for="NextVisitDate" type="text" value="@ThaiDate(Model.NextVisitDate)" class="form-control thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+</div>
+
+<script>
+(function () {
+    function thaiDateToIso(value) {
+        const match = (value || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!match) return value;
+        let year = Number(match[3]); if (year > 2400) year -= 543;
+        return `${year}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+    }
+    const fieldServiceForm = document.querySelector('form[action*="FieldService"], main.route-controller-fieldservice form');
+    fieldServiceForm?.addEventListener('submit', function () {
+        fieldServiceForm.querySelectorAll('input.thai-date').forEach(input => input.value = thaiDateToIso(input.value));
+    }, true);
+
+    const picker = document.querySelector('[data-employee-picker]');
+    if (!picker || picker.dataset.ready === 'true') return;
+    picker.dataset.ready = 'true';
+
+    const select = picker.querySelector('[data-employee-select]');
+    const addButton = picker.querySelector('[data-employee-add]');
+    const list = picker.querySelector('[data-employee-list]');
+    const inputs = picker.querySelector('[data-employee-inputs]');
+    const selected = new Map();
+    const findOption = value => Array.from(select.options).find(option => option.value === value);
+
+    function syncInputs() {
+        inputs.innerHTML = '';
+        selected.forEach((label, id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'AssigneeIds'; input.value = id;
+            inputs.appendChild(input);
+        });
+    }
+
+    function render() {
+        list.innerHTML = '';
+        if (selected.size === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'meeting-attendee-empty';
+            empty.textContent = 'ยังไม่ได้เลือกพนักงาน';
+            list.appendChild(empty);
+        } else {
+            selected.forEach((label, id) => {
+                const chip = document.createElement('span'); chip.className = 'meeting-selected-attendee';
+                const text = document.createElement('span'); text.textContent = label;
+                const remove = document.createElement('button'); remove.type = 'button';
+                remove.className = 'meeting-attendee-remove'; remove.dataset.removeEmployee = id;
+                remove.setAttribute('aria-label', `ลบ ${label}`); remove.textContent = '×';
+                chip.append(text, remove); list.appendChild(chip);
+            });
+        }
+        syncInputs();
+    }
+
+    function addEmployee(value) {
+        if (!value || selected.has(value)) return;
+        const option = findOption(value); if (!option) return;
+        selected.set(value, option.dataset.label || option.textContent.trim());
+        option.disabled = true; select.value = ''; render();
+    }
+
+    addButton.addEventListener('click', () => addEmployee(select.value));
+    select.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addEmployee(select.value); } });
+    list.addEventListener('click', event => {
+        const button = event.target.closest('[data-remove-employee]'); if (!button) return;
+        const id = button.dataset.removeEmployee; selected.delete(id);
+        const option = findOption(id); if (option) option.disabled = false; render();
+    });
+    Array.from(select.options).filter(option => option.dataset.selected === 'true').forEach(option => addEmployee(option.value));
+    render();
+})();
+</script>

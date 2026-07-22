@@ -219,6 +219,8 @@ Directory.CreateDirectory(uploadsPath);
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
+await EnsureMeetingGroupTablesAsync(app.Services);
+await EnsureFieldServiceTablesAsync(app.Services);
 await EnsureProjectPmEmpIdColumnAsync(app.Services);
 await EnsureStatusApprovalRequestTableAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
@@ -313,6 +315,181 @@ app.MapControllerRoute(
 );
 
 app.Run();
+
+static async Task EnsureFieldServiceTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `field_service_visits` (
+              `visit_id` int NOT NULL AUTO_INCREMENT,
+              `coop_id` int NOT NULL,
+              `title` varchar(200) NOT NULL,
+              `service_type` varchar(50) NOT NULL DEFAULT 'MA',
+              `visit_date` date NOT NULL,
+              `end_visit_date` date NULL,
+              `start_time` time NULL,
+              `end_time` time NULL,
+              `location` varchar(255) NULL,
+              `contact_name` varchar(150) NULL,
+              `contact_phone` varchar(50) NULL,
+              `description` text NULL,
+              `service_result` text NULL,
+              `status` varchar(30) NOT NULL DEFAULT 'PLANNED',
+              `next_visit_date` date NULL,
+              `created_by` int NULL,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`visit_id`),
+              KEY `idx_field_service_coop` (`coop_id`),
+              KEY `idx_field_service_date_status` (`visit_date`,`status`),
+              CONSTRAINT `fk_field_service_coop` FOREIGN KEY (`coop_id`) REFERENCES `cnt_m_coop` (`coop_id`) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+            CREATE TABLE IF NOT EXISTS `field_service_assignees` (
+              `assignee_id` int NOT NULL AUTO_INCREMENT,
+              `visit_id` int NOT NULL,
+              `emp_id` int NOT NULL,
+              PRIMARY KEY (`assignee_id`),
+              UNIQUE KEY `uq_field_service_assignee` (`visit_id`,`emp_id`),
+              KEY `idx_field_service_assignee_emp` (`emp_id`),
+              CONSTRAINT `fk_field_service_assignee_visit` FOREIGN KEY (`visit_id`) REFERENCES `field_service_visits` (`visit_id`) ON DELETE CASCADE,
+              CONSTRAINT `fk_field_service_assignee_emp` FOREIGN KEY (`emp_id`) REFERENCES `employee` (`emp_id`) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+            CREATE TABLE IF NOT EXISTS `field_service_attachments` (
+              `attachment_id` int NOT NULL AUTO_INCREMENT,
+              `visit_id` int NOT NULL,
+              `file_name` varchar(255) NOT NULL,
+              `file_path` varchar(500) NOT NULL,
+              `content_type` varchar(150) NULL,
+              `file_size` bigint NOT NULL DEFAULT 0,
+              `uploaded_by` int NULL,
+              `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`attachment_id`),
+              KEY `idx_field_service_attachment_visit` (`visit_id`),
+              KEY `idx_field_service_attachment_uploaded` (`uploaded_at`),
+              CONSTRAINT `fk_field_service_attachment_visit` FOREIGN KEY (`visit_id`) REFERENCES `field_service_visits` (`visit_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'field_service_visits'
+              AND COLUMN_NAME = 'end_visit_date';";
+        var hasEndVisitDate = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasEndVisitDate)
+        {
+            command.CommandText = "ALTER TABLE `field_service_visits` ADD COLUMN `end_visit_date` date NULL AFTER `visit_date`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `field_service_visits`
+            SET `end_visit_date` = `visit_date`
+            WHERE `end_visit_date` IS NULL;";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureMeetingGroupTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `meeting_groups` (
+              `group_id` int NOT NULL AUTO_INCREMENT,
+              `group_name` varchar(150) NOT NULL,
+              `sort_order` int NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`group_id`),
+              KEY `idx_meeting_groups_active_sort` (`is_active`,`sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+            CREATE TABLE IF NOT EXISTS `meeting_calendars` (
+              `calendar_id` int NOT NULL AUTO_INCREMENT,
+              `group_id` int NOT NULL,
+              `calendar_name` varchar(150) NOT NULL,
+              `cover_color` varchar(20) NOT NULL DEFAULT '#14b8a6',
+              `sort_order` int NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`calendar_id`),
+              KEY `idx_meeting_calendars_group_sort` (`group_id`,`is_active`,`sort_order`),
+              CONSTRAINT `fk_meeting_calendars_group` FOREIGN KEY (`group_id`)
+                REFERENCES `meeting_groups` (`group_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `meeting_groups` (`group_name`,`sort_order`,`is_active`)
+            SELECT 'General', 1, 1
+            FROM DUAL
+            WHERE NOT EXISTS (SELECT 1 FROM `meeting_groups`);
+
+            INSERT INTO `meeting_calendars` (`group_id`,`calendar_name`,`cover_color`,`sort_order`,`is_active`)
+            SELECT g.`group_id`, 'ปฏิทินประชุมหลัก', '#14b8a6', 1, 1
+            FROM `meeting_groups` g
+            WHERE NOT EXISTS (SELECT 1 FROM `meeting_calendars`)
+            ORDER BY g.`group_id` LIMIT 1;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'meetings' AND COLUMN_NAME = 'calendar_id';";
+        var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!exists)
+        {
+            command.CommandText = "ALTER TABLE `meetings` ADD COLUMN `calendar_id` int NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `meetings`
+            SET `calendar_id` = (SELECT `calendar_id` FROM `meeting_calendars` ORDER BY `calendar_id` LIMIT 1)
+            WHERE `calendar_id` IS NULL OR `calendar_id` = 0;
+            ALTER TABLE `meetings` MODIFY COLUMN `calendar_id` int NOT NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'meetings'
+              AND CONSTRAINT_NAME = 'fk_meetings_calendar';";
+        var hasFk = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!hasFk)
+        {
+            command.CommandText = @"
+                ALTER TABLE `meetings` ADD CONSTRAINT `fk_meetings_calendar`
+                FOREIGN KEY (`calendar_id`) REFERENCES `meeting_calendars` (`calendar_id`) ON DELETE RESTRICT;";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
+}
 
 static async Task EnsureLoginUserProfileColumnAsync(IServiceProvider services)
 {

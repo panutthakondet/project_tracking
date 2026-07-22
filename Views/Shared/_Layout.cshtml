@@ -1841,7 +1841,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
         (string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase) ||
          string.Equals(layoutAction, "Guest", StringComparison.OrdinalIgnoreCase));
     var isStandaloneCalendarPage =
-        (string.Equals(layoutController, "Meetings", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
+        (string.Equals(layoutController, "Meetings", StringComparison.OrdinalIgnoreCase) &&
+            (string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase) || string.Equals(layoutAction, "Schedule", StringComparison.OrdinalIgnoreCase))) ||
         (string.Equals(layoutController, "PhaseCalendar", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
         (string.Equals(layoutController, "PhaseWorkload", StringComparison.OrdinalIgnoreCase) && string.Equals(layoutAction, "Index", StringComparison.OrdinalIgnoreCase)) ||
         isRequirementBoardPage ||
@@ -1970,13 +1971,13 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
 	    var canEmployees = CanMenu("Employees.Index")
                           || CanMenu("Employees.LineOverdue")
-	                      || CanMenu("PhaseWorkload.Index")
-                          || CanMenu("Meetings.Index");
+	                      || CanMenu("PhaseWorkload.Index");
 
 	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
     var canRequirementBoard = CanMenu("RequirementBoard.Index");
-    var canMeetingRoom = CanMenu("MeetingRoom.Index");
+    var canMeetingCalendars = CanMenu("Meetings.Index") || CanMenu("MeetingRoom.Index");
+    var canFieldService = CanMenu("FieldService.Index") || CanMenu("FieldService.Calendar") || CanMenu("FieldService.Result") || CanMenu("FieldService.Report");
 
 	    var canReports = CanMenu("Reports.Index");
 
@@ -2082,13 +2083,56 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                             </li>
                         }
 
-                        @if (canMeetingRoom)
+                        @if (canMeetingCalendars)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link @(controller=="MeetingRoom" ? "active-menu" : "")" asp-controller="MeetingRoom" asp-action="Index">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="Meetings" || controller=="MeetingRoom" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown" title="Meetings">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
-                                    <span class="nav-label">Meeting Room</span>
+                                    <span class="nav-label">Meetings</span>
                                 </a>
+                                <ul class="dropdown-menu shadow">
+                                    <li><h6 class="dropdown-header">Meeting Calendars</h6></li>
+                                    @if (CanMenu("Meetings.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">Meeting Calendars</a></li>
+                                    }
+                                    @if (CanMenu("MeetingRoom.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="MeetingRoom" asp-action="Index">Meeting Room</a></li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
+                        @if (canFieldService)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(controller=="FieldService" ? "active-menu" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown" title="Field Service">
+                                    <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/field-service.svg" alt="" /></span>
+                                    <span class="nav-label">Field Service</span>
+                                </a>
+                                <ul class="dropdown-menu shadow">
+                                    <li><h6 class="dropdown-header">Field Service</h6></li>
+                                    @if (CanMenu("FieldService.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Index">MA Site Visits</a></li>
+                                    }
+                                    @if (CanMenu("FieldService.Calendar"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Schedule">Work Calendar</a></li>
+                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Calendar">Service Calendar</a></li>
+                                    }
+                                    @if (CanMenu("FieldService.Result"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Results">ส่งผลการปฏิบัติงาน</a></li>
+                                    }
+                                    @if (CanMenu("FieldService.Report"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Report">Service Report</a></li>
+                                    }
+                                </ul>
                             </li>
                         }
 
@@ -2116,15 +2160,6 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     @if (CanMenu("PhaseWorkload.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="PhaseWorkload" asp-action="Index">ปริมาณงานทีม</a></li>
-                                    }
-                                    @if (CanMenu("Meetings.Index"))
-                                    {
-                                        @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
-                                        {
-                                            <li><hr class="dropdown-divider" /></li>
-                                        }
-                                        <li><h6 class="dropdown-header">Meetings</h6></li>
-                                        <li><a class="dropdown-item" asp-controller="Meetings" asp-action="Index">Meetings</a></li>
                                     }
                                 </ul>
                             </li>
@@ -2200,7 +2235,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 	                                    ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/test-scenarios.svg" alt="" /></span>
-                                    <span class="nav-label">Edit &amp; Scenario</span>
+                                    <span class="nav-label">Quality</span>
                                 </a>
                                 <ul class="dropdown-menu">
                                     @if (canTestScenarios)
@@ -2261,7 +2296,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                 <a class="nav-link dropdown-toggle @(((controller=="Attendance" && action!="Map") || controller=="Followups") ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
-                                    <span class="nav-label">Follow &amp; Atten</span>
+                                    <span class="nav-label">Work Tracking</span>
                                 </a>
                                 <ul class="dropdown-menu">
                                     @if (CanMenu("Attendance.Index"))
@@ -2310,7 +2345,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                    asp-controller="Reports"
                                    asp-action="Index">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/reports.svg" alt="" /></span>
-                                    <span class="nav-label">Reports Center</span>
+                                    <span class="nav-label">Report</span>
                                 </a>
                             </li>
                         }

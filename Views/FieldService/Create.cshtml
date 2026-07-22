@@ -1,0 +1,7 @@
+@model ProjectTracking.ViewModels.FieldServiceFormViewModel
+@{ ViewData["Title"] = "สร้างงานออกไซต์"; }
+<div class="index-hero pt-form-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">เพิ่มงานออกไซต์ MA</h2><p class="index-subtitle">บันทึกแผนงานบริการที่ไม่เกี่ยวข้องกับโครงการ</p></div></div>
+<div class="card shadow-sm pt-form-card"><div class="card-body">
+<form asp-action="Create" method="post" onsubmit="return confirm('คุณต้องการสร้างงานออกไซต์นี้หรือไม่?');">@Html.AntiForgeryToken()<partial name="_Form" model="Model" /><div class="d-flex justify-content-end gap-2 mt-4"><a asp-action="Index" class="btn btn-outline-secondary">ปิด</a><button class="btn btn-primary px-4" type="submit">บันทึก</button></div></form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

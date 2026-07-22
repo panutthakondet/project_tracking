@@ -1,0 +1,50 @@
+@model IEnumerable<FieldServiceVisit>
+@{
+    ViewData["Title"] = "ส่งผลการปฏิบัติงาน";
+    string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "-";
+    string StatusText(string status) => status switch { "PLANNED" => "รอเข้าปฏิบัติงาน", "IN_PROGRESS" => "รอส่งผลเพิ่มเติม", "COMPLETED" => "ส่งผลแล้ว", "CANCELLED" => "ยกเลิก", _ => status };
+    string Profile(Employee? employee) {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+        path = path.Trim(); if (path.StartsWith("~/")) path = path[1..];
+        return path.StartsWith("/") ? path : "/" + path;
+    }
+}
+
+<div class="index-hero">
+    <div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">ส่งผลการปฏิบัติงาน</h2><p class="index-subtitle">งานเข้าไซต์ที่มอบหมายให้คุณ สำหรับบันทึกผล รูปภาพ และเอกสารประกอบ</p></div>
+    <div class="index-actions"><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a></div>
+</div>
+
+@if(TempData["Success"] is string success){<div class="alert alert-success">@success</div>}
+
+<form method="get" class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card field-service-filter-card">
+    <div class="card-body"><div class="row g-3 align-items-end">
+        <div class="col-md-7"><label class="form-label fw-bold">ค้นหา</label><input name="q" value="@ViewBag.Query" class="form-control form-control-lg" placeholder="ชื่องานหรือสหกรณ์" /></div>
+        <div class="col-md-3"><label class="form-label fw-bold">สถานะ</label><select name="status" class="form-select form-select-lg"><option value="">ทั้งหมด</option><option value="PLANNED" selected="@(ViewBag.Status=="PLANNED")">รอเข้าปฏิบัติงาน</option><option value="IN_PROGRESS" selected="@(ViewBag.Status=="IN_PROGRESS")">รอส่งผลเพิ่มเติม</option><option value="COMPLETED" selected="@(ViewBag.Status=="COMPLETED")">ส่งผลแล้ว</option></select></div>
+        <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary btn-lg flex-fill">ค้นหา</button><a asp-action="Results" class="btn btn-outline-secondary btn-lg">ล้าง</a></div>
+    </div></div>
+</form>
+
+<div class="card shadow-sm border-0 rounded-4 field-service-list-card">
+    <div class="card-header border-0 px-4 pt-4 pb-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fw-bold">รายการรอส่งผล</h5><span class="badge">@Model.Count() งาน</span></div>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0 field-service-table field-service-results-table">
+        <thead><tr><th>งาน</th><th>ช่วงวันที่</th><th>พนักงาน</th><th>สถานะ</th><th>ไฟล์แนบ</th><th class="text-end">ดำเนินการ</th></tr></thead>
+        <tbody>
+        @foreach(var coopGroup in Model.GroupBy(x=>new{x.CoopId,Name=x.Coop?.CoopName??"ไม่ระบุสหกรณ์"}).OrderBy(x=>x.Key.Name)){
+            <tr class="field-service-coop-group-row"><td colspan="6"><div><span>🏢</span><strong>@coopGroup.Key.Name</strong><span class="badge">@coopGroup.Count() งาน</span></div></td></tr>
+            @foreach(var item in coopGroup.OrderByDescending(x=>x.VisitDate)){
+                <tr>
+                    <td><strong>@item.Title</strong></td>
+                    <td class="text-nowrap"><strong>@ThaiDate(item.VisitDate)</strong><div class="small opacity-75">ถึง @ThaiDate(item.EndVisitDate??item.VisitDate)</div></td>
+                    <td><div class="field-service-result-people">@foreach(var employee in item.Assignees.Take(4)){<img src="@Profile(employee.Employee)" alt="@employee.Employee?.EmpName" title="@employee.Employee?.EmpName" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />}<span>@(item.Assignees.Any()?string.Join(", ",item.Assignees.Select(x=>x.Employee?.EmpName)):"ยังไม่กำหนดพนักงาน")</span></div></td>
+                    <td><span class="field-service-status" data-status="@item.Status">@StatusText(item.Status)</span></td>
+                    <td><span class="field-service-file-count">@item.Attachments.Count ไฟล์</span></td>
+                    <td class="text-end"><a asp-action="SubmitResult" asp-route-id="@item.VisitId" class="btn btn-sm btn-primary">@(item.Status=="COMPLETED"?"แก้ไขผล":"ส่งผล")</a></td>
+                </tr>
+            }
+        }
+        @if(!Model.Any()){<tr><td colspan="6" class="text-center opacity-75 py-5">ไม่พบงาน</td></tr>}
+        </tbody>
+    </table></div>
+</div>

@@ -28,6 +28,13 @@ namespace ProjectTracking.Data
         public DbSet<Meeting> Meetings { get; set; }
         public DbSet<MeetingAttendee> MeetingAttendees { get; set; }
         public DbSet<MeetingEmailNotification> MeetingEmailNotifications { get; set; }
+        public DbSet<MeetingGroup> MeetingGroups { get; set; }
+        public DbSet<MeetingCalendar> MeetingCalendars { get; set; }
+
+        // ===== Field Service (non-project MA site work) =====
+        public DbSet<FieldServiceVisit> FieldServiceVisits { get; set; }
+        public DbSet<FieldServiceAssignee> FieldServiceAssignees { get; set; }
+        public DbSet<FieldServiceAttachment> FieldServiceAttachments { get; set; }
 
         // ===== Issues =====
         public DbSet<ProjectIssue> ProjectIssues { get; set; }
@@ -99,6 +106,20 @@ namespace ProjectTracking.Data
             // =========================
             // MEETINGS
             // =========================
+            modelBuilder.Entity<MeetingGroup>(entity =>
+            {
+                entity.HasMany(x => x.Calendars).WithOne(x => x.Group)
+                    .HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder });
+            });
+
+            modelBuilder.Entity<MeetingCalendar>(entity =>
+            {
+                entity.HasMany(x => x.Meetings).WithOne(x => x.Calendar)
+                    .HasForeignKey(x => x.CalendarId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(x => new { x.GroupId, x.IsActive, x.SortOrder });
+            });
+
             modelBuilder.Entity<Meeting>(entity =>
             {
                 entity.ToTable("meetings");
@@ -158,8 +179,34 @@ namespace ProjectTracking.Data
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(m => m.ProjectId);
+                entity.HasIndex(m => m.CalendarId);
 
                 entity.HasIndex(m => m.MeetingDate);
+            });
+
+            modelBuilder.Entity<FieldServiceVisit>(entity =>
+            {
+                entity.HasOne(x => x.Coop).WithMany()
+                    .HasForeignKey(x => x.CoopId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(x => x.Assignees).WithOne(x => x.Visit)
+                    .HasForeignKey(x => x.VisitId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(x => x.Attachments).WithOne(x => x.Visit)
+                    .HasForeignKey(x => x.VisitId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.VisitDate, x.Status });
+                entity.HasIndex(x => x.CoopId);
+            });
+
+            modelBuilder.Entity<FieldServiceAssignee>(entity =>
+            {
+                entity.HasOne(x => x.Employee).WithMany()
+                    .HasForeignKey(x => x.EmpId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(x => new { x.VisitId, x.EmpId }).IsUnique();
+            });
+
+            modelBuilder.Entity<FieldServiceAttachment>(entity =>
+            {
+                entity.HasIndex(x => x.VisitId);
+                entity.HasIndex(x => x.UploadedAt);
             });
 
             modelBuilder.Entity<MeetingAttendee>(entity =>

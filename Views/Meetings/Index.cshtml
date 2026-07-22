@@ -1013,17 +1013,17 @@
                 <span class="calendar-heading__date" id="calendarThaiDate">วันศุกร์ ที่ 19 มิถุนายน 2569</span>
                 <div>
                     <span class="calendar-heading__eyebrow">Meetings Calendar</span>
-                    <strong class="calendar-heading__title">ปฏิทินประชุม</strong>
-                    <span class="calendar-heading__subtitle">ตารางนัดหมายทีม ลูกค้า และโครงการ</span>
+                    <strong class="calendar-heading__title">@(ViewBag.CalendarName ?? "ปฏิทินประชุม")</strong>
+                    <span class="calendar-heading__subtitle">@(ViewBag.GroupName ?? "ตารางนัดหมายทีม ลูกค้า และโครงการ")</span>
                 </div>
             </div>
             <div class="calendar-heading__meta" aria-label="Calendar actions">
-                <a class="calendar-heading__action" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
-                    Dashboard
+                <a class="calendar-heading__action" asp-controller="Meetings" asp-action="Index" title="กลับรายการปฏิทิน">
+                    Calendars
                 </a>
                 @if (CanMenu("Meetings.Create"))
                 {
-                    <a class="calendar-heading__action primary" href="/Meetings/Create" title="สร้างนัดประชุม">
+                    <a class="calendar-heading__action primary" href="/Meetings/Create?calendarId=@ViewBag.CalendarId" title="สร้างนัดประชุม">
                         สร้างนัดประชุม
                     </a>
                 }
@@ -1066,6 +1066,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const meetingCalendarId = @ViewBag.CalendarId;
     const calendarEl = document.getElementById('calendar');
     const compactCalendarMedia = window.matchMedia('(max-width: 900px)');
     const isCompactCalendar = () => compactCalendarMedia.matches;
@@ -1207,11 +1208,11 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         // ดึงข้อมูลจาก controller: /Meetings/List
-        events: '/Meetings/List',
+        events: '/Meetings/List?calendarId=' + meetingCalendarId,
 
         dateClick: function (info) {
             // ไปหน้าสร้างนัด โดยส่ง date ไปด้วย
-            window.location.href = '/Meetings/Create?date=' + info.dateStr;
+            window.location.href = '/Meetings/Create?calendarId=' + meetingCalendarId + '&date=' + info.dateStr;
         },
 
         eventClick: function (info) {
@@ -1438,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMeetingList();
 
     function loadMeetingList() {
-        fetch('/Meetings/List')
+        fetch('/Meetings/List?calendarId=' + meetingCalendarId)
             .then(r => r.json())
             .then(data => {
                 const container = document.getElementById('meetingListTable');

@@ -2176,3 +2176,121 @@ html body .v2-shell-requirement-board .rb-modal .rb-description-toolbar .rb-desc
   overflow: auto;
   z-index: 1058 !important;
 }
+
+/* Meetings calendar library: readable Thai type after global title/meta rules. */
+html body main.route-controller-meetings.route-action-index .mc-page,
+html body main.route-controller-meetings.route-action-index .mc-page :where(*) {
+  font-family: "Prompt", "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif !important;
+  font-synthesis: none !important;
+  -webkit-text-stroke: 0 transparent !important;
+}
+html body main.route-controller-meetings.route-action-index :is(.mc-brand,.mc-title,.mc-card-title,.mc-group-name) {
+  color: #172033 !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+html body main.route-controller-meetings.route-action-index :is(.mc-nav-link,.mc-create-card,.mc-btn,.mc-side-title) {
+  font-weight: 500 !important;
+}
+html body main.route-controller-meetings.route-action-index :is(.mc-group-meta,.mc-section-count,.mc-card-meta,.mc-stats) {
+  font-weight: 400 !important;
+}
+
+/* Field Service: one predictable type scale across every action and viewport. */
+html body main.route-controller-fieldservice {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+html body main.route-controller-fieldservice .index-hero .index-title {
+  font-size: clamp(26px, 2.35vw, 32px) !important;
+  line-height: 1.25 !important;
+}
+
+html body main.route-controller-fieldservice .index-hero .index-subtitle {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+html body main.route-controller-fieldservice :is(h3, .h3) { font-size: 22px !important; line-height: 1.35 !important; }
+html body main.route-controller-fieldservice :is(h4, .h4) { font-size: 18px !important; line-height: 1.4 !important; }
+html body main.route-controller-fieldservice :is(h5, .h5) { font-size: 17px !important; line-height: 1.4 !important; }
+
+html body main.route-controller-fieldservice :is(label, .form-label) {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .form-control,
+  .form-select,
+  .pt-search-select__input,
+  .pt-search-select__option,
+  textarea,
+  select,
+  option
+) {
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+
+html body main.route-controller-fieldservice :is(.btn, button.btn) {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+
+html body main.route-controller-fieldservice :is(.badge, [class*="-status"]) {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .field-service-table th,
+  .field-service-table td,
+  .list-group-item,
+  .field-service-detail-item,
+  .field-service-long-text,
+  .field-service-system-info,
+  .field-service-result-group,
+  .field-service-schedule-row
+) {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+html body main.route-controller-fieldservice :is(.small, small, .form-text, .opacity-75.small) {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+html body main.route-controller-fieldservice .display-6 {
+  font-size: 34px !important;
+  line-height: 1.2 !important;
+}
+
+html body main.route-controller-fieldservice .fc .fc-toolbar-title {
+  font-size: 21px !important;
+  line-height: 1.3 !important;
+}
+
+html body main.route-controller-fieldservice .fc :is(.fc-button, .fc-col-header-cell-cushion, .fc-daygrid-day-number) {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+html body main.route-controller-fieldservice .fc .fc-event {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+@media (max-width: 767.98px) {
+  html body main.route-controller-fieldservice { font-size: 14px !important; }
+  html body main.route-controller-fieldservice .index-hero .index-title { font-size: 25px !important; }
+  html body main.route-controller-fieldservice .index-hero .index-subtitle { font-size: 13px !important; }
+  html body main.route-controller-fieldservice :is(h3, .h3) { font-size: 20px !important; }
+  html body main.route-controller-fieldservice :is(h4, .h4) { font-size: 17px !important; }
+  html body main.route-controller-fieldservice :is(h5, .h5) { font-size: 16px !important; }
+  html body main.route-controller-fieldservice :is(.form-control, .form-select, .pt-search-select__input, .pt-search-select__option) { font-size: 14px !important; }
+  html body main.route-controller-fieldservice .display-6 { font-size: 30px !important; }
+  html body main.route-controller-fieldservice .fc .fc-toolbar-title { font-size: 18px !important; }
+}

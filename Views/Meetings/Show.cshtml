@@ -53,7 +53,7 @@
         <div class="alert alert-danger" style="font-weight:600;">
             ❌ ไม่มีสิทธิ์เข้าหน้านี้
         </div>
-        <a class="btn btn-secondary" asp-controller="Meetings" asp-action="Index">← กลับ</a>
+        <a class="btn btn-secondary" asp-controller="Meetings" asp-action="Schedule" asp-route-id="@Model.CalendarId">← กลับ</a>
     </div>
     return;
 }
@@ -67,7 +67,7 @@
         </div>
 
         <div class="meeting-detail-actions index-actions">
-            <a class="btn btn-outline-light btn-pill" asp-controller="Meetings" asp-action="Index" title="กลับไปหน้าปฏิทิน">กลับปฏิทิน</a>
+            <a class="btn btn-outline-light btn-pill" asp-controller="Meetings" asp-action="Schedule" asp-route-id="@Model.CalendarId" title="กลับไปหน้าปฏิทิน">กลับปฏิทิน</a>
             @if (CanMenu("Meetings.Edit"))
             {
                 <a class="btn btn-primary btn-pill" asp-controller="Meetings" asp-action="Edit" asp-route-id="@Model.Id" title="แก้ไขการประชุม">แก้ไข</a>

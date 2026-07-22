@@ -19,7 +19,7 @@
         </div>
         <div class="index-actions">
             <a class="btn btn-outline-light btn-pill" href="/Meetings/Show/@Model.Id">กลับรายละเอียด</a>
-            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
+            <a class="btn btn-outline-light btn-pill" href="/Meetings/Schedule/@Model.CalendarId">กลับปฏิทิน</a>
         </div>
     </div>
 
@@ -33,6 +33,7 @@
             <form method="post" action="/Meetings/Update" id="meetingForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="Id" value="@Model.Id" />
+                <input type="hidden" name="CalendarId" value="@Model.CalendarId" />
 
                 <h3 class="section-title">รายละเอียด</h3>
                 <p class="section-subtitle">แก้ไขข้อมูลหลักของนัดประชุม</p>

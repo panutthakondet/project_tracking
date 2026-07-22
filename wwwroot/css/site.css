@@ -2,6 +2,304 @@ html {
   font-size: 14px;
 }
 
+/* ===== Field Service: follows the selected application theme ===== */
+main.route-controller-fieldservice {
+  --fs-surface: var(--pt-surface, #fff);
+  --fs-contrast: var(--pt-surface-contrast, #10233f);
+  --fs-muted: var(--pt-surface-contrast-muted, #64748b);
+  --fs-border: var(--pt-border, #d8e3ef);
+}
+
+main.route-controller-fieldservice .index-hero {
+  background:
+    radial-gradient(circle at 85% 10%, var(--pt-accent-glow, rgba(20,184,166,.28)), transparent 30%),
+    linear-gradient(135deg, var(--pt-sidebar-bg, #10233f), var(--pt-sidebar-deep, #1f3b63));
+  border-color: var(--pt-border, rgba(148,219,225,.22));
+  box-shadow: 0 18px 40px var(--pt-shadow, rgba(15,35,64,.18));
+}
+
+main.route-controller-fieldservice :is(.field-service-themed-card, .field-service-list-card, .pt-form-card) {
+  color: var(--fs-contrast) !important;
+  background: var(--fs-surface) !important;
+  border: 1px solid var(--fs-border) !important;
+  box-shadow: 0 14px 32px var(--pt-shadow, rgba(15,35,64,.10)) !important;
+}
+
+main.route-controller-fieldservice :is(.field-service-themed-card, .field-service-list-card) .card-header,
+main.route-controller-fieldservice .field-service-themed-card .list-group-item {
+  color: var(--fs-contrast) !important;
+  background: var(--fs-surface) !important;
+  border-color: var(--fs-border) !important;
+}
+
+main.route-controller-fieldservice :is(.field-service-table th, .field-service-table td) {
+  color: var(--fs-contrast);
+  border-color: var(--fs-border);
+}
+
+main.route-controller-fieldservice .field-service-table th {
+  background: var(--pt-surface-soft, color-mix(in srgb, var(--fs-surface) 88%, var(--pt-accent) 12%));
+}
+
+main.route-controller-fieldservice :is(.field-service-accent, .field-service-link) { color: var(--pt-accent) !important; }
+main.route-controller-fieldservice .field-service-status {
+  color: var(--pt-accent-contrast, #fff);
+  background: linear-gradient(135deg, var(--pt-accent), var(--pt-accent-dark));
+}
+
+main.route-controller-fieldservice .meeting-attendee-picker {
+  padding: 14px;
+  border: 1px solid var(--fs-border);
+  border-radius: 16px;
+  background: var(--pt-surface-soft, #f8fafc);
+}
+main.route-controller-fieldservice .meeting-attendee-picker__controls {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch;
+}
+main.route-controller-fieldservice .meeting-attendee-picker__controls .btn { min-width: 92px; font-weight: 900; }
+main.route-controller-fieldservice .meeting-selected-attendees {
+  display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; margin-top: 12px;
+}
+main.route-controller-fieldservice .meeting-selected-attendee {
+  max-width: 100%; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 10px 8px 12px; border: 1px solid var(--fs-border); border-radius: 999px;
+  color: var(--pt-accent); background: var(--pt-accent-soft); font-weight: 650;
+}
+main.route-controller-fieldservice .meeting-selected-attendee > span { min-width: 0; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .meeting-attendee-remove {
+  width: 24px; height: 24px; border: 1px solid #ef4444; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #ef4444; background: var(--fs-surface); font-size: 18px; font-weight: 900; line-height: 1;
+}
+main.route-controller-fieldservice .meeting-attendee-empty {
+  width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed var(--fs-border); border-radius: 14px; color: var(--fs-muted); background: var(--fs-surface); font-weight: 800;
+}
+
+main.route-controller-fieldservice .field-service-filter-card {
+  position: relative;
+  z-index: 40;
+  overflow: visible !important;
+}
+main.route-controller-fieldservice .field-service-filter-card:focus-within {
+  z-index: 1100;
+}
+main.route-controller-fieldservice .field-service-filter-card :is(.card-body, .field-service-filter, .row, [class*="col-"]) {
+  overflow: visible !important;
+}
+main.route-controller-fieldservice .field-service-filter-card .pt-search-select.is-open {
+  position: relative;
+  z-index: 1101;
+}
+main.route-controller-fieldservice .field-service-filter-card .pt-search-select__dropdown {
+  z-index: 1102 !important;
+}
+main.route-controller-fieldservice .field-service-list-card {
+  position: relative;
+  z-index: 1;
+}
+main.route-controller-fieldservice .field-service-calendar-card { overflow: hidden; }
+main.route-controller-fieldservice .field-service-schedule-filter { position:relative; z-index:40; overflow:visible !important; }
+main.route-controller-fieldservice .field-service-schedule-filter:focus-within { z-index:1100; }
+main.route-controller-fieldservice .field-service-schedule-filter :is(.card-body,.row,[class*="col-"]) { overflow:visible !important; }
+main.route-controller-fieldservice .field-service-annual-modal { color:var(--fs-contrast); background:var(--fs-surface); border:1px solid var(--fs-border); border-radius:22px; overflow:hidden; }
+main.route-controller-fieldservice .field-service-annual-modal .modal-header { color:#fff; background:linear-gradient(135deg,var(--pt-sidebar-bg,#10233f),var(--pt-accent-dark)); border:0; padding:18px 22px; }
+main.route-controller-fieldservice .field-service-annual-modal .modal-title { font-weight:800; }
+main.route-controller-fieldservice .field-service-annual-user { margin-top:3px; color:rgba(255,255,255,.78); font-size:.8rem; }
+main.route-controller-fieldservice .field-service-annual-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+main.route-controller-fieldservice .field-service-annual-month { padding:12px; border:1px solid var(--fs-border); border-radius:14px; background:var(--pt-surface-soft,#f8fafc); }
+main.route-controller-fieldservice .field-service-annual-month h6 { margin:0 0 8px; text-align:center; color:var(--pt-accent); }
+main.route-controller-fieldservice .field-service-annual-month h4 { margin:0 0 10px; text-align:center; color:var(--pt-accent); font-size:1rem; font-weight:800; }
+main.route-controller-fieldservice .field-service-annual-days { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+main.route-controller-fieldservice .field-service-annual-day-head { text-align:center; color:var(--fs-muted); font-size:.68rem; font-weight:700; }
+main.route-controller-fieldservice .field-service-annual-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:7px; font-size:.72rem; }
+main.route-controller-fieldservice a.field-service-annual-day { text-decoration:none; cursor:pointer; transition:transform .15s ease,filter .15s ease; }
+main.route-controller-fieldservice a.field-service-annual-day:hover { color:#fff; filter:brightness(.9); transform:translateY(-1px); }
+main.route-controller-fieldservice .field-service-annual-day.is-empty { visibility:hidden; }
+main.route-controller-fieldservice .field-service-annual-day.is-work { color:#fff; background:var(--pt-accent); font-weight:800; box-shadow:0 3px 8px var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-annual-day.is-today { outline:2px solid #f59e0b; outline-offset:1px; }
+main.route-controller-fieldservice .field-service-annual-legend { display:flex; align-items:center; gap:7px; margin-bottom:12px; color:var(--fs-muted); font-weight:700; }
+main.route-controller-fieldservice .field-service-work-dot { width:12px; height:12px; border-radius:50%; background:var(--pt-accent); }
+main.route-controller-fieldservice .field-service-annual-summary { color:var(--pt-accent); font-weight:700; }
+main.route-controller-fieldservice .field-service-year-section > .card-header { color:var(--fs-contrast); background:var(--pt-surface-soft,#f8fafc); border-bottom:1px solid var(--fs-border) !important; }
+main.route-controller-fieldservice .field-service-year-section > .card-header h3 { font-size:1.25rem; font-weight:850; }
+@media(max-width:991.98px){main.route-controller-fieldservice .field-service-annual-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:575.98px){main.route-controller-fieldservice .field-service-annual-grid{grid-template-columns:1fr;}}
+main.route-controller-fieldservice .field-service-calendar-card .fc { color: var(--fs-contrast); }
+main.route-controller-fieldservice .field-service-calendar-card :is(.fc-scrollgrid, th, td) { border-color: var(--fs-border); }
+main.route-controller-fieldservice .field-service-calendar-card .fc-col-header-cell {
+  color: var(--fs-contrast); background: var(--pt-surface-soft, #f8fafc); padding: 10px 4px;
+}
+main.route-controller-fieldservice .field-service-calendar-card .fc-daygrid-day-number,
+main.route-controller-fieldservice .field-service-calendar-card .fc-col-header-cell-cushion {
+  color: var(--fs-contrast); text-decoration: none;
+}
+main.route-controller-fieldservice .field-service-calendar-card .fc-day-today {
+  background: var(--pt-accent-soft) !important;
+}
+main.route-controller-fieldservice .field-service-calendar-card .fc-button-primary {
+  color: var(--pt-accent-contrast, #fff) !important;
+  background: var(--pt-accent) !important;
+  border-color: var(--pt-accent-dark) !important;
+  font-weight: 800;
+}
+main.route-controller-fieldservice .field-service-calendar-card .fc-button-primary:not(:disabled):hover,
+main.route-controller-fieldservice .field-service-calendar-card .fc-button-active {
+  background: var(--pt-accent-dark) !important;
+}
+main.route-controller-fieldservice .field-service-calendar-card .fc-event {
+  border: 0; border-radius: 7px; padding: 2px 5px; font-weight: 700; cursor: pointer;
+}
+main.route-controller-fieldservice .field-service-event-content {
+  min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; padding: 2px 0;
+}
+main.route-controller-fieldservice .field-service-event-avatars {
+  flex: 0 0 auto; display: inline-flex; align-items: center; padding-left: 2px;
+}
+main.route-controller-fieldservice .field-service-event-avatars img {
+  width: 26px; height: 26px; flex: 0 0 26px; margin-left: -7px;
+  border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.9); background: #fff;
+}
+main.route-controller-fieldservice .field-service-event-avatars img:first-child { margin-left: 0; }
+main.route-controller-fieldservice .field-service-event-details {
+  min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; line-height: 1.15;
+}
+main.route-controller-fieldservice .field-service-event-first-row {
+  min-width: 0; display: flex; align-items: center; gap: 4px;
+}
+main.route-controller-fieldservice .field-service-event-time { flex: 0 0 auto; font-size: .7rem; }
+main.route-controller-fieldservice .field-service-event-title {
+  min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900;
+}
+main.route-controller-fieldservice .field-service-event-second-row {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .7rem; font-weight: 700; opacity: .9;
+}
+main.route-controller-fieldservice .fc-list-event .field-service-event-content { flex-wrap: wrap; overflow: visible; }
+main.route-controller-fieldservice .fc-list-event .field-service-event-avatars img { width: 32px; height: 32px; flex-basis: 32px; }
+main.route-controller-fieldservice .field-service-schedule-list-card { overflow: hidden; }
+main.route-controller-fieldservice .field-service-schedule-list-card .card-header {
+  color: var(--fs-contrast); background: var(--pt-surface-soft, #f8fafc); border-bottom: 1px solid var(--fs-border) !important;
+}
+main.route-controller-fieldservice .field-service-schedule-list { display: grid; gap: 10px; }
+main.route-controller-fieldservice .field-service-schedule-row {
+  display: grid; grid-template-columns: minmax(210px, 1.1fr) minmax(220px, 1.5fr) minmax(210px, 1fr) auto;
+  gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--fs-border); border-radius: 16px;
+  color: var(--fs-contrast); background: var(--fs-surface); text-decoration: none; transition: .18s ease;
+}
+main.route-controller-fieldservice .field-service-schedule-row:hover {
+  color: var(--fs-contrast); border-color: var(--pt-accent); background: var(--pt-accent-soft); transform: translateY(-1px);
+}
+main.route-controller-fieldservice .field-service-schedule-people { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; color: var(--fs-muted); }
+main.route-controller-fieldservice .field-service-schedule-person { min-width: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 750; }
+main.route-controller-fieldservice .field-service-schedule-person img {
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pt-accent-soft); background: #fff;
+}
+main.route-controller-fieldservice .field-service-schedule-main { min-width: 0; }
+main.route-controller-fieldservice .field-service-schedule-coop { font-weight: 900; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .field-service-schedule-work { color: var(--fs-muted); font-size: .86rem; margin-top: 3px; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .field-service-schedule-date { display: flex; flex-direction: column; gap: 4px; font-size: .86rem; }
+main.route-controller-fieldservice .field-service-schedule-status {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 100px; padding: 7px 10px;
+  border-radius: 999px; color: var(--pt-accent-contrast, #fff); background: var(--pt-accent); font-size: .78rem; font-weight: 850;
+}
+main.route-controller-fieldservice .field-service-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+main.route-controller-fieldservice .field-service-detail-item { display:flex; flex-direction:column; gap:4px; padding:14px; border:1px solid var(--fs-border); border-radius:14px; background:var(--pt-surface-soft,#f8fafc); }
+main.route-controller-fieldservice .field-service-detail-item > span,
+main.route-controller-fieldservice .field-service-system-info span { color:var(--fs-muted); font-size:.8rem; font-weight:750; }
+main.route-controller-fieldservice .field-service-detail-wide { grid-column:1/-1; }
+main.route-controller-fieldservice .field-service-long-text { min-height:72px; padding:16px; border:1px solid var(--fs-border); border-radius:14px; background:var(--pt-surface-soft,#f8fafc); white-space:pre-wrap; overflow-wrap:anywhere; }
+main.route-controller-fieldservice .field-service-employee-list { display:grid; gap:10px; }
+main.route-controller-fieldservice .field-service-employee { display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--fs-border); border-radius:14px; background:var(--pt-surface-soft,#f8fafc); }
+main.route-controller-fieldservice .field-service-employee img { width:46px; height:46px; flex:0 0 46px; border-radius:50%; object-fit:cover; border:2px solid var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-employee > div { min-width:0; display:flex; flex-direction:column; }
+main.route-controller-fieldservice .field-service-employee span { color:var(--fs-muted); font-size:.8rem; }
+main.route-controller-fieldservice .field-service-system-info { display:grid; gap:12px; }
+main.route-controller-fieldservice .field-service-system-info > div { display:flex; justify-content:space-between; gap:12px; padding-bottom:10px; border-bottom:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-card { overflow:hidden; }
+main.route-controller-fieldservice .field-service-show-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding-bottom:22px; border-bottom:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-kicker { margin-bottom:4px; color:var(--fs-muted); font-size:.82rem; font-weight:500; }
+main.route-controller-fieldservice .field-service-show-header h3 { margin:0; color:var(--fs-contrast); font-size:1.35rem; font-weight:700; line-height:1.35; }
+main.route-controller-fieldservice .field-service-show-columns { display:grid; grid-template-columns:minmax(0,2fr) minmax(260px,.8fr); gap:36px; padding-top:24px; }
+main.route-controller-fieldservice .field-service-show-main { min-width:0; }
+main.route-controller-fieldservice .field-service-show-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin:0; column-gap:34px; }
+main.route-controller-fieldservice .field-service-show-facts > div { display:grid; grid-template-columns:minmax(118px,.7fr) minmax(0,1.3fr); gap:12px; padding:12px 0; border-bottom:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-facts dt,
+main.route-controller-fieldservice .field-service-show-meta dt { color:var(--fs-muted); font-size:.84rem; font-weight:500; }
+main.route-controller-fieldservice .field-service-show-facts dd,
+main.route-controller-fieldservice .field-service-show-meta dd { margin:0; color:var(--fs-contrast); font-size:.9rem; font-weight:600; overflow-wrap:anywhere; }
+main.route-controller-fieldservice .field-service-show-section { margin-top:28px; padding-top:22px; border-top:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-section h4,
+main.route-controller-fieldservice .field-service-show-aside h4 { margin:0 0 13px; color:var(--fs-contrast); font-size:1rem; font-weight:650; }
+main.route-controller-fieldservice .field-service-show-copy { color:var(--fs-contrast); font-size:.92rem; font-weight:400; line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; }
+main.route-controller-fieldservice .field-service-show-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+main.route-controller-fieldservice .field-service-show-section-heading > span { color:var(--pt-accent); font-size:.82rem; font-weight:600; }
+main.route-controller-fieldservice .field-service-show-aside { min-width:0; padding-left:30px; border-left:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-aside > section + section { margin-top:28px; padding-top:24px; border-top:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-employees { display:grid; gap:12px; }
+main.route-controller-fieldservice .field-service-show-employee { display:flex; align-items:center; gap:10px; }
+main.route-controller-fieldservice .field-service-show-employee img { width:42px; height:42px; flex:0 0 42px; border-radius:50%; object-fit:cover; border:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-employee > div { min-width:0; display:flex; flex-direction:column; }
+main.route-controller-fieldservice .field-service-show-employee strong { color:var(--fs-contrast); font-size:.88rem; font-weight:600; overflow-wrap:anywhere; }
+main.route-controller-fieldservice .field-service-show-employee span { color:var(--fs-muted); font-size:.78rem; font-weight:400; }
+main.route-controller-fieldservice .field-service-show-meta { display:grid; gap:0; margin:0; }
+main.route-controller-fieldservice .field-service-show-meta > div { display:grid; gap:3px; padding:10px 0; border-bottom:1px solid var(--fs-border); }
+main.route-controller-fieldservice .field-service-show-meta > div:last-child { border-bottom:0; }
+main.route-controller-fieldservice .field-service-show-empty { color:var(--fs-muted); font-size:.88rem; font-weight:400; }
+@media(max-width:991.98px){main.route-controller-fieldservice .field-service-show-columns{grid-template-columns:1fr;gap:28px;}main.route-controller-fieldservice .field-service-show-aside{padding:24px 0 0;border-left:0;border-top:1px solid var(--fs-border);}}
+@media(max-width:767.98px){main.route-controller-fieldservice .field-service-show-facts{grid-template-columns:1fr;}main.route-controller-fieldservice .field-service-show-header{align-items:flex-start;}main.route-controller-fieldservice .field-service-show-facts>div{grid-template-columns:minmax(110px,.7fr) minmax(0,1.3fr);}}
+@media(max-width:575.98px){main.route-controller-fieldservice .field-service-detail-grid{grid-template-columns:1fr;}main.route-controller-fieldservice .field-service-detail-wide{grid-column:auto;}}
+main.route-controller-fieldservice .field-service-upload-box { padding:16px; border:1px dashed var(--pt-accent); border-radius:16px; background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-file-preview { display:grid; gap:6px; margin-top:10px; font-size:.85rem; font-weight:700; }
+main.route-controller-fieldservice .field-service-existing-gallery { display:flex; flex-wrap:wrap; gap:12px; }
+main.route-controller-fieldservice .field-service-existing-file { width:150px; padding:8px; border:1px solid var(--fs-border); border-radius:14px; background:var(--fs-surface); }
+main.route-controller-fieldservice .field-service-existing-file img,
+main.route-controller-fieldservice .field-service-existing-document { width:100%; height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; object-fit:cover; border:1px solid var(--fs-border); border-radius:10px; background:var(--pt-accent-soft); color:var(--pt-accent); font-size:2rem; text-decoration:none; }
+main.route-controller-fieldservice .field-service-existing-document span { font-size:.75rem; font-weight:900; }
+main.route-controller-fieldservice .field-service-existing-name { margin:6px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.76rem; font-weight:700; }
+main.route-controller-fieldservice .field-service-attachment-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+main.route-controller-fieldservice .field-service-attachment { min-width:0; display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--fs-border); border-radius:14px; color:var(--fs-contrast); background:var(--pt-surface-soft,#f8fafc); text-decoration:none; }
+main.route-controller-fieldservice .field-service-attachment:hover { color:var(--fs-contrast); border-color:var(--pt-accent); }
+main.route-controller-fieldservice .field-service-attachment img,
+main.route-controller-fieldservice .field-service-file-icon { width:64px; height:52px; flex:0 0 64px; border-radius:10px; object-fit:cover; display:flex; align-items:center; justify-content:center; background:var(--pt-accent-soft); font-size:1.7rem; }
+main.route-controller-fieldservice .field-service-attachment > span:last-child { min-width:0; display:flex; flex-direction:column; }
+main.route-controller-fieldservice .field-service-attachment strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+main.route-controller-fieldservice .field-service-attachment small { color:var(--fs-muted); margin-top:3px; }
+@media(max-width:767.98px){main.route-controller-fieldservice .field-service-attachment-grid{grid-template-columns:1fr;}}
+main.route-controller-fieldservice .field-service-result-list { display:grid; gap:12px; }
+main.route-controller-fieldservice .field-service-result-people { min-width:0; display:flex; align-items:center; gap:6px; }
+main.route-controller-fieldservice .field-service-result-people img { width:34px; height:34px; flex:0 0 34px; margin-right:-12px; border-radius:50%; object-fit:cover; border:2px solid var(--fs-surface); background:#fff; }
+main.route-controller-fieldservice .field-service-result-people span { min-width:0; margin-left:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.82rem; }
+main.route-controller-fieldservice .field-service-results-table { min-width:980px; }
+main.route-controller-fieldservice .field-service-results-table .field-service-result-people { max-width:360px; }
+main.route-controller-fieldservice .field-service-file-count { color:var(--pt-accent); font-weight:700; white-space:nowrap; }
+main.route-controller-fieldservice .field-service-coop-group-row td { padding:12px 18px !important; background:var(--pt-accent-soft) !important; border-top:2px solid var(--pt-accent) !important; }
+main.route-controller-fieldservice .field-service-coop-group-row td > div { display:flex; align-items:center; gap:9px; color:var(--fs-contrast); }
+main.route-controller-fieldservice .field-service-coop-group-row .badge,
+main.route-controller-fieldservice .field-service-result-group-head .badge { color:var(--pt-accent-contrast,#fff); background:var(--pt-accent); }
+main.route-controller-fieldservice .field-service-result-group { display:grid; gap:10px; }
+main.route-controller-fieldservice .field-service-result-group-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border:1px solid var(--fs-border); border-left:5px solid var(--pt-accent); border-radius:16px; color:var(--fs-contrast); background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-result-group-head > div { display:flex; align-items:center; gap:9px; }
+main.route-controller-fieldservice .field-service-result-group-items { display:grid; gap:10px; padding-left:14px; }
+main.route-controller-fieldservice .field-service-report-group-complete { margin-left:auto; color:var(--fs-muted); font-size:.8rem; font-weight:800; }
+@media(max-width:575.98px){main.route-controller-fieldservice .field-service-result-group-items{padding-left:0;}}
+@media (max-width: 991.98px) {
+  main.route-controller-fieldservice .field-service-schedule-row { grid-template-columns: 1fr 1fr; }
+  main.route-controller-fieldservice .field-service-schedule-status { justify-self: start; }
+}
+@media (max-width: 575.98px) {
+  main.route-controller-fieldservice .field-service-schedule-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 767.98px) {
+  main.route-controller-fieldservice .field-service-calendar-card .fc-header-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
+  main.route-controller-fieldservice .field-service-calendar-card .fc-toolbar-chunk { display: flex; justify-content: center; }
+  main.route-controller-fieldservice .field-service-calendar-card .fc-toolbar-title { font-size: 1.25rem; }
+}
+@media (max-width: 768px) {
+  main.route-controller-fieldservice .meeting-attendee-picker__controls { grid-template-columns: 1fr; }
+  main.route-controller-fieldservice .meeting-attendee-picker__controls .btn { width: 100%; }
+}
+
 :root {
   --pt-accent: #1F4889;
   --pt-accent-dark: #193B70;
@@ -3684,6 +3982,28 @@ html body main :is(
   color: #0f172a !important;
   font-weight: 400 !important;
 }
+
+/* Field Service uses colored text instead of filled status/count pills. */
+html body main.route-controller-fieldservice :is(.badge, .field-service-status, .field-service-schedule-status) {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  display: inline !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--pt-accent) !important;
+  font-weight: 700 !important;
+}
+
+html body main.route-controller-fieldservice :is(.text-bg-success, .bg-success, [data-status="COMPLETED"]) { color: #15803d !important; }
+html body main.route-controller-fieldservice :is(.text-bg-warning, .bg-warning, [data-status="IN_PROGRESS"]) { color: #b45309 !important; }
+html body main.route-controller-fieldservice :is(.text-bg-info, .bg-info, [data-status="PLANNED"]) { color: #0284c7 !important; }
+html body main.route-controller-fieldservice :is(.text-bg-secondary, .bg-secondary, [data-status="CANCELLED"]) { color: #64748b !important; }
+html body main.route-controller-fieldservice .badge.bg-light { color: var(--pt-accent-dark) !important; }
 
 .pt-owner-chip {
   display: inline-flex;

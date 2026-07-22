@@ -1,0 +1,77 @@
+@model FieldServiceVisit
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = Model.Title;
+    var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    var admin = string.Equals(Context.Session.GetString("Role"), "ADMIN", StringComparison.OrdinalIgnoreCase);
+    bool Can(string key) => admin || menus.Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "-";
+    string ThaiDateTime(DateTime date) => $"{date:dd/MM/}{date.Year + 543} {date:HH:mm} น.";
+    string StatusText(string status) => status switch { "PLANNED" => "วางแผนแล้ว", "IN_PROGRESS" => "กำลังดำเนินการ", "COMPLETED" => "เสร็จสิ้น", "CANCELLED" => "ยกเลิก", _ => status };
+    string ServiceText(string type) => type switch { "MA" => "Maintenance (MA)", "PM" => "Preventive Maintenance", "SUPPORT" => "On-site Support", "TRAINING" => "Training", "OTHER" => "อื่น ๆ", _ => type };
+    string ProfileImage(Employee? employee) {
+        var path = employee?.LoginUser?.ProfileImagePath;
+        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
+        path = path.Trim(); if (path.StartsWith("~/")) path = path[1..];
+        return path.StartsWith("/") ? path : "/" + path;
+    }
+    var finalDate = (Model.EndVisitDate ?? Model.VisitDate).Date;
+    var totalDays = Math.Max(1, (finalDate - Model.VisitDate.Date).Days + 1);
+}
+
+<div class="index-hero">
+    <div class="index-hero__content"><span class="index-eyebrow">Field Service · @ServiceText(Model.ServiceType)</span><h2 class="index-title">@Model.Title</h2><p class="index-subtitle">@Model.Coop?.CoopName</p></div>
+    <div class="index-actions"><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a><a asp-action="Schedule" class="btn btn-outline-light">Work Calendar</a>@if(Can("FieldService.Result") && ViewBag.CanSubmitResult == true){<a asp-action="SubmitResult" asp-route-id="@Model.VisitId" class="btn btn-outline-success">ส่งผลการปฏิบัติงาน</a>}@if(Can("FieldService.Edit")){<a asp-action="Edit" asp-route-id="@Model.VisitId" class="btn btn-primary">แก้ไข</a>}</div>
+</div>
+
+@if (TempData["Success"] is string success) { <div class="alert alert-success shadow-sm">@success</div> }
+
+<div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-show-card">
+    <div class="card-body p-4 p-lg-5">
+        <header class="field-service-show-header">
+            <div><div class="field-service-show-kicker">ข้อมูลงาน</div><h3>@Model.Title</h3></div>
+            <span class="field-service-status" data-status="@Model.Status">@StatusText(Model.Status)</span>
+        </header>
+
+        <div class="field-service-show-columns">
+            <div class="field-service-show-main">
+                <dl class="field-service-show-facts">
+                    <div><dt>สหกรณ์</dt><dd>@(Model.Coop?.CoopName ?? "-")</dd></div>
+                    <div><dt>ประเภทบริการ</dt><dd>@ServiceText(Model.ServiceType)</dd></div>
+                    <div><dt>วันที่ปฏิบัติงาน</dt><dd>@ThaiDate(Model.VisitDate) – @ThaiDate(finalDate)</dd></div>
+                    <div><dt>จำนวนวัน</dt><dd>@totalDays วัน</dd></div>
+                    <div><dt>เวลา</dt><dd>@(Model.StartTime?.ToString(@"hh\:mm") ?? "-") – @(Model.EndTime?.ToString(@"hh\:mm") ?? "-")</dd></div>
+                    <div><dt>นัดหมายครั้งถัดไป</dt><dd>@ThaiDate(Model.NextVisitDate)</dd></div>
+                    <div><dt>ผู้ติดต่อ</dt><dd>@(Model.ContactName ?? "-")</dd></div>
+                    <div><dt>เบอร์โทร</dt><dd>@(Model.ContactPhone ?? "-")</dd></div>
+                </dl>
+
+                <section class="field-service-show-section"><h4>รายละเอียดงาน</h4><div class="field-service-show-copy">@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</div></section>
+                <section class="field-service-show-section"><h4>ผลการปฏิบัติงาน</h4><div class="field-service-show-copy">@(string.IsNullOrWhiteSpace(Model.ServiceResult) ? "-" : Model.ServiceResult)</div></section>
+                <section class="field-service-show-section">
+                    <div class="field-service-show-section-heading"><h4>รูปภาพและไฟล์แนบ</h4><span>@Model.Attachments.Count ไฟล์</span></div>
+                    <div class="field-service-attachment-grid">
+                    @foreach(var file in Model.Attachments.OrderByDescending(x=>x.UploadedAt)) {
+                        var isImage = (file.ContentType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+                        <a href="@file.FilePath" target="_blank" class="field-service-attachment" title="@file.FileName">
+                            @if(isImage){<img src="@file.FilePath" alt="@file.FileName" loading="lazy" />}else{<span class="field-service-file-icon">📄</span>}
+                            <span><strong>@file.FileName</strong><small>@((file.FileSize/1024d/1024d).ToString("0.00")) MB · @ThaiDateTime(file.UploadedAt)</small></span>
+                        </a>
+                    }
+                    @if(!Model.Attachments.Any()){<div class="field-service-show-empty">ยังไม่มีรูปภาพหรือไฟล์แนบ</div>}
+                    </div>
+                </section>
+            </div>
+
+            <aside class="field-service-show-aside">
+                <section><h4>พนักงาน</h4><div class="field-service-show-employees">
+                    @foreach(var assignee in Model.Assignees.OrderBy(x => x.Employee?.EmpName)) { <div class="field-service-show-employee"><img src="@ProfileImage(assignee.Employee)" alt="@assignee.Employee?.EmpName" data-profile-name="@assignee.Employee?.EmpName" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" /><div><strong>@assignee.Employee?.EmpName</strong><span>@(assignee.Employee?.Position ?? "-")</span></div></div> }
+                    @if(!Model.Assignees.Any()){<div class="field-service-show-empty">ยังไม่กำหนดพนักงาน</div>}
+                </div></section>
+                <section><h4>ข้อมูลระบบ</h4><dl class="field-service-show-meta"><div><dt>รหัสงาน</dt><dd>#@Model.VisitId</dd></div><div><dt>สร้างโดย</dt><dd>@(ViewBag.CreatedByName ?? "-")</dd></div><div><dt>สร้างเมื่อ</dt><dd>@ThaiDateTime(Model.CreatedAt)</dd></div><div><dt>แก้ไขล่าสุด</dt><dd>@ThaiDateTime(Model.UpdatedAt)</dd></div></dl></section>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between mt-3"><div>@if(Can("FieldService.Delete")){<form asp-action="Delete" asp-route-id="@Model.VisitId" method="post" onsubmit="return confirm('ยืนยันการลบงานนี้?')">@Html.AntiForgeryToken()<button class="btn btn-danger">ลบงาน</button></form>}</div><a asp-action="Index" class="btn btn-outline-secondary">ปิด</a></div>

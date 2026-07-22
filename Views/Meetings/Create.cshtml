@@ -88,7 +88,7 @@
             <p class="index-subtitle">เลือกโครงการ ถ้ามี แล้วกรอกรายละเอียดการประชุม</p>
         </div>
         <div class="index-actions">
-            <a class="btn btn-outline-light btn-pill" href="/Meetings">กลับปฏิทิน</a>
+            <a class="btn btn-outline-light btn-pill" href="/Meetings/Schedule/@ViewBag.CalendarId">กลับปฏิทิน</a>
         </div>
     </div>
 
@@ -103,6 +103,7 @@
         <div class="meeting-card__body">
             <form method="post" action="/Meetings/Store" id="meetingForm">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="CalendarId" value="@ViewBag.CalendarId" />
 
                 <h3 class="section-title">รายละเอียด</h3>
                 <p class="section-subtitle">กรอกหัวข้อและเลือกโครงการเพื่อเชื่อมโยง (ไม่เลือกก็ได้)</p>
@@ -219,7 +220,7 @@
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-pill">บันทึก</button>
-                        <a href="/Meetings" class="btn btn-outline-secondary btn-pill">ยกเลิก</a>
+                        <a href="/Meetings/Schedule/@ViewBag.CalendarId" class="btn btn-outline-secondary btn-pill">ยกเลิก</a>
                     </div>
                 </div>
             </form>

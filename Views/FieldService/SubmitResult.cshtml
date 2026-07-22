@@ -1,0 +1,28 @@
+@model ProjectTracking.ViewModels.FieldServiceResultViewModel
+@{
+    ViewData["Title"] = "ส่งผลการเข้าปฏิบัติงาน";
+    string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "";
+}
+<div class="index-hero pt-form-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">ส่งผลการเข้าปฏิบัติงาน</h2><p class="index-subtitle">@Model.CoopName · @Model.Title</p></div></div>
+<div class="card shadow-sm pt-form-card"><div class="card-body p-4 p-lg-5">
+<form asp-action="SubmitResult" method="post" enctype="multipart/form-data" onsubmit="return confirm('ยืนยันการส่งผลการเข้าปฏิบัติงาน?');">
+    @Html.AntiForgeryToken()<input asp-for="VisitId" type="hidden" /><input asp-for="Title" type="hidden" /><input asp-for="CoopName" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <div class="row g-3">
+        <div class="col-md-8"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select"><option value="COMPLETED">เสร็จสิ้น</option><option value="IN_PROGRESS">ยังดำเนินการต่อ</option></select></div>
+        <div class="col-md-4"><label asp-for="NextVisitDate" class="form-label"></label><input asp-for="NextVisitDate" type="text" value="@ThaiDate(Model.NextVisitDate)" class="form-control thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+        <div class="col-12"><label asp-for="ServiceResult" class="form-label"></label><textarea asp-for="ServiceResult" class="form-control" rows="7" placeholder="สรุปสิ่งที่ดำเนินการ ปัญหาที่พบ วิธีแก้ไข และผลลัพธ์"></textarea><span asp-validation-for="ServiceResult" class="text-danger"></span></div>
+        <div class="col-12"><label asp-for="Files" class="form-label"></label><div class="field-service-upload-box"><input asp-for="Files" type="file" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" data-paste-image-upload data-paste-upload-scroll="x" /><div class="form-text mt-2">เลือกได้หลายไฟล์ หรือ Copy รูป/Screenshot แล้วกด Ctrl+V / Cmd+V เพื่อวาง · สูงสุด 10 ไฟล์ ไฟล์ละไม่เกิน 20 MB</div></div><span asp-validation-for="Files" class="text-danger"></span></div>
+        @if(Model.ExistingAttachments.Any()){
+        <div class="col-12"><label class="form-label">ไฟล์แนบเดิม</label><div class="field-service-existing-gallery">
+        @foreach(var file in Model.ExistingAttachments){var image=(file.ContentType??"").StartsWith("image/",StringComparison.OrdinalIgnoreCase);<div class="field-service-existing-file">@if(image){<a href="@file.FilePath" target="_blank"><img src="@file.FilePath" alt="@file.FileName" /></a>}else{<a href="@file.FilePath" target="_blank" class="field-service-existing-document">📄<span>@System.IO.Path.GetExtension(file.FileName).TrimStart('.').ToUpperInvariant()</span></a>}<div class="field-service-existing-name" title="@file.FileName">@file.FileName</div><div class="form-check"><input class="form-check-input" type="checkbox" name="DeleteAttachmentIds" value="@file.AttachmentId" id="deleteAttachment_@file.AttachmentId" /><label class="form-check-label text-danger" for="deleteAttachment_@file.AttachmentId">ลบ</label></div></div>}
+        </div></div>}
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-4"><a asp-action="Show" asp-route-id="@Model.VisitId" class="btn btn-outline-secondary">ปิด</a><button type="submit" class="btn btn-primary px-4">ส่งผลการปฏิบัติงาน</button></div>
+</form></div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/paste-image-upload.js" asp-append-version="true"></script><script>
+(function(){
+ const form=document.querySelector('main.route-controller-fieldservice form');
+ form?.addEventListener('submit',()=>form.querySelectorAll('input.thai-date').forEach(input=>{const m=input.value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m){let y=Number(m[3]);if(y>2400)y-=543;input.value=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;}}),true);
+})();
+</script> }

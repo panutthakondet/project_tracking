@@ -1,0 +1,73 @@
+@using System.Globalization
+@{
+    ViewData["Title"] = "ปฏิทินงานเข้าไซต์";
+    var fromYear = (int)ViewBag.FromYear;
+    var toYear = (int)ViewBag.ToYear;
+    var yearOptions = ViewBag.YearOptions as int[] ?? Array.Empty<int>();
+    var workDates = ViewBag.WorkDates as ISet<string> ?? new HashSet<string>();
+    var workDateVisits = ViewBag.WorkDateVisits as Dictionary<string, List<int>> ?? new Dictionary<string, List<int>>();
+    var monthNames = new CultureInfo("th-TH").DateTimeFormat.MonthNames.Take(12).ToArray();
+    var dayHeaders = new[] { "อา", "จ", "อ", "พ", "พฤ", "ศ", "ส" };
+}
+
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">Field Service</span>
+        <h2 class="index-title">ปฏิทินงานเข้าไซต์</h2>
+        <p class="index-subtitle">วันปฏิบัติงานของ @(ViewBag.CurrentEmployeeName ?? "พนักงานที่ Login")</p>
+    </div>
+    <div class="index-actions"><a asp-action="Schedule" class="btn btn-outline-light">กลับ Work Calendar</a></div>
+</div>
+
+<form method="get" class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-year-filter mb-4">
+    <div class="card-body p-3 p-lg-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-sm-4 col-lg-3"><label class="form-label fw-bold" for="fromYear">จากปี</label><select id="fromYear" name="fromYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == fromYear)">@(year + 543)</option>}</select></div>
+            <div class="col-sm-4 col-lg-3"><label class="form-label fw-bold" for="toYear">ถึงปี</label><select id="toYear" name="toYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == toYear)">@(year + 543)</option>}</select></div>
+            <div class="col-sm-4 col-lg-3"><button type="submit" class="btn btn-primary w-100">แสดงปฏิทิน</button></div>
+            <div class="col-lg-3"><div class="field-service-annual-legend mb-0"><span class="field-service-work-dot"></span> วันที่มีงานเข้าไซต์ของคุณ</div></div>
+        </div>
+    </div>
+</form>
+
+@for (var year = fromYear; year <= toYear; year++)
+{
+    var yearWorkCount = workDates.Count(x => x.StartsWith($"{year}-", StringComparison.Ordinal));
+    <section class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-year-section mb-4">
+        <div class="card-header border-0 d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 p-lg-4">
+            <h3 class="mb-0">ปี @(@year + 543)</h3>
+            <span class="field-service-annual-summary">มีงาน @yearWorkCount วัน</span>
+        </div>
+        <div class="card-body p-3 p-lg-4 pt-0"><div class="field-service-annual-grid">
+        @for (var month = 1; month <= 12; month++)
+        {
+            var firstDay = new DateTime(year, month, 1);
+            var blanks = (int)firstDay.DayOfWeek;
+            var days = DateTime.DaysInMonth(year, month);
+            <article class="field-service-annual-month">
+                <h4>@monthNames[month - 1]</h4>
+                <div class="field-service-annual-days">
+                    @foreach (var header in dayHeaders) { <span class="field-service-annual-day-head">@header</span> }
+                    @for (var blank = 0; blank < blanks; blank++) { <span class="field-service-annual-day is-empty"></span> }
+                    @for (var day = 1; day <= days; day++)
+                    {
+                        var date = new DateTime(year, month, day);
+                        var dateKey = date.ToString("yyyy-MM-dd");
+                        var isWork = workDates.Contains(dateKey);
+                        var isToday = date == DateTime.Today;
+                        var visitIds = workDateVisits.TryGetValue(dateKey, out var ids) ? ids : new List<int>();
+                        if (isWork && visitIds.Count > 0)
+                        {
+                            <a asp-action="Show" asp-route-id="@visitIds[0]" class="field-service-annual-day is-work @(isToday ? "is-today" : "")" title="มีงานเข้าไซต์ @visitIds.Count งาน — คลิกดูรายละเอียด">@day</a>
+                        }
+                        else
+                        {
+                            <span class="field-service-annual-day @(isToday ? "is-today" : "")">@day</span>
+                        }
+                    }
+                </div>
+            </article>
+        }
+        </div></div>
+    </section>
+}

@@ -1,0 +1,178 @@
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Field Service Calendars";
+    var role = Context.Session.GetString("Role") ?? "";
+    var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    var canCreate = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) || menus.Any(x => x.Trim().Equals("FieldService.Create", StringComparison.OrdinalIgnoreCase));
+    var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
+
+<div class="index-hero">
+    <div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">Calendars</h2><p class="index-subtitle">ปฏิทินงานเข้าไซต์ MA แบบเดือน สัปดาห์ และรายการ</p></div>
+    <div class="index-actions"><a asp-action="AnnualCalendar" class="btn btn-outline-warning">ปฏิทิน</a><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a>@if(canCreate){<a asp-action="Create" class="btn btn-primary">เพิ่มงานออกไซต์</a>}</div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-schedule-filter mb-3">
+    <div class="card-body"><div class="row g-3 align-items-end"><div class="col-lg-5 col-md-7"><label class="form-label fw-bold">พนักงาน</label><select id="fieldServiceEmployeeFilter" class="form-select form-select-lg" data-show-empty-option-text="true"><option value="">พนักงานทั้งหมด</option>@foreach(var employee in employees){<option value="@employee.EmpId">@employee.EmpName @(string.IsNullOrWhiteSpace((string?)employee.Position) ? "" : $"({employee.Position})")</option>}</select></div><div class="col-lg-7 col-md-5"><div class="form-text">เลือกพนักงานเพื่อดูเฉพาะงานที่ได้รับมอบหมาย</div></div></div></div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-calendar-card">
+    <div class="card-body p-3 p-lg-4"><div id="fieldServiceCalendar"></div></div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-schedule-list-card mt-3">
+    <div class="card-header border-0 p-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div><h5 class="mb-1 fw-bold">รายการงานเข้าไซต์</h5><div class="opacity-75 small" id="fieldServiceListRange">งานในช่วงที่ปฏิทินกำลังแสดง</div></div>
+        <span class="badge rounded-pill bg-primary-subtle text-primary px-3 py-2" id="fieldServiceListCount">0 งาน</span>
+    </div>
+    <div class="card-body p-3 p-lg-4 pt-0"><div id="fieldServiceScheduleList" class="field-service-schedule-list"><div class="text-center opacity-75 py-5">กำลังโหลด...</div></div></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const element = document.getElementById('fieldServiceCalendar');
+    if (!element || typeof FullCalendar === 'undefined') return;
+    const canCreate = @canCreate.ToString().ToLowerInvariant();
+    const employeeFilter = document.getElementById('fieldServiceEmployeeFilter');
+    const listElement = document.getElementById('fieldServiceScheduleList');
+    const listCount = document.getElementById('fieldServiceListCount');
+    const listRange = document.getElementById('fieldServiceListRange');
+    const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    function thaiDate(value) {
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '-';
+        return `${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
+    }
+    function displayEnd(event) {
+        if (!event.end) return event.start;
+        const end = new Date(event.end);
+        if (event.allDay) end.setDate(end.getDate() - 1);
+        return end;
+    }
+    function renderServiceList(events, start, end) {
+        listElement.innerHTML = '';
+        const sorted = [...events].sort((a, b) => new Date(a.start) - new Date(b.start));
+        listCount.textContent = `${sorted.length} งาน`;
+        const rangeEnd = new Date(end); rangeEnd.setDate(rangeEnd.getDate() - 1);
+        listRange.textContent = `${thaiDate(start)} - ${thaiDate(rangeEnd)}`;
+        if (!sorted.length) {
+            const empty = document.createElement('div'); empty.className = 'text-center opacity-75 py-5';
+            empty.textContent = 'ไม่มีงานเข้าไซต์ในช่วงนี้'; listElement.appendChild(empty); return;
+        }
+        sorted.forEach(function (event) {
+            const props = event.extendedProps || {};
+            const row = document.createElement('a'); row.className = 'field-service-schedule-row';
+            row.href = event.url || '#';
+            const people = document.createElement('div'); people.className = 'field-service-schedule-people';
+            (props.employees || []).forEach(function (employee) {
+                const person = document.createElement('span'); person.className = 'field-service-schedule-person';
+                const image = document.createElement('img'); image.src = employee.image || '/images/Profile/profile.png';
+                image.alt = employee.name || ''; image.dataset.profileName = employee.name || '';
+                image.onerror = function () { this.onerror = null; this.src = '/images/Profile/profile.png'; };
+                const name = document.createElement('span'); name.textContent = employee.name || '-';
+                person.append(image, name); people.appendChild(person);
+            });
+            if (!(props.employees || []).length) people.textContent = 'ยังไม่กำหนดพนักงาน';
+            const main = document.createElement('div'); main.className = 'field-service-schedule-main';
+            const title = document.createElement('div'); title.className = 'field-service-schedule-coop'; title.textContent = props.coopName || event.title || '-';
+            const work = document.createElement('div'); work.className = 'field-service-schedule-work'; work.textContent = props.serviceTitle || '-';
+            main.append(title, work);
+            const date = document.createElement('div'); date.className = 'field-service-schedule-date';
+            const dateText = document.createElement('strong');
+            dateText.textContent = `${thaiDate(event.start)} - ${thaiDate(displayEnd(event))}`;
+            date.append(dateText);
+            const status = document.createElement('span'); status.className = 'field-service-schedule-status'; status.dataset.status = props.status || ''; status.textContent = props.status || '-';
+            row.append(people, main, date, status); listElement.appendChild(row);
+        });
+    }
+    function loadServiceList(start, end) {
+        const employeeId = employeeFilter?.value || '';
+        fetch(`@Url.Action("CalendarEvents", "FieldService")?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&employeeId=${encodeURIComponent(employeeId)}`)
+            .then(response => response.ok ? response.json() : Promise.reject())
+            .then(events => renderServiceList(events, start, end))
+            .catch(() => { listElement.innerHTML = '<div class="text-center text-danger py-5">โหลดรายการงานไม่สำเร็จ</div>'; });
+    }
+    const calendar = new FullCalendar.Calendar(element, {
+        locale: 'th',
+        initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
+        firstDay: 1,
+        height: 'auto',
+        nowIndicator: true,
+        navLinks: true,
+        dayMaxEvents: true,
+        displayEventTime: true,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listMonth'
+        },
+        buttonText: { today: 'วันนี้', month: 'เดือน', week: 'สัปดาห์', list: 'รายการ' },
+        events: {
+            url: '@Url.Action("CalendarEvents", "FieldService")',
+            extraParams: function () { return { employeeId: employeeFilter?.value || '' }; }
+        },
+        eventClick: function (info) {
+            if (info.event.url) { info.jsEvent.preventDefault(); window.location.href = info.event.url; }
+        },
+        eventContent: function (info) {
+            const wrap = document.createElement('div');
+            wrap.className = 'field-service-event-content';
+            const employees = info.event.extendedProps.employees || [];
+            if (employees.length) {
+                const avatars = document.createElement('span');
+                avatars.className = 'field-service-event-avatars';
+                employees.forEach(function (employee) {
+                    const image = document.createElement('img');
+                    image.src = employee.image || '/images/Profile/profile.png';
+                    image.alt = employee.name || '';
+                    image.dataset.profileName = employee.name || '';
+                    image.onerror = function () { this.onerror = null; this.src = '/images/Profile/profile.png'; };
+                    avatars.appendChild(image);
+                });
+                wrap.appendChild(avatars);
+            }
+
+            const details = document.createElement('span');
+            details.className = 'field-service-event-details';
+            const firstRow = document.createElement('span');
+            firstRow.className = 'field-service-event-first-row';
+            if (info.timeText) {
+                const time = document.createElement('span');
+                time.className = 'field-service-event-time';
+                time.textContent = info.timeText;
+                firstRow.appendChild(time);
+            }
+            const title = document.createElement('span');
+            title.className = 'field-service-event-title';
+            title.textContent = info.event.title;
+            firstRow.appendChild(title);
+
+            const secondRow = document.createElement('span');
+            secondRow.className = 'field-service-event-second-row';
+            secondRow.textContent = employees.length
+                ? employees.map(employee => employee.name).filter(Boolean).join(', ')
+                : 'ยังไม่กำหนดพนักงาน';
+            details.append(firstRow, secondRow);
+            wrap.appendChild(details);
+            return { domNodes: [wrap] };
+        },
+        dateClick: function (info) {
+            if (!canCreate) return;
+            window.location.href = '@Url.Action("Create", "FieldService")?start=' + encodeURIComponent(info.dateStr);
+        },
+        eventDidMount: function (info) {
+            const props = info.event.extendedProps;
+            info.el.title = [props.serviceTitle, props.status].filter(Boolean).join(' · ');
+        },
+        datesSet: function (info) { loadServiceList(info.startStr, info.endStr); }
+    });
+    calendar.render();
+    employeeFilter?.addEventListener('change', function () {
+        calendar.refetchEvents();
+        loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
+    });
+});
+</script>
