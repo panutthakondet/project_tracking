@@ -17,6 +17,8 @@
     }
     var finalDate = (Model.EndVisitDate ?? Model.VisitDate).Date;
     var totalDays = Math.Max(1, (finalDate - Model.VisitDate.Date).Days + 1);
+    var employeeProfileImages = ViewBag.EmployeeProfileImages as IReadOnlyDictionary<int, string>
+        ?? new Dictionary<int, string>();
 }
 
 <div class="index-hero">
@@ -65,7 +67,7 @@
 
             <aside class="field-service-show-aside">
                 <section><h4>พนักงาน</h4><div class="field-service-show-employees">
-                    @foreach(var assignee in Model.Assignees.OrderBy(x => x.Employee?.EmpName)) { <div class="field-service-show-employee"><img src="@ProfileImage(assignee.Employee)" alt="@assignee.Employee?.EmpName" data-profile-name="@assignee.Employee?.EmpName" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" /><div><strong>@assignee.Employee?.EmpName</strong><span>@(assignee.Employee?.Position ?? "-")</span></div></div> }
+                    @foreach(var assignee in Model.Assignees.OrderBy(x => x.Employee?.EmpName)) { <div class="field-service-show-employee"><img src="@employeeProfileImages.GetValueOrDefault(assignee.EmpId, ProfileImage(assignee.Employee))" alt="@assignee.Employee?.EmpName" data-profile-name="@assignee.Employee?.EmpName" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" /><div><strong>@assignee.Employee?.EmpName</strong><span>@(assignee.Employee?.Position ?? "-")</span></div></div> }
                     @if(!Model.Assignees.Any()){<div class="field-service-show-empty">ยังไม่กำหนดพนักงาน</div>}
                 </div></section>
                 <section><h4>ข้อมูลระบบ</h4><dl class="field-service-show-meta"><div><dt>รหัสงาน</dt><dd>#@Model.VisitId</dd></div><div><dt>สร้างโดย</dt><dd>@(ViewBag.CreatedByName ?? "-")</dd></div><div><dt>สร้างเมื่อ</dt><dd>@ThaiDateTime(Model.CreatedAt)</dd></div><div><dt>แก้ไขล่าสุด</dt><dd>@ThaiDateTime(Model.UpdatedAt)</dd></div></dl></section>

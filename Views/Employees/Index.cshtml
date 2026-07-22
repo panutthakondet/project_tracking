@@ -14,13 +14,22 @@
 
     string EmployeeAvatar(ProjectTracking.Models.Employee emp)
     {
-        var path = emp.LoginUser?.ProfileImagePath?.Trim();
+        var profileImages = ViewBag.EmployeeProfileImages as IReadOnlyDictionary<int, string>;
+        var path = profileImages != null && profileImages.TryGetValue(emp.EmpId, out var resolvedPath)
+            ? resolvedPath?.Trim()
+            : emp.LoginUser?.ProfileImagePath?.Trim();
         if (string.IsNullOrWhiteSpace(path))
         {
             return "/images/Profile/profile.png";
         }
 
-        return path.StartsWith("/") ? path : "/" + path.TrimStart('~', '/');
+        path = path.Replace("\\", "/");
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return path;
+        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
+        if (path.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase)) path = path["wwwroot".Length..];
+        return path.StartsWith("/") ? path : "/" + path.TrimStart('/');
     }
 
     var lineLinkedEmpIds = ViewBag.LineLinkedEmpIds as ISet<int> ?? new HashSet<int>();

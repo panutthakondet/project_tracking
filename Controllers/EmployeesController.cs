@@ -51,6 +51,20 @@ namespace ProjectTracking.Controllers
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
+            var employeeIds = employees.Select(x => x.EmpId).ToList();
+            var linkedUserIds = employees.Where(x => x.LoginUserId.HasValue)
+                .Select(x => x.LoginUserId!.Value).Distinct().ToList();
+            var profileUsers = await _context.LoginUsers.AsNoTracking()
+                .Where(x => linkedUserIds.Contains(x.UserId)
+                    || (x.EmpId.HasValue && employeeIds.Contains(x.EmpId.Value)))
+                .Select(x => new { x.UserId, x.EmpId, x.ProfileImagePath })
+                .ToListAsync();
+            ViewBag.EmployeeProfileImages = employees.ToDictionary(
+                x => x.EmpId,
+                x => profileUsers.FirstOrDefault(u => x.LoginUserId.HasValue && u.UserId == x.LoginUserId.Value)?.ProfileImagePath
+                    ?? profileUsers.FirstOrDefault(u => u.EmpId == x.EmpId)?.ProfileImagePath
+                    ?? "/images/Profile/profile.png");
+
             var lineLinkedEmpIds = await _context.LineRecipients
                 .AsNoTracking()
                 .Where(x => x.IsActive

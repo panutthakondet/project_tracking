@@ -58,7 +58,9 @@ public class FieldServiceController : BaseController
             .Include(x => x.Assignees).ThenInclude(x => x.Employee).ThenInclude(x => x!.LoginUser)
             .Include(x => x.Attachments)
             .FirstOrDefaultAsync(x => x.VisitId == id);
-        if (item != null) NormalizeAssigneeProfiles(new[] { item });
+        if (item != null)
+            ViewBag.EmployeeProfileImages = await LoadEmployeeProfilePathsAsync(
+                item.Assignees.Select(x => x.EmpId));
         if (item?.CreatedBy is int creatorId)
         {
             ViewBag.CreatedByName = await _context.Employees.AsNoTracking()
@@ -96,7 +98,8 @@ public class FieldServiceController : BaseController
             .OrderBy(x => x.Status == "COMPLETED" ? 1 : 0)
             .ThenByDescending(x => x.VisitDate)
             .ToListAsync();
-        NormalizeAssigneeProfiles(items);
+        ViewBag.EmployeeProfileImages = await LoadEmployeeProfilePathsAsync(
+            items.SelectMany(x => x.Assignees).Select(x => x.EmpId));
         return View(items);
     }
 
@@ -365,6 +368,8 @@ public class FieldServiceController : BaseController
         var rows = await query
             .OrderBy(x => x.VisitDate).ThenBy(x => x.StartTime)
             .ToListAsync();
+        var employeeProfileImages = await LoadEmployeeProfilePathsAsync(
+            rows.SelectMany(x => x.Assignees).Select(x => x.EmpId));
 
         return Json(rows.Select(x =>
         {
@@ -400,7 +405,7 @@ public class FieldServiceController : BaseController
                         .Select(a => new
                         {
                             name = a.Employee!.EmpName,
-                            image = NormalizeProfilePath(a.Employee.LoginUser?.ProfileImagePath)
+                            image = employeeProfileImages.GetValueOrDefault(a.EmpId, "/images/Profile/profile.png")
                         })
                         .ToList()
                 }
@@ -500,16 +505,32 @@ public class FieldServiceController : BaseController
         return System.IO.File.Exists(physicalPath) ? path : "/images/Profile/profile.png";
     }
 
-    private void NormalizeAssigneeProfiles(IEnumerable<FieldServiceVisit> visits)
+    private async Task<Dictionary<int, string>> LoadEmployeeProfilePathsAsync(IEnumerable<int> employeeIds)
     {
-        foreach (var loginUser in visits
-            .SelectMany(x => x.Assignees)
-            .Select(x => x.Employee?.LoginUser)
-            .Where(x => x != null)
-            .Distinct())
+        var ids = employeeIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, string>();
+
+        var employees = await _context.Employees.AsNoTracking()
+            .Where(x => ids.Contains(x.EmpId))
+            .Select(x => new { x.EmpId, x.LoginUserId })
+            .ToListAsync();
+        var loginUserIds = employees.Where(x => x.LoginUserId.HasValue)
+            .Select(x => x.LoginUserId!.Value).Distinct().ToList();
+        var users = await _context.LoginUsers.AsNoTracking()
+            .Where(x => loginUserIds.Contains(x.UserId) || (x.EmpId.HasValue && ids.Contains(x.EmpId.Value)))
+            .Select(x => new { x.UserId, x.EmpId, x.ProfileImagePath })
+            .ToListAsync();
+
+        var result = new Dictionary<int, string>();
+        foreach (var employee in employees)
         {
-            loginUser!.ProfileImagePath = NormalizeProfilePath(loginUser.ProfileImagePath);
+            var user = employee.LoginUserId.HasValue
+                ? users.FirstOrDefault(x => x.UserId == employee.LoginUserId.Value)
+                : null;
+            user ??= users.FirstOrDefault(x => x.EmpId == employee.EmpId);
+            result[employee.EmpId] = NormalizeProfilePath(user?.ProfileImagePath);
         }
+        return result;
     }
 
     private bool IsAdminUser() => string.Equals(
