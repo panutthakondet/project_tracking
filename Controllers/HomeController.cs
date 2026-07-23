@@ -659,6 +659,61 @@ namespace ProjectTracking.Controllers
             .Take(50)
             .ToListAsync();
 
+            var fieldServiceQuery = _context.FieldServiceVisits
+                .AsNoTracking()
+                .Include(x => x.Coop)
+                .Include(x => x.Assignees).ThenInclude(x => x.Employee)
+                .AsQueryable();
+            if (!isAdmin)
+            {
+                fieldServiceQuery = currentEmpId.HasValue
+                    ? fieldServiceQuery.Where(x => x.Assignees.Any(a => a.EmpId == currentEmpId.Value))
+                    : fieldServiceQuery.Where(x => false);
+            }
+            var fieldServiceVisits = await fieldServiceQuery.ToListAsync();
+            static string FieldServiceStatusText(string? status) => (status ?? "").ToUpperInvariant() switch
+            {
+                "PLANNED" => "วางแผนแล้ว",
+                "IN_PROGRESS" => "กำลังดำเนินการ",
+                "COMPLETED" => "เสร็จสิ้น",
+                "CANCELLED" => "ยกเลิก",
+                _ => string.IsNullOrWhiteSpace(status) ? "-" : status
+            };
+            static string FieldServiceStatusColor(string? status) => (status ?? "").ToUpperInvariant() switch
+            {
+                "COMPLETED" => "green",
+                "IN_PROGRESS" => "orange",
+                "CANCELLED" => "muted",
+                _ => "blue"
+            };
+            string FieldServiceDateText(FieldServiceVisit visit)
+            {
+                var endDate = (visit.EndVisitDate ?? visit.VisitDate).Date;
+                var startText = $"{visit.VisitDate.ToString("dd MMM", th)} {visit.VisitDate.Year + 543}";
+                return endDate == visit.VisitDate.Date
+                    ? startText
+                    : $"{startText} - {endDate.ToString("dd MMM", th)} {endDate.Year + 543}";
+            }
+            var upcomingFieldServiceVisits = fieldServiceVisits
+                .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
+                    && (x.EndVisitDate ?? x.VisitDate).Date >= today)
+                .OrderBy(x => x.VisitDate)
+                .ThenBy(x => x.StartTime)
+                .Take(6)
+                .Select(x => new HomeDashboardFieldServiceItem
+                {
+                    VisitId = x.VisitId,
+                    Title = x.Title,
+                    CoopName = x.Coop?.CoopName ?? "ไม่ระบุสหกรณ์",
+                    DateText = FieldServiceDateText(x),
+                    AssigneeText = x.Assignees.Any(a => a.Employee != null)
+                        ? string.Join(", ", x.Assignees.Where(a => a.Employee != null).OrderBy(a => a.Employee!.EmpName).Select(a => a.Employee!.EmpName))
+                        : "ยังไม่กำหนด",
+                    StatusText = FieldServiceStatusText(x.Status),
+                    StatusColor = FieldServiceStatusColor(x.Status)
+                })
+                .ToList();
+
             var currentAndPreviousMonthAttendance = await _context.Attendances
                 .AsNoTracking()
                 .Where(a => a.WorkDate >= attendanceRangeStart && a.WorkDate < nextMonthStart)
@@ -948,6 +1003,17 @@ namespace ProjectTracking.Controllers
                 TopProjectProgress = topProjectProgress,
                 RecentActivities = recentActivities,
                 TodayMeetings = meetingCards,
+                FieldServiceTodayCount = fieldServiceVisits.Count(x =>
+                    x.VisitDate.Date <= today && (x.EndVisitDate ?? x.VisitDate).Date >= today
+                    && !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)),
+                FieldServicePlannedCount = fieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)),
+                FieldServiceInProgressCount = fieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)),
+                FieldServiceCompletedMonthCount = fieldServiceVisits.Count(x =>
+                    string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)
+                    && (x.EndVisitDate ?? x.VisitDate).Date >= monthStart
+                    && (x.EndVisitDate ?? x.VisitDate).Date < nextMonthStart),
+                FieldServiceScopeText = isAdmin ? "ภาพรวมงานเข้าไซต์ทั้งหมด" : "งานเข้าไซต์ที่มอบหมายให้คุณ",
+                UpcomingFieldServiceVisits = upcomingFieldServiceVisits,
                 YearlyTasks = yearlyTasks,
                 YearlyTaskAxisMax = yearlyTaskAxisMax,
                 WatchProjects = watchProjects,

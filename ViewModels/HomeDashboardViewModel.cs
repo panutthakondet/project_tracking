@@ -45,6 +45,12 @@ namespace ProjectTracking.ViewModels
         public List<HomeDashboardProjectProgress> TopProjectProgress { get; set; } = new();
         public List<HomeDashboardActivity> RecentActivities { get; set; } = new();
         public List<HomeDashboardMeeting> TodayMeetings { get; set; } = new();
+        public int FieldServiceTodayCount { get; set; }
+        public int FieldServicePlannedCount { get; set; }
+        public int FieldServiceInProgressCount { get; set; }
+        public int FieldServiceCompletedMonthCount { get; set; }
+        public string FieldServiceScopeText { get; set; } = "งานเข้าไซต์ของคุณ";
+        public List<HomeDashboardFieldServiceItem> UpcomingFieldServiceVisits { get; set; } = new();
         public List<HomeDashboardTaskPeriod> YearlyTasks { get; set; } = new();
         public int YearlyTaskAxisMax { get; set; } = 4;
         public List<HomeDashboardWatchProject> WatchProjects { get; set; } = new();
@@ -179,6 +185,17 @@ namespace ProjectTracking.ViewModels
         public string TimeColor { get; set; } = "blue";
         public int AttendeeCount { get; set; }
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
+    }
+
+    public class HomeDashboardFieldServiceItem
+    {
+        public int VisitId { get; set; }
+        public string Title { get; set; } = "";
+        public string CoopName { get; set; } = "-";
+        public string DateText { get; set; } = "-";
+        public string AssigneeText { get; set; } = "ยังไม่กำหนด";
+        public string StatusText { get; set; } = "";
+        public string StatusColor { get; set; } = "blue";
     }
 
     public class HomeDashboardTaskPeriod
