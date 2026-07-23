@@ -23,7 +23,7 @@
 
 <div class="index-hero">
     <div class="index-hero__content"><span class="index-eyebrow">Field Service · @ServiceText(Model.ServiceType)</span><h2 class="index-title">@Model.Title</h2><p class="index-subtitle">@Model.Coop?.CoopName</p></div>
-    <div class="index-actions"><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a><a asp-action="Schedule" class="btn btn-outline-light">Work Calendar</a>@if(Can("FieldService.Result") && ViewBag.CanSubmitResult == true){<a asp-action="SubmitResult" asp-route-id="@Model.VisitId" class="btn btn-outline-success">ส่งผลการปฏิบัติงาน</a>}@if(Can("FieldService.Edit")){<a asp-action="Edit" asp-route-id="@Model.VisitId" class="btn btn-primary">แก้ไข</a>}</div>
+    <div class="index-actions"><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a><a asp-action="Schedule" class="btn btn-outline-light">Work Schedule</a>@if(Can("FieldService.Result") && ViewBag.CanSubmitResult == true){<a asp-action="SubmitResult" asp-route-id="@Model.VisitId" class="btn btn-outline-success">ส่งผลการปฏิบัติงาน</a>}@if(Can("FieldService.Edit")){<a asp-action="Edit" asp-route-id="@Model.VisitId" class="btn btn-primary">แก้ไข</a>}</div>
 </div>
 
 @if (TempData["Success"] is string success) { <div class="alert alert-success shadow-sm">@success</div> }

@@ -1,6 +1,6 @@
 @using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "Field Service Calendars";
+    ViewData["Title"] = "Work Schedule";
     var role = Context.Session.GetString("Role") ?? "";
     var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
     var canCreate = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) || menus.Any(x => x.Trim().Equals("FieldService.Create", StringComparison.OrdinalIgnoreCase));
