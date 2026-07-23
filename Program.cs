@@ -564,6 +564,14 @@ static async Task EnsureEmployeeLoginUserLinksAsync(IServiceProvider services)
             WHERE employee_row.login_user_id IS NULL
                OR linked_user.user_id IS NULL;";
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE login_user AS user_row
+            INNER JOIN employee AS employee_row
+                ON employee_row.login_user_id = user_row.user_id
+            SET user_row.emp_id = employee_row.emp_id
+            WHERE user_row.emp_id IS NULL;";
+        await command.ExecuteNonQueryAsync();
     }
     finally
     {

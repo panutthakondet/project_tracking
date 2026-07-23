@@ -108,9 +108,19 @@ namespace ProjectTracking.Controllers
             HttpContext.Session.SetString("Username", user.Username ?? "");
             HttpContext.Session.SetString("Role", user.Role ?? "");
             HttpContext.Session.SetString("ProfileImagePath", ResolveProfileImagePath(user.ProfileImagePath));
-            if (user.EmpId.HasValue)
+            var sessionEmpId = user.EmpId;
+            if (!sessionEmpId.HasValue)
             {
-                HttpContext.Session.SetInt32("EmpId", user.EmpId.Value);
+                sessionEmpId = await _context.Employees
+                    .AsNoTracking()
+                    .Where(x => x.LoginUserId == user.UserId)
+                    .Select(x => (int?)x.EmpId)
+                    .FirstOrDefaultAsync();
+            }
+
+            if (sessionEmpId.HasValue)
+            {
+                HttpContext.Session.SetInt32("EmpId", sessionEmpId.Value);
             }
             else
             {

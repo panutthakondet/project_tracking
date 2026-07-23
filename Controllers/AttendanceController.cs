@@ -31,9 +31,7 @@ namespace ProjectTracking.Controllers
 
             if (userId != null)
             {
-                var emp = await _context.Employees
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.LoginUserId == userId);
+                var emp = await ResolveCurrentEmployeeAsync(userId.Value, asTracking: false);
 
                 if (emp != null)
                 {
@@ -79,9 +77,8 @@ namespace ProjectTracking.Controllers
             if (userId == null)
                 return Json(new { success = false, message = "กรุณาเข้าสู่ระบบ" });
 
-            // map user -> employee
-            var emp = await _context.Employees
-                .FirstOrDefaultAsync(x => x.LoginUserId == userId);
+            // map user -> employee (supports both legacy and current account links)
+            var emp = await ResolveCurrentEmployeeAsync(userId.Value, asTracking: true);
 
             if (emp == null)
                 return Json(new { success = false, message = "ไม่พบข้อมูลพนักงาน" });
@@ -182,6 +179,34 @@ namespace ProjectTracking.Controllers
 
             // already completed
             // return Json(new { success = false, message = "วันนี้เช็คครบแล้ว" });
+        }
+
+        private async Task<Employee?> ResolveCurrentEmployeeAsync(int userId, bool asTracking)
+        {
+            var sessionEmpId = HttpContext.Session.GetInt32("EmpId");
+            var loginEmpId = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .Select(x => x.EmpId)
+                .FirstOrDefaultAsync();
+            var resolvedEmpId = sessionEmpId ?? loginEmpId;
+
+            IQueryable<Employee> query = _context.Employees;
+            if (!asTracking)
+            {
+                query = query.AsNoTracking();
+            }
+
+            var employee = await query.FirstOrDefaultAsync(x =>
+                (resolvedEmpId.HasValue && x.EmpId == resolvedEmpId.Value)
+                || x.LoginUserId == userId);
+
+            if (employee != null && sessionEmpId != employee.EmpId)
+            {
+                HttpContext.Session.SetInt32("EmpId", employee.EmpId);
+            }
+
+            return employee;
         }
 
         private double GetDistanceKm(double lat1, double lon1, double lat2, double lon2)
