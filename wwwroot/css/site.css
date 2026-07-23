@@ -150,6 +150,8 @@ main.route-controller-fieldservice .field-service-calendar-card .fc-button-activ
 main.route-controller-fieldservice .field-service-calendar-card .fc-event {
   border: 0; border-radius: 7px; padding: 2px 5px; font-weight: 700; cursor: pointer;
 }
+main.route-controller-fieldservice .field-service-calendar-assignees { display:flex; flex-wrap:wrap; gap:5px; color:var(--fs-muted); font-size:.82rem; }
+main.route-controller-fieldservice .field-service-calendar-assignees strong { color:var(--fs-contrast); font-weight:600; }
 main.route-controller-fieldservice .field-service-event-content {
   min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; padding: 2px 0;
 }

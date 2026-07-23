@@ -276,7 +276,9 @@ public class FieldServiceController : BaseController
         var first = new DateTime(selected.Year, selected.Month, 1);
         var last = first.AddMonths(1).AddDays(-1);
         ViewBag.Month = first;
-        return View(await _context.FieldServiceVisits.AsNoTracking().Include(x => x.Coop)
+        return View(await _context.FieldServiceVisits.AsNoTracking()
+            .Include(x => x.Coop)
+            .Include(x => x.Assignees).ThenInclude(x => x.Employee)
             .Where(x => x.VisitDate <= last && (x.EndVisitDate ?? x.VisitDate) >= first)
             .OrderBy(x => x.VisitDate).ThenBy(x => x.StartTime).ToListAsync());
     }
