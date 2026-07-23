@@ -925,7 +925,11 @@ namespace ProjectTracking.Controllers
                 today,
                 now,
                 attendancePolicy);
-            var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
+            var teamWorkload = BuildTeamWorkload(
+                assigns,
+                employees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
+                EmployeeName,
+                EmployeeAvatar);
             var activeFieldServiceCounts = fieldServiceVisits
                 .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
@@ -2440,6 +2444,7 @@ namespace ProjectTracking.Controllers
 
         private static List<HomeDashboardWorkload> BuildTeamWorkload(
             IReadOnlyList<DashboardAssignRow> assigns,
+            IEnumerable<int> employeeIds,
             Func<int?, string> employeeName,
             Func<int?, string> employeeAvatar)
         {
@@ -2448,7 +2453,8 @@ namespace ProjectTracking.Controllers
                 .GroupBy(a => a.EmpId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            var rows = activeAssigns.Keys
+            var rows = employeeIds
+                .Distinct()
                 .Select(empId =>
                 {
                     activeAssigns.TryGetValue(empId, out var assignCount);
@@ -2459,10 +2465,8 @@ namespace ProjectTracking.Controllers
                         AvatarPath = employeeAvatar(empId)
                     };
                 })
-                .Where(x => x.Count > 0)
                 .OrderByDescending(x => x.Count)
                 .ThenBy(x => employeeName(x.EmpId))
-                .Take(5)
                 .ToList();
 
             var max = rows.Select(x => x.Count).DefaultIfEmpty(0).Max();

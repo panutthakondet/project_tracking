@@ -999,8 +999,8 @@
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
                     <span>
-                        <h2>จำนวนงานของพนักงาน มากสุด 5 อันดับ</h2>
-                        <em>จัดอันดับทีมงานตามความคืบหน้าการทำงาน</em>
+                        <h2>จำนวนงานของพนักงานทั้งหมด</h2>
+                        <em>เรียงตามจำนวนงานค้างจากมากไปน้อย</em>
                     </span>
                 </div>
                 <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
@@ -6405,7 +6405,18 @@
 
 .panel-team .workload-list {
     gap:8px;
+    max-height:372px;
+    overflow-x:hidden;
+    overflow-y:auto;
+    padding-right:7px;
+    scrollbar-gutter:stable;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(56,189,248,.65) rgba(15,23,42,.22);
 }
+
+.panel-team .workload-list::-webkit-scrollbar { width:8px; height:8px; }
+.panel-team .workload-list::-webkit-scrollbar-track { border-radius:999px; background:rgba(15,23,42,.22); }
+.panel-team .workload-list::-webkit-scrollbar-thumb { border-radius:999px; background:rgba(56,189,248,.65); }
 
 .workload-row {
     position:relative;
