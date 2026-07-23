@@ -62,8 +62,26 @@ document.addEventListener('DOMContentLoaded', function () {
             const empty = document.createElement('div'); empty.className = 'text-center opacity-75 py-5';
             empty.textContent = 'ไม่มีงานเข้าไซต์ในช่วงนี้'; listElement.appendChild(empty); return;
         }
+        const groups = new Map();
         sorted.forEach(function (event) {
-            const props = event.extendedProps || {};
+            const coopName = event.extendedProps?.coopName || 'ไม่ระบุสหกรณ์';
+            if (!groups.has(coopName)) groups.set(coopName, []);
+            groups.get(coopName).push(event);
+        });
+        Array.from(groups.entries())
+            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB, 'th'))
+            .forEach(function ([coopName, groupEvents]) {
+            const group = document.createElement('section'); group.className = 'field-service-schedule-group';
+            const groupHead = document.createElement('div'); groupHead.className = 'field-service-schedule-group-head';
+            const groupTitle = document.createElement('div');
+            const groupIcon = document.createElement('span'); groupIcon.textContent = '🏢'; groupIcon.setAttribute('aria-hidden', 'true');
+            const groupName = document.createElement('h6'); groupName.textContent = coopName;
+            groupTitle.append(groupIcon, groupName);
+            const groupCount = document.createElement('span'); groupCount.textContent = `${groupEvents.length} งาน`;
+            groupHead.append(groupTitle, groupCount);
+            const groupItems = document.createElement('div'); groupItems.className = 'field-service-schedule-group-items';
+            groupEvents.forEach(function (event) {
+                const props = event.extendedProps || {};
             const row = document.createElement('a'); row.className = 'field-service-schedule-row';
             row.href = event.url || '#';
             const people = document.createElement('div'); people.className = 'field-service-schedule-people';
@@ -77,15 +95,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             if (!(props.employees || []).length) people.textContent = 'ยังไม่กำหนดพนักงาน';
             const main = document.createElement('div'); main.className = 'field-service-schedule-main';
-            const title = document.createElement('div'); title.className = 'field-service-schedule-coop'; title.textContent = props.coopName || event.title || '-';
-            const work = document.createElement('div'); work.className = 'field-service-schedule-work'; work.textContent = props.serviceTitle || '-';
-            main.append(title, work);
+            const title = document.createElement('div'); title.className = 'field-service-schedule-coop'; title.textContent = props.serviceTitle || event.title || '-';
+            main.append(title);
             const date = document.createElement('div'); date.className = 'field-service-schedule-date';
             const dateText = document.createElement('strong');
             dateText.textContent = `${thaiDate(event.start)} - ${thaiDate(displayEnd(event))}`;
             date.append(dateText);
             const status = document.createElement('span'); status.className = 'field-service-schedule-status'; status.dataset.status = props.status || ''; status.textContent = props.status || '-';
-            row.append(people, main, date, status); listElement.appendChild(row);
+            row.append(people, main, date, status); groupItems.appendChild(row);
+            });
+            group.append(groupHead, groupItems); listElement.appendChild(group);
         });
     }
     function loadServiceList(start, end) {
