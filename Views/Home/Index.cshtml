@@ -6319,7 +6319,82 @@
 }
 
 .panel-time .time-detail-grid {
-    grid-template-columns:repeat(3, minmax(0, 1fr));
+    grid-template-columns:repeat(6, minmax(0, 1fr));
+    gap:0;
+    margin-top:14px;
+    padding:12px 0 4px;
+    border-top:1px solid rgba(96,165,250,.2);
+}
+
+/* Keep attendance information in a few clear zones instead of many nested cards. */
+.panel-time .time-goal {
+    padding:10px 4px 0;
+    border:0;
+    border-radius:0;
+    background:none;
+    box-shadow:none;
+}
+
+.panel-time .time-metric-grid {
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:0;
+    padding:10px 0;
+    border-top:1px solid rgba(96,165,250,.2);
+    border-bottom:1px solid rgba(96,165,250,.2);
+}
+
+.panel-time .time-metric-grid span {
+    min-height:54px;
+    padding:5px 14px;
+    border:0;
+    border-right:1px solid rgba(96,165,250,.16);
+    border-radius:0;
+    background:none;
+}
+
+.panel-time .time-metric-grid span:last-child { border-right:0; }
+
+.panel-time .time-trend-card,
+.panel-time .time-heatmap-card {
+    padding:10px 0 4px;
+    border:0;
+    border-radius:0;
+    background:none;
+    box-shadow:none;
+}
+
+.panel-time .time-heatmap-card {
+    padding-top:12px;
+    border-top:1px solid rgba(96,165,250,.16);
+}
+
+.panel-time .time-detail-grid > span {
+    min-height:48px;
+    padding:4px 12px;
+    border:0;
+    border-right:1px solid rgba(96,165,250,.16);
+    border-radius:0;
+    background:none;
+}
+
+.panel-time .time-detail-grid > span:last-child { border-right:0; }
+.panel-time .time-detail-icon { width:28px; height:28px; }
+.panel-time .time-detail-grid b { font-size:15px; }
+
+@@media (max-width: 1199.98px) {
+    .panel-time .time-metric-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .panel-time .time-metric-grid span:nth-child(2) { border-right:0; }
+    .panel-time .time-metric-grid span:nth-child(-n+2) { border-bottom:1px solid rgba(96,165,250,.12); }
+    .panel-time .time-detail-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+    .panel-time .time-detail-grid > span:nth-child(3) { border-right:0; }
+    .panel-time .time-detail-grid > span:nth-child(-n+3) { border-bottom:1px solid rgba(96,165,250,.12); }
+}
+
+@@media (max-width: 767.98px) {
+    .panel-time .time-detail-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .panel-time .time-detail-grid > span:nth-child(3) { border-right:1px solid rgba(96,165,250,.16); }
+    .panel-time .time-detail-grid > span:nth-child(even) { border-right:0; }
+    .panel-time .time-detail-grid > span:nth-child(-n+4) { border-bottom:1px solid rgba(96,165,250,.12); }
 }
 
 .time-detail-icon {
