@@ -15,10 +15,31 @@
 
     .meeting-card {
         border-radius: 16px;
-        overflow: hidden;
+        overflow: visible;
         border: 1px solid rgba(0,0,0,.08);
         box-shadow: 0 10px 28px rgba(0,0,0,.06);
         background: #fff;
+    }
+
+    .meeting-card__body,
+    .meeting-card__body form,
+    .meeting-card__body .row,
+    .meeting-card__body [class*="col-"] {
+        overflow: visible;
+    }
+
+    .meeting-card__body .meeting-attendee-picker {
+        position: relative;
+        z-index: 20;
+    }
+
+    .meeting-card__body .meeting-attendee-picker:focus-within {
+        z-index: 1100;
+    }
+
+    .meeting-card__body .meeting-attendee-picker .pt-search-select.is-open,
+    .meeting-card__body .meeting-attendee-picker .pt-search-select__dropdown {
+        z-index: 1101;
     }
 
     .meeting-card__header {
