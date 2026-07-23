@@ -2475,7 +2475,9 @@ namespace ProjectTracking.Controllers
                 {
                     Name = employeeName(row.EmpId),
                     ActiveTaskCount = row.Count,
-                    Value = max <= 0 ? 0 : Math.Max(8, (int)Math.Round(row.Count * 100m / max)),
+                    Value = max <= 0 || row.Count == 0
+                        ? 0
+                        : Math.Max(8, (int)Math.Round(row.Count * 100m / max)),
                     Color = ColorByIndex(index),
                     AvatarPath = row.AvatarPath
                 })
