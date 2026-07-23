@@ -48,6 +48,7 @@ namespace ProjectTracking.ViewModels
         public int DelayCount { get; set; }
         public int OpenIssueCount { get; set; }
         public int OpenSupportCount { get; set; }
+        public int FieldServiceCount { get; set; }
         public int TotalCount { get; set; }
         public int TotalHeightPercent { get; set; }
         public int DoneHeightPercent { get; set; }
@@ -55,6 +56,7 @@ namespace ProjectTracking.ViewModels
         public int DelayHeightPercent { get; set; }
         public int OpenIssueHeightPercent { get; set; }
         public int OpenSupportHeightPercent { get; set; }
+        public int FieldServiceHeightPercent { get; set; }
     }
 
     public class ProjectOrgMember

@@ -924,7 +924,13 @@ namespace ProjectTracking.Controllers
                 now,
                 attendancePolicy);
             var teamWorkload = BuildTeamWorkload(assigns, EmployeeName, EmployeeAvatar);
-            var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, EmployeeName, EmployeeAvatar, today);
+            var activeFieldServiceCounts = fieldServiceVisits
+                .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
+                .SelectMany(x => x.Assignees)
+                .GroupBy(x => x.EmpId)
+                .ToDictionary(x => x.Key, x => x.Count());
+            var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, activeFieldServiceCounts, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             var phaseById = phases
                 .GroupBy(phase => phase.PhaseId)
@@ -2473,6 +2479,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardPhaseRow> phases,
             IReadOnlyList<DashboardIssueRow> issues,
             IReadOnlyList<DashboardSupportOrderRow> supportOrders,
+            IReadOnlyDictionary<int, int> fieldServiceCounts,
             Func<int?, string> employeeName,
             Func<int?, string> employeeAvatar,
             DateTime today)
@@ -2493,7 +2500,8 @@ namespace ProjectTracking.Controllers
                 .ToDictionary(g => g.Key, g => g.Count());
             var memberIds = assignGroups.Keys
                 .Union(openIssueCounts.Keys)
-                .Union(openSupportCounts.Keys);
+                .Union(openSupportCounts.Keys)
+                .Union(fieldServiceCounts.Keys);
 
             var rows = memberIds
                 .Select(empId =>
@@ -2506,7 +2514,8 @@ namespace ProjectTracking.Controllers
                     var inProgress = Math.Max(0, memberAssigns.Count - done - delay);
                     openIssueCounts.TryGetValue(empId, out var openIssues);
                     openSupportCounts.TryGetValue(empId, out var openSupport);
-                    var total = memberAssigns.Count + openIssues + openSupport;
+                    fieldServiceCounts.TryGetValue(empId, out var fieldService);
+                    var total = memberAssigns.Count + openIssues + openSupport + fieldService;
 
                     return new ProjectTaskOverviewMember
                     {
@@ -2518,6 +2527,7 @@ namespace ProjectTracking.Controllers
                         DelayCount = delay,
                         OpenIssueCount = openIssues,
                         OpenSupportCount = openSupport,
+                        FieldServiceCount = fieldService,
                         TotalCount = total
                     };
                 })
@@ -2536,6 +2546,7 @@ namespace ProjectTracking.Controllers
                 row.DelayHeightPercent = Percent(row.DelayCount, row.TotalCount);
                 row.OpenIssueHeightPercent = Percent(row.OpenIssueCount, row.TotalCount);
                 row.OpenSupportHeightPercent = Percent(row.OpenSupportCount, row.TotalCount);
+                row.FieldServiceHeightPercent = Percent(row.FieldServiceCount, row.TotalCount);
             }
 
             return rows;

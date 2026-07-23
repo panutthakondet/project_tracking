@@ -179,9 +179,10 @@
     var taskOverviewDelayTasks = dashboard.TaskOverview.Sum(x => x.DelayCount);
     var taskOverviewOpenIssueTasks = dashboard.TaskOverview.Sum(x => x.OpenIssueCount);
     var taskOverviewOpenSupportTasks = dashboard.TaskOverview.Sum(x => x.OpenSupportCount);
+    var taskOverviewFieldServiceTasks = dashboard.TaskOverview.Sum(x => x.FieldServiceCount);
     var taskOverviewMaxValue = dashboard.TaskOverview.Count == 0
         ? 0
-        : dashboard.TaskOverview.Max(x => new[] { x.DoneCount, x.InProgressCount, x.DelayCount, x.OpenIssueCount, x.OpenSupportCount }.Max());
+        : dashboard.TaskOverview.Max(x => new[] { x.DoneCount, x.InProgressCount, x.DelayCount, x.OpenIssueCount, x.OpenSupportCount, x.FieldServiceCount }.Max());
     var taskOverviewAxisMax = Math.Max(25, (int)Math.Ceiling(taskOverviewMaxValue / 5m) * 5);
     var taskOverviewAxisStep = Math.Max(1, taskOverviewAxisMax / 5);
     var taskOverviewAxisTicks = Enumerable.Range(0, 6)
@@ -451,7 +452,7 @@
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
                     <span>
                         <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
-                        <em>สรุป PhaseAssigns พร้อม Issues และ Support ที่ยัง OPEN</em>
+                        <em>สรุป PhaseAssigns, Issues, Support และงานเข้าไซต์ตามผู้รับผิดชอบ</em>
                     </span>
                 </div>
                 <a asp-controller="ProjectStatus" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
@@ -463,6 +464,7 @@
                 <span><i class="stuck"></i>ล่าช้า</span>
                 <span><i class="issue-open"></i>Issues OPEN</span>
                 <span><i class="support-open"></i>Support OPEN</span>
+                <span><i class="field-service"></i>Field Service</span>
             </div>
 
             @if (dashboard.TaskOverview.Count == 0)
@@ -492,9 +494,10 @@
                                         var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
                                         var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
                                         var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
+                                        var fieldServiceHeight = Math.Round(Math.Min(member.FieldServiceCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
 
                                         <div class="owner-overview-item" title="@member.Name">
-                                            <div class="owner-overview-bars" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน">
+                                            <div class="owner-overview-bars" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน Field Service @member.FieldServiceCount งาน">
                                                 <span class="owner-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
                                                       title="เสร็จแล้ว @member.DoneCount งาน"
                                                       style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
@@ -520,6 +523,11 @@
                                                       style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
                                                     <em>@member.OpenSupportCount</em><i></i>
                                                 </span>
+                                                <span class="owner-bar field-service @(member.FieldServiceCount == 0 ? "is-zero" : "")"
+                                                      title="Field Service @member.FieldServiceCount งาน"
+                                                      style="--bar-height:@fieldServiceHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
+                                                    <em>@member.FieldServiceCount</em><i></i>
+                                                </span>
                                             </div>
                                             <div class="owner-overview-member">
                                                 <small>รวม @member.TotalCount งาน</small>
@@ -542,6 +550,7 @@
                     <span class="stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b></span>
                     <span class="issue-open"><i></i>Issues OPEN <b>@taskOverviewOpenIssueTasks</b></span>
                     <span class="support-open"><i></i>Support OPEN <b>@taskOverviewOpenSupportTasks</b></span>
+                    <span class="field-service"><i></i>Field Service <b>@taskOverviewFieldServiceTasks</b></span>
                 </div>
             }
         </article>
@@ -2461,6 +2470,8 @@
 .owner-overview-footer .issue-open i { background:#8b5cf6; }
 .owner-overview-legend .support-open,
 .owner-overview-footer .support-open i { background:#0ea5e9; }
+.owner-overview-legend .field-service,
+.owner-overview-footer .field-service i { background:#14b8a6; }
 
 .owner-overview-plots {
     display:grid;
@@ -2622,6 +2633,7 @@
 .owner-bar.stuck i { background:linear-gradient(180deg, #f45b6a, #dc4655); }
 .owner-bar.issue-open i { background:linear-gradient(180deg, #a78bfa, #7c3aed); }
 .owner-bar.support-open i { background:linear-gradient(180deg, #38bdf8, #0ea5e9); }
+.owner-bar.field-service i { background:linear-gradient(180deg, #5eead4, #0d9488); }
 
 .owner-overview-member {
     width:100%;
