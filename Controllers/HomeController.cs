@@ -614,9 +614,11 @@ namespace ProjectTracking.Controllers
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
                     Status = e.Status,
+                    LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
                 })
                 .ToListAsync();
+            await FillMissingEmployeeProfileImagesAsync(employees);
 
             var todayMeetings = await (
                 from m in _context.Meetings.AsNoTracking()
@@ -1514,9 +1516,11 @@ namespace ProjectTracking.Controllers
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
                     Status = e.Status,
+                    LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
                 })
                 .ToListAsync();
+            await FillMissingEmployeeProfileImagesAsync(employees);
 
             var projects = await _context.Projects
                 .AsNoTracking()
@@ -2914,7 +2918,47 @@ namespace ProjectTracking.Controllers
             }
 
             var path = profileImagePath.Trim();
-            return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path;
+            if (path.StartsWith("~/", StringComparison.Ordinal))
+            {
+                path = path[1..];
+            }
+
+            return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path.TrimStart('/');
+        }
+
+        private async Task FillMissingEmployeeProfileImagesAsync(List<DashboardEmployeeRow> employees)
+        {
+            var rowsMissingProfile = employees
+                .Where(x => string.IsNullOrWhiteSpace(x.ProfileImagePath))
+                .ToList();
+            if (rowsMissingProfile.Count == 0)
+            {
+                return;
+            }
+
+            var employeeIds = rowsMissingProfile.Select(x => x.EmpId).ToHashSet();
+            var linkedUserIds = rowsMissingProfile
+                .Where(x => x.LoginUserId.HasValue)
+                .Select(x => x.LoginUserId!.Value)
+                .ToHashSet();
+            var profileUsers = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(x => linkedUserIds.Contains(x.UserId)
+                    || (x.EmpId.HasValue && employeeIds.Contains(x.EmpId.Value)))
+                .Select(x => new { x.UserId, x.EmpId, x.ProfileImagePath })
+                .ToListAsync();
+
+            foreach (var employee in rowsMissingProfile)
+            {
+                employee.ProfileImagePath = profileUsers
+                    .FirstOrDefault(x => employee.LoginUserId.HasValue
+                        && x.UserId == employee.LoginUserId.Value
+                        && !string.IsNullOrWhiteSpace(x.ProfileImagePath))
+                    ?.ProfileImagePath
+                    ?? profileUsers.FirstOrDefault(x => x.EmpId == employee.EmpId
+                        && !string.IsNullOrWhiteSpace(x.ProfileImagePath))
+                    ?.ProfileImagePath;
+            }
         }
 
         private static string Norm(string? value)
@@ -3108,6 +3152,7 @@ namespace ProjectTracking.Controllers
             public int EmpId { get; set; }
             public string EmpName { get; set; } = "";
             public string? Status { get; set; }
+            public int? LoginUserId { get; set; }
             public string? ProfileImagePath { get; set; }
         }
 
