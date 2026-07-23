@@ -2906,8 +2906,13 @@ main.route-controller-meetings:is(.route-action-create, .route-action-edit) #tim
 .route-controller-meetings .meeting-time-field .form-control {
   width: 100%;
   max-width: 140px;
-  min-height: 42px;
+  min-height: 50px;
   padding-inline: 10px;
+}
+
+.route-controller-meetings .meeting-date-control {
+  min-height: 50px;
+  margin-top: 20px;
 }
 
 .route-controller-meetings .btn-pill {

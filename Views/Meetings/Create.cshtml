@@ -166,7 +166,7 @@
 
                         <input type="text"
                                id="MeetingDateDisplay"
-                               class="form-control"
+                               class="form-control meeting-date-control"
                                placeholder="วว/ดด/ปปปป"
                                autocomplete="off"
                                maxlength="10"
@@ -192,7 +192,7 @@
                                 <input type="time" name="EndTime" class="form-control" required />
                             </div>
                         </div>
-                        <small class="form-hint" id="timeHint" style="display:none; color:#dc3545;">เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม</small>
+                        <small class="form-hint">หากสิ้นสุดเวลา 00:00 ระบบจะนับเป็นเที่ยงคืนของวันถัดไป</small>
                     </div>
 
                     <div class="col-12">
@@ -260,7 +260,6 @@
 
     const startInput = form.querySelector('input[name="StartTime"]');
     const endInput = form.querySelector('input[name="EndTime"]');
-    const hint = document.getElementById('timeHint');
     const displayDate = document.getElementById('MeetingDateDisplay');
     const hiddenDate = document.getElementById('MeetingDate');
 
@@ -426,13 +425,7 @@
 
     function validateTime() {
         if (!startInput || !endInput) return true;
-        if (!startInput.value || !endInput.value) {
-            if (hint) hint.style.display = 'none';
-            return true;
-        }
-        const ok = endInput.value > startInput.value;
-        if (hint) hint.style.display = ok ? 'none' : 'block';
-        return ok;
+        return Boolean(startInput.value && endInput.value);
     }
 
     if (startInput) startInput.addEventListener('change', validateTime);

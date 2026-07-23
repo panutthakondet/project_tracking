@@ -1313,7 +1313,10 @@ SELECT
     ELSE CONCAT(c.coop_name, ' - ', p.project_name)
   END AS ProjectName,
   TIMESTAMP(m.meeting_date, m.start_time) AS StartAt,
-  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt,
+  CASE
+    WHEN m.end_time <= m.start_time THEN TIMESTAMP(DATE_ADD(m.meeting_date, INTERVAL 1 DAY), m.end_time)
+    ELSE TIMESTAMP(m.meeting_date, m.end_time)
+  END AS EndAt,
   COALESCE(m.updated_at, m.created_at) AS UpdatedAt
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id
@@ -1347,7 +1350,10 @@ SELECT
     ELSE CONCAT(c.coop_name, ' - ', p.project_name)
   END AS ProjectName,
   TIMESTAMP(m.meeting_date, m.start_time) AS StartAt,
-  TIMESTAMP(m.meeting_date, m.end_time) AS EndAt,
+  CASE
+    WHEN m.end_time <= m.start_time THEN TIMESTAMP(DATE_ADD(m.meeting_date, INTERVAL 1 DAY), m.end_time)
+    ELSE TIMESTAMP(m.meeting_date, m.end_time)
+  END AS EndAt,
   COALESCE(m.updated_at, m.created_at) AS UpdatedAt
 FROM meetings m
 LEFT JOIN project p ON p.project_id = m.project_id

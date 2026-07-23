@@ -97,22 +97,28 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            var meetings = rows.Select(x => new
+            var meetings = rows.Select(x =>
             {
-                id = x.Id,
-                title = x.ProjectName ?? "",
-                allDay = false,
-                start = $"{x.MeetingDate:yyyy-MM-dd}T{x.StartTime.Hours:D2}:{x.StartTime.Minutes:D2}:{x.StartTime.Seconds:D2}",
-                end   = $"{x.MeetingDate:yyyy-MM-dd}T{x.EndTime.Hours:D2}:{x.EndTime.Minutes:D2}:{x.EndTime.Seconds:D2}",
-                extendedProps = new
+                var startAt = x.MeetingDate.Date.Add(x.StartTime);
+                var endAt = x.MeetingDate.Date.Add(x.EndTime);
+                if (endAt <= startAt) endAt = endAt.AddDays(1);
+                return new
                 {
-                    projectId = x.ProjectId,
-                    projectName = x.ProjectName,
-                    meetingTitle = x.Title,
-                    description = x.Description,
-                    location = x.Location,
-                    meetingAudience = x.MeetingAudience
-                }
+                    id = x.Id,
+                    title = x.ProjectName ?? "",
+                    allDay = false,
+                    start = startAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                    end = endAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                    extendedProps = new
+                    {
+                        projectId = x.ProjectId,
+                        projectName = x.ProjectName,
+                        meetingTitle = x.Title,
+                        description = x.Description,
+                        location = x.Location,
+                        meetingAudience = x.MeetingAudience
+                    }
+                };
             }).ToList();
 
             return Json(meetings);
@@ -755,7 +761,7 @@ namespace ProjectTracking.Controllers
             // Keep original duration if end is missing or invalid
             var duration = meeting.EndTime - meeting.StartTime;
             if (duration <= TimeSpan.Zero)
-                duration = TimeSpan.FromHours(1);
+                duration = duration.Add(TimeSpan.FromDays(1));
 
             if (!meeting.CreatedBy.HasValue)
                 meeting.CreatedBy = await GetCurrentEntryIdAsync();
