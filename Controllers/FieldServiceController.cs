@@ -293,7 +293,7 @@ public class FieldServiceController : BaseController
     }
 
     [RequireMenu("FieldService.Calendar")]
-    public async Task<IActionResult> AnnualCalendar(int? fromYear, int? toYear)
+    public async Task<IActionResult> AnnualCalendar(int? fromYear, int? toYear, int? employeeId)
     {
         var currentYear = DateTime.Today.Year;
         var startYear = fromYear ?? currentYear;
@@ -304,47 +304,67 @@ public class FieldServiceController : BaseController
         endYear = Math.Clamp(endYear, currentYear - 10, currentYear + 10);
         if (startYear > endYear) (startYear, endYear) = (endYear, startYear);
 
+        var employees = await _context.Employees.AsNoTracking()
+            .Where(x => x.Status == "ACTIVE")
+            .OrderBy(x => x.EmpName)
+            .Select(x => new { x.EmpId, x.EmpName, x.Position })
+            .ToListAsync();
         var currentEmpId = HttpContext.Session.GetInt32("EmpId");
+        if (!currentEmpId.HasValue && HttpContext.Session.GetInt32("UserId") is int currentUserId)
+        {
+            currentEmpId = await _context.Employees.AsNoTracking()
+                .Where(x => x.LoginUserId == currentUserId)
+                .Select(x => (int?)x.EmpId)
+                .FirstOrDefaultAsync();
+            currentEmpId ??= await _context.LoginUsers.AsNoTracking()
+                .Where(x => x.UserId == currentUserId)
+                .Select(x => x.EmpId)
+                .FirstOrDefaultAsync();
+        }
+        var selectedEmployeeId = employeeId ?? currentEmpId ?? 0;
+        if (selectedEmployeeId > 0 && !employees.Any(x => x.EmpId == selectedEmployeeId))
+            selectedEmployeeId = 0;
+        var selectedEmployeeName = selectedEmployeeId == 0
+            ? "พนักงานทั้งหมด"
+            : employees.First(x => x.EmpId == selectedEmployeeId).EmpName;
         var workDates = new HashSet<string>();
         var workDateVisits = new Dictionary<string, List<int>>();
-        if (currentEmpId.HasValue)
+        var rangeStart = new DateTime(startYear, 1, 1);
+        var rangeEnd = new DateTime(endYear, 12, 31);
+        var rangesQuery = _context.FieldServiceVisits.AsNoTracking()
+            .Where(x => x.VisitDate <= rangeEnd
+                && (x.EndVisitDate ?? x.VisitDate) >= rangeStart
+                && x.Status != "CANCELLED");
+        if (selectedEmployeeId > 0)
+            rangesQuery = rangesQuery.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
+        var ranges = await rangesQuery
+            .OrderBy(x => x.VisitDate)
+            .ThenBy(x => x.StartTime)
+            .ThenBy(x => x.VisitId)
+            .Select(x => new { x.VisitId, x.VisitDate, x.EndVisitDate })
+            .ToListAsync();
+        foreach (var range in ranges)
         {
-            ViewBag.CurrentEmployeeName = await _context.Employees.AsNoTracking()
-                .Where(x => x.EmpId == currentEmpId.Value)
-                .Select(x => x.EmpName)
-                .FirstOrDefaultAsync();
-            var rangeStart = new DateTime(startYear, 1, 1);
-            var rangeEnd = new DateTime(endYear, 12, 31);
-            var ranges = await _context.FieldServiceVisits.AsNoTracking()
-                .Where(x => x.Assignees.Any(a => a.EmpId == currentEmpId.Value)
-                    && x.VisitDate <= rangeEnd
-                    && (x.EndVisitDate ?? x.VisitDate) >= rangeStart
-                    && x.Status != "CANCELLED")
-                .OrderBy(x => x.VisitDate)
-                .ThenBy(x => x.StartTime)
-                .ThenBy(x => x.VisitId)
-                .Select(x => new { x.VisitId, x.VisitDate, x.EndVisitDate })
-                .ToListAsync();
-            foreach (var range in ranges)
+            var start = range.VisitDate.Date < rangeStart ? rangeStart : range.VisitDate.Date;
+            var end = (range.EndVisitDate ?? range.VisitDate).Date > rangeEnd
+                ? rangeEnd
+                : (range.EndVisitDate ?? range.VisitDate).Date;
+            for (var date = start; date <= end; date = date.AddDays(1))
             {
-                var start = range.VisitDate.Date < rangeStart ? rangeStart : range.VisitDate.Date;
-                var end = (range.EndVisitDate ?? range.VisitDate).Date > rangeEnd
-                    ? rangeEnd
-                    : (range.EndVisitDate ?? range.VisitDate).Date;
-                for (var date = start; date <= end; date = date.AddDays(1))
+                var dateKey = date.ToString("yyyy-MM-dd");
+                workDates.Add(dateKey);
+                if (!workDateVisits.TryGetValue(dateKey, out var visits))
                 {
-                    var dateKey = date.ToString("yyyy-MM-dd");
-                    workDates.Add(dateKey);
-                    if (!workDateVisits.TryGetValue(dateKey, out var visits))
-                    {
-                        visits = new List<int>();
-                        workDateVisits[dateKey] = visits;
-                    }
-                    if (!visits.Contains(range.VisitId)) visits.Add(range.VisitId);
+                    visits = new List<int>();
+                    workDateVisits[dateKey] = visits;
                 }
+                if (!visits.Contains(range.VisitId)) visits.Add(range.VisitId);
             }
         }
 
+        ViewBag.Employees = employees;
+        ViewBag.SelectedEmployeeId = selectedEmployeeId;
+        ViewBag.SelectedEmployeeName = selectedEmployeeName;
         ViewBag.FromYear = startYear;
         ViewBag.ToYear = endYear;
         ViewBag.WorkDates = workDates;

@@ -6,6 +6,9 @@
     var yearOptions = ViewBag.YearOptions as int[] ?? Array.Empty<int>();
     var workDates = ViewBag.WorkDates as ISet<string> ?? new HashSet<string>();
     var workDateVisits = ViewBag.WorkDateVisits as Dictionary<string, List<int>> ?? new Dictionary<string, List<int>>();
+    var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var selectedEmployeeId = (int)(ViewBag.SelectedEmployeeId ?? 0);
+    var selectedEmployeeName = (string)(ViewBag.SelectedEmployeeName ?? "พนักงานทั้งหมด");
     var monthNames = new CultureInfo("th-TH").DateTimeFormat.MonthNames.Take(12).ToArray();
     var dayHeaders = new[] { "อา", "จ", "อ", "พ", "พฤ", "ศ", "ส" };
 }
@@ -14,7 +17,7 @@
     <div class="index-hero__content">
         <span class="index-eyebrow">Field Service</span>
         <h2 class="index-title">ปฏิทินงานเข้าไซต์</h2>
-        <p class="index-subtitle">วันปฏิบัติงานของ @(ViewBag.CurrentEmployeeName ?? "พนักงานที่ Login")</p>
+        <p class="index-subtitle">วันปฏิบัติงานของ @selectedEmployeeName</p>
     </div>
     <div class="index-actions"><a asp-action="Schedule" class="btn btn-outline-light">กลับ Work Calendar</a></div>
 </div>
@@ -22,10 +25,11 @@
 <form method="get" class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-year-filter mb-4">
     <div class="card-body p-3 p-lg-4">
         <div class="row g-3 align-items-end">
-            <div class="col-sm-4 col-lg-3"><label class="form-label fw-bold" for="fromYear">จากปี</label><select id="fromYear" name="fromYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == fromYear)">@(year + 543)</option>}</select></div>
-            <div class="col-sm-4 col-lg-3"><label class="form-label fw-bold" for="toYear">ถึงปี</label><select id="toYear" name="toYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == toYear)">@(year + 543)</option>}</select></div>
-            <div class="col-sm-4 col-lg-3"><button type="submit" class="btn btn-primary w-100">แสดงปฏิทิน</button></div>
-            <div class="col-lg-3"><div class="field-service-annual-legend mb-0"><span class="field-service-work-dot"></span> วันที่มีงานเข้าไซต์ของคุณ</div></div>
+            <div class="col-md-6 col-lg-3"><label class="form-label fw-bold" for="employeeId">พนักงาน</label><select id="employeeId" name="employeeId" class="form-select"><option value="0" selected="@(selectedEmployeeId == 0)">พนักงานทั้งหมด</option>@foreach(var employee in employees){<option value="@employee.EmpId" selected="@(selectedEmployeeId == (int)employee.EmpId)">@employee.EmpName</option>}</select></div>
+            <div class="col-6 col-md-3 col-lg-2"><label class="form-label fw-bold" for="fromYear">จากปี</label><select id="fromYear" name="fromYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == fromYear)">@(year + 543)</option>}</select></div>
+            <div class="col-6 col-md-3 col-lg-2"><label class="form-label fw-bold" for="toYear">ถึงปี</label><select id="toYear" name="toYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == toYear)">@(year + 543)</option>}</select></div>
+            <div class="col-md-6 col-lg-2"><button type="submit" class="btn btn-primary w-100">แสดงปฏิทิน</button></div>
+            <div class="col-md-6 col-lg-3"><div class="field-service-annual-legend mb-0"><span class="field-service-work-dot"></span> วันที่มีงานเข้าไซต์ของ @selectedEmployeeName</div></div>
         </div>
     </div>
 </form>
