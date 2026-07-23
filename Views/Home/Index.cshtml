@@ -793,13 +793,25 @@
                 </div>
                 <a asp-controller="FieldService" asp-action="Schedule" class="panel-link dashboard-action-link calendar">ดูปฏิทิน</a>
             </div>
-            <div class="field-service-dashboard-metrics">
-                <a asp-controller="FieldService" asp-action="Calendar"><span>วันนี้</span><strong>@dashboard.FieldServiceTodayCount</strong><small>งาน</small></a>
-                <a asp-controller="FieldService" asp-action="Index" asp-route-status="PLANNED"><span>วางแผนแล้ว</span><strong>@dashboard.FieldServicePlannedCount</strong><small>งาน</small></a>
-                <a asp-controller="FieldService" asp-action="Index" asp-route-status="IN_PROGRESS"><span>กำลังดำเนินการ</span><strong>@dashboard.FieldServiceInProgressCount</strong><small>งาน</small></a>
-                <a asp-controller="FieldService" asp-action="Report"><span>เสร็จเดือนนี้</span><strong>@dashboard.FieldServiceCompletedMonthCount</strong><small>งาน</small></a>
-            </div>
-            <div class="field-service-dashboard-list">
+            <div class="field-service-dashboard-layout">
+                <section class="field-service-dashboard-overview" aria-label="สรุปสถานะงานเข้าไซต์">
+                    <div class="field-service-dashboard-chart">
+                        <div class="donut field-service-dashboard-donut" style="--donut:@dashboard.FieldServiceStatusDonut">
+                            <div><strong>@dashboard.FieldServiceTotalCount</strong><span>งานทั้งหมด</span></div>
+                        </div>
+                        <div class="metric-list field-service-dashboard-legend">
+                            @foreach (var metric in dashboard.FieldServiceStatusMetrics)
+                            {
+                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.Count</b></span>
+                            }
+                        </div>
+                    </div>
+                    <div class="field-service-dashboard-metrics">
+                        <a asp-controller="FieldService" asp-action="Calendar"><span>งานวันนี้</span><strong>@dashboard.FieldServiceTodayCount</strong><small>งาน</small></a>
+                        <a asp-controller="FieldService" asp-action="Report"><span>เสร็จเดือนนี้</span><strong>@dashboard.FieldServiceCompletedMonthCount</strong><small>งาน</small></a>
+                    </div>
+                </section>
+                <section class="field-service-dashboard-list">
                 <div class="field-service-dashboard-subhead"><b>กำหนดการถัดไป</b><a asp-controller="FieldService" asp-action="Index">ดูทั้งหมด</a></div>
                 @if (dashboard.UpcomingFieldServiceVisits.Count == 0)
                 {
@@ -816,6 +828,7 @@
                         </a>
                     }
                 }
+                </section>
             </div>
         </article>
 
@@ -2400,8 +2413,8 @@
 .panel-team { order:7; grid-column:span 24; min-height:285px; }
 .panel-activity { order:8; grid-column:span 24; min-height:270px; }
 .panel-meetings { order:9; grid-column:span 24; min-height:280px; }
-.panel-field-service { order:10; grid-column:span 24; min-height:320px; }
-.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-owner-overview):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
+.panel-field-service { order:10; grid-column:1 / -1 !important; width:100%; min-height:320px; }
+.dashboard-grid > .glass-panel:not(.panel-wide):not(.panel-project-status):not(.panel-owner-overview):not(.panel-activity):not(.panel-line-overdue):not(.panel-issues):not(.panel-meetings):not(.panel-field-service):not(.panel-task):not(.panel-time):not(.panel-team) { grid-column:span 6; }
 
 .panel-owner-overview {
     padding:20px 24px 18px;
@@ -5409,11 +5422,40 @@
     object-fit:contain;
 }
 
+.field-service-dashboard-layout {
+    display:grid;
+    grid-template-columns:minmax(330px,.8fr) minmax(0,1.7fr);
+    align-items:start;
+    gap:24px;
+}
+
+.field-service-dashboard-overview {
+    display:grid;
+    gap:18px;
+    padding:18px;
+    border:1px solid rgba(75,139,220,.25);
+    border-radius:16px;
+    background:rgba(8,35,71,.7);
+}
+
+.field-service-dashboard-chart {
+    display:grid;
+    grid-template-columns:160px minmax(0,1fr);
+    align-items:center;
+    gap:18px;
+}
+
+.field-service-dashboard-donut { width:150px; height:150px; justify-self:center; }
+.field-service-dashboard-donut > div { width:92px; height:92px; }
+.field-service-dashboard-donut strong { font-size:30px; }
+.field-service-dashboard-legend { gap:12px; color:#dbeafe; }
+.field-service-dashboard-legend > span { padding-bottom:8px; border-bottom:1px solid rgba(148,163,184,.14); }
+.field-service-dashboard-legend > span:last-child { padding-bottom:0; border-bottom:0; }
+
 .field-service-dashboard-metrics {
     display:grid;
-    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-columns:repeat(2,minmax(0,1fr));
     gap:12px;
-    margin-bottom:20px;
 }
 
 .field-service-dashboard-metrics a {
@@ -5434,7 +5476,7 @@
 .field-service-dashboard-metrics span { min-width:0; color:#a9bddb; font-size:13px; font-weight:800; overflow-wrap:anywhere; }
 .field-service-dashboard-metrics strong { color:#5eead4; font-size:27px; line-height:1; font-weight:1000; }
 .field-service-dashboard-metrics small { color:#91a7c8; font-size:12px; font-weight:800; }
-.field-service-dashboard-list { display:grid; gap:8px; }
+.field-service-dashboard-list { min-width:0; display:grid; align-content:start; gap:8px; }
 .field-service-dashboard-subhead { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:3px; }
 .field-service-dashboard-subhead b { color:#f8fbff; font-size:15px; }
 .field-service-dashboard-subhead a { color:#67e8f9; font-size:13px; font-weight:800; text-decoration:none; }
@@ -5449,7 +5491,13 @@
 .field-service-dashboard-status.orange { color:#fbbf24; }
 .field-service-dashboard-status.muted { color:#94a3b8; }
 
+@@media (max-width: 1100px) {
+    .field-service-dashboard-layout { grid-template-columns:1fr; }
+}
+
 @@media (max-width: 767.98px) {
+    .panel-field-service { padding:20px 16px; }
+    .field-service-dashboard-chart { grid-template-columns:1fr; }
     .field-service-dashboard-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .field-service-dashboard-row { grid-template-columns:1fr; gap:5px; }
     .field-service-dashboard-status { justify-self:start; }

@@ -713,6 +713,13 @@ namespace ProjectTracking.Controllers
                     StatusColor = FieldServiceStatusColor(x.Status)
                 })
                 .ToList();
+            var fieldServiceStatusMetrics = new List<HomeDashboardMetric>
+            {
+                CreateMetric("วางแผนแล้ว", fieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "blue"),
+                CreateMetric("กำลังดำเนินการ", fieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "orange"),
+                CreateMetric("เสร็จสิ้น", fieldServiceVisits.Count(x => string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "green"),
+                CreateMetric("ยกเลิก", fieldServiceVisits.Count(x => string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "muted")
+            };
 
             var currentAndPreviousMonthAttendance = await _context.Attendances
                 .AsNoTracking()
@@ -1012,6 +1019,9 @@ namespace ProjectTracking.Controllers
                     string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)
                     && (x.EndVisitDate ?? x.VisitDate).Date >= monthStart
                     && (x.EndVisitDate ?? x.VisitDate).Date < nextMonthStart),
+                FieldServiceTotalCount = fieldServiceVisits.Count,
+                FieldServiceStatusMetrics = fieldServiceStatusMetrics,
+                FieldServiceStatusDonut = BuildDonut(fieldServiceStatusMetrics),
                 FieldServiceScopeText = isAdmin ? "ภาพรวมงานเข้าไซต์ทั้งหมด" : "งานเข้าไซต์ที่มอบหมายให้คุณ",
                 UpcomingFieldServiceVisits = upcomingFieldServiceVisits,
                 YearlyTasks = yearlyTasks,

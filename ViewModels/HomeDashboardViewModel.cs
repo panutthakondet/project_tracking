@@ -49,6 +49,9 @@ namespace ProjectTracking.ViewModels
         public int FieldServicePlannedCount { get; set; }
         public int FieldServiceInProgressCount { get; set; }
         public int FieldServiceCompletedMonthCount { get; set; }
+        public int FieldServiceTotalCount { get; set; }
+        public string FieldServiceStatusDonut { get; set; } = "conic-gradient(#263450 0 100%)";
+        public List<HomeDashboardMetric> FieldServiceStatusMetrics { get; set; } = new();
         public string FieldServiceScopeText { get; set; } = "งานเข้าไซต์ของคุณ";
         public List<HomeDashboardFieldServiceItem> UpcomingFieldServiceVisits { get; set; } = new();
         public List<HomeDashboardTaskPeriod> YearlyTasks { get; set; } = new();
