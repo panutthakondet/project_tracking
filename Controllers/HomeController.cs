@@ -2477,7 +2477,7 @@ namespace ProjectTracking.Controllers
                     ActiveTaskCount = row.Count,
                     Value = max <= 0 || row.Count == 0
                         ? 0
-                        : Math.Max(8, (int)Math.Round(row.Count * 100m / max)),
+                        : (int)Math.Round(row.Count * 100m / max),
                     Color = ColorByIndex(index),
                     AvatarPath = row.AvatarPath
                 })
