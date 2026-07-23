@@ -28,7 +28,7 @@
     }
 
     string AvatarPath(string? value)
-        => string.IsNullOrWhiteSpace(value) ? "/images/Profile/profile.png" : value.Trim();
+        => ProjectTracking.Services.ProfileImagePathResolver.Normalize(value);
 }
 
 <div class="index-page activities-page">

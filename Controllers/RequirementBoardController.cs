@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using ProjectTracking.Data;
+using ProjectTracking.Services;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
@@ -1388,12 +1389,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ResolveOnlineAvatarPath(string? profileImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(profileImagePath)) return "/images/Profile/profile.png";
-
-            var path = profileImagePath.Trim();
-            return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path;
-        }
+            => ProfileImagePathResolver.Normalize(profileImagePath);
 
         private async Task<(string Path, string Name)?> SaveCoverImageAsync(int cardId, IFormFile? file, string? oldPath)
         {

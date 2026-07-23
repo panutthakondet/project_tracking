@@ -200,11 +200,8 @@
     {
         rowClass = "open";
     }
-    string ownerAvatar = Convert.ToString(item.OwnerAvatar);
-    if (string.IsNullOrWhiteSpace(ownerAvatar))
-    {
-        ownerAvatar = "/images/Profile/profile.png";
-    }
+    string ownerAvatar = ProjectTracking.Services.ProfileImagePathResolver.Normalize(
+        Convert.ToString(item.OwnerAvatar));
 
     <div class="followup-dashboard-card @rowClass"
          data-owner="@item.Owner"

@@ -330,16 +330,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ProfileImage(Employee? employee)
-        {
-            var path = employee?.LoginUser?.ProfileImagePath;
-            if (string.IsNullOrWhiteSpace(path))
-                return "/images/Profile/profile.png";
-
-            path = path.Trim();
-            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
-            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
-            return path;
-        }
+            => ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
 
         private static string GroupLabel(string? sourceType) => Source(sourceType) switch
         {

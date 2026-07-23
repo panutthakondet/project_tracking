@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Services;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
 
@@ -446,16 +447,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ProfileImage(Employee? employee)
-        {
-            var path = employee?.LoginUser?.ProfileImagePath;
-            if (string.IsNullOrWhiteSpace(path))
-                return "/images/Profile/profile.png";
-
-            path = path.Trim();
-            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
-            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
-            return path;
-        }
+            => ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
 
         private static string FormatDate(DateTime? value)
         {

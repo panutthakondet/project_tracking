@@ -1853,11 +1853,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 @{
     var userId = Context.Session.GetInt32("UserId");
     var username = Context.Session.GetString("Username");
-    var profileImagePath = Context.Session.GetString("ProfileImagePath");
-    if (string.IsNullOrWhiteSpace(profileImagePath))
-    {
-        profileImagePath = "/images/Profile/profile.png";
-    }
+    var profileImagePath = ProjectTracking.Services.ProfileImagePathResolver.Normalize(
+        Context.Session.GetString("ProfileImagePath"));
     var currentReturnUrl = Context.Request.Path + Context.Request.QueryString;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();

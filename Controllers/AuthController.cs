@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Services;
 using ProjectTracking.Helpers;
 
 namespace ProjectTracking.Controllers
@@ -335,13 +336,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ResolveProfileImagePath(string? profileImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(profileImagePath))
-                return DefaultProfileImagePath;
-
-            var path = profileImagePath.Trim();
-            return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path;
-        }
+            => ProfileImagePathResolver.Normalize(profileImagePath);
 
         private static bool TryParseProfileImageDataUrl(string dataUrl, out byte[] bytes, out string extension)
         {

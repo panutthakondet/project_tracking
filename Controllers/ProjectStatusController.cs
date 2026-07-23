@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
@@ -583,9 +584,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string CleanProfilePath(string? path)
-        {
-            return string.IsNullOrWhiteSpace(path) ? DefaultProfileImagePath : path.Trim();
-        }
+            => ProfileImagePathResolver.Normalize(path);
 
         private static bool IsProjectDone(ProjectRow project)
         {

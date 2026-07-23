@@ -218,6 +218,7 @@ var uploadsPath = Path.Combine(webRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
 
 await EnsureLoginUserProfileColumnAsync(app.Services);
+await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -306,6 +307,8 @@ app.UseRequireLogin();
 // ==================================================
 // Route
 // ==================================================
+app.MapGet("/uploads/profiles/{**path}", () =>
+    Results.Redirect(ProfileImagePathResolver.DefaultPath));
 app.MapControllers();
 app.MapHub<MeetingRoomHub>("/hubs/meeting-room");
 
@@ -515,6 +518,51 @@ static async Task EnsureLoginUserProfileColumnAsync(IServiceProvider services)
         if (exists > 0) return;
 
         command.CommandText = "ALTER TABLE login_user ADD COLUMN profile_image_path VARCHAR(500) NULL;";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureEmployeeLoginUserLinksAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            UPDATE employee AS employee_row
+            INNER JOIN (
+                SELECT
+                    emp_id,
+                    COALESCE(
+                        MIN(CASE
+                            WHEN profile_image_path IS NOT NULL
+                             AND TRIM(profile_image_path) <> ''
+                            THEN user_id
+                        END),
+                        MIN(user_id)
+                    ) AS user_id
+                FROM login_user
+                WHERE emp_id IS NOT NULL
+                GROUP BY emp_id
+            ) AS matched_user
+                ON matched_user.emp_id = employee_row.emp_id
+            LEFT JOIN login_user AS linked_user
+                ON linked_user.user_id = employee_row.login_user_id
+            SET employee_row.login_user_id = matched_user.user_id
+            WHERE employee_row.login_user_id IS NULL
+               OR linked_user.user_id IS NULL;";
         await command.ExecuteNonQueryAsync();
     }
     finally

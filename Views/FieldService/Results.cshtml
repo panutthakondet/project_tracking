@@ -3,12 +3,8 @@
     ViewData["Title"] = "ส่งผลการปฏิบัติงาน";
     string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "-";
     string StatusText(string status) => status switch { "PLANNED" => "รอเข้าปฏิบัติงาน", "IN_PROGRESS" => "รอส่งผลเพิ่มเติม", "COMPLETED" => "ส่งผลแล้ว", "CANCELLED" => "ยกเลิก", _ => status };
-    string Profile(Employee? employee) {
-        var path = employee?.LoginUser?.ProfileImagePath;
-        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
-        path = path.Trim(); if (path.StartsWith("~/")) path = path[1..];
-        return path.StartsWith("/") ? path : "/" + path;
-    }
+    string Profile(Employee? employee)
+        => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
     var employeeProfileImages = ViewBag.EmployeeProfileImages as IReadOnlyDictionary<int, string>
         ?? new Dictionary<int, string>();
 }

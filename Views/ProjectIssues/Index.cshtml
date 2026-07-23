@@ -20,15 +20,7 @@
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 
     string ProfileImage(ProjectTracking.Models.Employee? employee)
-    {
-        var path = employee?.LoginUser?.ProfileImagePath;
-        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
-
-        path = path.Trim();
-        if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
-        if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
-        return path;
-    }
+        => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
 }
 
 @using Microsoft.AspNetCore.Http

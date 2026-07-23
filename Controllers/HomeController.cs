@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Services;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
 using ProjectTracking.ViewModels;
@@ -2917,20 +2918,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ResolveProfileImagePath(string? profileImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(profileImagePath))
-            {
-                return DefaultProfileImagePath;
-            }
-
-            var path = profileImagePath.Trim();
-            if (path.StartsWith("~/", StringComparison.Ordinal))
-            {
-                path = path[1..];
-            }
-
-            return path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path.TrimStart('/');
-        }
+            => ProfileImagePathResolver.Normalize(profileImagePath);
 
         private async Task FillMissingEmployeeProfileImagesAsync(List<DashboardEmployeeRow> employees)
         {

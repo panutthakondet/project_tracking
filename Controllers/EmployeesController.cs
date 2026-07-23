@@ -806,15 +806,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ProfileImage(string? profileImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(profileImagePath))
-                return "/images/Profile/profile.png";
-
-            var path = profileImagePath.Trim();
-            if (path.StartsWith("~/", StringComparison.Ordinal)) path = path[1..];
-            if (!path.StartsWith("/", StringComparison.Ordinal)) path = "/" + path.TrimStart('/');
-            return path;
-        }
+            => ProfileImagePathResolver.Normalize(profileImagePath);
 
         private static string ProjectNameForSelection(Project? project)
         {

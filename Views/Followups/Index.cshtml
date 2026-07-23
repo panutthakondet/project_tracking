@@ -316,11 +316,8 @@
     {
         var statusClass = StatusClass(item.Status);
         var rowClass = statusClass;
-        var ownerAvatar = item.Owner?.LoginUser?.ProfileImagePath;
-        if (string.IsNullOrWhiteSpace(ownerAvatar))
-        {
-            ownerAvatar = "/images/Profile/profile.png";
-        }
+        var ownerAvatar = ProjectTracking.Services.ProfileImagePathResolver.Normalize(
+            item.Owner?.LoginUser?.ProfileImagePath);
     <div class="followup-card @rowClass">
 
         <div class="followup-card-header">

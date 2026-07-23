@@ -9,12 +9,8 @@
     string ThaiDateTime(DateTime date) => $"{date:dd/MM/}{date.Year + 543} {date:HH:mm} น.";
     string StatusText(string status) => status switch { "PLANNED" => "วางแผนแล้ว", "IN_PROGRESS" => "กำลังดำเนินการ", "COMPLETED" => "เสร็จสิ้น", "CANCELLED" => "ยกเลิก", _ => status };
     string ServiceText(string type) => type switch { "MA" => "Maintenance (MA)", "PM" => "Preventive Maintenance", "SUPPORT" => "On-site Support", "TRAINING" => "Training", "OTHER" => "อื่น ๆ", _ => type };
-    string ProfileImage(Employee? employee) {
-        var path = employee?.LoginUser?.ProfileImagePath;
-        if (string.IsNullOrWhiteSpace(path)) return "/images/Profile/profile.png";
-        path = path.Trim(); if (path.StartsWith("~/")) path = path[1..];
-        return path.StartsWith("/") ? path : "/" + path;
-    }
+    string ProfileImage(Employee? employee)
+        => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
     var finalDate = (Model.EndVisitDate ?? Model.VisitDate).Date;
     var totalDays = Math.Max(1, (finalDate - Model.VisitDate.Date).Days + 1);
     var employeeProfileImages = ViewBag.EmployeeProfileImages as IReadOnlyDictionary<int, string>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
+using ProjectTracking.Services;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
 using ProjectTracking.ViewModels;
@@ -187,12 +188,6 @@ namespace ProjectTracking.Controllers
         }
 
         private static string ProfileImage(string? profileImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(profileImagePath))
-                return DefaultProfileImagePath;
-
-            var path = profileImagePath.Trim();
-            return path.StartsWith("/", StringComparison.Ordinal) ? path : $"/{path}";
-        }
+            => ProfileImagePathResolver.Normalize(profileImagePath);
     }
 }
