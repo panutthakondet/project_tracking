@@ -2182,6 +2182,66 @@ main.route-controller-followups :is(.btn-warning, .btn-outline-warning) {
   border-color: #fbbf24 !important;
 }
 
+/* Keep every Followups action readable in hover/focus/active states. */
+main.route-controller-followups :is(.btn-primary, .btn-success):is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0f766e, #0891b2) !important;
+  border-color: #0f766e !important;
+}
+
+main.route-controller-followups :is(.btn-secondary, .btn-outline-secondary):is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: #1f3b63 !important;
+  border-color: #1f3b63 !important;
+}
+
+main.route-controller-followups :is(.btn-outline-primary, .btn-info, .btn-outline-info):is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: #075985 !important;
+  border-color: #075985 !important;
+}
+
+main.route-controller-followups .btn-outline-success:is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: #047857 !important;
+  border-color: #047857 !important;
+}
+
+main.route-controller-followups :is(.btn-danger, .btn-outline-danger):is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+}
+
+main.route-controller-followups :is(.btn-warning, .btn-outline-warning):is(:hover, :focus, :active, .active) {
+  color: #ffffff !important;
+  background: #92400e !important;
+  border-color: #92400e !important;
+}
+
+main.route-controller-followups .btn:is(:disabled, .disabled) {
+  color: #64748b !important;
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  cursor: not-allowed;
+}
+
+main.route-controller-followups .btn:focus-visible,
+main.route-controller-followups .followup-modal__close:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .32);
+  outline-offset: 2px;
+}
+
+main.route-controller-followups .followup-modal__close:is(:hover, :focus) {
+  color: #10233f;
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
 main.route-controller-followups :is(.pt-form-actions, .followup-actions, .followup-modal__actions) {
   display: flex;
   flex-wrap: wrap;
