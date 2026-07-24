@@ -337,8 +337,7 @@ public class FieldServiceController : BaseController
             ? "พนักงานทั้งหมด"
             : employees.First(x => x.EmpId == selectedEmployeeId).EmpName;
         var workDates = new HashSet<string>();
-        var workDateVisits = new Dictionary<string, List<int>>();
-        var workDateEmployeeIds = new Dictionary<string, List<int>>();
+        var workDateItems = new Dictionary<string, List<FieldServiceAnnualCalendarItemViewModel>>();
         var rangeStart = new DateTime(startYear, 1, 1);
         var rangeEnd = new DateTime(endYear, 12, 31);
         var rangesQuery = _context.FieldServiceVisits.AsNoTracking()
@@ -348,7 +347,9 @@ public class FieldServiceController : BaseController
         if (selectedEmployeeId > 0)
             rangesQuery = rangesQuery.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
         var ranges = await rangesQuery
+            .Include(x => x.Coop)
             .Include(x => x.Assignees)
+                .ThenInclude(x => x.Employee)
             .OrderBy(x => x.VisitDate)
             .ThenBy(x => x.StartTime)
             .ThenBy(x => x.VisitId)
@@ -363,21 +364,27 @@ public class FieldServiceController : BaseController
             {
                 var dateKey = date.ToString("yyyy-MM-dd");
                 workDates.Add(dateKey);
-                if (!workDateVisits.TryGetValue(dateKey, out var visits))
+                if (!workDateItems.TryGetValue(dateKey, out var items))
                 {
-                    visits = new List<int>();
-                    workDateVisits[dateKey] = visits;
+                    items = new List<FieldServiceAnnualCalendarItemViewModel>();
+                    workDateItems[dateKey] = items;
                 }
-                if (!visits.Contains(range.VisitId)) visits.Add(range.VisitId);
-
-                if (!workDateEmployeeIds.TryGetValue(dateKey, out var employeeIds))
+                if (items.All(x => x.VisitId != range.VisitId))
                 {
-                    employeeIds = new List<int>();
-                    workDateEmployeeIds[dateKey] = employeeIds;
-                }
-                foreach (var assigneeEmpId in range.Assignees.Select(x => x.EmpId))
-                {
-                    if (!employeeIds.Contains(assigneeEmpId)) employeeIds.Add(assigneeEmpId);
+                    var assignees = range.Assignees
+                        .Where(x => x.Employee != null)
+                        .OrderBy(x => x.Employee!.EmpName)
+                        .ToList();
+                    items.Add(new FieldServiceAnnualCalendarItemViewModel
+                    {
+                        VisitId = range.VisitId,
+                        CoopName = range.Coop?.CoopName ?? "ไม่ระบุสหกรณ์",
+                        Title = range.Title,
+                        EmployeeNames = assignees.Count > 0
+                            ? string.Join(", ", assignees.Select(x => x.Employee!.EmpName))
+                            : "ยังไม่กำหนดพนักงาน",
+                        Background = EmployeeCalendarBackground(assignees.Select(x => x.EmpId))
+                    });
                 }
             }
         }
@@ -388,8 +395,7 @@ public class FieldServiceController : BaseController
         ViewBag.FromYear = startYear;
         ViewBag.ToYear = endYear;
         ViewBag.WorkDates = workDates;
-        ViewBag.WorkDateVisits = workDateVisits;
-        ViewBag.WorkDateEmployeeIds = workDateEmployeeIds;
+        ViewBag.WorkDateItems = workDateItems;
         ViewBag.EmployeeColors = employees.ToDictionary(
             x => (int)x.EmpId,
             x => EmployeeCalendarColor((int)x.EmpId));
@@ -587,6 +593,21 @@ public class FieldServiceController : BaseController
     {
         var hue = Math.Abs((long)empId * 137L) % 360L;
         return $"hsl({hue}, 68%, 42%)";
+    }
+
+    private static string EmployeeCalendarBackground(IEnumerable<int> employeeIds)
+    {
+        var colors = employeeIds.Distinct().Select(EmployeeCalendarColor).ToList();
+        if (colors.Count == 0) return "#64748b";
+        if (colors.Count == 1) return colors[0];
+
+        var segmentSize = 100m / colors.Count;
+        var segments = colors.SelectMany((color, index) => new[]
+        {
+            $"{color} {(index * segmentSize):0.###}%",
+            $"{color} {((index + 1) * segmentSize):0.###}%"
+        });
+        return $"linear-gradient(90deg,{string.Join(",", segments)})";
     }
 
     private bool IsAdminUser() => string.Equals(

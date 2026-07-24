@@ -1,36 +1,23 @@
 @using System.Globalization
+@using System.Text.Json
+@using ProjectTracking.ViewModels
 @{
     ViewData["Title"] = "ปฏิทินงานเข้าไซต์";
     var fromYear = (int)ViewBag.FromYear;
     var toYear = (int)ViewBag.ToYear;
     var yearOptions = ViewBag.YearOptions as int[] ?? Array.Empty<int>();
     var workDates = ViewBag.WorkDates as ISet<string> ?? new HashSet<string>();
-    var workDateVisits = ViewBag.WorkDateVisits as Dictionary<string, List<int>> ?? new Dictionary<string, List<int>>();
-    var workDateEmployeeIds = ViewBag.WorkDateEmployeeIds as Dictionary<string, List<int>> ?? new Dictionary<string, List<int>>();
-    var employeeColors = ViewBag.EmployeeColors as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var workDateItems = ViewBag.WorkDateItems as Dictionary<string, List<FieldServiceAnnualCalendarItemViewModel>>
+        ?? new Dictionary<string, List<FieldServiceAnnualCalendarItemViewModel>>();
     var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
     var selectedEmployeeId = (int)(ViewBag.SelectedEmployeeId ?? 0);
     var selectedEmployeeName = (string)(ViewBag.SelectedEmployeeName ?? "พนักงานทั้งหมด");
     var monthNames = new CultureInfo("th-TH").DateTimeFormat.MonthNames.Take(12).ToArray();
     var dayHeaders = new[] { "อา", "จ", "อ", "พ", "พฤ", "ศ", "ส" };
-    string WorkDayStyle(IEnumerable<int> ids)
+    var workDateItemsJson = JsonSerializer.Serialize(workDateItems, new JsonSerializerOptions
     {
-        var colors = ids.Distinct()
-            .Where(employeeColors.ContainsKey)
-            .Select(id => employeeColors[id])
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (colors.Count == 0) return "--field-service-employee-border:linear-gradient(#64748b,#64748b)";
-        if (colors.Count == 1) return $"--field-service-employee-border:linear-gradient({colors[0]},{colors[0]})";
-
-        var segments = colors.Select((color, index) =>
-        {
-            var start = index * 100m / colors.Count;
-            var end = (index + 1) * 100m / colors.Count;
-            return $"{color} {start.ToString("0.###", CultureInfo.InvariantCulture)}% {end.ToString("0.###", CultureInfo.InvariantCulture)}%";
-        });
-        return $"--field-service-employee-border:linear-gradient(135deg,{string.Join(",", segments)})";
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    });
 }
 
 <div class="index-hero">
@@ -78,11 +65,23 @@
                         var dateKey = date.ToString("yyyy-MM-dd");
                         var isWork = workDates.Contains(dateKey);
                         var isToday = date == DateTime.Today;
-                        var visitIds = workDateVisits.TryGetValue(dateKey, out var ids) ? ids : new List<int>();
-                        var dateEmployeeIds = workDateEmployeeIds.TryGetValue(dateKey, out var empIds) ? empIds : new List<int>();
-                        if (isWork && visitIds.Count > 0)
+                        var dateItems = workDateItems.TryGetValue(dateKey, out var items)
+                            ? items
+                            : new List<FieldServiceAnnualCalendarItemViewModel>();
+                        if (isWork && dateItems.Count > 0)
                         {
-                            <a asp-action="Show" asp-route-id="@visitIds[0]" class="field-service-annual-day is-work @(isToday ? "is-today" : "")" style="@WorkDayStyle(dateEmployeeIds)" title="มีงานเข้าไซต์ @visitIds.Count งาน — คลิกดูรายละเอียด">@day</a>
+                            <button type="button"
+                                    class="field-service-annual-day is-work @(isToday ? "is-today" : "")"
+                                    data-work-date="@dateKey"
+                                    aria-label="วันที่ @day มีงานเข้าไซต์ @dateItems.Count งาน">
+                                <span class="field-service-annual-day-number">@day</span>
+                                <span class="field-service-annual-bars" aria-hidden="true">
+                                    @foreach (var item in dateItems)
+                                    {
+                                        <i style="background:@item.Background"></i>
+                                    }
+                                </span>
+                            </button>
                         }
                         else
                         {
@@ -95,3 +94,67 @@
         </div></div>
     </section>
 }
+
+<div class="modal fade" id="fieldServiceAnnualVisitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content field-service-annual-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">เลือกงานเข้าไซต์</h5>
+                    <div class="field-service-annual-user" id="fieldServiceAnnualModalDate"></div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body p-3" id="fieldServiceAnnualModalItems"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const visitsByDate = @Html.Raw(workDateItemsJson);
+    const modalElement = document.getElementById('fieldServiceAnnualVisitModal');
+    const modalDate = document.getElementById('fieldServiceAnnualModalDate');
+    const modalItems = document.getElementById('fieldServiceAnnualModalItems');
+    const showBaseUrl = '@Url.Action("Show", "FieldService")';
+    const thaiFormatter = new Intl.DateTimeFormat('th-TH', { dateStyle: 'long' });
+
+    function showVisit(visitId) {
+        window.location.href = `${showBaseUrl}/${visitId}`;
+    }
+
+    document.querySelectorAll('.field-service-annual-day[data-work-date]').forEach(function (day) {
+        day.addEventListener('click', function () {
+            const dateKey = day.dataset.workDate;
+            const visits = visitsByDate[dateKey] || [];
+            if (visits.length === 1) {
+                showVisit(visits[0].visitId);
+                return;
+            }
+            if (!visits.length || !modalElement || !window.bootstrap) return;
+
+            modalDate.textContent = thaiFormatter.format(new Date(`${dateKey}T00:00:00`));
+            modalItems.innerHTML = '';
+            visits.forEach(function (visit) {
+                const link = document.createElement('a');
+                link.className = 'field-service-annual-visit-option';
+                link.href = `${showBaseUrl}/${visit.visitId}`;
+                link.style.setProperty('--field-service-visit-background', visit.background || '#64748b');
+
+                const color = document.createElement('i');
+                const content = document.createElement('span');
+                const coop = document.createElement('strong');
+                coop.textContent = visit.coopName || 'ไม่ระบุสหกรณ์';
+                const title = document.createElement('span');
+                title.textContent = visit.title || '-';
+                const employee = document.createElement('small');
+                employee.textContent = `ผู้รับผิดชอบ: ${visit.employeeNames || 'ยังไม่กำหนดพนักงาน'}`;
+                content.append(coop, title, employee);
+                link.append(color, content);
+                modalItems.appendChild(link);
+            });
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        });
+    });
+});
+</script>
