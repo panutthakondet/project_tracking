@@ -170,7 +170,7 @@ main.route-controller-fieldservice .field-service-calendar-group-head > span { f
 main.route-controller-fieldservice .field-service-calendar-group-list .list-group-item { color:var(--fs-contrast); background:var(--fs-surface); border-color:var(--fs-border); }
 main.route-controller-fieldservice .field-service-calendar-group-list .list-group-item:hover { background:var(--pt-accent-soft); }
 main.route-controller-fieldservice .field-service-event-content {
-  min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; padding: 2px 0;
+  min-width: 0; display: flex; align-items: flex-start; gap: 7px; overflow: visible; padding: 2px 0;
 }
 main.route-controller-fieldservice .field-service-event-avatars {
   flex: 0 0 auto; display: inline-flex; align-items: center; padding-left: 2px;
@@ -184,16 +184,19 @@ main.route-controller-fieldservice .field-service-event-details {
   min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; line-height: 1.15;
 }
 main.route-controller-fieldservice .field-service-event-first-row {
-  min-width: 0; display: flex; align-items: center; gap: 4px;
+  min-width: 0; display: flex; align-items: flex-start; gap: 4px;
 }
 main.route-controller-fieldservice .field-service-event-time { flex: 0 0 auto; font-size: .7rem; }
 main.route-controller-fieldservice .field-service-event-title {
-  min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900;
+  min-width: 0; flex: 1 1 auto; overflow: visible; white-space: normal;
+  overflow-wrap: anywhere; line-height: 1.25; font-weight: 900;
 }
 main.route-controller-fieldservice .field-service-event-second-row {
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: .7rem; font-weight: 700; opacity: .9;
+  min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
+  font-size: .7rem; line-height: 1.25; font-weight: 700; opacity: .9;
 }
+main.route-controller-fieldservice .fc-daygrid-event,
+main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
 main.route-controller-fieldservice .fc-list-event .field-service-event-content { flex-wrap: wrap; overflow: visible; }
 main.route-controller-fieldservice .fc-list-event .field-service-event-avatars img { width: 32px; height: 32px; flex-basis: 32px; }
 main.route-controller-fieldservice .field-service-schedule-list-card { overflow: hidden; }
