@@ -189,11 +189,11 @@ main.route-controller-fieldservice .field-service-calendar-card .fc-event {
   border: 2px solid var(--field-service-employee-color, #64748b) !important;
   border-radius: 7px; padding: 2px 5px; color: var(--fs-contrast) !important;
   background: var(--fs-surface) !important;
-  background: linear-gradient(
+  background: var(--field-service-event-gradient, linear-gradient(
     180deg,
     var(--fs-surface) 0%,
     color-mix(in srgb, var(--field-service-employee-color, #64748b) 16%, var(--fs-surface)) 100%
-  ) !important;
+  )) !important;
   box-shadow: 0 6px 16px var(--pt-shadow, rgba(15,35,64,.08)) !important;
   font-weight: 700; cursor: pointer;
 }
@@ -261,11 +261,11 @@ main.route-controller-fieldservice .field-service-schedule-row {
   display: grid; grid-template-columns: minmax(210px, 1.1fr) minmax(220px, 1.5fr) minmax(210px, 1fr) auto;
   gap: 16px; align-items: center; padding: 14px 16px 14px 22px; border: 1px solid var(--fs-border); border-radius: 16px;
   color: var(--fs-contrast); background: var(--fs-surface); text-decoration: none; transition: .18s ease;
-  background: linear-gradient(
+  background: var(--field-service-row-gradient, linear-gradient(
     180deg,
     var(--fs-surface) 0%,
     color-mix(in srgb, var(--field-service-row-color, #64748b) 10%, var(--fs-surface)) 100%
-  );
+  ));
   box-shadow: 0 6px 16px var(--pt-shadow, rgba(15,35,64,.06));
 }
 main.route-controller-fieldservice .field-service-schedule-row::before {
@@ -274,11 +274,11 @@ main.route-controller-fieldservice .field-service-schedule-row::before {
 }
 main.route-controller-fieldservice .field-service-schedule-row:hover {
   color: var(--fs-contrast); border-color: var(--field-service-row-color, var(--pt-accent));
-  background: linear-gradient(
+  background: var(--field-service-row-hover-gradient, linear-gradient(
     180deg,
     var(--fs-surface) 0%,
     color-mix(in srgb, var(--field-service-row-color, #64748b) 18%, var(--fs-surface)) 100%
-  );
+  ));
   transform: translateY(-1px);
 }
 main.route-controller-fieldservice .field-service-schedule-people { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; color: var(--fs-muted); }

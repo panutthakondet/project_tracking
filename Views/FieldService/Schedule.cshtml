@@ -55,6 +55,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (event.allDay) end.setDate(end.getDate() - 1);
         return end;
     }
+    function employeeGradient(employees, strength) {
+        const colors = [...new Set((employees || []).map(employee => employee.color).filter(Boolean))];
+        if (!colors.length) colors.push('#64748b');
+        const stops = colors.map(color => `color-mix(in srgb, ${color} ${strength}%, var(--fs-surface))`);
+        if (stops.length === 1) stops.unshift('var(--fs-surface)');
+        return `linear-gradient(135deg, ${stops.join(', ')})`;
+    }
     function renderServiceList(events, start, end) {
         listElement.innerHTML = '';
         const sorted = [...events].sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -87,6 +94,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const props = event.extendedProps || {};
             const row = document.createElement('a'); row.className = 'field-service-schedule-row';
             row.style.setProperty('--field-service-row-color', props.primaryEmployeeColor || '#64748b');
+            row.style.setProperty('--field-service-row-gradient', employeeGradient(props.employees, 12));
+            row.style.setProperty('--field-service-row-hover-gradient', employeeGradient(props.employees, 20));
             row.href = event.url || '#';
             const people = document.createElement('div'); people.className = 'field-service-schedule-people';
             (props.employees || []).forEach(function (employee) {
@@ -204,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
         eventDidMount: function (info) {
             const props = info.event.extendedProps;
             info.el.style.setProperty('--field-service-employee-color', props.primaryEmployeeColor || '#64748b');
+            info.el.style.setProperty('--field-service-event-gradient', employeeGradient(props.employees, 18));
             info.el.title = [props.serviceTitle, props.status].filter(Boolean).join(' · ');
         },
         datesSet: function (info) { loadServiceList(info.startStr, info.endStr); }
