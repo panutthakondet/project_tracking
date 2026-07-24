@@ -20,6 +20,7 @@
     var hiddenOnlineCount = Math.Max(0, onlineUsers.Count - visibleOnlineUsers.Count);
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
     var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
+    var pendingStatusApprovalCount = Convert.ToInt32(ViewBag.PendingStatusApprovalCount ?? 0);
     if (string.IsNullOrWhiteSpace(dashboardDinoName))
     {
         dashboardDinoName = "Dino";
@@ -265,6 +266,28 @@
             </a>
         </div>
     </section>
+
+    @if (pendingStatusApprovalCount > 0)
+    {
+        <a class="dashboard-approval-alert"
+           asp-controller="StatusApprovals"
+           asp-action="Index"
+           asp-route-status="PENDING"
+           aria-label="มีรายการรออนุมัติ @pendingStatusApprovalCount รายการ">
+            <span class="dashboard-approval-alert__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3a6 6 0 0 0-6 6v3.5L4 16h16l-2-3.5V9a6 6 0 0 0-6-6Z" />
+                    <path d="M9.5 19a2.8 2.8 0 0 0 5 0" />
+                </svg>
+            </span>
+            <span class="dashboard-approval-alert__content">
+                <strong>มีรายการรออนุมัติสถานะ</strong>
+                <small>ตรวจสอบคำขอเปลี่ยนสถานะเป็นเสร็จสิ้น</small>
+            </span>
+            <span class="dashboard-approval-alert__count">@pendingStatusApprovalCount รายการ</span>
+            <span class="dashboard-approval-alert__action">ตรวจสอบ <span aria-hidden="true">→</span></span>
+        </a>
+    }
 
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก" data-dashboard-dino data-dino-key="ProjectTracking.DashboardDino.@dashboardDinoUserKey">
         <span class="dashboard-dino-feed-zone" data-dino-feed-zone title="ดับเบิลคลิกเพื่อวางขาไก่" aria-hidden="true"></span>
@@ -1129,6 +1152,122 @@
     justify-content:flex-end;
     gap:10px;
     margin:2px 0 18px;
+}
+
+.dashboard-approval-alert {
+    position:relative;
+    z-index:12;
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr) auto auto;
+    align-items:center;
+    gap:14px;
+    min-height:74px;
+    margin:-4px 0 18px;
+    padding:13px 18px;
+    overflow:hidden;
+    border:1px solid color-mix(in srgb, var(--pt-accent, #14b8a6) 52%, #ffffff);
+    border-left:5px solid var(--pt-accent, #14b8a6);
+    border-radius:14px;
+    background:linear-gradient(
+        105deg,
+        color-mix(in srgb, var(--pt-accent, #14b8a6) 13%, #ffffff) 0%,
+        #ffffff 58%,
+        color-mix(in srgb, var(--pt-accent, #14b8a6) 7%, #ffffff) 100%
+    );
+    box-shadow:0 10px 24px rgba(15, 35, 64, .10);
+    color:#10233f;
+    text-decoration:none;
+    transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.dashboard-approval-alert:hover,
+.dashboard-approval-alert:focus-visible {
+    border-color:var(--pt-accent, #14b8a6);
+    color:#10233f;
+    box-shadow:0 14px 30px rgba(15, 35, 64, .15);
+    transform:translateY(-1px);
+}
+
+.dashboard-approval-alert__icon {
+    display:grid;
+    place-items:center;
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    background:linear-gradient(135deg, var(--pt-accent, #14b8a6), var(--pt-accent-dark, #0f766e));
+    color:#fff;
+    box-shadow:0 8px 18px var(--pt-accent-soft, rgba(20, 184, 166, .24));
+}
+
+.dashboard-approval-alert__icon svg {
+    width:24px;
+    height:24px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.9;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.dashboard-approval-alert__content {
+    display:flex;
+    min-width:0;
+    flex-direction:column;
+    gap:2px;
+}
+
+.dashboard-approval-alert__content strong {
+    color:#10233f;
+    font-size:1rem;
+    font-weight:700;
+    line-height:1.35;
+}
+
+.dashboard-approval-alert__content small {
+    color:#64748b;
+    font-size:.84rem;
+    font-weight:400;
+    line-height:1.45;
+}
+
+.dashboard-approval-alert__count {
+    color:var(--pt-accent-dark, #0f766e);
+    font-size:.94rem;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.dashboard-approval-alert__action {
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    min-height:38px;
+    padding:0 15px;
+    border:1px solid color-mix(in srgb, var(--pt-accent, #14b8a6) 42%, #ffffff);
+    border-radius:10px;
+    background:#fff;
+    color:var(--pt-accent-dark, #0f766e);
+    font-size:.86rem;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+@@media (max-width: 720px) {
+    .dashboard-approval-alert {
+        grid-template-columns:auto minmax(0, 1fr) auto;
+        gap:10px;
+        padding:12px;
+    }
+
+    .dashboard-approval-alert__count {
+        align-self:start;
+        padding-top:3px;
+    }
+
+    .dashboard-approval-alert__action {
+        grid-column:2 / -1;
+        justify-content:center;
+    }
 }
 
 .dashboard-dino-feed-zone {

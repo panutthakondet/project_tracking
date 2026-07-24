@@ -176,6 +176,43 @@ namespace ProjectTracking.Controllers
                 currentEmpId = await ResolveCurrentEmployeeIdAsync(currentUserId.Value);
             }
 
+            var menuKeys = (HttpContext.Session.GetString("Menus") ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(key => key.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var canOpenStatusApprovals = role == "ADMIN"
+                || menuKeys.Contains("StatusApprovals.Index");
+
+            var pendingStatusApprovalCount = 0;
+            if (canOpenStatusApprovals)
+            {
+                var pendingApprovalQuery = _context.StatusApprovalRequests
+                    .AsNoTracking()
+                    .Where(request => request.RequestStatus == StatusApprovalService.RequestPending);
+
+                if (role != "ADMIN")
+                {
+                    if (currentEmpId.HasValue)
+                    {
+                        var pmProjectIds = _context.Projects
+                            .AsNoTracking()
+                            .Where(project => project.PmEmpId == currentEmpId.Value)
+                            .Select(project => (int?)project.ProjectId);
+
+                        pendingApprovalQuery = pendingApprovalQuery
+                            .Where(request => request.ProjectId.HasValue
+                                && pmProjectIds.Contains(request.ProjectId));
+                    }
+                    else
+                    {
+                        pendingApprovalQuery = pendingApprovalQuery.Where(_ => false);
+                    }
+                }
+
+                pendingStatusApprovalCount = await pendingApprovalQuery.CountAsync();
+            }
+
+            ViewBag.PendingStatusApprovalCount = pendingStatusApprovalCount;
             var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin);
 
             var unreadNotificationCount = 0;
