@@ -17,6 +17,7 @@
 
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-schedule-filter mb-3">
     <div class="card-body"><div class="row g-3 align-items-end"><div class="col-lg-5 col-md-7"><label class="form-label fw-bold">พนักงาน</label><select id="fieldServiceEmployeeFilter" class="form-select form-select-lg" data-show-empty-option-text="true"><option value="">พนักงานทั้งหมด</option>@foreach(var employee in employees){<option value="@employee.EmpId">@employee.EmpName @(string.IsNullOrWhiteSpace((string?)employee.Position) ? "" : $"({employee.Position})")</option>}</select></div><div class="col-lg-7 col-md-5"><div class="form-text">เลือกพนักงานเพื่อดูเฉพาะงานที่ได้รับมอบหมาย</div></div></div></div>
+    <div class="field-service-employee-color-legend">@foreach(var employee in employees){<span><i style="background:@employee.Color"></i>@employee.EmpName</span>}</div>
 </div>
 
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-calendar-card">
@@ -83,12 +84,14 @@ document.addEventListener('DOMContentLoaded', function () {
             groupEvents.forEach(function (event) {
                 const props = event.extendedProps || {};
             const row = document.createElement('a'); row.className = 'field-service-schedule-row';
+            row.style.borderLeft = `5px solid ${props.primaryEmployeeColor || '#64748b'}`;
             row.href = event.url || '#';
             const people = document.createElement('div'); people.className = 'field-service-schedule-people';
             (props.employees || []).forEach(function (employee) {
                 const person = document.createElement('span'); person.className = 'field-service-schedule-person';
                 const image = document.createElement('img'); image.src = employee.image || '/images/Profile/profile.png';
                 image.alt = employee.name || ''; image.dataset.profileName = employee.name || '';
+                image.style.borderColor = employee.color || '#64748b';
                 image.onerror = function () { this.onerror = null; this.src = '/images/Profile/profile.png'; };
                 const name = document.createElement('span'); name.textContent = employee.name || '-';
                 person.append(image, name); people.appendChild(person);
@@ -148,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     image.src = employee.image || '/images/Profile/profile.png';
                     image.alt = employee.name || '';
                     image.dataset.profileName = employee.name || '';
+                    image.style.borderColor = employee.color || '#64748b';
                     image.onerror = function () { this.onerror = null; this.src = '/images/Profile/profile.png'; };
                     avatars.appendChild(image);
                 });

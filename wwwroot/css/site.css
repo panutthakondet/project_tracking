@@ -102,6 +102,15 @@ main.route-controller-fieldservice .field-service-calendar-card { overflow: hidd
 main.route-controller-fieldservice .field-service-schedule-filter { position:relative; z-index:40; overflow:visible !important; }
 main.route-controller-fieldservice .field-service-schedule-filter:focus-within { z-index:1100; }
 main.route-controller-fieldservice .field-service-schedule-filter :is(.card-body,.row,[class*="col-"]) { overflow:visible !important; }
+main.route-controller-fieldservice .field-service-employee-color-legend {
+  display:flex; flex-wrap:wrap; gap:7px 14px; padding:0 1.5rem 1.25rem;
+  color:var(--fs-muted); font-size:.76rem; font-weight:700;
+}
+main.route-controller-fieldservice .field-service-employee-color-legend span { display:inline-flex; align-items:center; gap:6px; }
+main.route-controller-fieldservice .field-service-employee-color-legend i {
+  width:10px; height:10px; flex:0 0 10px; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.72);
+}
+main.route-controller-fieldservice .field-service-annual-employee-legend { padding:14px 0 0; }
 main.route-controller-fieldservice .field-service-annual-modal { color:var(--fs-contrast); background:var(--fs-surface); border:1px solid var(--fs-border); border-radius:22px; overflow:hidden; }
 main.route-controller-fieldservice .field-service-annual-modal .modal-header { color:#fff; background:linear-gradient(135deg,var(--pt-sidebar-bg,#10233f),var(--pt-accent-dark)); border:0; padding:18px 22px; }
 main.route-controller-fieldservice .field-service-annual-modal .modal-title { font-weight:800; }

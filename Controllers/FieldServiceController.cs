@@ -286,11 +286,18 @@ public class FieldServiceController : BaseController
     [RequireMenu("FieldService.Calendar")]
     public async Task<IActionResult> Schedule()
     {
-        ViewBag.Employees = await _context.Employees.AsNoTracking()
+        var employees = await _context.Employees.AsNoTracking()
             .Where(x => x.Status == "ACTIVE")
             .OrderBy(x => x.EmpName)
             .Select(x => new { x.EmpId, x.EmpName, x.Position })
             .ToListAsync();
+        ViewBag.Employees = employees.Select(x => new
+        {
+            x.EmpId,
+            x.EmpName,
+            x.Position,
+            Color = EmployeeCalendarColor(x.EmpId)
+        }).ToList();
         return View();
     }
 
@@ -331,6 +338,7 @@ public class FieldServiceController : BaseController
             : employees.First(x => x.EmpId == selectedEmployeeId).EmpName;
         var workDates = new HashSet<string>();
         var workDateVisits = new Dictionary<string, List<int>>();
+        var workDateEmployeeIds = new Dictionary<string, List<int>>();
         var rangeStart = new DateTime(startYear, 1, 1);
         var rangeEnd = new DateTime(endYear, 12, 31);
         var rangesQuery = _context.FieldServiceVisits.AsNoTracking()
@@ -340,10 +348,10 @@ public class FieldServiceController : BaseController
         if (selectedEmployeeId > 0)
             rangesQuery = rangesQuery.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
         var ranges = await rangesQuery
+            .Include(x => x.Assignees)
             .OrderBy(x => x.VisitDate)
             .ThenBy(x => x.StartTime)
             .ThenBy(x => x.VisitId)
-            .Select(x => new { x.VisitId, x.VisitDate, x.EndVisitDate })
             .ToListAsync();
         foreach (var range in ranges)
         {
@@ -361,6 +369,16 @@ public class FieldServiceController : BaseController
                     workDateVisits[dateKey] = visits;
                 }
                 if (!visits.Contains(range.VisitId)) visits.Add(range.VisitId);
+
+                if (!workDateEmployeeIds.TryGetValue(dateKey, out var employeeIds))
+                {
+                    employeeIds = new List<int>();
+                    workDateEmployeeIds[dateKey] = employeeIds;
+                }
+                foreach (var assigneeEmpId in range.Assignees.Select(x => x.EmpId))
+                {
+                    if (!employeeIds.Contains(assigneeEmpId)) employeeIds.Add(assigneeEmpId);
+                }
             }
         }
 
@@ -371,6 +389,10 @@ public class FieldServiceController : BaseController
         ViewBag.ToYear = endYear;
         ViewBag.WorkDates = workDates;
         ViewBag.WorkDateVisits = workDateVisits;
+        ViewBag.WorkDateEmployeeIds = workDateEmployeeIds;
+        ViewBag.EmployeeColors = employees.ToDictionary(
+            x => (int)x.EmpId,
+            x => EmployeeCalendarColor((int)x.EmpId));
         ViewBag.YearOptions = Enumerable.Range(currentYear - 10, 21).ToArray();
         return View();
     }
@@ -398,6 +420,14 @@ public class FieldServiceController : BaseController
             var finalDate = (x.EndVisitDate ?? x.VisitDate).Date;
             var isMultiDay = finalDate > x.VisitDate.Date;
             var isAllDay = isMultiDay || !x.StartTime.HasValue;
+            var primaryAssignee = x.Assignees
+                .Where(a => a.Employee != null)
+                .OrderBy(a => a.Employee!.EmpName)
+                .ThenBy(a => a.EmpId)
+                .FirstOrDefault();
+            var primaryEmployeeColor = primaryAssignee != null
+                ? EmployeeCalendarColor(primaryAssignee.EmpId)
+                : "#64748b";
             var eventEnd = isAllDay
                 ? finalDate.AddDays(1).ToString("yyyy-MM-dd")
                 : x.VisitDate.ToString("yyyy-MM-dd") + (x.EndTime.HasValue ? $"T{x.EndTime:hh\\:mm\\:ss}" : "T23:59:00");
@@ -408,13 +438,7 @@ public class FieldServiceController : BaseController
                 start = x.VisitDate.ToString("yyyy-MM-dd") + (isAllDay ? "" : $"T{x.StartTime:hh\\:mm\\:ss}"),
                 end = eventEnd,
                 allDay = isAllDay,
-                color = x.Status switch
-                {
-                    "COMPLETED" => "#16a34a",
-                    "IN_PROGRESS" => "#f59e0b",
-                    "CANCELLED" => "#64748b",
-                    _ => "#0ea5e9"
-                },
+                color = primaryEmployeeColor,
                 url = Url.Action(nameof(Show), new { id = x.VisitId }),
                 extendedProps = new
                 {
@@ -426,10 +450,14 @@ public class FieldServiceController : BaseController
                         .OrderBy(a => a.Employee!.EmpName)
                         .Select(a => new
                         {
+                            empId = a.EmpId,
                             name = a.Employee!.EmpName,
+                            color = EmployeeCalendarColor(a.EmpId),
                             image = employeeProfileImages.GetValueOrDefault(a.EmpId, "/images/Profile/profile.png")
                         })
                         .ToList()
+                    ,
+                    primaryEmployeeColor
                 }
             };
         }));
@@ -553,6 +581,12 @@ public class FieldServiceController : BaseController
             result[employee.EmpId] = NormalizeProfilePath(user?.ProfileImagePath);
         }
         return result;
+    }
+
+    private static string EmployeeCalendarColor(int empId)
+    {
+        var hue = Math.Abs((long)empId * 137L) % 360L;
+        return $"hsl({hue}, 68%, 42%)";
     }
 
     private bool IsAdminUser() => string.Equals(
