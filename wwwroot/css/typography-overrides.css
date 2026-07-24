@@ -2374,3 +2374,47 @@ html body main.route-controller-fieldservice .fc .fc-event {
   html body main.route-controller-fieldservice .display-6 { font-size: 30px !important; }
   html body main.route-controller-fieldservice .fc .fc-toolbar-title { font-size: 18px !important; }
 }
+
+/* Keep vertical color accents straight across every module.
+   Page-level styles are loaded before this file, so this rule also normalizes
+   cards whose thick left border previously followed a rounded card corner. */
+html body :is(
+  .kpi,
+  .line-overdue-card,
+  .activities-item,
+  .overdue-overview-kpi,
+  .overdue-overview-card,
+  .send-log-tab,
+  .send-log-bubble-head,
+  .notification-card,
+  .open-work-stat,
+  .open-work-card,
+  .assign-card,
+  .phase-status-card,
+  .phase-project-cell.work-type-phase,
+  .phase-project-cell.work-type-issue,
+  .phase-project-cell.work-type-support,
+  .dev-issue-card,
+  .phase-card,
+  .role-lane,
+  .report-card,
+  .login-followup-item,
+  .support-order-card,
+  .support-dev-card,
+  .template-card,
+  .scenario-card,
+  .scenario-group__header,
+  .group-card,
+  .pending-item
+) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+html body .field-service-annual-visit-option > i,
+html body .field-service-calendar-group-head::before,
+html body .field-service-schedule-group-head::before,
+html body .field-service-schedule-row::before,
+html body .field-service-result-group-head::before {
+  border-radius: 0 !important;
+}
