@@ -771,6 +771,53 @@ html body main .index-actions :is(.btn-danger, .btn-secondary):not(.btn-close) {
     --pt-action-color: #FFFFFF !important;
 }
 
+html body main .index-actions :is(
+    .btn-outline-primary,
+    .btn-outline-info,
+    .btn-outline-success,
+    .btn-outline-danger,
+    .btn-outline-secondary,
+    .btn-outline-dark
+):not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    --pt-button-readable: #FFFFFF;
+    --pt-action-color: #FFFFFF !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    text-shadow: none !important;
+}
+
+html body main .index-actions :is(
+    .btn-outline-warning,
+    .btn-outline-light
+):not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    --pt-button-readable: #10233F;
+    --pt-action-color: #10233F !important;
+    color: #10233F !important;
+    -webkit-text-fill-color: #10233F !important;
+    text-shadow: none !important;
+}
+
+html body main .index-actions :is(
+    .btn-primary,
+    .btn-success,
+    .btn-info,
+    .btn-light,
+    .btn-warning
+):not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    color: var(--pt-action-color) !important;
+    -webkit-text-fill-color: var(--pt-action-color) !important;
+    text-shadow: none !important;
+}
+
+html body main .index-actions :is(
+    .btn-danger,
+    .btn-secondary
+):not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    text-shadow: none !important;
+}
+
 html body main .index-actions :is(.btn:disabled, .btn.disabled, button.btn:disabled):not(.btn-close) {
     --pt-button-readable: var(--pt-local-muted, var(--pt-surface-contrast-muted));
     --pt-action-color: var(--pt-button-readable) !important;
