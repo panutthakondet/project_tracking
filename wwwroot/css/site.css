@@ -377,6 +377,23 @@ main.route-controller-fieldservice .field-service-result-group-head > div { disp
 main.route-controller-fieldservice .field-service-result-group-items { display:grid; gap:10px; padding-left:14px; }
 main.route-controller-fieldservice .field-service-report-group-complete { margin-left:auto; color:var(--fs-muted); font-size:.8rem; font-weight:800; }
 @media(max-width:575.98px){main.route-controller-fieldservice .field-service-result-group-items{padding-left:0;}}
+@media print {
+  main.route-controller-fieldservice.route-action-report .index-actions,
+  main.route-controller-fieldservice.route-action-report .field-service-report-filter { display:none !important; }
+  main.route-controller-fieldservice.route-action-report .index-hero {
+    padding:0 0 14px; color:#000 !important; background:none !important;
+    border:0 !important; border-bottom:1px solid #999 !important; border-radius:0; box-shadow:none !important;
+  }
+  main.route-controller-fieldservice.route-action-report .index-hero :is(.index-eyebrow,.index-title,.index-subtitle) { color:#000 !important; }
+  main.route-controller-fieldservice.route-action-report .field-service-themed-card {
+    color:#000 !important; background:#fff !important; border:1px solid #bbb !important; box-shadow:none !important;
+  }
+  main.route-controller-fieldservice.route-action-report .table-responsive { overflow:visible !important; }
+  main.route-controller-fieldservice.route-action-report .field-service-table { color:#000 !important; font-size:10pt !important; }
+  main.route-controller-fieldservice.route-action-report .field-service-table :is(th,td) { color:#000 !important; background:#fff !important; }
+  main.route-controller-fieldservice.route-action-report .field-service-coop-group-row td { background:#eee !important; }
+  main.route-controller-fieldservice.route-action-report a { color:#000 !important; text-decoration:none !important; }
+}
 @media (max-width: 991.98px) {
   main.route-controller-fieldservice .field-service-schedule-row { grid-template-columns: 1fr 1fr; }
   main.route-controller-fieldservice .field-service-schedule-status { justify-self: start; }

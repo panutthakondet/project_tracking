@@ -498,15 +498,46 @@ public class FieldServiceController : BaseController
     }
 
     [RequireMenu("FieldService.Report")]
-    public async Task<IActionResult> Report(string? from, string? to)
+    public async Task<IActionResult> Report(
+        string? from,
+        string? to,
+        string? status,
+        int? employeeId,
+        int? coopId)
     {
         var start = ParseDate(from)?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         var end = ParseDate(to)?.Date ?? DateTime.Today;
+        if (start > end) (start, end) = (end, start);
+
+        var normalizedStatus = (status ?? string.Empty).Trim().ToUpperInvariant();
+        if (!AllowedStatuses.Contains(normalizedStatus)) normalizedStatus = string.Empty;
+        var query = _context.FieldServiceVisits.AsNoTracking()
+            .Include(x => x.Coop)
+            .Where(x => x.VisitDate <= end && (x.EndVisitDate ?? x.VisitDate) >= start);
+        if (!string.IsNullOrEmpty(normalizedStatus))
+            query = query.Where(x => x.Status == normalizedStatus);
+        if (employeeId is > 0)
+            query = query.Where(x => x.Assignees.Any(a => a.EmpId == employeeId.Value));
+        if (coopId is > 0)
+            query = query.Where(x => x.CoopId == coopId.Value);
+
         ViewBag.From = ThaiDate(start);
         ViewBag.To = ThaiDate(end);
-        return View(await _context.FieldServiceVisits.AsNoTracking().Include(x => x.Coop)
-            .Where(x => x.VisitDate <= end && (x.EndVisitDate ?? x.VisitDate) >= start)
-            .OrderByDescending(x => x.VisitDate).ToListAsync());
+        ViewBag.Status = normalizedStatus;
+        ViewBag.EmployeeId = employeeId.GetValueOrDefault();
+        ViewBag.CoopId = coopId.GetValueOrDefault();
+        ViewBag.Employees = await _context.Employees.AsNoTracking()
+            .OrderBy(x => x.EmpName)
+            .Select(x => new SelectListItem(
+                x.EmpName + (x.Position != null && x.Position != "" ? " (" + x.Position + ")" : ""),
+                x.EmpId.ToString()))
+            .ToListAsync();
+        ViewBag.Cooperatives = await _context.CntMCoops.AsNoTracking()
+            .OrderBy(x => x.CoopName)
+            .Select(x => new SelectListItem(x.CoopName, x.CoopId.ToString()))
+            .ToListAsync();
+
+        return View(await query.OrderByDescending(x => x.VisitDate).ToListAsync());
     }
 
     private void ValidateForm(FieldServiceFormViewModel model)

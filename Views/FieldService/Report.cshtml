@@ -1,8 +1,49 @@
 @model IEnumerable<FieldServiceVisit>
-@{ ViewData["Title"]="Service Report"; string ThaiDate(DateTime? d)=>d.HasValue?$"{d.Value:dd/MM/}{d.Value.Year+543}":"-"; string ServiceText(string type)=>type switch{"MA"=>"Maintenance (MA)","PM"=>"Preventive Maintenance","SUPPORT"=>"On-site Support","TRAINING"=>"Training","IMPLEMENT"=>"Implement","OTHER"=>"อื่น ๆ",_=>type}; }
-<div class="index-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">รายงานงานบริการ</h2><p class="index-subtitle">สรุปผลการเข้าไซต์และสถานะงาน</p></div><div class="index-actions"><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a></div></div>
+@{
+    ViewData["Title"]="Service Report";
+    string ThaiDate(DateTime? d)=>d.HasValue?$"{d.Value:dd/MM/}{d.Value.Year+543}":"-";
+    string ServiceText(string type)=>type switch{"MA"=>"Maintenance (MA)","PM"=>"Preventive Maintenance","SUPPORT"=>"On-site Support","TRAINING"=>"Training","IMPLEMENT"=>"Implement","OTHER"=>"อื่น ๆ",_=>type};
+    var employees = ViewBag.Employees as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    var cooperatives = ViewBag.Cooperatives as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    var selectedStatus = (string?)ViewBag.Status ?? "";
+    var selectedEmployeeId = (int)(ViewBag.EmployeeId ?? 0);
+    var selectedCoopId = (int)(ViewBag.CoopId ?? 0);
+}
+<div class="index-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">รายงานงานบริการ</h2><p class="index-subtitle">สรุปผลการเข้าไซต์และสถานะงาน</p></div><div class="index-actions"><button type="button" class="btn btn-outline-light field-service-report-print" onclick="window.print()">พิมพ์รายงาน</button><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a></div></div>
 <div class="row g-3 mb-3"><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">งานทั้งหมด</div><div class="display-6 fw-bold field-service-accent">@Model.Count()</div></div></div></div><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">ดำเนินการเสร็จสิ้น</div><div class="display-6 fw-bold text-success">@Model.Count(x=>x.Status=="COMPLETED")</div></div></div></div></div>
-<form method="get" class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card"><div class="card-body d-flex flex-wrap gap-3 align-items-end"><div><label class="form-label fw-bold">ตั้งแต่วันที่</label><input type="text" name="from" value="@ViewBag.From" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div><div><label class="form-label fw-bold">ถึงวันที่</label><input type="text" name="to" value="@ViewBag.To" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div><button class="btn btn-primary btn-lg">แสดงรายงาน</button></div></form>
+<form method="get" class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card field-service-report-filter">
+    <div class="card-body p-3 p-lg-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6 col-xl-2"><label class="form-label fw-bold">ตั้งแต่วันที่</label><input type="text" name="from" value="@ViewBag.From" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+            <div class="col-md-6 col-xl-2"><label class="form-label fw-bold">ถึงวันที่</label><input type="text" name="to" value="@ViewBag.To" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+            <div class="col-md-6 col-xl-2">
+                <label class="form-label fw-bold">สถานะ</label>
+                <select name="status" class="form-select form-select-lg">
+                    <option value="">ทั้งหมด</option>
+                    <option value="PLANNED" selected="@(selectedStatus=="PLANNED")">วางแผนแล้ว</option>
+                    <option value="IN_PROGRESS" selected="@(selectedStatus=="IN_PROGRESS")">กำลังดำเนินการ</option>
+                    <option value="COMPLETED" selected="@(selectedStatus=="COMPLETED")">เสร็จสิ้น</option>
+                    <option value="CANCELLED" selected="@(selectedStatus=="CANCELLED")">ยกเลิก</option>
+                </select>
+            </div>
+            <div class="col-md-6 col-xl-2">
+                <label class="form-label fw-bold">พนักงาน</label>
+                <select name="employeeId" class="form-select form-select-lg">
+                    <option value="0">ทั้งหมด</option>
+                    @foreach (var employee in employees) { <option value="@employee.Value" selected="@(selectedEmployeeId.ToString()==employee.Value)">@employee.Text</option> }
+                </select>
+            </div>
+            <div class="col-md-8 col-xl-3">
+                <label class="form-label fw-bold">สหกรณ์</label>
+                <select name="coopId" class="form-select form-select-lg">
+                    <option value="0">ทั้งหมด</option>
+                    @foreach (var cooperative in cooperatives) { <option value="@cooperative.Value" selected="@(selectedCoopId.ToString()==cooperative.Value)">@cooperative.Text</option> }
+                </select>
+            </div>
+            <div class="col-md-4 col-xl-1"><button class="btn btn-primary btn-lg w-100">แสดง</button></div>
+        </div>
+    </div>
+</form>
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="table-responsive"><table class="table table-hover align-middle mb-0 field-service-table"><thead><tr><th>ช่วงวันที่</th><th>งาน</th><th>ประเภท</th><th>สถานะ</th><th>นัดครั้งถัดไป</th></tr></thead><tbody>
 @foreach(var coopGroup in Model.GroupBy(x=>new{x.CoopId,Name=x.Coop?.CoopName??"ไม่ระบุสหกรณ์"}).OrderBy(x=>x.Key.Name)){
 <tr class="field-service-coop-group-row field-service-report-group-row"><td colspan="5"><div><span>🏢</span><strong>@coopGroup.Key.Name</strong><span class="badge rounded-pill">@coopGroup.Count() งาน</span><span class="field-service-report-group-complete">เสร็จ @coopGroup.Count(x=>x.Status=="COMPLETED") งาน</span></div></td></tr>
