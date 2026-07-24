@@ -131,7 +131,8 @@ document.addEventListener('DOMContentLoaded', function () {
         displayEventTime: false,
         editable: canEdit,
         eventStartEditable: canEdit,
-        eventDurationEditable: false,
+        eventDurationEditable: canEdit,
+        progressiveEventRendering: true,
         longPressDelay: 500,
         eventLongPressDelay: 500,
         headerToolbar: {
@@ -148,29 +149,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (info.event.url) { info.jsEvent.preventDefault(); window.location.href = info.event.url; }
         },
         eventDrop: function (info) {
-            const token = document.querySelector('#fieldServiceCalendarAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
-            fetch('@Url.Action("MoveCalendarEvent", "FieldService")', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({
-                    id: Number(info.event.id),
-                    start: info.event.startStr,
-                    end: info.event.endStr,
-                    allDay: info.event.allDay
-                })
-            })
-            .then(async response => {
-                const result = await response.json().catch(() => null);
-                if (!response.ok || !result?.success) throw new Error(result?.message || 'ไม่สามารถย้ายงานได้');
-                loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
-            })
-            .catch(error => {
-                info.revert();
-                window.alert(error.message || 'เกิดข้อผิดพลาดในการย้ายงาน');
-            });
+            updateEventTime(info.event, info.revert);
+        },
+        eventResize: function (info) {
+            updateEventTime(info.event, info.revert);
         },
         eventContent: function (info) {
             const wrap = document.createElement('div');
@@ -226,6 +208,35 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         datesSet: function (info) { loadServiceList(info.startStr, info.endStr); }
     });
+
+    function updateEventTime(event, revert) {
+        const token = document.querySelector('#fieldServiceCalendarAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
+        fetch('@Url.Action("MoveCalendarEvent", "FieldService")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({
+                id: Number(event.id),
+                start: event.startStr,
+                end: event.endStr,
+                allDay: event.allDay
+            })
+        })
+        .then(async response => {
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result?.success) throw new Error(result?.message || 'ไม่สามารถเปลี่ยนวันหรือเวลาได้');
+            calendar.refetchEvents();
+            loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
+        })
+        .catch(error => {
+            if (typeof revert === 'function') revert();
+            calendar.refetchEvents();
+            window.alert(error.message || 'เกิดข้อผิดพลาดในการเปลี่ยนวันหรือเวลา');
+        });
+    }
+
     calendar.render();
     employeeFilter?.addEventListener('change', function () {
         calendar.refetchEvents();
