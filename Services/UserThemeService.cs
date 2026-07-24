@@ -786,14 +786,19 @@ html body main .index-actions :is(
     text-shadow: none !important;
 }
 
-html body main .index-actions :is(
-    .btn-outline-warning,
-    .btn-outline-light
-):not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
-    --pt-button-readable: #10233F;
-    --pt-action-color: #10233F !important;
-    color: #10233F !important;
-    -webkit-text-fill-color: #10233F !important;
+html body main .index-actions .btn-outline-warning:not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    --pt-button-readable: #FDE68A;
+    --pt-action-color: #FDE68A !important;
+    color: #FDE68A !important;
+    -webkit-text-fill-color: #FDE68A !important;
+    text-shadow: none !important;
+}
+
+html body main .index-actions .btn-outline-light:not(:disabled):not(.disabled):not(.btn-close):is(:hover, :focus, :active, .active) {
+    --pt-button-readable: var(--pt-sidebar-contrast, #FFFFFF);
+    --pt-action-color: var(--pt-sidebar-contrast, #FFFFFF) !important;
+    color: var(--pt-sidebar-contrast, #FFFFFF) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast, #FFFFFF) !important;
     text-shadow: none !important;
 }
 
