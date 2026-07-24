@@ -802,6 +802,35 @@ html body main :is(.issue-hero-actions, .dev-hero-actions, .support-actions, .su
     -webkit-text-fill-color: var(--pt-chart-danger-dark) !important;
 }
 
+html body main :is(
+    .btn-outline-primary,
+    .btn-outline-info,
+    .btn-outline-success
+):not(:disabled):not(.disabled):is(:hover, :focus, :active, .active) {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    text-shadow: none !important;
+}
+
+html body main :is(
+    .btn-outline-danger,
+    .btn-outline-secondary,
+    .btn-outline-dark
+):not(:disabled):not(.disabled):is(:hover, :focus, :active, .active) {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    text-shadow: none !important;
+}
+
+html body main :is(
+    .btn-outline-warning,
+    .btn-outline-light
+):not(:disabled):not(.disabled):is(:hover, :focus, :active, .active) {
+    color: #10233F !important;
+    -webkit-text-fill-color: #10233F !important;
+    text-shadow: none !important;
+}
+
 body.pt-standalone-report .report-btn {
     color: #10233F !important;
     -webkit-text-fill-color: #10233F !important;
