@@ -199,6 +199,7 @@ main.route-controller-fieldservice .field-service-calendar-card .fc-event {
 }
 main.route-controller-fieldservice .field-service-calendar-card .fc-event.fc-event-draggable { cursor:grab; }
 main.route-controller-fieldservice .field-service-calendar-card .fc-event.fc-event-dragging { cursor:grabbing; }
+main.route-controller-fieldservice .fc-event-mirror { pointer-events:none; margin:0 !important; }
 main.route-controller-fieldservice .field-service-calendar-assignees { display:flex; flex-wrap:wrap; gap:5px; color:var(--fs-muted); font-size:.82rem; }
 main.route-controller-fieldservice .field-service-calendar-assignees strong { color:var(--fs-contrast); font-weight:600; }
 main.route-controller-fieldservice .field-service-calendar-groups { display:grid; gap:18px; }
