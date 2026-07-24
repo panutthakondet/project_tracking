@@ -70,7 +70,6 @@
         .ThenBy(g => g.Key)
         .ToList();
     var initialSection = groupedReports.FirstOrDefault()?.Key ?? "";
-    var reportSequence = 0;
 
     string GroupIconPath(string group)
     {
@@ -171,16 +170,17 @@
                 <div class="report-list">
                 @foreach (var group in groupedReports)
                 {
+                    var groupSequence = 0;
                     @foreach (var report in group)
                     {
-                        reportSequence++;
+                        groupSequence++;
                         <a class="report-card tone-@report.Tone @(group.Key == initialSection ? "" : "is-hidden")"
                            asp-controller="@report.Controller"
                            asp-action="@report.Action"
                            data-report-card
                            data-report-section="@group.Key"
                            data-report-text="@($"{report.Title} {report.Description} {report.Group} {group.Key}")">
-                            <span class="report-card-code">@reportSequence.ToString("000")</span>
+                            <span class="report-card-code">@groupSequence.ToString("000")</span>
                             <span class="report-card-icon">
                                 <img src="@report.Icon" alt="" />
                             </span>
