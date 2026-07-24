@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
             groupEvents.forEach(function (event) {
                 const props = event.extendedProps || {};
             const row = document.createElement('a'); row.className = 'field-service-schedule-row';
-            row.style.borderLeft = `5px solid ${props.primaryEmployeeColor || '#64748b'}`;
+            row.style.setProperty('--field-service-row-color', props.primaryEmployeeColor || '#64748b');
             row.href = event.url || '#';
             const people = document.createElement('div'); people.className = 'field-service-schedule-people';
             (props.employees || []).forEach(function (employee) {

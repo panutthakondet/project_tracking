@@ -135,7 +135,7 @@ main.route-controller-fieldservice .field-service-annual-day.is-work {
 }
 main.route-controller-fieldservice .field-service-annual-day-number { text-align:center; line-height:1; }
 main.route-controller-fieldservice .field-service-annual-bars { display:flex; flex-direction:column; gap:2px; width:100%; }
-main.route-controller-fieldservice .field-service-annual-bars i { display:block; width:100%; height:5px; border-radius:999px; }
+main.route-controller-fieldservice .field-service-annual-bars i { display:block; width:100%; height:5px; border-radius:0; }
 main.route-controller-fieldservice .field-service-annual-day.is-today { outline:2px solid #f59e0b; outline-offset:1px; }
 main.route-controller-fieldservice .field-service-annual-legend { display:flex; align-items:center; gap:7px; margin-bottom:12px; color:var(--fs-muted); font-weight:700; }
 main.route-controller-fieldservice .field-service-work-dot { width:12px; height:12px; border-radius:50%; background:var(--pt-accent); }
@@ -150,7 +150,7 @@ main.route-controller-fieldservice .field-service-annual-visit-option {
 }
 main.route-controller-fieldservice .field-service-annual-visit-option:hover { color:var(--fs-contrast); border-color:var(--pt-accent); }
 main.route-controller-fieldservice .field-service-annual-visit-option > i {
-  width:8px; height:100%; min-height:54px; border-radius:999px;
+  width:8px; height:100%; min-height:54px; border-radius:0;
   background:var(--field-service-visit-background,#64748b);
 }
 main.route-controller-fieldservice .field-service-annual-visit-option > span { min-width:0; display:flex; flex-direction:column; gap:2px; }
@@ -190,7 +190,8 @@ main.route-controller-fieldservice .field-service-calendar-assignees { display:f
 main.route-controller-fieldservice .field-service-calendar-assignees strong { color:var(--fs-contrast); font-weight:600; }
 main.route-controller-fieldservice .field-service-calendar-groups { display:grid; gap:18px; }
 main.route-controller-fieldservice .field-service-calendar-group { overflow:hidden; border:1px solid var(--fs-border); border-radius:16px; background:var(--fs-surface); }
-main.route-controller-fieldservice .field-service-calendar-group-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; border-left:5px solid var(--pt-accent); background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-calendar-group-head { position:relative; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px 14px 24px; background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-calendar-group-head::before { content:""; position:absolute; left:8px; top:10px; bottom:10px; width:5px; background:var(--pt-accent); }
 main.route-controller-fieldservice .field-service-calendar-group-head > div { min-width:0; display:flex; align-items:center; gap:9px; }
 main.route-controller-fieldservice .field-service-calendar-group-head h5 { margin:0; color:var(--fs-contrast); font-size:1rem; font-weight:700; overflow-wrap:anywhere; }
 main.route-controller-fieldservice .field-service-calendar-group-head > span { flex:0 0 auto; color:var(--pt-accent); font-size:.82rem; font-weight:700; }
@@ -236,15 +237,21 @@ main.route-controller-fieldservice .field-service-schedule-list {
 }
 main.route-controller-fieldservice .field-service-schedule-list-card .card-header h5 { font-weight:650 !important; }
 main.route-controller-fieldservice .field-service-schedule-group { overflow:hidden; border:1px solid var(--fs-border); border-radius:16px; background:var(--fs-surface); }
-main.route-controller-fieldservice .field-service-schedule-group-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 16px; border-left:5px solid var(--pt-accent); background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-schedule-group-head { position:relative; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 16px 13px 24px; background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-schedule-group-head::before { content:""; position:absolute; left:8px; top:10px; bottom:10px; width:5px; background:var(--pt-accent); }
 main.route-controller-fieldservice .field-service-schedule-group-head > div { min-width:0; display:flex; align-items:center; gap:9px; }
 main.route-controller-fieldservice .field-service-schedule-group-head h6 { margin:0; color:var(--fs-contrast); font-size:.95rem; font-weight:600; overflow-wrap:anywhere; }
 main.route-controller-fieldservice .field-service-schedule-group-head > span { flex:0 0 auto; color:var(--pt-accent); font-size:.8rem; font-weight:600; }
 main.route-controller-fieldservice .field-service-schedule-group-items { display:grid; gap:10px; padding:12px; }
 main.route-controller-fieldservice .field-service-schedule-row {
+  position:relative;
   display: grid; grid-template-columns: minmax(210px, 1.1fr) minmax(220px, 1.5fr) minmax(210px, 1fr) auto;
-  gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--fs-border); border-radius: 16px;
+  gap: 16px; align-items: center; padding: 14px 16px 14px 22px; border: 1px solid var(--fs-border); border-radius: 16px;
   color: var(--fs-contrast); background: var(--fs-surface); text-decoration: none; transition: .18s ease;
+}
+main.route-controller-fieldservice .field-service-schedule-row::before {
+  content:""; position:absolute; left:7px; top:10px; bottom:10px; width:5px;
+  background:var(--field-service-row-color,#64748b);
 }
 main.route-controller-fieldservice .field-service-schedule-row:hover {
   color: var(--fs-contrast); border-color: var(--pt-accent); background: var(--pt-accent-soft); transform: translateY(-1px);
@@ -338,7 +345,8 @@ main.route-controller-fieldservice .field-service-coop-group-row td > div { disp
 main.route-controller-fieldservice .field-service-coop-group-row .badge,
 main.route-controller-fieldservice .field-service-result-group-head .badge { color:var(--pt-accent-contrast,#fff); background:var(--pt-accent); }
 main.route-controller-fieldservice .field-service-result-group { display:grid; gap:10px; }
-main.route-controller-fieldservice .field-service-result-group-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border:1px solid var(--fs-border); border-left:5px solid var(--pt-accent); border-radius:16px; color:var(--fs-contrast); background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-result-group-head { position:relative; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px 14px 26px; border:1px solid var(--fs-border); border-radius:16px; color:var(--fs-contrast); background:var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-result-group-head::before { content:""; position:absolute; left:9px; top:10px; bottom:10px; width:5px; background:var(--pt-accent); }
 main.route-controller-fieldservice .field-service-result-group-head > div { display:flex; align-items:center; gap:9px; }
 main.route-controller-fieldservice .field-service-result-group-items { display:grid; gap:10px; padding-left:14px; }
 main.route-controller-fieldservice .field-service-report-group-complete { margin-left:auto; color:var(--fs-muted); font-size:.8rem; font-weight:800; }
