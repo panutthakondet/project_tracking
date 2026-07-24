@@ -188,7 +188,14 @@ main.route-controller-fieldservice .field-service-calendar-card .fc-button-activ
 main.route-controller-fieldservice .field-service-calendar-card .fc-event {
   border: 2px solid var(--field-service-employee-color, #64748b) !important;
   border-radius: 7px; padding: 2px 5px; color: var(--fs-contrast) !important;
-  background: transparent !important; font-weight: 700; cursor: pointer;
+  background: var(--fs-surface) !important;
+  background: linear-gradient(
+    180deg,
+    var(--fs-surface) 0%,
+    color-mix(in srgb, var(--field-service-employee-color, #64748b) 16%, var(--fs-surface)) 100%
+  ) !important;
+  box-shadow: 0 6px 16px var(--pt-shadow, rgba(15,35,64,.08)) !important;
+  font-weight: 700; cursor: pointer;
 }
 main.route-controller-fieldservice .field-service-calendar-card .fc-event.fc-event-draggable { cursor:grab; }
 main.route-controller-fieldservice .field-service-calendar-card .fc-event.fc-event-dragging { cursor:grabbing; }
@@ -254,13 +261,25 @@ main.route-controller-fieldservice .field-service-schedule-row {
   display: grid; grid-template-columns: minmax(210px, 1.1fr) minmax(220px, 1.5fr) minmax(210px, 1fr) auto;
   gap: 16px; align-items: center; padding: 14px 16px 14px 22px; border: 1px solid var(--fs-border); border-radius: 16px;
   color: var(--fs-contrast); background: var(--fs-surface); text-decoration: none; transition: .18s ease;
+  background: linear-gradient(
+    180deg,
+    var(--fs-surface) 0%,
+    color-mix(in srgb, var(--field-service-row-color, #64748b) 10%, var(--fs-surface)) 100%
+  );
+  box-shadow: 0 6px 16px var(--pt-shadow, rgba(15,35,64,.06));
 }
 main.route-controller-fieldservice .field-service-schedule-row::before {
   content:""; position:absolute; left:7px; top:10px; bottom:10px; width:5px;
   background:var(--field-service-row-color,#64748b);
 }
 main.route-controller-fieldservice .field-service-schedule-row:hover {
-  color: var(--fs-contrast); border-color: var(--pt-accent); background: var(--pt-accent-soft); transform: translateY(-1px);
+  color: var(--fs-contrast); border-color: var(--field-service-row-color, var(--pt-accent));
+  background: linear-gradient(
+    180deg,
+    var(--fs-surface) 0%,
+    color-mix(in srgb, var(--field-service-row-color, #64748b) 18%, var(--fs-surface)) 100%
+  );
+  transform: translateY(-1px);
 }
 main.route-controller-fieldservice .field-service-schedule-people { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; color: var(--fs-muted); }
 main.route-controller-fieldservice .field-service-schedule-person { min-width: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
