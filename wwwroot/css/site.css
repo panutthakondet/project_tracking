@@ -111,10 +111,14 @@ main.route-controller-fieldservice .field-service-employee-color-legend i {
   width:10px; height:10px; flex:0 0 10px; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.72);
 }
 main.route-controller-fieldservice .field-service-annual-employee-legend { padding:14px 0 0; }
-main.route-controller-fieldservice .field-service-annual-modal { color:var(--fs-contrast); background:var(--fs-surface); border:1px solid var(--fs-border); border-radius:22px; overflow:hidden; }
-main.route-controller-fieldservice .field-service-annual-modal .modal-header { color:#fff; background:linear-gradient(135deg,var(--pt-sidebar-bg,#10233f),var(--pt-accent-dark)); border:0; padding:18px 22px; }
-main.route-controller-fieldservice .field-service-annual-modal .modal-title { font-weight:800; }
-main.route-controller-fieldservice .field-service-annual-user { margin-top:3px; color:rgba(255,255,255,.78); font-size:.8rem; }
+.field-service-annual-modal {
+  --fs-surface:var(--pt-surface,#fff); --fs-contrast:var(--pt-surface-contrast,#10233f);
+  --fs-muted:var(--pt-surface-contrast-muted,#64748b); --fs-border:var(--pt-border,#d8e3ef);
+  color:var(--fs-contrast); background:var(--fs-surface); border:1px solid var(--fs-border); border-radius:22px; overflow:hidden;
+}
+.field-service-annual-modal .modal-header { color:#fff; background:linear-gradient(135deg,var(--pt-sidebar-bg,#10233f),var(--pt-accent-dark)); border:0; padding:18px 22px; }
+.field-service-annual-modal .modal-title { font-weight:650; }
+.field-service-annual-user { margin-top:3px; color:rgba(255,255,255,.78); font-size:.8rem; }
 main.route-controller-fieldservice .field-service-annual-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
 main.route-controller-fieldservice .field-service-annual-month { padding:12px; border:1px solid var(--fs-border); border-radius:14px; background:var(--pt-surface-soft,#f8fafc); }
 main.route-controller-fieldservice .field-service-annual-month h6 { margin:0 0 8px; text-align:center; color:var(--pt-accent); }
@@ -142,21 +146,21 @@ main.route-controller-fieldservice .field-service-work-dot { width:12px; height:
 main.route-controller-fieldservice .field-service-annual-summary { color:var(--pt-accent); font-weight:700; }
 main.route-controller-fieldservice .field-service-year-section > .card-header { color:var(--fs-contrast); background:var(--pt-surface-soft,#f8fafc); border-bottom:1px solid var(--fs-border) !important; }
 main.route-controller-fieldservice .field-service-year-section > .card-header h3 { font-size:1.25rem; font-weight:850; }
-main.route-controller-fieldservice .field-service-annual-modal .modal-body { display:grid; gap:10px; }
-main.route-controller-fieldservice .field-service-annual-visit-option {
+.field-service-annual-modal .modal-body { display:grid; gap:10px; }
+.field-service-annual-visit-option {
   display:grid; grid-template-columns:8px minmax(0,1fr); gap:12px; padding:12px;
   color:var(--fs-contrast); text-decoration:none; border:1px solid var(--fs-border);
   border-radius:14px; background:var(--pt-surface-soft,#f8fafc);
 }
-main.route-controller-fieldservice .field-service-annual-visit-option:hover { color:var(--fs-contrast); border-color:var(--pt-accent); }
-main.route-controller-fieldservice .field-service-annual-visit-option > i {
+.field-service-annual-visit-option:hover { color:var(--fs-contrast); border-color:var(--pt-accent); }
+.field-service-annual-visit-option > i {
   width:8px; height:100%; min-height:54px; border-radius:0;
   background:var(--field-service-visit-background,#64748b);
 }
-main.route-controller-fieldservice .field-service-annual-visit-option > span { min-width:0; display:flex; flex-direction:column; gap:2px; }
-main.route-controller-fieldservice .field-service-annual-visit-option strong { font-size:.9rem; overflow-wrap:anywhere; }
-main.route-controller-fieldservice .field-service-annual-visit-option span > span { color:var(--fs-muted); font-size:.8rem; overflow-wrap:anywhere; }
-main.route-controller-fieldservice .field-service-annual-visit-option small { color:var(--fs-muted); font-size:.74rem; overflow-wrap:anywhere; }
+.field-service-annual-visit-option > span { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.field-service-annual-visit-option strong { font-size:.9rem; font-weight:600; overflow-wrap:anywhere; }
+.field-service-annual-visit-option span > span { color:var(--fs-muted); font-size:.8rem; overflow-wrap:anywhere; }
+.field-service-annual-visit-option small { color:var(--fs-muted); font-size:.74rem; overflow-wrap:anywhere; }
 @media(max-width:991.98px){main.route-controller-fieldservice .field-service-annual-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:575.98px){main.route-controller-fieldservice .field-service-annual-grid{grid-template-columns:1fr;}}
 main.route-controller-fieldservice .field-service-calendar-card .fc { color: var(--fs-contrast); }

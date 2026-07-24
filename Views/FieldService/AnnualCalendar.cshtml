@@ -118,6 +118,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalItems = document.getElementById('fieldServiceAnnualModalItems');
     const showBaseUrl = '@Url.Action("Show", "FieldService")';
     const thaiFormatter = new Intl.DateTimeFormat('th-TH', { dateStyle: 'long' });
+    if (modalElement && modalElement.parentElement !== document.body) {
+        document.body.appendChild(modalElement);
+    }
 
     function showVisit(visitId) {
         window.location.href = `${showBaseUrl}/${visitId}`;
