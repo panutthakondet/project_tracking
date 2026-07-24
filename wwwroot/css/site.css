@@ -102,6 +102,11 @@ main.route-controller-fieldservice .field-service-calendar-card { overflow: hidd
 main.route-controller-fieldservice .field-service-schedule-filter { position:relative; z-index:40; overflow:visible !important; }
 main.route-controller-fieldservice .field-service-schedule-filter:focus-within { z-index:1100; }
 main.route-controller-fieldservice .field-service-schedule-filter :is(.card-body,.row,[class*="col-"]) { overflow:visible !important; }
+main.route-controller-fieldservice .field-service-report-filter { position:relative; z-index:40; overflow:visible !important; }
+main.route-controller-fieldservice .field-service-report-filter:focus-within { z-index:1100; }
+main.route-controller-fieldservice .field-service-report-filter :is(.card-body,.row,[class*="col-"]) { overflow:visible !important; }
+main.route-controller-fieldservice .field-service-report-filter .pt-search-select.is-open { position:relative; z-index:1101; }
+main.route-controller-fieldservice .field-service-report-filter .pt-search-select__dropdown { z-index:1102 !important; }
 main.route-controller-fieldservice .field-service-employee-color-legend {
   display:flex; flex-wrap:wrap; gap:7px 14px; padding:0 1.5rem 1.25rem;
   color:var(--fs-muted); font-size:.76rem; font-weight:700;
