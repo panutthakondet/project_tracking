@@ -49,9 +49,7 @@
             <div class="col-6 col-md-3 col-lg-2"><label class="form-label fw-bold" for="fromYear">จากปี</label><select id="fromYear" name="fromYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == fromYear)">@(year + 543)</option>}</select></div>
             <div class="col-6 col-md-3 col-lg-2"><label class="form-label fw-bold" for="toYear">ถึงปี</label><select id="toYear" name="toYear" class="form-select">@foreach(var year in yearOptions){<option value="@(year + 543)" selected="@(year == toYear)">@(year + 543)</option>}</select></div>
             <div class="col-md-6 col-lg-2"><button type="submit" class="btn btn-primary w-100">แสดงปฏิทิน</button></div>
-            <div class="col-md-6 col-lg-3"><div class="field-service-annual-legend mb-0">สีแยกตามพนักงาน</div></div>
         </div>
-        <div class="field-service-employee-color-legend field-service-annual-employee-legend">@foreach(var employee in employees.Where(x => selectedEmployeeId == 0 || (int)x.EmpId == selectedEmployeeId)){<span><i style="background:@employeeColors.GetValueOrDefault((int)employee.EmpId, "#64748b")"></i>@employee.EmpName</span>}</div>
     </div>
 </form>
 

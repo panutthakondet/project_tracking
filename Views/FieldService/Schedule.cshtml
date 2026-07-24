@@ -17,7 +17,6 @@
 
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-schedule-filter mb-3">
     <div class="card-body"><div class="row g-3 align-items-end"><div class="col-lg-5 col-md-7"><label class="form-label fw-bold">พนักงาน</label><select id="fieldServiceEmployeeFilter" class="form-select form-select-lg" data-show-empty-option-text="true"><option value="">พนักงานทั้งหมด</option>@foreach(var employee in employees){<option value="@employee.EmpId">@employee.EmpName @(string.IsNullOrWhiteSpace((string?)employee.Position) ? "" : $"({employee.Position})")</option>}</select></div><div class="col-lg-7 col-md-5"><div class="form-text">เลือกพนักงานเพื่อดูเฉพาะงานที่ได้รับมอบหมาย</div></div></div></div>
-    <div class="field-service-employee-color-legend">@foreach(var employee in employees){<span><i style="background:@employee.Color"></i>@employee.EmpName</span>}</div>
 </div>
 
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-calendar-card">
