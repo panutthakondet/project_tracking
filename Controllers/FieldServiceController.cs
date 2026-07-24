@@ -270,20 +270,6 @@ public class FieldServiceController : BaseController
     }
 
     [RequireMenu("FieldService.Calendar")]
-    public async Task<IActionResult> Calendar(DateTime? month)
-    {
-        var selected = month ?? DateTime.Today;
-        var first = new DateTime(selected.Year, selected.Month, 1);
-        var last = first.AddMonths(1).AddDays(-1);
-        ViewBag.Month = first;
-        return View(await _context.FieldServiceVisits.AsNoTracking()
-            .Include(x => x.Coop)
-            .Include(x => x.Assignees).ThenInclude(x => x.Employee)
-            .Where(x => x.VisitDate <= last && (x.EndVisitDate ?? x.VisitDate) >= first)
-            .OrderBy(x => x.VisitDate).ThenBy(x => x.StartTime).ToListAsync());
-    }
-
-    [RequireMenu("FieldService.Calendar")]
     public async Task<IActionResult> Schedule()
     {
         var employees = await _context.Employees.AsNoTracking()
