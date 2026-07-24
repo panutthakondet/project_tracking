@@ -404,17 +404,21 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
   }
   main.route-controller-fieldservice.route-action-report .index-actions,
   main.route-controller-fieldservice.route-action-report .field-service-report-filter { display:none !important; }
-  main.route-controller-fieldservice.route-action-report .index-hero {
+  html body main.route-controller-fieldservice.route-action-report .index-hero {
     display:block !important; min-height:0 !important; margin:0 0 8px !important; padding:0 0 8px !important;
-    color:#000 !important; background:none !important;
+    color:#000 !important; background:none !important; background-color:transparent !important; background-image:none !important;
     border:0 !important; border-bottom:1px solid #999 !important; border-radius:0; box-shadow:none !important;
   }
   main.route-controller-fieldservice.route-action-report .index-hero__content { width:100% !important; }
-  main.route-controller-fieldservice.route-action-report .index-hero :is(.index-eyebrow,.index-title,.index-subtitle) { color:#000 !important; }
+  html body main.route-controller-fieldservice.route-action-report .index-hero :is(.index-eyebrow,.index-title,.index-subtitle) {
+    color:#000 !important; -webkit-text-fill-color:#000 !important; opacity:1 !important;
+  }
   main.route-controller-fieldservice.route-action-report .index-title { margin:1px 0 2px !important; font-size:20pt !important; line-height:1.15 !important; }
   main.route-controller-fieldservice.route-action-report .index-subtitle { margin:0 !important; font-size:9pt !important; }
   main.route-controller-fieldservice.route-action-report .field-service-report-print-meta {
-    display:block !important; margin-top:4px; color:#333 !important; font-size:8pt !important; line-height:1.35;
+    display:block !important; margin-top:4px; color:#333 !important;
+    -webkit-text-fill-color:#333 !important; opacity:1 !important;
+    font-size:8pt !important; line-height:1.35;
   }
   main.route-controller-fieldservice.route-action-report .field-service-report-summary {
     display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px !important;
