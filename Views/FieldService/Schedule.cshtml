@@ -4,11 +4,13 @@
     var role = Context.Session.GetString("Role") ?? "";
     var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
     var canCreate = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) || menus.Any(x => x.Trim().Equals("FieldService.Create", StringComparison.OrdinalIgnoreCase));
+    var canEdit = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) || menus.Any(x => x.Trim().Equals("FieldService.Edit", StringComparison.OrdinalIgnoreCase));
     var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
+<form id="fieldServiceCalendarAntiForgery" class="d-none">@Html.AntiForgeryToken()</form>
 
 <div class="index-hero">
     <div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">Calendars</h2><p class="index-subtitle">ปฏิทินงานเข้าไซต์ MA แบบเดือน สัปดาห์ และรายการ</p></div>
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const element = document.getElementById('fieldServiceCalendar');
     if (!element || typeof FullCalendar === 'undefined') return;
     const canCreate = @canCreate.ToString().ToLowerInvariant();
+    const canEdit = @canEdit.ToString().ToLowerInvariant();
     const employeeFilter = document.getElementById('fieldServiceEmployeeFilter');
     const listElement = document.getElementById('fieldServiceScheduleList');
     const listCount = document.getElementById('fieldServiceListCount');
@@ -126,6 +129,11 @@ document.addEventListener('DOMContentLoaded', function () {
         dayMaxEvents: true,
         eventDisplay: 'block',
         displayEventTime: false,
+        editable: canEdit,
+        eventStartEditable: canEdit,
+        eventDurationEditable: false,
+        longPressDelay: 500,
+        eventLongPressDelay: 500,
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -138,6 +146,31 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         eventClick: function (info) {
             if (info.event.url) { info.jsEvent.preventDefault(); window.location.href = info.event.url; }
+        },
+        eventDrop: function (info) {
+            const token = document.querySelector('#fieldServiceCalendarAntiForgery input[name="__RequestVerificationToken"]')?.value || '';
+            fetch('@Url.Action("MoveCalendarEvent", "FieldService")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    id: Number(info.event.id),
+                    start: info.event.startStr,
+                    end: info.event.endStr,
+                    allDay: info.event.allDay
+                })
+            })
+            .then(async response => {
+                const result = await response.json().catch(() => null);
+                if (!response.ok || !result?.success) throw new Error(result?.message || 'ไม่สามารถย้ายงานได้');
+                loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
+            })
+            .catch(error => {
+                info.revert();
+                window.alert(error.message || 'เกิดข้อผิดพลาดในการย้ายงาน');
+            });
         },
         eventContent: function (info) {
             const wrap = document.createElement('div');

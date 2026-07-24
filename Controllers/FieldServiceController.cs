@@ -469,6 +469,48 @@ public class FieldServiceController : BaseController
         }));
     }
 
+    [HttpPost, ValidateAntiForgeryToken, RequireMenu("FieldService.Edit")]
+    public async Task<IActionResult> MoveCalendarEvent([FromBody] FieldServiceCalendarMoveViewModel model)
+    {
+        if (model.Id <= 0 || string.IsNullOrWhiteSpace(model.Start)
+            || !DateTimeOffset.TryParse(model.Start, out var start))
+            return BadRequest(new { success = false, message = "ข้อมูลวันที่เริ่มต้นไม่ถูกต้อง" });
+
+        var item = await _context.FieldServiceVisits.FirstOrDefaultAsync(x => x.VisitId == model.Id);
+        if (item == null)
+            return NotFound(new { success = false, message = "ไม่พบงานเข้าไซต์" });
+
+        var originalFinalDate = (item.EndVisitDate ?? item.VisitDate).Date;
+        var originalDaySpan = Math.Max(0, (originalFinalDate - item.VisitDate.Date).Days);
+        DateTimeOffset parsedEnd = default;
+        var hasEnd = !string.IsNullOrWhiteSpace(model.End)
+            && DateTimeOffset.TryParse(model.End, out parsedEnd);
+
+        item.VisitDate = start.Date;
+        if (model.AllDay)
+        {
+            var finalDate = hasEnd ? parsedEnd.Date.AddDays(-1) : start.Date.AddDays(originalDaySpan);
+            item.EndVisitDate = finalDate > start.Date ? finalDate : start.Date;
+        }
+        else
+        {
+            item.StartTime = start.TimeOfDay;
+            if (hasEnd)
+            {
+                item.EndVisitDate = parsedEnd.Date > start.Date ? parsedEnd.Date : start.Date;
+                item.EndTime = parsedEnd.TimeOfDay;
+            }
+            else
+            {
+                item.EndVisitDate = start.Date.AddDays(originalDaySpan);
+            }
+        }
+
+        item.UpdatedAt = DateTime.Now;
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
+    }
+
     [RequireMenu("FieldService.Report")]
     public async Task<IActionResult> Report(string? from, string? to)
     {

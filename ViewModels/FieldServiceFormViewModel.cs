@@ -58,3 +58,11 @@ public class FieldServiceFormViewModel
     public IEnumerable<SelectListItem> Cooperatives { get; set; } = Array.Empty<SelectListItem>();
     public IEnumerable<SelectListItem> Employees { get; set; } = Array.Empty<SelectListItem>();
 }
+
+public class FieldServiceCalendarMoveViewModel
+{
+    public int Id { get; set; }
+    public string? Start { get; set; }
+    public string? End { get; set; }
+    public bool AllDay { get; set; }
+}
