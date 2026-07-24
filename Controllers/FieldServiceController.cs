@@ -497,7 +497,7 @@ public class FieldServiceController : BaseController
         return Json(new { success = true });
     }
 
-    [RequireMenu("FieldService.Report")]
+    [RequireMenu("Reports.Index")]
     public async Task<IActionResult> Report(
         string? from,
         string? to,

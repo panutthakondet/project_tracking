@@ -27,6 +27,7 @@
             "Projects" => "Projects",
             "Issues" => "Issues / Support",
             "Support" => "Issues / Support",
+            "Field Service" => "Field Service",
             "Test Scenario" => "QA / Test",
             "Followups" => "People / Operation",
             "Meetings" => "People / Operation",
@@ -43,6 +44,7 @@
             "Projects" => 10,
             "Issues / Support" => 20,
             "QA / Test" => 30,
+            "Field Service" => 35,
             "People / Operation" => 40,
             _ => 99
         };
@@ -56,6 +58,7 @@
             "Projects" => "รายงานข้อมูลโครงการ งวดงาน การมอบหมาย และสถานะงาน",
             "Issues / Support" => "รายงานปัญหาและงาน Support ที่ต้องติดตาม",
             "QA / Test" => "รายงาน Test Scenario และผลการตรวจสอบ",
+            "Field Service" => "รายงานงานเข้าไซต์ งานบริการ และผลการปฏิบัติงาน",
             "People / Operation" => "รายงานการติดตามงานและข้อมูลการลงเวลาของทีม",
             _ => "รายงานในหมวดนี้"
         };
@@ -76,6 +79,7 @@
             "People / Operation" => "/images/menu-icons/attendance.svg",
             "Issues / Support" => "/images/menu-icons/issues.svg",
             "QA / Test" => "/images/menu-icons/test-scenarios.svg",
+            "Field Service" => "/images/menu-icons/field-service.svg",
             "Project Phases" => "/images/menu-icons/phases.svg",
             "Projects" => "/images/menu-icons/projects.svg",
             "Issues" => "/images/menu-icons/issues.svg",
@@ -108,7 +112,7 @@
                 รายงาน
             </span>
             <span>
-                <strong>@reports.Select(x => x.Group).Distinct().Count()</strong>
+                <strong>@groupedReports.Count</strong>
                 หมวด
             </span>
         </div>

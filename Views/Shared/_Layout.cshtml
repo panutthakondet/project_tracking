@@ -1974,7 +1974,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
     var canRequirementBoard = CanMenu("RequirementBoard.Index");
     var canMeetingCalendars = CanMenu("Meetings.Index") || CanMenu("MeetingRoom.Index");
-    var canFieldService = CanMenu("FieldService.Index") || CanMenu("FieldService.Calendar") || CanMenu("FieldService.Result") || CanMenu("FieldService.Report");
+    var canFieldService = CanMenu("FieldService.Index") || CanMenu("FieldService.Calendar") || CanMenu("FieldService.Result");
 
 	    var canReports = CanMenu("Reports.Index");
 
@@ -2134,7 +2134,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                         @if (canFieldService)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="FieldService" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="FieldService" && action!="Report" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown" title="Field Service">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/field-service.svg" alt="" /></span>
                                     <span class="nav-label">Field Service</span>
@@ -2152,10 +2152,6 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     @if (CanMenu("FieldService.Result"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Results">ส่งผลการปฏิบัติงาน</a></li>
-                                    }
-                                    @if (CanMenu("FieldService.Report"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="FieldService" asp-action="Report">Service Report</a></li>
                                     }
                                 </ul>
                             </li>
@@ -2336,7 +2332,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                         {
                             <li class="nav-item">
                                 <a class="nav-link @(
-                                    (controller=="Reports" || (controller=="Projects" && action=="ViewOnly") || (controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport" || (controller=="TestScenarios" && action=="PrintReport") || (controller=="ProjectIssues" && action=="ViewOnly") || (controller=="Attendance" && action=="Map"))
+                                    (controller=="Reports" || (controller=="Projects" && action=="ViewOnly") || (controller=="PhaseAssigns" && action=="Print") || controller=="PhaseStatusReport" || (controller=="TestScenarios" && action=="PrintReport") || (controller=="ProjectIssues" && action=="ViewOnly") || (controller=="Attendance" && action=="Map") || (controller=="FieldService" && action=="Report"))
                                         ? "active-menu" : "")"
                                    asp-controller="Reports"
                                    asp-action="Index">

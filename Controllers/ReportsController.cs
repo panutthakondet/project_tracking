@@ -123,6 +123,17 @@ namespace ProjectTracking.Controllers
                     },
                     new()
                     {
+                        Group = "Field Service",
+                        Title = "Field Service Report",
+                        Description = "รายงานงานเข้าไซต์ แยกตามช่วงวันที่ สถานะ พนักงานผู้รับผิดชอบ และสหกรณ์",
+                        Controller = "FieldService",
+                        Action = "Report",
+                        PermissionKey = "Reports.Index",
+                        Icon = "/images/menu-icons/field-service.svg",
+                        Tone = "teal"
+                    },
+                    new()
+                    {
                         Group = "Followups",
                         Title = "Followups Report",
                         Description = "รายงานงานติดตามตามโครงการ ผู้รับผิดชอบ สถานะ วันที่ติดตามครั้งถัดไป และการติดต่อครั้งล่าสุด",

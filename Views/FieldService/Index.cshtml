@@ -19,7 +19,6 @@
     </div>
     <div class="index-actions">
         @if (Can("FieldService.Calendar")) { <a asp-action="Schedule" class="btn btn-outline-info">ปฏิทินงาน</a> }
-        @if (Can("FieldService.Report")) { <a asp-action="Report" class="btn btn-outline-primary">รายงาน</a> }
         @if (Can("FieldService.Create")) { <a asp-action="Create" class="btn btn-primary">เพิ่มงานออกไซต์</a> }
         else { <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มงาน">เพิ่มงานออกไซต์</button> }
     </div>
