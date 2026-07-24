@@ -8,9 +8,17 @@
     var selectedStatus = (string?)ViewBag.Status ?? "";
     var selectedEmployeeId = (int)(ViewBag.EmployeeId ?? 0);
     var selectedCoopId = (int)(ViewBag.CoopId ?? 0);
+    string StatusText(string status)=>status switch{"PLANNED"=>"วางแผนแล้ว","IN_PROGRESS"=>"กำลังดำเนินการ","COMPLETED"=>"เสร็จสิ้น","CANCELLED"=>"ยกเลิก",_=>"ทั้งหมด"};
+    var selectedEmployeeName = employees.FirstOrDefault(x => x.Value == selectedEmployeeId.ToString())?.Text ?? "ทั้งหมด";
+    var selectedCoopName = cooperatives.FirstOrDefault(x => x.Value == selectedCoopId.ToString())?.Text ?? "ทั้งหมด";
 }
-<div class="index-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">รายงานงานบริการ</h2><p class="index-subtitle">สรุปผลการเข้าไซต์และสถานะงาน</p></div><div class="index-actions"><button type="button" class="btn btn-outline-light field-service-report-print" onclick="window.print()">พิมพ์รายงาน</button><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a></div></div>
-<div class="row g-3 mb-3"><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">งานทั้งหมด</div><div class="display-6 fw-bold field-service-accent">@Model.Count()</div></div></div></div><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">ดำเนินการเสร็จสิ้น</div><div class="display-6 fw-bold text-success">@Model.Count(x=>x.Status=="COMPLETED")</div></div></div></div></div>
+@section Styles {
+    <style>
+        @@page { size: A4 landscape; margin: 8mm; }
+    </style>
+}
+<div class="index-hero"><div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">รายงานงานบริการ</h2><p class="index-subtitle">สรุปผลการเข้าไซต์และสถานะงาน</p><div class="field-service-report-print-meta">ช่วงวันที่ @ViewBag.From – @ViewBag.To · สถานะ @StatusText(selectedStatus) · พนักงาน @selectedEmployeeName · สหกรณ์ @selectedCoopName</div></div><div class="index-actions"><button type="button" class="btn btn-outline-light field-service-report-print" onclick="window.print()">พิมพ์รายงาน</button><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a></div></div>
+<div class="row g-3 mb-3 field-service-report-summary"><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">งานทั้งหมด</div><div class="display-6 fw-bold field-service-accent">@Model.Count()</div></div></div></div><div class="col-md-6"><div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="card-body p-4"><div class="opacity-75 fw-bold">ดำเนินการเสร็จสิ้น</div><div class="display-6 fw-bold text-success">@Model.Count(x=>x.Status=="COMPLETED")</div></div></div></div></div>
 <form method="get" class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card field-service-report-filter">
     <div class="card-body p-3 p-lg-4">
         <div class="row g-3 align-items-end">
@@ -44,9 +52,11 @@
         </div>
     </div>
 </form>
-<div class="card shadow-sm border-0 rounded-4 field-service-themed-card"><div class="table-responsive"><table class="table table-hover align-middle mb-0 field-service-table"><thead><tr><th>ช่วงวันที่</th><th>งาน</th><th>ประเภท</th><th>สถานะ</th><th>นัดครั้งถัดไป</th></tr></thead><tbody>
+<div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-report-table-card"><div class="table-responsive"><table class="table table-hover align-middle mb-0 field-service-table"><thead><tr><th>ช่วงวันที่</th><th>งาน</th><th>ประเภท</th><th>สถานะ</th><th>นัดครั้งถัดไป</th></tr></thead>
 @foreach(var coopGroup in Model.GroupBy(x=>new{x.CoopId,Name=x.Coop?.CoopName??"ไม่ระบุสหกรณ์"}).OrderBy(x=>x.Key.Name)){
+<tbody class="field-service-report-print-group">
 <tr class="field-service-coop-group-row field-service-report-group-row"><td colspan="5"><div><span>🏢</span><strong>@coopGroup.Key.Name</strong><span class="badge rounded-pill">@coopGroup.Count() งาน</span><span class="field-service-report-group-complete">เสร็จ @coopGroup.Count(x=>x.Status=="COMPLETED") งาน</span></div></td></tr>
-@foreach(var item in coopGroup.OrderByDescending(x=>x.VisitDate)){<tr><td class="text-nowrap">@ThaiDate(item.VisitDate) - @ThaiDate(item.EndVisitDate??item.VisitDate)</td><td><a asp-action="Show" asp-route-id="@item.VisitId" class="field-service-link">@item.Title</a></td><td>@ServiceText(item.ServiceType)</td><td>@item.Status</td><td>@ThaiDate(item.NextVisitDate)</td></tr>}}
-@if(!Model.Any()){<tr><td colspan="5" class="text-center opacity-75 py-5">ไม่พบข้อมูล</td></tr>}
-</tbody></table></div></div>
+@foreach(var item in coopGroup.OrderByDescending(x=>x.VisitDate)){<tr><td class="text-nowrap">@ThaiDate(item.VisitDate) - @ThaiDate(item.EndVisitDate??item.VisitDate)</td><td><a asp-action="Show" asp-route-id="@item.VisitId" class="field-service-link">@item.Title</a></td><td>@ServiceText(item.ServiceType)</td><td>@StatusText(item.Status)</td><td>@ThaiDate(item.NextVisitDate)</td></tr>}
+</tbody>}
+@if(!Model.Any()){<tbody><tr><td colspan="5" class="text-center opacity-75 py-5">ไม่พบข้อมูล</td></tr></tbody>}
+</table></div></div>
