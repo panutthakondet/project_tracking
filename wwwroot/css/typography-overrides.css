@@ -2258,6 +2258,86 @@ html body main.route-controller-fieldservice :is(
   line-height: 1.5 !important;
 }
 
+html body main.route-controller-fieldservice .field-service-schedule-list {
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+html body main.route-controller-fieldservice,
+html body main.route-controller-fieldservice * {
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+html body main.route-controller-fieldservice .index-title {
+  font-weight: 700 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .field-service-themed-card h3,
+  .field-service-themed-card h4,
+  .field-service-themed-card h5,
+  .field-service-themed-card h6,
+  .field-service-annual-modal .modal-title
+) {
+  font-weight: 650 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .fw-bold,
+  strong,
+  .field-service-event-title,
+  .field-service-calendar-group-head h5,
+  .field-service-calendar-group-head > span,
+  .field-service-file-count,
+  .field-service-report-group-complete
+) {
+  font-weight: 600 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .fw-semibold,
+  .field-service-event-second-row,
+  .field-service-system-info span,
+  .field-service-file-preview,
+  .field-service-existing-name
+) {
+  font-weight: 500 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .meeting-attendee-picker__controls .btn,
+  .field-service-existing-document span
+) {
+  font-weight: 600 !important;
+}
+
+html body main.route-controller-fieldservice :is(
+  .field-service-table th,
+  .field-service-annual-day-head,
+  .field-service-annual-summary
+) {
+  font-weight: 600 !important;
+}
+
+html body main.route-controller-fieldservice .field-service-schedule-list-card .card-header h5 {
+  font-weight: 650 !important;
+}
+
+html body main.route-controller-fieldservice .field-service-schedule-group-head h6,
+html body main.route-controller-fieldservice .field-service-schedule-group-head > span,
+html body main.route-controller-fieldservice .field-service-schedule-coop,
+html body main.route-controller-fieldservice .field-service-schedule-status {
+  font-weight: 600 !important;
+}
+
+html body main.route-controller-fieldservice .field-service-schedule-person,
+html body main.route-controller-fieldservice .field-service-schedule-date strong {
+  font-weight: 500 !important;
+}
+
 html body main.route-controller-fieldservice :is(.small, small, .form-text, .opacity-75.small) {
   font-size: 12.5px !important;
   line-height: 1.45 !important;
