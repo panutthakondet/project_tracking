@@ -189,6 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         eventDidMount: function (info) {
             const props = info.event.extendedProps;
+            info.el.style.setProperty('--field-service-employee-color', props.primaryEmployeeColor || '#64748b');
             info.el.title = [props.serviceTitle, props.status].filter(Boolean).join(' · ');
         },
         datesSet: function (info) { loadServiceList(info.startStr, info.endStr); }

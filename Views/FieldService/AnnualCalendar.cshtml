@@ -20,8 +20,8 @@
             .Select(id => employeeColors[id])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        if (colors.Count == 0) return "background:#64748b";
-        if (colors.Count == 1) return $"background:{colors[0]}";
+        if (colors.Count == 0) return "--field-service-employee-border:linear-gradient(#64748b,#64748b)";
+        if (colors.Count == 1) return $"--field-service-employee-border:linear-gradient({colors[0]},{colors[0]})";
 
         var segments = colors.Select((color, index) =>
         {
@@ -29,7 +29,7 @@
             var end = (index + 1) * 100m / colors.Count;
             return $"{color} {start.ToString("0.###", CultureInfo.InvariantCulture)}% {end.ToString("0.###", CultureInfo.InvariantCulture)}%";
         });
-        return $"background:linear-gradient(135deg,{string.Join(",", segments)})";
+        return $"--field-service-employee-border:linear-gradient(135deg,{string.Join(",", segments)})";
     }
 }
 

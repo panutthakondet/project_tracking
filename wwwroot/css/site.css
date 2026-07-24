@@ -123,9 +123,14 @@ main.route-controller-fieldservice .field-service-annual-days { display:grid; gr
 main.route-controller-fieldservice .field-service-annual-day-head { text-align:center; color:var(--fs-muted); font-size:.68rem; font-weight:700; }
 main.route-controller-fieldservice .field-service-annual-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:7px; font-size:.72rem; }
 main.route-controller-fieldservice a.field-service-annual-day { text-decoration:none; cursor:pointer; transition:transform .15s ease,filter .15s ease; }
-main.route-controller-fieldservice a.field-service-annual-day:hover { color:#fff; filter:brightness(.9); transform:translateY(-1px); }
+main.route-controller-fieldservice a.field-service-annual-day:hover { color:var(--fs-contrast); filter:brightness(.9); transform:translateY(-1px); }
 main.route-controller-fieldservice .field-service-annual-day.is-empty { visibility:hidden; }
-main.route-controller-fieldservice .field-service-annual-day.is-work { color:#fff; background:var(--pt-accent); font-weight:800; box-shadow:0 3px 8px var(--pt-accent-soft); }
+main.route-controller-fieldservice .field-service-annual-day.is-work {
+  border:2px solid transparent; color:var(--fs-contrast);
+  background:linear-gradient(var(--fs-surface),var(--fs-surface)) padding-box,
+    var(--field-service-employee-border,linear-gradient(#64748b,#64748b)) border-box;
+  font-weight:800; box-shadow:0 3px 8px var(--pt-accent-soft);
+}
 main.route-controller-fieldservice .field-service-annual-day.is-today { outline:2px solid #f59e0b; outline-offset:1px; }
 main.route-controller-fieldservice .field-service-annual-legend { display:flex; align-items:center; gap:7px; margin-bottom:12px; color:var(--fs-muted); font-weight:700; }
 main.route-controller-fieldservice .field-service-work-dot { width:12px; height:12px; border-radius:50%; background:var(--pt-accent); }
@@ -157,7 +162,9 @@ main.route-controller-fieldservice .field-service-calendar-card .fc-button-activ
   background: var(--pt-accent-dark) !important;
 }
 main.route-controller-fieldservice .field-service-calendar-card .fc-event {
-  border: 0; border-radius: 7px; padding: 2px 5px; font-weight: 700; cursor: pointer;
+  border: 2px solid var(--field-service-employee-color, #64748b) !important;
+  border-radius: 7px; padding: 2px 5px; color: var(--fs-contrast) !important;
+  background: transparent !important; font-weight: 700; cursor: pointer;
 }
 main.route-controller-fieldservice .field-service-calendar-assignees { display:flex; flex-wrap:wrap; gap:5px; color:var(--fs-muted); font-size:.82rem; }
 main.route-controller-fieldservice .field-service-calendar-assignees strong { color:var(--fs-contrast); font-weight:600; }
