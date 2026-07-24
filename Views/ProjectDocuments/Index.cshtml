@@ -139,6 +139,13 @@
             <h2 class="index-title">Project Documents</h2>
             <p class="index-subtitle">อัปโหลดและจัดการเอกสารของโครงการ</p>
         </div>
+        <div class="index-actions">
+            <a asp-controller="Projects"
+               asp-action="Index"
+               class="btn btn-outline-light">
+                กลับไป Projects
+            </a>
+        </div>
     </div>
 
     @if (TempData["Error"] != null)
