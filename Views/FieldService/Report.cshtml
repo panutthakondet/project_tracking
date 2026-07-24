@@ -27,7 +27,7 @@
             <div class="col-md-6 col-xl-2">
                 <label class="form-label fw-bold">สถานะ</label>
                 <select name="status" class="form-select form-select-lg">
-                    <option value="">ทั้งหมด</option>
+                    <option value="ALL" selected="@(string.IsNullOrEmpty(selectedStatus))">ทั้งหมด</option>
                     <option value="PLANNED" selected="@(selectedStatus=="PLANNED")">วางแผนแล้ว</option>
                     <option value="IN_PROGRESS" selected="@(selectedStatus=="IN_PROGRESS")">กำลังดำเนินการ</option>
                     <option value="COMPLETED" selected="@(selectedStatus=="COMPLETED")">เสร็จสิ้น</option>
