@@ -1,19 +1,20 @@
 @model IEnumerable<FieldServiceVisit>
 @using Microsoft.AspNetCore.Http
 @{
-    ViewData["Title"] = "MA Site Visits";
+    ViewData["Title"] = "Field Service";
     var menus = (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
     var admin = string.Equals(Context.Session.GetString("Role"), "ADMIN", StringComparison.OrdinalIgnoreCase);
     bool Can(string key) => admin || menus.Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
     string StatusText(string status) => status switch { "PLANNED" => "วางแผนแล้ว", "IN_PROGRESS" => "กำลังดำเนินการ", "COMPLETED" => "เสร็จสิ้น", "CANCELLED" => "ยกเลิก", _ => status };
     string StatusClass(string status) => status switch { "COMPLETED" => "success", "IN_PROGRESS" => "warning", "CANCELLED" => "secondary", _ => "info" };
+    string ServiceText(string type) => type switch { "MA" => "Maintenance (MA)", "PM" => "Preventive Maintenance", "SUPPORT" => "On-site Support", "TRAINING" => "Training", "IMPLEMENT" => "Implement", "OTHER" => "อื่น ๆ", _ => type };
     string ThaiDate(DateTime? date) => date.HasValue ? $"{date.Value:dd/MM/}{date.Value.Year + 543}" : "";
 }
 
 <div class="index-hero">
     <div class="index-hero__content">
         <span class="index-eyebrow">Field Service</span>
-        <h2 class="index-title">งานเข้าไซต์ MA</h2>
+        <h2 class="index-title">งานเข้าไซต์</h2>
         <p class="index-subtitle">จัดการงานบริการนอกโครงการและทีมผู้ปฏิบัติงาน</p>
     </div>
     <div class="index-actions">
@@ -56,7 +57,7 @@
                 <tr>
                     <td class="text-nowrap"><strong>@ThaiDate(item.VisitDate)</strong>@if((item.EndVisitDate??item.VisitDate).Date>item.VisitDate.Date){<div class="fw-semibold">ถึง @ThaiDate(item.EndVisitDate??item.VisitDate)</div>}<div class="text-muted small">@item.StartTime?.ToString(@"hh\:mm") @if(item.EndTime.HasValue){<text>- @item.EndTime.Value.ToString(@"hh\:mm")</text>}</div></td>
                     <td><div class="fw-bold">@item.Title</div></td>
-                    <td><span class="badge bg-light text-dark border">@item.ServiceType</span></td>
+                    <td><span class="badge bg-light text-dark border">@ServiceText(item.ServiceType)</span></td>
                     <td>@(item.Assignees.Any() ? string.Join(", ", item.Assignees.Select(x => x.Employee?.EmpName)) : "-")</td>
                     <td><span class="badge rounded-pill text-bg-@StatusClass(item.Status) px-3 py-2">@StatusText(item.Status)</span></td>
                     <td class="text-end text-nowrap">

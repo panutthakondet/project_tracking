@@ -474,7 +474,7 @@ public class FieldServiceController : BaseController
 
     private static void Apply(FieldServiceFormViewModel m, FieldServiceVisit x)
     {
-        x.CoopId = m.CoopId; x.Title = m.Title.Trim(); x.ServiceType = (m.ServiceType ?? "MA").Trim();
+        x.CoopId = m.CoopId; x.Title = m.Title.Trim(); x.ServiceType = (m.ServiceType ?? "MA").Trim().ToUpperInvariant();
         x.VisitDate = m.VisitDate.Date; x.EndVisitDate = m.EndVisitDate?.Date ?? m.VisitDate.Date;
         x.StartTime = m.StartTime; x.EndTime = m.EndTime;
         x.ContactName = m.ContactName?.Trim(); x.ContactPhone = m.ContactPhone?.Trim();
