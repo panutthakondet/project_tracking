@@ -66,6 +66,8 @@
         .OrderBy(g => SectionOrder(g.Key))
         .ThenBy(g => g.Key)
         .ToList();
+    var initialSection = groupedReports.FirstOrDefault()?.Key ?? "";
+    var reportSequence = 0;
 
     string GroupIconPath(string group)
     {
@@ -120,53 +122,80 @@
     }
     else
     {
-        <section class="report-toolbar" aria-label="Report filters">
-            <div class="report-filter-pills">
-                <button type="button" class="report-filter-pill is-active" data-report-filter="all">ทั้งหมด</button>
+        <section class="report-browser">
+            <aside class="report-group-panel" aria-label="กลุ่มรายงาน">
+                <div class="report-panel-heading">
+                    <div>
+                        <span>REPORT GROUPS</span>
+                        <h3>กลุ่มรายงาน</h3>
+                    </div>
+                    <strong>@groupedReports.Count</strong>
+                </div>
+                <nav class="report-group-list">
                 @foreach (var group in groupedReports)
                 {
-                    <button type="button" class="report-filter-pill" data-report-filter="@group.Key">@group.Key</button>
+                    <button type="button"
+                            class="report-group-option @(group.Key == initialSection ? "is-active" : "")"
+                            data-report-filter="@group.Key"
+                            data-report-subtitle="@SectionSubtitle(group.Key)"
+                            data-report-count="@group.Count()">
+                        <span class="report-group-option-icon">
+                            <img src="@GroupIconPath(group.Key)" alt="" />
+                        </span>
+                        <span class="report-group-option-copy">
+                            <strong>@group.Key</strong>
+                            <small>@group.Count() รายงาน</small>
+                        </span>
+                        <span class="report-group-option-arrow" aria-hidden="true">›</span>
+                    </button>
                 }
-            </div>
-        </section>
+                </nav>
+            </aside>
 
-        foreach (var group in groupedReports)
-        {
-            <section class="report-group" data-report-section-wrap="@group.Key">
-                <div class="report-group-head">
-                    <div class="report-group-title">
-                        <span><img src="@GroupIconPath(group.Key)" alt="" /></span>
+            <div class="report-list-panel">
+                <div class="report-panel-heading report-list-heading">
+                    <div>
+                        <span>AVAILABLE REPORTS</span>
                         <div>
-                            <h3>@group.Key</h3>
-                            <small>@SectionSubtitle(group.Key)</small>
+                            <h3 id="reportListTitle">@initialSection</h3>
+                            <small id="reportListSubtitle">@SectionSubtitle(initialSection)</small>
                         </div>
                     </div>
-                    <span class="report-group-count">@group.Count() รายงาน</span>
+                    <strong id="reportListCount">@groupedReports.First().Count()</strong>
                 </div>
-                <div class="report-card-grid">
+
+                <div class="report-list">
+                @foreach (var group in groupedReports)
+                {
                     @foreach (var report in group)
                     {
-                        <a class="report-card tone-@report.Tone"
+                        reportSequence++;
+                        <a class="report-card tone-@report.Tone @(group.Key == initialSection ? "" : "is-hidden")"
                            asp-controller="@report.Controller"
                            asp-action="@report.Action"
                            data-report-card
                            data-report-section="@group.Key"
                            data-report-text="@($"{report.Title} {report.Description} {report.Group} {group.Key}")">
+                            <span class="report-card-code">@reportSequence.ToString("000")</span>
+                            <span class="report-card-icon">
+                                <img src="@report.Icon" alt="" />
+                            </span>
                             <span class="report-card-body">
                                 <span class="report-card-label">@ReportLabel(report)</span>
                                 <strong>@report.Title</strong>
                                 <small>@report.Description</small>
                             </span>
-                            <span class="report-card-action">เปิดรายงาน</span>
+                            <span class="report-card-action">เปิดรายงาน <span aria-hidden="true">→</span></span>
                         </a>
                     }
+                }
                 </div>
-            </section>
-        }
 
-        <div id="reportNoResult" class="report-empty" style="display:none;">
-            ไม่พบรายงานที่ค้นหา
-        </div>
+                <div id="reportNoResult" class="report-empty" style="display:none;">
+                    ไม่พบรายงานในกลุ่มนี้
+                </div>
+            </div>
+        </section>
     }
 </div>
 
@@ -212,120 +241,6 @@
         color: #fff;
         font-size: 1.55rem;
         font-weight: 900;
-    }
-
-    .report-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        margin-bottom: 16px;
-        padding: 14px;
-        border: 1px solid rgba(216, 227, 239, .92);
-        border-radius: 22px;
-        background: rgba(255,255,255,.78);
-        box-shadow: 0 10px 24px rgba(15, 35, 64, .07);
-    }
-
-    .report-filter-pills {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 8px;
-        width: 100%;
-    }
-
-    .report-filter-pill {
-        min-height: 42px;
-        border: 1px solid #c7d6e8;
-        border-radius: 999px;
-        padding: 0 16px;
-        color: #0f2748;
-        background: #fff;
-        font-family: 'Prompt', sans-serif;
-        font-weight: 800;
-    }
-
-    .report-filter-pill.is-active {
-        border-color: #14b8a6;
-        color: #063b3a;
-        background: linear-gradient(135deg, #8df1e4, #23c7c8);
-        box-shadow: 0 10px 22px rgba(20, 184, 166, .2);
-    }
-
-    .report-group {
-        margin-bottom: 18px;
-        padding: 18px;
-        border: 1px solid rgba(216, 227, 239, .92);
-        border-radius: 24px;
-        background: rgba(255,255,255,.72);
-        box-shadow: 0 14px 32px rgba(15, 35, 64, .08);
-    }
-
-    .report-group-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .report-group-title {
-        display: inline-grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-    }
-
-    .report-group-title > span {
-        width: 42px;
-        height: 42px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        color: #0f766e;
-        background: rgba(20, 184, 166, .13);
-        font-weight: 900;
-    }
-
-    .report-group-title > span img {
-        width: 42px;
-        height: 42px;
-        display: block;
-        object-fit: contain;
-        border-radius: 14px;
-    }
-
-    .report-group-head h3 {
-        margin: 0;
-        color: #10233f;
-        font-size: 1.18rem;
-        font-weight: 900;
-    }
-
-    .report-group-head small {
-        color: #64748b;
-        font-weight: 800;
-    }
-
-    .report-group-count {
-        flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        min-height: 34px;
-        padding: 0 12px;
-        border-radius: 999px;
-        color: #0f766e;
-        background: rgba(20, 184, 166, .12);
-        font-size: .88rem;
-        font-weight: 900;
-    }
-
-    .report-card-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
     }
 
     .report-card {
@@ -453,6 +368,267 @@
         --report-tone-border: #c4b5fd;
     }
 
+    .report-browser {
+        display: grid;
+        grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
+        align-items: start;
+        gap: 18px;
+    }
+
+    .report-group-panel,
+    .report-list-panel {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid rgba(216, 227, 239, .96);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .9);
+        box-shadow: 0 14px 32px rgba(15, 35, 64, .08);
+    }
+
+    .report-group-panel {
+        position: sticky;
+        top: 14px;
+    }
+
+    .report-panel-heading {
+        min-height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 16px;
+        border-bottom: 1px solid #dbe7f3;
+        background: linear-gradient(180deg, #f8fbff, #edf6ff);
+    }
+
+    .report-panel-heading > div {
+        min-width: 0;
+    }
+
+    .report-panel-heading > div > span {
+        display: block;
+        margin-bottom: 3px;
+        color: #64748b;
+        font-size: .68rem;
+        font-weight: 600;
+        letter-spacing: .04em !important;
+    }
+
+    .report-panel-heading h3 {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 650;
+        line-height: 1.3;
+    }
+
+    .report-panel-heading small {
+        display: block;
+        margin-top: 3px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 400;
+        line-height: 1.4;
+    }
+
+    .report-panel-heading > strong {
+        flex: 0 0 auto;
+        min-width: 32px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--pt-accent, #14b8a6);
+        border-radius: 8px;
+        color: var(--pt-accent-dark, #0f766e);
+        background: #fff;
+        font-size: .84rem;
+        font-weight: 600;
+    }
+
+    .report-group-list {
+        display: grid;
+        gap: 5px;
+        padding: 8px;
+    }
+
+    .report-group-option {
+        width: 100%;
+        min-height: 64px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        color: #10233f;
+        background: transparent;
+        text-align: left;
+        transition: background .16s ease, border-color .16s ease;
+    }
+
+    .report-group-option:hover,
+    .report-group-option:focus-visible {
+        border-color: #bfdbfe;
+        color: #10233f;
+        background: #eff6ff;
+        outline: none;
+    }
+
+    .report-group-option.is-active {
+        border-color: color-mix(in srgb, var(--pt-accent, #14b8a6) 52%, #dbe7f3);
+        color: #10233f;
+        background: var(--pt-accent-soft, rgba(20, 184, 166, .12));
+    }
+
+    .report-group-option-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #dbe7f3;
+    }
+
+    .report-group-option-icon img {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
+    }
+
+    .report-group-option-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+
+    .report-group-option-copy strong {
+        overflow: hidden;
+        color: inherit;
+        font-size: .9rem;
+        font-weight: 600;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .report-group-option-copy small {
+        color: #64748b;
+        font-size: .75rem;
+        font-weight: 400;
+    }
+
+    .report-group-option-arrow {
+        color: #94a3b8;
+        font-size: 1.35rem;
+        font-weight: 400;
+    }
+
+    .report-group-option.is-active .report-group-option-arrow {
+        color: var(--pt-accent-dark, #0f766e);
+    }
+
+    .report-list-heading > div > div {
+        min-width: 0;
+    }
+
+    .report-list {
+        display: grid;
+        gap: 7px;
+        padding: 10px;
+    }
+
+    .report-list .report-card {
+        min-height: 78px;
+        grid-template-columns: 50px 40px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px 12px;
+        border-width: 1px;
+        border-left-width: 4px;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    .report-list .report-card:hover,
+    .report-list .report-card:focus-visible {
+        border-color: var(--report-tone);
+        color: #10233f;
+        background: color-mix(in srgb, var(--report-tone-soft) 44%, #fff);
+        box-shadow: 0 8px 18px rgba(15, 35, 64, .08);
+        outline: none;
+        transform: none;
+    }
+
+    .report-card.is-hidden {
+        display: none !important;
+    }
+
+    .report-card-code {
+        align-self: stretch;
+        display: grid;
+        place-items: center;
+        border-right: 1px solid #dbe7f3;
+        color: var(--report-tone-dark);
+        font-size: .82rem;
+        font-weight: 600;
+    }
+
+    .report-card-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--report-tone-soft);
+    }
+
+    .report-card-icon img {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
+    }
+
+    .report-list .report-card-body {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 9px;
+        row-gap: 2px;
+    }
+
+    .report-list .report-card-label {
+        grid-row: 1 / span 2;
+        min-width: 66px;
+        justify-content: center;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .report-list .report-card-body strong {
+        font-size: .94rem;
+        font-weight: 600;
+    }
+
+    .report-list .report-card-body small {
+        overflow: hidden;
+        font-size: .78rem;
+        font-weight: 400;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .report-list .report-card-action {
+        min-width: 98px;
+        min-height: 34px;
+        gap: 7px;
+        border-radius: 8px;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
     .report-empty {
         padding: 34px 20px;
         border: 1px dashed #cbd5e1;
@@ -463,22 +639,50 @@
         font-weight: 800;
     }
 
+    @@media (max-width: 900px) {
+        .report-browser {
+            grid-template-columns: 1fr;
+        }
+
+        .report-group-panel {
+            position: static;
+        }
+
+        .report-group-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
     @@media (max-width: 575.98px) {
         .report-center-hero {
             flex-direction: column;
         }
 
-        .report-filter-pills {
-            justify-content: flex-start;
-        }
-
-        .report-card {
+        .report-group-list {
             grid-template-columns: 1fr;
-            align-items: start;
         }
 
-        .report-card-action {
-            width: 100%;
+        .report-list .report-card {
+            grid-template-columns: 42px 34px minmax(0, 1fr);
+        }
+
+        .report-list .report-card-action {
+            grid-column: 3;
+            width: max-content;
+            min-width: 0;
+            padding: 0 10px;
+        }
+
+        .report-list .report-card-body {
+            grid-template-columns: 1fr;
+        }
+
+        .report-list .report-card-label {
+            display: none;
+        }
+
+        .report-list .report-card-body small {
+            white-space: normal;
         }
 
         .report-hero-stats {
@@ -504,29 +708,27 @@
 (() => {
     const filterButtons = Array.from(document.querySelectorAll('[data-report-filter]'));
     const cards = Array.from(document.querySelectorAll('[data-report-card]'));
-    const sections = Array.from(document.querySelectorAll('[data-report-section-wrap]'));
     const noResult = document.getElementById('reportNoResult');
-    let activeFilter = 'all';
+    const listTitle = document.getElementById('reportListTitle');
+    const listSubtitle = document.getElementById('reportListSubtitle');
+    const listCount = document.getElementById('reportListCount');
+    let activeFilter = filterButtons.find(button => button.classList.contains('is-active'))?.dataset.reportFilter || '';
 
-    function applyReportFilters() {
+    function applyReportFilter(button) {
+        activeFilter = button?.dataset.reportFilter || activeFilter;
         let visibleCount = 0;
 
         cards.forEach(card => {
             const section = card.dataset.reportSection || '';
-            const matchesSection = activeFilter === 'all' || section === activeFilter;
-            const visible = matchesSection;
-
-            card.style.display = visible ? '' : 'none';
+            const visible = section === activeFilter;
+            card.classList.toggle('is-hidden', !visible);
             if (visible) visibleCount++;
         });
 
-        sections.forEach(section => {
-            const sectionName = section.dataset.reportSectionWrap || '';
-            const hasVisibleCard = cards.some(card =>
-                card.dataset.reportSection === sectionName && card.style.display !== 'none'
-            );
-            section.style.display = hasVisibleCard ? '' : 'none';
-        });
+        filterButtons.forEach(item => item.classList.toggle('is-active', item === button));
+        if (listTitle) listTitle.textContent = activeFilter;
+        if (listSubtitle) listSubtitle.textContent = button?.dataset.reportSubtitle || '';
+        if (listCount) listCount.textContent = String(visibleCount);
 
         if (noResult) {
             noResult.style.display = visibleCount > 0 ? 'none' : '';
@@ -535,10 +737,12 @@
 
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
-            activeFilter = button.dataset.reportFilter || 'all';
-            filterButtons.forEach(item => item.classList.toggle('is-active', item === button));
-            applyReportFilters();
+            applyReportFilter(button);
         });
     });
+
+    if (filterButtons.length > 0) {
+        applyReportFilter(filterButtons.find(button => button.classList.contains('is-active')) || filterButtons[0]);
+    }
 })();
 </script>
