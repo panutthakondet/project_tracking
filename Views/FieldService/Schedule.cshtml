@@ -219,20 +219,13 @@ document.addEventListener('DOMContentLoaded', function () {
             typeBadge.textContent = serviceShortText(info.event.extendedProps.serviceType);
             typeBadge.title = serviceText(info.event.extendedProps.serviceType);
             firstRow.appendChild(typeBadge);
-            if (info.timeText) {
-                const time = document.createElement('span');
-                time.className = 'field-service-event-time';
-                time.textContent = info.timeText;
-                firstRow.appendChild(time);
-            }
 
             const secondRow = document.createElement('span');
             secondRow.className = 'field-service-event-second-row';
-            secondRow.textContent = info.event.extendedProps.coopName || info.event.title || '-';
+            secondRow.textContent = info.event.extendedProps.serviceTitle || info.event.title || '-';
             const thirdRow = document.createElement('span');
             thirdRow.className = 'field-service-event-third-row';
-            thirdRow.className = 'field-service-event-third-row field-service-event-title';
-            thirdRow.textContent = info.event.extendedProps.serviceTitle || info.event.title || '-';
+            thirdRow.textContent = info.event.extendedProps.coopName || info.event.title || '-';
             const fourthRow = document.createElement('span');
             fourthRow.className = 'field-service-event-fourth-row';
             fourthRow.textContent = employees.length
