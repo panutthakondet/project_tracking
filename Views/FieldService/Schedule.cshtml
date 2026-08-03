@@ -162,6 +162,13 @@ document.addEventListener('DOMContentLoaded', function () {
         locale: 'th',
         initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
         firstDay: 0,
+        weekends: true,
+        views: {
+            dayGridMonth: {
+                firstDay: 0,
+                dayHeaderFormat: { weekday: 'long' }
+            }
+        },
         height: 'auto',
         nowIndicator: true,
         navLinks: true,
