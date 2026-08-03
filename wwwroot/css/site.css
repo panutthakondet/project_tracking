@@ -241,18 +241,21 @@ main.route-controller-fieldservice .field-service-event-type {
 }
 main.route-controller-fieldservice .field-service-event-title {
   min-width: 0; flex: 1 1 auto; overflow: visible; white-space: normal;
-  overflow-wrap: anywhere; line-height: 1.25; font-weight: 300;
+  overflow-wrap: break-word; word-break: normal; line-height: 1.25; font-weight: 300;
 }
 main.route-controller-fieldservice .field-service-event-second-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
+  word-break: normal;
   font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: .88;
 }
 main.route-controller-fieldservice .field-service-event-third-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
+  word-break: normal;
   font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: .88;
 }
 main.route-controller-fieldservice .field-service-event-fourth-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
+  word-break: normal;
   font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: .84;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
