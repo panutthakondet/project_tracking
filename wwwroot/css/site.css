@@ -235,7 +235,7 @@ main.route-controller-fieldservice .field-service-event-first-row {
 }
 main.route-controller-fieldservice .field-service-event-type {
   display: inline-flex; align-items: center; justify-content: center; margin-left: 0; padding: 0;
-  border: 0; border-radius: 0; color: var(--fs-contrast);
+  border: 0; border-radius: 0; color: #111827;
   background: transparent; font-size: .8rem; font-weight: 800; white-space: normal; flex: 0 0 auto;
   text-shadow: none; -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; text-rendering: geometricPrecision;
 }
@@ -246,17 +246,17 @@ main.route-controller-fieldservice .field-service-event-title {
 main.route-controller-fieldservice .field-service-event-second-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: .88;
+  color: #111827; font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .field-service-event-third-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: .88;
+  color: #111827; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .field-service-event-fourth-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: .84;
+  color: #111827; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
 main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
@@ -303,24 +303,24 @@ main.route-controller-fieldservice .field-service-schedule-row:hover {
   ));
   transform: translateY(-1px);
 }
-main.route-controller-fieldservice .field-service-schedule-people { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; color: var(--fs-muted); }
+main.route-controller-fieldservice .field-service-schedule-people { min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; color: #111827; }
 main.route-controller-fieldservice .field-service-schedule-person { min-width: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
 main.route-controller-fieldservice .field-service-schedule-person img {
   width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pt-accent-soft); background: #fff;
 }
 main.route-controller-fieldservice .field-service-schedule-main { min-width: 0; }
-main.route-controller-fieldservice .field-service-schedule-coop { font-weight: 600; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .field-service-schedule-coop { color: #111827; font-weight: 600; overflow-wrap: anywhere; }
 main.route-controller-fieldservice .field-service-schedule-type {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
-  color: var(--fs-muted); font-size: .84rem; overflow-wrap: anywhere;
+  color: #111827; font-size: .84rem; overflow-wrap: anywhere;
 }
-main.route-controller-fieldservice .field-service-schedule-type strong { color: var(--fs-contrast); font-weight: 600; }
-main.route-controller-fieldservice .field-service-schedule-work { color: var(--fs-muted); font-size: .86rem; margin-top: 3px; overflow-wrap: anywhere; }
-main.route-controller-fieldservice .field-service-schedule-date { display: flex; flex-direction: column; gap: 4px; font-size: .86rem; }
+main.route-controller-fieldservice .field-service-schedule-type strong { color: #111827; font-weight: 600; }
+main.route-controller-fieldservice .field-service-schedule-work { color: #111827; font-size: .86rem; margin-top: 3px; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .field-service-schedule-date { display: flex; flex-direction: column; gap: 4px; font-size: .86rem; color: #111827; }
 main.route-controller-fieldservice .field-service-schedule-date strong { font-weight: 500; }
 main.route-controller-fieldservice .field-service-schedule-status {
   display: inline-flex; align-items: center; justify-content: center; min-width: 100px; padding: 7px 10px;
-  border-radius: 999px; color: var(--pt-accent-contrast, #fff); background: var(--pt-accent); font-size: .78rem; font-weight: 600;
+  border-radius: 999px; color: #111827; background: var(--pt-surface-soft, #f8fafc); font-size: .78rem; font-weight: 600;
 }
 main.route-controller-fieldservice .field-service-event-title { min-width: 0; }
 main.route-controller-fieldservice .field-service-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
