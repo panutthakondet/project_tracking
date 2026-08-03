@@ -55,6 +55,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (event.allDay) end.setDate(end.getDate() - 1);
         return end;
     }
+    function serviceText(type) {
+        switch ((type || '').toUpperCase()) {
+            case 'MA': return 'Maintenance (MA)';
+            case 'PM': return 'Preventive Maintenance';
+            case 'SUPPORT': return 'On-site Support';
+            case 'TRAINING': return 'Training';
+            case 'IMPLEMENT': return 'Implement';
+            case 'OTHER': return 'อื่น ๆ';
+            default: return type || '-';
+        }
+    }
     function employeeGradient(employees, strength) {
         const colors = [...new Set((employees || []).map(employee => employee.color).filter(Boolean))];
         if (!colors.length) colors.push('#64748b');
@@ -110,7 +121,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!(props.employees || []).length) people.textContent = 'ยังไม่กำหนดพนักงาน';
             const main = document.createElement('div'); main.className = 'field-service-schedule-main';
             const title = document.createElement('div'); title.className = 'field-service-schedule-coop'; title.textContent = props.serviceTitle || event.title || '-';
-            main.append(title);
+            const type = document.createElement('div'); type.className = 'field-service-schedule-type';
+            const typeLabel = document.createElement('span'); typeLabel.textContent = 'ประเภท';
+            const typeValue = document.createElement('strong'); typeValue.textContent = serviceText(props.serviceType);
+            type.append(typeLabel, typeValue);
+            main.append(title, type);
             const date = document.createElement('div'); date.className = 'field-service-schedule-date';
             const dateText = document.createElement('strong');
             dateText.textContent = `${thaiDate(event.start)} - ${thaiDate(displayEnd(event))}`;

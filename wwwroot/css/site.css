@@ -294,6 +294,11 @@ main.route-controller-fieldservice .field-service-schedule-person img {
 }
 main.route-controller-fieldservice .field-service-schedule-main { min-width: 0; }
 main.route-controller-fieldservice .field-service-schedule-coop { font-weight: 600; overflow-wrap: anywhere; }
+main.route-controller-fieldservice .field-service-schedule-type {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;
+  color: var(--fs-muted); font-size: .84rem; overflow-wrap: anywhere;
+}
+main.route-controller-fieldservice .field-service-schedule-type strong { color: var(--fs-contrast); font-weight: 600; }
 main.route-controller-fieldservice .field-service-schedule-work { color: var(--fs-muted); font-size: .86rem; margin-top: 3px; overflow-wrap: anywhere; }
 main.route-controller-fieldservice .field-service-schedule-date { display: flex; flex-direction: column; gap: 4px; font-size: .86rem; }
 main.route-controller-fieldservice .field-service-schedule-date strong { font-weight: 500; }

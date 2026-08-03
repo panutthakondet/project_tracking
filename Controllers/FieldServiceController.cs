@@ -436,6 +436,7 @@ public class FieldServiceController : BaseController
                 {
                     coopName = x.Coop != null ? x.Coop.CoopName : "",
                     serviceTitle = x.Title,
+                    serviceType = x.ServiceType,
                     status = x.Status,
                     employees = x.Assignees
                         .Where(a => a.Employee != null)
