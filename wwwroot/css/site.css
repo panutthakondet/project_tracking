@@ -433,6 +433,12 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
     border:0 !important; border-radius:0 !important; box-shadow:none !important;
   }
   main.route-controller-fieldservice.route-action-schedule .field-service-calendar-card .card-body { padding:0 !important; }
+  main.route-controller-fieldservice.route-action-schedule :is(.fc,.fc-view-harness,.fc-view-harness-active,.fc-daygrid) {
+    width:100% !important; min-width:0 !important; max-width:100% !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-view-harness-active > .fc-view {
+    position:relative !important; inset:auto !important; width:100% !important; min-width:0 !important;
+  }
   main.route-controller-fieldservice.route-action-schedule .fc-header-toolbar {
     justify-content:center !important; margin:0 0 3mm !important;
   }
@@ -444,9 +450,13 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
   main.route-controller-fieldservice.route-action-schedule :is(.fc-view-harness,.fc-scroller,.fc-scroller-liquid-absolute) {
     height:auto !important; overflow:visible !important;
   }
-  main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid {
-    width:100% !important; color:#000 !important; border:1px solid #777 !important;
+  main.route-controller-fieldservice.route-action-schedule :is(.fc-scrollgrid,.fc-col-header,.fc-daygrid-body,.fc-scrollgrid-sync-table) {
+    width:100% !important; min-width:0 !important; max-width:100% !important; table-layout:fixed !important;
   }
+  main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid {
+    color:#000 !important; border:1px solid #777 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid col { width:14.285714% !important; }
   main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid :is(th,td) { border-color:#999 !important; }
   main.route-controller-fieldservice.route-action-schedule .fc-col-header-cell {
     color:#000 !important; background:#f2f2f2 !important; font-size:8pt !important;
@@ -457,9 +467,10 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
   }
   main.route-controller-fieldservice.route-action-schedule .fc-daygrid-day.fc-day-today { background:#f5f5f5 !important; }
   main.route-controller-fieldservice.route-action-schedule .fc-event {
+    width:auto !important; min-width:0 !important; max-width:calc(100% - 4px) !important;
     margin:1px 2px !important; padding:1px 2px !important; color:#000 !important; background:#fff !important;
     border-width:1px !important; border-radius:2px !important; box-shadow:none !important;
-    break-inside:avoid; page-break-inside:avoid;
+    overflow:hidden !important; break-inside:avoid; page-break-inside:avoid;
   }
   main.route-controller-fieldservice.route-action-schedule .field-service-event-content { gap:3px !important; padding:0 !important; }
   main.route-controller-fieldservice.route-action-schedule .field-service-event-avatars img {
@@ -469,6 +480,7 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
   main.route-controller-fieldservice.route-action-schedule .field-service-event-type { font-size:6.5pt !important; }
   main.route-controller-fieldservice.route-action-schedule :is(.field-service-event-second-row,.field-service-event-third-row,.field-service-event-fourth-row) {
     color:#000 !important; -webkit-text-fill-color:#000 !important; font-size:6pt !important; line-height:1.1 !important;
+    overflow-wrap:anywhere !important; word-break:break-word !important;
   }
 }
 @media print {
