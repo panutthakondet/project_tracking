@@ -240,11 +240,15 @@ main.route-controller-fieldservice .field-service-event-title {
 }
 main.route-controller-fieldservice .field-service-event-second-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
-  font-size: .7rem; line-height: 1.2; font-weight: 800; opacity: .95;
+  font-size: .68rem; line-height: 1.2; font-weight: 800; opacity: .95;
 }
 main.route-controller-fieldservice .field-service-event-third-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
-  font-size: .7rem; line-height: 1.25; font-weight: 700; opacity: .9;
+  font-size: .68rem; line-height: 1.25; font-weight: 700; opacity: .9;
+}
+main.route-controller-fieldservice .field-service-event-fourth-row {
+  min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
+  font-size: .68rem; line-height: 1.25; font-weight: 700; opacity: .9;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
 main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
@@ -309,13 +313,6 @@ main.route-controller-fieldservice .field-service-schedule-date strong { font-we
 main.route-controller-fieldservice .field-service-schedule-status {
   display: inline-flex; align-items: center; justify-content: center; min-width: 100px; padding: 7px 10px;
   border-radius: 999px; color: var(--pt-accent-contrast, #fff); background: var(--pt-accent); font-size: .78rem; font-weight: 600;
-}
-main.route-controller-fieldservice .field-service-event-type {
-  display: inline-flex; align-items: center; justify-content: center; margin-left: auto; padding: 3px 8px;
-  border: 1px solid color-mix(in srgb, var(--field-service-employee-color, #64748b) 60%, var(--fs-border));
-  border-radius: 999px; color: var(--field-service-employee-color, #64748b);
-  background: color-mix(in srgb, var(--field-service-employee-color, #64748b) 10%, var(--fs-surface));
-  font-size: .68rem; font-weight: 700; white-space: nowrap; flex: 0 0 auto;
 }
 main.route-controller-fieldservice .field-service-event-title { min-width: 0; }
 main.route-controller-fieldservice .field-service-event-first-row { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
