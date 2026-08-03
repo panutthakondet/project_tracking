@@ -399,6 +399,79 @@ main.route-controller-fieldservice .field-service-report-group-complete { margin
 main.route-controller-fieldservice .field-service-report-print-meta { display:none; }
 @media(max-width:575.98px){main.route-controller-fieldservice .field-service-result-group-items{padding-left:0;}}
 @media print {
+  body:has(main.route-controller-fieldservice.route-action-schedule) {
+    margin:0 !important; color:#000 !important; background:#fff !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  body:has(main.route-controller-fieldservice.route-action-schedule) :is(.v2-sidebar,.footer-modern) { display:none !important; }
+  body:has(main.route-controller-fieldservice.route-action-schedule) .v2-shell {
+    display:block !important; min-height:0 !important; background:#fff !important;
+  }
+  body:has(main.route-controller-fieldservice.route-action-schedule) .v2-page,
+  body:has(main.route-controller-fieldservice.route-action-schedule) .v2-page > .container {
+    width:100% !important; max-width:none !important; min-height:0 !important;
+    margin:0 !important; padding:0 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule {
+    width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule :is(.index-actions,.field-service-schedule-filter,.field-service-schedule-list-card) {
+    display:none !important;
+  }
+  html body main.route-controller-fieldservice.route-action-schedule .index-hero {
+    display:block !important; min-height:0 !important; margin:0 0 7mm !important; padding:0 0 3mm !important;
+    color:#000 !important; background:none !important; border:0 !important; border-bottom:1px solid #777 !important;
+    border-radius:0 !important; box-shadow:none !important;
+  }
+  html body main.route-controller-fieldservice.route-action-schedule .index-hero :is(.index-eyebrow,.index-title,.index-subtitle) {
+    color:#000 !important; -webkit-text-fill-color:#000 !important; opacity:1 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .index-title { margin:1mm 0 !important; font-size:20pt !important; line-height:1.1 !important; }
+  main.route-controller-fieldservice.route-action-schedule .index-subtitle { margin:0 !important; font-size:9pt !important; }
+  main.route-controller-fieldservice.route-action-schedule .field-service-calendar-card {
+    overflow:visible !important; margin:0 !important; color:#000 !important; background:#fff !important;
+    border:0 !important; border-radius:0 !important; box-shadow:none !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .field-service-calendar-card .card-body { padding:0 !important; }
+  main.route-controller-fieldservice.route-action-schedule .fc-header-toolbar {
+    justify-content:center !important; margin:0 0 3mm !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-header-toolbar .fc-toolbar-chunk:first-child,
+  main.route-controller-fieldservice.route-action-schedule .fc-header-toolbar .fc-toolbar-chunk:last-child { display:none !important; }
+  main.route-controller-fieldservice.route-action-schedule .fc-toolbar-title {
+    color:#000 !important; -webkit-text-fill-color:#000 !important; font-size:15pt !important; font-weight:600 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule :is(.fc-view-harness,.fc-scroller,.fc-scroller-liquid-absolute) {
+    height:auto !important; overflow:visible !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid {
+    width:100% !important; color:#000 !important; border:1px solid #777 !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-scrollgrid :is(th,td) { border-color:#999 !important; }
+  main.route-controller-fieldservice.route-action-schedule .fc-col-header-cell {
+    color:#000 !important; background:#f2f2f2 !important; font-size:8pt !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-daygrid-day-frame { min-height:25mm !important; }
+  main.route-controller-fieldservice.route-action-schedule :is(.fc-daygrid-day-number,.fc-col-header-cell-cushion) {
+    color:#000 !important; -webkit-text-fill-color:#000 !important; font-size:7.5pt !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .fc-daygrid-day.fc-day-today { background:#f5f5f5 !important; }
+  main.route-controller-fieldservice.route-action-schedule .fc-event {
+    margin:1px 2px !important; padding:1px 2px !important; color:#000 !important; background:#fff !important;
+    border-width:1px !important; border-radius:2px !important; box-shadow:none !important;
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  main.route-controller-fieldservice.route-action-schedule .field-service-event-content { gap:3px !important; padding:0 !important; }
+  main.route-controller-fieldservice.route-action-schedule .field-service-event-avatars img {
+    width:16px !important; height:16px !important; flex-basis:16px !important; margin-left:-4px !important; border-width:1px !important;
+  }
+  main.route-controller-fieldservice.route-action-schedule .field-service-event-details { gap:0 !important; line-height:1.05 !important; }
+  main.route-controller-fieldservice.route-action-schedule .field-service-event-type { font-size:6.5pt !important; }
+  main.route-controller-fieldservice.route-action-schedule :is(.field-service-event-second-row,.field-service-event-third-row,.field-service-event-fourth-row) {
+    color:#000 !important; -webkit-text-fill-color:#000 !important; font-size:6pt !important; line-height:1.1 !important;
+  }
+}
+@media print {
   body:has(main.route-controller-fieldservice.route-action-report) {
     margin:0 !important; color:#000 !important; background:#fff !important;
     -webkit-print-color-adjust:exact; print-color-adjust:exact;

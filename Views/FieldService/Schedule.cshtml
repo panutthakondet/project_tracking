@@ -10,11 +10,14 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
+<style media="print">
+    @@page { size: A4 landscape; margin: 8mm; }
+</style>
 <form id="fieldServiceCalendarAntiForgery" class="d-none">@Html.AntiForgeryToken()</form>
 
 <div class="index-hero">
     <div class="index-hero__content"><span class="index-eyebrow">Field Service</span><h2 class="index-title">Work Schedule</h2><p class="index-subtitle">ปฏิทินงานเข้าไซต์ MA แบบเดือน สัปดาห์ และรายการ</p></div>
-    <div class="index-actions"><a asp-action="AnnualCalendar" class="btn btn-outline-warning">ปฏิทิน</a><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a>@if(canCreate){<a asp-action="Create" class="btn btn-primary">เพิ่มงานออกไซต์</a>}</div>
+    <div class="index-actions"><a asp-action="AnnualCalendar" class="btn btn-outline-warning">ปฏิทิน</a><button type="button" id="fieldServicePrintCalendar" class="btn btn-outline-light">🖨 พิมพ์ปฏิทิน</button><a asp-action="Index" class="btn btn-outline-light">รายการงาน</a>@if(canCreate){<a asp-action="Create" class="btn btn-primary">เพิ่มงานออกไซต์</a>}</div>
 </div>
 
 <div class="card shadow-sm border-0 rounded-4 field-service-themed-card field-service-schedule-filter mb-3">
@@ -40,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const canCreate = @canCreate.ToString().ToLowerInvariant();
     const canEdit = @canEdit.ToString().ToLowerInvariant();
     const employeeFilter = document.getElementById('fieldServiceEmployeeFilter');
+    const printButton = document.getElementById('fieldServicePrintCalendar');
     const listElement = document.getElementById('fieldServiceScheduleList');
     const listCount = document.getElementById('fieldServiceListCount');
     const listRange = document.getElementById('fieldServiceListRange');
@@ -277,6 +281,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     calendar.render();
+    printButton?.addEventListener('click', function () {
+        const originalView = calendar.view.type;
+        const originalDate = calendar.getDate();
+        const originalDayMaxEvents = calendar.getOption('dayMaxEvents');
+        const changedView = originalView !== 'dayGridMonth';
+
+        if (changedView) calendar.changeView('dayGridMonth', originalDate);
+        calendar.setOption('dayMaxEvents', false);
+        document.body.classList.add('field-service-calendar-printing');
+
+        const restoreCalendar = function () {
+            document.body.classList.remove('field-service-calendar-printing');
+            calendar.setOption('dayMaxEvents', originalDayMaxEvents);
+            if (changedView) calendar.changeView(originalView, originalDate);
+            calendar.updateSize();
+        };
+
+        window.addEventListener('afterprint', restoreCalendar, { once: true });
+        window.setTimeout(function () {
+            calendar.updateSize();
+            window.print();
+        }, changedView ? 250 : 80);
+    });
     employeeFilter?.addEventListener('change', function () {
         calendar.refetchEvents();
         loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
