@@ -235,7 +235,7 @@ main.route-controller-fieldservice .field-service-event-first-row {
 }
 main.route-controller-fieldservice .field-service-event-type {
   display: inline-flex; align-items: center; justify-content: center; margin-left: 0; padding: 0;
-  border: 0; border-radius: 0; color: #111827;
+  border: 0; border-radius: 0; color: #000 !important; -webkit-text-fill-color: #000 !important;
   background: transparent; font-size: .8rem; font-weight: 800; white-space: normal; flex: 0 0 auto;
   text-shadow: none; -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; text-rendering: geometricPrecision;
 }
@@ -246,17 +246,17 @@ main.route-controller-fieldservice .field-service-event-title {
 main.route-controller-fieldservice .field-service-event-second-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  color: #111827; font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: 1;
+  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .field-service-event-third-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  color: #111827; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
+  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .field-service-event-fourth-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  color: #111827; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
+  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
 main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
