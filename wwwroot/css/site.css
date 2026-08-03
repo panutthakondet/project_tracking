@@ -236,7 +236,8 @@ main.route-controller-fieldservice .field-service-event-first-row {
 main.route-controller-fieldservice .field-service-event-type {
   display: inline-flex; align-items: center; justify-content: center; margin-left: 0; padding: 0;
   border: 0; border-radius: 0; color: var(--fs-contrast);
-  background: transparent; font-size: .8rem; font-weight: 900; white-space: normal; flex: 0 0 auto;
+  background: transparent; font-size: .8rem; font-weight: 800; white-space: normal; flex: 0 0 auto;
+  text-shadow: none; -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; text-rendering: geometricPrecision;
 }
 main.route-controller-fieldservice .field-service-event-title {
   min-width: 0; flex: 1 1 auto; overflow: visible; white-space: normal;
