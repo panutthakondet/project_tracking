@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', function () {
             default: return type || '-';
         }
     }
+    function serviceShortText(type) {
+        switch ((type || '').toUpperCase()) {
+            case 'MA': return 'MA';
+            case 'PM': return 'PM';
+            case 'SUPPORT': return 'Support';
+            case 'TRAINING': return 'Training';
+            case 'IMPLEMENT': return 'Implement';
+            case 'OTHER': return 'Other';
+            default: return type || '-';
+        }
+    }
     function employeeGradient(employees, strength) {
         const colors = [...new Set((employees || []).map(employee => employee.color).filter(Boolean))];
         if (!colors.length) colors.push('#64748b');
@@ -211,20 +222,24 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const title = document.createElement('span');
             title.className = 'field-service-event-title';
-            title.textContent = info.event.title;
+            title.textContent = info.event.extendedProps.serviceTitle || info.event.title;
             firstRow.appendChild(title);
 
             const typeBadge = document.createElement('span');
             typeBadge.className = 'field-service-event-type';
-            typeBadge.textContent = serviceText(info.event.extendedProps.serviceType);
+            typeBadge.textContent = serviceShortText(info.event.extendedProps.serviceType);
+            typeBadge.title = serviceText(info.event.extendedProps.serviceType);
             firstRow.appendChild(typeBadge);
 
             const secondRow = document.createElement('span');
             secondRow.className = 'field-service-event-second-row';
-            secondRow.textContent = employees.length
+            secondRow.textContent = info.event.extendedProps.coopName || info.event.title || '-';
+            const thirdRow = document.createElement('span');
+            thirdRow.className = 'field-service-event-third-row';
+            thirdRow.textContent = employees.length
                 ? employees.map(employee => employee.name).filter(Boolean).join(', ')
                 : 'ยังไม่กำหนดพนักงาน';
-            details.append(firstRow, secondRow);
+            details.append(firstRow, secondRow, thirdRow);
             wrap.appendChild(details);
             return { domNodes: [wrap] };
         },
