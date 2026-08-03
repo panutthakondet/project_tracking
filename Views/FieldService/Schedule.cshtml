@@ -214,6 +214,11 @@ document.addEventListener('DOMContentLoaded', function () {
             title.textContent = info.event.title;
             firstRow.appendChild(title);
 
+            const typeBadge = document.createElement('span');
+            typeBadge.className = 'field-service-event-type';
+            typeBadge.textContent = serviceText(info.event.extendedProps.serviceType);
+            firstRow.appendChild(typeBadge);
+
             const secondRow = document.createElement('span');
             secondRow.className = 'field-service-event-second-row';
             secondRow.textContent = employees.length
