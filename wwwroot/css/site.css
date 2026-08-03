@@ -410,27 +410,19 @@ main.route-controller-fieldservice .field-service-report-print-meta { display:no
   body:has(main.route-controller-fieldservice.route-action-schedule) .v2-page,
   body:has(main.route-controller-fieldservice.route-action-schedule) .v2-page > .container {
     width:100% !important; max-width:none !important; min-height:0 !important;
-    margin:0 !important; padding:0 !important;
+    margin:0 !important; padding:0 !important; background:#fff !important;
   }
   main.route-controller-fieldservice.route-action-schedule {
-    width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important;
+    width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; background:#fff !important;
   }
-  main.route-controller-fieldservice.route-action-schedule :is(.index-actions,.field-service-schedule-filter,.field-service-schedule-list-card) {
+  main.route-controller-fieldservice.route-action-schedule :is(.index-hero,.index-actions,.field-service-schedule-filter,.field-service-schedule-list-card) {
     display:none !important;
   }
-  html body main.route-controller-fieldservice.route-action-schedule .index-hero {
-    display:block !important; min-height:0 !important; margin:0 0 7mm !important; padding:0 0 3mm !important;
-    color:#000 !important; background:none !important; border:0 !important; border-bottom:1px solid #777 !important;
-    border-radius:0 !important; box-shadow:none !important;
-  }
-  html body main.route-controller-fieldservice.route-action-schedule .index-hero :is(.index-eyebrow,.index-title,.index-subtitle) {
-    color:#000 !important; -webkit-text-fill-color:#000 !important; opacity:1 !important;
-  }
-  main.route-controller-fieldservice.route-action-schedule .index-title { margin:1mm 0 !important; font-size:20pt !important; line-height:1.1 !important; }
-  main.route-controller-fieldservice.route-action-schedule .index-subtitle { margin:0 !important; font-size:9pt !important; }
   main.route-controller-fieldservice.route-action-schedule .field-service-calendar-card {
     overflow:visible !important; margin:0 !important; color:#000 !important; background:#fff !important;
     border:0 !important; border-radius:0 !important; box-shadow:none !important;
+    break-before:auto !important; page-break-before:auto !important;
+    break-inside:auto !important; page-break-inside:auto !important;
   }
   main.route-controller-fieldservice.route-action-schedule .field-service-calendar-card .card-body { padding:0 !important; }
   main.route-controller-fieldservice.route-action-schedule :is(.fc,.fc-view-harness,.fc-view-harness-active,.fc-daygrid) {
