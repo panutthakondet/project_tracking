@@ -248,8 +248,8 @@ main.route-controller-fieldservice .field-service-event-third-row,
 main.route-controller-fieldservice .field-service-event-fourth-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
-  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
-  font-family: inherit; font-style: normal; letter-spacing: normal;
+  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 400 !important; opacity: 1;
+  font-family: inherit; font-style: normal; font-synthesis: none; letter-spacing: normal;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
 main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
