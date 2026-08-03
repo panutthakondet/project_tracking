@@ -243,20 +243,13 @@ main.route-controller-fieldservice .field-service-event-title {
   min-width: 0; flex: 1 1 auto; overflow: visible; white-space: normal;
   overflow-wrap: break-word; word-break: normal; line-height: 1.25; font-weight: 300;
 }
-main.route-controller-fieldservice .field-service-event-second-row {
-  min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
-  word-break: normal;
-  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.2; font-weight: 300; opacity: 1;
-}
-main.route-controller-fieldservice .field-service-event-third-row {
-  min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
-  word-break: normal;
-  color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
-}
+main.route-controller-fieldservice .field-service-event-second-row,
+main.route-controller-fieldservice .field-service-event-third-row,
 main.route-controller-fieldservice .field-service-event-fourth-row {
   min-width: 0; overflow: visible; white-space: normal; overflow-wrap: anywhere;
   word-break: normal;
   color: #000 !important; -webkit-text-fill-color: #000 !important; font-size: .68rem; line-height: 1.25; font-weight: 300; opacity: 1;
+  font-family: inherit; font-style: normal; letter-spacing: normal;
 }
 main.route-controller-fieldservice .fc-daygrid-event,
 main.route-controller-fieldservice .fc-daygrid-event .fc-event-main { white-space: normal; overflow: visible; }
