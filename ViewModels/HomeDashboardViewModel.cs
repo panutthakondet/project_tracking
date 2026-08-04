@@ -42,6 +42,8 @@ namespace ProjectTracking.ViewModels
         public HomeDashboardMonthPoint? ProjectOverviewTooltip { get; set; }
         public List<HomeDashboardProjectOverviewItem> ProjectOverviewProjects { get; set; } = new();
         public List<HomeDashboardProjectDepartmentOption> ProjectOverviewDepartments { get; set; } = new();
+        public string SelectedDashboardDepartment { get; set; } = "all";
+        public string SelectedDashboardDepartmentName { get; set; } = "ทุกฝ่าย";
 
         public List<HomeDashboardProjectProgress> TopProjectProgress { get; set; } = new();
         public List<HomeDashboardActivity> RecentActivities { get; set; } = new();

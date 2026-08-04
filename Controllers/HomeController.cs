@@ -28,7 +28,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Home.Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? department)
         {
             // ===============================
             // ส่งข้อมูลที่จำเป็นให้ View
@@ -213,7 +213,7 @@ namespace ProjectTracking.Controllers
             }
 
             ViewBag.PendingStatusApprovalCount = pendingStatusApprovalCount;
-            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin);
+            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin, department);
 
             var unreadNotificationCount = 0;
 
@@ -511,7 +511,12 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private async Task<HomeDashboardViewModel> BuildHomeDashboardAsync(string username, DateTime today, int? currentEmpId, bool isAdmin)
+        private async Task<HomeDashboardViewModel> BuildHomeDashboardAsync(
+            string username,
+            DateTime today,
+            int? currentEmpId,
+            bool isAdmin,
+            string? requestedDepartment)
         {
             var th = new CultureInfo("th-TH");
             var now = DateTime.Now;
@@ -530,6 +535,7 @@ namespace ProjectTracking.Controllers
                     CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = p.Department != null ? p.Department.DepartmentName : null,
+                    PmEmpId = p.PmEmpId,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     StartDate = p.StartDate,
@@ -559,6 +565,40 @@ namespace ProjectTracking.Controllers
                     DepartmentName = "ยังไม่กำหนดฝ่าย"
                 });
             }
+
+            var selectedDashboardDepartment = "all";
+            var selectedDashboardDepartmentName = "ทุกฝ่าย";
+            int? selectedDashboardDepartmentId = null;
+            var includeUnassignedDepartment = string.Equals(
+                requestedDepartment?.Trim(),
+                "unassigned",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (includeUnassignedDepartment && projects.Any(p => !p.DepartmentId.HasValue))
+            {
+                selectedDashboardDepartment = "unassigned";
+                selectedDashboardDepartmentName = "ยังไม่กำหนดฝ่าย";
+            }
+            else if (int.TryParse(requestedDepartment, out var parsedDepartmentId))
+            {
+                var selectedOption = projectOverviewDepartments
+                    .FirstOrDefault(option => option.DepartmentId == parsedDepartmentId);
+                if (selectedOption != null)
+                {
+                    selectedDashboardDepartmentId = parsedDepartmentId;
+                    selectedDashboardDepartment = parsedDepartmentId.ToString(CultureInfo.InvariantCulture);
+                    selectedDashboardDepartmentName = selectedOption.DepartmentName;
+                }
+            }
+
+            var scopedProjects = selectedDashboardDepartment == "all"
+                ? projects
+                : projects
+                    .Where(project => selectedDashboardDepartment == "unassigned"
+                        ? !project.DepartmentId.HasValue
+                        : project.DepartmentId == selectedDashboardDepartmentId)
+                    .ToList();
+            var scopedProjectIds = scopedProjects.Select(project => project.ProjectId).ToHashSet();
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
@@ -798,6 +838,37 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
             var attendancePolicy = await GetAttendancePolicyAsync();
 
+            var scopedPhases = selectedDashboardDepartment == "all"
+                ? phases
+                : phases.Where(phase => scopedProjectIds.Contains(phase.ProjectId)).ToList();
+            var scopedPhaseIds = scopedPhases.Select(phase => phase.PhaseId).ToHashSet();
+            var scopedAssigns = selectedDashboardDepartment == "all"
+                ? assigns
+                : assigns.Where(assign => scopedPhaseIds.Contains(assign.PhaseId)).ToList();
+            var scopedIssues = selectedDashboardDepartment == "all"
+                ? issues
+                : issues.Where(issue => scopedProjectIds.Contains(issue.ProjectId)).ToList();
+            var scopedSupportOrders = selectedDashboardDepartment == "all"
+                ? supportOrders
+                : supportOrders.Where(order => scopedProjectIds.Contains(order.ProjectId)).ToList();
+
+            var scopedEmployeeIds = selectedDashboardDepartment == "all"
+                ? employees.Select(employee => employee.EmpId).ToHashSet()
+                : scopedProjects
+                    .SelectMany(project => new int?[] { project.PmEmpId, project.BaEmpId })
+                    .Where(empId => empId.HasValue)
+                    .Select(empId => empId!.Value)
+                    .Concat(scopedAssigns.Select(assign => assign.EmpId))
+                    .Concat(scopedIssues.Select(issue => issue.EmpId))
+                    .Concat(scopedSupportOrders.Where(order => order.AssignTo.HasValue).Select(order => order.AssignTo!.Value))
+                    .ToHashSet();
+            var scopedEmployees = selectedDashboardDepartment == "all"
+                ? employees
+                : employees.Where(employee => scopedEmployeeIds.Contains(employee.EmpId)).ToList();
+            var scopedAttendance = selectedDashboardDepartment == "all"
+                ? currentAndPreviousMonthAttendance
+                : currentAndPreviousMonthAttendance.Where(row => scopedEmployeeIds.Contains(row.EmpId)).ToList();
+
             var empNameById = employees
                 .GroupBy(e => e.EmpId)
                 .ToDictionary(
@@ -863,7 +934,7 @@ namespace ProjectTracking.Controllers
                 CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
             };
 
-            var lineOverview = await BuildLineOverdueOverviewAsync(projects, phases, assigns, today);
+            var lineOverview = await BuildLineOverdueOverviewAsync(scopedProjects, scopedPhases, scopedAssigns, today);
 
             var phaseTypeRows = phases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.PhaseType) ? "OTHERS" : Norm(p.PhaseType))
@@ -976,11 +1047,11 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
-            var yearlyTasks = BuildYearlyTasks(assigns, phases, today, out var yearlyTaskAxisMax);
+            var yearlyTasks = BuildYearlyTasks(scopedAssigns, scopedPhases, today, out var yearlyTaskAxisMax);
             var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(
-                currentAndPreviousMonthAttendance,
-                employees,
+                scopedAttendance,
+                scopedEmployees,
                 EmployeeName,
                 monthStart,
                 nextMonthStart,
@@ -994,13 +1065,15 @@ namespace ProjectTracking.Controllers
                 employees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
                 EmployeeName,
                 EmployeeAvatar);
-            var activeFieldServiceCounts = fieldServiceVisits
+            var activeFieldServiceCounts = selectedDashboardDepartment == "all"
+                ? fieldServiceVisits
                 .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
                 .SelectMany(x => x.Assignees)
                 .GroupBy(x => x.EmpId)
-                .ToDictionary(x => x.Key, x => x.Count());
-            var taskOverview = BuildDashboardTaskOverview(assigns, phases, issues, supportOrders, activeFieldServiceCounts, EmployeeName, EmployeeAvatar, today);
+                .ToDictionary(x => x.Key, x => x.Count())
+                : new Dictionary<int, int>();
+            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             var phaseById = phases
                 .GroupBy(phase => phase.PhaseId)
@@ -1084,6 +1157,8 @@ namespace ProjectTracking.Controllers
                 ProjectOverviewTooltip = monthlyPoints.ElementAtOrDefault(Math.Clamp(today.Month - 1, 0, 11)),
                 ProjectOverviewProjects = projectOverviewProjects,
                 ProjectOverviewDepartments = projectOverviewDepartments,
+                SelectedDashboardDepartment = selectedDashboardDepartment,
+                SelectedDashboardDepartmentName = selectedDashboardDepartmentName,
                 TopProjectProgress = topProjectProgress,
                 RecentActivities = recentActivities,
                 TodayMeetings = meetingCards,
@@ -3099,6 +3174,7 @@ namespace ProjectTracking.Controllers
             public string? CoopName { get; set; }
             public int? DepartmentId { get; set; }
             public string? DepartmentName { get; set; }
+            public int? PmEmpId { get; set; }
             public string ProjectDisplayName =>
                 string.IsNullOrWhiteSpace(CoopName)
                     ? ProjectName

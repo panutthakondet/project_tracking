@@ -479,7 +479,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-owner-overview">
+        <article class="glass-panel panel-owner-overview" id="ownerOverview">
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
@@ -490,6 +490,17 @@
                 </div>
                 <a asp-controller="ProjectStatus" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
             </div>
+
+            <nav class="dashboard-department-filter" aria-label="เลือกฝ่ายสำหรับภาพรวมงานตามผู้รับผิดชอบ">
+                <a asp-controller="Home" asp-action="Index" asp-route-department="all" asp-fragment="ownerOverview"
+                   class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")">ทุกฝ่าย</a>
+                @foreach (var department in dashboard.ProjectOverviewDepartments)
+                {
+                    var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+                    <a asp-controller="Home" asp-action="Index" asp-route-department="@departmentKey" asp-fragment="ownerOverview"
+                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")">@department.DepartmentName</a>
+                }
+            </nav>
 
             <div class="owner-overview-legend">
                 <span><i class="done"></i>เสร็จแล้ว</span>
@@ -588,7 +599,7 @@
             }
         </article>
 
-        <article class="glass-panel compact-panel panel-line-overdue">
+        <article class="glass-panel compact-panel panel-line-overdue" id="assignsOverdueOverview">
             <div class="line-overdue-overview-head">
                 <div class="line-overdue-title-row">
                     <span class="line-overdue-title-icon" aria-hidden="true">
@@ -604,6 +615,16 @@
                     <i aria-hidden="true"></i>
                 </a>
             </div>
+            <nav class="dashboard-department-filter" aria-label="เลือกฝ่ายสำหรับงานเสี่ยงล่าช้า">
+                <a asp-controller="Home" asp-action="Index" asp-route-department="all" asp-fragment="assignsOverdueOverview"
+                   class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")">ทุกฝ่าย</a>
+                @foreach (var department in dashboard.ProjectOverviewDepartments)
+                {
+                    var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+                    <a asp-controller="Home" asp-action="Index" asp-route-department="@departmentKey" asp-fragment="assignsOverdueOverview"
+                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")">@department.DepartmentName</a>
+                }
+            </nav>
             <div class="line-overdue-overview-body">
                 <div class="donut-layout project-status-donut-layout line-overdue-donut-layout">
                     <h3 class="project-status-card-title">สถานะงานที่เสี่ยงล่าช้า และงานล่าช้า</h3>
@@ -874,7 +895,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-task">
+        <article class="glass-panel panel-task" id="yearlyTaskProgress">
             <div class="task-progress-head">
                 <div class="task-progress-title">
                     <span class="task-progress-icon" aria-hidden="true">
@@ -896,6 +917,16 @@
                     </div>
                 </div>
             </div>
+            <nav class="dashboard-department-filter" aria-label="เลือกฝ่ายสำหรับความคืบหน้างานรายปี">
+                <a asp-controller="Home" asp-action="Index" asp-route-department="all" asp-fragment="yearlyTaskProgress"
+                   class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")">ทุกฝ่าย</a>
+                @foreach (var department in dashboard.ProjectOverviewDepartments)
+                {
+                    var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+                    <a asp-controller="Home" asp-action="Index" asp-route-department="@departmentKey" asp-fragment="yearlyTaskProgress"
+                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")">@department.DepartmentName</a>
+                }
+            </nav>
             <div class="yearly-chart">
                 <span class="yearly-y-title">จำนวนงาน</span>
                 <div class="yearly-y-axis" aria-hidden="true">
@@ -944,7 +975,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-time">
+        <article class="glass-panel panel-time" id="attendanceOverview">
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon time" aria-hidden="true">
@@ -957,6 +988,17 @@
                 </div>
                 <a asp-controller="Attendance" asp-action="Map" class="panel-link dashboard-action-link details">ดูรายละเอียด</a>
             </div>
+            <nav class="dashboard-department-filter" aria-label="เลือกฝ่ายสำหรับภาพรวมการเข้างาน">
+                <a asp-controller="Home" asp-action="Index" asp-route-department="all" asp-fragment="attendanceOverview"
+                   class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")">ทุกฝ่าย</a>
+                @foreach (var department in dashboard.ProjectOverviewDepartments)
+                {
+                    var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+                    <a asp-controller="Home" asp-action="Index" asp-route-department="@departmentKey" asp-fragment="attendanceOverview"
+                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")">@department.DepartmentName</a>
+                }
+                <span class="dashboard-department-scope">กำลังแสดง: @dashboard.SelectedDashboardDepartmentName</span>
+            </nav>
             <div class="time-layout">
                 <div class="time-hero">
                     <div class="donut time-donut" style="--donut:@dashboard.AttendanceDonut" aria-label="กราฟอัตราเข้างานเดือนนี้">
@@ -3317,6 +3359,64 @@
     background:linear-gradient(135deg, rgba(13,148,136,.82), rgba(14,116,144,.82));
     color:#fff;
     box-shadow:0 5px 14px rgba(13,148,136,.2);
+}
+
+.dashboard-department-filter {
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    margin:10px 0 14px;
+    padding:0 2px 4px;
+    overflow-x:auto;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(20,184,166,.55) transparent;
+}
+
+.dashboard-department-option {
+    flex:0 0 auto;
+    min-height:36px;
+    box-sizing:border-box;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 14px;
+    border:1px solid rgba(96,165,250,.34);
+    border-radius:10px;
+    background:rgba(16,37,76,.68);
+    color:#d9e4fb;
+    font-family:'Prompt', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    line-height:1.3;
+    text-decoration:none;
+    white-space:nowrap;
+    transition:border-color .16s ease, background .16s ease, color .16s ease;
+}
+
+.dashboard-department-option:hover,
+.dashboard-department-option:focus-visible {
+    border-color:rgba(45,212,191,.7);
+    color:#fff;
+    outline:none;
+}
+
+.dashboard-department-option.is-active {
+    border-color:#2dd4bf;
+    background:linear-gradient(135deg, rgba(13,148,136,.82), rgba(14,116,144,.82));
+    color:#fff;
+    box-shadow:0 5px 14px rgba(13,148,136,.2);
+}
+
+.dashboard-department-scope {
+    flex:0 0 auto;
+    margin-left:auto;
+    color:#a9b8d6;
+    font-size:11px;
+    font-weight:500;
+    white-space:nowrap;
 }
 
 .project-overview-combined {
