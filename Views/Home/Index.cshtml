@@ -814,7 +814,7 @@
             </div>
         </article>
 
-        <article class="glass-panel side-panel compact-panel panel-meetings">
+        <article class="glass-panel side-panel compact-panel panel-meetings" id="todayMeetingsOverview">
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon meetings" aria-hidden="true">
@@ -826,6 +826,22 @@
                 </div>
                 <a asp-controller="Meetings" asp-action="Index" class="panel-link dashboard-action-link calendar">ดูทั้งหมด</a>
             </div>
+            <nav class="dashboard-department-filter" aria-label="เลือก Group ของ Meeting Calendars">
+                <a asp-controller="Home" asp-action="Index"
+                   asp-route-department="@dashboard.SelectedDashboardDepartment"
+                   asp-route-meetingGroup="all"
+                   asp-fragment="todayMeetingsOverview"
+                   class="dashboard-department-option @(dashboard.SelectedMeetingGroup == "all" ? "is-active" : "")">ทุก Group</a>
+                @foreach (var meetingGroup in dashboard.MeetingCalendarGroups)
+                {
+                    var meetingGroupKey = meetingGroup.GroupId.ToString();
+                    <a asp-controller="Home" asp-action="Index"
+                       asp-route-department="@dashboard.SelectedDashboardDepartment"
+                       asp-route-meetingGroup="@meetingGroupKey"
+                       asp-fragment="todayMeetingsOverview"
+                       class="dashboard-department-option @(dashboard.SelectedMeetingGroup == meetingGroupKey ? "is-active" : "")">@meetingGroup.GroupName</a>
+                }
+            </nav>
             <div class="meeting-list">
                 @if (dashboard.TodayMeetings.Count == 0)
                 {
@@ -1069,7 +1085,7 @@
             </div>
         </article>
 
-        <article class="glass-panel side-panel panel-team">
+        <article class="glass-panel side-panel panel-team" id="teamWorkloadOverview">
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
@@ -1080,6 +1096,16 @@
                 </div>
                 <a asp-controller="PhaseStatusReport" asp-action="Index" class="panel-link dashboard-action-link chart">ดูทั้งหมด</a>
             </div>
+            <nav class="dashboard-department-filter" aria-label="เลือกฝ่ายสำหรับจำนวนงานของพนักงาน">
+                <a asp-controller="Home" asp-action="Index" asp-route-department="all" asp-fragment="teamWorkloadOverview"
+                   class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")">ทุกฝ่าย</a>
+                @foreach (var department in dashboard.ProjectOverviewDepartments)
+                {
+                    var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+                    <a asp-controller="Home" asp-action="Index" asp-route-department="@departmentKey" asp-fragment="teamWorkloadOverview"
+                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")">@department.DepartmentName</a>
+                }
+            </nav>
             <div class="workload-list">
                 @if (dashboard.TeamWorkload.Count == 0)
                 {
