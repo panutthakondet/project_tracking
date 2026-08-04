@@ -578,7 +578,11 @@ namespace ProjectTracking.Controllers
 
         private async Task ValidateProjectDepartmentAsync(int? departmentId)
         {
-            if (!departmentId.HasValue) return;
+            if (!departmentId.HasValue)
+            {
+                ModelState.AddModelError(nameof(Project.DepartmentId), "กรุณาเลือกฝ่าย");
+                return;
+            }
 
             var exists = await _context.ProjectDepartments
                 .AsNoTracking()

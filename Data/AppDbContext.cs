@@ -115,6 +115,7 @@ namespace ProjectTracking.Data
                 entity.HasOne(x => x.Department)
                     .WithMany(x => x.Projects)
                     .HasForeignKey(x => x.DepartmentId)
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
