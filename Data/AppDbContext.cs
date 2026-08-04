@@ -16,6 +16,7 @@ namespace ProjectTracking.Data
         public DbSet<Employee> Employees { get; set; }
         public DbSet<CntMCoop> CntMCoops { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectDepartment> ProjectDepartments { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
@@ -102,6 +103,20 @@ namespace ProjectTracking.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ProjectDepartment>(entity =>
+            {
+                entity.HasIndex(x => x.DepartmentCode).IsUnique();
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder });
+            });
+
+            modelBuilder.Entity<Project>(entity =>
+            {
+                entity.HasOne(x => x.Department)
+                    .WithMany(x => x.Projects)
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             // =========================
             // MEETINGS

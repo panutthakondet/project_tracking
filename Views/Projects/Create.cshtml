@@ -19,6 +19,7 @@
 
     var requirementCardDetailUrlTemplate = Url.Action("CardDetails", "RequirementBoard", new { id = "__CARD_ID__" }) ?? "";
     var coops = ViewBag.Coops as IEnumerable<ProjectTracking.Models.CntMCoop> ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
+    var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
 }
 
 <div class="index-hero pt-form-hero">
@@ -58,8 +59,21 @@
                     <span asp-validation-for="CoopId" class="text-danger"></span>
                 </div>
 
+                <!-- Department -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">ฝ่าย <span class="text-danger">*</span></label>
+                    <select asp-for="DepartmentId" class="form-select">
+                        <option value="">-- เลือกฝ่าย --</option>
+                        @foreach (var department in departments)
+                        {
+                            <option value="@department.DepartmentId">@department.DepartmentName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                </div>
+
                 <!-- Project Name -->
-                <div class="col-md-8">
+                <div class="col-md-4">
                     <label class="form-label fw-semibold">
                         ชื่อโครงการ
                     </label>

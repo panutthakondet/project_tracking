@@ -88,10 +88,20 @@
 
     <div class="card shadow-sm border-0 rounded-4 mb-3 project-status-filter-card">
         <div class="card-body py-3">
-            <div class="row g-3 align-items-end">
-                <div class="col-12">
-                    <label for="projectId" class="form-label fw-bold">📁 โครงการ</label>
-                    <form asp-controller="ProjectStatus" asp-action="Index" method="get" class="project-filter-form">
+            <form asp-controller="ProjectStatus" asp-action="Index" method="get" class="project-filter-form">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label for="departmentId" class="form-label fw-bold">ฝ่าย</label>
+                        <select id="departmentId" name="departmentId" class="form-select rounded-3" onchange="this.form.submit()">
+                            <option value="">ทุกฝ่าย</option>
+                            @foreach (var department in statusPage.DepartmentOptions)
+                            {
+                                <option value="@department.DepartmentId" selected="@(statusPage.SelectedDepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label for="projectId" class="form-label fw-bold">📁 โครงการ</label>
                         <select id="projectId"
                                 name="projectId"
                                 class="form-select rounded-3"
@@ -109,9 +119,9 @@
                                 }
                             }
                         </select>
-                    </form>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 

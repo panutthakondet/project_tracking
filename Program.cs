@@ -220,6 +220,7 @@ Directory.CreateDirectory(uploadsPath);
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
+await EnsureProjectDepartmentTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
 await EnsureProjectPmEmpIdColumnAsync(app.Services);
@@ -680,6 +681,95 @@ static async Task EnsureProjectPmEmpIdColumnAsync(IServiceProvider services)
         if (indexExists == 0)
         {
             command.CommandText = "CREATE INDEX `idx_project_pm_emp_id` ON `project` (`pm_emp_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_departments` (
+              `department_id` INT NOT NULL AUTO_INCREMENT,
+              `department_code` VARCHAR(50) NOT NULL,
+              `department_name` VARCHAR(150) NOT NULL,
+              `sort_order` INT NOT NULL DEFAULT 0,
+              `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+              PRIMARY KEY (`department_id`),
+              UNIQUE KEY `ux_project_departments_code` (`department_code`),
+              KEY `idx_project_departments_active_sort` (`is_active`, `sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT INTO `project_departments`
+                (`department_code`, `department_name`, `sort_order`, `is_active`)
+            VALUES
+                ('BUSINESS_DEVELOPMENT', 'Business Development', 10, 1),
+                ('CUSTOMER_SERVICE', 'Customer Service', 20, 1),
+                ('SYSTEM_INSTALLATION', 'System Installation', 30, 1),
+                ('CUSTOM', 'Custom', 40, 1)
+            ON DUPLICATE KEY UPDATE
+                `department_name` = VALUES(`department_name`),
+                `sort_order` = VALUES(`sort_order`);";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND COLUMN_NAME = 'department_id';";
+        var columnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (columnExists == 0)
+        {
+            command.CommandText = "ALTER TABLE `project` ADD COLUMN `department_id` INT NULL AFTER `coop_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND INDEX_NAME = 'idx_project_department_id';";
+        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (indexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_project_department_id` ON `project` (`department_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND CONSTRAINT_NAME = 'fk_project_department';";
+        var foreignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (foreignKeyExists == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project`
+                ADD CONSTRAINT `fk_project_department`
+                FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
+                ON UPDATE CASCADE ON DELETE RESTRICT;";
             await command.ExecuteNonQueryAsync();
         }
     }

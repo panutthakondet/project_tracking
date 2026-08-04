@@ -6,6 +6,7 @@ namespace ProjectTracking.ViewModels
         public string CoopName { get; set; } = "";
         public string ProjectName { get; set; } = "";
         public string ProjectDisplayName { get; set; } = "";
+        public string DepartmentName { get; set; } = "";
         public string? ProjectDetail { get; set; }
         public string? LinkName { get; set; }
         public string? DatabaseName { get; set; }

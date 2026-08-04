@@ -30,7 +30,7 @@ namespace ProjectTracking.Controllers
         // LIST
         // ===========================
         [RequireMenu("Projects.Index")]
-        public async Task<IActionResult> Index(int? baEmpId)
+        public async Task<IActionResult> Index(int? baEmpId, int? departmentId)
         {
             // Load Business Analyst list for dropdown filter
             ViewBag.Employees = _context.Employees
@@ -44,6 +44,7 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.PM)
                     .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
+                .Include(p => p.Department)
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -51,6 +52,14 @@ namespace ProjectTracking.Controllers
             {
                 query = query.Where(p => p.BaEmpId == baEmpId.Value);
             }
+
+            if (departmentId.HasValue)
+            {
+                query = query.Where(p => p.DepartmentId == departmentId.Value);
+            }
+
+            ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
+            ViewBag.SelectedDepartmentId = departmentId;
 
             var projects = OrderProjects(await query.ToListAsync()).ToList();
             var projectIds = projects.Select(p => p.ProjectId).ToList();
@@ -71,12 +80,13 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Projects.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status, int? departmentId)
         {
             var allProjects = await _context.Projects
                 .Include(p => p.BA)
                 .Include(p => p.PM)
                 .Include(p => p.Coop)
+                .Include(p => p.Department)
                 .AsNoTracking()
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -92,6 +102,9 @@ namespace ProjectTracking.Controllers
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase));
+
+            if (departmentId.HasValue)
+                query = query.Where(p => p.DepartmentId == departmentId.Value);
 
             ViewBag.Projects = allProjects;
             ViewBag.BaList = allProjects
@@ -110,6 +123,8 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedBaEmpId = baEmpId;
             ViewBag.SelectedStatus = status ?? "";
+            ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
+            ViewBag.SelectedDepartmentId = departmentId;
 
             var result = query
                 .OrderBy(p => ProjectSortOrder(p.Status))
@@ -129,6 +144,7 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
                 .Include(p => p.PM)
+                .Include(p => p.Department)
                 .FirstOrDefaultAsync(p => p.ProjectId == id);
 
             if (project == null)
@@ -213,6 +229,7 @@ namespace ProjectTracking.Controllers
                 CoopName = project.Coop?.CoopName ?? "",
                 ProjectName = project.ProjectName,
                 ProjectDisplayName = project.ProjectDisplayName,
+                DepartmentName = project.Department?.DepartmentName ?? "",
                 ProjectDetail = project.ProjectDetail,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
@@ -273,6 +290,7 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(Project.EndDate));
             project.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             project.EndDate = ParseProjectDate(Request.Form["EndDate"]);
+            await ValidateProjectDepartmentAsync(project.DepartmentId);
 
             if (!ModelState.IsValid)
             {
@@ -339,6 +357,7 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(Project.EndDate));
             model.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             model.EndDate = ParseProjectDate(Request.Form["EndDate"]);
+            await ValidateProjectDepartmentAsync(model.DepartmentId);
 
             if (!ModelState.IsValid)
             {
@@ -356,6 +375,7 @@ namespace ProjectTracking.Controllers
             db.ProjectName = model.ProjectName;
             db.ProjectDetail = model.ProjectDetail;
             db.CoopId = model.CoopId;
+            db.DepartmentId = model.DepartmentId;
             db.StartDate = model.StartDate;
             db.EndDate = model.EndDate;
 
@@ -503,6 +523,8 @@ namespace ProjectTracking.Controllers
                 .OrderBy(c => c.CoopName)
                 .ToListAsync();
 
+            ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
+
             var cards = await _context.RequirementCards
                 .AsNoTracking()
                 .Include(c => c.Column)
@@ -545,6 +567,28 @@ namespace ProjectTracking.Controllers
             return null;
         }
 
+        private IQueryable<ProjectDepartment> ActiveProjectDepartmentsQuery()
+        {
+            return _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName);
+        }
+
+        private async Task ValidateProjectDepartmentAsync(int? departmentId)
+        {
+            if (!departmentId.HasValue) return;
+
+            var exists = await _context.ProjectDepartments
+                .AsNoTracking()
+                .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
+            if (!exists)
+            {
+                ModelState.AddModelError(nameof(Project.DepartmentId), "ฝ่ายที่เลือกไม่พร้อมใช้งาน");
+            }
+        }
+
         private static int? CalculateDurationDays(DateTime? start, DateTime? end)
         {
             if (!start.HasValue || !end.HasValue)
@@ -560,7 +604,10 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Delete")]
         public async Task<IActionResult> Delete(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(x => x.Department)
+                .FirstOrDefaultAsync(x => x.ProjectId == id);
             if (project == null)
             {
                 return NotFound();

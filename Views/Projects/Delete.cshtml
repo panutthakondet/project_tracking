@@ -10,6 +10,9 @@
     <dt>Project Name</dt>
     <dd>@Model.ProjectName</dd>
 
+    <dt>ฝ่าย</dt>
+    <dd>@(Model.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</dd>
+
     <dt>Start Date</dt>
     <dd>@Model.StartDate?.ToString("yyyy-MM-dd")</dd>
 

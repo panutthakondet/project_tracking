@@ -6,6 +6,7 @@
     var th = new CultureInfo("th-TH");
     var projectName = string.IsNullOrWhiteSpace(Model.ProjectName) ? "-" : Model.ProjectName.Trim();
     var coopName = string.IsNullOrWhiteSpace(Model.CoopName) ? "-" : Model.CoopName.Trim();
+    var departmentName = string.IsNullOrWhiteSpace(Model.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : Model.DepartmentName.Trim();
     var projectDetail = Model.ProjectDetail?.Trim();
 
     string DateText(DateTime? value)
@@ -303,6 +304,7 @@
 
         <div class="memo-row"><span class="memo-label short">เรียน</span><span class="memo-value">ผู้จัดการ ฝ่ายพัฒนาธุรกิจ</span></div>
         <div class="memo-row"><span class="memo-label short">เรื่อง</span><span class="memo-value">ขอนำเสนองาน @projectName</span></div>
+        <div class="memo-row"><span class="memo-label short">ฝ่าย</span><span class="memo-value">@departmentName</span></div>
 
         <p class="intro">
             สืบเนื่องจากการพัฒนาระบบ @projectName @coopName ซึ่งทีมผู้พัฒนาได้ดำเนินงานถึงขั้นตอนการเตรียมระบบเพื่อติดตั้งบน Production มีรายละเอียด ดังนี้

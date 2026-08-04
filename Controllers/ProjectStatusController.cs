@@ -24,7 +24,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Home.Index")]
-        public async Task<IActionResult> Index(int? projectId)
+        public async Task<IActionResult> Index(int? projectId, int? departmentId)
         {
             var today = DateTime.Today;
             var th = new CultureInfo("th-TH");
@@ -41,19 +41,41 @@ namespace ProjectTracking.Controllers
                     ProjectId = p.ProjectId,
                     ProjectName = p.ProjectName,
                     CoopName = p.Coop != null ? p.Coop.CoopName : null,
+                    DepartmentId = p.DepartmentId,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     EndDate = p.EndDate
                 })
                 .ToListAsync();
 
-            var selectedProjectId = projectId.HasValue && allProjects.Any(x => x.ProjectId == projectId.Value)
+            var departmentOptions = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName)
+                .Select(x => new ProjectDepartmentOption
+                {
+                    DepartmentId = x.DepartmentId,
+                    DepartmentName = x.DepartmentName
+                })
+                .ToListAsync();
+
+            var selectedDepartmentId = departmentId.HasValue
+                && departmentOptions.Any(x => x.DepartmentId == departmentId.Value)
+                    ? departmentId
+                    : null;
+            var availableProjects = selectedDepartmentId.HasValue
+                ? allProjects.Where(x => x.DepartmentId == selectedDepartmentId.Value).ToList()
+                : allProjects;
+
+            var selectedProjectId = projectId.HasValue && availableProjects.Any(x => x.ProjectId == projectId.Value)
                 ? projectId.Value
                 : (int?)null;
 
             var projects = selectedProjectId.HasValue
-                ? allProjects.Where(x => x.ProjectId == selectedProjectId.Value).ToList()
-                : allProjects;
+                ? availableProjects.Where(x => x.ProjectId == selectedProjectId.Value).ToList()
+                : availableProjects;
+            var selectedProjectIds = projects.Select(x => x.ProjectId).ToList();
 
             var employees = await (
                 from employee in _context.Employees.AsNoTracking()
@@ -102,10 +124,10 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            if (selectedProjectId.HasValue)
+            if (selectedProjectId.HasValue || selectedDepartmentId.HasValue)
             {
                 assigns = assigns
-                    .Where(x => x.ProjectId == selectedProjectId.Value)
+                    .Where(x => selectedProjectIds.Contains(x.ProjectId))
                     .ToList();
             }
 
@@ -126,6 +148,14 @@ namespace ProjectTracking.Controllers
 
                 openSupportCountsQuery = openSupportCountsQuery
                     .Where(order => order.ProjectId == selectedProjectId.Value);
+            }
+            else if (selectedDepartmentId.HasValue)
+            {
+                openIssueCountsQuery = openIssueCountsQuery
+                    .Where(issue => selectedProjectIds.Contains(issue.ProjectId));
+
+                openSupportCountsQuery = openSupportCountsQuery
+                    .Where(order => selectedProjectIds.Contains(order.ProjectId));
             }
 
             var openIssueCounts = await openIssueCountsQuery
@@ -158,14 +188,17 @@ namespace ProjectTracking.Controllers
             var model = new ProjectStatusDetailViewModel
             {
                 SelectedProjectId = selectedProjectId,
+                SelectedDepartmentId = selectedDepartmentId,
+                DepartmentOptions = departmentOptions,
                 SelectedProjectName = selectedProjectId.HasValue
                     ? projects.FirstOrDefault()?.ProjectDisplayName ?? "ทุกโครงการ"
                     : "ทุกโครงการ",
-                ProjectOptions = allProjects
+                ProjectOptions = availableProjects
                     .Select(p => new ProjectStatusOption
                     {
                         ProjectId = p.ProjectId,
-                        ProjectName = p.ProjectDisplayName
+                        ProjectName = p.ProjectDisplayName,
+                        DepartmentId = p.DepartmentId
                     })
                     .ToList(),
                 TotalProjects = totalProjects,
@@ -678,6 +711,7 @@ namespace ProjectTracking.Controllers
             public int ProjectId { get; set; }
             public string ProjectName { get; set; } = string.Empty;
             public string? CoopName { get; set; }
+            public int? DepartmentId { get; set; }
             public string ProjectDisplayName => string.IsNullOrWhiteSpace(CoopName)
                 ? ProjectName
                 : $"{CoopName} - {ProjectName}";

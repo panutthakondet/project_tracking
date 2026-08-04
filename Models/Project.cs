@@ -20,6 +20,13 @@ namespace ProjectTracking.Models
         [ForeignKey(nameof(CoopId))]
         public CntMCoop? Coop { get; set; }
 
+        [Required(ErrorMessage = "กรุณาเลือกฝ่าย")]
+        [Column("department_id")]
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey(nameof(DepartmentId))]
+        public ProjectDepartment? Department { get; set; }
+
         // ======================
         // BASIC INFO
         // ======================

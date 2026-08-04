@@ -8,6 +8,8 @@ namespace ProjectTracking.ViewModels
         public int? SelectedProjectId { get; set; }
         public string SelectedProjectName { get; set; } = "ทุกโครงการ";
         public List<ProjectStatusOption> ProjectOptions { get; set; } = new();
+        public int? SelectedDepartmentId { get; set; }
+        public List<ProjectDepartmentOption> DepartmentOptions { get; set; } = new();
         public int TotalProjects { get; set; }
         public int DoneProjects { get; set; }
         public int InProgressProjects { get; set; }
@@ -28,6 +30,13 @@ namespace ProjectTracking.ViewModels
     {
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = string.Empty;
+        public int? DepartmentId { get; set; }
+    }
+
+    public class ProjectDepartmentOption
+    {
+        public int DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = string.Empty;
     }
 
     public class ProjectStatusMetric

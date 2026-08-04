@@ -19,6 +19,8 @@
     ViewData["Title"] = "Project List";
     var th = new CultureInfo("th-TH");
     var projects = (Model ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
+    var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    var selectedDepartmentId = ViewBag.SelectedDepartmentId is int departmentId ? departmentId : (int?)null;
     var pendingProjectApprovalIds = ViewBag.PendingProjectApprovalIds as ISet<int> ?? new HashSet<int>();
     string NormalizeProjectStatus(string? status) => (status ?? "")
         .Trim()
@@ -267,6 +269,7 @@
                     {
                         <option value="@p.ProjectDisplayName"
                                 data-coop-name="@(p.Coop?.CoopName ?? "")"
+                                data-department="@(p.DepartmentId?.ToString() ?? "unassigned")"
                                 data-project-name="@p.ProjectName">
                             @p.ProjectName
                         </option>
@@ -275,6 +278,18 @@
             </div>
 
             <div class="project-filter-pair">
+                <div class="project-filter-row">
+                    <label class="form-label fw-bold">ฝ่าย</label>
+                    <select id="departmentFilter" class="form-select form-select-lg">
+                        <option value="">ทุกฝ่าย</option>
+                        @foreach (var department in departments)
+                        {
+                            <option value="@department.DepartmentId" selected="@(selectedDepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                        }
+                        <option value="unassigned">ยังไม่กำหนดฝ่าย</option>
+                    </select>
+                </div>
+
                 <div class="project-filter-row">
                     <label class="form-label fw-bold">PM</label>
                     <select id="pmFilter" class="form-select form-select-lg">
@@ -326,6 +341,7 @@
             <tr>
                 <th class="sticky-col-1 col-id">#</th>
                 <th class="sticky-col-2 col-name">ชื่อโครงการ</th>
+                <th class="col-department">ฝ่าย</th>
                 <th class="col-detail">รายละเอียดเพิ่มเติม</th>
                 <th class="col-pm">PM</th>
                 <th class="col-ba">BA</th>
@@ -345,7 +361,7 @@
         @if (!orderedProjects.Any())
         {
             <tr>
-                <td colspan="14" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
+                <td colspan="15" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
             </tr>
         }
         else
@@ -355,10 +371,12 @@
             {
                 var projectDisplayName = p.ProjectDisplayName;
                 var coopName = p.Coop?.CoopName ?? "";
+                var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
                 <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")"
                     data-project="@projectDisplayName.ToLower()"
                     data-project-name="@p.ProjectName.ToLower()"
                     data-coop="@coopName.ToLower()"
+                    data-department="@departmentValue"
                     data-ba="@((p.BA?.EmpName ?? "").ToLower())"
                     data-pm="@((p.PM?.EmpName ?? "").ToLower())"
                     data-status="@((p.Status ?? "").ToLower())">
@@ -370,6 +388,8 @@
                             <div class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</div>
                         </div>
                     </td>
+
+                    <td class="col-department">@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</td>
 
                     <td class="col-detail project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</td>
 
@@ -562,15 +582,17 @@
         {
             var projectDisplayName = p.ProjectDisplayName;
             var coopName = p.Coop?.CoopName ?? "";
+            var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
             var hasPendingApproval = pendingProjectApprovalIds.Contains(p.ProjectId);
             <div class="project-card"
                  data-project="@projectDisplayName.ToLower()"
                  data-project-name="@p.ProjectName.ToLower()"
                  data-coop="@coopName.ToLower()"
+                 data-department="@departmentValue"
                  data-ba="@((p.BA?.EmpName ?? "").ToLower())"
                  data-pm="@((p.PM?.EmpName ?? "").ToLower())"
                  data-status="@((p.Status ?? "").ToLower())"
-                data-search="@($"{projectDisplayName} {coopName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName} {p.PM?.EmpName}".ToLower())">
+                data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName} {p.PM?.EmpName}".ToLower())">
 
                 <div class="project-card-header">
                     <div class="project-header-content">
@@ -605,6 +627,10 @@
                                 <div class="project-title-line">
                                     <span class="project-title-label">โครงการ:</span>
                                     <span class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</span>
+                                </div>
+                                <div class="project-title-line">
+                                    <span class="project-title-label">ฝ่าย:</span>
+                                    <span>@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
                                 </div>
                                 <div class="project-title-line project-status-line">
                                     <span class="project-title-label">สถานะ:</span>
@@ -855,7 +881,7 @@
 
 .project-filter-pair {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
 }
 
@@ -1713,6 +1739,11 @@ window.applyProjectFilter = function () {
 
     localStorage.setItem("projects.selectedBa", selectedBa);
 
+    const selectedDepartment = (
+        document.getElementById("departmentFilter")?.value || ""
+    ).trim().toLowerCase();
+    localStorage.setItem("projects.selectedDepartment", selectedDepartment);
+
     const selectedPm = (
         document.getElementById("pmFilter")?.value || ""
     ).trim().toLowerCase();
@@ -1741,6 +1772,8 @@ window.applyProjectFilter = function () {
             card.dataset.ba || ""
         ).trim().toLowerCase();
 
+        const department = (card.dataset.department || "unassigned").trim().toLowerCase();
+
         const pmName = (
             card.dataset.pm || ""
         ).trim().toLowerCase();
@@ -1758,13 +1791,15 @@ window.applyProjectFilter = function () {
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
+        const matchDepartment = !selectedDepartment || department === selectedDepartment;
+
         const matchPm = !selectedPm ||
                         pmName.includes(selectedPm);
 
         const matchStatus = !selectedStatus ||
                             statusName.includes(selectedStatus);
 
-        const visible = matchCoop && matchProject && matchBa && matchPm && matchStatus;
+        const visible = matchCoop && matchProject && matchDepartment && matchBa && matchPm && matchStatus;
 
         card.style.display = visible ? "block" : "none";
 
@@ -1790,6 +1825,8 @@ window.applyProjectFilter = function () {
             row.dataset.ba || ""
         ).trim().toLowerCase();
 
+        const department = (row.dataset.department || "unassigned").trim().toLowerCase();
+
         const pmName = (
             row.dataset.pm || ""
         ).trim().toLowerCase();
@@ -1807,13 +1844,15 @@ window.applyProjectFilter = function () {
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
+        const matchDepartment = !selectedDepartment || department === selectedDepartment;
+
         const matchPm = !selectedPm ||
                         pmName.includes(selectedPm);
 
         const matchStatus = !selectedStatus ||
                             statusName.includes(selectedStatus);
 
-        const visible = matchCoop && matchProject && matchBa && matchPm && matchStatus;
+        const visible = matchCoop && matchProject && matchDepartment && matchBa && matchPm && matchStatus;
 
         row.style.display = visible ? "table-row" : "none";
 
@@ -1839,20 +1878,23 @@ function restoreFilter(selectId, storageKey) {
 
 restoreFilter("coopFilter", "projects.selectedCoop");
 restoreFilter("projectFilter", "projects.selectedProject");
+restoreFilter("departmentFilter", "projects.selectedDepartment");
 restoreFilter("baFilter", "projects.selectedBa");
 restoreFilter("pmFilter", "projects.selectedPm");
 restoreFilter("statusFilter", "projects.selectedStatus");
 
 function syncProjectFilterOptions() {
     const coopFilter = document.getElementById("coopFilter");
+    const departmentFilter = document.getElementById("departmentFilter");
     const projectSelect = document.getElementById("projectFilter");
     if (!projectSelect) return;
 
     const selectedCoop = (coopFilter?.value || "").trim().toLowerCase();
+    const selectedDepartment = (departmentFilter?.value || "").trim().toLowerCase();
     Array.from(projectSelect.options).forEach(option => {
         const visible = option.value === "" ||
-            !selectedCoop ||
-            (option.dataset.coopName || "").trim().toLowerCase() === selectedCoop;
+            ((!selectedCoop || (option.dataset.coopName || "").trim().toLowerCase() === selectedCoop) &&
+             (!selectedDepartment || (option.dataset.department || "unassigned").trim().toLowerCase() === selectedDepartment));
         option.hidden = !visible;
         option.disabled = !visible;
     });
@@ -1862,6 +1904,13 @@ function syncProjectFilterOptions() {
 }
 
 document.getElementById("coopFilter")?.addEventListener("change", function () {
+    const projectSelect = document.getElementById("projectFilter");
+    if (projectSelect) projectSelect.value = "";
+    syncProjectFilterOptions();
+    window.applyProjectFilter();
+});
+
+document.getElementById("departmentFilter")?.addEventListener("change", function () {
     const projectSelect = document.getElementById("projectFilter");
     if (projectSelect) projectSelect.value = "";
     syncProjectFilterOptions();
