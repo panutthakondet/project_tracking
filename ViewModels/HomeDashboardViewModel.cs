@@ -41,6 +41,7 @@ namespace ProjectTracking.ViewModels
         public List<HomeDashboardMonthPoint> ProjectOverviewMonths { get; set; } = new();
         public HomeDashboardMonthPoint? ProjectOverviewTooltip { get; set; }
         public List<HomeDashboardProjectOverviewItem> ProjectOverviewProjects { get; set; } = new();
+        public List<HomeDashboardProjectDepartmentOption> ProjectOverviewDepartments { get; set; } = new();
 
         public List<HomeDashboardProjectProgress> TopProjectProgress { get; set; } = new();
         public List<HomeDashboardActivity> RecentActivities { get; set; } = new();
@@ -161,11 +162,20 @@ namespace ProjectTracking.ViewModels
     public class HomeDashboardProjectOverviewItem
     {
         public int ProjectId { get; set; }
+        public int? DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = "ยังไม่กำหนดฝ่าย";
         public string ProjectName { get; set; } = "";
+        public string StatusCode { get; set; } = "";
         public string StatusText { get; set; } = "";
         public string StatusColor { get; set; } = "blue";
         public string StartText { get; set; } = "-";
         public string EndText { get; set; } = "-";
+    }
+
+    public class HomeDashboardProjectDepartmentOption
+    {
+        public int? DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = "";
     }
 
     public class HomeDashboardActivity

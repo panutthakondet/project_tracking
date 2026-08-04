@@ -400,6 +400,17 @@
             </div>
             <div class="project-overview-combined">
                 <div class="project-overview-table">
+                    <div class="project-overview-departments" role="group" aria-label="เลือกฝ่าย">
+                        <button type="button" class="project-overview-department is-active" data-project-department="all" aria-pressed="true">ทุกฝ่าย</button>
+                        @foreach (var department in dashboard.ProjectOverviewDepartments)
+                        {
+                            var departmentValue = department.DepartmentId?.ToString() ?? "unassigned";
+                            <button type="button"
+                                    class="project-overview-department"
+                                    data-project-department="@departmentValue"
+                                    aria-pressed="false">@department.DepartmentName</button>
+                        }
+                    </div>
                     <label class="project-overview-search">
                         <span class="project-overview-search-label">ค้นหาโครงการ</span>
                         <i aria-hidden="true">⌕</i>
@@ -417,16 +428,20 @@
                         {
                             foreach (var project in dashboard.ProjectOverviewProjects)
                             {
-                                var projectSearchText = $"{project.ProjectName} {project.StatusText} {project.StartText} {project.EndText}";
+                                var projectSearchText = $"{project.ProjectName} {project.DepartmentName} {project.StatusText} {project.StartText} {project.EndText}";
+                                var projectDepartmentValue = project.DepartmentId?.ToString() ?? "unassigned";
                                 <a class="project-overview-row"
                                    asp-controller="ProjectPhases"
                                    asp-action="Index"
                                    asp-route-projectId="@project.ProjectId"
                                    data-project-search="@projectSearchText"
+                                   data-project-department-id="@projectDepartmentValue"
+                                   data-project-status="@project.StatusCode"
                                    title="ดูงวดงานของ @project.ProjectName">
                                     <span class="project-overview-icon" aria-hidden="true"></span>
                                     <span class="project-overview-name-wrap">
                                         <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>
+                                        <span class="project-overview-department-name">@project.DepartmentName</span>
                                     </span>
                                     <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
                                     <span class="project-overview-date">
@@ -446,16 +461,16 @@
                 <div class="project-status-inline" aria-label="สถานะโครงการ">
                     <div class="donut-layout project-status-donut-layout">
                         <h3 class="project-status-card-title">ภาพรวมสถานะโครงการ</h3>
-                        <div class="donut project-status-donut" style="--donut:@dashboard.ProjectStatusDonut">
+                        <div class="donut project-status-donut" data-project-status-donut style="--donut:@dashboard.ProjectStatusDonut">
                             <div>
-                                <strong>@dashboard.TotalProjectCount</strong>
+                                <strong data-project-status-total>@dashboard.TotalProjectCount</strong>
                                 <span>โครงการ</span>
                             </div>
                         </div>
                         <div class="metric-list">
                             @foreach (var metric in dashboard.ProjectStatusMetrics)
                             {
-                                <span><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                                <span data-project-status-metric="@metric.Label"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                             }
                         </div>
                         <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
@@ -3263,6 +3278,47 @@
     max-width:100%;
 }
 
+.project-overview-departments {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    padding-bottom:2px;
+    overflow-x:auto;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(20,184,166,.55) transparent;
+}
+
+.project-overview-department {
+    flex:0 0 auto;
+    min-height:38px;
+    padding:7px 15px;
+    border:1px solid rgba(96,165,250,.34);
+    border-radius:10px;
+    background:rgba(16,37,76,.68);
+    color:#d9e4fb;
+    font-family:'Prompt', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    line-height:1.35;
+    cursor:pointer;
+    transition:border-color .16s ease, background .16s ease, color .16s ease;
+}
+
+.project-overview-department:hover,
+.project-overview-department:focus-visible {
+    border-color:rgba(45,212,191,.7);
+    color:#fff;
+    outline:none;
+}
+
+.project-overview-department.is-active {
+    border-color:#2dd4bf;
+    background:linear-gradient(135deg, rgba(13,148,136,.82), rgba(14,116,144,.82));
+    color:#fff;
+    box-shadow:0 5px 14px rgba(13,148,136,.2);
+}
+
 .project-overview-combined {
     position:relative;
     z-index:1;
@@ -3462,7 +3518,8 @@
 .project-overview-name-wrap {
     grid-row:1 / span 2;
     min-width:0;
-    display:block;
+    display:grid;
+    gap:5px;
 }
 
 .project-overview-name {
@@ -3474,6 +3531,15 @@
     white-space:normal;
     overflow-wrap:break-word;
     word-break:normal;
+}
+
+.project-overview-department-name {
+    min-width:0;
+    color:#93c5fd;
+    font-size:11px;
+    font-weight:500;
+    line-height:1.3;
+    overflow-wrap:anywhere;
 }
 
 .project-overview-status {
@@ -7809,26 +7875,78 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
         if (!searchInput) return;
 
         const rows = Array.from(document.querySelectorAll('.project-overview-row[data-project-search]'));
+        const departmentButtons = Array.from(document.querySelectorAll('[data-project-department]'));
         const emptyMessage = document.querySelector('.project-overview-empty');
+        const donut = document.querySelector('[data-project-status-donut]');
+        const totalElement = document.querySelector('[data-project-status-total]');
+        const metricElements = new Map(
+            Array.from(document.querySelectorAll('[data-project-status-metric]'))
+                .map(element => [element.dataset.projectStatusMetric, element.querySelector('b')])
+        );
         const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+        let selectedDepartment = 'all';
+
+        const updateStatusSummary = matchingDepartmentRows => {
+            const total = matchingDepartmentRows.length;
+            const counts = {
+                'Completed': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'DONE').length,
+                'In Progress': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'IN_PROGRESS').length,
+                'Pending': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'PLAN').length
+            };
+
+            if (totalElement) totalElement.textContent = String(total);
+
+            Object.entries(counts).forEach(([label, count]) => {
+                const percent = total === 0 ? 0 : (count * 100 / total);
+                const valueElement = metricElements.get(label);
+                if (valueElement) valueElement.textContent = `${count} (${percent.toLocaleString('th-TH', { maximumFractionDigits: 1 })}%)`;
+            });
+
+            if (donut) {
+                const completedEnd = total === 0 ? 0 : counts['Completed'] * 100 / total;
+                const progressEnd = total === 0 ? 0 : completedEnd + counts['In Progress'] * 100 / total;
+                const pendingEnd = total === 0 ? 0 : progressEnd + counts.Pending * 100 / total;
+                donut.style.setProperty('--donut', total === 0
+                    ? 'conic-gradient(#263450 0 100%)'
+                    : `conic-gradient(#10d58f 0 ${completedEnd}%, #1688f5 ${completedEnd}% ${progressEnd}%, #fb9a13 ${progressEnd}% ${pendingEnd}%, #263450 ${pendingEnd}% 100%)`);
+            }
+        };
 
         const applyFilter = () => {
             const keyword = normalize(searchInput.value);
             let visibleCount = 0;
+            const matchingDepartmentRows = rows.filter(row =>
+                selectedDepartment === 'all' || row.dataset.projectDepartmentId === selectedDepartment);
 
             rows.forEach((row, index) => {
                 const text = normalize(row.dataset.projectSearch || row.textContent);
                 const matchesSearch = !keyword || text.includes(keyword);
-                row.classList.toggle('is-filter-hidden', !matchesSearch);
-                if (matchesSearch) visibleCount++;
+                const matchesDepartment = selectedDepartment === 'all'
+                    || row.dataset.projectDepartmentId === selectedDepartment;
+                const isVisible = matchesSearch && matchesDepartment;
+                row.classList.toggle('is-filter-hidden', !isVisible);
+                if (isVisible) visibleCount++;
             });
 
             if (emptyMessage) {
                 emptyMessage.hidden = visibleCount > 0;
             }
+
+            updateStatusSummary(matchingDepartmentRows);
         };
 
         searchInput.addEventListener('input', applyFilter);
+        departmentButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                selectedDepartment = button.dataset.projectDepartment || 'all';
+                departmentButtons.forEach(item => {
+                    const isActive = item === button;
+                    item.classList.toggle('is-active', isActive);
+                    item.setAttribute('aria-pressed', String(isActive));
+                });
+                applyFilter();
+            });
+        });
         applyFilter();
     })();
 

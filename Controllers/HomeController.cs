@@ -528,6 +528,8 @@ namespace ProjectTracking.Controllers
                     ProjectId = p.ProjectId,
                     ProjectName = p.ProjectName,
                     CoopName = p.Coop != null ? p.Coop.CoopName : null,
+                    DepartmentId = p.DepartmentId,
+                    DepartmentName = p.Department != null ? p.Department.DepartmentName : null,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     StartDate = p.StartDate,
@@ -536,6 +538,27 @@ namespace ProjectTracking.Controllers
                     EntryId = p.EntryId
                 })
                 .ToListAsync();
+
+            var projectOverviewDepartments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.SortOrder)
+                .ThenBy(d => d.DepartmentName)
+                .Select(d => new HomeDashboardProjectDepartmentOption
+                {
+                    DepartmentId = d.DepartmentId,
+                    DepartmentName = d.DepartmentName
+                })
+                .ToListAsync();
+
+            if (projects.Any(p => !p.DepartmentId.HasValue))
+            {
+                projectOverviewDepartments.Add(new HomeDashboardProjectDepartmentOption
+                {
+                    DepartmentId = null,
+                    DepartmentName = "ยังไม่กำหนดฝ่าย"
+                });
+            }
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
@@ -870,7 +893,10 @@ namespace ProjectTracking.Controllers
                 .Select(p => new HomeDashboardProjectOverviewItem
                 {
                     ProjectId = p.ProjectId,
+                    DepartmentId = p.DepartmentId,
+                    DepartmentName = string.IsNullOrWhiteSpace(p.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : p.DepartmentName,
                     ProjectName = p.ProjectDisplayName,
+                    StatusCode = Norm(p.Status),
                     StatusText = ProjectStatusText(p.Status),
                     StatusColor = ProjectActivityColor(p.Status),
                     StartText = FormatDashboardDate(p.StartDate, th),
@@ -1057,6 +1083,7 @@ namespace ProjectTracking.Controllers
                 ProjectOverviewMonths = monthlyPoints,
                 ProjectOverviewTooltip = monthlyPoints.ElementAtOrDefault(Math.Clamp(today.Month - 1, 0, 11)),
                 ProjectOverviewProjects = projectOverviewProjects,
+                ProjectOverviewDepartments = projectOverviewDepartments,
                 TopProjectProgress = topProjectProgress,
                 RecentActivities = recentActivities,
                 TodayMeetings = meetingCards,
@@ -3070,6 +3097,8 @@ namespace ProjectTracking.Controllers
             public int ProjectId { get; set; }
             public string ProjectName { get; set; } = "";
             public string? CoopName { get; set; }
+            public int? DepartmentId { get; set; }
+            public string? DepartmentName { get; set; }
             public string ProjectDisplayName =>
                 string.IsNullOrWhiteSpace(CoopName)
                     ? ProjectName
