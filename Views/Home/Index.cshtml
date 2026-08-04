@@ -479,7 +479,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-owner-overview" id="ownerOverview">
+        <article class="glass-panel panel-owner-overview" id="ownerOverview" data-dashboard-filter-panel>
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
@@ -599,7 +599,7 @@
             }
         </article>
 
-        <article class="glass-panel compact-panel panel-line-overdue" id="assignsOverdueOverview">
+        <article class="glass-panel compact-panel panel-line-overdue" id="assignsOverdueOverview" data-dashboard-filter-panel>
             <div class="line-overdue-overview-head">
                 <div class="line-overdue-title-row">
                     <span class="line-overdue-title-icon" aria-hidden="true">
@@ -814,7 +814,7 @@
             </div>
         </article>
 
-        <article class="glass-panel side-panel compact-panel panel-meetings" id="todayMeetingsOverview">
+        <article class="glass-panel side-panel compact-panel panel-meetings" id="todayMeetingsOverview" data-dashboard-filter-panel>
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon meetings" aria-hidden="true">
@@ -911,7 +911,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-task" id="yearlyTaskProgress">
+        <article class="glass-panel panel-task" id="yearlyTaskProgress" data-dashboard-filter-panel>
             <div class="task-progress-head">
                 <div class="task-progress-title">
                     <span class="task-progress-icon" aria-hidden="true">
@@ -991,7 +991,7 @@
             </div>
         </article>
 
-        <article class="glass-panel panel-time" id="attendanceOverview">
+        <article class="glass-panel panel-time" id="attendanceOverview" data-dashboard-filter-panel>
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon time" aria-hidden="true">
@@ -1085,7 +1085,7 @@
             </div>
         </article>
 
-        <article class="glass-panel side-panel panel-team" id="teamWorkloadOverview">
+        <article class="glass-panel side-panel panel-team" id="teamWorkloadOverview" data-dashboard-filter-panel>
             <div class="panel-head dashboard-card-head">
                 <div class="dashboard-card-title">
                     <span class="dashboard-card-icon team" aria-hidden="true">●●</span>
@@ -3443,6 +3443,27 @@
     font-size:11px;
     font-weight:500;
     white-space:nowrap;
+}
+
+[data-dashboard-filter-panel].is-filter-loading {
+    pointer-events:none;
+    opacity:.68;
+    transition:opacity .15s ease;
+}
+
+[data-dashboard-filter-panel].is-filter-loading::after {
+    content:"กำลังโหลด...";
+    position:absolute;
+    z-index:20;
+    top:14px;
+    right:18px;
+    padding:6px 10px;
+    border:1px solid rgba(45,212,191,.5);
+    border-radius:8px;
+    background:rgba(7,19,45,.92);
+    color:#fff;
+    font-size:11px;
+    font-weight:500;
 }
 
 .project-overview-combined {
@@ -7993,6 +8014,51 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
         window.setInterval(sync, syncIntervalMs);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) sync();
+        });
+    })();
+
+    (() => {
+        let activeRequest = null;
+
+        document.addEventListener('click', async event => {
+            const link = event.target.closest('[data-dashboard-filter-panel] .dashboard-department-option');
+            if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+                return;
+
+            const panel = link.closest('[data-dashboard-filter-panel]');
+            if (!panel?.id)
+                return;
+
+            event.preventDefault();
+
+            if (activeRequest) activeRequest.abort();
+            const request = new AbortController();
+            activeRequest = request;
+            panel.classList.add('is-filter-loading');
+            panel.setAttribute('aria-busy', 'true');
+
+            try {
+                const response = await fetch(link.href, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    signal: request.signal
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const html = await response.text();
+                const nextDocument = new DOMParser().parseFromString(html, 'text/html');
+                const nextPanel = nextDocument.getElementById(panel.id);
+                if (!nextPanel) throw new Error(`Panel ${panel.id} not found`);
+
+                panel.replaceWith(nextPanel);
+            } catch (error) {
+                panel.classList.remove('is-filter-loading');
+                panel.removeAttribute('aria-busy');
+                if (error.name !== 'AbortError') {
+                    console.error('Dashboard filter failed:', error);
+                }
+            } finally {
+                if (activeRequest === request) activeRequest = null;
+            }
         });
     })();
 
