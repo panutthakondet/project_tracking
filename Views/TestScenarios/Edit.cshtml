@@ -52,7 +52,7 @@
                     {
                         if (g.group_id == Model.group_id)
                         {
-                            <option value="@g.group_id" selected>@g.group_name</option>
+                            <option value="@g.group_id" selected>@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
                         }
                     }
                 }
@@ -66,7 +66,7 @@
                 {
                     foreach (var g in ViewBag.Groups)
                     {
-                        <option value="@g.group_id" selected="@(g.group_id == Model.group_id ? "selected" : null)">@g.group_name</option>
+                        <option value="@g.group_id" selected="@(g.group_id == Model.group_id ? "selected" : null)">@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
                     }
                 }
             </select>

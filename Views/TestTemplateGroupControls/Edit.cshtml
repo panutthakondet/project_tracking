@@ -1,0 +1,11 @@
+@model ProjectTracking.Models.TestTemplateGroupControl
+@{ ViewData["Title"] = "แก้ไข Template Groups Control"; }
+<h2>แก้ไข Template Groups Control</h2>
+<form asp-action="Edit" asp-route-id="@Model.control_id" method="post" class="card card-body">
+    <input type="hidden" asp-for="control_id" /><div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3"><label class="form-label">ชื่อ Control</label><input asp-for="control_name" class="form-control" required /><span asp-validation-for="control_name" class="text-danger"></span></div>
+    <div class="mb-3"><label class="form-label">Sort Order</label><input asp-for="sort_order" class="form-control" type="number" min="0" /></div>
+    <div class="form-check mb-3"><input asp-for="is_active" class="form-check-input" /><label asp-for="is_active" class="form-check-label">เปิดใช้งาน</label></div>
+    <div class="pt-form-actions"><button class="btn btn-primary">Save</button><a asp-action="Index" class="btn btn-outline-secondary">Back</a></div>
+</form>
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

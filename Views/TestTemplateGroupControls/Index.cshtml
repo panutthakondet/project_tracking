@@ -1,0 +1,85 @@
+@model IEnumerable<ProjectTracking.Models.TestTemplateGroupControl>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Template Groups Control";
+    bool CanMenu(string key)
+    {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+        return (Context.Session.GetString("Menus") ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    }
+}
+
+<div class="index-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">Quality</span>
+        <h2 class="index-title">Template Groups Control</h2>
+        <p class="index-subtitle">ควบคุมและจัดหมวดหมู่ Template Groups อีกหนึ่งระดับ</p>
+    </div>
+    <div class="index-actions">
+        @if (CanMenu("TestTemplateGroupControls.Create"))
+        {
+            <a asp-action="Create" class="btn btn-success">Add Control</a>
+        }
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning">ยังไม่มี Template Groups Control</div>
+}
+else
+{
+    <div class="control-list" data-control-list>
+        @foreach (var item in Model)
+        {
+            <article class="control-card" data-id="@item.control_id">
+                @if (CanMenu("TestTemplateGroupControls.Sort"))
+                {
+                    <span class="control-drag" title="ลากเพื่อเรียงลำดับ">☰</span>
+                }
+                <div class="control-main">
+                    <strong>@item.control_name</strong>
+                    <small>@item.Groups.Count Group · @(item.is_active ? "ใช้งาน" : "ปิดใช้งาน")</small>
+                </div>
+                <span class="control-order">Order: @item.sort_order</span>
+                <div class="control-actions">
+                    <a asp-controller="TestTemplateGroups" asp-action="Index" asp-route-controlId="@item.control_id" class="btn btn-sm btn-outline-success">Groups</a>
+                    @if (CanMenu("TestTemplateGroupControls.Edit"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.control_id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    }
+                    @if (CanMenu("TestTemplateGroupControls.Delete"))
+                    {
+                        <form asp-action="Delete" asp-route-id="@item.control_id" method="post" onsubmit="return confirm('ลบ Control นี้? Group ภายในจะเปลี่ยนเป็นยังไม่กำหนด Control');">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+}
+
+<style>
+.control-list{display:grid;gap:10px}.control-card{position:relative;display:grid;grid-template-columns:auto minmax(220px,1fr) auto auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid #d8e3ef;border-left:5px solid #14b8a6;border-radius:12px;background:#fff;box-shadow:0 8px 20px rgba(15,35,64,.07)}
+.control-drag{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:rgba(20,184,166,.14);cursor:grab}.control-main{display:grid;gap:3px}.control-main strong{color:#10233f;font-size:1rem;font-weight:500}.control-main small,.control-order{color:#64748b;font-size:.84rem;font-weight:400}.control-actions{display:flex;gap:8px;align-items:center}.control-actions form{margin:0}@@media(max-width:850px){.control-card{grid-template-columns:auto 1fr}.control-order,.control-actions{grid-column:2}.control-actions{flex-wrap:wrap}}
+</style>
+
+@if (CanMenu("TestTemplateGroupControls.Sort"))
+{
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        const controlList = document.querySelector('[data-control-list]');
+        if (controlList) new Sortable(controlList, {
+            handle: '.control-drag', animation: 150,
+            onEnd: () => fetch('/TestTemplateGroupControls/UpdateSort', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Array.from(document.querySelectorAll('[data-control-list] .control-card')).map((row, index) => ({ id: Number(row.dataset.id), sort: index + 1 })))
+            })
+        });
+    </script>
+}

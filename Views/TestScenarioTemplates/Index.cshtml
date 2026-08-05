@@ -356,13 +356,14 @@
                         <option value="">-- Show All --</option>
                         @foreach (var g in groups)
                         {
+                            var groupLabel = $"{g.Control?.control_name ?? "ยังไม่กำหนด Control"} / {g.group_name}";
                             if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
                             {
-                                <option value="@g.group_id" selected>@g.group_name</option>
+                                <option value="@g.group_id" selected>@groupLabel</option>
                             }
                             else
                             {
-                                <option value="@g.group_id">@g.group_name</option>
+                                <option value="@g.group_id">@groupLabel</option>
                             }
                         }
                     </select>
@@ -379,11 +380,11 @@
 else
 {
     <div class="template-card-groups">
-        @foreach (var grp in Model.OrderBy(x => x.group_id ?? 0).ThenBy(x => x.template_id).GroupBy(x => x.Group?.group_name ?? "Ungrouped"))
+        @foreach (var grp in Model.OrderBy(x => x.Group?.Control?.sort_order ?? int.MaxValue).ThenBy(x => x.Group?.sort_order ?? int.MaxValue).ThenBy(x => x.template_id).GroupBy(x => new { x.group_id, ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control", GroupName = x.Group?.group_name ?? "Ungrouped" }))
         {
             <section class="template-group-card">
                 <div class="template-group-header">
-                    <h3 class="template-group-title">Group : @grp.Key</h3>
+                    <h3 class="template-group-title">@grp.Key.ControlName / @grp.Key.GroupName</h3>
                     <span class="template-group-count">@grp.Count() รายการ</span>
                 </div>
 

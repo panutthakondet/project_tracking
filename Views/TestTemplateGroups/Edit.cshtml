@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "แก้ไขกลุ่มแม่แบบ";
+    var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
 }
 
 <div class="container mt-3">
@@ -11,6 +12,16 @@
     <form asp-action="Edit" asp-route-id="@Model.group_id" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="group_id" />
+        <input type="hidden" asp-for="is_active" />
+
+        <div class="mb-3">
+            <label class="form-label">Template Groups Control</label>
+            <select asp-for="control_id" class="form-select">
+                <option value="">-- ยังไม่กำหนด Control --</option>
+                @foreach (var control in controls) { <option value="@control.control_id">@control.control_name</option> }
+            </select>
+            <span asp-validation-for="control_id" class="text-danger"></span>
+        </div>
 
         <div class="mb-3">
             <label asp-for="group_name" class="form-label"></label>

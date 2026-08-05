@@ -13,7 +13,7 @@
             @foreach (var g in ViewBag.Groups)
             {
                 <option value="@g.group_id">
-                    @g.group_name
+                    @(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name
                 </option>
             }
         </select>

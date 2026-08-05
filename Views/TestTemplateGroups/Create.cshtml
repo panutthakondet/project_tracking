@@ -1,11 +1,20 @@
 @model ProjectTracking.Models.TestTemplateGroup
+@{ var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>(); }
 
 <h2 class="mb-4">เพิ่มกลุ่มแม่แบบ</h2>
 
 <div class="card">
     <div class="card-body">
         <form asp-action="Create" method="post">
-            <input type="hidden" name="groupId" value="@ViewBag.SelectedGroup" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3">
+                <label class="form-label">Template Groups Control</label>
+                <select asp-for="control_id" class="form-select">
+                    <option value="">-- ยังไม่กำหนด Control --</option>
+                    @foreach (var control in controls) { <option value="@control.control_id">@control.control_name</option> }
+                </select>
+                <span asp-validation-for="control_id" class="text-danger"></span>
+            </div>
             <div class="mb-3">
                 <label class="form-label">Group Name</label>
                 <input asp-for="group_name" class="form-control" required />
@@ -20,7 +29,7 @@
 
             <div class="d-flex justify-content-between mt-4">
                 <a asp-action="Index"
-                   asp-route-groupId="@ViewBag.SelectedGroup"
+                   asp-route-controlId="@Model.control_id"
                    class="btn btn-secondary">
                     ← Back
                 </a>

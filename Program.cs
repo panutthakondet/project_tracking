@@ -221,6 +221,7 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureProjectDepartmentTableAsync(app.Services);
+await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
 await EnsureProjectPmEmpIdColumnAsync(app.Services);
@@ -681,6 +682,81 @@ static async Task EnsureProjectPmEmpIdColumnAsync(IServiceProvider services)
         if (indexExists == 0)
         {
             command.CommandText = "CREATE INDEX `idx_project_pm_emp_id` ON `project` (`pm_emp_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTestTemplateGroupControlTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `test_template_group_controls` (
+              `control_id` INT NOT NULL AUTO_INCREMENT,
+              `control_name` VARCHAR(200) NOT NULL,
+              `sort_order` INT NOT NULL DEFAULT 0,
+              `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+              `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`control_id`),
+              KEY `idx_template_group_controls_active_sort` (`is_active`, `sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_groups'
+              AND COLUMN_NAME = 'control_id';";
+        var columnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (columnExists == 0)
+        {
+            command.CommandText = "ALTER TABLE `test_template_groups` ADD COLUMN `control_id` INT NULL AFTER `group_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_groups'
+              AND INDEX_NAME = 'idx_test_template_groups_control_id';";
+        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (indexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_test_template_groups_control_id` ON `test_template_groups` (`control_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_groups'
+              AND CONSTRAINT_NAME = 'fk_test_template_groups_control';";
+        var foreignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (foreignKeyExists == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `test_template_groups`
+                ADD CONSTRAINT `fk_test_template_groups_control`
+                FOREIGN KEY (`control_id`) REFERENCES `test_template_group_controls` (`control_id`)
+                ON UPDATE CASCADE ON DELETE SET NULL;";
             await command.ExecuteNonQueryAsync();
         }
     }

@@ -117,8 +117,10 @@ namespace ProjectTracking.Controllers
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
             ViewBag.Groups = await _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
 
@@ -207,27 +209,25 @@ namespace ProjectTracking.Controllers
                 selectedGroupIds.Add(groupId.Value);
 
             var scenarios = await _context.TestScenarios
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
                     (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value))) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
-                .Join(
-                    _context.TestTemplateGroups,
-                    s => s.group_id,
-                    g => g.group_id,
-                    (s, g) => new { s, g }
-                )
-                .OrderBy(x => x.g.sort_order) // 🔥 เรียงตาม group ก่อน
-                .ThenBy(x => x.s.sort_order) // 🔥 แล้วค่อยเรียงใน group
-                .ThenBy(x => x.s.scenario_id)
-                .Select(x => x.s)
+                .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
                 .ToListAsync();
 
             ViewBag.Groups = _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();
             ViewBag.Projects = projects;
@@ -256,8 +256,10 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.Groups = _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToList();
 
@@ -382,8 +384,10 @@ namespace ProjectTracking.Controllers
 
             var orderedGroupIds = await _context.TestTemplateGroups
                 .AsNoTracking()
+                .Include(g => g.Control)
                 .Where(g => g.is_active && selectedGroupIds.Contains(g.group_id))
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .Select(g => g.group_id)
                 .ToListAsync();
@@ -508,10 +512,12 @@ namespace ProjectTracking.Controllers
             var allScenarios = await _context.TestScenarios
                 .AsNoTracking()
                 .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
                 .ToListAsync();
 
             var groupQuery = _context.TestTemplateGroups
                 .AsNoTracking()
+                .Include(x => x.Control)
                 .AsQueryable();
 
             if (projectId.HasValue)
@@ -526,7 +532,8 @@ namespace ProjectTracking.Controllers
             }
 
             var groups = await groupQuery
-                .OrderBy(x => x.sort_order)
+                .OrderBy(x => x.Control != null ? x.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.sort_order)
                 .ThenBy(x => x.group_name)
                 .ToListAsync();
 
@@ -572,6 +579,7 @@ namespace ProjectTracking.Controllers
 
             var scenarios = result
                 .OrderBy(x => projects.FindIndex(p => p.ProjectId == x.project_id) < 0 ? int.MaxValue : projects.FindIndex(p => p.ProjectId == x.project_id))
+                .ThenBy(x => x.Group?.Control?.sort_order ?? int.MaxValue)
                 .ThenBy(x => x.Group?.sort_order ?? int.MaxValue)
                 .ThenBy(x => x.sort_order)
                 .ThenBy(x => x.scenario_id)
@@ -585,6 +593,8 @@ namespace ProjectTracking.Controllers
         {
             var selectedStatus = NormalizeIndexStatus(status);
             var data = _context.TestScenarios
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
                 .Where(x =>
                     x.project_id == projectId &&
                     (
@@ -594,33 +604,30 @@ namespace ProjectTracking.Controllers
                     ) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
-                .Join(
-                    _context.TestTemplateGroups,
-                    s => s.group_id,
-                    g => g.group_id,
-                    (s, g) => new { s, g }
-                )
-                .OrderBy(x => x.g.sort_order)   // 🔥 เรียง group จริง
-                .ThenBy(x => x.s.sort_order)    // 🔥 เรียงใน group
-                .ThenBy(x => x.s.scenario_id)
+                .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
                 .Select(x => new TestScenario
                 {
-                    scenario_id = x.s.scenario_id,
-                    project_id = x.s.project_id,
-                    group_id = x.s.group_id,
-                    scenario_code = x.s.scenario_code,
-                    title = x.s.title,
-                    precondition = x.s.precondition,
-                    steps = x.s.steps,
-                    expected_result = x.s.expected_result,
-                    remark = x.s.remark,
-                    priority = x.s.priority,
-                    status = x.s.status,
-                    created_at = x.s.created_at,
-                    updated_at = x.s.updated_at,
+                    scenario_id = x.scenario_id,
+                    project_id = x.project_id,
+                    group_id = x.group_id,
+                    scenario_code = x.scenario_code,
+                    title = x.title,
+                    precondition = x.precondition,
+                    steps = x.steps,
+                    expected_result = x.expected_result,
+                    remark = x.remark,
+                    priority = x.priority,
+                    status = x.status,
+                    created_at = x.created_at,
+                    updated_at = x.updated_at,
 
                     // 🔥 ดึงชื่อ Group
-                    GroupName = x.g.group_name
+                    GroupName = x.Group == null
+                        ? "ไม่ระบุ Group"
+                        : $"{(x.Group.Control != null ? x.Group.Control.control_name : "ยังไม่กำหนด Control")} / {x.Group.group_name}"
                 })
                 .ToList();
 
@@ -738,23 +745,14 @@ namespace ProjectTracking.Controllers
         private async Task RenumberScenarioCodesAsync(int projectId)
         {
             var scenarios = await _context.TestScenarios
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
                 .Where(x => x.project_id == projectId)
-                .Join(
-                    _context.TestTemplateGroups,
-                    s => s.group_id,
-                    g => g.group_id,
-                    (s, g) => new
-                    {
-                        Scenario = s,
-                        GroupSort = g.sort_order,
-                        GroupName = g.group_name
-                    }
-                )
-                .OrderBy(x => x.GroupSort)
-                .ThenBy(x => x.GroupName)
-                .ThenBy(x => x.Scenario.sort_order)
-                .ThenBy(x => x.Scenario.scenario_id)
-                .Select(x => x.Scenario)
+                .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.group_name : string.Empty)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
                 .ToListAsync();
 
             var number = 1;

@@ -4,6 +4,9 @@ namespace ProjectTracking.Models
     {
         public int group_id { get; set; }
 
+        public int? control_id { get; set; }
+        public TestTemplateGroupControl? Control { get; set; }
+
         public string group_name { get; set; } = string.Empty;
         public int sort_order { get; set; } = 0;
 

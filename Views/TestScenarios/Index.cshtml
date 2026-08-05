@@ -620,10 +620,11 @@
                                 {
                                     foreach (var g in ViewBag.Groups)
                                     {
+                                        var groupLabel = $"{g.Control?.control_name ?? "ยังไม่กำหนด Control"} / {g.group_name}";
                                         <option value="@g.group_id"
-                                                data-label="@g.group_name"
+                                                data-label="@groupLabel"
                                                 data-selected="@(selectedGroupIdSet.Contains(g.group_id) ? "true" : "false")">
-                                            @g.group_name
+                                            @groupLabel
                                         </option>
                                     }
                                 }
@@ -750,18 +751,18 @@
 
         <div class="scenario-card-groups">
             @{ var rowNo = 1; }
-            @foreach (var grp in list.GroupBy(x => x.Group?.group_name ?? "No Group"))
+            @foreach (var grp in list.GroupBy(x => new { x.group_id, ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control", GroupName = x.Group?.group_name ?? "No Group" }))
             {
                 <section class="scenario-group-card">
                     <div class="scenario-group-header">
-                        <h3 class="scenario-group-title">Group : @grp.Key</h3>
+                        <h3 class="scenario-group-title">@grp.Key.ControlName / @grp.Key.GroupName</h3>
                         <span class="scenario-group-count">@grp.Count() รายการ</span>
                     </div>
 
-                    <div class="scenario-card-list" data-group="@grp.Key">
+                    <div class="scenario-card-list" data-group="@grp.Key.group_id">
                         @foreach (var item in grp)
                         {
-                            <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key">
+                            <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key.group_id">
                                 <div class="scenario-card-head">
                                     <div class="d-flex align-items-start gap-2">
                                         @if (CanMenu("TestScenarios.Sort"))

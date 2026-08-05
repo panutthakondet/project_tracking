@@ -16,7 +16,7 @@
                 <option value="">-- Select Group --</option>
                 @foreach (var g in ViewBag.Groups)
                 {
-                    <option value="@g.group_id">@g.group_name</option>
+                    <option value="@g.group_id">@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
                 }
             </select>
             <input type="hidden" asp-for="group_id" />
@@ -27,7 +27,7 @@
                 <option value="">-- Select Group --</option>
                 @foreach (var g in ViewBag.Groups)
                 {
-                    <option value="@g.group_id">@g.group_name</option>
+                    <option value="@g.group_id">@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
                 }
             </select>
         }

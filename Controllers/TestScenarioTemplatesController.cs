@@ -41,8 +41,10 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.Groups = await _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
             ViewBag.SelectedGroupId = groupId;
@@ -57,8 +59,10 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Create(int? groupId)
         {
             ViewBag.Groups = await _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
 
@@ -84,8 +88,10 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.Groups = await _context.TestTemplateGroups
+                    .Include(g => g.Control)
                     .Where(g => g.is_active)
-                    .OrderBy(g => g.sort_order)
+                    .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                    .ThenBy(g => g.sort_order)
                     .ThenBy(g => g.group_name)
                     .ToListAsync();
 
@@ -100,8 +106,11 @@ namespace ProjectTracking.Controllers
                 ModelState.AddModelError("group_id", "กรุณาเลือก Template Group");
 
                 ViewBag.Groups = await _context.TestTemplateGroups
+                    .Include(g => g.Control)
                     .Where(g => g.is_active)
-                    .OrderBy(g => g.group_name)
+                    .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                    .ThenBy(g => g.sort_order)
+                    .ThenBy(g => g.group_name)
                     .ToListAsync();
 
                 ViewBag.LockGroup = false;
@@ -132,8 +141,10 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             ViewBag.Groups = await _context.TestTemplateGroups
+                .Include(g => g.Control)
                 .Where(g => g.is_active)
-                .OrderBy(g => g.sort_order)
+                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
 
@@ -153,8 +164,10 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.Groups = await _context.TestTemplateGroups
+                    .Include(g => g.Control)
                     .Where(g => g.is_active)
-                    .OrderBy(g => g.sort_order)
+                    .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                    .ThenBy(g => g.sort_order)
                     .ThenBy(g => g.group_name)
                     .ToListAsync();
 

@@ -1946,6 +1946,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                      || CanMenu("TestScenarios.Index")
                      || CanMenu("TestScenarioTemplates.Index")
                      || CanMenu("TestTemplateGroups.Index")
+                     || CanMenu("TestTemplateGroupControls.Index")
                      || CanMenu("ProjectDocuments.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
@@ -1961,6 +1962,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                              || CanMenu("TestScenarios.Export")
 	                         || CanMenu("TestScenarioTemplates.Index")
 	                         || CanMenu("TestTemplateGroups.Index");
+	    canTestScenarios = canTestScenarios || CanMenu("TestTemplateGroupControls.Index");
 
         var canTestIssuesSupport = canTestScenarios
                                 || canIssues
@@ -2221,6 +2223,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 	                                    (controller=="TestScenarios" && action!="PrintReport")
 	                                    || controller=="TestScenarioTemplates"
 	                                    || controller=="TestTemplateGroups"
+	                                    || controller=="TestTemplateGroupControls"
                                         || (controller=="ProjectIssues" && action!="ViewOnly")
                                         || controller=="SupportOrders"
                                         || controller=="SupportOrdersDev"
@@ -2245,6 +2248,10 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     @if (CanMenu("TestTemplateGroups.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">กลุ่ม Template</a></li>
+                                    }
+                                    @if (CanMenu("TestTemplateGroupControls.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroupControls" asp-action="Index">Template Groups Control</a></li>
                                     }
                                     @if (canIssues)
                                     {

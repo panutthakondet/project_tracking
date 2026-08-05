@@ -26,6 +26,7 @@ namespace ProjectTracking.Middleware
                 "TestScenarios",
                 "TestScenarioTemplates",
                 "TestTemplateGroups",
+                "TestTemplateGroupControls",
                 "ProjectDocuments",
                 "SupportOrders",
                 "SupportOrdersDev",
