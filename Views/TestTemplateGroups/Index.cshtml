@@ -5,6 +5,15 @@
 @{
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
     int? selectedControl = ViewBag.SelectedControl as int?;
+    var groupedRows = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>())
+        .GroupBy(g => new
+        {
+            ControlId = g.control_id,
+            ControlName = g.Control?.control_name ?? "ยังไม่กำหนด Control",
+            ControlSort = g.Control?.sort_order ?? int.MaxValue
+        })
+        .OrderBy(g => g.Key.ControlSort)
+        .ThenBy(g => g.Key.ControlName);
     bool CanMenu(string key)
     {
         var role = (Context.Session.GetString("Role") ?? "").Trim();
@@ -33,6 +42,53 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        padding: 14px;
+    }
+
+    .template-control-sections {
+        display: grid;
+        gap: 18px;
+    }
+
+    .template-control-section {
+        overflow: hidden;
+        background: #f8fbff;
+        border: 1px solid #cbddeb;
+        border-radius: 10px;
+    }
+
+    .template-control-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: #eef7ff;
+        border-bottom: 1px solid #cbddeb;
+    }
+
+    .template-control-eyebrow {
+        margin: 0 0 2px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 400;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .template-control-title {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+
+    .template-control-count {
+        flex: 0 0 auto;
+        color: #0f766e;
+        font-size: .9rem;
+        font-weight: 500;
     }
 
     .group-card {
@@ -187,94 +243,108 @@
     return;
 }
 
-<div class="group-card-list">
-    @foreach (var g in Model)
+<div class="template-control-sections">
+    @foreach (var controlGroup in groupedRows)
     {
-        <article class="group-card" data-id="@g.group_id">
-            <div class="group-card-head">
-                @if (CanMenu("TestTemplateGroups.Sort"))
-                {
-                    <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
-                }
+        <section class="template-control-section">
+            <header class="template-control-header">
                 <div>
-                    <div class="group-card-title">@g.group_name</div>
-                    <div class="group-card-subtitle">@(g.Control?.control_name ?? "ยังไม่กำหนด Control")</div>
+                    <p class="template-control-eyebrow">Template Groups Control</p>
+                    <h3 class="template-control-title">@controlGroup.Key.ControlName</h3>
                 </div>
-            </div>
+                <span class="template-control-count">@controlGroup.Count() Group</span>
+            </header>
 
-            <div class="group-card-meta">
-                <span class="group-pill">Order: @g.sort_order</span>
-                <span class="group-pill">Control: @(g.Control?.control_name ?? "-")</span>
-                <span class="group-pill">Created: @g.created_at.ToString("dd/MM/yyyy")</span>
-            </div>
+            <div class="group-card-list" data-control-id="@(controlGroup.Key.ControlId?.ToString() ?? "unassigned")">
+                @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
+                {
+                    <article class="group-card" data-id="@g.group_id">
+                        <div class="group-card-head">
+                            @if (CanMenu("TestTemplateGroups.Sort"))
+                            {
+                                <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
+                            }
+                            <div>
+                                <div class="group-card-title">@g.group_name</div>
+                                <div class="group-card-subtitle">ลำดับภายใน Control: @g.sort_order</div>
+                            </div>
+                        </div>
 
-            <div class="group-actions">
-                @if (CanMenu("TestTemplateGroups.Edit"))
-                {
-                    <a asp-action="Edit"
-                       asp-route-id="@g.group_id"
-                       class="btn btn-sm btn-outline-primary"
-                       title="แก้ไขกลุ่ม">
-                        Edit
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                        Edit
-                    </button>
-                }
+                        <div class="group-card-meta">
+                            <span class="group-pill">Order: @g.sort_order</span>
+                            <span class="group-pill">Created: @g.created_at.ToString("dd/MM/yyyy")</span>
+                        </div>
 
-                @if (CanMenu("TestTemplateGroups.Delete"))
-                {
-                    <form asp-action="Delete"
-                          asp-route-id="@g.group_id"
-                          method="post"
-                          class="d-inline"
-                          onsubmit="return confirm('Delete this group?');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบกลุ่ม">
-                            Delete
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                        Delete
-                    </button>
+                        <div class="group-actions">
+                            @if (CanMenu("TestTemplateGroups.Edit"))
+                            {
+                                <a asp-action="Edit"
+                                   asp-route-id="@g.group_id"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="แก้ไขกลุ่ม">
+                                    Edit
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                    Edit
+                                </button>
+                            }
+
+                            @if (CanMenu("TestTemplateGroups.Delete"))
+                            {
+                                <form asp-action="Delete"
+                                      asp-route-id="@g.group_id"
+                                      method="post"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Delete this group?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบกลุ่ม">
+                                        Delete
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                    Delete
+                                </button>
+                            }
+                        </div>
+                    </article>
                 }
             </div>
-        </article>
+        </section>
     }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    var groupList = document.querySelector(".group-card-list");
-
     if (@CanMenu("TestTemplateGroups.Sort").ToString().ToLower()) {
-        new Sortable(groupList, {
-            handle: ".group-drag",
-            animation: 150,
-            onEnd: function () {
-                var order = [];
-                document.querySelectorAll(".group-card-list .group-card").forEach((row, index) => {
-                    order.push({
-                        id: row.getAttribute("data-id"),
-                        sort: index + 1
+        document.querySelectorAll(".group-card-list").forEach(function (groupList) {
+            new Sortable(groupList, {
+                handle: ".group-drag",
+                animation: 150,
+                onEnd: function () {
+                    var order = [];
+                    groupList.querySelectorAll(".group-card").forEach((row, index) => {
+                        order.push({
+                            id: row.getAttribute("data-id"),
+                            sort: index + 1
+                        });
                     });
-                });
 
-                fetch('/TestTemplateGroups/UpdateSort', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(order)
-                });
-            }
+                    fetch('/TestTemplateGroups/UpdateSort', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(order)
+                    });
+                }
+            });
         });
     }
 </script>
