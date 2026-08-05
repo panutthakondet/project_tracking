@@ -223,30 +223,17 @@ namespace ProjectTracking.Controllers
                 .DistinctBy(c => c.control_id)
                 .ToList();
 
+            var allowedGroupIds = groups.Select(g => g.group_id).ToHashSet();
+            selectedGroupIds = selectedGroupIds
+                .Where(allowedGroupIds.Contains)
+                .ToList();
+
             if (controlId.HasValue && controls.All(c => c.control_id != controlId.Value))
                 controlId = null;
 
-            if (!controlId.HasValue && selectedGroupIds.Count > 0)
-            {
-                controlId = groups
-                    .FirstOrDefault(g => g.group_id == selectedGroupIds[0])?
-                    .control_id;
-            }
-
-            if (controlId.HasValue)
-            {
-                var allowedGroupIds = groups
-                    .Where(g => g.control_id == controlId.Value)
-                    .Select(g => g.group_id)
-                    .ToHashSet();
-                selectedGroupIds = selectedGroupIds
-                    .Where(allowedGroupIds.Contains)
-                    .ToList();
-            }
-            else
-            {
-                selectedGroupIds.Clear();
-            }
+            var selectedControlId = controlId ?? (selectedGroupIds.Count > 0
+                ? groups.FirstOrDefault(g => g.group_id == selectedGroupIds[0])?.control_id
+                : null);
 
             var scenarios = await _context.TestScenarios
                 .Include(x => x.Group)
@@ -254,7 +241,6 @@ namespace ProjectTracking.Controllers
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
-                    (!controlId.HasValue || (x.Group != null && x.Group.control_id == controlId.Value)) &&
                     (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value))) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
@@ -271,7 +257,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedCoopName = selectedCoopName;
-            ViewBag.SelectedControlId = controlId;
+            ViewBag.SelectedControlId = selectedControlId;
             ViewBag.SelectedGroup = selectedGroupIds.Count == 1 ? (int?)selectedGroupIds[0] : null;
             ViewBag.SelectedGroupIds = selectedGroupIds;
             ViewBag.StatusList = ScenarioStatusFilters;

@@ -934,6 +934,7 @@
         {
             id = g.group_id,
             controlId = g.control_id,
+            controlName = g.Control?.control_name ?? "ยังไม่กำหนด Control",
             name = g.group_name,
             sort = g.sort_order
         })));
@@ -1072,7 +1073,7 @@
                 .sort((left, right) => left.sort - right.sort || left.name.localeCompare(right.name, 'th'))
                 .forEach(item => {
                     const option = new Option(item.name, String(item.id));
-                    option.dataset.label = item.name;
+                    option.dataset.label = `${item.controlName} / ${item.name}`;
                     option.disabled = selectedGroups.has(String(item.id));
                     select.add(option);
                 });
@@ -1177,10 +1178,7 @@
         });
 
         controlSelect?.addEventListener('change', function () {
-            selectedGroups.clear();
             populateGroupOptions();
-            render();
-            applyGroupFilter();
         });
 
         select?.addEventListener('keydown', function (event) {
@@ -1206,8 +1204,8 @@
 
         initialSelectedGroupIds.forEach(id => {
             const item = scenarioTemplateGroups.find(group => String(group.id) === String(id));
-            if (item && String(item.controlId) === (controlSelect?.value || '')) {
-                selectedGroups.set(String(item.id), item.name);
+            if (item) {
+                selectedGroups.set(String(item.id), `${item.controlName} / ${item.name}`);
             }
         });
 
