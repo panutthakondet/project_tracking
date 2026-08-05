@@ -29,6 +29,7 @@ namespace ProjectTracking.Controllers
 
             var query = _context.TestScenarioTemplates
                 .Include(x => x.Group)
+                    .ThenInclude(g => g!.Control)
                 .AsQueryable();
 
             if (groupId.HasValue)

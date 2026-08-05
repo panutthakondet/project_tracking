@@ -19,6 +19,26 @@
         selectedGroupId = (int)ViewBag.SelectedGroupId;
     }
 
+    var controlSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestScenarioTemplate>())
+        .GroupBy(x => new
+        {
+            ControlId = x.Group?.control_id,
+            ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control",
+            ControlSort = x.Group?.Control?.sort_order ?? int.MaxValue
+        })
+        .OrderBy(x => x.Key.ControlSort)
+        .ThenBy(x => x.Key.ControlName);
+
+    var filterControlSections = groups
+        .GroupBy(x => new
+        {
+            ControlId = x.control_id,
+            ControlName = x.Control?.control_name ?? "ยังไม่กำหนด Control",
+            ControlSort = x.Control?.sort_order ?? int.MaxValue
+        })
+        .OrderBy(x => x.Key.ControlSort)
+        .ThenBy(x => x.Key.ControlName);
+
     string StatusTextClass(string? status)
     {
         return TestScenarioDisplay.NormalizeStatus(status) switch
@@ -96,6 +116,53 @@
     .template-card-groups {
         display: grid;
         gap: 18px;
+    }
+
+    .template-control-section {
+        overflow: hidden;
+        background: #f8fbff;
+        border: 1px solid #cbddeb;
+        border-radius: 10px;
+    }
+
+    .template-control-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: #eef7ff;
+        border-bottom: 1px solid #cbddeb;
+    }
+
+    .template-control-eyebrow {
+        margin: 0 0 2px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 400;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .template-control-title {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+
+    .template-control-count {
+        flex: 0 0 auto;
+        color: #0f766e;
+        font-size: .9rem;
+        font-weight: 500;
+    }
+
+    .template-control-groups {
+        display: grid;
+        gap: 14px;
+        padding: 14px;
     }
 
     .template-group-card {
@@ -354,17 +421,21 @@
                     <label class="form-label">Filter by Group</label>
                     <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()">
                         <option value="">-- Show All --</option>
-                        @foreach (var g in groups)
+                        @foreach (var controlGroup in filterControlSections)
                         {
-                            var groupLabel = $"{g.Control?.control_name ?? "ยังไม่กำหนด Control"} / {g.group_name}";
-                            if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
+                            <optgroup label="@controlGroup.Key.ControlName">
+                            @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
                             {
-                                <option value="@g.group_id" selected>@groupLabel</option>
+                                if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
+                                {
+                                    <option value="@g.group_id" selected>@g.group_name</option>
+                                }
+                                else
+                                {
+                                    <option value="@g.group_id">@g.group_name</option>
+                                }
                             }
-                            else
-                            {
-                                <option value="@g.group_id">@groupLabel</option>
-                            }
+                            </optgroup>
                         }
                     </select>
                 </div>
@@ -380,118 +451,141 @@
 else
 {
     <div class="template-card-groups">
-        @foreach (var grp in Model.OrderBy(x => x.Group?.Control?.sort_order ?? int.MaxValue).ThenBy(x => x.Group?.sort_order ?? int.MaxValue).ThenBy(x => x.template_id).GroupBy(x => new { x.group_id, ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control", GroupName = x.Group?.group_name ?? "Ungrouped" }))
+        @foreach (var controlSection in controlSections)
         {
-            <section class="template-group-card">
-                <div class="template-group-header">
-                    <h3 class="template-group-title">@grp.Key.ControlName / @grp.Key.GroupName</h3>
-                    <span class="template-group-count">@grp.Count() รายการ</span>
-                </div>
+            <section class="template-control-section">
+                <header class="template-control-header">
+                    <div>
+                        <p class="template-control-eyebrow">Template Groups Control</p>
+                        <h3 class="template-control-title">@controlSection.Key.ControlName</h3>
+                    </div>
+                    <span class="template-control-count">@controlSection.Count() Template</span>
+                </header>
 
-                <div class="template-card-list">
-                    @{ var groupRowNo = 0; }
-                    @foreach (var item in grp)
+                <div class="template-control-groups">
+                @foreach (var grp in controlSection
+                    .GroupBy(x => new
                     {
-                        groupRowNo++;
-                        <article class="template-card" data-gid="@(item.group_id ?? 0)">
-                            <div class="template-card-head">
-                                <div class="template-card-title">
-                                    <div class="template-code">#@groupRowNo · Template</div>
-                                    <div class="template-title">@item.title</div>
-                                </div>
-                                <span class="template-status-text @(item.is_active ? "is-success" : "is-muted")">
-                                    @(item.is_active ? "Active" : "Inactive")
-                                </span>
-                            </div>
+                        x.group_id,
+                        GroupName = x.Group?.group_name ?? "Ungrouped",
+                        GroupSort = x.Group?.sort_order ?? int.MaxValue
+                    })
+                    .OrderBy(x => x.Key.GroupSort)
+                    .ThenBy(x => x.Key.GroupName))
+                {
+                    <section class="template-group-card">
+                        <div class="template-group-header">
+                            <h4 class="template-group-title">@grp.Key.GroupName</h4>
+                            <span class="template-group-count">@grp.Count() รายการ</span>
+                        </div>
 
-                            <div class="template-meta">
-                                <span class="template-pill">
-                                    Priority:
-                                    <span class="template-priority-text @PriorityTextClass(item.priority_default)">
-                                        @item.priority_default
-                                    </span>
-                                </span>
-                                <span class="template-pill">
-                                    สถานะ:
-                                    <span class="template-status-text @StatusTextClass(item.status_default)">
-                                        @TestScenarioDisplay.StatusText(item.status_default)
-                                    </span>
-                                </span>
-                            </div>
+                        <div class="template-card-list">
+                            @{ var groupRowNo = 0; }
+                            @foreach (var item in grp.OrderBy(x => x.template_id))
+                            {
+                                groupRowNo++;
+                                <article class="template-card" data-gid="@(item.group_id ?? 0)">
+                                    <div class="template-card-head">
+                                        <div class="template-card-title">
+                                            <div class="template-code">#@groupRowNo · Template</div>
+                                            <div class="template-title">@item.title</div>
+                                        </div>
+                                        <span class="template-status-text @(item.is_active ? "is-success" : "is-muted")">
+                                            @(item.is_active ? "Active" : "Inactive")
+                                        </span>
+                                    </div>
 
-                            <div class="template-detail-grid">
-                                <div class="template-detail-box template-detail-box--precondition">
-                                    <div class="template-detail-label">Precondition</div>
-                                    <div class="template-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
-                                </div>
-                                <div class="template-detail-box template-detail-box--steps">
-                                    <div class="template-detail-label">Steps</div>
-                                    <div class="template-detail-text">@item.steps</div>
-                                </div>
-                                <div class="template-detail-box template-detail-box--expected">
-                                    <div class="template-detail-label">Expected Result</div>
-                                    <div class="template-detail-text">@item.expected_result</div>
-                                </div>
-                            </div>
+                                    <div class="template-meta">
+                                        <span class="template-pill">
+                                            Priority:
+                                            <span class="template-priority-text @PriorityTextClass(item.priority_default)">
+                                                @item.priority_default
+                                            </span>
+                                        </span>
+                                        <span class="template-pill">
+                                            สถานะ:
+                                            <span class="template-status-text @StatusTextClass(item.status_default)">
+                                                @TestScenarioDisplay.StatusText(item.status_default)
+                                            </span>
+                                        </span>
+                                    </div>
 
-                            <div class="template-actions">
-                                @if (CanMenu("TestScenarioTemplates.Edit"))
-                                {
-                                    <a asp-action="Edit"
-                                       asp-route-id="@item.template_id"
-                                       class="btn btn-sm btn-outline-primary"
-                                       title="แก้ไข">
-                                        Edit
-                                    </a>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                        Edit
-                                    </button>
-                                }
+                                    <div class="template-detail-grid">
+                                        <div class="template-detail-box template-detail-box--precondition">
+                                            <div class="template-detail-label">Precondition</div>
+                                            <div class="template-detail-text">@(string.IsNullOrWhiteSpace(item.precondition) ? "-" : item.precondition)</div>
+                                        </div>
+                                        <div class="template-detail-box template-detail-box--steps">
+                                            <div class="template-detail-label">Steps</div>
+                                            <div class="template-detail-text">@item.steps</div>
+                                        </div>
+                                        <div class="template-detail-box template-detail-box--expected">
+                                            <div class="template-detail-label">Expected Result</div>
+                                            <div class="template-detail-text">@item.expected_result</div>
+                                        </div>
+                                    </div>
 
-                                @if (CanMenu("TestScenarioTemplates.Toggle"))
-                                {
-                                    <form asp-action="ToggleActive"
-                                          asp-route-id="@item.template_id"
-                                          method="post"
-                                          class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิดการใช้งาน">
-                                            Toggle
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปลี่ยนสถานะ">
-                                        Toggle
-                                    </button>
-                                }
+                                    <div class="template-actions">
+                                        @if (CanMenu("TestScenarioTemplates.Edit"))
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@item.template_id"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="แก้ไข">
+                                                Edit
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
+                                                Edit
+                                            </button>
+                                        }
 
-                                @if (CanMenu("TestScenarioTemplates.Delete"))
-                                {
-                                    <form asp-action="Delete"
-                                          asp-route-id="@item.template_id"
-                                          method="post"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Delete this template?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
-                                            Delete
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                        Delete
-                                    </button>
-                                }
-                            </div>
-                        </article>
-                    }
+                                        @if (CanMenu("TestScenarioTemplates.Toggle"))
+                                        {
+                                            <form asp-action="ToggleActive"
+                                                  asp-route-id="@item.template_id"
+                                                  method="post"
+                                                  class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="เปิด/ปิดการใช้งาน">
+                                                    Toggle
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปลี่ยนสถานะ">
+                                                Toggle
+                                            </button>
+                                        }
+
+                                        @if (CanMenu("TestScenarioTemplates.Delete"))
+                                        {
+                                            <form asp-action="Delete"
+                                                  asp-route-id="@item.template_id"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Delete this template?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
+                                                Delete
+                                            </button>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    </section>
+                }
                 </div>
             </section>
         }
