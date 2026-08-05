@@ -2235,23 +2235,23 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                 <ul class="dropdown-menu">
                                     @if (canTestScenarios)
                                     {
-                                        <li><h6 class="dropdown-header">Test</h6></li>
+                                        <li><h6 class="dropdown-header">การทดสอบ</h6></li>
                                     }
                                     @if (CanMenu("TestScenarios.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">Test Scenarios</a></li>
+                                        <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">สถานการณ์ทดสอบ</a></li>
                                     }
                                     @if (CanMenu("TestScenarioTemplates.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="TestScenarioTemplates" asp-action="Index">Template Test</a></li>
+                                        <li><a class="dropdown-item" asp-controller="TestScenarioTemplates" asp-action="Index">แม่แบบทดสอบ</a></li>
                                     }
                                     @if (CanMenu("TestTemplateGroups.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">กลุ่ม Template</a></li>
+                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroups" asp-action="Index">กลุ่มแม่แบบ</a></li>
                                     }
                                     @if (CanMenu("TestTemplateGroupControls.Index"))
                                     {
-                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroupControls" asp-action="Index">Template Groups Control</a></li>
+                                        <li><a class="dropdown-item" asp-controller="TestTemplateGroupControls" asp-action="Index">ชุดแม่แบบ</a></li>
                                     }
                                     @if (canIssues)
                                     {
