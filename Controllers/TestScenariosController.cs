@@ -692,10 +692,12 @@ namespace ProjectTracking.Controllers
                     created_at = x.created_at,
                     updated_at = x.updated_at,
 
-                    // 🔥 ดึงชื่อ Group
+                    ControlName = x.Group == null || x.Group.Control == null
+                        ? "ยังไม่กำหนด Control"
+                        : x.Group.Control.control_name,
                     GroupName = x.Group == null
                         ? "ไม่ระบุ Group"
-                        : $"{(x.Group.Control != null ? x.Group.Control.control_name : "ยังไม่กำหนด Control")} / {x.Group.group_name}"
+                        : x.Group.group_name
                 })
                 .ToList();
 

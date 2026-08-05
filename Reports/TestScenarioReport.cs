@@ -31,15 +31,29 @@ public class TestScenarioReport
         var logoPath = Path.Combine(webRootPath, "soat/Logo.png");
 
         var groupedData = data
-            .GroupBy(x => x.group_id ?? 0)
-            .Select((group, index) => new
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.ControlName) ? "ยังไม่กำหนด Control" : x.ControlName)
+            .Select((control, controlIndex) => new
             {
-                GroupIndex = index + 1,
-                GroupKey = group.Key,
-                GroupName = group.FirstOrDefault()?.GroupName ?? $"Group {group.Key}",
-                Items = group.ToList(),
-                Total = group.Count(),
-                GroupSectionId = $"group-{index + 1}"
+                ControlIndex = controlIndex + 1,
+                ControlName = control.Key,
+                Total = control.Count(),
+                ControlSectionId = $"control-{controlIndex + 1}",
+                Groups = control
+                    .GroupBy(x => new
+                    {
+                        GroupId = x.group_id ?? 0,
+                        GroupName = string.IsNullOrWhiteSpace(x.GroupName) ? "ไม่ระบุ Group" : x.GroupName
+                    })
+                    .Select((group, groupIndex) => new
+                    {
+                        GroupIndex = groupIndex + 1,
+                        GroupKey = group.Key.GroupId,
+                        GroupName = group.Key.GroupName,
+                        Items = group.ToList(),
+                        Total = group.Count(),
+                        GroupSectionId = $"control-{controlIndex + 1}-group-{groupIndex + 1}"
+                    })
+                    .ToList()
             })
             .ToList();
 
@@ -104,45 +118,57 @@ public class TestScenarioReport
 
                     // numbering comes from groupedData
 
-                    foreach (var group in grouped)
+                    foreach (var control in grouped)
                     {
-                        var groupName = group.GroupName;
-                        var count = group.Total;
-
                         col.Item().Row(row =>
                         {
-                            row.RelativeItem().Text($"{group.GroupIndex}. {groupName} (Total: {count})")
-                                .FontSize(16)
+                            row.RelativeItem().Text($"{control.ControlIndex}. {control.ControlName} (Total: {control.Total})")
+                                .FontSize(17)
                                 .Bold();
 
                             row.ConstantItem(50).AlignRight().Text(text =>
                             {
-                                text.DefaultTextStyle(x => x.FontSize(16));
-                                text.BeginPageNumberOfSection(group.GroupSectionId);
+                                text.DefaultTextStyle(x => x.FontSize(17));
+                                text.BeginPageNumberOfSection(control.ControlSectionId);
                             });
                         });
 
-                        int subIndex = 1;
-                        foreach (var item in group.Items)
+                        foreach (var group in control.Groups)
                         {
-                            var itemSectionId = $"scenario-{item.scenario_id}";
-
                             col.Item().PaddingLeft(20).Row(row =>
                             {
-                                row.RelativeItem().Text($"{group.GroupIndex}.{subIndex} {item.scenario_code} : {item.title}")
-                                    .FontSize(14)
-                                    .FontColor(Colors.Grey.Darken1);
+                                row.RelativeItem().Text($"{control.ControlIndex}.{group.GroupIndex} {group.GroupName} (Total: {group.Total})")
+                                    .FontSize(15)
+                                    .Bold();
 
                                 row.ConstantItem(50).AlignRight().Text(text =>
                                 {
-                                    text.DefaultTextStyle(x => x.FontSize(14).FontColor(Colors.Grey.Darken1));
-                                    text.BeginPageNumberOfSection(itemSectionId);
+                                    text.DefaultTextStyle(x => x.FontSize(15));
+                                    text.BeginPageNumberOfSection(group.GroupSectionId);
                                 });
                             });
 
-                            subIndex++;
-                        }
+                            int scenarioIndex = 1;
+                            foreach (var item in group.Items)
+                            {
+                                var itemSectionId = $"scenario-{item.scenario_id}";
 
+                                col.Item().PaddingLeft(40).Row(row =>
+                                {
+                                    row.RelativeItem().Text($"{control.ControlIndex}.{group.GroupIndex}.{scenarioIndex} {item.scenario_code} : {item.title}")
+                                        .FontSize(13)
+                                        .FontColor(Colors.Grey.Darken1);
+
+                                    row.ConstantItem(50).AlignRight().Text(text =>
+                                    {
+                                        text.DefaultTextStyle(x => x.FontSize(13).FontColor(Colors.Grey.Darken1));
+                                        text.BeginPageNumberOfSection(itemSectionId);
+                                    });
+                                });
+
+                                scenarioIndex++;
+                            }
+                        }
                     }
                 });
             });
@@ -150,10 +176,12 @@ public class TestScenarioReport
             // ================= DETAIL =================
             var grouped = groupedData;
 
-            foreach (var group in grouped)
+            foreach (var control in grouped)
             {
-                container.Page(page =>
+                foreach (var group in control.Groups)
                 {
+                    container.Page(page =>
+                    {
                     page.Size(PageSizes.A4);
                     page.Margin(30);
 
@@ -184,12 +212,35 @@ public class TestScenarioReport
 
                     page.Content().DefaultTextStyle(x => x.FontFamily("TH Sarabun New")).PaddingTop(10).Padding(5).Column(col =>
                     {
-                        // 🔥 GROUP HEADER
-                        var groupName = group.GroupName;
-                        var total = group.Total;
+                        var controlTitle = $"{control.ControlIndex}. {control.ControlName} (Total: {control.Total})";
+                        if (group.GroupIndex == 1)
+                        {
+                            col.Item().Section(control.ControlSectionId)
+                                .Background(Colors.Blue.Lighten5)
+                                .BorderBottom(1)
+                                .BorderColor(Colors.Blue.Lighten2)
+                                .Padding(8)
+                                .Text(controlTitle)
+                                .FontSize(19)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken3);
+                        }
+                        else
+                        {
+                            col.Item()
+                                .Background(Colors.Blue.Lighten5)
+                                .BorderBottom(1)
+                                .BorderColor(Colors.Blue.Lighten2)
+                                .Padding(8)
+                                .Text(controlTitle)
+                                .FontSize(19)
+                                .Bold()
+                                .FontColor(Colors.Blue.Darken3);
+                        }
 
-                        col.Item().Section(group.GroupSectionId).Text($"{group.GroupIndex}. {groupName} (Total: {total})")
-                            .FontSize(18)
+                        col.Item().PaddingTop(8).Section(group.GroupSectionId)
+                            .Text($"{control.ControlIndex}.{group.GroupIndex} {group.GroupName} (Total: {group.Total})")
+                            .FontSize(17)
                             .Bold()
                             .FontColor(Colors.Black);
 
@@ -198,7 +249,7 @@ public class TestScenarioReport
                         {
                             col.Item().PaddingTop(10).Column(inner =>
                             {
-                                inner.Item().Section($"scenario-{item.scenario_id}").Text($"{group.GroupIndex}.{sectionIndex} {item.scenario_code} : {item.title}")
+                                inner.Item().Section($"scenario-{item.scenario_id}").Text($"{control.ControlIndex}.{group.GroupIndex}.{sectionIndex} {item.scenario_code} : {item.title}")
                                     .Bold().FontSize(16);
 
                                 inner.Item().PaddingTop(4).Text(text =>
@@ -320,7 +371,8 @@ public class TestScenarioReport
                             sectionIndex++;
                         }
                     });
-                });
+                    });
+                }
             }
 
         }).GeneratePdf();

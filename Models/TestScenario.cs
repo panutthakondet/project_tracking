@@ -48,5 +48,8 @@ namespace ProjectTracking.Models
         // 🔥 ใช้สำหรับ Report (ไม่ map ลง DB)
         [NotMapped]
         public string? GroupName { get; set; }
+
+        [NotMapped]
+        public string? ControlName { get; set; }
     }
 }
