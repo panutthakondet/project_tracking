@@ -1250,11 +1250,6 @@
             return;
         }
 
-        if (selectedGroups.size === 0 && !controlId) {
-            alert('กรุณาเลือก Template Groups Control หรือ Template Group ก่อน Preview PDF');
-            return;
-        }
-
         let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
         const status = document.querySelector('select[name="status"]')?.value;
 

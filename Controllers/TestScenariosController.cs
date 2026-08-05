@@ -669,6 +669,7 @@ namespace ProjectTracking.Controllers
                 .Where(x =>
                     x.project_id == projectId &&
                     (
+                        (selectedGroupIds.Count == 0 && !controlId.HasValue) ||
                         (selectedGroupIds.Count > 0 && x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)) ||
                         (selectedGroupIds.Count == 0
                             && controlId.HasValue
