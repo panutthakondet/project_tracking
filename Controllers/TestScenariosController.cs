@@ -231,9 +231,12 @@ namespace ProjectTracking.Controllers
             if (controlId.HasValue && controls.All(c => c.control_id != controlId.Value))
                 controlId = null;
 
-            var selectedControlId = controlId ?? (selectedGroupIds.Count > 0
-                ? groups.FirstOrDefault(g => g.group_id == selectedGroupIds[0])?.control_id
-                : null);
+            var selectedControlId = controlId;
+            var selectedControlGroupIds = selectedControlId.HasValue
+                ? selectedGroupIds
+                    .Where(id => groups.Any(g => g.group_id == id && g.control_id == selectedControlId.Value))
+                    .ToList()
+                : selectedGroupIds;
 
             var scenarios = await _context.TestScenarios
                 .Include(x => x.Group)
@@ -241,7 +244,10 @@ namespace ProjectTracking.Controllers
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
-                    (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value))) &&
+                    (!selectedControlId.HasValue ||
+                        (x.Group != null && x.Group.control_id == selectedControlId.Value)) &&
+                    (selectedControlGroupIds.Count == 0 ||
+                        (x.group_id.HasValue && selectedControlGroupIds.Contains(x.group_id.Value))) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
                 .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
@@ -258,7 +264,9 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedCoopName = selectedCoopName;
             ViewBag.SelectedControlId = selectedControlId;
-            ViewBag.SelectedGroup = selectedGroupIds.Count == 1 ? (int?)selectedGroupIds[0] : null;
+            ViewBag.SelectedGroup = selectedControlGroupIds.Count == 1
+                ? (int?)selectedControlGroupIds[0]
+                : null;
             ViewBag.SelectedGroupIds = selectedGroupIds;
             ViewBag.StatusList = ScenarioStatusFilters;
             ViewBag.SelectedStatus = selectedStatus;

@@ -671,14 +671,14 @@
                     <div class="scenario-group-picker" data-group-picker>
                         <div class="scenario-group-picker__controls">
                             <select name="controlId" class="form-select" data-control-select>
-                                <option value="">-- Select Control --</option>
+                                <option value="">-- แสดงทั้งหมด --</option>
                                 @foreach (var control in controls)
                                 {
                                     <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
                                 }
                             </select>
                             <select class="form-select" data-group-select>
-                                <option value="">-- Select Group --</option>
+                                <option value="">-- แสดงทุก Group --</option>
                             </select>
                             <button type="button" class="btn btn-outline-primary btn-pill" data-group-add>
                                 เพิ่ม
@@ -688,7 +688,7 @@
                         <div data-group-filter-inputs></div>
                         <div data-group-import-inputs></div>
                     </div>
-                    <small class="form-hint">เลือก Control ก่อน จากนั้นเลือก Group ได้หลายรายการเพื่อกรอง/Import/Preview PDF</small>
+                    <small class="form-hint">เลือก Control เพื่อแสดงรายการใน Control นั้น หรือเลือก “แสดงทั้งหมด” เพื่อดูทุกรายการ จากนั้นเลือก Group เพิ่มเติมได้หลายรายการสำหรับ Import/Preview PDF</small>
                 </div>
             </div>
         </form>
@@ -1067,7 +1067,7 @@
 
         function populateGroupOptions() {
             const controlId = controlSelect?.value || '';
-            select.replaceChildren(new Option('-- Select Group --', ''));
+            select.replaceChildren(new Option('-- แสดงทุก Group --', ''));
 
             scenarioTemplateGroups
                 .filter(item => controlId && String(item.controlId) === controlId)
@@ -1179,7 +1179,13 @@
         });
 
         controlSelect?.addEventListener('change', function () {
+            if (!controlSelect.value) {
+                selectedGroups.clear();
+                render();
+            }
+
             populateGroupOptions();
+            applyGroupFilter();
         });
 
         select?.addEventListener('keydown', function (event) {
