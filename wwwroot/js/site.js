@@ -249,6 +249,8 @@
 
         select.addEventListener("change", syncInputFromSelect);
         select.addEventListener("pt-dropdown-refresh", function () {
+            wrapper.classList.toggle("is-disabled", select.disabled);
+            input.disabled = select.disabled;
             renderOptions(input.value);
             syncInputFromSelect();
         });
