@@ -11,12 +11,19 @@
 @{
     var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup>
                  ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
+    var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl>
+                   ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
 }
 @{
     int? selectedGroupId = null;
+    int? selectedControlId = null;
     if (ViewBag.SelectedGroupId != null)
     {
         selectedGroupId = (int)ViewBag.SelectedGroupId;
+    }
+    if (ViewBag.SelectedControlId != null)
+    {
+        selectedControlId = (int)ViewBag.SelectedControlId;
     }
 
     var controlSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestScenarioTemplate>())
@@ -417,13 +424,23 @@
     <div class="card-body">
         <form method="get">
             <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label">Filter by Group</label>
-                    <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()">
-                        <option value="">-- Show All --</option>
+                <div class="col-12 col-lg-6">
+                    <label class="form-label">Template Groups Control</label>
+                    <select id="controlFilter" name="controlId" class="form-select" onchange="onControlChange()">
+                        <option value="">-- Select Control --</option>
+                        @foreach (var control in controls)
+                        {
+                            <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <label class="form-label">Template Group</label>
+                    <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()" disabled>
+                        <option value="">-- Select Group --</option>
                         @foreach (var controlGroup in filterControlSections)
                         {
-                            <optgroup label="@controlGroup.Key.ControlName">
+                            <optgroup label="@controlGroup.Key.ControlName" data-control-id="@controlGroup.Key.ControlId">
                             @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
                             {
                                 if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
@@ -593,11 +610,53 @@ else
 }
 
 <script>
+    function applyControlToGroups(resetGroup) {
+        var control = document.getElementById("controlFilter");
+        var group = document.getElementById("templateFilter");
+        if (!control || !group) return;
+
+        var selectedControl = control.value || "";
+        if (resetGroup) {
+            group.value = "";
+        }
+
+        group.disabled = !selectedControl;
+        group.querySelectorAll("optgroup").forEach(function (optgroup) {
+            var matches = selectedControl && optgroup.getAttribute("data-control-id") === selectedControl;
+            optgroup.hidden = !matches;
+            optgroup.disabled = !matches;
+        });
+        updateAddButtonState();
+    }
+
+    function updateAddButtonState() {
+        var button = document.getElementById("addTemplateBtn");
+        var control = document.getElementById("controlFilter");
+        var group = document.getElementById("templateFilter");
+        if (!button || !control || !group) return;
+
+        var ready = !!control.value && !!group.value;
+        button.classList.toggle("disabled", !ready);
+        button.setAttribute("aria-disabled", ready ? "false" : "true");
+    }
+
+    function onControlChange() {
+        applyControlToGroups(true);
+    }
+
     function onGroupChange() {
+        var control = document.getElementById("controlFilter").value || "";
         var selected = document.getElementById("templateFilter").value || "";
         var url = "/TestScenarioTemplates";
+        var query = [];
+        if (control) {
+            query.push("controlId=" + encodeURIComponent(control));
+        }
         if (selected) {
-            url += "?groupId=" + encodeURIComponent(selected);
+            query.push("groupId=" + encodeURIComponent(selected));
+        }
+        if (query.length) {
+            url += "?" + query.join("&");
         }
         window.location.href = url;
     }
@@ -624,6 +683,7 @@ else
         if (ddl && preset) {
             ddl.value = preset;
         }
+        applyControlToGroups(false);
 
         // Do not auto-filter on client; server already filtered by groupId
 
@@ -633,13 +693,18 @@ else
         btn.addEventListener("click", function (e) {
             e.preventDefault();
 
-            var selected = document.getElementById("templateFilter").value;
-            if (!selected) {
+            var selectedControl = document.getElementById("controlFilter").value;
+            var selectedGroup = document.getElementById("templateFilter").value;
+            if (!selectedControl) {
+                alert("กรุณาเลือก Template Groups Control ก่อน");
+                return;
+            }
+            if (!selectedGroup) {
                 alert("กรุณาเลือก Template Group ก่อน");
                 return;
             }
 
-            window.location.href = "/TestScenarioTemplates/Create?groupId=" + encodeURIComponent(selected);
+            window.location.href = "/TestScenarioTemplates/Create?groupId=" + encodeURIComponent(selectedGroup);
         });
     });
 </script>

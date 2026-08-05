@@ -3,34 +3,56 @@
 
 @{
     bool lockGroup = ViewBag.LockGroup != null && (bool)ViewBag.LockGroup;
+    int? selectedControlId = ViewBag.SelectedControlId as int?;
+    var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl>
+                   ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
+    var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup>
+                 ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
 }
 
 <h2>เพิ่มแม่แบบสถานการณ์ทดสอบ</h2>
 
 <form asp-action="Create" method="post">
     <div class="mb-3">
-        <label class="form-label">Template Group</label>
+        <label class="form-label">Template Groups Control</label>
         @if (lockGroup)
         {
-            <select asp-for="group_id" class="form-select" disabled>
-                <option value="">-- Select Group --</option>
-                @foreach (var g in ViewBag.Groups)
+            <select id="controlId" name="controlId" class="form-select" disabled>
+                <option value="">-- Select Control --</option>
+                @foreach (var control in controls)
                 {
-                    <option value="@g.group_id">@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
+                    <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
                 }
             </select>
-            <input type="hidden" asp-for="group_id" />
+            <input type="hidden" name="controlId" value="@selectedControlId" />
         }
         else
         {
-            <select asp-for="group_id" class="form-select">
-                <option value="">-- Select Group --</option>
-                @foreach (var g in ViewBag.Groups)
+            <select id="controlId" name="controlId" class="form-select">
+                <option value="">-- Select Control --</option>
+                @foreach (var control in controls)
                 {
-                    <option value="@g.group_id">@(g.Control?.control_name ?? "ยังไม่กำหนด Control") / @g.group_name</option>
+                    <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
                 }
             </select>
         }
+        @Html.ValidationMessage("controlId", null, new { @class = "text-danger" })
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Template Group</label>
+        <select asp-for="group_id" id="groupId" class="form-select" disabled="@lockGroup">
+            <option value="">-- Select Group --</option>
+            @foreach (var g in groups)
+            {
+                <option value="@g.group_id" data-control-id="@g.control_id">@g.group_name</option>
+            }
+        </select>
+        @if (lockGroup)
+        {
+            <input type="hidden" asp-for="group_id" />
+        }
+        <span asp-validation-for="group_id" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
@@ -74,3 +96,31 @@
        asp-route-groupId="@Model.group_id"
        class="btn btn-secondary">Cancel</a>
 </form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var control = document.getElementById("controlId");
+        var group = document.getElementById("groupId");
+        if (!control || !group) return;
+
+        function applyControl(resetGroup) {
+            var controlId = control.value || "";
+            if (resetGroup) {
+                group.value = "";
+            }
+
+            group.disabled = @lockGroup.ToString().ToLower() || !controlId;
+            group.querySelectorAll("option[data-control-id]").forEach(function (option) {
+                var matches = controlId && option.getAttribute("data-control-id") === controlId;
+                option.hidden = !matches;
+                option.disabled = !matches;
+            });
+        }
+
+        control.addEventListener("change", function () {
+            applyControl(true);
+        });
+
+        applyControl(false);
+    });
+</script>

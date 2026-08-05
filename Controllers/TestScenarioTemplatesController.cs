@@ -20,11 +20,32 @@ namespace ProjectTracking.Controllers
         // INDEX
         // =========================
         [RequireMenu("TestScenarioTemplates.Index")]
-        public async Task<IActionResult> Index(int? groupId)
+        public async Task<IActionResult> Index(int? controlId, int? groupId)
         {
             if (!groupId.HasValue && TempData["LastGroupId"] != null)
             {
                 groupId = Convert.ToInt32(TempData["LastGroupId"]);
+            }
+
+            var groups = await _context.TestTemplateGroups
+                .Include(g => g.Control)
+                .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
+                .OrderBy(g => g.Control!.sort_order)
+                .ThenBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .ToListAsync();
+
+            if (groupId.HasValue)
+            {
+                var selectedGroup = groups.FirstOrDefault(g => g.group_id == groupId.Value);
+                if (selectedGroup == null)
+                {
+                    groupId = null;
+                }
+                else
+                {
+                    controlId = selectedGroup.control_id;
+                }
             }
 
             var query = _context.TestScenarioTemplates
@@ -36,18 +57,22 @@ namespace ProjectTracking.Controllers
             {
                 query = query.Where(x => x.group_id == groupId);
             }
+            else if (controlId.HasValue)
+            {
+                query = query.Where(x => x.Group != null && x.Group.control_id == controlId);
+            }
 
             var templates = await query
                 .OrderBy(x => x.template_id)
                 .ToListAsync();
 
-            ViewBag.Groups = await _context.TestTemplateGroups
-                .Include(g => g.Control)
-                .Where(g => g.is_active)
-                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
-                .ThenBy(g => g.sort_order)
-                .ThenBy(g => g.group_name)
-                .ToListAsync();
+            ViewBag.Groups = groups;
+            ViewBag.Controls = groups
+                .Where(g => g.Control != null)
+                .Select(g => g.Control!)
+                .DistinctBy(c => c.control_id)
+                .ToList();
+            ViewBag.SelectedControlId = controlId;
             ViewBag.SelectedGroupId = groupId;
             ViewBag.GroupId = groupId;
             return View(templates);
@@ -59,16 +84,29 @@ namespace ProjectTracking.Controllers
         [RequireMenu("TestScenarioTemplates.Create")]
         public async Task<IActionResult> Create(int? groupId)
         {
-            ViewBag.Groups = await _context.TestTemplateGroups
+            var groups = await _context.TestTemplateGroups
                 .Include(g => g.Control)
-                .Where(g => g.is_active)
-                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
+                .OrderBy(g => g.Control!.sort_order)
                 .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
 
+            var selectedGroup = groupId.HasValue
+                ? groups.FirstOrDefault(g => g.group_id == groupId.Value)
+                : null;
+
+            groupId = selectedGroup?.group_id;
+            ViewBag.Groups = groups;
+            ViewBag.Controls = groups
+                .Where(g => g.Control != null)
+                .Select(g => g.Control!)
+                .DistinctBy(c => c.control_id)
+                .ToList();
+            ViewBag.SelectedControlId = selectedGroup?.control_id;
+
             // If coming from Index with selected group, preselect and lock it.
-            ViewBag.LockGroup = groupId.HasValue;
+            ViewBag.LockGroup = selectedGroup != null;
 
             var model = new TestScenarioTemplate
             {
@@ -84,37 +122,50 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarioTemplates.Create")]
-        public async Task<IActionResult> Create(TestScenarioTemplate model)
+        public async Task<IActionResult> Create(TestScenarioTemplate model, int? controlId)
         {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Groups = await _context.TestTemplateGroups
+            var selectedGroup = model.group_id.HasValue
+                ? await _context.TestTemplateGroups
                     .Include(g => g.Control)
-                    .Where(g => g.is_active)
-                    .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
-                    .ThenBy(g => g.sort_order)
-                    .ThenBy(g => g.group_name)
-                    .ToListAsync();
+                    .FirstOrDefaultAsync(g => g.group_id == model.group_id.Value
+                        && g.is_active
+                        && g.Control != null
+                        && g.Control.is_active)
+                : null;
 
-                // If group_id was provided (e.g., from Index), lock it in the UI
-                ViewBag.LockGroup = model.group_id.HasValue;
-
-                return View(model);
+            if (!controlId.HasValue || controlId.Value <= 0)
+            {
+                ModelState.AddModelError("controlId", "กรุณาเลือก Template Groups Control");
             }
 
             if (!model.group_id.HasValue || model.group_id.Value <= 0)
             {
                 ModelState.AddModelError("group_id", "กรุณาเลือก Template Group");
+            }
+            else if (selectedGroup == null || selectedGroup.control_id != controlId)
+            {
+                ModelState.AddModelError("group_id", "Template Group ไม่อยู่ภายใต้ Control ที่เลือก");
+            }
 
-                ViewBag.Groups = await _context.TestTemplateGroups
+            if (!ModelState.IsValid)
+            {
+                var groups = await _context.TestTemplateGroups
                     .Include(g => g.Control)
-                    .Where(g => g.is_active)
-                    .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
+                    .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
+                    .OrderBy(g => g.Control!.sort_order)
                     .ThenBy(g => g.sort_order)
                     .ThenBy(g => g.group_name)
                     .ToListAsync();
 
+                ViewBag.Groups = groups;
+                ViewBag.Controls = groups
+                    .Where(g => g.Control != null)
+                    .Select(g => g.Control!)
+                    .DistinctBy(c => c.control_id)
+                    .ToList();
+                ViewBag.SelectedControlId = controlId;
                 ViewBag.LockGroup = false;
+
                 return View(model);
             }
 
