@@ -648,18 +648,27 @@ namespace ProjectTracking.Controllers
         }
         [HttpGet]
         [RequireMenu("TestScenarios.Export")]
-        public IActionResult ExportPdf(int projectId, List<int> groupIds, string? status)
+        public IActionResult ExportPdf(int projectId, int? controlId, List<int> groupIds, string? status)
         {
             var selectedStatus = NormalizeIndexStatus(status);
+            var selectedGroupIds = (groupIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
             var data = _context.TestScenarios
                 .Include(x => x.Group)
                     .ThenInclude(x => x!.Control)
                 .Where(x =>
                     x.project_id == projectId &&
                     (
-                        groupIds == null ||
-                        groupIds.Count == 0 ||
-                        (x.group_id.HasValue && groupIds.Contains(x.group_id.Value))
+                        (selectedGroupIds.Count > 0 && x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)) ||
+                        (selectedGroupIds.Count == 0
+                            && controlId.HasValue
+                            && x.Group != null
+                            && x.Group.is_active
+                            && x.Group.Control != null
+                            && x.Group.Control.is_active
+                            && x.Group.control_id == controlId.Value)
                     ) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )

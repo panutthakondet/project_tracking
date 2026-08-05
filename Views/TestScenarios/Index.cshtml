@@ -1237,9 +1237,15 @@
 
     function previewPdf() {
         const projectId = document.querySelector('select[name="projectId"]')?.value || '';
+        const controlId = document.querySelector('[data-control-select]')?.value || '';
 
         if (!projectId) {
             alert('กรุณาเลือก Project ก่อน');
+            return;
+        }
+
+        if (selectedGroups.size === 0 && !controlId) {
+            alert('กรุณาเลือก Template Groups Control หรือ Template Group ก่อน Preview PDF');
             return;
         }
 
@@ -1248,6 +1254,10 @@
 
         if (status) {
             url += `&status=${encodeURIComponent(status)}`;
+        }
+
+        if (controlId) {
+            url += `&controlId=${encodeURIComponent(controlId)}`;
         }
 
         selectedGroups.forEach((label, id) => {
