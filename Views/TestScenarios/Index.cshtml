@@ -650,6 +650,14 @@
         {
             <div class="alert alert-danger">@TempData["Error"]</div>
         }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Warning"] != null)
+        {
+            <div class="alert alert-warning">@TempData["Warning"]</div>
+        }
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div class="toolbar">

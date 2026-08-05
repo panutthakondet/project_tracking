@@ -348,7 +348,8 @@ namespace ProjectTracking.Controllers
             if (!projectId.HasValue || !groupId.HasValue)
                 return RedirectToAction("Index");
 
-            await ImportTemplatesForGroupsAsync(projectId.Value, new[] { groupId.Value });
+            var result = await ImportTemplatesForGroupsAsync(projectId.Value, new[] { groupId.Value });
+            SetImportTemplatesMessage(result);
 
             return RedirectToAction("Index", new { projectId, groupId });
         }
@@ -364,19 +365,20 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction("Index", new { projectId });
             }
 
-            await ImportTemplatesForGroupsAsync(projectId.Value, groupIds);
+            var result = await ImportTemplatesForGroupsAsync(projectId.Value, groupIds);
+            SetImportTemplatesMessage(result);
 
             return RedirectToAction("Index", new { projectId });
         }
 
-        private async Task ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds)
+        private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds)
         {
             var selectedGroupIds = groupIds
                 .Distinct()
                 .ToList();
 
             if (selectedGroupIds.Count == 0)
-                return;
+                return new ImportTemplatesResult(0, 0);
 
             var orderedGroupIds = await _context.TestTemplateGroups
                 .AsNoTracking()
@@ -387,7 +389,7 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             if (orderedGroupIds.Count == 0)
-                return;
+                return new ImportTemplatesResult(0, 0);
 
             var templates = await _context.TestScenarioTemplates
                 .AsNoTracking()
@@ -395,12 +397,32 @@ namespace ProjectTracking.Controllers
                 .OrderBy(t => t.template_id)
                 .ToListAsync();
 
+            var existingScenarioRows = await _context.TestScenarios
+                .AsNoTracking()
+                .Where(s => s.project_id == projectId
+                    && s.group_id.HasValue
+                    && orderedGroupIds.Contains(s.group_id.Value))
+                .Select(s => new { s.group_id, s.title })
+                .ToListAsync();
+            var existingScenarioKeys = existingScenarioRows
+                .Select(row => BuildScenarioDuplicateKey(row.group_id, row.title))
+                .ToHashSet(StringComparer.Ordinal);
+
             var nextNumber = await GetNextScenarioNumberAsync(projectId);
+            var importedCount = 0;
+            var skippedCount = 0;
 
             foreach (var selectedGroupId in orderedGroupIds)
             {
                 foreach (var t in templates.Where(t => t.group_id == selectedGroupId))
                 {
+                    var duplicateKey = BuildScenarioDuplicateKey(t.group_id, t.title);
+                    if (!existingScenarioKeys.Add(duplicateKey))
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
                     var scenario = new TestScenario
                     {
                         project_id = projectId,
@@ -417,12 +439,44 @@ namespace ProjectTracking.Controllers
                     };
 
                     _context.TestScenarios.Add(scenario);
+                    importedCount++;
                 }
             }
 
-            await _context.SaveChangesAsync();
-            await RenumberScenarioCodesAsync(projectId);
+            if (importedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                await RenumberScenarioCodesAsync(projectId);
+            }
+
+            return new ImportTemplatesResult(importedCount, skippedCount);
         }
+
+        private static string BuildScenarioDuplicateKey(int? groupId, string? title)
+        {
+            var normalizedTitle = string.Join(" ", (title ?? string.Empty)
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .Trim()
+                .ToUpperInvariant();
+            return $"{groupId?.ToString() ?? "-"}|{normalizedTitle}";
+        }
+
+        private void SetImportTemplatesMessage(ImportTemplatesResult result)
+        {
+            if (result.ImportedCount > 0)
+            {
+                TempData["Success"] = result.SkippedCount > 0
+                    ? $"Import สำเร็จ {result.ImportedCount} รายการ และข้ามรายการซ้ำ {result.SkippedCount} รายการ"
+                    : $"Import สำเร็จ {result.ImportedCount} รายการ";
+                return;
+            }
+
+            TempData["Warning"] = result.SkippedCount > 0
+                ? $"ไม่มีรายการใหม่ ข้ามรายการซ้ำทั้งหมด {result.SkippedCount} รายการ"
+                : "ไม่พบ Template ที่พร้อม Import ใน Group ที่เลือก";
+        }
+
+        private sealed record ImportTemplatesResult(int ImportedCount, int SkippedCount);
 
         [HttpPost]
         [ValidateAntiForgeryToken]
