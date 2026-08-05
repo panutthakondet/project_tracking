@@ -225,18 +225,6 @@ public class TestScenarioReport
                                 .Bold()
                                 .FontColor(Colors.Blue.Darken3);
                         }
-                        else
-                        {
-                            col.Item()
-                                .Background(Colors.Blue.Lighten5)
-                                .BorderBottom(1)
-                                .BorderColor(Colors.Blue.Lighten2)
-                                .Padding(8)
-                                .Text(controlTitle)
-                                .FontSize(19)
-                                .Bold()
-                                .FontColor(Colors.Blue.Darken3);
-                        }
 
                         col.Item().PaddingTop(8).Section(group.GroupSectionId)
                             .Text($"{control.ControlIndex}.{group.GroupIndex} {group.GroupName} (Total: {group.Total})")
