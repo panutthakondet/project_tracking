@@ -1,0 +1,303 @@
+@model ProjectTracking.Models.TestScenario
+
+@using Microsoft.AspNetCore.Http
+@using ProjectTracking.Helpers
+
+@{
+    var project = ViewBag.Project as ProjectTracking.Models.Project;
+    var attachments = ViewBag.Attachments as IEnumerable<TestScenarioAttachment> ?? Enumerable.Empty<TestScenarioAttachment>();
+    var backUrl = (ViewBag.ReturnUrl as string) ?? Url.Action("Index", "TestScenarios", new { projectId = Model.project_id });
+
+    bool CanMenu(string key)
+    {
+        var role = (Context.Session.GetString("Role") ?? "").Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+        var menus = Context.Session.GetString("Menus") ?? "";
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    string StatusClass(string status) => TestScenarioDisplay.NormalizeStatus(status) switch
+    {
+        "PASSED" => "is-success",
+        "FAILED" => "is-danger",
+        "READY" => "is-primary",
+        _ => "is-muted"
+    };
+
+    string FileSize(int? size)
+    {
+        if (!size.HasValue || size.Value <= 0) return "-";
+        return size.Value >= 1024 * 1024
+            ? $"{size.Value / 1024d / 1024d:0.##} MB"
+            : $"{size.Value / 1024d:0.##} KB";
+    }
+}
+
+<style>
+    .scenario-details-page {
+        display: grid;
+        gap: 18px;
+    }
+
+    .scenario-details-header,
+    .scenario-details-section {
+        border: 1px solid #b9e4f7;
+        background: #fff;
+    }
+
+    .scenario-details-header {
+        padding: 24px;
+        background: linear-gradient(135deg, #062f46, #0d4962);
+        color: #fff;
+    }
+
+    .scenario-details-header__top,
+    .scenario-details-actions,
+    .scenario-details-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .scenario-details-header__top {
+        justify-content: space-between;
+    }
+
+    .scenario-details-code {
+        margin: 0 0 4px;
+        color: #6ee7f2;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .scenario-details-title {
+        margin: 0;
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .scenario-details-status {
+        font-size: .95rem;
+        font-weight: 600;
+    }
+
+    .scenario-details-status.is-success { color: #5ee9a3; }
+    .scenario-details-status.is-danger { color: #ff8a98; }
+    .scenario-details-status.is-primary { color: #6dd5ff; }
+    .scenario-details-status.is-muted { color: #d4dde5; }
+
+    .scenario-details-meta {
+        margin-top: 18px;
+        color: #d8e7ee;
+        font-size: .92rem;
+    }
+
+    .scenario-details-meta span + span::before {
+        content: "•";
+        margin-right: 10px;
+        color: #6ee7f2;
+    }
+
+    .scenario-details-section {
+        padding: 22px;
+    }
+
+    .scenario-details-section h3 {
+        margin: 0 0 16px;
+        font-size: 1.08rem;
+        font-weight: 600;
+        color: #083344;
+    }
+
+    .scenario-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 28px;
+    }
+
+    .scenario-details-row {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid #e3edf2;
+    }
+
+    .scenario-details-label {
+        color: #607782;
+        font-weight: 500;
+    }
+
+    .scenario-details-value {
+        color: #102f3a;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .scenario-details-block + .scenario-details-block {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #d9e8ee;
+    }
+
+    .scenario-details-block h4 {
+        margin: 0 0 8px;
+        color: #607782;
+        font-size: .94rem;
+        font-weight: 600;
+    }
+
+    .scenario-details-block p {
+        margin: 0;
+        color: #102f3a;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .scenario-attachments {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 14px;
+    }
+
+    .scenario-attachment {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid #d6e7ee;
+        color: #102f3a;
+        text-decoration: none;
+    }
+
+    .scenario-attachment:hover {
+        border-color: #27a9df;
+        color: #075985;
+    }
+
+    .scenario-attachment img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        background: #eef6f9;
+    }
+
+    .scenario-attachment__name {
+        overflow-wrap: anywhere;
+    }
+
+    .scenario-attachment__meta {
+        color: #6b7f88;
+        font-size: .82rem;
+    }
+
+    @@media (max-width: 800px) {
+        .scenario-details-grid { grid-template-columns: 1fr; }
+        .scenario-details-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+</style>
+
+<div class="scenario-details-page">
+    <header class="scenario-details-header">
+        <div class="scenario-details-header__top">
+            <div>
+                <p class="scenario-details-code">@Model.scenario_code</p>
+                <h2 class="scenario-details-title">@Model.title</h2>
+            </div>
+            <span class="scenario-details-status @StatusClass(Model.status)">
+                @TestScenarioDisplay.StatusText(Model.status)
+            </span>
+        </div>
+
+        <div class="scenario-details-meta">
+            <span>@(Model.Group?.Control?.control_name ?? "ยังไม่กำหนด Control")</span>
+            <span>@(Model.Group?.group_name ?? "ไม่ระบุ Group")</span>
+            <span>Priority: @Model.priority</span>
+        </div>
+    </header>
+
+    <div class="scenario-details-actions">
+        <a href="@backUrl" class="btn btn-outline-secondary">กลับ</a>
+        @if (CanMenu("TestScenarios.Edit"))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.scenario_id" class="btn btn-primary">แก้ไข</a>
+        }
+    </div>
+
+    <section class="scenario-details-section">
+        <h3>ข้อมูล Test Scenario</h3>
+        <div class="scenario-details-grid">
+            <div class="scenario-details-row">
+                <span class="scenario-details-label">โครงการ</span>
+                <span class="scenario-details-value">@(project?.ProjectDisplayName ?? "-")</span>
+            </div>
+            <div class="scenario-details-row">
+                <span class="scenario-details-label">ผู้สร้าง</span>
+                <span class="scenario-details-value">@(string.IsNullOrWhiteSpace(Model.created_by) ? "-" : Model.created_by)</span>
+            </div>
+            <div class="scenario-details-row">
+                <span class="scenario-details-label">สร้างเมื่อ</span>
+                <span class="scenario-details-value">@Model.created_at.ToString("dd/MM/yyyy HH:mm")</span>
+            </div>
+            <div class="scenario-details-row">
+                <span class="scenario-details-label">แก้ไขล่าสุด</span>
+                <span class="scenario-details-value">@(Model.updated_at?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="scenario-details-section">
+        <h3>รายละเอียดการทดสอบ</h3>
+        <div class="scenario-details-block">
+            <h4>Precondition</h4>
+            <p>@(string.IsNullOrWhiteSpace(Model.precondition) ? "-" : Model.precondition)</p>
+        </div>
+        <div class="scenario-details-block">
+            <h4>Steps</h4>
+            <p>@(string.IsNullOrWhiteSpace(Model.steps) ? "-" : Model.steps)</p>
+        </div>
+        <div class="scenario-details-block">
+            <h4>Expected Result</h4>
+            <p>@(string.IsNullOrWhiteSpace(Model.expected_result) ? "-" : Model.expected_result)</p>
+        </div>
+        <div class="scenario-details-block">
+            <h4>Remark</h4>
+            <p>@(string.IsNullOrWhiteSpace(Model.remark) ? "-" : Model.remark)</p>
+        </div>
+    </section>
+
+    <section class="scenario-details-section">
+        <h3>ไฟล์แนบ (@attachments.Count())</h3>
+        @if (attachments.Any())
+        {
+            <div class="scenario-attachments">
+                @foreach (var file in attachments)
+                {
+                    var isImage = file.FileType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true;
+                    <a class="scenario-attachment" href="@file.FilePath" target="_blank" rel="noopener">
+                        @if (isImage)
+                        {
+                            <img src="@file.FilePath" alt="@file.FileName" />
+                        }
+                        else
+                        {
+                            <span>📎 ไฟล์แนบ</span>
+                        }
+                        <span class="scenario-attachment__name">@(file.FileName ?? "ไฟล์แนบ")</span>
+                        <span class="scenario-attachment__meta">@FileSize(file.FileSize) · @file.UploadedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="mb-0 text-muted">ไม่มีไฟล์แนบ</p>
+        }
+    </section>
+</div>

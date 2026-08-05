@@ -274,6 +274,33 @@ namespace ProjectTracking.Controllers
             return View(scenarios);
         }
 
+        [RequireMenu("TestScenarios.Index")]
+        public async Task<IActionResult> Details(int id, string? returnUrl)
+        {
+            var scenario = await _context.TestScenarios
+                .AsNoTracking()
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
+                .FirstOrDefaultAsync(x => x.scenario_id == id);
+
+            if (scenario == null) return NotFound();
+
+            ViewBag.Project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == scenario.project_id);
+            ViewBag.Attachments = await _context.TestScenarioAttachments
+                .AsNoTracking()
+                .Where(x => x.ScenarioId == id)
+                .OrderBy(x => x.UploadedAt)
+                .ToListAsync();
+            ViewBag.ReturnUrl = Url.IsLocalUrl(returnUrl)
+                ? returnUrl
+                : Url.Action(nameof(Index), new { projectId = scenario.project_id, groupId = scenario.group_id });
+
+            return View(scenario);
+        }
+
         [RequireMenu("TestScenarios.Edit")]
         public async Task<IActionResult> Edit(int id)
         {

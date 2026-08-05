@@ -871,6 +871,14 @@
                                 </div>
 
                                 <div class="scenario-card-actions">
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.scenario_id"
+                                       asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="ดูรายละเอียด Test Scenario">
+                                        ดูรายละเอียด
+                                    </a>
+
                                     @if (CanMenu("TestScenarios.Edit"))
                                     {
                                         <a asp-action="Edit"
