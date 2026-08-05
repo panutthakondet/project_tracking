@@ -21,6 +21,19 @@
     var selectedCoopName = (ViewBag.SelectedCoopName as string) ?? "";
     var statusList = ViewBag.StatusList as IEnumerable<(string Value, string Text)> ?? Enumerable.Empty<(string Value, string Text)>();
     var selectedStatus = ((ViewBag.SelectedStatus as string) ?? "").Trim().ToUpperInvariant();
+    var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
+    var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
+    int? selectedControlId = ViewBag.SelectedControlId != null ? Convert.ToInt32(ViewBag.SelectedControlId) : null;
+    var selectedGroupIds = ViewBag.SelectedGroupIds as IEnumerable<int> ?? Enumerable.Empty<int>();
+    var controlSections = list
+        .GroupBy(x => new
+        {
+            ControlId = x.Group?.control_id,
+            ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control",
+            ControlSort = x.Group?.Control?.sort_order ?? int.MaxValue
+        })
+        .OrderBy(x => x.Key.ControlSort)
+        .ThenBy(x => x.Key.ControlName);
 }
 
 @{
@@ -149,6 +162,53 @@
     .scenario-card-groups {
         display: grid;
         gap: 18px;
+    }
+
+    .scenario-control-section {
+        overflow: hidden;
+        background: #f8fbff;
+        border: 1px solid #cbddeb;
+        border-radius: 10px;
+    }
+
+    .scenario-control-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: #eef7ff;
+        border-bottom: 1px solid #cbddeb;
+    }
+
+    .scenario-control-eyebrow {
+        margin: 0 0 2px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 400;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .scenario-control-title {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+
+    .scenario-control-count {
+        flex: 0 0 auto;
+        color: #0f766e;
+        font-size: .9rem;
+        font-weight: 500;
+    }
+
+    .scenario-control-groups {
+        display: grid;
+        gap: 14px;
+        padding: 14px;
     }
 
     .scenario-group-card {
@@ -376,7 +436,7 @@
 
     .scenario-group-picker__controls {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr) auto;
         gap: 10px;
         align-items: stretch;
     }
@@ -607,27 +667,18 @@
                 </div>
 
                 <div class="scenario-filter-groups">
-                    <label class="form-label">Select Group</label>
-                    @{
-                        var selectedGroupIds = ViewBag.SelectedGroupIds as IEnumerable<int> ?? Enumerable.Empty<int>();
-                        var selectedGroupIdSet = selectedGroupIds.ToHashSet();
-                    }
+                    <label class="form-label">Template Groups Control / Template Group</label>
                     <div class="scenario-group-picker" data-group-picker>
                         <div class="scenario-group-picker__controls">
-                            <select class="form-select" data-group-select>
-                                <option value="">-- แสดงทุก Group --</option>
-                                @if (ViewBag.Groups != null)
+                            <select name="controlId" class="form-select" data-control-select>
+                                <option value="">-- Select Control --</option>
+                                @foreach (var control in controls)
                                 {
-                                    foreach (var g in ViewBag.Groups)
-                                    {
-                                        var groupLabel = $"{g.Control?.control_name ?? "ยังไม่กำหนด Control"} / {g.group_name}";
-                                        <option value="@g.group_id"
-                                                data-label="@groupLabel"
-                                                data-selected="@(selectedGroupIdSet.Contains(g.group_id) ? "true" : "false")">
-                                            @groupLabel
-                                        </option>
-                                    }
+                                    <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
                                 }
+                            </select>
+                            <select class="form-select" data-group-select>
+                                <option value="">-- Select Group --</option>
                             </select>
                             <button type="button" class="btn btn-outline-primary btn-pill" data-group-add>
                                 เพิ่ม
@@ -637,7 +688,7 @@
                         <div data-group-filter-inputs></div>
                         <div data-group-import-inputs></div>
                     </div>
-                    <small class="form-hint">ไม่เลือก Group = แสดงทั้งหมด เลือกทีละ Group กดเพิ่มเพื่อกรอง/Import/Preview PDF</small>
+                    <small class="form-hint">เลือก Control ก่อน จากนั้นเลือก Group ได้หลายรายการเพื่อกรอง/Import/Preview PDF</small>
                 </div>
             </div>
         </form>
@@ -751,17 +802,37 @@
 
         <div class="scenario-card-groups">
             @{ var rowNo = 1; }
-            @foreach (var grp in list.GroupBy(x => new { x.group_id, ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control", GroupName = x.Group?.group_name ?? "No Group" }))
+            @foreach (var controlSection in controlSections)
             {
-                <section class="scenario-group-card">
-                    <div class="scenario-group-header">
-                        <h3 class="scenario-group-title">@grp.Key.ControlName / @grp.Key.GroupName</h3>
-                        <span class="scenario-group-count">@grp.Count() รายการ</span>
-                    </div>
+                <section class="scenario-control-section">
+                    <header class="scenario-control-header">
+                        <div>
+                            <p class="scenario-control-eyebrow">Template Groups Control</p>
+                            <h3 class="scenario-control-title">@controlSection.Key.ControlName</h3>
+                        </div>
+                        <span class="scenario-control-count">@controlSection.Count() Scenario</span>
+                    </header>
 
-                    <div class="scenario-card-list" data-group="@grp.Key.group_id">
-                        @foreach (var item in grp)
+                    <div class="scenario-control-groups">
+                    @foreach (var grp in controlSection
+                        .GroupBy(x => new
                         {
+                            x.group_id,
+                            GroupName = x.Group?.group_name ?? "No Group",
+                            GroupSort = x.Group?.sort_order ?? int.MaxValue
+                        })
+                        .OrderBy(x => x.Key.GroupSort)
+                        .ThenBy(x => x.Key.GroupName))
+                    {
+                        <section class="scenario-group-card">
+                            <div class="scenario-group-header">
+                                <h4 class="scenario-group-title">@grp.Key.GroupName</h4>
+                                <span class="scenario-group-count">@grp.Count() รายการ</span>
+                            </div>
+
+                            <div class="scenario-card-list" data-group="@grp.Key.group_id">
+                            @foreach (var item in grp.OrderBy(x => x.sort_order).ThenBy(x => x.scenario_id))
+                            {
                             <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key.group_id">
                                 <div class="scenario-card-head">
                                     <div class="d-flex align-items-start gap-2">
@@ -837,8 +908,11 @@
                                 </div>
                             </article>
 
-                            rowNo++;
-                        }
+                                rowNo++;
+                            }
+                            </div>
+                        </section>
+                    }
                     </div>
                 </section>
             }
@@ -855,6 +929,15 @@
 
 <script>
     const canSortScenarios = @CanMenu("TestScenarios.Sort").ToString().ToLower();
+    const scenarioTemplateGroups = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        groups.Select(g => new
+        {
+            id = g.group_id,
+            controlId = g.control_id,
+            name = g.group_name,
+            sort = g.sort_order
+        })));
+    const initialSelectedGroupIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(selectedGroupIds));
 
     function initScenarioSortable() {
         if (!canSortScenarios || !window.Sortable) return;
@@ -968,6 +1051,7 @@
         const picker = document.querySelector('[data-group-picker]');
         if (!picker) return;
 
+        const controlSelect = picker.querySelector('[data-control-select]');
         const select = picker.querySelector('[data-group-select]');
         const addButton = picker.querySelector('[data-group-add]');
         const list = picker.querySelector('[data-group-list]');
@@ -977,6 +1061,24 @@
 
         function findOption(value) {
             return Array.from(select.options).find(option => option.value === value);
+        }
+
+        function populateGroupOptions() {
+            const controlId = controlSelect?.value || '';
+            select.replaceChildren(new Option('-- Select Group --', ''));
+
+            scenarioTemplateGroups
+                .filter(item => controlId && String(item.controlId) === controlId)
+                .sort((left, right) => left.sort - right.sort || left.name.localeCompare(right.name, 'th'))
+                .forEach(item => {
+                    const option = new Option(item.name, String(item.id));
+                    option.dataset.label = item.name;
+                    option.disabled = selectedGroups.has(String(item.id));
+                    select.add(option);
+                });
+
+            select.disabled = !controlId;
+            select.value = '';
         }
 
         function syncInputs() {
@@ -1044,8 +1146,7 @@
 
         function clearGroups() {
             selectedGroups.clear();
-            Array.from(select.options).forEach(option => option.disabled = false);
-            select.value = '';
+            populateGroupOptions();
             render();
         }
 
@@ -1074,6 +1175,13 @@
             addGroup(select.value, true);
         });
 
+        controlSelect?.addEventListener('change', function () {
+            selectedGroups.clear();
+            populateGroupOptions();
+            render();
+            applyGroupFilter();
+        });
+
         select?.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -1095,10 +1203,14 @@
             applyGroupFilter();
         });
 
-        Array.from(select.options)
-            .filter(option => option.dataset.selected === 'true')
-            .forEach(option => addGroup(option.value));
+        initialSelectedGroupIds.forEach(id => {
+            const item = scenarioTemplateGroups.find(group => String(group.id) === String(id));
+            if (item && String(item.controlId) === (controlSelect?.value || '')) {
+                selectedGroups.set(String(item.id), item.name);
+            }
+        });
 
+        populateGroupOptions();
         render();
     }
 

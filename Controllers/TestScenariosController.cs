@@ -174,7 +174,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? groupId, List<int>? groupIds, string? status, string? coopName)
+        public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? coopName)
         {
             var selectedStatus = ResolveIndexStatusFilter(status);
             var selectedCoopName = (coopName ?? "").Trim();
@@ -208,12 +208,53 @@ namespace ProjectTracking.Controllers
             if (selectedGroupIds.Count == 0 && groupId.HasValue && groupId.Value > 0)
                 selectedGroupIds.Add(groupId.Value);
 
+            var groups = await _context.TestTemplateGroups
+                .AsNoTracking()
+                .Include(g => g.Control)
+                .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
+                .OrderBy(g => g.Control!.sort_order)
+                .ThenBy(g => g.sort_order)
+                .ThenBy(g => g.group_name)
+                .ToListAsync();
+
+            var controls = groups
+                .Where(g => g.Control != null)
+                .Select(g => g.Control!)
+                .DistinctBy(c => c.control_id)
+                .ToList();
+
+            if (controlId.HasValue && controls.All(c => c.control_id != controlId.Value))
+                controlId = null;
+
+            if (!controlId.HasValue && selectedGroupIds.Count > 0)
+            {
+                controlId = groups
+                    .FirstOrDefault(g => g.group_id == selectedGroupIds[0])?
+                    .control_id;
+            }
+
+            if (controlId.HasValue)
+            {
+                var allowedGroupIds = groups
+                    .Where(g => g.control_id == controlId.Value)
+                    .Select(g => g.group_id)
+                    .ToHashSet();
+                selectedGroupIds = selectedGroupIds
+                    .Where(allowedGroupIds.Contains)
+                    .ToList();
+            }
+            else
+            {
+                selectedGroupIds.Clear();
+            }
+
             var scenarios = await _context.TestScenarios
                 .Include(x => x.Group)
                     .ThenInclude(x => x!.Control)
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
+                    (!controlId.HasValue || (x.Group != null && x.Group.control_id == controlId.Value)) &&
                     (selectedGroupIds.Count == 0 || (x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value))) &&
                     (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
                 )
@@ -223,18 +264,14 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.scenario_id)
                 .ToListAsync();
 
-            ViewBag.Groups = _context.TestTemplateGroups
-                .Include(g => g.Control)
-                .Where(g => g.is_active)
-                .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
-                .ThenBy(g => g.sort_order)
-                .ThenBy(g => g.group_name)
-                .ToList();
+            ViewBag.Groups = groups;
+            ViewBag.Controls = controls;
             ViewBag.Projects = projects;
             ViewBag.CoopOptions = coopOptions;
 
             ViewBag.SelectedProject = projectId;
             ViewBag.SelectedCoopName = selectedCoopName;
+            ViewBag.SelectedControlId = controlId;
             ViewBag.SelectedGroup = selectedGroupIds.Count == 1 ? (int?)selectedGroupIds[0] : null;
             ViewBag.SelectedGroupIds = selectedGroupIds;
             ViewBag.StatusList = ScenarioStatusFilters;
