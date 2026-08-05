@@ -740,6 +740,7 @@
                       onsubmit="return importSelectedGroups();">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
+                    <input type="hidden" name="controlId" value="" data-import-control-id />
                     <input type="hidden" name="coopName" value="@selectedCoopName" />
                     <input type="hidden" name="status" value="@selectedStatus" />
                     <button type="submit"
@@ -1214,9 +1215,21 @@
     }
 
     function importSelectedGroups() {
+        const controlSelect = document.querySelector('[data-control-select]');
+        const selectedControlId = controlSelect?.value || '';
+        const selectedControlName = controlSelect?.selectedOptions[0]?.text || '';
+        const controlInput = document.querySelector('[data-import-control-id]');
+        if (controlInput) {
+            controlInput.value = selectedControlId;
+        }
+
         if (selectedGroups.size === 0) {
-            alert('กรุณาเลือก Group อย่างน้อย 1 รายการก่อน Import');
-            return false;
+            if (!selectedControlId) {
+                alert('กรุณาเลือก Template Groups Control หรือ Template Group ก่อน Import');
+                return false;
+            }
+
+            return confirm(`Import Templates จากทุก Group ใน ${selectedControlName} เข้าโครงการนี้?`);
         }
 
         return confirm(`Import Templates จาก ${selectedGroups.size} Group ที่เลือกเข้าโครงการนี้?`);

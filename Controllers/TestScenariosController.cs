@@ -382,18 +382,51 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportTemplates(int? projectId, List<int> groupIds)
+        public async Task<IActionResult> ImportTemplates(int? projectId, int? controlId, List<int> groupIds)
         {
-            if (!projectId.HasValue || groupIds == null || groupIds.Count == 0)
+            if (!projectId.HasValue)
             {
-                TempData["Error"] = "กรุณาเลือก Group อย่างน้อย 1 รายการก่อน Import";
-                return RedirectToAction("Index", new { projectId });
+                TempData["Error"] = "กรุณาเลือกโครงการก่อน Import";
+                return RedirectToAction("Index");
             }
 
-            var result = await ImportTemplatesForGroupsAsync(projectId.Value, groupIds);
+            var selectedGroupIds = (groupIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+            var importEntireControl = selectedGroupIds.Count == 0 && controlId.HasValue;
+
+            if (selectedGroupIds.Count == 0 && controlId.HasValue)
+            {
+                selectedGroupIds = await _context.TestTemplateGroups
+                    .AsNoTracking()
+                    .Where(g => g.is_active
+                        && g.control_id == controlId.Value
+                        && g.Control != null
+                        && g.Control.is_active)
+                    .Select(g => g.group_id)
+                    .ToListAsync();
+            }
+
+            if (selectedGroupIds.Count == 0)
+            {
+                TempData["Error"] = "ไม่พบ Template Group สำหรับ Import";
+                return RedirectToAction("Index", new { projectId, controlId });
+            }
+
+            var result = await ImportTemplatesForGroupsAsync(projectId.Value, selectedGroupIds);
             SetImportTemplatesMessage(result);
 
-            return RedirectToAction("Index", new { projectId });
+            var redirectQuery = new List<string>
+            {
+                $"projectId={projectId.Value}"
+            };
+            if (controlId.HasValue)
+                redirectQuery.Add($"controlId={controlId.Value}");
+            if (!importEntireControl)
+                redirectQuery.AddRange(selectedGroupIds.Select(id => $"groupIds={id}"));
+
+            return Redirect($"{Url.Action(nameof(Index))}?{string.Join("&", redirectQuery)}");
         }
 
         private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds)
@@ -408,7 +441,10 @@ namespace ProjectTracking.Controllers
             var orderedGroupIds = await _context.TestTemplateGroups
                 .AsNoTracking()
                 .Include(g => g.Control)
-                .Where(g => g.is_active && selectedGroupIds.Contains(g.group_id))
+                .Where(g => g.is_active
+                    && g.Control != null
+                    && g.Control.is_active
+                    && selectedGroupIds.Contains(g.group_id))
                 .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
                 .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
