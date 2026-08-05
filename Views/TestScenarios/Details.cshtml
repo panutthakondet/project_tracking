@@ -41,66 +41,35 @@
         gap: 18px;
     }
 
-    .scenario-details-header,
     .scenario-details-section {
         border: 1px solid #b9e4f7;
         background: #fff;
     }
 
     .scenario-details-header {
-        padding: 24px;
-        background: linear-gradient(135deg, #062f46, #0d4962);
-        color: #fff;
+        margin-bottom: 0;
     }
 
-    .scenario-details-header__top,
-    .scenario-details-actions,
-    .scenario-details-meta {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
+    .scenario-details-header .index-eyebrow,
+    .scenario-details-header .index-title,
+    .scenario-details-header .index-subtitle {
+        color: #fff !important;
     }
 
-    .scenario-details-header__top {
-        justify-content: space-between;
-    }
-
-    .scenario-details-code {
-        margin: 0 0 4px;
-        color: #6ee7f2;
-        font-size: .9rem;
-        font-weight: 600;
-    }
-
-    .scenario-details-title {
-        margin: 0;
-        font-size: clamp(1.35rem, 2vw, 1.75rem);
-        font-weight: 600;
-        line-height: 1.35;
+    .scenario-details-header .index-subtitle {
+        color: #dbeafe !important;
     }
 
     .scenario-details-status {
         font-size: .95rem;
         font-weight: 600;
+        margin-right: auto;
     }
 
     .scenario-details-status.is-success { color: #5ee9a3; }
     .scenario-details-status.is-danger { color: #ff8a98; }
     .scenario-details-status.is-primary { color: #6dd5ff; }
     .scenario-details-status.is-muted { color: #d4dde5; }
-
-    .scenario-details-meta {
-        margin-top: 18px;
-        color: #d8e7ee;
-        font-size: .92rem;
-    }
-
-    .scenario-details-meta span + span::before {
-        content: "•";
-        margin-right: 10px;
-        color: #6ee7f2;
-    }
 
     .scenario-details-section {
         padding: 22px;
@@ -204,31 +173,28 @@
 </style>
 
 <div class="scenario-details-page">
-    <header class="scenario-details-header">
-        <div class="scenario-details-header__top">
-            <div>
-                <p class="scenario-details-code">@Model.scenario_code</p>
-                <h2 class="scenario-details-title">@Model.title</h2>
-            </div>
+    <header class="scenario-details-header index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">Test Scenario · @Model.scenario_code</span>
+            <h2 class="index-title">@Model.title</h2>
+            <p class="index-subtitle">
+                @(Model.Group?.Control?.control_name ?? "ยังไม่กำหนด Control")
+                · @(Model.Group?.group_name ?? "ไม่ระบุ Group")
+                · Priority: @Model.priority
+            </p>
+        </div>
+
+        <div class="index-actions">
             <span class="scenario-details-status @StatusClass(Model.status)">
                 @TestScenarioDisplay.StatusText(Model.status)
             </span>
-        </div>
-
-        <div class="scenario-details-meta">
-            <span>@(Model.Group?.Control?.control_name ?? "ยังไม่กำหนด Control")</span>
-            <span>@(Model.Group?.group_name ?? "ไม่ระบุ Group")</span>
-            <span>Priority: @Model.priority</span>
+            <a href="@backUrl" class="btn btn-outline-light">กลับ</a>
+            @if (CanMenu("TestScenarios.Edit"))
+            {
+                <a asp-action="Edit" asp-route-id="@Model.scenario_id" class="btn btn-primary">แก้ไข</a>
+            }
         </div>
     </header>
-
-    <div class="scenario-details-actions">
-        <a href="@backUrl" class="btn btn-outline-secondary">กลับ</a>
-        @if (CanMenu("TestScenarios.Edit"))
-        {
-            <a asp-action="Edit" asp-route-id="@Model.scenario_id" class="btn btn-primary">แก้ไข</a>
-        }
-    </div>
 
     <section class="scenario-details-section">
         <h3>ข้อมูล Test Scenario</h3>
