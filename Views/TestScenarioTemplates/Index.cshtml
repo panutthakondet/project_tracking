@@ -36,16 +36,6 @@
         .OrderBy(x => x.Key.ControlSort)
         .ThenBy(x => x.Key.ControlName);
 
-    var filterControlSections = groups
-        .GroupBy(x => new
-        {
-            ControlId = x.control_id,
-            ControlName = x.Control?.control_name ?? "ยังไม่กำหนด Control",
-            ControlSort = x.Control?.sort_order ?? int.MaxValue
-        })
-        .OrderBy(x => x.Key.ControlSort)
-        .ThenBy(x => x.Key.ControlName);
-
     string StatusTextClass(string? status)
     {
         return TestScenarioDisplay.NormalizeStatus(status) switch
@@ -436,24 +426,13 @@
                 </div>
                 <div class="col-12 col-lg-6">
                     <label class="form-label">Template Group</label>
-                    <select id="templateFilter" name="groupId" class="form-select" onchange="onGroupChange()" disabled>
+                    <select id="templateFilter"
+                            name="groupId"
+                            class="form-select"
+                            data-selected-group="@(selectedGroupId?.ToString() ?? "")"
+                            onchange="onGroupChange()"
+                            disabled>
                         <option value="">-- Select Group --</option>
-                        @foreach (var controlGroup in filterControlSections)
-                        {
-                            <optgroup label="@controlGroup.Key.ControlName" data-control-id="@controlGroup.Key.ControlId">
-                            @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
-                            {
-                                if (selectedGroupId.HasValue && selectedGroupId.Value == g.group_id)
-                                {
-                                    <option value="@g.group_id" selected>@g.group_name</option>
-                                }
-                                else
-                                {
-                                    <option value="@g.group_id">@g.group_name</option>
-                                }
-                            }
-                            </optgroup>
-                        }
                     </select>
                 </div>
             </div>
@@ -610,22 +589,38 @@ else
 }
 
 <script>
+    const templateGroups = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        groups.Select(g => new
+        {
+            id = g.group_id,
+            controlId = g.control_id,
+            name = g.group_name,
+            sort = g.sort_order
+        })));
+
     function applyControlToGroups(resetGroup) {
         var control = document.getElementById("controlFilter");
         var group = document.getElementById("templateFilter");
         if (!control || !group) return;
 
         var selectedControl = control.value || "";
-        if (resetGroup) {
-            group.value = "";
-        }
+        var selectedGroup = resetGroup ? "" : (group.value || group.dataset.selectedGroup || "");
+
+        group.replaceChildren(new Option("-- Select Group --", ""));
+        templateGroups
+            .filter(function (item) {
+                return selectedControl && String(item.controlId) === selectedControl;
+            })
+            .sort(function (left, right) {
+                return left.sort - right.sort || left.name.localeCompare(right.name, "th");
+            })
+            .forEach(function (item) {
+                group.add(new Option(item.name, String(item.id)));
+            });
 
         group.disabled = !selectedControl;
-        group.querySelectorAll("optgroup").forEach(function (optgroup) {
-            var matches = selectedControl && optgroup.getAttribute("data-control-id") === selectedControl;
-            optgroup.hidden = !matches;
-            optgroup.disabled = !matches;
-        });
+        group.value = selectedGroup;
+        group.dataset.selectedGroup = "";
         updateAddButtonState();
     }
 
@@ -682,13 +677,6 @@ else
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        var serverPreset = "@(selectedGroupId?.ToString() ?? "")";
-        var preset = serverPreset;
-
-        var ddl = document.getElementById("templateFilter");
-        if (ddl && preset) {
-            ddl.value = preset;
-        }
         applyControlToGroups(false);
 
         // Do not auto-filter on client; server already filtered by groupId

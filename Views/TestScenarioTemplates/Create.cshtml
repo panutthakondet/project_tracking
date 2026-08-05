@@ -41,12 +41,12 @@
 
     <div class="mb-3">
         <label class="form-label">Template Group</label>
-        <select asp-for="group_id" id="groupId" class="form-select" disabled="@lockGroup">
+        <select asp-for="group_id"
+                id="groupId"
+                class="form-select"
+                data-selected-group="@(Model.group_id?.ToString() ?? "")"
+                disabled="@lockGroup">
             <option value="">-- Select Group --</option>
-            @foreach (var g in groups)
-            {
-                <option value="@g.group_id" data-control-id="@g.control_id">@g.group_name</option>
-            }
         </select>
         @if (lockGroup)
         {
@@ -98,6 +98,15 @@
 </form>
 
 <script>
+    const templateGroups = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        groups.Select(g => new
+        {
+            id = g.group_id,
+            controlId = g.control_id,
+            name = g.group_name,
+            sort = g.sort_order
+        })));
+
     document.addEventListener("DOMContentLoaded", function () {
         var control = document.getElementById("controlId");
         var group = document.getElementById("groupId");
@@ -105,16 +114,23 @@
 
         function applyControl(resetGroup) {
             var controlId = control.value || "";
-            if (resetGroup) {
-                group.value = "";
-            }
+            var selectedGroup = resetGroup ? "" : (group.value || group.dataset.selectedGroup || "");
+
+            group.replaceChildren(new Option("-- Select Group --", ""));
+            templateGroups
+                .filter(function (item) {
+                    return controlId && String(item.controlId) === controlId;
+                })
+                .sort(function (left, right) {
+                    return left.sort - right.sort || left.name.localeCompare(right.name, "th");
+                })
+                .forEach(function (item) {
+                    group.add(new Option(item.name, String(item.id)));
+                });
 
             group.disabled = @lockGroup.ToString().ToLower() || !controlId;
-            group.querySelectorAll("option[data-control-id]").forEach(function (option) {
-                var matches = controlId && option.getAttribute("data-control-id") === controlId;
-                option.hidden = !matches;
-                option.disabled = !matches;
-            });
+            group.value = selectedGroup;
+            group.dataset.selectedGroup = "";
         }
 
         control.addEventListener("change", function () {
