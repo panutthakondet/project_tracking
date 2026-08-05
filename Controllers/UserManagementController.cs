@@ -821,6 +821,7 @@ namespace ProjectTracking.Controllers
                 "SupportOrders" => "งานรับประกัน",
                 "SupportOrdersDev" => "งานรับประกัน Dev",
                 "Meetings" => "การประชุม",
+                "MeetingRoom" => "ห้องประชุม",
                 "FieldService" => "งานออกไซต์ MA",
                 "RequirementBoard" => "Project Board",
                 "Attendance" => "ลงเวลา",
