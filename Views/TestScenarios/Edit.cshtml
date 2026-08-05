@@ -2,7 +2,17 @@
 
 @using ProjectTracking.Helpers
 
-<h2>แก้ไขสถานการณ์ทดสอบ (@Model.scenario_code)</h2>
+@{
+    ViewData["Title"] = "แก้ไขสถานการณ์ทดสอบ";
+}
+
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking · @Model.scenario_code</span>
+        <h2 class="index-title">แก้ไขสถานการณ์ทดสอบ</h2>
+        <p class="index-subtitle">แก้ไขข้อมูล ขั้นตอน ผลลัพธ์ และหลักฐานของ Test Scenario</p>
+    </div>
+</div>
 
 <style>
     .form-control::placeholder {
