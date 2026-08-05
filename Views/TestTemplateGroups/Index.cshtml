@@ -97,12 +97,13 @@
         align-items: center;
         gap: 16px;
         background: #fff;
-        border: 1px solid #d8e3ef;
-        border-left: 5px solid #14b8a6;
-        border-radius: 16px;
+        border: 2px solid #22c55e;
+        border-radius: 14px !important;
         padding: 14px 16px;
         box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
     }
+
+    .group-card.is-inactive { border-color: #ef4444; }
 
     .group-card-head {
         display: flex;
@@ -258,7 +259,7 @@
             <div class="group-card-list" data-control-id="@(controlGroup.Key.ControlId?.ToString() ?? "unassigned")">
                 @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
                 {
-                    <article class="group-card" data-id="@g.group_id">
+                    <article class="group-card @(g.is_active ? "is-active" : "is-inactive")" data-id="@g.group_id">
                         <div class="group-card-head">
                             @if (CanMenu("TestTemplateGroups.Sort"))
                             {

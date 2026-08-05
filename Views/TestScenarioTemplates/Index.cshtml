@@ -40,6 +40,8 @@
     {
         return TestScenarioDisplay.NormalizeStatus(status) switch
         {
+            "PASSED" => "is-success",
+            "FAILED" => "is-danger",
             "READY" => "is-primary",
             _ => "is-muted"
         };
@@ -205,12 +207,16 @@
 
     .template-card {
         background: #fff;
-        border: 1px solid #dbeafe;
-        border-left: 5px solid #14b8a6;
-        border-radius: 18px;
+        border: 2px solid #94a3b8;
+        border-radius: 14px !important;
         padding: 16px;
         box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
     }
+
+    .template-card.is-success { border-color: #22c55e; }
+    .template-card.is-danger { border-color: #ef4444; }
+    .template-card.is-primary { border-color: #2563eb; }
+    .template-card.is-muted { border-color: #94a3b8; }
 
     .template-card-head {
         display: flex;
@@ -480,7 +486,7 @@ else
                             @foreach (var item in grp.OrderBy(x => x.template_id))
                             {
                                 groupRowNo++;
-                                <article class="template-card" data-gid="@(item.group_id ?? 0)">
+                                <article class="template-card @StatusTextClass(item.status_default)" data-gid="@(item.group_id ?? 0)">
                                     <div class="template-card-head">
                                         <div class="template-card-title">
                                             <div class="template-code">#@groupRowNo · Template</div>

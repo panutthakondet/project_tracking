@@ -253,12 +253,16 @@
 
     .scenario-card {
         background: #fff;
-        border: 1px solid #dbeafe;
-        border-left: 5px solid #14b8a6;
-        border-radius: 18px;
+        border: 2px solid #94a3b8;
+        border-radius: 14px !important;
         padding: 16px;
         box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
     }
+
+    .scenario-card.is-success { border-color: #22c55e; }
+    .scenario-card.is-danger { border-color: #ef4444; }
+    .scenario-card.is-primary { border-color: #2563eb; }
+    .scenario-card.is-muted { border-color: #94a3b8; }
 
     .scenario-card-head {
         display: flex;
@@ -834,7 +838,7 @@
                             <div class="scenario-card-list" data-group="@grp.Key.group_id">
                             @foreach (var item in grp.OrderBy(x => x.sort_order).ThenBy(x => x.scenario_id))
                             {
-                            <article class="scenario-card" data-id="@item.scenario_id" data-group="@grp.Key.group_id">
+                            <article class="scenario-card @StatusTextClass(item.status)" data-id="@item.scenario_id" data-group="@grp.Key.group_id">
                                 <div class="scenario-card-head">
                                     <div class="d-flex align-items-start gap-2">
                                         @if (CanMenu("TestScenarios.Sort"))

@@ -35,7 +35,7 @@ else
     <div class="control-list" data-control-list>
         @foreach (var item in Model)
         {
-            <article class="control-card" data-id="@item.control_id">
+            <article class="control-card @(item.is_active ? "is-active" : "is-inactive")" data-id="@item.control_id">
                 @if (CanMenu("TestTemplateGroupControls.Sort"))
                 {
                     <span class="control-drag" title="ลากเพื่อเรียงลำดับ">☰</span>
@@ -65,7 +65,7 @@ else
 }
 
 <style>
-.control-list{display:grid;gap:10px}.control-card{position:relative;display:grid;grid-template-columns:auto minmax(220px,1fr) auto auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid #d8e3ef;border-left:5px solid #14b8a6;border-radius:12px;background:#fff;box-shadow:0 8px 20px rgba(15,35,64,.07)}
+.control-list{display:grid;gap:10px}.control-card{position:relative;display:grid;grid-template-columns:auto minmax(220px,1fr) auto auto;align-items:center;gap:14px;padding:14px 16px;border:2px solid #22c55e;border-radius:12px !important;background:#fff;box-shadow:0 8px 20px rgba(15,35,64,.07)}.control-card.is-inactive{border-color:#ef4444}
 .control-drag{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:rgba(20,184,166,.14);cursor:grab}.control-main{display:grid;gap:3px}.control-main strong{color:#10233f;font-size:1rem;font-weight:500}.control-main small,.control-order{color:#64748b;font-size:.84rem;font-weight:400}.control-actions{display:flex;gap:8px;align-items:center}.control-actions form{margin:0}@@media(max-width:850px){.control-card{grid-template-columns:auto 1fr}.control-order,.control-actions{grid-column:2}.control-actions{flex-wrap:wrap}}
 </style>
 
