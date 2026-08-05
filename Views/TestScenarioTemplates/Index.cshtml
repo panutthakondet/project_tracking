@@ -642,6 +642,12 @@ else
 
     function onControlChange() {
         applyControlToGroups(true);
+        var selectedControl = document.getElementById("controlFilter").value || "";
+        var url = "/TestScenarioTemplates";
+        if (selectedControl) {
+            url += "?controlId=" + encodeURIComponent(selectedControl);
+        }
+        window.location.href = url;
     }
 
     function onGroupChange() {
