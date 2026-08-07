@@ -3327,10 +3327,13 @@
     box-sizing:border-box;
     margin:8px 0 0;
     padding:8px 12px;
-    border:1px solid rgba(56,189,248,.34);
+    color:var(--pt-sidebar-contrast, #f8fbff);
+    border:1px solid var(--pt-border-strong, rgba(56,189,248,.34));
     border-radius:14px;
-    background:linear-gradient(135deg, rgba(8,47,73,.96), rgba(15,45,78,.96));
-    box-shadow:0 8px 20px rgba(15,39,70,.12);
+    background:
+        radial-gradient(circle at 82% 18%, var(--pt-accent-soft, rgba(45,212,191,.16)), transparent 34%),
+        linear-gradient(135deg, var(--pt-sidebar-panel, #0f3553), var(--pt-sidebar-deep, #0b2947));
+    box-shadow:0 8px 20px var(--pt-shadow, rgba(15,39,70,.12));
 }
 
 .dashboard-global-department-options {
@@ -3367,10 +3370,10 @@
     align-items:center;
     justify-content:center;
     padding:7px 14px;
-    border:1px solid rgba(96,165,250,.34);
+    border:1px solid color-mix(in srgb, var(--pt-sidebar-contrast, #f8fbff) 24%, transparent);
     border-radius:10px;
-    background:rgba(16,37,76,.68);
-    color:#d9e4fb;
+    background:color-mix(in srgb, var(--pt-sidebar-contrast, #f8fbff) 7%, transparent);
+    color:var(--pt-sidebar-contrast-muted, #d9e4fb);
     font-family:'Prompt', sans-serif;
     font-size:12px;
     font-weight:600;
@@ -3382,16 +3385,17 @@
 
 .dashboard-department-option:hover,
 .dashboard-department-option:focus-visible {
-    border-color:rgba(45,212,191,.7);
-    color:#fff;
+    border-color:var(--pt-accent, #2dd4bf);
+    background:var(--pt-accent-soft, rgba(45,212,191,.16));
+    color:var(--pt-sidebar-contrast, #fff);
     outline:none;
 }
 
 .dashboard-department-option.is-active {
-    border-color:#2dd4bf;
-    background:linear-gradient(135deg, rgba(13,148,136,.82), rgba(14,116,144,.82));
-    color:#fff;
-    box-shadow:0 5px 14px rgba(13,148,136,.2);
+    border-color:color-mix(in srgb, var(--pt-accent, #2dd4bf) 78%, var(--pt-sidebar-contrast, #fff));
+    background:linear-gradient(135deg, var(--pt-accent, #0d9488), var(--pt-accent-dark, #0e7490));
+    color:var(--pt-accent-contrast, #fff);
+    box-shadow:0 5px 14px var(--pt-accent-soft, rgba(13,148,136,.2));
 }
 
 .dashboard-department-scope {
