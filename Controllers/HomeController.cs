@@ -752,6 +752,7 @@ namespace ProjectTracking.Controllers
                 select new DashboardMeetingRow
                 {
                     Id = m.Id,
+                    ProjectId = m.ProjectId,
                     GroupId = m.Calendar != null ? m.Calendar.GroupId : null,
                     GroupName = m.Calendar != null && m.Calendar.Group != null ? m.Calendar.Group.GroupName : null,
                     Title = m.Title,
@@ -773,6 +774,7 @@ namespace ProjectTracking.Controllers
                 select new DashboardMeetingRow
                 {
                     Id = m.Id,
+                    ProjectId = m.ProjectId,
                     GroupId = m.Calendar != null ? m.Calendar.GroupId : null,
                     GroupName = m.Calendar != null && m.Calendar.Group != null ? m.Calendar.Group.GroupName : null,
                     Title = m.Title,
@@ -822,33 +824,6 @@ namespace ProjectTracking.Controllers
                     ? startText
                     : $"{startText} - {endDate.ToString("dd MMM", th)} {endDate.Year + 543}";
             }
-            var upcomingFieldServiceVisits = fieldServiceVisits
-                .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
-                    && (x.EndVisitDate ?? x.VisitDate).Date >= today)
-                .OrderBy(x => x.VisitDate)
-                .ThenBy(x => x.StartTime)
-                .Take(6)
-                .Select(x => new HomeDashboardFieldServiceItem
-                {
-                    VisitId = x.VisitId,
-                    Title = x.Title,
-                    CoopName = x.Coop?.CoopName ?? "ไม่ระบุสหกรณ์",
-                    DateText = FieldServiceDateText(x),
-                    AssigneeText = x.Assignees.Any(a => a.Employee != null)
-                        ? string.Join(", ", x.Assignees.Where(a => a.Employee != null).OrderBy(a => a.Employee!.EmpName).Select(a => a.Employee!.EmpName))
-                        : "ยังไม่กำหนด",
-                    StatusText = FieldServiceStatusText(x.Status),
-                    StatusColor = FieldServiceStatusColor(x.Status)
-                })
-                .ToList();
-            var fieldServiceStatusMetrics = new List<HomeDashboardMetric>
-            {
-                CreateMetric("วางแผนแล้ว", fieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "blue"),
-                CreateMetric("กำลังดำเนินการ", fieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "orange"),
-                CreateMetric("เสร็จสิ้น", fieldServiceVisits.Count(x => string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "green"),
-                CreateMetric("ยกเลิก", fieldServiceVisits.Count(x => string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)), fieldServiceVisits.Count, "muted")
-            };
-
             var currentAndPreviousMonthAttendance = await _context.Attendances
                 .AsNoTracking()
                 .Where(a => a.WorkDate >= attendanceRangeStart && a.WorkDate < nextMonthStart)
@@ -876,6 +851,11 @@ namespace ProjectTracking.Controllers
             var scopedSupportOrders = selectedDashboardDepartment == "all"
                 ? supportOrders
                 : supportOrders.Where(order => scopedProjectIds.Contains(order.ProjectId)).ToList();
+            var scopedFollowups = selectedDashboardDepartment == "all"
+                ? followups
+                : followups
+                    .Where(followup => followup.ProjectId.HasValue && scopedProjectIds.Contains(followup.ProjectId.Value))
+                    .ToList();
 
             var scopedEmployeeIds = selectedDashboardDepartment == "all"
                 ? employees.Select(employee => employee.EmpId).ToHashSet()
@@ -893,7 +873,50 @@ namespace ProjectTracking.Controllers
             var scopedAttendance = selectedDashboardDepartment == "all"
                 ? currentAndPreviousMonthAttendance
                 : currentAndPreviousMonthAttendance.Where(row => scopedEmployeeIds.Contains(row.EmpId)).ToList();
-            var scopedTodayMeetings = todayMeetings;
+            var scopedFieldServiceVisits = selectedDashboardDepartment == "all"
+                ? fieldServiceVisits
+                : fieldServiceVisits
+                    .Where(visit => visit.Assignees.Any(assignee => scopedEmployeeIds.Contains(assignee.EmpId)))
+                    .ToList();
+            var scopedUpcomingFieldServiceVisits = scopedFieldServiceVisits
+                .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
+                    && (x.EndVisitDate ?? x.VisitDate).Date >= today)
+                .OrderBy(x => x.VisitDate)
+                .ThenBy(x => x.StartTime)
+                .Take(6)
+                .Select(x => new HomeDashboardFieldServiceItem
+                {
+                    VisitId = x.VisitId,
+                    Title = x.Title,
+                    CoopName = x.Coop?.CoopName ?? "ไม่ระบุสหกรณ์",
+                    DateText = FieldServiceDateText(x),
+                    AssigneeText = x.Assignees.Any(a => a.Employee != null)
+                        ? string.Join(", ", x.Assignees.Where(a => a.Employee != null).OrderBy(a => a.Employee!.EmpName).Select(a => a.Employee!.EmpName))
+                        : "ยังไม่กำหนด",
+                    StatusText = FieldServiceStatusText(x.Status),
+                    StatusColor = FieldServiceStatusColor(x.Status)
+                })
+                .ToList();
+            var scopedFieldServiceStatusMetrics = new List<HomeDashboardMetric>
+            {
+                CreateMetric("วางแผนแล้ว", scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)), scopedFieldServiceVisits.Count, "blue"),
+                CreateMetric("กำลังดำเนินการ", scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)), scopedFieldServiceVisits.Count, "orange"),
+                CreateMetric("เสร็จสิ้น", scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)), scopedFieldServiceVisits.Count, "green"),
+                CreateMetric("ยกเลิก", scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)), scopedFieldServiceVisits.Count, "muted")
+            };
+            var scopedTodayMeetings = selectedDashboardDepartment == "all"
+                ? todayMeetings
+                : todayMeetings
+                    .Where(meeting => meeting.ProjectId.HasValue && scopedProjectIds.Contains(meeting.ProjectId.Value))
+                    .ToList();
+            var scopedRecentMeetings = selectedDashboardDepartment == "all"
+                ? recentMeetings
+                : recentMeetings
+                    .Where(meeting => meeting.ProjectId.HasValue && scopedProjectIds.Contains(meeting.ProjectId.Value))
+                    .ToList();
+            var scopedRequirementCards = selectedDashboardDepartment == "all"
+                ? requirementCards
+                : new List<DashboardRequirementCardRow>();
             if (selectedMeetingGroupId.HasValue)
             {
                 scopedTodayMeetings = scopedTodayMeetings
@@ -935,48 +958,48 @@ namespace ProjectTracking.Controllers
                 return projectNameById.TryGetValue(projectId.Value, out var name) ? name : "-";
             }
 
-            var completedProjectCount = projects.Count(p => Norm(p.Status) == "DONE");
-            var inProgressProjectCount = projects.Count(p => Norm(p.Status) == "IN_PROGRESS");
-            var pendingProjectCount = projects.Count(p => Norm(p.Status) == "PLAN");
+            var completedProjectCount = scopedProjects.Count(p => Norm(p.Status) == "DONE");
+            var inProgressProjectCount = scopedProjects.Count(p => Norm(p.Status) == "IN_PROGRESS");
+            var pendingProjectCount = scopedProjects.Count(p => Norm(p.Status) == "PLAN");
 
             var projectStatusMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("Completed", completedProjectCount, projects.Count, "green"),
-                CreateMetric("In Progress", inProgressProjectCount, projects.Count, "blue"),
-                CreateMetric("Pending", pendingProjectCount, projects.Count, "orange")
+                CreateMetric("Completed", completedProjectCount, scopedProjects.Count, "green"),
+                CreateMetric("In Progress", inProgressProjectCount, scopedProjects.Count, "blue"),
+                CreateMetric("Pending", pendingProjectCount, scopedProjects.Count, "orange")
             };
 
             var issueMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("OPEN", issues.Count(i => Norm(i.IssueStatus) == "OPEN"), issues.Count, "blue"),
-                CreateMetric("WIP", issues.Count(i => Norm(i.DevStatus) == "WIP" && !IsIssueResolved(i)), issues.Count, "orange"),
-                CreateMetric("FIXED", issues.Count(i => Norm(i.DevStatus) == "FIXED" && !IsIssueResolved(i)), issues.Count, "cyan"),
-                CreateMetric("FAIL", issues.Count(i => Norm(i.IssueStatus) == "FAIL"), issues.Count, "danger"),
-                CreateMetric("PASS", issues.Count(i => Norm(i.IssueStatus) == "PASS"), issues.Count, "lime"),
-                CreateMetric("REJECT", issues.Count(i => Norm(i.IssueStatus) == "REJECT"), issues.Count, "violet")
+                CreateMetric("OPEN", scopedIssues.Count(i => Norm(i.IssueStatus) == "OPEN"), scopedIssues.Count, "blue"),
+                CreateMetric("WIP", scopedIssues.Count(i => Norm(i.DevStatus) == "WIP" && !IsIssueResolved(i)), scopedIssues.Count, "orange"),
+                CreateMetric("FIXED", scopedIssues.Count(i => Norm(i.DevStatus) == "FIXED" && !IsIssueResolved(i)), scopedIssues.Count, "cyan"),
+                CreateMetric("FAIL", scopedIssues.Count(i => Norm(i.IssueStatus) == "FAIL"), scopedIssues.Count, "danger"),
+                CreateMetric("PASS", scopedIssues.Count(i => Norm(i.IssueStatus) == "PASS"), scopedIssues.Count, "lime"),
+                CreateMetric("REJECT", scopedIssues.Count(i => Norm(i.IssueStatus) == "REJECT"), scopedIssues.Count, "violet")
             };
 
             var supportMetrics = new List<HomeDashboardMetric>
             {
-                CreateMetric("OPEN", supportOrders.Count(o => Norm(o.Status) == "OPEN"), supportOrders.Count, "blue"),
-                CreateMetric("WIP", supportOrders.Count(o => Norm(o.DevStatus) == "WIP" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "orange"),
-                CreateMetric("FIXED", supportOrders.Count(o => Norm(o.DevStatus) == "FIXED" && !IsSupportOrderClosed(o.Status, o.DevStatus)), supportOrders.Count, "cyan"),
-                CreateMetric("FAIL", supportOrders.Count(o => Norm(o.Status) == "FAIL"), supportOrders.Count, "danger"),
-                CreateMetric("PASS", supportOrders.Count(o => Norm(o.Status) == "PASS"), supportOrders.Count, "lime"),
-                CreateMetric("REJECT", supportOrders.Count(o => Norm(o.Status) == "REJECT"), supportOrders.Count, "violet")
+                CreateMetric("OPEN", scopedSupportOrders.Count(o => Norm(o.Status) == "OPEN"), scopedSupportOrders.Count, "blue"),
+                CreateMetric("WIP", scopedSupportOrders.Count(o => Norm(o.DevStatus) == "WIP" && !IsSupportOrderClosed(o.Status, o.DevStatus)), scopedSupportOrders.Count, "orange"),
+                CreateMetric("FIXED", scopedSupportOrders.Count(o => Norm(o.DevStatus) == "FIXED" && !IsSupportOrderClosed(o.Status, o.DevStatus)), scopedSupportOrders.Count, "cyan"),
+                CreateMetric("FAIL", scopedSupportOrders.Count(o => Norm(o.Status) == "FAIL"), scopedSupportOrders.Count, "danger"),
+                CreateMetric("PASS", scopedSupportOrders.Count(o => Norm(o.Status) == "PASS"), scopedSupportOrders.Count, "lime"),
+                CreateMetric("REJECT", scopedSupportOrders.Count(o => Norm(o.Status) == "REJECT"), scopedSupportOrders.Count, "violet")
             };
 
             var lineOverview = await BuildLineOverdueOverviewAsync(scopedProjects, scopedPhases, scopedAssigns, today);
 
-            var phaseTypeRows = phases
+            var phaseTypeRows = scopedPhases
                 .GroupBy(p => string.IsNullOrWhiteSpace(p.PhaseType) ? "OTHERS" : Norm(p.PhaseType))
                 .OrderByDescending(g => g.Count())
                 .ThenBy(g => g.Key)
                 .Take(5)
-                .Select((g, index) => CreateMetric(PhaseTypeLabel(g.Key), g.Count(), phases.Count, ColorByIndex(index)))
+                .Select((g, index) => CreateMetric(PhaseTypeLabel(g.Key), g.Count(), scopedPhases.Count, ColorByIndex(index)))
                 .ToList();
 
-            var monthlyPoints = BuildMonthlyProjectPoints(projects, today.Year, th);
+            var monthlyPoints = BuildMonthlyProjectPoints(scopedProjects, today.Year, th);
             var maxMonthlyValue = monthlyPoints
                 .SelectMany(m => new[] { m.Completed, m.InProgress, m.Pending })
                 .DefaultIfEmpty(0)
@@ -989,7 +1012,7 @@ namespace ProjectTracking.Controllers
                 new() { Name = "Pending", Color = "orange", Points = BuildPolyline(monthlyPoints.Select(m => m.Pending).ToList(), maxMonthlyValue) }
             };
 
-            var projectOverviewProjects = projects
+            var projectOverviewProjects = scopedProjects
                 .OrderBy(p => ProjectOverviewSort(p.Status))
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.ProjectDisplayName)
@@ -1007,10 +1030,10 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
-            var topProjectProgress = projects
+            var topProjectProgress = scopedProjects
                 .Select((project, index) =>
                 {
-                    var projectPhases = phases.Where(p => p.ProjectId == project.ProjectId).ToList();
+                    var projectPhases = scopedPhases.Where(p => p.ProjectId == project.ProjectId).ToList();
                     var progress = CalculateProjectProgress(project.Status, projectPhases.Select(p => p.PhaseStatus).ToList());
 
                     return new HomeDashboardProjectProgress
@@ -1079,9 +1102,9 @@ namespace ProjectTracking.Controllers
                 })
                 .ToList();
 
-            var recentActivities = BuildRecentActivities(projects, phases, assigns, issues, followups, supportOrders, requirementCards, recentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
+            var recentActivities = BuildRecentActivities(scopedProjects, scopedPhases, scopedAssigns, scopedIssues, scopedFollowups, scopedSupportOrders, scopedRequirementCards, scopedRecentMeetings, EmployeeName, EmployeeAvatar, ProjectName, now);
             var yearlyTasks = BuildYearlyTasks(scopedAssigns, scopedPhases, today, out var yearlyTaskAxisMax);
-            var watchProjects = BuildWatchProjects(projects, phases, assigns, issues, followups, supportOrders, EmployeeName, EmployeeAvatar, today);
+            var watchProjects = BuildWatchProjects(scopedProjects, scopedPhases, scopedAssigns, scopedIssues, scopedFollowups, scopedSupportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(
                 scopedAttendance,
                 scopedEmployees,
@@ -1098,14 +1121,12 @@ namespace ProjectTracking.Controllers
                 scopedEmployees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
                 EmployeeName,
                 EmployeeAvatar);
-            var activeFieldServiceCounts = selectedDashboardDepartment == "all"
-                ? fieldServiceVisits
+            var activeFieldServiceCounts = scopedFieldServiceVisits
                 .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
                 .SelectMany(x => x.Assignees)
                 .GroupBy(x => x.EmpId)
-                .ToDictionary(x => x.Key, x => x.Count())
-                : new Dictionary<int, int>();
+                .ToDictionary(x => x.Key, x => x.Count());
             var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             var phaseById = phases
@@ -1118,19 +1139,19 @@ namespace ProjectTracking.Controllers
                     : null;
             }
 
-            var visibleOpenAssigns = assigns
+            var visibleOpenAssigns = scopedAssigns
                 .Where(assign => !IsDashboardAssignDone(assign))
                 .Where(assign => CanSeeOpenAssign(assign, phaseById, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
-            var visibleOpenIssues = issues
+            var visibleOpenIssues = scopedIssues
                 .Where(i => !IsIssueResolved(i))
                 .Where(i => CanSeeOpenIssue(i, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
-            var visibleOpenSupportOrders = supportOrders
+            var visibleOpenSupportOrders = scopedSupportOrders
                 .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
                 .Where(o => CanSeeOpenSupport(o, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
-            var visibleOpenFollowups = followups
+            var visibleOpenFollowups = scopedFollowups
                 .Where(followup => !IsFollowupClosed(followup.Status))
                 .Where(followup => CanSeeOpenFollowup(followup, ProjectBaEmpId, currentEmpId, isAdmin))
                 .ToList();
@@ -1148,12 +1169,12 @@ namespace ProjectTracking.Controllers
                 isAdmin,
                 th);
 
-            var overduePlanPhaseCount = phases.Count(phase =>
+            var overduePlanPhaseCount = scopedPhases.Count(phase =>
                 phase.PlanEnd.HasValue &&
                 phase.PlanEnd.Value.Date < today &&
                 !IsPhaseDone(phase.PhaseStatus));
 
-            var overduePlanAssignCount = assigns.Count(assign =>
+            var overduePlanAssignCount = scopedAssigns.Count(assign =>
                 assign.PlanEnd.HasValue &&
                 assign.PlanEnd.Value.Date < today &&
                 Norm(assign.WorkStatus) != "DONE");
@@ -1161,23 +1182,23 @@ namespace ProjectTracking.Controllers
             return new HomeDashboardViewModel
             {
                 Username = username,
-                TotalProjectCount = projects.Count,
+                TotalProjectCount = scopedProjects.Count,
                 MeetingsTodayCount = scopedTodayMeetings.Count,
                 OpenIssueCount = overduePlanPhaseCount,
-                ActiveMemberCount = employees.Count(e => Norm(e.Status) == "ACTIVE"),
+                ActiveMemberCount = scopedEmployees.Count(e => Norm(e.Status) == "ACTIVE"),
                 OverdueTaskCount = overduePlanAssignCount,
                 OpenIssuesNote = "เลยกำหนด Plan",
                 OverdueTasksNote = "เลยกำหนด Plan",
                 ProjectStatusMetrics = projectStatusMetrics,
                 ProjectStatusDonut = BuildDonut(projectStatusMetrics),
                 PhaseTypeMetrics = phaseTypeRows,
-                PhaseTypeTotal = phases.Count,
+                PhaseTypeTotal = scopedPhases.Count,
                 PhaseTypeDonut = BuildDonut(phaseTypeRows),
                 IssueMetrics = issueMetrics,
-                IssueTotal = issues.Count,
+                IssueTotal = scopedIssues.Count,
                 IssueDonut = BuildDonut(issueMetrics),
                 SupportMetrics = supportMetrics,
-                SupportTotal = supportOrders.Count,
+                SupportTotal = scopedSupportOrders.Count,
                 SupportDonut = BuildDonut(supportMetrics),
                 LineOverdueMetrics = lineOverview.Metrics,
                 LineOverdueTotal = lineOverview.Total,
@@ -1197,20 +1218,22 @@ namespace ProjectTracking.Controllers
                 TodayMeetings = meetingCards,
                 MeetingCalendarGroups = meetingCalendarGroups,
                 SelectedMeetingGroup = selectedMeetingGroup,
-                FieldServiceTodayCount = fieldServiceVisits.Count(x =>
+                FieldServiceTodayCount = scopedFieldServiceVisits.Count(x =>
                     x.VisitDate.Date <= today && (x.EndVisitDate ?? x.VisitDate).Date >= today
                     && !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)),
-                FieldServicePlannedCount = fieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)),
-                FieldServiceInProgressCount = fieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)),
-                FieldServiceCompletedMonthCount = fieldServiceVisits.Count(x =>
+                FieldServicePlannedCount = scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "PLANNED", StringComparison.OrdinalIgnoreCase)),
+                FieldServiceInProgressCount = scopedFieldServiceVisits.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)),
+                FieldServiceCompletedMonthCount = scopedFieldServiceVisits.Count(x =>
                     string.Equals(x.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase)
                     && (x.EndVisitDate ?? x.VisitDate).Date >= monthStart
                     && (x.EndVisitDate ?? x.VisitDate).Date < nextMonthStart),
-                FieldServiceTotalCount = fieldServiceVisits.Count,
-                FieldServiceStatusMetrics = fieldServiceStatusMetrics,
-                FieldServiceStatusDonut = BuildDonut(fieldServiceStatusMetrics),
-                FieldServiceScopeText = isAdmin ? "ภาพรวมงานเข้าไซต์ทั้งหมด" : "งานเข้าไซต์ที่มอบหมายให้คุณ",
-                UpcomingFieldServiceVisits = upcomingFieldServiceVisits,
+                FieldServiceTotalCount = scopedFieldServiceVisits.Count,
+                FieldServiceStatusMetrics = scopedFieldServiceStatusMetrics,
+                FieldServiceStatusDonut = BuildDonut(scopedFieldServiceStatusMetrics),
+                FieldServiceScopeText = selectedDashboardDepartment == "all"
+                    ? isAdmin ? "ภาพรวมงานเข้าไซต์ทั้งหมด" : "งานเข้าไซต์ที่มอบหมายให้คุณ"
+                    : $"งานเข้าไซต์ของฝ่าย {selectedDashboardDepartmentName}",
+                UpcomingFieldServiceVisits = scopedUpcomingFieldServiceVisits,
                 YearlyTasks = yearlyTasks,
                 YearlyTaskAxisMax = yearlyTaskAxisMax,
                 WatchProjects = watchProjects,
@@ -3330,6 +3353,7 @@ namespace ProjectTracking.Controllers
         private sealed class DashboardMeetingRow
         {
             public int Id { get; set; }
+            public int? ProjectId { get; set; }
             public int? GroupId { get; set; }
             public string? GroupName { get; set; }
             public string Title { get; set; } = "";
