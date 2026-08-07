@@ -1303,9 +1303,16 @@
 
         .rb-card-list {
             flex: 1 1 auto;
+            align-self: stretch;
+            width: 100%;
+            max-width: 100%;
             min-height: 0;
+            min-width: 0;
+            box-sizing: border-box;
             overflow-y: auto;
             overscroll-behavior: contain;
+            scrollbar-gutter: auto;
+            scrollbar-width: thin;
             padding: clamp(6px, .72vh, 8px);
             transition: background .18s ease;
         }
@@ -1337,6 +1344,8 @@
         .rb-card {
             display: block;
             width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
             margin-bottom: var(--rb-card-gap);
             border: 1px solid #d4dfeb;
             border-radius: 9px;
