@@ -3336,7 +3336,23 @@
 .dashboard-global-department-bar .dashboard-department-option {
     min-height:38px;
     padding:7px 16px;
+    color:var(--pt-body-contrast, #10233f);
+    border-color:var(--pt-border-strong, rgba(15,118,110,.42));
+    background:color-mix(in srgb, var(--pt-surface, #fff) 72%, transparent);
     font-size:.84rem;
+}
+
+.dashboard-global-department-bar .dashboard-department-option:hover,
+.dashboard-global-department-bar .dashboard-department-option:focus-visible {
+    color:var(--pt-body-contrast, #10233f);
+    border-color:var(--pt-accent, #2dd4bf);
+    background:var(--pt-accent-soft, rgba(45,212,191,.16));
+}
+
+.dashboard-global-department-bar .dashboard-department-option.is-active {
+    color:var(--pt-accent-contrast, #fff);
+    border-color:color-mix(in srgb, var(--pt-accent, #2dd4bf) 78%, var(--pt-body-contrast, #10233f));
+    background:linear-gradient(135deg, var(--pt-accent, #0d9488), var(--pt-accent-dark, #0e7490));
 }
 
 .dashboard-global-department-bar + .kpi-grid {
