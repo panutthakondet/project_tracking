@@ -284,6 +284,25 @@
         </div>
     </section>
 
+    <nav class="dashboard-department-filter dashboard-global-department-bar" aria-label="เลือกฝ่ายสำหรับ Dashboard ทั้งหมด">
+        <a asp-controller="Home"
+           asp-action="Index"
+           asp-route-department="all"
+           asp-route-meetingGroup="@dashboard.SelectedMeetingGroup"
+           class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")"
+           aria-current="@(dashboard.SelectedDashboardDepartment == "all" ? "true" : null)">ทุกฝ่าย</a>
+        @foreach (var department in dashboard.ProjectOverviewDepartments)
+        {
+            var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
+            <a asp-controller="Home"
+               asp-action="Index"
+               asp-route-department="@departmentKey"
+               asp-route-meetingGroup="@dashboard.SelectedMeetingGroup"
+               class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")"
+               aria-current="@(dashboard.SelectedDashboardDepartment == departmentKey ? "true" : null)">@department.DepartmentName</a>
+        }
+    </nav>
+
     <section class="kpi-grid" aria-label="ตัวชี้วัดหลัก" data-dashboard-dino data-dino-key="ProjectTracking.DashboardDino.@dashboardDinoUserKey">
         <span class="dashboard-dino-feed-zone" data-dino-feed-zone title="ดับเบิลคลิกเพื่อวางขาไก่" aria-hidden="true"></span>
         <span class="dashboard-dino-food" data-dino-food aria-hidden="true">
@@ -387,24 +406,6 @@
                         <small>สถานะโครงการ</small>
                     </span>
                 </div>
-                <nav class="dashboard-department-filter dashboard-global-department-bar" aria-label="เลือกฝ่ายสำหรับ Dashboard ทั้งหมด">
-                    <a asp-controller="Home"
-                       asp-action="Index"
-                       asp-route-department="all"
-                       asp-route-meetingGroup="@dashboard.SelectedMeetingGroup"
-                       class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == "all" ? "is-active" : "")"
-                       aria-current="@(dashboard.SelectedDashboardDepartment == "all" ? "true" : null)">ทุกฝ่าย</a>
-                    @foreach (var department in dashboard.ProjectOverviewDepartments)
-                    {
-                        var departmentKey = department.DepartmentId?.ToString() ?? "unassigned";
-                        <a asp-controller="Home"
-                           asp-action="Index"
-                           asp-route-department="@departmentKey"
-                           asp-route-meetingGroup="@dashboard.SelectedMeetingGroup"
-                           class="dashboard-department-option @(dashboard.SelectedDashboardDepartment == departmentKey ? "is-active" : "")"
-                           aria-current="@(dashboard.SelectedDashboardDepartment == departmentKey ? "true" : null)">@department.DepartmentName</a>
-                    }
-                </nav>
                 <div class="panel-actions">
                     <a asp-controller="Projects" asp-action="ViewOnly" class="panel-filter compact project-overview-action">
                         <span class="project-overview-action-icon details" aria-hidden="true"></span>
@@ -2981,7 +2982,6 @@
 }
 
 .panel-project-overview .panel-head {
-    flex-wrap:wrap;
     margin-bottom:24px;
 }
 
@@ -3321,11 +3321,10 @@
     z-index:4;
     display:flex;
     align-items:center;
-    flex:1 1 560px;
-    width:auto;
-    max-width:820px;
+    width:100%;
+    max-width:none;
     box-sizing:border-box;
-    margin:0 auto;
+    margin:8px 0 0;
     padding:0 4px 2px;
     color:var(--pt-sidebar-contrast, #f8fbff);
     border:0;
@@ -3340,13 +3339,8 @@
     font-size:.84rem;
 }
 
-@@media (max-width: 1100px) {
-    .dashboard-global-department-bar {
-        order:3;
-        flex-basis:100%;
-        max-width:none;
-        width:100%;
-    }
+.dashboard-global-department-bar + .kpi-grid {
+    --dashboard-dino-search-clearance:16px;
 }
 
 .dashboard-department-option {
