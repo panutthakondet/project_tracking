@@ -140,10 +140,13 @@ namespace ProjectTracking.Services
                 var service = scope.ServiceProvider.GetRequiredService<MeetingNotificationService>();
                 var lineResult = await SendLineRemindersSafelyAsync(service, cancellationToken);
                 var telegramResult = await SendTelegramRemindersSafelyAsync(service, cancellationToken);
+                var fieldService = scope.ServiceProvider.GetRequiredService<FieldServiceNotificationService>();
+                var fieldLineResult = await SendFieldServiceLineRemindersSafelyAsync(fieldService, cancellationToken);
+                var fieldTelegramResult = await SendFieldServiceTelegramRemindersSafelyAsync(fieldService, cancellationToken);
                 var result = new MeetingNotificationResult(
-                    lineResult.SentCount + telegramResult.SentCount,
-                    lineResult.SkippedCount + telegramResult.SkippedCount,
-                    lineResult.FailedCount + telegramResult.FailedCount);
+                    lineResult.SentCount + telegramResult.SentCount + fieldLineResult.SentCount + fieldTelegramResult.SentCount,
+                    lineResult.SkippedCount + telegramResult.SkippedCount + fieldLineResult.SkippedCount + fieldTelegramResult.SkippedCount,
+                    lineResult.FailedCount + telegramResult.FailedCount + fieldLineResult.FailedCount + fieldTelegramResult.FailedCount);
 
                 if (result.SentCount > 0 || result.FailedCount > 0)
                 {
@@ -191,6 +194,36 @@ namespace ProjectTracking.Services
             {
                 _logger.LogError(ex, "Meeting Telegram reminder failed");
                 return new MeetingNotificationResult(0, 0, 1, ex.Message);
+            }
+        }
+
+        private async Task<FieldServiceNotificationResult> SendFieldServiceLineRemindersSafelyAsync(
+            FieldServiceNotificationService service,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await service.SendLineRemindersAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Field Service LINE reminder failed");
+                return new FieldServiceNotificationResult(0, 0, 1, ex.Message);
+            }
+        }
+
+        private async Task<FieldServiceNotificationResult> SendFieldServiceTelegramRemindersSafelyAsync(
+            FieldServiceNotificationService service,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await service.SendTelegramRemindersAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Field Service Telegram reminder failed");
+                return new FieldServiceNotificationResult(0, 0, 1, ex.Message);
             }
         }
 

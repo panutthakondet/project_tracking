@@ -279,6 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!response.ok || !result?.success) throw new Error(result?.message || 'ไม่สามารถเปลี่ยนวันหรือเวลาได้');
             calendar.refetchEvents();
             loadServiceList(calendar.view.activeStart.toISOString(), calendar.view.activeEnd.toISOString());
+            if (result.warning) window.alert(result.warning);
         })
         .catch(error => {
             if (typeof revert === 'function') revert();

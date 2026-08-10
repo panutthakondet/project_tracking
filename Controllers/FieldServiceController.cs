@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers;
@@ -15,12 +16,20 @@ public class FieldServiceController : BaseController
 
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly FieldServiceNotificationService _notificationService;
+    private readonly ILogger<FieldServiceController> _logger;
     private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt", ".zip" };
-    public FieldServiceController(AppDbContext context, IWebHostEnvironment environment)
+    public FieldServiceController(
+        AppDbContext context,
+        IWebHostEnvironment environment,
+        FieldServiceNotificationService notificationService,
+        ILogger<FieldServiceController> logger)
     {
         _context = context;
         _environment = environment;
+        _notificationService = notificationService;
+        _logger = logger;
     }
 
     [RequireMenu("FieldService.Index")]
@@ -195,6 +204,10 @@ public class FieldServiceController : BaseController
             foreach (var path in savedPaths) if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
             throw;
         }
+        await NotifySafelyAsync(
+            () => _notificationService.SendUpdatedNotificationsAsync(item.VisitId),
+            item.VisitId,
+            "result");
         TempData["Success"] = "ส่งผลการเข้าปฏิบัติงานเรียบร้อยแล้ว";
         return RedirectToAction(nameof(Show), new { id = item.VisitId });
     }
@@ -224,6 +237,10 @@ public class FieldServiceController : BaseController
         item.Assignees = model.AssigneeIds.Distinct().Select(id => new FieldServiceAssignee { EmpId = id }).ToList();
         _context.Add(item);
         await _context.SaveChangesAsync();
+        await NotifySafelyAsync(
+            () => _notificationService.SendCreatedNotificationsAsync(item.VisitId),
+            item.VisitId,
+            "created");
         TempData["Success"] = "สร้างงานออกไซต์เรียบร้อยแล้ว";
         return RedirectToAction(nameof(Show), new { id = item.VisitId });
     }
@@ -249,11 +266,21 @@ public class FieldServiceController : BaseController
         var item = await _context.FieldServiceVisits.Include(x => x.Assignees)
             .FirstOrDefaultAsync(x => x.VisitId == id);
         if (item == null) return NotFound();
+        var oldStatus = (item.Status ?? "").Trim().ToUpperInvariant();
         Apply(model, item);
         item.UpdatedAt = DateTime.Now;
         _context.FieldServiceAssignees.RemoveRange(item.Assignees);
         item.Assignees = model.AssigneeIds.Distinct().Select(empId => new FieldServiceAssignee { EmpId = empId }).ToList();
         await _context.SaveChangesAsync();
+        var notificationKind = oldStatus != "CANCELLED" && item.Status == "CANCELLED"
+            ? "cancelled"
+            : "updated";
+        await NotifySafelyAsync(
+            notificationKind == "cancelled"
+                ? () => _notificationService.SendCancelledNotificationsAsync(item.VisitId)
+                : () => _notificationService.SendUpdatedNotificationsAsync(item.VisitId),
+            item.VisitId,
+            notificationKind);
         TempData["Success"] = "บันทึกการแก้ไขเรียบร้อยแล้ว";
         return RedirectToAction(nameof(Show), new { id });
     }
@@ -261,11 +288,21 @@ public class FieldServiceController : BaseController
     [HttpPost, ValidateAntiForgeryToken, RequireMenu("FieldService.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
-        var item = await _context.FieldServiceVisits.FindAsync(id);
+        var item = await _context.FieldServiceVisits.FirstOrDefaultAsync(x => x.VisitId == id);
         if (item == null) return NotFound();
-        _context.Remove(item);
+        if (string.Equals(item.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Success"] = "งานเข้าไซต์นี้ถูกยกเลิกแล้ว";
+            return RedirectToAction(nameof(Index));
+        }
+        item.Status = "CANCELLED";
+        item.UpdatedAt = DateTime.Now;
         await _context.SaveChangesAsync();
-        TempData["Success"] = "ลบงานออกไซต์เรียบร้อยแล้ว";
+        await NotifySafelyAsync(
+            () => _notificationService.SendCancelledNotificationsAsync(item.VisitId),
+            item.VisitId,
+            "cancelled");
+        TempData["Success"] = "ยกเลิกงานออกไซต์เรียบร้อยแล้ว";
         return RedirectToAction(nameof(Index));
     }
 
@@ -397,7 +434,9 @@ public class FieldServiceController : BaseController
         var query = _context.FieldServiceVisits.AsNoTracking()
             .Include(x => x.Coop)
             .Include(x => x.Assignees).ThenInclude(x => x.Employee).ThenInclude(x => x!.LoginUser)
-            .Where(x => x.VisitDate < rangeEnd && (x.EndVisitDate ?? x.VisitDate) >= rangeStart)
+            .Where(x => x.VisitDate < rangeEnd
+                && (x.EndVisitDate ?? x.VisitDate) >= rangeStart
+                && x.Status != "CANCELLED")
             .AsQueryable();
         if (employeeId.HasValue && employeeId.Value > 0)
             query = query.Where(x => x.Assignees.Any(a => a.EmpId == employeeId.Value));
@@ -466,7 +505,13 @@ public class FieldServiceController : BaseController
         var item = await _context.FieldServiceVisits.FirstOrDefaultAsync(x => x.VisitId == model.Id);
         if (item == null)
             return NotFound(new { success = false, message = "ไม่พบงานเข้าไซต์" });
+        if (string.Equals(item.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { success = false, message = "งานเข้าไซต์นี้ถูกยกเลิกแล้ว" });
 
+        var oldVisitDate = item.VisitDate.Date;
+        var oldEndVisitDate = (item.EndVisitDate ?? item.VisitDate).Date;
+        var oldStartTime = item.StartTime;
+        var oldEndTime = item.EndTime;
         var originalFinalDate = (item.EndVisitDate ?? item.VisitDate).Date;
         var originalDaySpan = Math.Max(0, (originalFinalDate - item.VisitDate.Date).Days);
         DateTimeOffset parsedEnd = default;
@@ -493,9 +538,34 @@ public class FieldServiceController : BaseController
             }
         }
 
+        var changed = oldVisitDate != item.VisitDate.Date
+            || oldEndVisitDate != (item.EndVisitDate ?? item.VisitDate).Date
+            || oldStartTime != item.StartTime
+            || oldEndTime != item.EndTime;
+        if (!changed)
+            return Json(new { success = true });
+
         item.UpdatedAt = DateTime.Now;
         await _context.SaveChangesAsync();
-        return Json(new { success = true });
+        try
+        {
+            var result = await _notificationService.SendUpdatedNotificationsAsync(item.VisitId);
+            return Json(new
+            {
+                success = true,
+                warning = result.FailedCount > 0
+                    ? $"ย้ายกำหนดการแล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ"
+                    : null,
+                sentCount = result.SentCount,
+                skippedCount = result.SkippedCount,
+                failedCount = result.FailedCount
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Field Service was moved but notification failed. VisitId={VisitId}", item.VisitId);
+            return Json(new { success = true, warning = "ย้ายกำหนดการแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ" });
+        }
     }
 
     [RequireMenu("Reports.Index")]
@@ -686,5 +756,26 @@ public class FieldServiceController : BaseController
         var empId = HttpContext.Session.GetInt32("EmpId");
         return empId.HasValue && await _context.FieldServiceAssignees.AsNoTracking()
             .AnyAsync(x => x.VisitId == visitId && x.EmpId == empId.Value);
+    }
+
+    private async Task NotifySafelyAsync(
+        Func<Task<FieldServiceNotificationResult>> sendAsync,
+        int visitId,
+        string notificationKind)
+    {
+        try
+        {
+            var result = await sendAsync();
+            if (result.FailedCount > 0)
+                TempData["Error"] = $"บันทึกข้อมูลแล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Field Service was saved but notification failed. VisitId={VisitId}, Kind={Kind}",
+                visitId,
+                notificationKind);
+            TempData["Error"] = "บันทึกข้อมูลแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
+        }
     }
 }

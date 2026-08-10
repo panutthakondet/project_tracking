@@ -193,6 +193,7 @@ builder.Services.AddScoped<StatusApprovalService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
+builder.Services.AddScoped<FieldServiceNotificationService>();
 builder.Services.AddScoped<UserThemeService>();
 builder.Services.AddSignalR(options =>
 {

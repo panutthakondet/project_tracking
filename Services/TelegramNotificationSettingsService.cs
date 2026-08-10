@@ -12,6 +12,11 @@ namespace ProjectTracking.Services
         public const string MeetingsUpdate = "Meetings.Update";
         public const string MeetingsCancel = "Meetings.Cancel";
         public const string MeetingsReminder = "Meetings.Reminder";
+        public const string FieldServiceAuto = "FieldService.Auto";
+        public const string FieldServiceCreate = "FieldService.Create";
+        public const string FieldServiceUpdate = "FieldService.Update";
+        public const string FieldServiceCancel = "FieldService.Cancel";
+        public const string FieldServiceReminder = "FieldService.Reminder";
         public const string PhaseAssignsCreate = "PhaseAssigns.Create";
         public const string ProjectIssuesCreate = "ProjectIssues.Create";
         public const string ProjectIssuesFixed = "ProjectIssues.Fixed";
@@ -33,6 +38,11 @@ namespace ProjectTracking.Services
                 new(MeetingsUpdate, "Meetings", "Edit Meetings", "ส่ง Telegram เมื่อแก้ไข Meeting"),
                 new(MeetingsCancel, "Meetings", "Cancel Meetings", "ส่ง Telegram เมื่อเปลี่ยนสถานะ Meeting เป็นยกเลิก"),
                 new(MeetingsReminder, "Meetings", "Meeting Reminder", "ส่ง Telegram เตือนประชุมล่วงหน้า 3, 2, 1, 0 วัน"),
+                new(FieldServiceAuto, "Field Service", "Auto Field Service", "ส่ง Telegram อัตโนมัติสำหรับเตือนงานเข้าไซต์ล่วงหน้า"),
+                new(FieldServiceCreate, "Field Service", "Create Field Service", "ส่ง Telegram เมื่อสร้างและมอบหมายงานเข้าไซต์"),
+                new(FieldServiceUpdate, "Field Service", "Edit Field Service", "ส่ง Telegram เมื่อแก้ไขหรือย้ายกำหนดการงานเข้าไซต์"),
+                new(FieldServiceCancel, "Field Service", "Cancel Field Service", "ส่ง Telegram เมื่อยกเลิกงานเข้าไซต์"),
+                new(FieldServiceReminder, "Field Service", "Field Service Reminder", "ส่ง Telegram เตือนงานเข้าไซต์ล่วงหน้า 3, 2, 1, 0 วัน"),
                 new(PhaseAssignsCreate, "PhaseAssigns", "Create PhaseAssigns", "ส่ง Telegram ถึง BA และผู้รับผิดชอบเมื่อสร้าง Assign"),
                 new(ProjectIssuesCreate, "ProjectIssues", "Create ProjectIssues", "ส่ง Telegram ถึง BA และผู้รับผิดชอบเมื่อสร้าง Issue"),
                 new(ProjectIssuesFixed, "ProjectIssues", "FIXED ProjectIssues", "ส่ง Telegram ถึง BA เมื่อ Dev เปลี่ยน Issue เป็น FIXED"),
