@@ -6,6 +6,9 @@
     var selectedUser = Model.SelectedEmpId.HasValue
         ? Model.Users.FirstOrDefault(x => x.EmpId == Model.SelectedEmpId.Value)
         : null;
+    var selectedDepartmentName = Model.SelectedDepartmentId.HasValue
+        ? Model.Departments.FirstOrDefault(x => x.DepartmentId == Model.SelectedDepartmentId.Value)?.DepartmentName ?? "ทุกฝ่าย"
+        : "ทุกฝ่าย";
     string FormatLogDate(DateTime value)
         => value.Date == DateTime.Today
             ? "วันนี้"
@@ -142,6 +145,36 @@
         font-size: 13px;
         font-weight: 500;
         margin-top: 4px;
+    }
+
+    .send-log-department-filter {
+        display: grid;
+        gap: 5px;
+        margin-top: 12px;
+    }
+
+    .send-log-department-filter label {
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .send-log-department-filter select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--send-log-border);
+        border-radius: 6px;
+        background: #ffffff;
+        color: #10233f;
+        font: inherit;
+        font-size: 14px;
+        padding: 8px 34px 8px 11px;
+    }
+
+    .send-log-department-filter select:focus {
+        border-color: var(--send-log-accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--send-log-accent) 16%, transparent);
+        outline: none;
     }
 
     .send-log-tabs {
@@ -524,12 +557,24 @@
             <div class="send-log-left-head">
                 <h1 class="send-log-title">Users</h1>
                 <div class="send-log-subtitle">เลือกผู้รับเพื่อดู Log การส่งสำเร็จ จำนวนแสดงเฉพาะวันนี้</div>
+                <form method="get" asp-controller="NotificationSendLogs" asp-action="Index" class="send-log-department-filter">
+                    <input type="hidden" name="channel" value="@Model.SelectedChannel" />
+                    <label for="notificationLogDepartment">ฝ่าย</label>
+                    <select id="notificationLogDepartment" name="departmentId" onchange="this.form.submit()">
+                        <option value="0" selected="@(!Model.SelectedDepartmentId.HasValue ? "selected" : null)">ทุกฝ่าย</option>
+                        @foreach (var department in Model.Departments)
+                        {
+                            <option value="@department.DepartmentId" selected="@(Model.SelectedDepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                        }
+                    </select>
+                </form>
             </div>
 
             <a class="send-log-all @(Model.SelectedEmpId == null ? "active" : "")"
                asp-controller="NotificationSendLogs"
                asp-action="Index"
-               asp-route-channel="@Model.SelectedChannel">
+               asp-route-channel="@Model.SelectedChannel"
+               asp-route-departmentId="@(Model.SelectedDepartmentId ?? 0)">
                 <span class="send-log-all-icon">ALL</span>
                 <span>
                     <span class="send-log-user-name">ทั้งหมด</span>
@@ -545,6 +590,7 @@
                        asp-controller="NotificationSendLogs"
                        asp-action="Index"
                        asp-route-channel="@Model.SelectedChannel"
+                       asp-route-departmentId="@(Model.SelectedDepartmentId ?? 0)"
                        asp-route-empId="@user.EmpId">
                         <img class="send-log-avatar"
                              src="@user.AvatarPath"
@@ -577,7 +623,7 @@
                         }
                         <div class="send-log-selected-text">
                             <div class="send-log-selected-name">@(selectedUser?.Name ?? "Log การส่งสำเร็จทั้งหมด")</div>
-                            <div class="send-log-selected-meta">@Model.SelectedChannelLabel · จำนวน badge เป็นของวันนี้ · แสดงล่าสุด @Model.Logs.Count รายการ</div>
+                            <div class="send-log-selected-meta">@selectedDepartmentName · @Model.SelectedChannelLabel · จำนวน badge เป็นของวันนี้ · แสดงล่าสุด @Model.Logs.Count รายการ</div>
                         </div>
                     </div>
                 </div>
@@ -590,6 +636,7 @@
                        asp-controller="NotificationSendLogs"
                        asp-action="Index"
                        asp-route-channel="@tab.Channel"
+                       asp-route-departmentId="@(Model.SelectedDepartmentId ?? 0)"
                        asp-route-empId="@Model.SelectedEmpId">
                         <span>@tab.Label</span>
                         <span class="send-log-tab-count">@tab.Count</span>

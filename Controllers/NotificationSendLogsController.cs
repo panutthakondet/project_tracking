@@ -21,21 +21,49 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("NotificationSendLogs.Index")]
-        public async Task<IActionResult> Index(string? channel = null, int? empId = null)
+        public async Task<IActionResult> Index(string? channel = null, int? empId = null, int? departmentId = null)
         {
             var selectedChannel = NormalizeChannel(channel);
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
-            var employees = await LoadUsersAsync();
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName)
+                .Select(x => new NotificationSendLogDepartmentViewModel
+                {
+                    DepartmentId = x.DepartmentId,
+                    DepartmentName = x.DepartmentName
+                })
+                .ToListAsync(HttpContext.RequestAborted);
+            var hasDepartmentParameter = Request.Query.ContainsKey("departmentId");
+            var selectedDepartmentId = await ResolveSelectedDepartmentIdAsync(
+                departmentId,
+                hasDepartmentParameter,
+                departments.Select(x => x.DepartmentId).ToHashSet());
+            var departmentEmployeeIds = selectedDepartmentId.HasValue
+                ? await _context.Employees
+                    .AsNoTracking()
+                    .Where(x => x.DepartmentId == selectedDepartmentId.Value)
+                    .Select(x => x.EmpId)
+                    .ToListAsync(HttpContext.RequestAborted)
+                : null;
+            var employees = await LoadUsersAsync(selectedDepartmentId);
+            if (empId.HasValue && employees.All(x => x.EmpId != empId.Value))
+                empId = null;
             var employeeById = employees.ToDictionary(x => x.EmpId);
 
-            var tabs = await BuildTabsAsync(today, tomorrow);
-            var countRows = await _context.NotificationSendLogs
+            var tabs = await BuildTabsAsync(today, tomorrow, departmentEmployeeIds);
+            var countQuery = _context.NotificationSendLogs
                 .AsNoTracking()
                 .Where(x => x.Channel == selectedChannel
                     && x.RecipientEmpId.HasValue
                     && x.SentAt >= today
-                    && x.SentAt < tomorrow)
+                    && x.SentAt < tomorrow);
+            if (departmentEmployeeIds != null)
+                countQuery = countQuery.Where(x => departmentEmployeeIds.Contains(x.RecipientEmpId!.Value));
+            var countRows = await countQuery
                 .GroupBy(x => x.RecipientEmpId!.Value)
                 .Select(x => new
                 {
@@ -59,6 +87,10 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Where(x => x.Channel == selectedChannel);
 
+            if (departmentEmployeeIds != null)
+                logQuery = logQuery.Where(x => x.RecipientEmpId.HasValue
+                    && departmentEmployeeIds.Contains(x.RecipientEmpId.Value));
+
             if (empId.HasValue && empId.Value > 0)
                 logQuery = logQuery.Where(x => x.RecipientEmpId == empId.Value);
 
@@ -72,6 +104,8 @@ namespace ProjectTracking.Controllers
             {
                 SelectedChannel = selectedChannel,
                 SelectedEmpId = empId,
+                SelectedDepartmentId = selectedDepartmentId,
+                Departments = departments,
                 Tabs = tabs,
                 Users = employees
                     .OrderByDescending(x => x.Count)
@@ -83,11 +117,18 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private async Task<List<NotificationSendLogTabViewModel>> BuildTabsAsync(DateTime today, DateTime tomorrow)
+        private async Task<List<NotificationSendLogTabViewModel>> BuildTabsAsync(
+            DateTime today,
+            DateTime tomorrow,
+            List<int>? departmentEmployeeIds)
         {
-            var counts = await _context.NotificationSendLogs
+            var query = _context.NotificationSendLogs
                 .AsNoTracking()
-                .Where(x => x.SentAt >= today && x.SentAt < tomorrow)
+                .Where(x => x.SentAt >= today && x.SentAt < tomorrow);
+            if (departmentEmployeeIds != null)
+                query = query.Where(x => x.RecipientEmpId.HasValue
+                    && departmentEmployeeIds.Contains(x.RecipientEmpId.Value));
+            var counts = await query
                 .GroupBy(x => x.Channel)
                 .Select(x => new { Channel = x.Key, Count = x.Count() })
                 .ToListAsync(HttpContext.RequestAborted);
@@ -101,12 +142,15 @@ namespace ProjectTracking.Controllers
             };
         }
 
-        private async Task<List<NotificationSendLogUserViewModel>> LoadUsersAsync()
+        private async Task<List<NotificationSendLogUserViewModel>> LoadUsersAsync(int? departmentId)
         {
-            var employees = await _context.Employees
+            var employeeQuery = _context.Employees
                 .AsNoTracking()
                 .Include(x => x.LoginUser)
-                .Where(x => x.Status == "ACTIVE")
+                .Where(x => x.Status == "ACTIVE");
+            if (departmentId.HasValue)
+                employeeQuery = employeeQuery.Where(x => x.DepartmentId == departmentId.Value);
+            var employees = await employeeQuery
                 .OrderBy(x => x.EmpName)
                 .ToListAsync(HttpContext.RequestAborted);
 
@@ -133,6 +177,47 @@ namespace ProjectTracking.Controllers
                     AvatarPath = ProfileImage(login?.ProfileImagePath)
                 };
             }).ToList();
+        }
+
+        private async Task<int?> ResolveSelectedDepartmentIdAsync(
+            int? requestedDepartmentId,
+            bool hasDepartmentParameter,
+            IReadOnlySet<int> activeDepartmentIds)
+        {
+            if (hasDepartmentParameter)
+            {
+                return requestedDepartmentId is > 0
+                    && activeDepartmentIds.Contains(requestedDepartmentId.Value)
+                        ? requestedDepartmentId.Value
+                        : null;
+            }
+
+            var empId = HttpContext.Session.GetInt32("EmpId");
+            if (!empId.HasValue && HttpContext.Session.GetInt32("UserId") is int userId)
+            {
+                empId = await _context.LoginUsers
+                    .AsNoTracking()
+                    .Where(x => x.UserId == userId)
+                    .Select(x => x.EmpId)
+                    .FirstOrDefaultAsync(HttpContext.RequestAborted);
+                empId ??= await _context.Employees
+                    .AsNoTracking()
+                    .Where(x => x.LoginUserId == userId)
+                    .Select(x => (int?)x.EmpId)
+                    .FirstOrDefaultAsync(HttpContext.RequestAborted);
+            }
+
+            if (!empId.HasValue)
+                return null;
+
+            var employeeDepartmentId = await _context.Employees
+                .AsNoTracking()
+                .Where(x => x.EmpId == empId.Value)
+                .Select(x => x.DepartmentId)
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
+            return employeeDepartmentId.HasValue && activeDepartmentIds.Contains(employeeDepartmentId.Value)
+                ? employeeDepartmentId
+                : null;
         }
 
         private static NotificationSendLogItemViewModel ToLogItem(

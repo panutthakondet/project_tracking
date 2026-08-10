@@ -8,12 +8,20 @@ namespace ProjectTracking.ViewModels
     {
         public string SelectedChannel { get; set; } = "LINE";
         public int? SelectedEmpId { get; set; }
+        public int? SelectedDepartmentId { get; set; }
+        public List<NotificationSendLogDepartmentViewModel> Departments { get; set; } = new();
         public List<NotificationSendLogTabViewModel> Tabs { get; set; } = new();
         public List<NotificationSendLogUserViewModel> Users { get; set; } = new();
         public List<NotificationSendLogItemViewModel> Logs { get; set; } = new();
 
         public int TotalCount => Tabs.FirstOrDefault(x => x.Channel == SelectedChannel)?.Count ?? 0;
         public string SelectedChannelLabel => Tabs.FirstOrDefault(x => x.Channel == SelectedChannel)?.Label ?? SelectedChannel;
+    }
+
+    public class NotificationSendLogDepartmentViewModel
+    {
+        public int DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = "";
     }
 
     public class NotificationSendLogTabViewModel
