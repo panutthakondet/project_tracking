@@ -812,6 +812,7 @@ namespace ProjectTracking.Controllers
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
+                    Position = e.Position,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -1049,6 +1050,22 @@ namespace ProjectTracking.Controllers
                     : "ยังไม่กำหนดฝ่าย";
             }
 
+            var empPositionById = employees
+                .GroupBy(e => e.EmpId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => string.IsNullOrWhiteSpace(group.First().Position)
+                        ? "ยังไม่กำหนดตำแหน่ง"
+                        : group.First().Position!.Trim());
+
+            string EmployeePosition(int? empId)
+            {
+                if (!empId.HasValue) return "ยังไม่กำหนดตำแหน่ง";
+                return empPositionById.TryGetValue(empId.Value, out var position)
+                    ? position
+                    : "ยังไม่กำหนดตำแหน่ง";
+            }
+
             var empAvatarById = employees
                 .GroupBy(e => e.EmpId)
                 .ToDictionary(g => g.Key, g => ResolveProfileImagePath(g.First().ProfileImagePath));
@@ -1234,6 +1251,7 @@ namespace ProjectTracking.Controllers
                 scopedEmployees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
                 EmployeeName,
                 EmployeeDepartment,
+                EmployeePosition,
                 EmployeeAvatar);
             var activeFieldServiceCounts = scopedFieldServiceVisits
                 .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
@@ -1241,7 +1259,7 @@ namespace ProjectTracking.Controllers
                 .SelectMany(x => x.Assignees)
                 .GroupBy(x => x.EmpId)
                 .ToDictionary(x => x.Key, x => x.Count());
-            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeeAvatar, today);
+            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeePosition, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             var phaseById = phases
                 .GroupBy(phase => phase.PhaseId)
@@ -1832,6 +1850,7 @@ namespace ProjectTracking.Controllers
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
+                    Position = e.Position,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -2760,6 +2779,7 @@ namespace ProjectTracking.Controllers
             IEnumerable<int> employeeIds,
             Func<int?, string> employeeName,
             Func<int?, string> employeeDepartment,
+            Func<int?, string> employeePosition,
             Func<int?, string> employeeAvatar)
         {
             var activeAssigns = assigns
@@ -2789,6 +2809,7 @@ namespace ProjectTracking.Controllers
                 {
                     Name = employeeName(row.EmpId),
                     DepartmentName = employeeDepartment(row.EmpId),
+                    Position = employeePosition(row.EmpId),
                     ActiveTaskCount = row.Count,
                     Value = max <= 0 || row.Count == 0
                         ? 0
@@ -2807,6 +2828,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyDictionary<int, int> fieldServiceCounts,
             Func<int?, string> employeeName,
             Func<int?, string> employeeDepartment,
+            Func<int?, string> employeePosition,
             Func<int?, string> employeeAvatar,
             DateTime today)
         {
@@ -2848,6 +2870,7 @@ namespace ProjectTracking.Controllers
                         EmpId = empId,
                         Name = employeeName(empId),
                         DepartmentName = employeeDepartment(empId),
+                        Position = employeePosition(empId),
                         AvatarPath = employeeAvatar(empId),
                         DoneCount = done,
                         InProgressCount = inProgress,
@@ -3465,6 +3488,7 @@ namespace ProjectTracking.Controllers
             public int EmpId { get; set; }
             public string EmpName { get; set; } = "";
             public string? DepartmentName { get; set; }
+            public string? Position { get; set; }
             public string? Status { get; set; }
             public int? LoginUserId { get; set; }
             public string? ProfileImagePath { get; set; }

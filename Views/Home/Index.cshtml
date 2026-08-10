@@ -575,6 +575,7 @@
                                                 <img src="@member.AvatarPath" alt="@member.Name" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                                 <b>@member.Name</b>
                                                 <span class="owner-overview-department">@member.DepartmentName</span>
+                                                <span class="owner-overview-position">@member.Position</span>
                                             </div>
                                         </div>
                                     }
@@ -1084,6 +1085,7 @@
                             <span class="workload-name">
                                 <strong>@member.Name</strong>
                                 <small class="workload-department">@member.DepartmentName</small>
+                                <small class="workload-position">@member.Position</small>
                                 <small>งานค้าง @member.ActiveTaskCount งาน</small>
                             </span>
                             <div class="progress-track"><i class="@member.Color" style="width:@member.Value%"></i></div>
@@ -2705,7 +2707,7 @@
     width:100%;
     min-height:102px;
     display:grid;
-    grid-template-rows:auto 38px auto auto;
+    grid-template-rows:auto 38px auto auto auto;
     justify-items:center;
     align-content:start;
     gap:2px;
@@ -2746,6 +2748,16 @@
     font-size:9px;
     line-height:1.15;
     font-weight:500;
+    text-align:center;
+    overflow-wrap:anywhere;
+}
+
+.owner-overview-position {
+    max-width:100%;
+    color:#8298bb;
+    font-size:8px;
+    line-height:1.15;
+    font-weight:400;
     text-align:center;
     overflow-wrap:anywhere;
 }
@@ -6718,6 +6730,11 @@
 .workload-row .workload-name .workload-department {
     color:#c4d6f2;
     font-weight:500;
+}
+
+.workload-row .workload-name .workload-position {
+    color:#8fa5c7;
+    font-weight:400;
 }
 
 .workload-row b {

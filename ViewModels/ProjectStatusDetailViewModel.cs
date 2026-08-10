@@ -52,6 +52,7 @@ namespace ProjectTracking.ViewModels
         public int EmpId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string DepartmentName { get; set; } = "ยังไม่กำหนดฝ่าย";
+        public string Position { get; set; } = "ยังไม่กำหนดตำแหน่ง";
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
         public int DoneCount { get; set; }
         public int InProgressCount { get; set; }

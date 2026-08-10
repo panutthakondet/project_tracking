@@ -251,6 +251,7 @@ namespace ProjectTracking.ViewModels
     {
         public string Name { get; set; } = "";
         public string DepartmentName { get; set; } = "ยังไม่กำหนดฝ่าย";
+        public string Position { get; set; } = "ยังไม่กำหนดตำแหน่ง";
         public int Value { get; set; }
         public int ActiveTaskCount { get; set; }
         public string Color { get; set; } = "blue";
