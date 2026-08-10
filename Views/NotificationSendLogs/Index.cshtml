@@ -150,7 +150,7 @@
     .send-log-department-filter {
         display: grid;
         gap: 5px;
-        margin-top: 12px;
+        margin-top: 0;
     }
 
     .send-log-department-filter label {
@@ -555,8 +555,6 @@
     <div class="send-log-shell">
         <aside class="send-log-panel send-log-side-panel">
             <div class="send-log-left-head">
-                <h1 class="send-log-title">Users</h1>
-                <div class="send-log-subtitle">เลือกผู้รับเพื่อดู Log การส่งสำเร็จ จำนวนแสดงเฉพาะวันนี้</div>
                 <form method="get" asp-controller="NotificationSendLogs" asp-action="Index" class="send-log-department-filter">
                     <input type="hidden" name="channel" value="@Model.SelectedChannel" />
                     <label for="notificationLogDepartment">ฝ่าย</label>
