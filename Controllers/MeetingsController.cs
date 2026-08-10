@@ -38,7 +38,7 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking().AsSplitQuery()
                 .Where(x => x.IsActive)
                 .Include(x => x.Calendars.Where(c => c.IsActive))
-                    .ThenInclude(x => x.Meetings)
+                    .ThenInclude(x => x.Meetings.Where(m => m.Status == null || m.Status != "CANCELLED"))
                 .OrderBy(x => x.SortOrder).ThenBy(x => x.GroupName)
                 .ToListAsync();
 
@@ -79,7 +79,7 @@ namespace ProjectTracking.Controllers
             // โหลดข้อมูลดิบจาก DB ก่อน แล้วค่อย format เวลาใน memory (กัน All-day/FormatException)
             var rows = await _context.Meetings
                 .AsNoTracking()
-                .Where(m => m.CalendarId == calendarId)
+                .Where(m => m.CalendarId == calendarId && (m.Status == null || m.Status != "CANCELLED"))
                 .Select(m => new
                 {
                     m.Id,
@@ -754,6 +754,8 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("Meetings.Edit")]
         public async Task<IActionResult> Move([FromBody] MoveRequest req)
         {
             if (req == null || req.id <= 0 || string.IsNullOrWhiteSpace(req.start))
@@ -762,6 +764,8 @@ namespace ProjectTracking.Controllers
             var meeting = await _context.Meetings.FindAsync(req.id);
             if (meeting == null)
                 return Json(new { success = false, message = "meeting not found" });
+            if (NormalizeMeetingStatus(meeting.Status) == "CANCELLED")
+                return Json(new { success = false, message = "meeting cancelled" });
 
             // Parse ISO8601 (FullCalendar sends startStr/endStr)
             if (!DateTimeOffset.TryParse(req.start, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var startDto))
@@ -779,9 +783,12 @@ namespace ProjectTracking.Controllers
             var hasEnd = !string.IsNullOrWhiteSpace(req.end) &&
                          DateTimeOffset.TryParse(req.end, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out endDto);
 
-            // Update date + times (use local date/time from the parsed value)
-            meeting.MeetingDate = startDto.Date;
-            meeting.StartTime = startDto.TimeOfDay;
+            var oldDate = meeting.MeetingDate.Date;
+            var oldStartTime = meeting.StartTime;
+            var oldEndTime = meeting.EndTime;
+            var newDate = startDto.Date;
+            var newStartTime = startDto.TimeOfDay;
+            TimeSpan newEndTime;
 
             if (hasEnd)
             {
@@ -789,17 +796,52 @@ namespace ProjectTracking.Controllers
                 if (endDto < startDto)
                     endDto = startDto.Add(duration);
 
-                meeting.EndTime = endDto.TimeOfDay;
+                newEndTime = endDto.TimeOfDay;
             }
             else
             {
-                meeting.EndTime = (startDto.Add(duration)).TimeOfDay;
+                newEndTime = (startDto.Add(duration)).TimeOfDay;
             }
+
+            var scheduleChanged = oldDate != newDate.Date
+                || oldStartTime != newStartTime
+                || oldEndTime != newEndTime;
+            if (!scheduleChanged)
+                return Json(new { success = true });
+
+            // Update date + times (use local date/time from the parsed value)
+            meeting.MeetingDate = newDate;
+            meeting.StartTime = newStartTime;
+            meeting.EndTime = newEndTime;
 
             meeting.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return Json(new { success = true });
+
+            try
+            {
+                var result = await _meetingNotificationService.SendUpdatedNotificationsAsync(meeting.Id);
+                var warning = result.FailedCount > 0
+                    ? $"เปลี่ยนวันเวลาแล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ"
+                    : null;
+                return Json(new
+                {
+                    success = true,
+                    warning,
+                    sentCount = result.SentCount,
+                    skippedCount = result.SkippedCount,
+                    failedCount = result.FailedCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting was moved but update notification failed. MeetingId={MeetingId}", meeting.Id);
+                return Json(new
+                {
+                    success = true,
+                    warning = "เปลี่ยนวันเวลาแล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ"
+                });
+            }
         }
 
         [RequireMenu("Meetings.Delete")]
@@ -811,13 +853,40 @@ namespace ProjectTracking.Controllers
             if (meeting == null)
                 return NotFound();
 
-            // ลบผู้เข้าร่วม (เผื่อ FK ไม่ cascade)
-            var attendees = _context.MeetingAttendees.Where(a => a.MeetingId == id);
-            _context.MeetingAttendees.RemoveRange(attendees);
-
             var calendarId = meeting.CalendarId;
-            _context.Meetings.Remove(meeting);
+            if (NormalizeMeetingStatus(meeting.Status) == "CANCELLED")
+            {
+                TempData["Success"] = "Meeting นี้ถูกยกเลิกแล้ว";
+                return RedirectToAction(nameof(Schedule), new { id = calendarId });
+            }
+
+            meeting.Status = "CANCELLED";
+            meeting.UpdatedAt = DateTime.Now;
+            if (!meeting.CreatedBy.HasValue)
+                meeting.CreatedBy = await GetCurrentEntryIdAsync();
             await _context.SaveChangesAsync();
+
+            try
+            {
+                var result = await _meetingNotificationService.SendCancelledNotificationsAsync(meeting.Id);
+                if (result.FailedCount > 0)
+                {
+                    TempData["Error"] = $"ยกเลิก Meeting แล้ว แต่ส่งแจ้งเตือนไม่สำเร็จ {result.FailedCount} รายการ";
+                }
+                else if (result.SentCount > 0)
+                {
+                    TempData["Success"] = $"ยกเลิก Meeting แล้ว และส่งแจ้งเตือนแล้ว {result.SentCount} รายการ";
+                }
+                else
+                {
+                    TempData["Success"] = "ยกเลิก Meeting แล้ว";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Meeting was cancelled but cancellation notification failed. MeetingId={MeetingId}", meeting.Id);
+                TempData["Error"] = "ยกเลิก Meeting แล้ว แต่ระบบส่งแจ้งเตือนไม่สำเร็จ";
+            }
 
             return RedirectToAction(nameof(Schedule), new { id = calendarId });
         }

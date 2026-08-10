@@ -1184,9 +1184,9 @@ document.addEventListener('DOMContentLoaded', function () {
             minute: '2-digit',
             hour12: false
         },
-        editable: true,
-        eventStartEditable: true,
-        eventDurationEditable: true,
+        editable: @(CanMenu("Meetings.Edit") ? "true" : "false"),
+        eventStartEditable: @(CanMenu("Meetings.Edit") ? "true" : "false"),
+        eventDurationEditable: @(CanMenu("Meetings.Edit") ? "true" : "false"),
         progressiveEventRendering: true,
 
         headerToolbar: {
@@ -1533,7 +1533,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!res.success) {
                 alert('ไม่สามารถเปลี่ยนเวลาได้');
                 calendar.refetchEvents();
+                return;
             }
+
+            loadMeetingList();
+            if (res.warning) alert(res.warning);
         })
         .catch(() => {
             alert('เกิดข้อผิดพลาด');
