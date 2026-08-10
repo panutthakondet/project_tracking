@@ -1190,11 +1190,11 @@
 
 .dashboard-dino-feed-zone {
     position:absolute;
-    top:-48px;
+    top:-14px;
     left:0;
     right:0;
     z-index:42;
-    height:58px;
+    height:14px;
     display:none;
     cursor:crosshair;
 }
@@ -3318,7 +3318,7 @@
 
 .dashboard-global-department-bar {
     position:relative;
-    z-index:4;
+    z-index:50;
     display:flex;
     align-items:center;
     width:100%;
@@ -3331,15 +3331,19 @@
     border-radius:0;
     background:transparent;
     box-shadow:none;
+    pointer-events:auto;
 }
 
 .dashboard-global-department-bar .dashboard-department-option {
+    position:relative;
+    z-index:1;
     min-height:38px;
     padding:7px 16px;
     color:var(--pt-body-contrast, #10233f);
     border-color:var(--pt-border-strong, rgba(15,118,110,.42));
     background:color-mix(in srgb, var(--pt-surface, #fff) 72%, transparent);
     font-size:.84rem;
+    pointer-events:auto;
 }
 
 .dashboard-global-department-bar .dashboard-department-option:hover,
