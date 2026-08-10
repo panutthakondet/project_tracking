@@ -811,6 +811,7 @@ namespace ProjectTracking.Controllers
                 {
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
+                    DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -1032,6 +1033,22 @@ namespace ProjectTracking.Controllers
                 return empNameById.TryGetValue(empId.Value, out var name) ? name : $"EMP#{empId.Value}";
             }
 
+            var empDepartmentById = employees
+                .GroupBy(e => e.EmpId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => string.IsNullOrWhiteSpace(group.First().DepartmentName)
+                        ? "ยังไม่กำหนดฝ่าย"
+                        : group.First().DepartmentName!);
+
+            string EmployeeDepartment(int? empId)
+            {
+                if (!empId.HasValue) return "ยังไม่กำหนดฝ่าย";
+                return empDepartmentById.TryGetValue(empId.Value, out var departmentName)
+                    ? departmentName
+                    : "ยังไม่กำหนดฝ่าย";
+            }
+
             var empAvatarById = employees
                 .GroupBy(e => e.EmpId)
                 .ToDictionary(g => g.Key, g => ResolveProfileImagePath(g.First().ProfileImagePath));
@@ -1216,6 +1233,7 @@ namespace ProjectTracking.Controllers
                 scopedAssigns,
                 scopedEmployees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
                 EmployeeName,
+                EmployeeDepartment,
                 EmployeeAvatar);
             var activeFieldServiceCounts = scopedFieldServiceVisits
                 .Where(x => !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)
@@ -1223,7 +1241,7 @@ namespace ProjectTracking.Controllers
                 .SelectMany(x => x.Assignees)
                 .GroupBy(x => x.EmpId)
                 .ToDictionary(x => x.Key, x => x.Count());
-            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeAvatar, today);
+            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
             var phaseById = phases
                 .GroupBy(phase => phase.PhaseId)
@@ -1813,6 +1831,7 @@ namespace ProjectTracking.Controllers
                 {
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
+                    DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -2740,6 +2759,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardAssignRow> assigns,
             IEnumerable<int> employeeIds,
             Func<int?, string> employeeName,
+            Func<int?, string> employeeDepartment,
             Func<int?, string> employeeAvatar)
         {
             var activeAssigns = assigns
@@ -2768,6 +2788,7 @@ namespace ProjectTracking.Controllers
                 .Select((row, index) => new HomeDashboardWorkload
                 {
                     Name = employeeName(row.EmpId),
+                    DepartmentName = employeeDepartment(row.EmpId),
                     ActiveTaskCount = row.Count,
                     Value = max <= 0 || row.Count == 0
                         ? 0
@@ -2785,6 +2806,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyList<DashboardSupportOrderRow> supportOrders,
             IReadOnlyDictionary<int, int> fieldServiceCounts,
             Func<int?, string> employeeName,
+            Func<int?, string> employeeDepartment,
             Func<int?, string> employeeAvatar,
             DateTime today)
         {
@@ -2825,6 +2847,7 @@ namespace ProjectTracking.Controllers
                     {
                         EmpId = empId,
                         Name = employeeName(empId),
+                        DepartmentName = employeeDepartment(empId),
                         AvatarPath = employeeAvatar(empId),
                         DoneCount = done,
                         InProgressCount = inProgress,
@@ -3441,6 +3464,7 @@ namespace ProjectTracking.Controllers
         {
             public int EmpId { get; set; }
             public string EmpName { get; set; } = "";
+            public string? DepartmentName { get; set; }
             public string? Status { get; set; }
             public int? LoginUserId { get; set; }
             public string? ProfileImagePath { get; set; }

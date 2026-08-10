@@ -250,6 +250,7 @@ namespace ProjectTracking.ViewModels
     public class HomeDashboardWorkload
     {
         public string Name { get; set; } = "";
+        public string DepartmentName { get; set; } = "ยังไม่กำหนดฝ่าย";
         public int Value { get; set; }
         public int ActiveTaskCount { get; set; }
         public string Color { get; set; } = "blue";
