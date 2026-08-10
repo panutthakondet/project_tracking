@@ -29,9 +29,10 @@ namespace ProjectTracking.Controllers
         // INDEX
         // =====================================================
         [RequireMenu("PhaseStatusReport.Index")]
-        public async Task<IActionResult> Index(string? empName, string? projectName, string? phaseStatus)
+        public async Task<IActionResult> Index(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
-            var allRows = await BuildPhaseOwnerStatusRowsAsync();
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var allRows = await BuildPhaseOwnerStatusRowsAsync(departmentId);
 
             ViewBag.EmpList = allRows
                 .Select(x => x.EmpName)
@@ -99,9 +100,10 @@ namespace ProjectTracking.Controllers
         // PRINT
         // =====================================================
         [RequireMenu("PhaseStatusReport.Print")]
-        public async Task<IActionResult> Print(string? empName, string? projectName, string? phaseStatus)
+        public async Task<IActionResult> Print(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
-            var result = (await BuildPhaseOwnerStatusRowsAsync()).AsEnumerable();
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var result = (await BuildPhaseOwnerStatusRowsAsync(departmentId)).AsEnumerable();
 
             if (!string.IsNullOrEmpty(empName))
                 result = result.Where(x => x.EmpName == empName);
@@ -127,9 +129,10 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseStatusReport.Print")]
-        public async Task<IActionResult> PrintTable(string? empName, string? projectName, string? phaseStatus)
+        public async Task<IActionResult> PrintTable(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
-            var result = (await BuildPhaseOwnerStatusRowsAsync()).AsEnumerable();
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var result = (await BuildPhaseOwnerStatusRowsAsync(departmentId)).AsEnumerable();
 
             if (!string.IsNullOrEmpty(empName))
                 result = result.Where(x => x.EmpName == empName);
@@ -576,7 +579,7 @@ namespace ProjectTracking.Controllers
             return normalized is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED";
         }
 
-        private async Task<List<VwPhaseOwnerStatus>> BuildPhaseOwnerStatusRowsAsync()
+        private async Task<List<VwPhaseOwnerStatus>> BuildPhaseOwnerStatusRowsAsync(int? departmentId = null)
         {
             var today = DateTime.Today;
 
@@ -588,6 +591,7 @@ namespace ProjectTracking.Controllers
                     on phase.ProjectId equals project.ProjectId
                 join employee in _context.Employees.AsNoTracking()
                     on assign.EmpId equals employee.EmpId
+                where !departmentId.HasValue || project.DepartmentId == departmentId.Value
                 select new
                 {
                     project.ProjectId,

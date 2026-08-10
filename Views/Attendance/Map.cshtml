@@ -308,6 +308,14 @@
 
     <form method="get" class="filter-panel">
         <div class="field">
+            <label for="departmentId">ฝ่าย</label>
+            <select id="departmentId" name="departmentId">
+                <option value="">ทุกฝ่าย</option>
+                @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
+                { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
+            </select>
+        </div>
+        <div class="field">
             <label for="fromDate">จากวันที่</label>
             <input type="text" id="fromDate" name="fromDate" value="@fromDateText" placeholder="dd/MM/2569" />
         </div>

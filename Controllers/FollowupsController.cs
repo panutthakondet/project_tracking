@@ -211,11 +211,16 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Followups.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, string? owner, string? status)
+        public async Task<IActionResult> ViewOnly(int? projectId, string? owner, string? status, int? departmentId)
         {
-            var projects = await _context.Projects
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var projectQuery = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .AsQueryable();
+            if (departmentId.HasValue)
+                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+            var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -223,7 +228,7 @@ namespace ProjectTracking.Controllers
             var ownerList = await _context.ProjectFollowups
                 .AsNoTracking()
                 .Include(f => f.Owner)
-                .Where(f => f.Owner != null)
+                .Where(f => f.Owner != null && (!departmentId.HasValue || (f.Project != null && f.Project.DepartmentId == departmentId.Value)))
                 .Select(f => f.Owner!.EmpName)
                 .Distinct()
                 .OrderBy(name => name)
@@ -239,6 +244,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(f => f.ProjectId == projectId.Value);
+            if (departmentId.HasValue)
+                query = query.Where(f => f.Project != null && f.Project.DepartmentId == departmentId.Value);
 
             if (!string.IsNullOrWhiteSpace(owner))
                 query = query.Where(f => f.Owner != null && f.Owner.EmpName == owner);

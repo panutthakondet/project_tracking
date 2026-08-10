@@ -223,8 +223,9 @@ namespace ProjectTracking.Controllers
             return R * c;
         }
         [RequireMenu("Attendance.Map")]
-        public async Task<IActionResult> Map(string fromDate, string toDate)
+        public async Task<IActionResult> Map(string fromDate, string toDate, int? departmentId)
         {
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             DateTime start;
             DateTime end;
 
@@ -249,6 +250,7 @@ namespace ProjectTracking.Controllers
 
             var employees = await _context.Employees
                 .Where(x => x.Status == "ACTIVE")
+                .Where(x => !departmentId.HasValue || x.DepartmentId == departmentId.Value)
                 .ToListAsync();
 
             var attendances = await _context.Attendances

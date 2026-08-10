@@ -487,6 +487,14 @@
 
     <form method="get" id="filterForm" class="filter-panel">
         <div class="field">
+            <label for="departmentId">ฝ่าย</label>
+            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+                <option value="">ทุกฝ่าย</option>
+                @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
+                { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
+            </select>
+        </div>
+        <div class="field">
             <label for="coopFilter">Cooperative</label>
             <select id="coopFilter" data-placeholder="🔍 พิมพ์ค้นหาสหกรณ์...">
                 <option value="">-- All Cooperatives --</option>

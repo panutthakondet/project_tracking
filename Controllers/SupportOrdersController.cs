@@ -123,8 +123,9 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("SupportOrders.Index")]
-        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? priority, string? devStatus)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? priority, string? devStatus, int? departmentId)
         {
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             empName = string.IsNullOrWhiteSpace(empName) ? null : empName.Trim();
             status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
             priority = string.IsNullOrWhiteSpace(priority) ? null : priority.Trim().ToUpperInvariant();
@@ -134,6 +135,7 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -150,6 +152,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(o => o.ProjectId == projectId.Value);
+            if (departmentId.HasValue)
+                query = query.Where(o => o.Project != null && o.Project.DepartmentId == departmentId.Value);
 
             if (baEmpId.HasValue && baEmpId.Value > 0)
                 query = query.Where(o => o.Project != null && o.Project.BaEmpId == baEmpId.Value);
@@ -195,7 +199,7 @@ namespace ProjectTracking.Controllers
                         on order.ProjectId equals projectRow.ProjectId
                     join employee in _context.Employees.AsNoTracking()
                         on projectRow.BaEmpId equals employee.EmpId
-                    where projectRow.BaEmpId != null
+                    where projectRow.BaEmpId != null && (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
                     select new
                     {
                         EmpId = employee.EmpId,
@@ -213,7 +217,7 @@ namespace ProjectTracking.Controllers
             var empList = await _context.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(o => o.Employee)
-                .Where(o => o.Employee != null)
+                .Where(o => o.Employee != null && (!departmentId.HasValue || (o.Project != null && o.Project.DepartmentId == departmentId.Value)))
                 .Select(o => o.Employee!.EmpName)
                 .Distinct()
                 .OrderBy(name => name)

@@ -24,6 +24,8 @@ namespace ProjectTracking.ViewModels
 
     public class ExecutiveReportViewModel
     {
+        public int? DepartmentId { get; set; }
+        public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
         public DateTime GeneratedAt { get; set; }
         public string GeneratedBy { get; set; } = "";
         public List<ExecutiveKpiViewModel> Kpis { get; set; } = new();
@@ -97,6 +99,8 @@ namespace ProjectTracking.ViewModels
 
     public class TaskProgressReportViewModel
     {
+        public int? DepartmentId { get; set; }
+        public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
         public DateTime GeneratedAt { get; set; }
         public string GeneratedBy { get; set; } = "";
         public int Year { get; set; }
@@ -163,6 +167,8 @@ namespace ProjectTracking.ViewModels
 
     public class PendingWorkReportViewModel
     {
+        public int? DepartmentId { get; set; }
+        public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
         public DateTime GeneratedAt { get; set; }
         public string GeneratedBy { get; set; } = "";
         public DateTime Today { get; set; }
@@ -223,6 +229,12 @@ namespace ProjectTracking.ViewModels
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = "";
         public string CoopName { get; set; } = "";
+    }
+
+    public class DepartmentReportOptionViewModel
+    {
+        public int DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = "";
     }
 
     public class EmployeeReportOptionViewModel

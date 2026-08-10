@@ -537,6 +537,16 @@
 
     <form method="get" asp-action="PendingWork" class="filter-panel">
         <div class="field">
+            <label for="departmentId">ฝ่าย</label>
+            <select id="departmentId" name="departmentId" data-placeholder="เลือกฝ่าย...">
+                <option value="">ทุกฝ่าย</option>
+                @foreach (var department in report.DepartmentOptions)
+                {
+                    <option value="@department.DepartmentId" selected="@(report.DepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                }
+            </select>
+        </div>
+        <div class="field">
             <label for="projectId">โครงการ</label>
             <select id="projectId" name="projectId" data-placeholder="พิมพ์ค้นหาโครงการ...">
                 <option value="">ทุกโครงการ</option>

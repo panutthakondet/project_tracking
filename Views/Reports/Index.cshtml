@@ -70,6 +70,9 @@
         .ThenBy(g => g.Key)
         .ToList();
     var initialSection = groupedReports.FirstOrDefault()?.Key ?? "";
+    var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
+        ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    var selectedDepartmentId = ViewBag.SelectedDepartmentId as int?;
 
     string GroupIconPath(string group)
     {
@@ -116,6 +119,18 @@
             </span>
         </div>
     </div>
+
+    <form method="get" asp-action="Index" class="report-department-filter">
+        <label for="reportDepartmentId">ฝ่าย</label>
+        <select id="reportDepartmentId" name="departmentId" onchange="this.form.submit()">
+            <option value="">ทุกฝ่าย</option>
+            @foreach (var department in departments)
+            {
+                <option value="@department.DepartmentId"
+                        selected="@(selectedDepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+            }
+        </select>
+    </form>
 
     @if (!reports.Any())
     {
@@ -177,6 +192,7 @@
                         <a class="report-card tone-@report.Tone @(group.Key == initialSection ? "" : "is-hidden")"
                            asp-controller="@report.Controller"
                            asp-action="@report.Action"
+                           asp-route-departmentId="@selectedDepartmentId"
                            data-report-card
                            data-report-section="@group.Key"
                            data-report-text="@($"{report.Title} {report.Description} {report.Group} {group.Key}")">
@@ -204,6 +220,30 @@
 </div>
 
 <style>
+    .report-department-filter {
+        display:grid;
+        grid-template-columns:auto minmax(240px, 420px);
+        align-items:center;
+        justify-content:start;
+        gap:12px;
+        margin:0 0 16px;
+        padding:12px 16px;
+        color:var(--pt-body-contrast, #10233f);
+        border:1px solid var(--pt-border-soft, #dbeafe);
+        border-radius:14px;
+        background:var(--pt-surface, #fff);
+    }
+
+    .report-department-filter label { font-weight:600; }
+    .report-department-filter select {
+        min-height:42px;
+        padding:7px 12px;
+        color:var(--pt-body-contrast, #10233f);
+        border:1px solid var(--pt-border-soft, #bae6fd);
+        border-radius:10px;
+        background:var(--pt-surface, #fff);
+    }
+
     .report-center-page {
         color: #10233f;
     }

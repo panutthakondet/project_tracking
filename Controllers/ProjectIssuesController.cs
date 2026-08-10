@@ -159,9 +159,10 @@ namespace ProjectTracking.Controllers
         // VIEW ONLY REPORT
         // =====================================================
         [RequireMenu("ProjectIssues.ViewOnly")]
-        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? devStatus)
+        public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? empName, string? status, string? devStatus, int? departmentId)
         {
-            await LoadDropdown(projectId, empName, baEmpId);
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            await LoadDropdown(projectId, empName, baEmpId, departmentId);
             status = string.IsNullOrWhiteSpace(status) ? null : status.Trim().ToUpperInvariant();
             devStatus = string.IsNullOrWhiteSpace(devStatus) ? null : devStatus.Trim().ToUpperInvariant();
 
@@ -178,6 +179,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue)
                 query = query.Where(i => i.ProjectId == projectId.Value);
+            if (departmentId.HasValue)
+                query = query.Where(i => i.Project != null && i.Project.DepartmentId == departmentId.Value);
 
             if (baEmpId.HasValue)
                 query = query.Where(i => i.Project != null && i.Project.BaEmpId == baEmpId.Value);
@@ -940,10 +943,11 @@ namespace ProjectTracking.Controllers
             }
         }
 
-        private async Task LoadDropdown(int? projectId, string? empName, int? baEmpId = null)
+        private async Task LoadDropdown(int? projectId, string? empName, int? baEmpId = null, int? departmentId = null)
         {
             ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
+                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -957,7 +961,7 @@ namespace ProjectTracking.Controllers
                     on issue.ProjectId equals projectRow.ProjectId
                 join employee in _context.Employees.AsNoTracking()
                     on projectRow.BaEmpId equals employee.EmpId
-                where projectRow.BaEmpId != null
+                where projectRow.BaEmpId != null && (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
                 select new
                 {
                     EmpId = employee.EmpId,
@@ -978,8 +982,8 @@ namespace ProjectTracking.Controllers
             {
                 ViewBag.SelectedProject = null;
                 ViewBag.EmpList = await _context.ProjectIssues
-                    .Include(i => i.Employee)
-                    .Where(i => i.Employee != null && i.Employee.EmpName != null && i.Employee.EmpName != "")
+                .Include(i => i.Employee)
+                    .Where(i => (!departmentId.HasValue || (i.Project != null && i.Project.DepartmentId == departmentId.Value)) && i.Employee != null && i.Employee.EmpName != null && i.Employee.EmpName != "")
                     .Select(i => i.Employee!.EmpName)
                     .Distinct()
                     .OrderBy(x => x)

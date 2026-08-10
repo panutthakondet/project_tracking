@@ -34,6 +34,9 @@
             gap: 8px;
             margin-bottom: 12px;
         }
+        .department-filter { display:flex; align-items:center; gap:8px; margin-right:auto; }
+        .department-filter label { font-weight:700; }
+        .department-filter select { min-width:220px; min-height:34px; padding:6px 10px; border:1px solid #b9c9dc; background:#fff; color:#10233f; font:inherit; }
         .report-btn {
             min-height: 34px;
             padding: 7px 13px;
@@ -239,6 +242,16 @@
 </head>
 <body class="pt-standalone-report">
     <div class="report-actions">
+        <form method="get" class="department-filter">
+            <label for="departmentId">ฝ่าย</label>
+            <select id="departmentId" name="departmentId" onchange="this.form.submit()">
+                <option value="">ทุกฝ่าย</option>
+                @foreach (var department in report.DepartmentOptions)
+                {
+                    <option value="@department.DepartmentId" selected="@(report.DepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                }
+            </select>
+        </form>
         <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
         <a asp-action="Index" class="report-btn">Report Center</a>
         <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>

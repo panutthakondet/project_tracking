@@ -593,20 +593,24 @@ namespace ProjectTracking.Controllers
 
         [HttpGet("TestScenarios/PrintReport")]
         [RequireMenu("TestScenarios.Export")]
-        public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority)
+        public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority, int? departmentId)
         {
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var selectedStatus = ResolveIndexStatusFilter(status);
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
                 .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
                 .ThenBy(x => x.ProjectName)
                 .ToListAsync();
+            var departmentProjectIds = projects.Select(x => x.ProjectId).ToList();
 
             var allScenarios = await _context.TestScenarios
                 .AsNoTracking()
                 .Include(x => x.Group)
                     .ThenInclude(x => x!.Control)
+                .Where(x => !departmentId.HasValue || departmentProjectIds.Contains(x.project_id))
                 .ToListAsync();
 
             var groupQuery = _context.TestTemplateGroups

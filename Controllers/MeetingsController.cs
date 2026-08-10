@@ -126,18 +126,25 @@ namespace ProjectTracking.Controllers
 
         [RequireMenu("Meetings.Index")]
         [HttpGet]
-        public async Task<IActionResult> ViewOnly(int? calendarId, int? projectId, DateTime? fromDate, DateTime? toDate, string? audience)
+        public async Task<IActionResult> ViewOnly(int? calendarId, int? projectId, DateTime? fromDate, DateTime? toDate, string? audience, int? departmentId)
         {
-            var projects = await _context.Projects
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var projectQuery = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
+                .AsQueryable();
+            if (departmentId.HasValue)
+                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+            var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
 
             var audienceList = await _context.Meetings
                 .AsNoTracking()
-                .Where(m => (!calendarId.HasValue || m.CalendarId == calendarId.Value) && m.MeetingAudience != null && m.MeetingAudience != "")
+                .Where(m => (!calendarId.HasValue || m.CalendarId == calendarId.Value) &&
+                    (!departmentId.HasValue || (m.Project != null && m.Project.DepartmentId == departmentId.Value)) &&
+                    m.MeetingAudience != null && m.MeetingAudience != "")
                 .Select(m => m.MeetingAudience!)
                 .Distinct()
                 .OrderBy(x => x)
@@ -153,6 +160,8 @@ namespace ProjectTracking.Controllers
 
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(m => m.ProjectId == projectId.Value);
+            if (departmentId.HasValue)
+                query = query.Where(m => m.Project != null && m.Project.DepartmentId == departmentId.Value);
 
             if (fromDate.HasValue)
                 query = query.Where(m => m.MeetingDate.Date >= fromDate.Value.Date);

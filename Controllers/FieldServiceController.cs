@@ -504,8 +504,10 @@ public class FieldServiceController : BaseController
         string? to,
         string? status,
         int? employeeId,
-        int? coopId)
+        int? coopId,
+        int? departmentId)
     {
+        departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
         var start = ParseDate(from)?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         var end = ParseDate(to)?.Date ?? DateTime.Today;
         if (start > end) (start, end) = (end, start);
@@ -521,13 +523,18 @@ public class FieldServiceController : BaseController
             query = query.Where(x => x.Assignees.Any(a => a.EmpId == employeeId.Value));
         if (coopId is > 0)
             query = query.Where(x => x.CoopId == coopId.Value);
+        if (departmentId.HasValue)
+            query = query.Where(x => x.Assignees.Any(a => a.Employee != null && a.Employee.DepartmentId == departmentId.Value));
 
         ViewBag.From = ThaiDate(start);
         ViewBag.To = ThaiDate(end);
         ViewBag.Status = normalizedStatus;
         ViewBag.EmployeeId = employeeId.GetValueOrDefault();
         ViewBag.CoopId = coopId.GetValueOrDefault();
-        ViewBag.Employees = await _context.Employees.AsNoTracking()
+        var employeeQuery = _context.Employees.AsNoTracking().AsQueryable();
+        if (departmentId.HasValue)
+            employeeQuery = employeeQuery.Where(x => x.DepartmentId == departmentId.Value);
+        ViewBag.Employees = await employeeQuery
             .OrderBy(x => x.EmpName)
             .Select(x => new SelectListItem(
                 x.EmpName + (x.Position != null && x.Position != "" ? " (" + x.Position + ")" : ""),

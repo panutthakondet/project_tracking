@@ -18,8 +18,19 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Index")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int? departmentId)
         {
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(row => row.IsActive)
+                .OrderBy(row => row.SortOrder)
+                .ThenBy(row => row.DepartmentName)
+                .ToListAsync();
+            if (departmentId.HasValue && departments.All(row => row.DepartmentId != departmentId.Value))
+                departmentId = null;
+            ViewBag.ProjectDepartments = departments;
+            ViewBag.SelectedDepartmentId = departmentId;
+
             var model = new ReportCenterViewModel
             {
                 GeneratedAt = DateTime.Now,
@@ -171,30 +182,36 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Reports.Index")]
-        public async Task<IActionResult> PendingWork(int? projectId, int? empId, int? baEmpId, string? workType, string? section)
+        public async Task<IActionResult> PendingWork(int? projectId, int? empId, int? baEmpId, string? workType, string? section, int? departmentId)
         {
-            return View(await BuildPendingWorkReportAsync(projectId, empId, baEmpId, workType, section));
+            return View(await BuildPendingWorkReportAsync(projectId, empId, baEmpId, workType, section, departmentId));
         }
 
         [RequireMenu("Reports.Executive")]
-        public async Task<IActionResult> Executive()
+        public async Task<IActionResult> Executive(int? departmentId)
         {
-            return View(await BuildExecutiveReportAsync());
+            return View(await BuildExecutiveReportAsync(departmentId));
         }
 
         [RequireMenu("Reports.Index")]
-        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, int? baEmpId, string? status, string? assignStatus)
+        public async Task<IActionResult> TaskProgress(int? year, int? projectId, int? empId, int? baEmpId, string? status, string? assignStatus, int? departmentId)
         {
+            var departmentOptions = await GetDepartmentOptionsAsync();
+            departmentId = ValidateDepartmentId(departmentId, departmentOptions);
             var th = new System.Globalization.CultureInfo("th-TH");
             var selectedYear = year ?? DateTime.Today.Year;
             var selectedStatus = Norm(status);
             var selectedAssignStatus = Norm(assignStatus);
             var username = HttpContext.Session.GetString("Username") ?? "-";
 
-            var projects = await _context.Projects
+            var projectQuery = _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .AsQueryable();
+            if (departmentId.HasValue)
+                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+            var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -220,8 +237,10 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.EmpName)
                 .ToList();
 
-            var employees = await _context.Employees
-                .AsNoTracking()
+            var employeeQuery = _context.Employees.AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                employeeQuery = employeeQuery.Where(e => e.DepartmentId == departmentId.Value);
+            var employees = await employeeQuery
                 .OrderBy(e => e.EmpName)
                 .Select(e => new EmployeeReportOptionViewModel
                 {
@@ -230,12 +249,15 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            var assigns = await _context.PhaseAssigns
+            var assignQuery = _context.PhaseAssigns
                 .Include(a => a.Employee)
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
                     .ThenInclude(p => p!.Coop)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
+            var assigns = await assignQuery
                 .ToListAsync();
 
             var allRows = assigns
@@ -327,6 +349,8 @@ namespace ProjectTracking.Controllers
 
             var model = new TaskProgressReportViewModel
             {
+                DepartmentId = departmentId,
+                DepartmentOptions = departmentOptions,
                 GeneratedAt = DateTime.Now,
                 GeneratedBy = username,
                 Year = selectedYear,
@@ -356,18 +380,23 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private async Task<PendingWorkReportViewModel> BuildPendingWorkReportAsync(int? projectId, int? empId, int? baEmpId, string? workType, string? section)
+        private async Task<PendingWorkReportViewModel> BuildPendingWorkReportAsync(int? projectId, int? empId, int? baEmpId, string? workType, string? section, int? departmentId)
         {
+            var departmentOptions = await GetDepartmentOptionsAsync();
+            departmentId = ValidateDepartmentId(departmentId, departmentOptions);
             var today = DateTime.Today;
             var horizonDate = today.AddDays(14);
             var username = HttpContext.Session.GetString("Username") ?? "-";
             var selectedWorkType = Norm(workType);
             var selectedSection = Norm(section);
 
-            var projects = await _context.Projects
+            var projectQuery = _context.Projects
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+            var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -393,8 +422,10 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.EmpName)
                 .ToList();
 
-            var employees = await _context.Employees
-                .AsNoTracking()
+            var employeeQuery = _context.Employees.AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                employeeQuery = employeeQuery.Where(e => e.DepartmentId == departmentId.Value);
+            var employees = await employeeQuery
                 .OrderBy(e => e.EmpName)
                 .Select(e => new EmployeeReportOptionViewModel
                 {
@@ -403,7 +434,7 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            var assigns = await _context.PhaseAssigns
+            var assignQuery = _context.PhaseAssigns
                 .Include(a => a.Employee)
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
@@ -411,25 +442,34 @@ namespace ProjectTracking.Controllers
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
                     .ThenInclude(p => p!.BA)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
+            var assigns = await assignQuery
                 .ToListAsync();
 
-            var issues = await _context.ProjectIssues
+            var issueQuery = _context.ProjectIssues
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.BA)
                 .Include(i => i.Employee)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                issueQuery = issueQuery.Where(i => i.Project != null && i.Project.DepartmentId == departmentId.Value);
+            var issues = await issueQuery
                 .ToListAsync();
 
-            var supportOrders = await _context.ProjectSupportOrders
+            var supportQuery = _context.ProjectSupportOrders
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.BA)
                 .Include(o => o.Employee)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                supportQuery = supportQuery.Where(o => o.Project != null && o.Project.DepartmentId == departmentId.Value);
+            var supportOrders = await supportQuery
                 .ToListAsync();
 
             var rows = new List<PendingWorkReportRowViewModel>();
@@ -567,6 +607,8 @@ namespace ProjectTracking.Controllers
 
             return new PendingWorkReportViewModel
             {
+                DepartmentId = departmentId,
+                DepartmentOptions = departmentOptions,
                 GeneratedAt = DateTime.Now,
                 GeneratedBy = username,
                 Today = today,
@@ -689,47 +731,53 @@ namespace ProjectTracking.Controllers
                 : cleaned[..maxLength].TrimEnd() + "...";
         }
 
-        private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync()
+        private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync(int? departmentId)
         {
+            var departmentOptions = await GetDepartmentOptionsAsync();
+            departmentId = ValidateDepartmentId(departmentId, departmentOptions);
             var today = DateTime.Today;
             var next14Days = today.AddDays(14);
             var username = HttpContext.Session.GetString("Username") ?? "-";
 
-            var projects = await _context.Projects
+            var projectQuery = _context.Projects
                 .Include(p => p.BA)
                 .Include(p => p.Coop)
-                .AsNoTracking()
+                .AsNoTracking().AsQueryable();
+            if (departmentId.HasValue)
+                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+            var projects = await projectQuery
                 .ToListAsync();
+            var projectIds = projects.Select(p => p.ProjectId).ToHashSet();
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
-                .ToListAsync();
+                .Where(p => projectIds.Contains(p.ProjectId)).ToListAsync();
 
             var assigns = await _context.PhaseAssigns
                 .Include(a => a.Employee)
                 .AsNoTracking()
-                .ToListAsync();
+                .Where(a => a.Phase != null && projectIds.Contains(a.Phase.ProjectId)).ToListAsync();
 
             var issues = await _context.ProjectIssues
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(i => i.Employee)
                 .AsNoTracking()
-                .ToListAsync();
+                .Where(i => projectIds.Contains(i.ProjectId)).ToListAsync();
 
             var supportOrders = await _context.ProjectSupportOrders
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Employee)
                 .AsNoTracking()
-                .ToListAsync();
+                .Where(o => projectIds.Contains(o.ProjectId)).ToListAsync();
 
             var followups = await _context.ProjectFollowups
                 .Include(f => f.Project)
                     .ThenInclude(p => p!.Coop)
                 .Include(f => f.Owner)
                 .AsNoTracking()
-                .ToListAsync();
+                .Where(f => f.ProjectId.HasValue && projectIds.Contains(f.ProjectId.Value)).ToListAsync();
 
             var employees = await _context.Employees
                 .AsNoTracking()
@@ -920,6 +968,8 @@ namespace ProjectTracking.Controllers
 
             return new ExecutiveReportViewModel
             {
+                DepartmentId = departmentId,
+                DepartmentOptions = departmentOptions,
                 GeneratedAt = DateTime.Now,
                 GeneratedBy = username,
                 Kpis = new List<ExecutiveKpiViewModel>
@@ -1256,6 +1306,28 @@ namespace ProjectTracking.Controllers
         private static bool IsHighPriority(string? priority)
         {
             return Norm(priority) is "HIGH" or "URGENT" or "CRITICAL";
+        }
+
+        private async Task<List<DepartmentReportOptionViewModel>> GetDepartmentOptionsAsync()
+        {
+            return await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(row => row.IsActive)
+                .OrderBy(row => row.SortOrder)
+                .ThenBy(row => row.DepartmentName)
+                .Select(row => new DepartmentReportOptionViewModel
+                {
+                    DepartmentId = row.DepartmentId,
+                    DepartmentName = row.DepartmentName
+                })
+                .ToListAsync();
+        }
+
+        private static int? ValidateDepartmentId(int? departmentId, IReadOnlyCollection<DepartmentReportOptionViewModel> options)
+        {
+            return departmentId.HasValue && options.Any(row => row.DepartmentId == departmentId.Value)
+                ? departmentId
+                : null;
         }
 
         private static string Norm(string? value)

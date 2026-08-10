@@ -611,19 +611,21 @@ namespace ProjectTracking.Controllers
         // =====================================================
         [RequireMenu("PhaseAssigns.Print")]
         [HttpGet]
-        public async Task<IActionResult> Print(int? projectId, int? empId, string? role)
+        public async Task<IActionResult> Print(int? projectId, int? empId, string? role, int? departmentId)
         {
-            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role);
-            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole));
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role, departmentId);
+            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole, departmentId));
         }
 
         [RequireMenu("PhaseAssigns.Print")]
         [HttpGet]
-        public async Task<IActionResult> PrintTable(int? projectId, int? empId, string? role)
+        public async Task<IActionResult> PrintTable(int? projectId, int? empId, string? role, int? departmentId)
         {
-            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role);
+            departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
+            var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role, departmentId);
             ViewBag.PrintDate = DateTime.Now;
-            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole));
+            return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole, departmentId));
         }
 
         [RequireMenu("PhaseAssigns.Index")]
@@ -723,10 +725,11 @@ namespace ProjectTracking.Controllers
             return string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
         }
 
-        private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role)
+        private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role, int? departmentId)
         {
             ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
+                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -797,12 +800,14 @@ namespace ProjectTracking.Controllers
             return selectedRole;
         }
 
-        private async Task<List<PhaseAssign>> BuildPrintReportRowsAsync(int? projectId, int? empId, string? role)
+        private async Task<List<PhaseAssign>> BuildPrintReportRowsAsync(int? projectId, int? empId, string? role, int? departmentId)
         {
             var query =
                 from a in _context.PhaseAssigns.AsNoTracking()
                 join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                 join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
+                join project in _context.Projects.AsNoTracking() on ph.ProjectId equals project.ProjectId
+                where !departmentId.HasValue || project.DepartmentId == departmentId.Value
                 select new PhaseAssign
                 {
                     AssignId = a.AssignId,
