@@ -23,6 +23,9 @@
 
     var lineLinkedEmpIds = ViewBag.LineLinkedEmpIds as ISet<int> ?? new HashSet<int>();
     var telegramLinkedEmpIds = ViewBag.TelegramLinkedEmpIds as ISet<int> ?? new HashSet<int>();
+    var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
+        ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    var selectedDepartment = ViewBag.SelectedDepartment as string ?? "all";
 
     bool HasLineLink(ProjectTracking.Models.Employee emp)
     {
@@ -60,6 +63,26 @@
         }
     </div>
 </div>
+
+<form asp-action="Index" method="get" class="employee-department-filter">
+    <div class="employee-department-filter__field">
+        <label for="employeeDepartmentFilter">ฝ่าย</label>
+        <select id="employeeDepartmentFilter"
+                name="department"
+                class="form-select"
+                onchange="this.form.submit()">
+            <option value="all" selected="@(selectedDepartment == "all" ? "selected" : null)">ทุกฝ่าย</option>
+            @foreach (var department in departments)
+            {
+                var departmentValue = department.DepartmentId.ToString();
+                <option value="@departmentValue"
+                        selected="@(selectedDepartment == departmentValue ? "selected" : null)">@department.DepartmentName</option>
+            }
+            <option value="unassigned" selected="@(selectedDepartment == "unassigned" ? "selected" : null)">ยังไม่กำหนดฝ่าย</option>
+        </select>
+    </div>
+    <span class="employee-department-filter__count">@Model.Count() คน</span>
+</form>
 
 <!-- ================= TABLE ================= -->
 <div class="table-responsive" style="display:none;">
@@ -289,6 +312,40 @@
 </div>
 
 <style>
+/* Department filter */
+.employee-department-filter {
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    margin:0 0 16px;
+    padding:14px 16px;
+    border:1px solid var(--pt-border-soft, #dbeafe);
+    border-radius:16px;
+    color:var(--pt-body-contrast, #10233f);
+    background:var(--pt-surface, #fff);
+    box-shadow:0 8px 22px rgba(15,23,42,.05);
+}
+
+.employee-department-filter__field {
+    width:min(420px, 100%);
+}
+
+.employee-department-filter__field label {
+    display:block;
+    margin:0 0 6px;
+    font-size:.88rem;
+    font-weight:600;
+}
+
+.employee-department-filter__count {
+    flex:0 0 auto;
+    padding-bottom:11px;
+    color:var(--pt-body-muted, #64748b);
+    font-size:.88rem;
+    font-weight:500;
+}
+
 /* Employee Cards Global Styles */
 .employee-mobile-cards {
     display: flex;
@@ -491,6 +548,19 @@
 .employee-actions .btn {
     flex: 1;
     border-radius: 12px;
+}
+
+@@media (max-width: 575.98px) {
+    .employee-department-filter {
+        align-items:stretch;
+        flex-direction:column;
+        gap:8px;
+    }
+
+    .employee-department-filter__count {
+        padding-bottom:0;
+        text-align:right;
+    }
 }
 
 @@media (max-width: 768px) {

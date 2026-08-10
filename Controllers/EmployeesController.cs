@@ -42,15 +42,44 @@ namespace ProjectTracking.Controllers
         // แสดงเฉพาะพนักงาน ACTIVE
         // ===========================
         [RequireMenu("Employees.Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? department)
         {
-            var employees = await _context.Employees
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(row => row.IsActive)
+                .OrderBy(row => row.SortOrder)
+                .ThenBy(row => row.DepartmentName)
+                .ToListAsync();
+
+            var selectedDepartment = (department ?? "all").Trim();
+            var employeeQuery = _context.Employees
                 .Include(e => e.LoginUser)
                 .Include(e => e.Department)
-                .Where(e => e.Status == "ACTIVE")
+                .Where(e => e.Status == "ACTIVE");
+
+            if (string.Equals(selectedDepartment, "unassigned", StringComparison.OrdinalIgnoreCase))
+            {
+                employeeQuery = employeeQuery.Where(employee => !employee.DepartmentId.HasValue);
+                selectedDepartment = "unassigned";
+            }
+            else if (int.TryParse(selectedDepartment, out var selectedDepartmentId)
+                && departments.Any(row => row.DepartmentId == selectedDepartmentId))
+            {
+                employeeQuery = employeeQuery.Where(employee => employee.DepartmentId == selectedDepartmentId);
+                selectedDepartment = selectedDepartmentId.ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                selectedDepartment = "all";
+            }
+
+            var employees = await employeeQuery
                 .OrderBy(e => e.Position)
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
+
+            ViewBag.ProjectDepartments = departments;
+            ViewBag.SelectedDepartment = selectedDepartment;
 
             var employeeIds = employees.Select(x => x.EmpId).ToList();
             var linkedUserIds = employees.Where(x => x.LoginUserId.HasValue)
