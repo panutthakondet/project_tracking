@@ -46,6 +46,7 @@ namespace ProjectTracking.Controllers
         {
             var employees = await _context.Employees
                 .Include(e => e.LoginUser)
+                .Include(e => e.Department)
                 .Where(e => e.Status == "ACTIVE")
                 .OrderBy(e => e.Position)
                 .ThenBy(e => e.EmpId)
@@ -97,8 +98,9 @@ namespace ProjectTracking.Controllers
         // GET: /Employees/Create
         // ===========================
         [RequireMenu("Employees.Create")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            await LoadProjectDepartmentsAsync();
             return View();
         }
 
@@ -109,6 +111,7 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Employee employee)
         {
+            await ValidateDepartmentAsync(employee.DepartmentId);
             if (ModelState.IsValid)
             {
                 _context.Add(employee);
@@ -116,6 +119,7 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            await LoadProjectDepartmentsAsync();
             return View(employee);
         }
 
@@ -131,6 +135,7 @@ namespace ProjectTracking.Controllers
                 return NotFound();
             }
 
+            await LoadProjectDepartmentsAsync();
             return View(employee);
         }
 
@@ -146,14 +151,45 @@ namespace ProjectTracking.Controllers
                 return NotFound();
             }
 
+            await ValidateDepartmentAsync(employee.DepartmentId);
             if (ModelState.IsValid)
             {
-                _context.Update(employee);
+                var existingEmployee = await _context.Employees.FindAsync(id);
+                if (existingEmployee == null)
+                    return NotFound();
+
+                existingEmployee.EmpName = employee.EmpName;
+                existingEmployee.Position = employee.Position;
+                existingEmployee.DepartmentId = employee.DepartmentId;
+                existingEmployee.Status = employee.Status;
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
+            await LoadProjectDepartmentsAsync();
             return View(employee);
+        }
+
+        private async Task LoadProjectDepartmentsAsync()
+        {
+            ViewBag.ProjectDepartments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(department => department.IsActive)
+                .OrderBy(department => department.SortOrder)
+                .ThenBy(department => department.DepartmentName)
+                .ToListAsync();
+        }
+
+        private async Task ValidateDepartmentAsync(int? departmentId)
+        {
+            if (!departmentId.HasValue)
+                return;
+
+            var exists = await _context.ProjectDepartments
+                .AsNoTracking()
+                .AnyAsync(department => department.DepartmentId == departmentId.Value && department.IsActive);
+            if (!exists)
+                ModelState.AddModelError(nameof(Employee.DepartmentId), "ฝ่ายที่เลือกไม่พร้อมใช้งาน");
         }
 
         // ===========================

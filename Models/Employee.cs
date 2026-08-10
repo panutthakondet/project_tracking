@@ -17,6 +17,13 @@ namespace ProjectTracking.Models
         [Column("position")]
         public string? Position { get; set; }
 
+        [Required(ErrorMessage = "กรุณาเลือกฝ่าย")]
+        [Column("department_id")]
+        public int? DepartmentId { get; set; }
+
+        [ForeignKey(nameof(DepartmentId))]
+        public virtual ProjectDepartment? Department { get; set; }
+
         [Column("status")]
         public string Status { get; set; } = "ACTIVE";
 

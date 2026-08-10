@@ -120,6 +120,15 @@ namespace ProjectTracking.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.HasOne(x => x.Department)
+                    .WithMany(x => x.Employees)
+                    .HasForeignKey(x => x.DepartmentId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
             // =========================
             // MEETINGS
             // =========================

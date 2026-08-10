@@ -759,6 +759,7 @@ static async Task EnsureTestTemplateGroupControlTableAsync(IServiceProvider serv
                 ON UPDATE CASCADE ON DELETE SET NULL;";
             await command.ExecuteNonQueryAsync();
         }
+
     }
     finally
     {
@@ -846,6 +847,49 @@ static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
                 ADD CONSTRAINT `fk_project_department`
                 FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
                 ON UPDATE CASCADE ON DELETE RESTRICT;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND COLUMN_NAME = 'department_id';";
+        var employeeDepartmentColumnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (employeeDepartmentColumnExists == 0)
+        {
+            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `department_id` INT NULL AFTER `position`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND INDEX_NAME = 'idx_employee_department_id';";
+        var employeeDepartmentIndexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (employeeDepartmentIndexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_employee_department_id` ON `employee` (`department_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND CONSTRAINT_NAME = 'fk_employee_department';";
+        var employeeDepartmentForeignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (employeeDepartmentForeignKeyExists == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `employee`
+                ADD CONSTRAINT `fk_employee_department`
+                FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
+                ON UPDATE CASCADE ON DELETE SET NULL;";
             await command.ExecuteNonQueryAsync();
         }
     }

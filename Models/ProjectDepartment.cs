@@ -25,5 +25,6 @@ namespace ProjectTracking.Models
         public bool IsActive { get; set; } = true;
 
         public ICollection<Project> Projects { get; set; } = new List<Project>();
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     }
 }

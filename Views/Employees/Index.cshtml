@@ -70,6 +70,7 @@
                 <th width="80">Profile</th>
                 <th>Name</th>
                 <th>Position</th>
+                <th>Department</th>
                 <th>Email</th>
                 <th width="120">Status</th>
                 <th width="190">LINE / Telegram</th>
@@ -81,7 +82,7 @@
         @if (!Model.Any())
         {
             <tr>
-                <td colspan="8"
+                <td colspan="9"
                     class="text-center text-muted">
                     — No employee data —
                 </td>
@@ -110,6 +111,10 @@
 
                     <td>
                         @emp.Position
+                    </td>
+
+                    <td>
+                        @(emp.Department?.DepartmentName ?? "-")
                     </td>
 
                     <td class="employee-table-email">
@@ -234,6 +239,10 @@
                 </div>
 
                 <div class="employee-info">
+                    <div class="employee-info-row">
+                        <span class="employee-label">ฝ่าย</span>
+                        <span>@(emp.Department?.DepartmentName ?? "-")</span>
+                    </div>
                     <div class="employee-info-row">
                         <span class="employee-label">Status</span>
                         <span class="badge @(emp.Status == "ACTIVE" ? "bg-success" : "bg-secondary")">

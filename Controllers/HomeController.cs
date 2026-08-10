@@ -176,6 +176,11 @@ namespace ProjectTracking.Controllers
                 currentEmpId = await ResolveCurrentEmployeeIdAsync(currentUserId.Value);
             }
 
+            if (string.IsNullOrWhiteSpace(department) && currentEmpId.HasValue)
+            {
+                department = await ResolveDefaultDashboardDepartmentAsync(currentEmpId.Value);
+            }
+
             var menuKeys = (HttpContext.Session.GetString("Menus") ?? "")
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(key => key.Trim())
@@ -271,6 +276,97 @@ namespace ProjectTracking.Controllers
                 .Where(employee => employee.LoginUserId == userId)
                 .Select(employee => (int?)employee.EmpId)
                 .FirstOrDefaultAsync();
+        }
+
+        private async Task<string?> ResolveDefaultDashboardDepartmentAsync(int employeeId)
+        {
+            var employee = await _context.Employees
+                .AsNoTracking()
+                .Where(row => row.EmpId == employeeId)
+                .Select(row => new { row.DepartmentId, row.Position })
+                .FirstOrDefaultAsync();
+            if (employee == null)
+                return null;
+
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(row => row.IsActive)
+                .OrderBy(row => row.SortOrder)
+                .ThenBy(row => row.DepartmentName)
+                .Select(row => new { row.DepartmentId, row.DepartmentCode, row.DepartmentName })
+                .ToListAsync();
+
+            if (employee.DepartmentId.HasValue
+                && departments.Any(row => row.DepartmentId == employee.DepartmentId.Value))
+            {
+                return employee.DepartmentId.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            var normalizedPosition = NormalizeDepartmentLookupText(employee.Position);
+            if (!string.IsNullOrWhiteSpace(normalizedPosition))
+            {
+                var positionTokens = normalizedPosition
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var matchedDepartment = departments
+                    .OrderByDescending(row => NormalizeDepartmentLookupText(row.DepartmentName).Length)
+                    .FirstOrDefault(row =>
+                    {
+                        var normalizedName = NormalizeDepartmentLookupText(row.DepartmentName);
+                        var normalizedCode = NormalizeDepartmentLookupText(row.DepartmentCode);
+                        if (normalizedName.Length > 2 && normalizedPosition.Contains(normalizedName, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                        if (normalizedCode.Length > 2 && normalizedPosition.Contains(normalizedCode, StringComparison.OrdinalIgnoreCase))
+                            return true;
+
+                        return string.Equals(normalizedName, "IT", StringComparison.OrdinalIgnoreCase)
+                            && positionTokens.Contains("IT");
+                    });
+                if (matchedDepartment != null)
+                    return matchedDepartment.DepartmentId.ToString(CultureInfo.InvariantCulture);
+            }
+
+            var responsibleProjectDepartmentId = await _context.Projects
+                .AsNoTracking()
+                .Where(project => project.DepartmentId.HasValue
+                    && (project.PmEmpId == employeeId || project.BaEmpId == employeeId))
+                .GroupBy(project => project.DepartmentId!.Value)
+                .OrderByDescending(group => group.Count())
+                .Select(group => (int?)group.Key)
+                .FirstOrDefaultAsync();
+            if (responsibleProjectDepartmentId.HasValue
+                && departments.Any(row => row.DepartmentId == responsibleProjectDepartmentId.Value))
+            {
+                return responsibleProjectDepartmentId.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            var assignedProjectDepartmentId = await (
+                from assign in _context.PhaseAssigns.AsNoTracking()
+                join phase in _context.ProjectPhases.AsNoTracking() on assign.PhaseId equals phase.PhaseId
+                join project in _context.Projects.AsNoTracking() on phase.ProjectId equals project.ProjectId
+                where assign.EmpId == employeeId && project.DepartmentId.HasValue
+                group project by project.DepartmentId!.Value into departmentGroup
+                orderby departmentGroup.Count() descending
+                select (int?)departmentGroup.Key)
+                .FirstOrDefaultAsync();
+
+            return assignedProjectDepartmentId.HasValue
+                && departments.Any(row => row.DepartmentId == assignedProjectDepartmentId.Value)
+                    ? assignedProjectDepartmentId.Value.ToString(CultureInfo.InvariantCulture)
+                    : null;
+        }
+
+        private static string NormalizeDepartmentLookupText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            return string.Join(' ', value
+                .Trim()
+                .ToUpperInvariant()
+                .Replace('_', ' ')
+                .Replace('-', ' ')
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
         }
 
         private async Task<List<RequirementBoardOnlineUserViewModel>> LoadOnlineUsersAsync()
