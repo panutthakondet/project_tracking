@@ -20,6 +20,10 @@ namespace ProjectTracking.Data
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
+        public DbSet<ProjectTorItem> ProjectTorItems { get; set; }
+        public DbSet<PhaseAssignTorItem> PhaseAssignTorItems { get; set; }
+        public DbSet<PhaseAssignTestScenario> PhaseAssignTestScenarios { get; set; }
+        public DbSet<TestScenarioRun> TestScenarioRuns { get; set; }
         public DbSet<LoginUser> LoginUsers { get; set; }
         public DbSet<UserMenu> UserMenus { get; set; }
         public DbSet<ThemePreset> ThemePresets { get; set; }
@@ -127,6 +131,31 @@ namespace ProjectTracking.Data
                     .HasForeignKey(x => x.DepartmentId)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ProjectTorItem>(entity =>
+            {
+                entity.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(x => new { x.ProjectId, x.SortOrder });
+            });
+            modelBuilder.Entity<PhaseAssignTorItem>(entity =>
+            {
+                entity.HasKey(x => new { x.AssignId, x.TorItemId });
+                entity.HasOne(x => x.Assignment).WithMany().HasForeignKey(x => x.AssignId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.TorItem).WithMany().HasForeignKey(x => x.TorItemId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<PhaseAssignTestScenario>(entity =>
+            {
+                entity.HasKey(x => new { x.AssignId, x.ScenarioId });
+                entity.HasOne(x => x.Assignment).WithMany().HasForeignKey(x => x.AssignId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.Scenario).WithMany().HasForeignKey(x => x.ScenarioId).OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<TestScenarioRun>(entity =>
+            {
+                entity.HasOne(x => x.Assignment).WithMany().HasForeignKey(x => x.AssignId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.Scenario).WithMany().HasForeignKey(x => x.ScenarioId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.TestedBy).WithMany().HasForeignKey(x => x.TestedByEmpId).OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(x => new { x.AssignId, x.ScenarioId, x.TestStage, x.RoundNo });
             });
 
             // =========================

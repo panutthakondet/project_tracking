@@ -113,6 +113,7 @@ namespace ProjectTracking.Controllers
                         PlanStart = assign.PlanStart,
                         PlanEnd = assign.PlanEnd,
                         WorkStatus = assign.WorkStatus,
+                        WorkflowStatus = assign.WorkflowStatus,
                         Remark = assign.Remark,
                         Employee = new Employee
                         {
@@ -129,6 +130,27 @@ namespace ProjectTracking.Controllers
                 ViewBag.PhaseAssignsByPhaseId = phaseAssigns
                     .GroupBy(assign => assign.PhaseId)
                     .ToDictionary(group => group.Key, group => group.ToList());
+
+                var assignIds = phaseAssigns.Select(x => x.AssignId).ToList();
+                var torLinks = await _context.PhaseAssignTorItems.AsNoTracking().Where(x => assignIds.Contains(x.AssignId)).ToListAsync();
+                var scenarioLinks = await _context.PhaseAssignTestScenarios.AsNoTracking().Where(x => assignIds.Contains(x.AssignId) && x.IsRequired).ToListAsync();
+                var testRuns = await _context.TestScenarioRuns.AsNoTracking().Where(x => assignIds.Contains(x.AssignId))
+                    .OrderByDescending(x => x.RoundNo).ThenByDescending(x => x.RunId).ToListAsync();
+                ViewBag.DevelopmentProgressByAssignId = assignIds.ToDictionary(assignId => assignId, assignId =>
+                {
+                    var assignedTor = torLinks.Where(x => x.AssignId == assignId).ToList();
+                    var assignedScenarios = scenarioLinks.Where(x => x.AssignId == assignId).ToList();
+                    var torPercent = assignedTor.Count == 0 ? 0 : assignedTor.Count(x => x.CheckStatus == "COMPLETED") * 100 / assignedTor.Count;
+                    var devPercent = assignedScenarios.Count == 0 ? 0 : assignedScenarios.Count(link =>
+                        testRuns.FirstOrDefault(x => x.AssignId == assignId && x.ScenarioId == link.ScenarioId && x.TestStage == "DEV")?.ResultStatus == "PASS") * 100 / assignedScenarios.Count;
+                    var baPercent = assignedScenarios.Count == 0 ? 0 : assignedScenarios.Count(link =>
+                    {
+                        var dev = testRuns.FirstOrDefault(x => x.AssignId == assignId && x.ScenarioId == link.ScenarioId && x.TestStage == "DEV");
+                        var ba = testRuns.FirstOrDefault(x => x.AssignId == assignId && x.ScenarioId == link.ScenarioId && x.TestStage == "BA");
+                        return ba?.ResultStatus == "PASS" && (dev?.TestedAt == null || ba.TestedAt >= dev.TestedAt);
+                    }) * 100 / assignedScenarios.Count;
+                    return (torPercent * 50 + devPercent * 25 + baPercent * 25) / 100;
+                });
             }
 
             return View(phases);

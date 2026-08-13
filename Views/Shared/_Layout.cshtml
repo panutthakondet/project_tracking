@@ -2174,6 +2174,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     || controller=="ProjectPhases"
                                     || controller=="PhaseCalendar"
                                     || (controller=="PhaseAssigns" && action!="Print")
+                                    || (controller=="DevelopmentWorkflow" && action!="BaQueue" && action!="Verify")
+                                    || controller=="ProjectTorItems"
                                     ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/projects.svg" alt="" /></span>
@@ -2211,6 +2213,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                         <li><hr class="dropdown-divider" /></li>
                                         <li><h6 class="dropdown-header">Phase Assigns</h6></li>
                                         <li><a class="dropdown-item" asp-controller="PhaseAssigns" asp-action="Index">Phase Assigns</a></li>
+                                        <li><a class="dropdown-item" asp-controller="DevelopmentWorkflow" asp-action="Index">งาน Dev ตาม TOR</a></li>
                                     }
                                 </ul>
                             </li>
@@ -2221,6 +2224,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                             <li class="nav-item dropdown">
 	                                <a class="nav-link dropdown-toggle @(
 	                                    (controller=="TestScenarios" && action!="PrintReport")
+	                                    || (controller=="DevelopmentWorkflow" && (action=="BaQueue" || action=="Verify"))
 	                                    || controller=="TestScenarioTemplates"
 	                                    || controller=="TestTemplateGroups"
 	                                    || controller=="TestTemplateGroupControls"
@@ -2240,6 +2244,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     @if (CanMenu("TestScenarios.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="TestScenarios" asp-action="Index">สถานการณ์ทดสอบ</a></li>
+                                        <li><a class="dropdown-item" asp-controller="DevelopmentWorkflow" asp-action="BaQueue">งานรอ BA ทดสอบ</a></li>
                                     }
                                     @if (CanMenu("TestScenarioTemplates.Index"))
                                     {

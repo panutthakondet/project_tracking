@@ -1,0 +1,23 @@
+@model IEnumerable<ProjectTracking.Models.ProjectTorItem>
+@{ var project = (ProjectTracking.Models.Project)ViewBag.Project; ViewData["Title"] = "รายการ TOR"; }
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content"><span class="index-eyebrow">Projects</span><h2 class="index-title">Checklist ตาม TOR</h2><p class="index-subtitle">@project.ProjectDisplayName</p></div>
+    <div class="index-hero__actions"><a asp-controller="PhaseAssigns" asp-action="Create" asp-route-projectId="@project.ProjectId" class="btn btn-outline-light">กลับไปมอบหมายงาน</a></div>
+</div>
+<div class="card shadow-sm pt-form-card mb-3"><div class="card-body">
+    <form asp-action="Create" method="post" class="row g-3">
+        @Html.AntiForgeryToken()<input type="hidden" name="projectId" value="@project.ProjectId" />
+        <div class="col-md-2"><label class="form-label">รหัส TOR</label><input name="torCode" class="form-control" /></div>
+        <div class="col-md-5"><label class="form-label">รายการ TOR *</label><input name="title" class="form-control" required /></div>
+        <div class="col-md-5"><label class="form-label">เกณฑ์ยอมรับ</label><input name="acceptanceCriteria" class="form-control" /></div>
+        <div class="col-12"><label class="form-label">รายละเอียด</label><textarea name="detail" class="form-control" rows="2"></textarea></div>
+        <div class="col-12 text-end"><button class="btn btn-primary">เพิ่มรายการ TOR</button></div>
+    </form>
+</div></div>
+<div class="card shadow-sm pt-form-card"><div class="card-body p-0">
+    @if (!Model.Any()) { <div class="p-4 text-muted">ยังไม่มีรายการ TOR</div> }
+    @foreach (var item in Model) {
+        <div class="tor-manage-row @(item.IsActive ? "" : "is-inactive")"><div><strong>@item.TorCode @item.Title</strong><div class="text-muted">@item.AcceptanceCriteria</div></div>
+            <form asp-action="Toggle" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@item.TorItemId" /><button class="btn btn-sm btn-outline-secondary">@(item.IsActive ? "ปิดใช้งาน" : "เปิดใช้งาน")</button></form></div>
+    }
+</div></div>
