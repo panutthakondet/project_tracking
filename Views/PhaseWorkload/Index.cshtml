@@ -19,7 +19,7 @@
     var selectedPeriodEnd = $"{yearTo:D4}-{monthTo:D2}";
     var periodYears = Enumerable.Range(DateTime.Today.Year - 1, 3).ToList();
     var timelineColumns = new List<(DateTime Start, DateTime End, string YearText, string MonthText, string MainText, string SubText, bool IsToday, bool IsWeekend, bool IsNewYear)>();
-    var columnWidth = isWeeklyMode ? 44 : 40;
+    var columnWidth = isWeeklyMode ? 32 : 40;
 
     if (isWeeklyMode)
     {
@@ -726,8 +726,8 @@
     }
 
     .timeline-header.week-column-header {
-        min-width: 44px;
-        width: 44px;
+        min-width: 32px;
+        width: 32px;
     }
 
     .timeline-header.day-column-header {
@@ -736,8 +736,8 @@
     }
 
     .week-column-cell {
-        min-width: 44px;
-        width: 44px;
+        min-width: 32px;
+        width: 32px;
     }
 
     .workload-table thead.is-grouped th {
