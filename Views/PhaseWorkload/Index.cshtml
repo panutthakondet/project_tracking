@@ -135,6 +135,8 @@
                           class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
                           style="width:auto; flex:none;">
 
+                        <input id="syncProjectPeriod" type="hidden" name="syncProjectPeriod" value="false" />
+
                         <div class="workload-filter-grid">
                             <label class="workload-filter-field is-coop" for="coopFilter">
                                 <span>🏢 สหกรณ์</span>
@@ -1882,8 +1884,13 @@ main.route-controller-phaseworkload {
 
             const coopFilter = document.getElementById('coopFilter');
             const projectFilter = document.getElementById('projectFilter');
+            const syncProjectPeriod = document.getElementById('syncProjectPeriod');
             coopFilter?.addEventListener('change', () => {
                 if (projectFilter) projectFilter.value = '';
+                if (syncProjectPeriod) syncProjectPeriod.value = 'true';
+            });
+            projectFilter?.addEventListener('change', () => {
+                if (syncProjectPeriod) syncProjectPeriod.value = 'true';
             });
 
             form.querySelectorAll('[data-autosubmit="true"]').forEach((control) => {

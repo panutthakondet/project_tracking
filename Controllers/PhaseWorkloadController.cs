@@ -24,7 +24,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, int? coopId, int? projectId)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, int? coopId, int? projectId, bool syncProjectPeriod = false)
         {
             var currentDate = DateTime.Today;
             var hasFilterQuery =
@@ -114,6 +114,37 @@ namespace ProjectTracking.Controllers
             else if (selectedProject.CoopId != selectedCoopId)
             {
                 selectedProjectId = null;
+            }
+
+            if (syncProjectPeriod && (selectedProjectId.HasValue || selectedCoopId.HasValue))
+            {
+                var periodProjects = selectedProjectId.HasValue
+                    ? projectOptions.Where(x => x.ProjectId == selectedProjectId.Value)
+                    : projectOptions.Where(x => x.CoopId == selectedCoopId!.Value);
+                var periodProjectList = periodProjects.ToList();
+                var projectStart = periodProjectList
+                    .Where(x => x.StartDate.HasValue)
+                    .Select(x => x.StartDate!.Value)
+                    .DefaultIfEmpty()
+                    .Min();
+                var projectEnd = periodProjectList
+                    .Where(x => x.EndDate.HasValue)
+                    .Select(x => x.EndDate!.Value)
+                    .DefaultIfEmpty()
+                    .Max();
+
+                if (projectStart != default && projectEnd != default && projectEnd >= projectStart)
+                {
+                    selectedYear = projectStart.Year;
+                    selectedMonth = projectStart.Month;
+                    selectedYearTo = projectEnd.Year;
+                    selectedMonthTo = projectEnd.Month;
+                    monthStart = new DateTime(selectedYear, selectedMonth, 1);
+                    monthEnd = new DateTime(
+                        selectedYearTo,
+                        selectedMonthTo,
+                        DateTime.DaysInMonth(selectedYearTo, selectedMonthTo));
+                }
             }
 
             SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedCoopId, selectedProjectId);
