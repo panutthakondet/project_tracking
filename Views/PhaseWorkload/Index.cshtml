@@ -9,7 +9,7 @@
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
     string selectedWorkType = ViewBag.SelectedWorkType as string ?? "PHASE";
-    string viewMode = ViewBag.ViewMode as string ?? "day";
+    string viewMode = ViewBag.ViewMode as string ?? "week";
     bool isWeeklyMode = string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase);
 
     var th = new System.Globalization.CultureInfo("th-TH");

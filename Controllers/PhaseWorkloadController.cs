@@ -281,9 +281,9 @@ namespace ProjectTracking.Controllers
 
         private static string NormalizeViewMode(string? viewMode)
         {
-            return string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase)
-                ? "week"
-                : "day";
+            return string.Equals(viewMode, "day", StringComparison.OrdinalIgnoreCase)
+                ? "day"
+                : "week";
         }
 
         private static string NormalizeWorkType(string? workType)
