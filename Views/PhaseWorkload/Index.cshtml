@@ -1,7 +1,7 @@
 @model ProjectTracking.ViewModels.PhaseWorkloadViewModel
 
 @{
-    ViewData["Title"] = "ปริมาณงานทีม";
+    ViewData["Title"] = "แผนงานทีม";
     var items = Model?.Items ?? new List<ProjectTracking.ViewModels.PhaseWorkloadItemViewModel>();
 
     int year = ViewBag.Year;
@@ -104,7 +104,7 @@
                 <span class="workload-calendar-date">@todayText</span>
                 <div>
                     <span class="workload-calendar-eyebrow">ProjectTracking</span>
-                    <strong class="workload-calendar-title">ปริมาณงานทีม</strong>
+                    <strong class="workload-calendar-title">แผนงานทีม</strong>
                     <span class="workload-calendar-subtitle">ดูภาระงานของทีมตามช่วงวันที่และผู้รับผิดชอบ</span>
                 </div>
             </div>

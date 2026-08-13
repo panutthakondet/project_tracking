@@ -815,7 +815,7 @@ namespace ProjectTracking.Controllers
                 "PhaseAssigns" => "มอบหมายงวดงาน",
                 "PhaseStatusReport" => "รายงานสถานะงาน",
                 "PhaseCalendar" => "ปฏิทินกำหนดส่งงาน",
-                "PhaseWorkload" => "ปริมาณงานทีม",
+                "PhaseWorkload" => "แผนงานทีม",
                 "ProjectIssues" => "ปัญหาโครงการ",
                 "IssueDashboard" => "ภาพรวมปัญหา",
                 "SupportOrders" => "งานรับประกัน",
