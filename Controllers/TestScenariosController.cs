@@ -21,6 +21,7 @@ namespace ProjectTracking.Controllers
     public class TestScenariosController : BaseController
     {
         private const string IndexStatusFilterKey = "TestScenarios.Filter.Status";
+        private const string IndexScenarioTypeFilterKey = "TestScenarios.Filter.ScenarioType";
         private static readonly (string Value, string Text)[] ScenarioStatusFilters =
         {
             ("READY", "พร้อมทดสอบ"),
@@ -179,7 +180,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? scenarioType, string? coopName)
         {
             var selectedStatus = ResolveIndexStatusFilter(status);
-            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            var selectedScenarioType = ResolveIndexScenarioTypeFilter(scenarioType);
             var selectedCoopName = (coopName ?? "").Trim();
             var projects = await _context.Projects
                 .Include(p => p.Coop)
@@ -865,6 +866,22 @@ namespace ProjectTracking.Controllers
 
             HttpContext.Session.SetString(IndexStatusFilterKey, selectedStatus);
             return selectedStatus;
+        }
+
+        private string ResolveIndexScenarioTypeFilter(string? scenarioType)
+        {
+            if (!Request.Query.ContainsKey("scenarioType"))
+                return NormalizeScenarioTypeFilter(HttpContext.Session.GetString(IndexScenarioTypeFilterKey));
+
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            if (string.IsNullOrWhiteSpace(selectedScenarioType))
+            {
+                HttpContext.Session.Remove(IndexScenarioTypeFilterKey);
+                return "";
+            }
+
+            HttpContext.Session.SetString(IndexScenarioTypeFilterKey, selectedScenarioType);
+            return selectedScenarioType;
         }
 
         private static string NormalizeIndexStatus(string? status)
