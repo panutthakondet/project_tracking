@@ -351,6 +351,8 @@
                             var empWorks = items
                                 .Where(x => x.EmpId == emp.Key.EmpId)
                                 .OrderBy(x => x.ProjectName)
+                                .ThenBy(x => x.PhaseOrder)
+                                .ThenBy(x => x.PeriodOrder)
                                 .ThenBy(x => x.StartDate)
                                 .ThenBy(x => x.SortOrder)
                                 .ToList();
@@ -784,7 +786,7 @@
 
     .workload-table tbody tr td {
         border-top: 1px solid #edf1f5 !important;
-        border-bottom: 1px solid #edf1f5 !important;
+        border-bottom: 2px solid #94a3b8 !important;
     }
 
     .work-item {

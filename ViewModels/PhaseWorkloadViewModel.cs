@@ -18,6 +18,8 @@ namespace ProjectTracking.ViewModels
         public string EmpName { get; set; } = "";
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = "";
+        public int PhaseOrder { get; set; }
+        public int PeriodOrder { get; set; }
         public string PhasePeriodLabel { get; set; } = "";
         public string Title { get; set; } = "";
         public string Detail { get; set; } = "";
