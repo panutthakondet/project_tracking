@@ -168,6 +168,13 @@
         font-weight: 700;
     }
 
+    .phase-assign-toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
     .phase-assign-details {
         grid-column: 1 / -1;
         max-height: 0;
@@ -1134,18 +1141,6 @@ else
 
                     </div>
 
-                    @if (CanMenu("PhaseAssigns.Index"))
-                    {
-                        <span class="phase-assign-toggle-count" title="จำนวนงานที่มอบหมาย">@phaseAssigns.Count</span>
-                        <button type="button"
-                                class="phase-assign-toggle"
-                                aria-expanded="false"
-                                aria-controls="@assignPanelId"
-                                data-phase-assign-toggle="@assignPanelId"
-                                title="ดูรายละเอียดงานที่มอบหมาย">
-                            <span aria-hidden="true">+</span>
-                        </button>
-                    }
                 </div>
 
                 <div class="phase-name-row">
@@ -1182,6 +1177,21 @@ else
                         }
                     </div>
                 </div>
+
+                @if (CanMenu("PhaseAssigns.Index"))
+                {
+                    <div class="phase-assign-toggle-row">
+                        <span class="phase-assign-toggle-count" title="จำนวนงานที่มอบหมาย">@phaseAssigns.Count งาน</span>
+                        <button type="button"
+                                class="phase-assign-toggle"
+                                aria-expanded="false"
+                                aria-controls="@assignPanelId"
+                                data-phase-assign-toggle="@assignPanelId"
+                                title="ดูรายละเอียดงานที่มอบหมาย">
+                            <span aria-hidden="true">+</span>
+                        </button>
+                    </div>
+                }
             </section>
 
             <aside class="phase-card-side">
