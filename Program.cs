@@ -243,7 +243,6 @@ await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
-await EnsureDevelopmentWorkflowTablesAsync(app.Services);
 
 if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
 {
@@ -2714,90 +2713,6 @@ static async Task EnsureTestScenarioReadyStatusValuesAsync(IServiceProvider serv
     {
         if (shouldClose)
             await connection.CloseAsync();
-    }
-}
-
-static async Task EnsureDevelopmentWorkflowTablesAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var connection = db.Database.GetDbConnection();
-    var shouldClose = connection.State != System.Data.ConnectionState.Open;
-    if (shouldClose) await connection.OpenAsync();
-
-    try
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = @"
-            SELECT COUNT(*) FROM information_schema.columns
-            WHERE table_schema = DATABASE() AND table_name = 'phase_assign' AND column_name = 'workflow_status';";
-        if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) == 0)
-        {
-            command.CommandText = @"ALTER TABLE `phase_assign`
-                ADD COLUMN `workflow_status` varchar(30) NOT NULL DEFAULT 'IN_DEVELOPMENT' AFTER `work_status`;";
-            await command.ExecuteNonQueryAsync();
-        }
-
-        command.CommandText = @"
-            CREATE TABLE IF NOT EXISTS `project_tor_items` (
-              `tor_item_id` int NOT NULL AUTO_INCREMENT,
-              `project_id` int NOT NULL,
-              `tor_code` varchar(50) NOT NULL,
-              `title` varchar(500) NOT NULL,
-              `detail` text NULL,
-              `acceptance_criteria` text NULL,
-              `sort_order` int NOT NULL DEFAULT 0,
-              `is_active` tinyint(1) NOT NULL DEFAULT 1,
-              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              `created_by_emp_id` int NULL,
-              PRIMARY KEY (`tor_item_id`),
-              KEY `IX_project_tor_items_project_sort` (`project_id`, `sort_order`),
-              CONSTRAINT `FK_project_tor_items_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-            CREATE TABLE IF NOT EXISTS `phase_assign_tor_items` (
-              `assign_id` int NOT NULL,
-              `tor_item_id` int NOT NULL,
-              `check_status` varchar(20) NOT NULL DEFAULT 'PENDING',
-              `checked_by_emp_id` int NULL,
-              `checked_at` datetime NULL,
-              `remark` varchar(1000) NULL,
-              PRIMARY KEY (`assign_id`, `tor_item_id`),
-              CONSTRAINT `FK_assign_tor_assign` FOREIGN KEY (`assign_id`) REFERENCES `phase_assign` (`assign_id`) ON DELETE CASCADE,
-              CONSTRAINT `FK_assign_tor_item` FOREIGN KEY (`tor_item_id`) REFERENCES `project_tor_items` (`tor_item_id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-            CREATE TABLE IF NOT EXISTS `phase_assign_test_scenarios` (
-              `assign_id` int NOT NULL,
-              `scenario_id` int NOT NULL,
-              `is_required` tinyint(1) NOT NULL DEFAULT 1,
-              PRIMARY KEY (`assign_id`, `scenario_id`),
-              CONSTRAINT `FK_assign_scenario_assign` FOREIGN KEY (`assign_id`) REFERENCES `phase_assign` (`assign_id`) ON DELETE CASCADE,
-              CONSTRAINT `FK_assign_scenario_scenario` FOREIGN KEY (`scenario_id`) REFERENCES `project_test_scenarios` (`scenario_id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-            CREATE TABLE IF NOT EXISTS `test_scenario_runs` (
-              `run_id` int NOT NULL AUTO_INCREMENT,
-              `assign_id` int NOT NULL,
-              `scenario_id` int NOT NULL,
-              `test_stage` varchar(10) NOT NULL,
-              `round_no` int NOT NULL DEFAULT 1,
-              `result_status` varchar(20) NOT NULL DEFAULT 'READY',
-              `tested_by_emp_id` int NULL,
-              `tested_at` datetime NULL,
-              `remark` varchar(2000) NULL,
-              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              PRIMARY KEY (`run_id`),
-              KEY `IX_test_runs_lookup` (`assign_id`, `scenario_id`, `test_stage`, `round_no`),
-              CONSTRAINT `FK_test_run_assign` FOREIGN KEY (`assign_id`) REFERENCES `phase_assign` (`assign_id`) ON DELETE CASCADE,
-              CONSTRAINT `FK_test_run_scenario` FOREIGN KEY (`scenario_id`) REFERENCES `project_test_scenarios` (`scenario_id`) ON DELETE CASCADE,
-              CONSTRAINT `FK_test_run_employee` FOREIGN KEY (`tested_by_emp_id`) REFERENCES `employee` (`emp_id`) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-        await command.ExecuteNonQueryAsync();
-    }
-    finally
-    {
-        if (shouldClose) await connection.CloseAsync();
     }
 }
 

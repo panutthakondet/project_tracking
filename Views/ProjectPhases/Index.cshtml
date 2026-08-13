@@ -22,8 +22,6 @@
     var pendingPhaseApprovalIds = ViewBag.PendingPhaseApprovalIds as ISet<int> ?? new HashSet<int>();
     var phaseAssignsByPhaseId = ViewBag.PhaseAssignsByPhaseId as IDictionary<int, List<ProjectTracking.Models.PhaseAssign>>
                                 ?? new Dictionary<int, List<ProjectTracking.Models.PhaseAssign>>();
-    var developmentProgress = ViewBag.DevelopmentProgressByAssignId as IDictionary<int, int>
-                              ?? new Dictionary<int, int>();
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectCoopName = ((selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "").Trim();
@@ -82,16 +80,6 @@
     string AssignStatusText(string? status) => string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase)
         ? "เสร็จสิ้น"
         : "กำลังดำเนินการ";
-
-    string WorkflowText(string? status) => (status ?? "IN_DEVELOPMENT") switch
-    {
-        "DEV_TESTING" => "Dev กำลังทดสอบ",
-        "READY_FOR_BA" => "รอ BA ทดสอบ",
-        "BA_TESTING" => "BA กำลังทดสอบ",
-        "REWORK" => "ส่งกลับ Dev",
-        "COMPLETED" => "ผ่านครบ",
-        _ => "กำลังพัฒนา"
-    };
 }
 
 <style>
@@ -1309,12 +1297,6 @@ else
                                             @(assign.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") - @(assign.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                                         </div>
                                         <span class="phase-assign-state @(assignDone ? "is-done" : "")">@AssignStatusText(assign.WorkStatus)</span>
-                                        <span class="phase-assign-state">@(developmentProgress.TryGetValue(assign.AssignId, out var pct) ? pct : 0)%</span>
-                                        @if (string.Equals(Context.Session.GetString("Role"), "ADMIN", StringComparison.OrdinalIgnoreCase)
-                                             || Context.Session.GetInt32("EmpId") == assign.EmpId)
-                                        {
-                                            <a asp-controller="DevelopmentWorkflow" asp-action="Dev" asp-route-id="@assign.AssignId" class="btn btn-sm btn-outline-primary">@WorkflowText(assign.WorkflowStatus)</a>
-                                        }
                                     </article>
                                 }
                             </div>

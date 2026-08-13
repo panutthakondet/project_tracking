@@ -258,8 +258,6 @@ namespace ProjectTracking.Controllers
                 "EmpId",
                 "EmpName");
 
-            await LoadDevelopmentSelectionsAsync(projectId, Array.Empty<int>(), Array.Empty<int>());
-
             return View(defaultModel);
         }
 
@@ -269,7 +267,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("PhaseAssigns.Create")]
-        public async Task<IActionResult> Create(PhaseAssign model, int projectId, List<int>? torItemIds, List<int>? scenarioIds)
+        public async Task<IActionResult> Create(PhaseAssign model, int projectId)
         {
             // รองรับวันที่ไทย dd/MM/พ.ศ.
             model.PlanStart = ParseThaiDate(Request.Form["PlanStart"]);
@@ -339,13 +337,10 @@ namespace ProjectTracking.Controllers
             }
             if (string.IsNullOrWhiteSpace(model.WorkStatus))
                 model.WorkStatus = "IN_PROGRESS";
-            if ((torItemIds?.Count ?? 0) > 0 || (scenarioIds?.Count ?? 0) > 0)
-                model.WorkStatus = "IN_PROGRESS";
             model.CreatedAt = DateTime.Now;
             model.EntryId = await GetCurrentEntryIdAsync();
             _context.PhaseAssigns.Add(model);
             await _context.SaveChangesAsync();
-            await SyncDevelopmentSelectionsAsync(model.AssignId, projectId, torItemIds, scenarioIds);
             await SendCreatedPhaseAssignNotificationSafelyAsync(model.AssignId);
 
             return RedirectToAction(nameof(Index), new { projectId = phase!.ProjectId });
@@ -402,13 +397,6 @@ namespace ProjectTracking.Controllers
                 assign.EmpId
             );
 
-            if (projectId.HasValue)
-            {
-                var selectedTor = await _context.PhaseAssignTorItems.Where(x => x.AssignId == id).Select(x => x.TorItemId).ToListAsync();
-                var selectedScenarios = await _context.PhaseAssignTestScenarios.Where(x => x.AssignId == id).Select(x => x.ScenarioId).ToListAsync();
-                await LoadDevelopmentSelectionsAsync(projectId.Value, selectedTor, selectedScenarios);
-            }
-
             return View(assign);
         }
 
@@ -418,7 +406,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("PhaseAssigns.Edit")]
-        public async Task<IActionResult> Edit(int id, PhaseAssign model, List<int>? torItemIds, List<int>? scenarioIds)
+        public async Task<IActionResult> Edit(int id, PhaseAssign model)
         {
             if (id != model.AssignId)
                 return NotFound();
@@ -452,17 +440,6 @@ namespace ProjectTracking.Controllers
             var requestedStatus = string.IsNullOrWhiteSpace(model.WorkStatus)
                 ? "IN_PROGRESS"
                 : model.WorkStatus.Trim();
-
-            var usesDevelopmentWorkflow = (torItemIds?.Count ?? 0) > 0
-                || (scenarioIds?.Count ?? 0) > 0
-                || await _context.PhaseAssignTorItems.AnyAsync(x => x.AssignId == id)
-                || await _context.PhaseAssignTestScenarios.AnyAsync(x => x.AssignId == id);
-            if (usesDevelopmentWorkflow
-                && StatusApprovalService.IsPhaseAssignCompletionStatus(requestedStatus)
-                && !string.Equals(db.WorkflowStatus, "COMPLETED", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError(nameof(model.WorkStatus), "งานที่ใช้ TOR/Test Scenario ต้องผ่าน BA Verification ครบก่อนจึงจะปิดงานได้");
-            }
 
             // ✅ Validate selected phase (must be in same project)
             ProjectPhase? selectedPhase = null;
@@ -519,12 +496,6 @@ namespace ProjectTracking.Controllers
                     "EmpName",
                     model.EmpId
                 );
-
-                if (projectIdOfAssign.HasValue)
-                {
-                    await LoadDevelopmentSelectionsAsync(projectIdOfAssign.Value,
-                        torItemIds ?? new List<int>(), scenarioIds ?? new List<int>());
-                }
 
                 return View(model);
             }
@@ -591,9 +562,6 @@ namespace ProjectTracking.Controllers
             }
 
             await _context.SaveChangesAsync();
-
-            if (projectIdOfAssign.HasValue)
-                await SyncDevelopmentSelectionsAsync(db.AssignId, projectIdOfAssign.Value, torItemIds, scenarioIds);
 
             var projectId = await _context.ProjectPhases
                 .AsNoTracking()
@@ -1444,39 +1412,6 @@ namespace ProjectTracking.Controllers
                 "EmpId",
                 "EmpName",
                 model.EmpId);
-
-            await LoadDevelopmentSelectionsAsync(projectId,
-                Request.Form["torItemIds"].Select(x => int.TryParse(x, out var n) ? n : 0).Where(x => x > 0),
-                Request.Form["scenarioIds"].Select(x => int.TryParse(x, out var n) ? n : 0).Where(x => x > 0));
-        }
-
-        private async Task LoadDevelopmentSelectionsAsync(int projectId, IEnumerable<int> selectedTor, IEnumerable<int> selectedScenarios)
-        {
-            ViewBag.TorItems = await _context.ProjectTorItems.AsNoTracking()
-                .Where(x => x.ProjectId == projectId && x.IsActive)
-                .OrderBy(x => x.SortOrder).ThenBy(x => x.TorItemId).ToListAsync();
-            ViewBag.ProjectScenarios = await _context.TestScenarios.AsNoTracking()
-                .Where(x => x.project_id == projectId)
-                .OrderBy(x => x.sort_order).ThenBy(x => x.scenario_id).ToListAsync();
-            ViewBag.SelectedTorItemIds = selectedTor.ToHashSet();
-            ViewBag.SelectedScenarioIds = selectedScenarios.ToHashSet();
-        }
-
-        private async Task SyncDevelopmentSelectionsAsync(int assignId, int projectId, IEnumerable<int>? torIds, IEnumerable<int>? scenarioIds)
-        {
-            var validTor = await _context.ProjectTorItems.Where(x => x.ProjectId == projectId && (torIds ?? Array.Empty<int>()).Contains(x.TorItemId))
-                .Select(x => x.TorItemId).ToListAsync();
-            var validScenarios = await _context.TestScenarios.Where(x => x.project_id == projectId && (scenarioIds ?? Array.Empty<int>()).Contains(x.scenario_id))
-                .Select(x => x.scenario_id).ToListAsync();
-            var oldTor = await _context.PhaseAssignTorItems.Where(x => x.AssignId == assignId).ToListAsync();
-            _context.PhaseAssignTorItems.RemoveRange(oldTor.Where(x => !validTor.Contains(x.TorItemId)));
-            foreach (var torId in validTor.Where(x => oldTor.All(o => o.TorItemId != x)))
-                _context.PhaseAssignTorItems.Add(new PhaseAssignTorItem { AssignId = assignId, TorItemId = torId });
-            var oldScenarios = await _context.PhaseAssignTestScenarios.Where(x => x.AssignId == assignId).ToListAsync();
-            _context.PhaseAssignTestScenarios.RemoveRange(oldScenarios.Where(x => !validScenarios.Contains(x.ScenarioId)));
-            foreach (var scenarioId in validScenarios.Where(x => oldScenarios.All(o => o.ScenarioId != x)))
-                _context.PhaseAssignTestScenarios.Add(new PhaseAssignTestScenario { AssignId = assignId, ScenarioId = scenarioId });
-            await _context.SaveChangesAsync();
         }
 
         private async Task SendCreatedPhaseAssignNotificationSafelyAsync(int assignId)

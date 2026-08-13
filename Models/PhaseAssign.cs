@@ -47,10 +47,6 @@ namespace ProjectTracking.Models
         [Column("work_status")]
         public string? WorkStatus { get; set; }
 
-        [Column("workflow_status")]
-        [MaxLength(30)]
-        public string WorkflowStatus { get; set; } = "IN_DEVELOPMENT";
-
 
         // remark ใน MySQL เป็น varchar(1000)
         [MaxLength(1000)]
