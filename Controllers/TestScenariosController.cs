@@ -784,14 +784,17 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.DeleteAll")]
-        public async Task<IActionResult> DeleteAll(int projectId)
+        public async Task<IActionResult> DeleteAll(int projectId, string? scenarioType)
         {
-            var scenarios = _context.TestScenarios
-                .Where(x => x.project_id == projectId)
-                .ToList();
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            var scenarios = await _context.TestScenarios
+                .Where(x =>
+                    x.project_id == projectId &&
+                    (string.IsNullOrWhiteSpace(selectedScenarioType) || x.scenario_type == selectedScenarioType))
+                .ToListAsync();
 
             if (!scenarios.Any())
-                return RedirectToAction("Index", new { projectId });
+                return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType });
 
             var scenarioIds = scenarios.Select(s => s.scenario_id).ToList();
 
@@ -817,7 +820,7 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
             await RenumberScenarioCodesAsync(projectId);
 
-            return RedirectToAction("Index", new { projectId });
+            return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType });
         }
         [HttpPost]
         [RequireMenu("TestScenarios.Sort")]

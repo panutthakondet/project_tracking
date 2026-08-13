@@ -782,8 +782,9 @@
                       asp-route-projectId="@ViewBag.SelectedProject"
                       method="post"
                       style="display:inline;"
-                      onsubmit="return confirm('ลบ Test Scenario ทั้งหมดของโครงการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');">
+                      onsubmit="return confirm('@(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ลบ Test Scenario ทุก Type ของโครงการนี้?" : $"ลบ Test Scenario Type {selectedScenarioType} ทั้งหมดของโครงการนี้?") การกระทำนี้ไม่สามารถย้อนกลับได้');">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
                     <button type="submit" class="btn btn-danger" title="ลบทั้งหมด">Delete All</button>
                 </form>
             }
