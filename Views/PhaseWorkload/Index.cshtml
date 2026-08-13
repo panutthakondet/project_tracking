@@ -343,23 +343,18 @@
                     </thead>
 
                     <tbody>
-
-                        @foreach (var emp in employees
-                            .Where(e => string.IsNullOrEmpty(selectedEmpId)
-                                || e.Key.EmpId.ToString() == selectedEmpId))
-                        {
-                            var empWorks = items
-                                .Where(x => x.EmpId == emp.Key.EmpId)
+                        @{
+                            var workRows = items
+                                .Where(x => string.IsNullOrEmpty(selectedEmpId)
+                                    || x.EmpId.ToString() == selectedEmpId)
+                                .GroupBy(x => $"{x.WorkType}-{x.ItemId}")
+                                .Select(g => g.First())
                                 .OrderBy(x => x.ProjectName)
                                 .ThenBy(x => x.PhaseOrder)
                                 .ThenBy(x => x.PeriodOrder)
+                                .ThenBy(x => x.EmpName)
                                 .ThenBy(x => x.StartDate)
                                 .ThenBy(x => x.SortOrder)
-                                .ToList();
-
-                            var workRows = empWorks
-                                .GroupBy(x => $"{x.WorkType}-{x.ItemId}")
-                                .Select(g => g.First())
                                 .ToList();
 
                             foreach (var work in workRows)
@@ -367,10 +362,7 @@
                                 <tr>
 
                                     <td class="text-start bg-light phase-project-cell work-type-@work.WorkTypeClass">
-                                        @if (work == workRows.First())
-                                        {
-                                            <div class="fw-bold mb-2">👤 @emp.Key.EmpName</div>
-                                        }
+                                        <div class="fw-bold mb-2">👤 @work.EmpName</div>
 
                                         @if (!string.IsNullOrWhiteSpace(work.PhasePeriodLabel))
                                         {
