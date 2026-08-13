@@ -164,9 +164,9 @@ namespace ProjectTracking.Controllers
                             x.PlanEnd.Value >= monthStart
                         ) || (
                             x.Phase.PlanStart.HasValue &&
-                            x.Phase.PlanEnd.HasValue &&
+                            x.Phase.PeriodEndDate.HasValue &&
                             x.Phase.PlanStart.Value <= monthEnd &&
-                            x.Phase.PlanEnd.Value >= monthStart
+                            x.Phase.PeriodEndDate.Value >= monthStart
                         )
                     ) &&
                     (
@@ -203,7 +203,7 @@ namespace ProjectTracking.Controllers
                     AssignStartDate = x.PlanStart,
                     AssignEndDate = x.PlanEnd,
                     PhasePlanStartDate = x.Phase?.PlanStart,
-                    PhasePlanEndDate = x.Phase?.PlanEnd,
+                    PhasePlanEndDate = x.Phase?.PeriodEndDate,
                     StartDate = x.PlanStart ?? x.Phase?.PlanStart,
                     EndDate = x.PlanEnd ?? x.Phase?.PlanEnd,
                     PeriodEndDate = x.Phase?.PeriodEndDate,
