@@ -19,7 +19,12 @@
     var th = new System.Globalization.CultureInfo("th-TH");
     var selectedPeriodStart = $"{year:D4}-{month:D2}";
     var selectedPeriodEnd = $"{yearTo:D4}-{monthTo:D2}";
-    var periodYears = Enumerable.Range(DateTime.Today.Year - 1, 3).ToList();
+    var periodYears = Enumerable.Range(DateTime.Today.Year - 1, 3)
+        .Append(year)
+        .Append(yearTo)
+        .Distinct()
+        .OrderBy(value => value)
+        .ToList();
     var timelineColumns = new List<(DateTime Start, DateTime End, string YearText, string MonthText, string MainText, string SubText, bool IsToday, bool IsWeekend, bool IsNewYear)>();
     const int columnWidth = 32;
     var cursorMonth = new DateTime(year, month, 1);

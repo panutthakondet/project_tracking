@@ -810,6 +810,8 @@
                    asp-action="Index"
                    asp-route-coopId="@selectedProjectModel?.CoopId"
                    asp-route-projectId="@selectedProjectModel?.ProjectId"
+                   asp-route-periodStart="@selectedProjectModel?.StartDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
+                   asp-route-periodEnd="@selectedProjectModel?.EndDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
                    class="btn btn-outline-primary"
                    title="ดูปริมาณงานของทีม">
                     ปริมาณงานทีม
