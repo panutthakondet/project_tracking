@@ -350,6 +350,7 @@
                                 .GroupBy(x => $"{x.WorkType}-{x.ItemId}")
                                 .Select(g => g.First())
                                 .OrderBy(x => x.ProjectName)
+                                .ThenBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
                                 .ThenBy(x => x.PhaseOrder)
                                 .ThenBy(x => x.PeriodOrder)
                                 .ThenBy(x => x.EmpName)
