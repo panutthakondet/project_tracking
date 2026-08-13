@@ -163,8 +163,8 @@ namespace ProjectTracking.Controllers
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
                     ProjectId = x.Phase?.ProjectId ?? 0,
                     ProjectName = x.Phase?.Project?.ProjectDisplayName ?? "-",
-                    PhaseSort = x.PhaseSort ?? 0,
-                    PhaseOrder = x.Phase?.PhaseOrder ?? 0,
+                    PhaseSort = x.PhaseSort,
+                    PhaseOrder = x.PhaseOrder ?? x.Phase?.PhaseOrder ?? 0,
                     PeriodOrder = x.Phase?.PeriodOrder ?? 0,
                     PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
                     Title = x.Role ?? x.Phase?.PhaseName ?? "-",
@@ -183,11 +183,10 @@ namespace ProjectTracking.Controllers
                 })
                 .OrderBy(x => x.EmpName)
                 .ThenBy(x => x.ProjectName)
-                .ThenBy(x => x.PhaseSort == 0 ? int.MaxValue : x.PhaseSort)
                 .ThenBy(x => x.PhaseOrder)
                 .ThenBy(x => x.PeriodOrder)
-                .ThenBy(x => x.StartDate)
-                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.PhaseSort ?? int.MaxValue)
+                .ThenBy(x => x.ItemId)
                 .ThenBy(x => x.Title)
                 .ToList();
 
