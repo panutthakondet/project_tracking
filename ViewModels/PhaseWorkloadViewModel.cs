@@ -6,6 +6,23 @@ namespace ProjectTracking.ViewModels
     public class PhaseWorkloadViewModel
     {
         public List<PhaseWorkloadItemViewModel> Items { get; set; } = new();
+        public PhaseWorkloadCompletionViewModel Completion { get; set; } = new();
+    }
+
+    public class PhaseWorkloadCompletionViewModel
+    {
+        public int PhaseAssignTotal { get; set; }
+        public int PhaseAssignCompleted { get; set; }
+        public int DevScenarioTotal { get; set; }
+        public int DevScenarioCompleted { get; set; }
+        public int BaScenarioTotal { get; set; }
+        public int BaScenarioCompleted { get; set; }
+
+        public int Total => PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal;
+        public int Completed => PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted;
+        public int Percent => Total == 0
+            ? 0
+            : (int)Math.Round(Completed * 100d / Total, MidpointRounding.AwayFromZero);
     }
 
     public class PhaseWorkloadItemViewModel

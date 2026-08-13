@@ -190,6 +190,41 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.Title)
                 .ToList();
 
+            var scenarioProjectIds = selectedProjectId.HasValue
+                ? new List<int> { selectedProjectId.Value }
+                : phaseAssigns
+                    .Where(x => x.Phase != null)
+                    .Select(x => x.Phase!.ProjectId)
+                    .Distinct()
+                    .ToList();
+
+            var testScenarioQuery = _context.TestScenarios
+                .AsNoTracking()
+                .Where(x => scenarioProjectIds.Contains(x.project_id));
+
+            var scenarioSummary = await testScenarioQuery
+                .GroupBy(x => (x.scenario_type ?? "BA").ToUpper())
+                .Select(group => new
+                {
+                    Type = group.Key,
+                    Total = group.Count(),
+                    Completed = group.Count(x => x.status != null && x.status.ToUpper() == "PASSED")
+                })
+                .ToListAsync();
+
+            var devScenario = scenarioSummary.FirstOrDefault(x => x.Type == "DEV");
+            var baScenario = scenarioSummary.FirstOrDefault(x => x.Type == "BA");
+            var completion = new PhaseWorkloadCompletionViewModel
+            {
+                PhaseAssignTotal = phaseAssigns.Count,
+                PhaseAssignCompleted = phaseAssigns.Count(x =>
+                    string.Equals(x.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase)),
+                DevScenarioTotal = devScenario?.Total ?? 0,
+                DevScenarioCompleted = devScenario?.Completed ?? 0,
+                BaScenarioTotal = baScenario?.Total ?? 0,
+                BaScenarioCompleted = baScenario?.Completed ?? 0
+            };
+
             ViewBag.Year = selectedYear;
             ViewBag.YearTo = selectedYearTo;
             ViewBag.Month = selectedMonth;
@@ -212,7 +247,8 @@ namespace ProjectTracking.Controllers
 
             return View(new PhaseWorkloadViewModel
             {
-                Items = items
+                Items = items,
+                Completion = completion
             });
         }
 

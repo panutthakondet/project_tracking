@@ -93,6 +93,7 @@
     }
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
+    var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
 }
 
 <div class="container-fluid px-2 px-md-3 workload-page-wrap">
@@ -244,6 +245,46 @@
                     <span class="workload-status-label progress">กำลังดำเนินการ</span>
                 </div>
             </div>
+
+            <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
+                <div class="workload-completion-chart"
+                     style="--completion-percent:@completion.Percent;"
+                     role="img"
+                     aria-label="งานเสร็จแล้ว @completion.Percent เปอร์เซ็นต์">
+                    <div class="workload-completion-chart-center">
+                        <strong>@completion.Percent%</strong>
+                        <span>เสร็จสิ้น</span>
+                    </div>
+                </div>
+
+                <div class="workload-completion-content">
+                    <div class="workload-completion-heading">
+                        <div>
+                            <strong>ความคืบหน้างานรวม</strong>
+                            <span>คำนวณจาก PhaseAssigns และ Test Scenarios ของ DEV / BA</span>
+                        </div>
+                        <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
+                    </div>
+
+                    <div class="workload-completion-breakdown">
+                        <div class="workload-completion-row is-assign">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">PhaseAssigns เสร็จสิ้น</span>
+                            <strong>@completion.PhaseAssignCompleted / @completion.PhaseAssignTotal</strong>
+                        </div>
+                        <div class="workload-completion-row is-dev">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">Test Scenarios DEV ผ่าน</span>
+                            <strong>@completion.DevScenarioCompleted / @completion.DevScenarioTotal</strong>
+                        </div>
+                        <div class="workload-completion-row is-ba">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">Test Scenarios BA ผ่าน</span>
+                            <strong>@completion.BaScenarioCompleted / @completion.BaScenarioTotal</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <div class="table-responsive workload-responsive-wrap">
 
@@ -494,6 +535,201 @@
         border-radius: 50%;
         animation: workloadSpin .75s linear infinite;
         flex: 0 0 auto;
+    }
+
+    .workload-completion-panel {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        align-items: center;
+        gap: 26px;
+        margin: 0 0 18px;
+        padding: 20px 24px;
+        border: 1px solid #b8d4ca;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .workload-completion-chart {
+        --completion-percent: 0;
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(#16a085 calc(var(--completion-percent) * 1%), #e2e8f0 0);
+        box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
+    }
+
+    .workload-completion-chart-center {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #10233f;
+        background: #fff;
+    }
+
+    .workload-completion-chart-center strong {
+        font-size: 1.7rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .workload-completion-chart-center span {
+        margin-top: 7px;
+        font-size: .8rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .workload-completion-content {
+        min-width: 0;
+    }
+
+    .workload-completion-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .workload-completion-heading > div {
+        min-width: 0;
+    }
+
+    .workload-completion-heading strong,
+    .workload-completion-heading span {
+        display: block;
+    }
+
+    .workload-completion-heading strong {
+        color: #10233f;
+        font-size: 1.05rem;
+        font-weight: 750;
+    }
+
+    .workload-completion-heading span {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: .84rem;
+        font-weight: 500;
+    }
+
+    .workload-completion-total {
+        flex: 0 0 auto;
+        color: #0f766e !important;
+        font-weight: 700 !important;
+        white-space: nowrap;
+    }
+
+    .workload-completion-breakdown {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin-top: 12px;
+    }
+
+    .workload-completion-row {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        padding: 5px 14px;
+        border-right: 1px solid #dbe4ea;
+        color: #334155;
+        font-size: .86rem;
+    }
+
+    .workload-completion-row:first-child {
+        padding-left: 0;
+    }
+
+    .workload-completion-row:last-child {
+        padding-right: 0;
+        border-right: 0;
+    }
+
+    .workload-completion-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #16a085;
+    }
+
+    .workload-completion-row.is-dev .workload-completion-dot {
+        background: #2563eb;
+    }
+
+    .workload-completion-row.is-ba .workload-completion-dot {
+        background: #7c3aed;
+    }
+
+    .workload-completion-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 550;
+    }
+
+    .workload-completion-row strong {
+        color: #10233f;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 900px) {
+        .workload-completion-panel {
+            grid-template-columns: 112px minmax(0, 1fr);
+            gap: 18px;
+            padding: 18px;
+        }
+
+        .workload-completion-chart {
+            width: 108px;
+            height: 108px;
+        }
+
+        .workload-completion-chart-center {
+            width: 74px;
+            height: 74px;
+        }
+
+        .workload-completion-breakdown {
+            grid-template-columns: 1fr;
+        }
+
+        .workload-completion-row,
+        .workload-completion-row:first-child,
+        .workload-completion-row:last-child {
+            padding: 6px 0;
+            border-right: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .workload-completion-row:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .workload-completion-panel {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .workload-completion-content {
+            width: 100%;
+        }
+
+        .workload-completion-heading {
+            align-items: flex-end;
+        }
     }
 
     @@keyframes workloadSpin {
