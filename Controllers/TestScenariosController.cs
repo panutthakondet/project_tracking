@@ -47,6 +47,7 @@ namespace ProjectTracking.Controllers
                 project_id = projectId ?? 0,
                 group_id = groupId,
                 priority = "MEDIUM",
+                scenario_type = "BA",
                 status = "READY"
             });
         }
@@ -96,6 +97,7 @@ namespace ProjectTracking.Controllers
             model.scenario_code = $"TC-{nextNumber:D4}";
             model.sort_order = nextSort + 1;
             model.priority = string.IsNullOrWhiteSpace(model.priority) ? "MEDIUM" : model.priority.Trim().ToUpperInvariant();
+            model.scenario_type = NormalizeScenarioType(model.scenario_type);
             model.status = TestScenarioDisplay.NormalizeStatus(model.status);
             model.created_at = DateTime.Now;
             model.updated_at = DateTime.Now;
@@ -174,9 +176,10 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? coopName)
+        public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? scenarioType, string? coopName)
         {
             var selectedStatus = ResolveIndexStatusFilter(status);
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var selectedCoopName = (coopName ?? "").Trim();
             var projects = await _context.Projects
                 .Include(p => p.Coop)
@@ -248,7 +251,8 @@ namespace ProjectTracking.Controllers
                         (x.Group != null && x.Group.control_id == selectedControlId.Value)) &&
                     (selectedControlGroupIds.Count == 0 ||
                         (x.group_id.HasValue && selectedControlGroupIds.Contains(x.group_id.Value))) &&
-                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
+                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus) &&
+                    (string.IsNullOrWhiteSpace(selectedScenarioType) || x.scenario_type == selectedScenarioType)
                 )
                 .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
                 .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
@@ -270,6 +274,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedGroupIds = selectedGroupIds;
             ViewBag.StatusList = ScenarioStatusFilters;
             ViewBag.SelectedStatus = selectedStatus;
+            ViewBag.SelectedScenarioType = selectedScenarioType;
 
             return View(scenarios);
         }
@@ -334,6 +339,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Edit(TestScenario model, List<IFormFile> files, List<int> deleteAttachmentIds)
         {
             model.updated_at = DateTime.Now;
+            model.scenario_type = NormalizeScenarioType(model.scenario_type);
 
             _context.TestScenarios.Update(model);
             await _context.SaveChangesAsync();
@@ -417,8 +423,9 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportTemplates(int? projectId, int? controlId, List<int> groupIds)
+        public async Task<IActionResult> ImportTemplates(int? projectId, int? controlId, List<int> groupIds, string? scenarioType)
         {
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             if (!projectId.HasValue)
             {
                 TempData["Error"] = "กรุณาเลือกโครงการก่อน Import";
@@ -449,7 +456,8 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction("Index", new { projectId, controlId });
             }
 
-            var result = await ImportTemplatesForGroupsAsync(projectId.Value, selectedGroupIds);
+            var result = await ImportTemplatesForGroupsAsync(projectId.Value, selectedGroupIds,
+                string.IsNullOrWhiteSpace(selectedScenarioType) ? "BA" : selectedScenarioType);
             SetImportTemplatesMessage(result);
 
             var redirectQuery = new List<string>
@@ -460,11 +468,13 @@ namespace ProjectTracking.Controllers
                 redirectQuery.Add($"controlId={controlId.Value}");
             if (!importEntireControl)
                 redirectQuery.AddRange(selectedGroupIds.Select(id => $"groupIds={id}"));
+            if (!string.IsNullOrWhiteSpace(selectedScenarioType))
+                redirectQuery.Add($"scenarioType={selectedScenarioType}");
 
             return Redirect($"{Url.Action(nameof(Index))}?{string.Join("&", redirectQuery)}");
         }
 
-        private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds)
+        private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds, string scenarioType = "BA")
         {
             var selectedGroupIds = groupIds
                 .Distinct()
@@ -500,10 +510,10 @@ namespace ProjectTracking.Controllers
                 .Where(s => s.project_id == projectId
                     && s.group_id.HasValue
                     && orderedGroupIds.Contains(s.group_id.Value))
-                .Select(s => new { s.group_id, s.title })
+                .Select(s => new { s.group_id, s.title, s.scenario_type })
                 .ToListAsync();
             var existingScenarioKeys = existingScenarioRows
-                .Select(row => BuildScenarioDuplicateKey(row.group_id, row.title))
+                .Select(row => BuildScenarioDuplicateKey(row.group_id, row.title, row.scenario_type))
                 .ToHashSet(StringComparer.Ordinal);
 
             var nextNumber = await GetNextScenarioNumberAsync(projectId);
@@ -514,7 +524,7 @@ namespace ProjectTracking.Controllers
             {
                 foreach (var t in templates.Where(t => t.group_id == selectedGroupId))
                 {
-                    var duplicateKey = BuildScenarioDuplicateKey(t.group_id, t.title);
+                    var duplicateKey = BuildScenarioDuplicateKey(t.group_id, t.title, scenarioType);
                     if (!existingScenarioKeys.Add(duplicateKey))
                     {
                         skippedCount++;
@@ -531,6 +541,7 @@ namespace ProjectTracking.Controllers
                         steps = t.steps,
                         expected_result = t.expected_result,
                         priority = t.priority_default,
+                        scenario_type = NormalizeScenarioType(scenarioType),
                         status = TestScenarioDisplay.NormalizeStatus(t.status_default),
                         created_at = DateTime.Now,
                         updated_at = DateTime.Now
@@ -550,13 +561,13 @@ namespace ProjectTracking.Controllers
             return new ImportTemplatesResult(importedCount, skippedCount);
         }
 
-        private static string BuildScenarioDuplicateKey(int? groupId, string? title)
+        private static string BuildScenarioDuplicateKey(int? groupId, string? title, string? scenarioType = "BA")
         {
             var normalizedTitle = string.Join(" ", (title ?? string.Empty)
                     .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
                 .Trim()
                 .ToUpperInvariant();
-            return $"{groupId?.ToString() ?? "-"}|{normalizedTitle}";
+            return $"{groupId?.ToString() ?? "-"}|{NormalizeScenarioType(scenarioType)}|{normalizedTitle}";
         }
 
         private void SetImportTemplatesMessage(ImportTemplatesResult result)
@@ -593,10 +604,11 @@ namespace ProjectTracking.Controllers
 
         [HttpGet("TestScenarios/PrintReport")]
         [RequireMenu("TestScenarios.Export")]
-        public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority, int? departmentId)
+        public async Task<IActionResult> PrintReport(int? projectId, int? groupId, string? status, string? priority, string? scenarioType, int? departmentId)
         {
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var selectedStatus = ResolveIndexStatusFilter(status);
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
@@ -664,6 +676,8 @@ namespace ProjectTracking.Controllers
 
             if (!string.IsNullOrWhiteSpace(priority))
                 result = result.Where(x => string.Equals(x.priority, priority, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(selectedScenarioType))
+                result = result.Where(x => string.Equals(x.scenario_type, selectedScenarioType, StringComparison.OrdinalIgnoreCase));
 
             ViewBag.Projects = projects;
             ViewBag.Groups = groups;
@@ -673,6 +687,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedGroup = groupId;
             ViewBag.SelectedStatus = selectedStatus;
             ViewBag.SelectedPriority = priority;
+            ViewBag.SelectedScenarioType = selectedScenarioType;
             ViewBag.ProjectNames = projects.ToDictionary(x => x.ProjectId, x => x.ProjectDisplayName);
 
             var scenarios = result
@@ -687,9 +702,10 @@ namespace ProjectTracking.Controllers
         }
         [HttpGet]
         [RequireMenu("TestScenarios.Export")]
-        public IActionResult ExportPdf(int projectId, int? controlId, List<int> groupIds, string? status)
+        public IActionResult ExportPdf(int projectId, int? controlId, List<int> groupIds, string? status, string? scenarioType)
         {
             var selectedStatus = NormalizeIndexStatus(status);
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var selectedGroupIds = (groupIds ?? new List<int>())
                 .Where(id => id > 0)
                 .Distinct()
@@ -710,7 +726,8 @@ namespace ProjectTracking.Controllers
                             && x.Group.Control.is_active
                             && x.Group.control_id == controlId.Value)
                     ) &&
-                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus)
+                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus) &&
+                    (string.IsNullOrWhiteSpace(selectedScenarioType) || x.scenario_type == selectedScenarioType)
                 )
                 .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
                 .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
@@ -728,6 +745,7 @@ namespace ProjectTracking.Controllers
                     expected_result = x.expected_result,
                     remark = x.remark,
                     priority = x.priority,
+                    scenario_type = x.scenario_type,
                     status = x.status,
                     created_at = x.created_at,
                     updated_at = x.updated_at,
@@ -850,6 +868,18 @@ namespace ProjectTracking.Controllers
         {
             var value = (status ?? "").Trim().ToUpperInvariant();
             return ScenarioStatusFilters.Any(x => x.Value == value) ? value : "";
+        }
+
+        private static string NormalizeScenarioType(string? scenarioType)
+        {
+            var value = (scenarioType ?? "").Trim().ToUpperInvariant();
+            return value == "DEV" ? "DEV" : "BA";
+        }
+
+        private static string NormalizeScenarioTypeFilter(string? scenarioType)
+        {
+            var value = (scenarioType ?? "").Trim().ToUpperInvariant();
+            return value is "BA" or "DEV" ? value : "";
         }
 
         private async Task RenumberScenarioCodesAsync(int projectId)

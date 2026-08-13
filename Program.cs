@@ -242,6 +242,7 @@ await EnsureRequirementBoardTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
+await EnsureTestScenarioTypeColumnAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
 
 if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
@@ -2713,6 +2714,42 @@ static async Task EnsureTestScenarioReadyStatusValuesAsync(IServiceProvider serv
     {
         if (shouldClose)
             await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTestScenarioTypeColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'project_test_scenarios'
+              AND column_name = 'scenario_type';";
+        if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `project_test_scenarios`
+                ADD COLUMN `scenario_type` varchar(10) NOT NULL DEFAULT 'BA' AFTER `priority`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `project_test_scenarios`
+            SET `scenario_type` = 'BA'
+            WHERE UPPER(TRIM(COALESCE(`scenario_type`, ''))) NOT IN ('BA', 'DEV');";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
     }
 }
 

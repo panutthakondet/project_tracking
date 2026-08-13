@@ -259,6 +259,12 @@ public class TestScenarioReport
 
                                 inner.Item().PaddingTop(2).Text(text =>
                                 {
+                                    text.Span("Type: ").Bold();
+                                    text.Span(item.scenario_type ?? "BA");
+                                });
+
+                                inner.Item().PaddingTop(2).Text(text =>
+                                {
                                     text.Span("Precondition: ").Bold();
                                     text.Span(item.precondition ?? "-");
                                 });

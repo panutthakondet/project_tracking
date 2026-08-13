@@ -141,6 +141,14 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold">Type ผู้ทดสอบ</label>
+                    <select asp-for="scenario_type" class="form-select" required>
+                        <option value="BA">BA</option>
+                        <option value="DEV">DEV</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">สถานะ</label>
                     <select asp-for="status" class="form-select">
                         <option value="READY">@TestScenarioDisplay.StatusText("READY")</option>

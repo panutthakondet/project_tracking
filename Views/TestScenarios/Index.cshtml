@@ -21,6 +21,7 @@
     var selectedCoopName = (ViewBag.SelectedCoopName as string) ?? "";
     var statusList = ViewBag.StatusList as IEnumerable<(string Value, string Text)> ?? Enumerable.Empty<(string Value, string Text)>();
     var selectedStatus = ((ViewBag.SelectedStatus as string) ?? "").Trim().ToUpperInvariant();
+    var selectedScenarioType = ((ViewBag.SelectedScenarioType as string) ?? "").Trim().ToUpperInvariant();
     var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
     int? selectedControlId = ViewBag.SelectedControlId != null ? Convert.ToInt32(ViewBag.SelectedControlId) : null;
@@ -521,17 +522,18 @@
 
     .scenario-filter-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px);
         grid-template-areas:
-            "coop coop"
-            "project status"
-            "groups groups";
+            "coop coop coop"
+            "project type status"
+            "groups groups groups";
         gap: 16px;
         align-items: end;
     }
 
     .scenario-filter-coop,
     .scenario-filter-project,
+    .scenario-filter-type,
     .scenario-filter-status,
     .scenario-filter-groups {
         min-width: 0;
@@ -548,6 +550,8 @@
     .scenario-filter-status {
         grid-area: status;
     }
+
+    .scenario-filter-type { grid-area: type; }
 
     .scenario-filter-groups {
         grid-area: groups;
@@ -574,6 +578,7 @@
             grid-template-areas:
                 "coop"
                 "project"
+                "type"
                 "status"
                 "groups";
         }
@@ -670,6 +675,15 @@
                     </select>
                 </div>
 
+                <div class="scenario-filter-type">
+                    <label class="form-label">Type ผู้ทดสอบ</label>
+                    <select name="scenarioType" class="form-select" onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                        <option value="">-- ทุก Type --</option>
+                        <option value="BA" selected="@(selectedScenarioType == "BA" ? "selected" : null)">BA</option>
+                        <option value="DEV" selected="@(selectedScenarioType == "DEV" ? "selected" : null)">DEV</option>
+                    </select>
+                </div>
+
                 <div class="scenario-filter-groups">
                     <label class="form-label">Template Groups Control / Template Group</label>
                     <div class="scenario-group-picker" data-group-picker>
@@ -747,6 +761,7 @@
                     <input type="hidden" name="controlId" value="" data-import-control-id />
                     <input type="hidden" name="coopName" value="@selectedCoopName" />
                     <input type="hidden" name="status" value="@selectedStatus" />
+                    <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
                     <button type="submit"
                             class="btn btn-primary"
                             title="Import Template">
@@ -855,6 +870,7 @@
 
                                 <div class="scenario-meta">
                                     <span class="scenario-pill">Priority: @item.priority</span>
+                                    <span class="scenario-pill">Type: @item.scenario_type</span>
                                     <span class="scenario-pill">Created: @item.created_at.ToString("dd/MM/yyyy HH:mm")</span>
                                     <span class="scenario-pill">Updated: @(item.updated_at?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
                                 </div>
@@ -1264,9 +1280,13 @@
 
         let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
         const status = document.querySelector('select[name="status"]')?.value;
+        const scenarioType = document.querySelector('select[name="scenarioType"]')?.value;
 
         if (status) {
             url += `&status=${encodeURIComponent(status)}`;
+        }
+        if (scenarioType) {
+            url += `&scenarioType=${encodeURIComponent(scenarioType)}`;
         }
 
         if (controlId) {

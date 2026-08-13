@@ -125,6 +125,14 @@
     </div>
 
     <div class="form-group">
+        <label>Type ผู้ทดสอบ</label>
+        <select asp-for="scenario_type" class="form-control" required>
+            <option value="BA">BA</option>
+            <option value="DEV">DEV</option>
+        </select>
+    </div>
+
+    <div class="form-group">
         <label>สถานะ</label>
         <select asp-for="status" class="form-control">
             <option value="READY">@TestScenarioDisplay.StatusText("READY")</option>

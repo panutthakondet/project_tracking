@@ -36,6 +36,10 @@ namespace ProjectTracking.Models
 
         public string priority { get; set; } = "MEDIUM";
 
+        [Column("scenario_type")]
+        [StringLength(10)]
+        public string scenario_type { get; set; } = "BA";
+
         public string status { get; set; } = "READY";
 
         public string? created_by { get; set; }
