@@ -15,8 +15,6 @@ namespace ProjectTracking.Controllers
         private const string FilterEmpIdKey = "PhaseWorkload.Filter.EmpId";
         private const string FilterCoopIdKey = "PhaseWorkload.Filter.CoopId";
         private const string FilterProjectIdKey = "PhaseWorkload.Filter.ProjectId";
-        private const string FilterWorkTypeKey = "PhaseWorkload.Filter.WorkType";
-        private const string FilterViewModeKey = "PhaseWorkload.Filter.ViewMode";
 
         private readonly AppDbContext _context;
 
@@ -26,7 +24,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, int? coopId, int? projectId, string? workType, string? viewMode)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, int? coopId, int? projectId)
         {
             var currentDate = DateTime.Today;
             var hasFilterQuery =
@@ -38,9 +36,7 @@ namespace ProjectTracking.Controllers
                 !string.IsNullOrWhiteSpace(periodEnd) ||
                 !string.IsNullOrWhiteSpace(empId) ||
                 coopId.HasValue ||
-                projectId.HasValue ||
-                !string.IsNullOrWhiteSpace(workType) ||
-                !string.IsNullOrWhiteSpace(viewMode);
+                projectId.HasValue;
 
             if (TryParsePeriodMonth(periodStart, out var parsedStart))
             {
@@ -86,14 +82,6 @@ namespace ProjectTracking.Controllers
             }
 
             empId = hasFilterQuery ? empId : HttpContext.Session.GetString(FilterEmpIdKey);
-            var savedWorkType = HttpContext.Session.GetString(FilterWorkTypeKey);
-            workType = hasFilterQuery
-                ? string.IsNullOrWhiteSpace(workType) ? savedWorkType : workType
-                : savedWorkType;
-            if (string.IsNullOrWhiteSpace(workType))
-                workType = "PHASE";
-            viewMode = hasFilterQuery ? viewMode : HttpContext.Session.GetString(FilterViewModeKey);
-
             var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
                 ? parsedEmpId
                 : (int?)null;
@@ -128,13 +116,9 @@ namespace ProjectTracking.Controllers
                 selectedProjectId = null;
             }
 
-            var selectedViewMode = NormalizeViewMode(viewMode);
-            var selectedWorkType = NormalizeWorkType(workType);
+            SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedCoopId, selectedProjectId);
 
-            SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedCoopId, selectedProjectId, selectedWorkType, selectedViewMode);
-
-            var phaseAssigns = selectedWorkType is "ALL" or "PHASE"
-                ? await _context.PhaseAssigns
+            var phaseAssigns = await _context.PhaseAssigns
                 .Include(x => x.Employee)
                 .Include(x => x.Phase!)
                     .ThenInclude(p => p.Project)
@@ -162,61 +146,7 @@ namespace ProjectTracking.Controllers
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
                 .ThenBy(x => x.PlanStart)
-                .ToListAsync()
-                : new List<ProjectTracking.Models.PhaseAssign>();
-
-            var issues = selectedWorkType is "ALL" or "ISSUE"
-                ? await _context.ProjectIssues
-                .Include(x => x.Employee)
-                .Include(x => x.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Where(x =>
-                    x.StartDate.HasValue &&
-                    x.EndDate.HasValue &&
-                    x.StartDate.Value <= monthEnd &&
-                    x.EndDate.Value >= monthStart &&
-                    (
-                        !selectedEmpId.HasValue
-                        || x.AssignTo == selectedEmpId.Value
-                    ) && (
-                        !selectedCoopId.HasValue
-                        || x.Project!.CoopId == selectedCoopId.Value
-                    ) && (
-                        !selectedProjectId.HasValue
-                        || x.ProjectId == selectedProjectId.Value
-                    )
-                )
-                .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
-                .ThenBy(x => x.StartDate)
-                .ToListAsync()
-                : new List<ProjectTracking.Models.ProjectIssue>();
-
-            var supportOrders = selectedWorkType is "ALL" or "SUPPORT"
-                ? await _context.ProjectSupportOrders
-                .Include(x => x.Employee)
-                .Include(x => x.Project)
-                    .ThenInclude(p => p!.Coop)
-                .Where(x =>
-                    x.AssignTo.HasValue &&
-                    x.StartDate.HasValue &&
-                    x.EndDate.HasValue &&
-                    x.StartDate.Value <= monthEnd &&
-                    x.EndDate.Value >= monthStart &&
-                    (
-                        !selectedEmpId.HasValue
-                        || x.AssignTo == selectedEmpId.Value
-                    ) && (
-                        !selectedCoopId.HasValue
-                        || x.Project!.CoopId == selectedCoopId.Value
-                    ) && (
-                        !selectedProjectId.HasValue
-                        || x.ProjectId == selectedProjectId.Value
-                    )
-                )
-                .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
-                .ThenBy(x => x.StartDate)
-                .ToListAsync()
-                : new List<ProjectTracking.Models.ProjectSupportOrder>();
+                .ToListAsync();
 
             var items = phaseAssigns.Select(x => new PhaseWorkloadItemViewModel
                 {
@@ -239,44 +169,6 @@ namespace ProjectTracking.Controllers
                     Url = $"/PhaseAssigns?projectId={x.Phase?.ProjectId}&phaseId={x.Phase?.PhaseId}",
                     SortOrder = 10
                 })
-                .Concat(issues.Select(x => new PhaseWorkloadItemViewModel
-                {
-                    WorkType = "ISSUE",
-                    WorkTypeLabel = "Issue",
-                    WorkTypeClass = "issue",
-                    ItemId = x.IssueId,
-                    EmpId = x.AssignTo,
-                    EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
-                    ProjectId = x.ProjectId,
-                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
-                    Title = x.IssueName,
-                    Detail = x.IssueDetail ?? "",
-                    StartDate = x.StartDate,
-                    EndDate = x.EndDate,
-                    Status = x.IssueStatus ?? "",
-                    WorkState = NormalizeIssueState(x.IssueStatus, x.DevStatus),
-                    Url = $"/ProjectIssues/Details/{x.IssueId}",
-                    SortOrder = 20
-                }))
-                .Concat(supportOrders.Select(x => new PhaseWorkloadItemViewModel
-                {
-                    WorkType = "SUPPORT",
-                    WorkTypeLabel = "Support",
-                    WorkTypeClass = "support",
-                    ItemId = x.OrderId,
-                    EmpId = x.AssignTo!.Value,
-                    EmpName = x.Employee?.EmpName ?? $"Employee #{x.AssignTo}",
-                    ProjectId = x.ProjectId,
-                    ProjectName = x.Project?.ProjectDisplayName ?? "-",
-                    Title = string.IsNullOrWhiteSpace(x.OrderTitle) ? $"Support #{x.OrderId}" : x.OrderTitle!,
-                    Detail = x.OrderDetail ?? "",
-                    StartDate = x.StartDate,
-                    EndDate = x.EndDate,
-                    Status = x.Status ?? "",
-                    WorkState = NormalizeSupportState(x.Status, x.DevStatus),
-                    Url = $"/SupportOrders/Details/{x.OrderId}",
-                    SortOrder = 30
-                }))
                 .OrderBy(x => x.EmpName)
                 .ThenBy(x => x.ProjectName)
                 .ThenBy(x => x.StartDate)
@@ -301,8 +193,6 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectOptions = projectOptions
                 .Where(x => !selectedCoopId.HasValue || x.CoopId == selectedCoopId.Value)
                 .ToList();
-            ViewBag.SelectedWorkType = selectedWorkType;
-            ViewBag.ViewMode = selectedViewMode;
             ViewBag.MonthStart = monthStart;
             ViewBag.MonthEnd = monthEnd;
 
@@ -324,43 +214,6 @@ namespace ProjectTracking.Controllers
             return string.Equals(status, "DONE", StringComparison.OrdinalIgnoreCase)
                 ? "DONE"
                 : "IN_PROGRESS";
-        }
-
-        private static string NormalizeIssueState(string? issueStatus, string? devStatus)
-        {
-            var issue = (issueStatus ?? "").Trim().ToUpperInvariant();
-
-            return issue is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
-                ? "DONE"
-                : "IN_PROGRESS";
-        }
-
-        private static string NormalizeSupportState(string? status, string? devStatus)
-        {
-            var orderStatus = (status ?? "").Trim().ToUpperInvariant();
-
-            return orderStatus is "PASS" or "REJECT" or "DONE" or "CLOSED" or "RESOLVED"
-                ? "DONE"
-                : "IN_PROGRESS";
-        }
-
-        private static string NormalizeViewMode(string? viewMode)
-        {
-            return string.Equals(viewMode, "day", StringComparison.OrdinalIgnoreCase)
-                ? "day"
-                : "week";
-        }
-
-        private static string NormalizeWorkType(string? workType)
-        {
-            return (workType ?? "").Trim().ToUpperInvariant() switch
-            {
-                "ALL" => "ALL",
-                "PHASE" or "ASSIGN" or "ASSIGNS" => "PHASE",
-                "ISSUE" or "ISSUES" => "ISSUE",
-                "SUPPORT" => "SUPPORT",
-                _ => "PHASE"
-            };
         }
 
         private static int ClampMonth(int month)
@@ -393,7 +246,7 @@ namespace ProjectTracking.Controllers
             return true;
         }
 
-        private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, int? coopId, int? projectId, string workType, string viewMode)
+        private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, int? coopId, int? projectId)
         {
             HttpContext.Session.SetInt32(FilterYearKey, year);
             HttpContext.Session.SetInt32(FilterYearToKey, yearTo);
@@ -402,8 +255,6 @@ namespace ProjectTracking.Controllers
             HttpContext.Session.SetString(FilterEmpIdKey, empId ?? "");
             HttpContext.Session.SetInt32(FilterCoopIdKey, coopId ?? 0);
             HttpContext.Session.SetInt32(FilterProjectIdKey, projectId ?? 0);
-            HttpContext.Session.SetString(FilterWorkTypeKey, workType);
-            HttpContext.Session.SetString(FilterViewModeKey, viewMode);
         }
     }
 }

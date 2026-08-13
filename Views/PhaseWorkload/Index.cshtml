@@ -8,32 +8,25 @@
     int yearTo = ViewBag.YearTo ?? year;
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
-    string selectedWorkType = ViewBag.SelectedWorkType as string ?? "PHASE";
     int? selectedCoopId = ViewBag.SelectedCoopId as int?;
     int? selectedProjectId = ViewBag.SelectedProjectId as int?;
     var coopOptions = ViewBag.CoopOptions as IEnumerable<ProjectTracking.Models.CntMCoop>
         ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
     var projectOptions = ViewBag.ProjectOptions as IEnumerable<ProjectTracking.Models.Project>
         ?? Enumerable.Empty<ProjectTracking.Models.Project>();
-    string viewMode = ViewBag.ViewMode as string ?? "week";
-    bool isWeeklyMode = string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase);
+    const bool isWeeklyMode = true;
 
     var th = new System.Globalization.CultureInfo("th-TH");
-    var firstDay = new DateTime(year, month, 1);
-    var endDay = new DateTime(yearTo, monthTo, DateTime.DaysInMonth(yearTo, monthTo));
     var selectedPeriodStart = $"{year:D4}-{month:D2}";
     var selectedPeriodEnd = $"{yearTo:D4}-{monthTo:D2}";
     var periodYears = Enumerable.Range(DateTime.Today.Year - 1, 3).ToList();
     var timelineColumns = new List<(DateTime Start, DateTime End, string YearText, string MonthText, string MainText, string SubText, bool IsToday, bool IsWeekend, bool IsNewYear)>();
-    var columnWidth = isWeeklyMode ? 32 : 40;
+    const int columnWidth = 32;
+    var cursorMonth = new DateTime(year, month, 1);
+    var lastMonth = new DateTime(yearTo, monthTo, 1);
 
-    if (isWeeklyMode)
+    while (cursorMonth <= lastMonth)
     {
-        var cursorMonth = new DateTime(year, month, 1);
-        var lastMonth = new DateTime(yearTo, monthTo, 1);
-
-        while (cursorMonth <= lastMonth)
-        {
             var monthEnd = new DateTime(cursorMonth.Year, cursorMonth.Month, DateTime.DaysInMonth(cursorMonth.Year, cursorMonth.Month));
 
             for (int weekNo = 1; weekNo <= 4; weekNo++)
@@ -61,29 +54,7 @@
                 ));
             }
 
-            cursorMonth = cursorMonth.AddMonths(1);
-        }
-    }
-    else
-    {
-        var totalDays = (endDay - firstDay).Days + 1;
-
-        for (int i = 0; i < totalDays; i++)
-        {
-            var date = firstDay.AddDays(i);
-
-            timelineColumns.Add((
-                date,
-                date,
-                (date.Year + 543).ToString(),
-                date.ToString("MMM", th),
-                date.Day.ToString(),
-                date.ToString("ddd", th),
-                date.Date == DateTime.Today,
-                date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday,
-                date.Month == 1 && date.Day == 1
-            ));
-        }
+        cursorMonth = cursorMonth.AddMonths(1);
     }
 
     string selectedEmpId = ViewBag.SelectedEmpId as string ?? Context.Request.Query["empId"].ToString();
@@ -158,8 +129,6 @@
                           class="d-flex align-items-center gap-2 mb-0 employee-filter-wrap"
                           style="width:auto; flex:none;">
 
-                        <input type="hidden" name="viewMode" value="@viewMode" />
-
                         <div class="workload-filter-grid">
                             <label class="workload-filter-field is-coop" for="coopFilter">
                                 <span>🏢 สหกรณ์</span>
@@ -190,19 +159,6 @@
                                             @project.ProjectName
                                         </option>
                                     }
-                                </select>
-                            </label>
-
-                            <label class="workload-filter-field is-type" for="workTypeFilter">
-                                <span>ประเภท</span>
-                                <select id="workTypeFilter"
-                                        name="workType"
-                                        class="form-select workload-filter-select"
-                                        data-autosubmit="true">
-                                    <option value="ALL" selected="@(selectedWorkType == "ALL")">-- ทั้งหมด --</option>
-                                    <option value="PHASE" selected="@(selectedWorkType == "PHASE")">Assigns</option>
-                                    <option value="ISSUE" selected="@(selectedWorkType == "ISSUE")">Issue</option>
-                                    <option value="SUPPORT" selected="@(selectedWorkType == "SUPPORT")">Support</option>
                                 </select>
                             </label>
 
@@ -281,36 +237,6 @@
                     <span class="workload-status-row-title">สถานะ</span>
                     <span class="workload-status-label done">เสร็จสิ้น</span>
                     <span class="workload-status-label progress">กำลังดำเนินการ</span>
-                    <span class="workload-status-divider"></span>
-                    <span class="workload-status-row-title">ประเภท</span>
-                    <span class="workload-type-chip phase">Assigns</span>
-                    <span class="workload-type-chip issue">Issue</span>
-                    <span class="workload-type-chip support">Support</span>
-                </div>
-                <div class="workload-view-tabs" aria-label="เลือกมุมมอง">
-                    <a class="workload-view-tab @(!isWeeklyMode ? "is-active" : "")"
-                       asp-action="Index"
-                       asp-route-empId="@selectedEmpId"
-                       asp-route-coopId="@selectedCoopId"
-                       asp-route-projectId="@selectedProjectId"
-                       asp-route-periodStart="@selectedPeriodStart"
-                       asp-route-periodEnd="@selectedPeriodEnd"
-                       asp-route-workType="@selectedWorkType"
-                       asp-route-viewMode="day">
-                        รายวัน
-                    </a>
-
-                    <a class="workload-view-tab @(isWeeklyMode ? "is-active" : "")"
-                       asp-action="Index"
-                       asp-route-empId="@selectedEmpId"
-                       asp-route-coopId="@selectedCoopId"
-                       asp-route-projectId="@selectedProjectId"
-                       asp-route-periodStart="@selectedPeriodStart"
-                       asp-route-periodEnd="@selectedPeriodEnd"
-                       asp-route-workType="@selectedWorkType"
-                       asp-route-viewMode="week">
-                        รายสัปดาห์
-                    </a>
                 </div>
             </div>
 
@@ -1635,16 +1561,12 @@ main.route-controller-phaseworkload {
         grid-column: 3 / 4;
     }
 
-    .workload-filter-field.is-type {
+    .workload-filter-field.is-start-period {
         grid-column: 1 / 2;
     }
 
-    .workload-filter-field.is-start-period {
-        grid-column: 2 / 3;
-    }
-
     .workload-filter-field.is-end-period {
-        grid-column: 3 / 4;
+        grid-column: 2 / 3;
     }
 
     .workload-filter-field {
@@ -1687,7 +1609,6 @@ main.route-controller-phaseworkload {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .workload-filter-field.is-type,
         .workload-filter-field.is-coop,
         .workload-filter-field.is-project,
         .workload-filter-field.is-employee,
