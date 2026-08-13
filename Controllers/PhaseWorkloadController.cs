@@ -163,7 +163,7 @@ namespace ProjectTracking.Controllers
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
                     ProjectId = x.Phase?.ProjectId ?? 0,
                     ProjectName = x.Phase?.Project?.ProjectDisplayName ?? "-",
-                    PhaseSort = x.Phase?.PhaseSort ?? 0,
+                    PhaseSort = x.PhaseSort ?? 0,
                     PhaseOrder = x.Phase?.PhaseOrder ?? 0,
                     PeriodOrder = x.Phase?.PeriodOrder ?? 0,
                     PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
