@@ -803,6 +803,23 @@
                     มอบงาน
                 </button>
             }
+
+            @if (CanMenu("PhaseWorkload.Index"))
+            {
+                <a asp-controller="PhaseWorkload"
+                   asp-action="Index"
+                   asp-route-workType="PHASE"
+                   class="btn btn-outline-primary"
+                   title="ดูปริมาณงานของทีม">
+                    ปริมาณงานทีม
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูปริมาณงานทีม">
+                    ปริมาณงานทีม
+                </button>
+            }
         </div>
     }
 </div>
