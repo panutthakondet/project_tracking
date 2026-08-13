@@ -93,6 +93,13 @@
 
     string NormalizeStatus(string? status) => (status ?? "").Trim().ToUpperInvariant();
 
+    string StatusLabel(string? status) => NormalizeStatus(status) switch
+    {
+        "DONE" => "เสร็จสิ้น",
+        "IN_PROGRESS" => "กำลังดำเนินการ",
+        _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
+    };
+
     string WorkStatusColor(string? state)
     {
         return NormalizeStatus(state) switch
@@ -234,8 +241,8 @@
             <div class="workload-table-topbar">
                 <div class="workload-status-row">
                     <span class="workload-status-row-title">สถานะ</span>
-                    <span class="workload-status-label done">DONE</span>
-                    <span class="workload-status-label progress">IN_PROGRESS</span>
+                    <span class="workload-status-label done">เสร็จสิ้น</span>
+                    <span class="workload-status-label progress">กำลังดำเนินการ</span>
                     <span class="workload-status-divider"></span>
                     <span class="workload-status-row-title">ประเภท</span>
                     <span class="workload-type-chip phase">Assigns</span>
@@ -392,7 +399,7 @@
 
                                         <div class="mb-1">
                                             <span class="workload-type-chip @work.WorkTypeClass">@TypeLabel(work.WorkType)</span>
-                                            <span class="workload-status-text status-@NormalizeStatus(work.WorkState).ToLowerInvariant().Replace("_", "-")">@work.Status</span>
+                                            <span class="workload-status-text status-@NormalizeStatus(work.WorkState).ToLowerInvariant().Replace("_", "-")">@StatusLabel(work.Status)</span>
                                         </div>
 
                                         @if (!string.IsNullOrWhiteSpace(work.PhasePeriodLabel))
