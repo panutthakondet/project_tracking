@@ -124,15 +124,11 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p.Project)
                     .ThenInclude(p => p!.Coop)
                 .Where(x =>
-                    x.PlanStart.HasValue &&
-                    x.PlanEnd.HasValue &&
-                    x.PlanStart.Value <= monthEnd &&
-                    x.PlanEnd.Value >= monthStart &&
                     x.Phase != null &&
-                    (
-                        x.Phase.PhaseStatus == "วางแผน" ||
-                        x.Phase.PhaseStatus == "กำลังดำเนินการ"
-                    ) &&
+                    (x.PlanStart ?? x.Phase.PlanStart).HasValue &&
+                    (x.PlanEnd ?? x.Phase.PlanEnd).HasValue &&
+                    (x.PlanStart ?? x.Phase.PlanStart)!.Value <= monthEnd &&
+                    (x.PlanEnd ?? x.Phase.PlanEnd)!.Value >= monthStart &&
                     (
                         !selectedEmpId.HasValue
                         || x.EmpId == selectedEmpId.Value
@@ -161,8 +157,8 @@ namespace ProjectTracking.Controllers
                     PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
                     Title = x.Role ?? x.Phase?.PhaseName ?? "-",
                     Detail = x.Phase?.PhaseName ?? "-",
-                    StartDate = x.PlanStart,
-                    EndDate = x.PlanEnd,
+                    StartDate = x.PlanStart ?? x.Phase?.PlanStart,
+                    EndDate = x.PlanEnd ?? x.Phase?.PlanEnd,
                     PeriodEndDate = x.Phase?.PeriodEndDate,
                     Status = x.WorkStatus ?? "",
                     WorkState = NormalizePhaseAssignState(x.WorkStatus),
