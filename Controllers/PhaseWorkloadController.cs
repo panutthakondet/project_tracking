@@ -13,6 +13,8 @@ namespace ProjectTracking.Controllers
         private const string FilterMonthKey = "PhaseWorkload.Filter.Month";
         private const string FilterMonthToKey = "PhaseWorkload.Filter.MonthTo";
         private const string FilterEmpIdKey = "PhaseWorkload.Filter.EmpId";
+        private const string FilterCoopIdKey = "PhaseWorkload.Filter.CoopId";
+        private const string FilterProjectIdKey = "PhaseWorkload.Filter.ProjectId";
         private const string FilterWorkTypeKey = "PhaseWorkload.Filter.WorkType";
         private const string FilterViewModeKey = "PhaseWorkload.Filter.ViewMode";
 
@@ -24,7 +26,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("PhaseWorkload.Index")]
-        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, string? workType, string? viewMode)
+        public async Task<IActionResult> Index(int? year, int? yearTo, int? month, int? monthTo, string? periodStart, string? periodEnd, string? empId, int? coopId, int? projectId, string? workType, string? viewMode)
         {
             var currentDate = DateTime.Today;
             var hasFilterQuery =
@@ -35,6 +37,8 @@ namespace ProjectTracking.Controllers
                 !string.IsNullOrWhiteSpace(periodStart) ||
                 !string.IsNullOrWhiteSpace(periodEnd) ||
                 !string.IsNullOrWhiteSpace(empId) ||
+                coopId.HasValue ||
+                projectId.HasValue ||
                 !string.IsNullOrWhiteSpace(workType) ||
                 !string.IsNullOrWhiteSpace(viewMode);
 
@@ -93,10 +97,41 @@ namespace ProjectTracking.Controllers
             var selectedEmpId = int.TryParse(empId, out var parsedEmpId)
                 ? parsedEmpId
                 : (int?)null;
+            var selectedCoopId = hasFilterQuery
+                ? coopId
+                : PositiveOrNull(HttpContext.Session.GetInt32(FilterCoopIdKey));
+            var selectedProjectId = hasFilterQuery
+                ? projectId
+                : PositiveOrNull(HttpContext.Session.GetInt32(FilterProjectIdKey));
+
+            var projectOptions = await _context.Projects
+                .AsNoTracking()
+                .Include(x => x.Coop)
+                .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
+                .ThenBy(x => x.ProjectName)
+                .ToListAsync();
+
+            var selectedProject = selectedProjectId.HasValue
+                ? projectOptions.FirstOrDefault(x => x.ProjectId == selectedProjectId.Value)
+                : null;
+
+            if (selectedProject == null)
+            {
+                selectedProjectId = null;
+            }
+            else if (!selectedCoopId.HasValue)
+            {
+                selectedCoopId = selectedProject.CoopId;
+            }
+            else if (selectedProject.CoopId != selectedCoopId)
+            {
+                selectedProjectId = null;
+            }
+
             var selectedViewMode = NormalizeViewMode(viewMode);
             var selectedWorkType = NormalizeWorkType(workType);
 
-            SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedWorkType, selectedViewMode);
+            SaveFilters(selectedYear, selectedYearTo, selectedMonth, selectedMonthTo, empId, selectedCoopId, selectedProjectId, selectedWorkType, selectedViewMode);
 
             var phaseAssigns = selectedWorkType is "ALL" or "PHASE"
                 ? await _context.PhaseAssigns
@@ -117,6 +152,12 @@ namespace ProjectTracking.Controllers
                     (
                         !selectedEmpId.HasValue
                         || x.EmpId == selectedEmpId.Value
+                    ) && (
+                        !selectedCoopId.HasValue
+                        || x.Phase.Project!.CoopId == selectedCoopId.Value
+                    ) && (
+                        !selectedProjectId.HasValue
+                        || x.Phase.ProjectId == selectedProjectId.Value
                     )
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
@@ -137,6 +178,12 @@ namespace ProjectTracking.Controllers
                     (
                         !selectedEmpId.HasValue
                         || x.AssignTo == selectedEmpId.Value
+                    ) && (
+                        !selectedCoopId.HasValue
+                        || x.Project!.CoopId == selectedCoopId.Value
+                    ) && (
+                        !selectedProjectId.HasValue
+                        || x.ProjectId == selectedProjectId.Value
                     )
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
@@ -158,6 +205,12 @@ namespace ProjectTracking.Controllers
                     (
                         !selectedEmpId.HasValue
                         || x.AssignTo == selectedEmpId.Value
+                    ) && (
+                        !selectedCoopId.HasValue
+                        || x.Project!.CoopId == selectedCoopId.Value
+                    ) && (
+                        !selectedProjectId.HasValue
+                        || x.ProjectId == selectedProjectId.Value
                     )
                 )
                 .OrderBy(x => x.Employee != null ? x.Employee.EmpName : "")
@@ -236,6 +289,18 @@ namespace ProjectTracking.Controllers
             ViewBag.Month = selectedMonth;
             ViewBag.MonthTo = selectedMonthTo;
             ViewBag.SelectedEmpId = empId;
+            ViewBag.SelectedCoopId = selectedCoopId;
+            ViewBag.SelectedProjectId = selectedProjectId;
+            ViewBag.CoopOptions = projectOptions
+                .Where(x => x.Coop != null)
+                .Select(x => x.Coop!)
+                .GroupBy(x => x.CoopId)
+                .Select(x => x.First())
+                .OrderBy(x => x.CoopName)
+                .ToList();
+            ViewBag.ProjectOptions = projectOptions
+                .Where(x => !selectedCoopId.HasValue || x.CoopId == selectedCoopId.Value)
+                .ToList();
             ViewBag.SelectedWorkType = selectedWorkType;
             ViewBag.ViewMode = selectedViewMode;
             ViewBag.MonthStart = monthStart;
@@ -303,6 +368,11 @@ namespace ProjectTracking.Controllers
             return Math.Clamp(month, 1, 12);
         }
 
+        private static int? PositiveOrNull(int? value)
+        {
+            return value.HasValue && value.Value > 0 ? value : null;
+        }
+
         private static bool TryParsePeriodMonth(string? value, out DateTime month)
         {
             month = default;
@@ -323,13 +393,15 @@ namespace ProjectTracking.Controllers
             return true;
         }
 
-        private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, string workType, string viewMode)
+        private void SaveFilters(int year, int yearTo, int month, int monthTo, string? empId, int? coopId, int? projectId, string workType, string viewMode)
         {
             HttpContext.Session.SetInt32(FilterYearKey, year);
             HttpContext.Session.SetInt32(FilterYearToKey, yearTo);
             HttpContext.Session.SetInt32(FilterMonthKey, month);
             HttpContext.Session.SetInt32(FilterMonthToKey, monthTo);
             HttpContext.Session.SetString(FilterEmpIdKey, empId ?? "");
+            HttpContext.Session.SetInt32(FilterCoopIdKey, coopId ?? 0);
+            HttpContext.Session.SetInt32(FilterProjectIdKey, projectId ?? 0);
             HttpContext.Session.SetString(FilterWorkTypeKey, workType);
             HttpContext.Session.SetString(FilterViewModeKey, viewMode);
         }

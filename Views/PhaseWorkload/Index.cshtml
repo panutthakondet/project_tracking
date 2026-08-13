@@ -9,6 +9,12 @@
     int month = ViewBag.Month;
     int monthTo = ViewBag.MonthTo ?? month;
     string selectedWorkType = ViewBag.SelectedWorkType as string ?? "PHASE";
+    int? selectedCoopId = ViewBag.SelectedCoopId as int?;
+    int? selectedProjectId = ViewBag.SelectedProjectId as int?;
+    var coopOptions = ViewBag.CoopOptions as IEnumerable<ProjectTracking.Models.CntMCoop>
+        ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
+    var projectOptions = ViewBag.ProjectOptions as IEnumerable<ProjectTracking.Models.Project>
+        ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     string viewMode = ViewBag.ViewMode as string ?? "week";
     bool isWeeklyMode = string.Equals(viewMode, "week", StringComparison.OrdinalIgnoreCase);
 
@@ -155,6 +161,38 @@
                         <input type="hidden" name="viewMode" value="@viewMode" />
 
                         <div class="workload-filter-grid">
+                            <label class="workload-filter-field is-coop" for="coopFilter">
+                                <span>🏢 สหกรณ์</span>
+                                <select id="coopFilter"
+                                        name="coopId"
+                                        class="form-select workload-filter-select"
+                                        data-autosubmit="true">
+                                    <option value="">-- ทั้งหมด --</option>
+                                    @foreach (var coop in coopOptions)
+                                    {
+                                        <option value="@coop.CoopId" selected="@(selectedCoopId == coop.CoopId)">
+                                            @coop.CoopName
+                                        </option>
+                                    }
+                                </select>
+                            </label>
+
+                            <label class="workload-filter-field is-project" for="projectFilter">
+                                <span>📁 โครงการ</span>
+                                <select id="projectFilter"
+                                        name="projectId"
+                                        class="form-select workload-filter-select"
+                                        data-autosubmit="true">
+                                    <option value="">-- ทั้งหมด --</option>
+                                    @foreach (var project in projectOptions)
+                                    {
+                                        <option value="@project.ProjectId" selected="@(selectedProjectId == project.ProjectId)">
+                                            @project.ProjectName
+                                        </option>
+                                    }
+                                </select>
+                            </label>
+
                             <label class="workload-filter-field is-type" for="workTypeFilter">
                                 <span>ประเภท</span>
                                 <select id="workTypeFilter"
@@ -253,6 +291,8 @@
                     <a class="workload-view-tab @(!isWeeklyMode ? "is-active" : "")"
                        asp-action="Index"
                        asp-route-empId="@selectedEmpId"
+                       asp-route-coopId="@selectedCoopId"
+                       asp-route-projectId="@selectedProjectId"
                        asp-route-periodStart="@selectedPeriodStart"
                        asp-route-periodEnd="@selectedPeriodEnd"
                        asp-route-workType="@selectedWorkType"
@@ -263,6 +303,8 @@
                     <a class="workload-view-tab @(isWeeklyMode ? "is-active" : "")"
                        asp-action="Index"
                        asp-route-empId="@selectedEmpId"
+                       asp-route-coopId="@selectedCoopId"
+                       asp-route-projectId="@selectedProjectId"
                        asp-route-periodStart="@selectedPeriodStart"
                        asp-route-periodEnd="@selectedPeriodEnd"
                        asp-route-workType="@selectedWorkType"
@@ -1573,29 +1615,36 @@ main.route-controller-phaseworkload {
     .workload-filter-grid {
         display: grid;
         grid-template-columns:
-            minmax(160px, .8fr)
-            minmax(280px, 1.35fr)
-            minmax(220px, 1fr)
-            minmax(220px, 1fr);
+            minmax(180px, .85fr)
+            minmax(280px, 1.3fr)
+            minmax(280px, 1.3fr);
         gap: 12px 14px;
         align-items: end;
         width: 100%;
+    }
+
+    .workload-filter-field.is-coop {
+        grid-column: 1 / 2;
+    }
+
+    .workload-filter-field.is-project {
+        grid-column: 2 / 3;
+    }
+
+    .workload-filter-field.is-employee {
+        grid-column: 3 / 4;
     }
 
     .workload-filter-field.is-type {
         grid-column: 1 / 2;
     }
 
-    .workload-filter-field.is-employee {
+    .workload-filter-field.is-start-period {
         grid-column: 2 / 3;
     }
 
-    .workload-filter-field.is-start-period {
-        grid-column: 3 / 4;
-    }
-
     .workload-filter-field.is-end-period {
-        grid-column: 4 / 5;
+        grid-column: 3 / 4;
     }
 
     .workload-filter-field {
@@ -1627,10 +1676,9 @@ main.route-controller-phaseworkload {
     @@media (max-width: 1500px) {
         .workload-filter-grid {
             grid-template-columns:
-                minmax(150px, .75fr)
-                minmax(260px, 1.25fr)
-                minmax(200px, 1fr)
-                minmax(200px, 1fr);
+                minmax(170px, .8fr)
+                minmax(240px, 1.2fr)
+                minmax(240px, 1.2fr);
         }
     }
 
@@ -1640,6 +1688,8 @@ main.route-controller-phaseworkload {
         }
 
         .workload-filter-field.is-type,
+        .workload-filter-field.is-coop,
+        .workload-filter-field.is-project,
         .workload-filter-field.is-employee,
         .workload-filter-field.is-period {
             grid-column: auto;
@@ -1671,6 +1721,12 @@ main.route-controller-phaseworkload {
 
             let submitTimer = null;
             form.addEventListener('submit', showLoading);
+
+            const coopFilter = document.getElementById('coopFilter');
+            const projectFilter = document.getElementById('projectFilter');
+            coopFilter?.addEventListener('change', () => {
+                if (projectFilter) projectFilter.value = '';
+            });
 
             form.querySelectorAll('[data-autosubmit="true"]').forEach((control) => {
                 control.addEventListener('change', () => {

@@ -809,6 +809,8 @@
                 <a asp-controller="PhaseWorkload"
                    asp-action="Index"
                    asp-route-workType="PHASE"
+                   asp-route-coopId="@selectedProjectModel?.CoopId"
+                   asp-route-projectId="@selectedProjectModel?.ProjectId"
                    class="btn btn-outline-primary"
                    title="ดูปริมาณงานของทีม">
                     ปริมาณงานทีม
