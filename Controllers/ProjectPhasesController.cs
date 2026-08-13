@@ -92,6 +92,45 @@ namespace ProjectTracking.Controllers
                     .ToListAsync())
                     .ToHashSet();
 
+            ViewBag.PhaseAssignsByPhaseId = new Dictionary<int, List<PhaseAssign>>();
+            if (phaseIds.Count > 0 && CanMenu("PhaseAssigns.Index"))
+            {
+                var phaseAssigns = await (
+                    from assign in _context.PhaseAssigns.AsNoTracking()
+                    join employee in _context.Employees.AsNoTracking()
+                        on assign.EmpId equals employee.EmpId
+                    join loginUser in _context.LoginUsers.AsNoTracking()
+                        on employee.LoginUserId equals (int?)loginUser.UserId into loginUserJoin
+                    from loginUser in loginUserJoin.DefaultIfEmpty()
+                    where phaseIds.Contains(assign.PhaseId)
+                    orderby assign.PhaseSort ?? int.MaxValue, assign.AssignId
+                    select new PhaseAssign
+                    {
+                        AssignId = assign.AssignId,
+                        PhaseId = assign.PhaseId,
+                        EmpId = assign.EmpId,
+                        Role = assign.Role,
+                        PlanStart = assign.PlanStart,
+                        PlanEnd = assign.PlanEnd,
+                        WorkStatus = assign.WorkStatus,
+                        Remark = assign.Remark,
+                        Employee = new Employee
+                        {
+                            EmpId = employee.EmpId,
+                            EmpName = employee.EmpName,
+                            Position = employee.Position,
+                            Status = employee.Status,
+                            LoginUserId = employee.LoginUserId,
+                            LoginUser = loginUser
+                        }
+                    })
+                    .ToListAsync();
+
+                ViewBag.PhaseAssignsByPhaseId = phaseAssigns
+                    .GroupBy(assign => assign.PhaseId)
+                    .ToDictionary(group => group.Key, group => group.ToList());
+            }
+
             return View(phases);
         }
 
@@ -724,6 +763,18 @@ namespace ProjectTracking.Controllers
                 new[] { "MAIN", "SUPPORT" },
                 selected
             );
+        }
+
+        private bool CanMenu(string key)
+        {
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim();
+            if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var menus = HttpContext.Session.GetString("Menus") ?? "";
+            return menus
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Any(menu => string.Equals(menu.Trim(), key, StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<int?> GetCurrentEntryIdAsync()

@@ -20,6 +20,8 @@
     var selectedProject = ViewBag.SelectedProject;
     var selectedProjectModel = selectedProject as ProjectTracking.Models.Project;
     var pendingPhaseApprovalIds = ViewBag.PendingPhaseApprovalIds as ISet<int> ?? new HashSet<int>();
+    var phaseAssignsByPhaseId = ViewBag.PhaseAssignsByPhaseId as IDictionary<int, List<ProjectTracking.Models.PhaseAssign>>
+                                ?? new Dictionary<int, List<ProjectTracking.Models.PhaseAssign>>();
     var projectOptions = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project>
                          ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var selectedProjectCoopName = ((selectedProject as ProjectTracking.Models.Project)?.Coop?.CoopName ?? "").Trim();
@@ -74,6 +76,10 @@
 
     string ProfileImage(ProjectTracking.Models.Employee? employee)
         => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
+
+    string AssignStatusText(string? status) => string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase)
+        ? "เสร็จสิ้น"
+        : "กำลังดำเนินการ";
 }
 
 <style>
@@ -120,6 +126,162 @@
         overflow: hidden;
         box-shadow: 0 10px 24px rgba(15, 35, 64, .08);
         transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .phase-assign-toggle {
+        flex: 0 0 auto;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f766e;
+        background: #fff;
+        border: 1px solid #5eead4;
+        border-radius: 10px;
+        font-size: 1.3rem;
+        font-weight: 500;
+        line-height: 1;
+        cursor: pointer;
+        transition: color .16s ease, background .16s ease, border-color .16s ease;
+    }
+
+    .phase-assign-toggle:hover,
+    .phase-assign-toggle[aria-expanded="true"] {
+        color: #fff;
+        background: #0f8f80;
+        border-color: #0f8f80;
+    }
+
+    .phase-assign-toggle-count {
+        min-width: 24px;
+        height: 24px;
+        padding: 0 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f766e;
+        background: #d8faf4;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+    .phase-assign-details {
+        grid-column: 1 / -1;
+        max-height: 0;
+        overflow: hidden;
+        visibility: hidden;
+        opacity: 0;
+        border-top: 0 solid #d8e3ef;
+        background: #f8fbff;
+        transition: max-height .28s ease, opacity .18s ease, visibility 0s linear .28s, border-top-width .18s ease;
+    }
+
+    .phase-assign-details.is-open {
+        max-height: 2000px;
+        visibility: visible;
+        opacity: 1;
+        border-top-width: 1px;
+        transition: max-height .35s ease, opacity .2s ease, visibility 0s, border-top-width .18s ease;
+    }
+
+    .phase-assign-details-inner {
+        padding: 16px 18px 18px;
+    }
+
+    .phase-assign-details-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        color: #10233f;
+    }
+
+    .phase-assign-details-head strong {
+        font-size: .92rem;
+        font-weight: 700;
+    }
+
+    .phase-assign-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .phase-assign-item {
+        display: grid;
+        grid-template-columns: minmax(190px, .8fr) minmax(220px, 1.3fr) minmax(180px, .8fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 12px;
+        color: #26364d;
+        background: #fff;
+        border: 1px solid #d8e3ef;
+        border-radius: 10px;
+    }
+
+    .phase-assign-person {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+    }
+
+    .phase-assign-person img {
+        width: 36px;
+        height: 36px;
+        object-fit: cover;
+        border: 1px solid #5eead4;
+        border-radius: 50%;
+    }
+
+    .phase-assign-person span,
+    .phase-assign-work,
+    .phase-assign-date {
+        min-width: 0;
+        font-size: .83rem;
+        font-weight: 400;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .phase-assign-person strong,
+    .phase-assign-work strong,
+    .phase-assign-date strong {
+        display: block;
+        color: #10233f;
+        font-weight: 600;
+    }
+
+    .phase-assign-position,
+    .phase-assign-remark {
+        display: block;
+        color: #64748b;
+        font-size: .76rem;
+        font-weight: 400;
+    }
+
+    .phase-assign-state {
+        white-space: nowrap;
+        color: #2563eb;
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+    .phase-assign-state.is-done { color: #15803d; }
+
+    .phase-assign-empty {
+        padding: 14px;
+        color: #64748b;
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        font-size: .84rem;
+        font-weight: 400;
+        text-align: center;
     }
 
     .phase-card:hover {
@@ -521,6 +683,10 @@
             justify-content: flex-start;
         }
 
+        .phase-assign-item {
+            grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr);
+        }
+
     }
 
     @@media (max-width: 575.98px) {
@@ -535,6 +701,10 @@
         .phase-card-actions .btn {
             flex: 1 1 calc(50% - 6px);
             width: auto;
+        }
+
+        .phase-assign-item {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -941,6 +1111,10 @@ else
 
         var status = phase.PhaseStatus ?? "";
         var hasPendingApproval = pendingPhaseApprovalIds.Contains(phase.PhaseId);
+        var phaseAssigns = phaseAssignsByPhaseId.TryGetValue(phase.PhaseId, out var assignedRows)
+            ? assignedRows
+            : new List<ProjectTracking.Models.PhaseAssign>();
+        var assignPanelId = $"phaseAssignDetails-{phase.PhaseId}";
 
         <div class="phase-card @(phase.PhaseType == "SUPPORT" ? "phase-card-support" : "phase-card-main") @PhaseTone(phase.PhaseType)"
              data-phase-id="@phase.PhaseId">
@@ -959,6 +1133,19 @@ else
                         </div>
 
                     </div>
+
+                    @if (CanMenu("PhaseAssigns.Index"))
+                    {
+                        <span class="phase-assign-toggle-count" title="จำนวนงานที่มอบหมาย">@phaseAssigns.Count</span>
+                        <button type="button"
+                                class="phase-assign-toggle"
+                                aria-expanded="false"
+                                aria-controls="@assignPanelId"
+                                data-phase-assign-toggle="@assignPanelId"
+                                title="ดูรายละเอียดงานที่มอบหมาย">
+                            <span aria-hidden="true">+</span>
+                        </button>
+                    }
                 </div>
 
                 <div class="phase-name-row">
@@ -1057,6 +1244,56 @@ else
                     }
                 </div>
             </aside>
+
+            @if (CanMenu("PhaseAssigns.Index"))
+            {
+                <section class="phase-assign-details" id="@assignPanelId" aria-hidden="true">
+                    <div class="phase-assign-details-inner">
+                        <div class="phase-assign-details-head">
+                            <strong>รายละเอียดงานที่มอบหมายในงวดนี้</strong>
+                            <a asp-controller="PhaseAssigns"
+                               asp-action="Index"
+                               asp-route-projectId="@selectedProject.ProjectId"
+                               class="btn btn-sm btn-outline-info">ดูงานทั้งหมด</a>
+                        </div>
+
+                        @if (phaseAssigns.Count == 0)
+                        {
+                            <div class="phase-assign-empty">ยังไม่มีงานที่มอบหมายในงวดนี้</div>
+                        }
+                        else
+                        {
+                            <div class="phase-assign-list">
+                                @foreach (var assign in phaseAssigns)
+                                {
+                                    var assignDone = string.Equals((assign.WorkStatus ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
+                                    <article class="phase-assign-item">
+                                        <div class="phase-assign-person">
+                                            <img src="@ProfileImage(assign.Employee)"
+                                                 alt="@(assign.Employee?.EmpName ?? "ผู้รับผิดชอบ")"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <span>
+                                                <strong>@(assign.Employee?.EmpName ?? "-")</strong>
+                                                <small class="phase-assign-position">@(string.IsNullOrWhiteSpace(assign.Employee?.Position) ? "ยังไม่กำหนดตำแหน่ง" : assign.Employee.Position)</small>
+                                            </span>
+                                        </div>
+                                        <div class="phase-assign-work">
+                                            <strong>@(string.IsNullOrWhiteSpace(assign.Role) ? "ยังไม่ระบุงานที่รับผิดชอบ" : assign.Role)</strong>
+                                            <small class="phase-assign-remark">หมายเหตุ: @(string.IsNullOrWhiteSpace(assign.Remark) ? "-" : assign.Remark)</small>
+                                        </div>
+                                        <div class="phase-assign-date">
+                                            <strong>กำหนดวันที่</strong>
+                                            @(assign.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") - @(assign.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
+                                        </div>
+                                        <span class="phase-assign-state @(assignDone ? "is-done" : "")">@AssignStatusText(assign.WorkStatus)</span>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
         </div>
     }
 }
@@ -1107,6 +1344,20 @@ else
 
             syncProjectOptions();
         }
+
+        document.querySelectorAll("[data-phase-assign-toggle]").forEach(button => {
+            button.addEventListener("click", function () {
+                const panelId = button.getAttribute("data-phase-assign-toggle");
+                const panel = panelId ? document.getElementById(panelId) : null;
+                if (!panel) return;
+
+                const isOpen = button.getAttribute("aria-expanded") === "true";
+                button.setAttribute("aria-expanded", isOpen ? "false" : "true");
+                button.querySelector("span").textContent = isOpen ? "+" : "−";
+                panel.classList.toggle("is-open", !isOpen);
+                panel.setAttribute("aria-hidden", isOpen ? "true" : "false");
+            });
+        });
 
         // =========================
         // Thai calendar note
