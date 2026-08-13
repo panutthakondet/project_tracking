@@ -125,10 +125,19 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Where(x =>
                     x.Phase != null &&
-                    (x.PlanStart ?? x.Phase.PlanStart).HasValue &&
-                    (x.PlanEnd ?? x.Phase.PlanEnd).HasValue &&
-                    (x.PlanStart ?? x.Phase.PlanStart)!.Value <= monthEnd &&
-                    (x.PlanEnd ?? x.Phase.PlanEnd)!.Value >= monthStart &&
+                    (
+                        (
+                            x.PlanStart.HasValue &&
+                            x.PlanEnd.HasValue &&
+                            x.PlanStart.Value <= monthEnd &&
+                            x.PlanEnd.Value >= monthStart
+                        ) || (
+                            x.Phase.PlanStart.HasValue &&
+                            x.Phase.PlanEnd.HasValue &&
+                            x.Phase.PlanStart.Value <= monthEnd &&
+                            x.Phase.PlanEnd.Value >= monthStart
+                        )
+                    ) &&
                     (
                         !selectedEmpId.HasValue
                         || x.EmpId == selectedEmpId.Value
@@ -159,6 +168,10 @@ namespace ProjectTracking.Controllers
                     PhasePeriodLabel = x.Phase?.PhasePeriodLabel ?? "",
                     Title = x.Role ?? x.Phase?.PhaseName ?? "-",
                     Detail = x.Phase?.PhaseName ?? "-",
+                    AssignStartDate = x.PlanStart,
+                    AssignEndDate = x.PlanEnd,
+                    PhasePlanStartDate = x.Phase?.PlanStart,
+                    PhasePlanEndDate = x.Phase?.PlanEnd,
                     StartDate = x.PlanStart ?? x.Phase?.PlanStart,
                     EndDate = x.PlanEnd ?? x.Phase?.PlanEnd,
                     PeriodEndDate = x.Phase?.PeriodEndDate,

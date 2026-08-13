@@ -409,12 +409,21 @@
 
                                     @foreach (var column in timelineColumns)
                                     {
-                                        bool isWorking = work.StartDate.HasValue
-                                            && work.EndDate.HasValue
-                                            && work.StartDate.Value.Date <= column.End.Date
-                                            && work.EndDate.Value.Date >= column.Start.Date;
+                                        bool isAssignWorking = work.AssignStartDate.HasValue
+                                            && work.AssignEndDate.HasValue
+                                            && work.AssignStartDate.Value.Date <= column.End.Date
+                                            && work.AssignEndDate.Value.Date >= column.Start.Date;
 
-                                        string bgColor = WorkStatusColor(work.WorkState);
+                                        bool isPhasePlanWorking = work.PhasePlanStartDate.HasValue
+                                            && work.PhasePlanEndDate.HasValue
+                                            && work.PhasePlanStartDate.Value.Date <= column.End.Date
+                                            && work.PhasePlanEndDate.Value.Date >= column.Start.Date;
+
+                                        bool isWorking = isAssignWorking || isPhasePlanWorking;
+
+                                        string bgColor = isAssignWorking
+                                            ? WorkStatusColor(work.WorkState)
+                                            : "#9ca3af";
 
                                         <td class="timeline-cell p-0 align-middle @(isWeeklyMode ? "week-column-cell" : "") @(column.IsToday ? "today-column" : "") @(column.IsWeekend ? "weekend-column" : "") @(column.IsNewYear ? "newyear-column" : "")"
                                             style="min-width:@(columnWidth)px; width:@(columnWidth)px;">

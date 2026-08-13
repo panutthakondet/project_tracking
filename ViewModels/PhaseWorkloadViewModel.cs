@@ -23,6 +23,10 @@ namespace ProjectTracking.ViewModels
         public string PhasePeriodLabel { get; set; } = "";
         public string Title { get; set; } = "";
         public string Detail { get; set; } = "";
+        public DateTime? AssignStartDate { get; set; }
+        public DateTime? AssignEndDate { get; set; }
+        public DateTime? PhasePlanStartDate { get; set; }
+        public DateTime? PhasePlanEndDate { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public DateTime? PeriodEndDate { get; set; }
