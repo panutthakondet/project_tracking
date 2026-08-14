@@ -2550,7 +2550,7 @@
 
 .owner-overview-chart-wrap {
     --owner-bar-area: 132px;
-    --owner-member-area: 128px;
+    --owner-member-area: 154px;
     position:relative;
     display:grid;
     grid-template-columns:70px minmax(0, 1fr);
@@ -2640,7 +2640,7 @@
     height:100%;
     display:grid;
     grid-template-rows:var(--owner-bar-area) var(--owner-member-area);
-    align-items:end;
+    align-items:stretch;
     justify-items:center;
     gap:0;
     position:relative;
@@ -2706,7 +2706,10 @@
 
 .owner-overview-member {
     width:calc(100% - 4px);
-    min-height:102px;
+    height:calc(var(--owner-member-area) - 16px);
+    min-height:0;
+    box-sizing:border-box;
+    align-self:start;
     display:grid;
     grid-template-rows:auto 38px auto auto auto;
     justify-items:center;
@@ -2741,6 +2744,10 @@
     font-weight:900;
     text-align:center;
     overflow-wrap:anywhere;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
 }
 
 .owner-overview-department {
@@ -2751,6 +2758,10 @@
     font-weight:500;
     text-align:center;
     overflow-wrap:anywhere;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
 }
 
 .owner-overview-position {
@@ -2761,6 +2772,10 @@
     font-weight:400;
     text-align:center;
     overflow-wrap:anywhere;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
 }
 
 .owner-overview-footer {
