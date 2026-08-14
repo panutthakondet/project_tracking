@@ -196,6 +196,7 @@
         .Select(group => group.Select(x => x.Member).ToList())
         .Where(group => group.Count > 0)
         .ToList();
+    var taskOverviewColumnsPerRow = Math.Max(1, taskOverviewGroups.Select(group => group.Count).DefaultIfEmpty(1).Max());
 }
 
 <div class="dashboard-view is-loading">
@@ -527,7 +528,7 @@
                                 }
                             </div>
                             <div class="owner-overview-scroll">
-                                <div class="owner-overview-chart" style="--owner-count:@chartMembers.Count; --owner-min-width:@(Math.Max(1, chartMembers.Count) * 132)px;">
+                                <div class="owner-overview-chart" style="--owner-count:@taskOverviewColumnsPerRow; --owner-min-width:@(taskOverviewColumnsPerRow * 148)px;">
                                     @foreach (var member in chartMembers)
                                     {
                                         var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
@@ -2549,7 +2550,7 @@
 
 .owner-overview-chart-wrap {
     --owner-bar-area: 132px;
-    --owner-member-area: 118px;
+    --owner-member-area: 128px;
     position:relative;
     display:grid;
     grid-template-columns:70px minmax(0, 1fr);
@@ -2704,7 +2705,7 @@
 .owner-bar.field-service i { background:linear-gradient(180deg, #5eead4, #0d9488); }
 
 .owner-overview-member {
-    width:100%;
+    width:calc(100% - 4px);
     min-height:102px;
     display:grid;
     grid-template-rows:auto 38px auto auto auto;
@@ -2712,7 +2713,7 @@
     align-content:start;
     gap:2px;
     padding:5px 6px 7px;
-    margin-top:10px;
+    margin-top:16px;
     border-radius:12px;
     background:rgba(8,24,54,.58);
     border:1px solid rgba(99,162,223,.22);
