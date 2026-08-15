@@ -184,6 +184,31 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.PlanStart)
                 .ToListAsync();
 
+            var workloadEmployees = phaseAssigns
+                .Where(x => x.Employee != null)
+                .Select(x => x.Employee!)
+                .GroupBy(x => x.EmpId)
+                .Select(x => x.First())
+                .ToList();
+            var workloadEmployeeIds = workloadEmployees.Select(x => x.EmpId).ToList();
+            var workloadLoginUserIds = workloadEmployees
+                .Where(x => x.LoginUserId.HasValue)
+                .Select(x => x.LoginUserId!.Value)
+                .Distinct()
+                .ToList();
+            var workloadProfileUsers = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(x => workloadLoginUserIds.Contains(x.UserId)
+                    || (x.EmpId.HasValue && workloadEmployeeIds.Contains(x.EmpId.Value)))
+                .Select(x => new { x.UserId, x.EmpId, x.ProfileImagePath })
+                .ToListAsync();
+            var workloadAvatarByEmployeeId = workloadEmployees.ToDictionary(
+                employee => employee.EmpId,
+                employee => ProjectTracking.Services.ProfileImagePathResolver.Normalize(
+                    workloadProfileUsers.FirstOrDefault(user =>
+                        employee.LoginUserId.HasValue && user.UserId == employee.LoginUserId.Value)?.ProfileImagePath
+                    ?? workloadProfileUsers.FirstOrDefault(user => user.EmpId == employee.EmpId)?.ProfileImagePath));
+
             var items = phaseAssigns.Select(x => new PhaseWorkloadItemViewModel
                 {
                     WorkType = "PHASE",
@@ -192,6 +217,9 @@ namespace ProjectTracking.Controllers
                     ItemId = x.AssignId,
                     EmpId = x.EmpId,
                     EmpName = x.Employee?.EmpName ?? $"Employee #{x.EmpId}",
+                    AvatarPath = workloadAvatarByEmployeeId.GetValueOrDefault(
+                        x.EmpId,
+                        ProjectTracking.Services.ProfileImagePathResolver.DefaultPath),
                     ProjectId = x.Phase?.ProjectId ?? 0,
                     ProjectName = x.Phase?.Project?.ProjectDisplayName ?? "-",
                     PhaseSort = x.PhaseSort,

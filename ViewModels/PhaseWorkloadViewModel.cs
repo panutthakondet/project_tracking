@@ -33,6 +33,7 @@ namespace ProjectTracking.ViewModels
         public int ItemId { get; set; }
         public int EmpId { get; set; }
         public string EmpName { get; set; } = "";
+        public string AvatarPath { get; set; } = "/images/Profile/profile.png";
         public int ProjectId { get; set; }
         public string ProjectName { get; set; } = "";
         public int? PhaseSort { get; set; }

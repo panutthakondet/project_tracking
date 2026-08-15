@@ -402,7 +402,13 @@
                                 <tr>
 
                                     <td class="text-start bg-light phase-project-cell work-type-@work.WorkTypeClass">
-                                        <div class="fw-bold mb-2">👤 @work.EmpName</div>
+                                        <div class="workload-employee-heading">
+                                            <img src="@work.AvatarPath"
+                                                 alt="@work.EmpName"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <strong>@work.EmpName</strong>
+                                        </div>
 
                                         @if (!string.IsNullOrWhiteSpace(work.PhasePeriodLabel))
                                         {
@@ -546,6 +552,33 @@
         border: 1px solid #b8d4ca;
         border-radius: 16px;
         background: #fff;
+    }
+
+    .workload-employee-heading {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        margin-bottom: 8px;
+    }
+
+    .workload-employee-heading img {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #0ea5e9;
+        background: #fff;
+    }
+
+    .workload-employee-heading strong {
+        min-width: 0;
+        color: #10233f;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
     }
 
     .workload-completion-chart {
