@@ -590,6 +590,87 @@ namespace ProjectTracking.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Import")]
+        public async Task<IActionResult> ImportFromDev(int? projectId)
+        {
+            if (!projectId.HasValue || projectId.Value <= 0)
+            {
+                TempData["Error"] = "กรุณาเลือกโครงการก่อน Import จาก DEV";
+                return RedirectToAction(nameof(Index), new { scenarioType = "BA" });
+            }
+
+            var devScenarios = await _context.TestScenarios
+                .AsNoTracking()
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
+                .Where(x => x.project_id == projectId.Value && x.scenario_type == "DEV")
+                .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
+                .ToListAsync();
+
+            var existingBaRows = await _context.TestScenarios
+                .AsNoTracking()
+                .Where(x => x.project_id == projectId.Value && x.scenario_type == "BA")
+                .Select(x => new { x.group_id, x.title })
+                .ToListAsync();
+            var existingBaKeys = existingBaRows
+                .Select(x => BuildScenarioDuplicateKey(x.group_id, x.title, "BA"))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var nextNumber = await GetNextScenarioNumberAsync(projectId.Value);
+            var importedCount = 0;
+            var skippedCount = 0;
+
+            foreach (var source in devScenarios)
+            {
+                var duplicateKey = BuildScenarioDuplicateKey(source.group_id, source.title, "BA");
+                if (!existingBaKeys.Add(duplicateKey))
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                _context.TestScenarios.Add(new TestScenario
+                {
+                    project_id = projectId.Value,
+                    group_id = source.group_id,
+                    scenario_code = $"TC-{nextNumber++:D4}",
+                    title = source.title,
+                    precondition = source.precondition,
+                    steps = source.steps,
+                    expected_result = source.expected_result,
+                    priority = source.priority,
+                    scenario_type = "BA",
+                    status = "READY",
+                    sort_order = source.sort_order,
+                    created_at = DateTime.Now,
+                    updated_at = DateTime.Now
+                });
+                importedCount++;
+            }
+
+            if (importedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                await RenumberScenarioCodesAsync(projectId.Value);
+                TempData["Success"] = skippedCount > 0
+                    ? $"Import จาก DEV สำเร็จ {importedCount} รายการ และข้ามรายการซ้ำ {skippedCount} รายการ"
+                    : $"Import จาก DEV สำเร็จ {importedCount} รายการ";
+            }
+            else
+            {
+                TempData["Warning"] = devScenarios.Count == 0
+                    ? "ไม่พบ Test Scenario Type DEV ในโครงการนี้"
+                    : $"ไม่มีรายการใหม่ ข้ามรายการซ้ำทั้งหมด {skippedCount} รายการ";
+            }
+
+            return RedirectToAction(nameof(Index), new { projectId, scenarioType = "BA" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Delete")]
         public async Task<IActionResult> Delete(int id)
         {

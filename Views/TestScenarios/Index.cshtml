@@ -776,6 +776,31 @@
                 </button>
             }
 
+            @if (selectedScenarioType == "BA")
+            {
+                @if (CanMenu("TestScenarios.Import"))
+                {
+                    <form asp-action="ImportFromDev"
+                          method="post"
+                          style="display:inline;"
+                          onsubmit="return confirm('Import Test Scenario จาก DEV มาเป็น BA? รายการซ้ำจะถูกข้ามและสถานะของรายการใหม่จะเป็นพร้อมทดสอบ');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
+                        <button type="submit"
+                                class="btn btn-outline-primary"
+                                title="Import รายการจาก DEV มาเป็น BA">
+                            Import จาก DEV
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ Import จาก DEV">
+                        Import จาก DEV
+                    </button>
+                }
+            }
+
             @if (CanMenu("TestScenarios.DeleteAll"))
             {
                 <form asp-action="DeleteAll"
