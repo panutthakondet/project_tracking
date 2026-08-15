@@ -99,6 +99,7 @@
     var assignCompletionStop = completion.PhaseAssignCompleted * 100d / completionTotal;
     var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
     var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
+    var issueCompletionStop = baCompletionStop + (completion.ProjectIssueCompleted * 100d / completionTotal);
     var issues = Model?.Issues ?? new ProjectTracking.ViewModels.PhaseWorkloadIssueSummaryViewModel();
     var issueTotal = Math.Max(issues.Total, 1);
     var issueOpenStop = issues.Open * 100d / issueTotal;
@@ -282,9 +283,9 @@
             <div class="workload-summary-grid">
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
-                     style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%;"
+                     style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%; --issue-stop:@issueCompletionStop.ToString("0.####", invariant)%;"
                      role="img"
-                     aria-label="งานเสร็จแล้ว @completion.Percent เปอร์เซ็นต์ แบ่งเป็น PhaseAssigns, DEV และ BA">
+                     aria-label="งานเสร็จแล้ว @completion.Percent เปอร์เซ็นต์ แบ่งเป็น PhaseAssigns, DEV, BA และ ProjectIssues">
                     <div class="workload-completion-chart-center">
                         <strong>@completion.Percent%</strong>
                         <span>เสร็จสิ้น</span>
@@ -295,7 +296,7 @@
                     <div class="workload-completion-heading">
                         <div>
                             <strong>ความคืบหน้างานรวม</strong>
-                            <span>คำนวณจาก PhaseAssigns และ Test Scenarios ของ DEV / BA</span>
+                            <span>คำนวณจาก PhaseAssigns, Test Scenarios DEV / BA และ ProjectIssues</span>
                         </div>
                         <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
                     </div>
@@ -315,6 +316,11 @@
                             <span class="workload-completion-dot"></span>
                             <span class="workload-completion-name">Test Scenarios BA ผ่าน</span>
                             <strong>@completion.BaScenarioCompleted / @completion.BaScenarioTotal</strong>
+                        </div>
+                        <div class="workload-completion-row is-issue">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">ProjectIssues ปิดงาน</span>
+                            <strong>@completion.ProjectIssueCompleted / @completion.ProjectIssueTotal</strong>
                         </div>
                     </div>
                 </div>
@@ -780,6 +786,7 @@
         --assign-stop: 0%;
         --dev-stop: 0%;
         --ba-stop: 0%;
+        --issue-stop: 0%;
         width: 132px;
         height: 132px;
         border-radius: 50%;
@@ -789,7 +796,8 @@
             #16a085 0 var(--assign-stop),
             #2563eb var(--assign-stop) var(--dev-stop),
             #7c3aed var(--dev-stop) var(--ba-stop),
-            #e2e8f0 var(--ba-stop) 100%
+            #f97316 var(--ba-stop) var(--issue-stop),
+            #e2e8f0 var(--issue-stop) 100%
         );
         box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
     }
@@ -1000,7 +1008,7 @@
 
     .workload-completion-breakdown {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0;
         margin-top: 12px;
     }
@@ -1021,9 +1029,13 @@
         padding-left: 0;
     }
 
-    .workload-completion-row:last-child {
+    .workload-completion-row:nth-child(2n) {
         padding-right: 0;
         border-right: 0;
+    }
+
+    .workload-completion-row:nth-child(n + 3) {
+        margin-top: 5px;
     }
 
     .workload-completion-dot {
@@ -1039,6 +1051,10 @@
 
     .workload-completion-row.is-ba .workload-completion-dot {
         background: #7c3aed;
+    }
+
+    .workload-completion-row.is-issue .workload-completion-dot {
+        background: #f97316;
     }
 
     .workload-completion-name {

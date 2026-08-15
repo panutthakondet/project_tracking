@@ -28,9 +28,11 @@ namespace ProjectTracking.ViewModels
         public int DevScenarioCompleted { get; set; }
         public int BaScenarioTotal { get; set; }
         public int BaScenarioCompleted { get; set; }
+        public int ProjectIssueTotal { get; set; }
+        public int ProjectIssueCompleted { get; set; }
 
-        public int Total => PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal;
-        public int Completed => PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted;
+        public int Total => PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal + ProjectIssueTotal;
+        public int Completed => PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted + ProjectIssueCompleted;
         public int Percent => Total == 0
             ? 0
             : (int)Math.Round(Completed * 100d / Total, MidpointRounding.AwayFromZero);

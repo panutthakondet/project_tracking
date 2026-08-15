@@ -317,6 +317,8 @@ namespace ProjectTracking.Controllers
                 Pass = issueStatuses.FirstOrDefault(x => x.Status == "PASS")?.Total ?? 0,
                 Reject = issueStatuses.FirstOrDefault(x => x.Status == "REJECT")?.Total ?? 0
             };
+            completion.ProjectIssueTotal = issueSummary.Total;
+            completion.ProjectIssueCompleted = issueSummary.Pass + issueSummary.Reject;
 
             ViewBag.Year = selectedYear;
             ViewBag.YearTo = selectedYearTo;
