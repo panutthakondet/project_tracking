@@ -99,6 +99,12 @@
     var assignCompletionStop = completion.PhaseAssignCompleted * 100d / completionTotal;
     var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
     var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
+    var issues = Model?.Issues ?? new ProjectTracking.ViewModels.PhaseWorkloadIssueSummaryViewModel();
+    var issueTotal = Math.Max(issues.Total, 1);
+    var issueOpenStop = issues.Open * 100d / issueTotal;
+    var issueFailStop = issueOpenStop + (issues.Fail * 100d / issueTotal);
+    var issuePassStop = issueFailStop + (issues.Pass * 100d / issueTotal);
+    var issueRejectStop = issuePassStop + (issues.Reject * 100d / issueTotal);
     var invariant = System.Globalization.CultureInfo.InvariantCulture;
     var projectTotalDays = selectedProject?.StartDate.HasValue == true
         && selectedProject.EndDate.HasValue
@@ -273,6 +279,7 @@
                 </section>
             }
 
+            <div class="workload-summary-grid">
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
                      style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%;"
@@ -312,6 +319,57 @@
                     </div>
                 </div>
             </section>
+
+            <section class="workload-issues-panel" aria-label="สรุปปัญหาโครงการ">
+                <div class="workload-issues-chart"
+                     style="--open-stop:@issueOpenStop.ToString("0.####", invariant)%; --fail-stop:@issueFailStop.ToString("0.####", invariant)%; --pass-stop:@issuePassStop.ToString("0.####", invariant)%; --reject-stop:@issueRejectStop.ToString("0.####", invariant)%;"
+                     role="img"
+                     aria-label="ปัญหาโครงการทั้งหมด @issues.Total รายการ">
+                    <div class="workload-issues-chart-center">
+                        <strong>@issues.Total</strong>
+                        <span>ปัญหา</span>
+                    </div>
+                </div>
+
+                <div class="workload-issues-content">
+                    <div class="workload-issues-heading">
+                        <div>
+                            <strong>ปัญหาโครงการ</strong>
+                            <span>สรุปสถานะจาก ProjectIssues</span>
+                        </div>
+                        @if (selectedProjectId.HasValue)
+                        {
+                            <a asp-controller="ProjectIssues"
+                               asp-action="Index"
+                               asp-route-projectId="@selectedProjectId.Value">ดูรายละเอียด</a>
+                        }
+                    </div>
+
+                    <div class="workload-issues-breakdown">
+                        <div class="workload-issues-row is-open">
+                            <span class="workload-issues-dot"></span>
+                            <span>เปิดปัญหา / รอแก้</span>
+                            <strong>@issues.Open</strong>
+                        </div>
+                        <div class="workload-issues-row is-fail">
+                            <span class="workload-issues-dot"></span>
+                            <span>ทดสอบไม่ผ่าน</span>
+                            <strong>@issues.Fail</strong>
+                        </div>
+                        <div class="workload-issues-row is-pass">
+                            <span class="workload-issues-dot"></span>
+                            <span>ทดสอบผ่าน</span>
+                            <strong>@issues.Pass</strong>
+                        </div>
+                        <div class="workload-issues-row is-reject">
+                            <span class="workload-issues-dot"></span>
+                            <span>ปฏิเสธ / ไม่ใช่ปัญหา</span>
+                            <strong>@issues.Reject</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            </div>
 
             <div class="table-responsive workload-responsive-wrap">
 
@@ -570,16 +628,29 @@
         flex: 0 0 auto;
     }
 
-    .workload-completion-panel {
+    .workload-summary-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(390px, .85fr);
+        gap: 18px;
+        margin: 0 0 18px;
+    }
+
+    .workload-completion-panel,
+    .workload-issues-panel {
         display: grid;
         grid-template-columns: 150px minmax(0, 1fr);
         align-items: center;
         gap: 26px;
-        margin: 0 0 18px;
+        margin: 0;
         padding: 20px 24px;
         border: 1px solid #b8d4ca;
         border-radius: 16px;
         background: #fff;
+    }
+
+    .workload-issues-panel {
+        grid-template-columns: 132px minmax(0, 1fr);
+        gap: 20px;
     }
 
     .workload-project-period {
@@ -723,6 +794,143 @@
         box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
     }
 
+    .workload-issues-chart {
+        --open-stop: 0%;
+        --fail-stop: 0%;
+        --pass-stop: 0%;
+        --reject-stop: 0%;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(
+            #2563eb 0 var(--open-stop),
+            #ef4444 var(--open-stop) var(--fail-stop),
+            #16a34a var(--fail-stop) var(--pass-stop),
+            #94a3b8 var(--pass-stop) var(--reject-stop),
+            #e2e8f0 var(--reject-stop) 100%
+        );
+        box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
+    }
+
+    .workload-issues-chart-center {
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #10233f;
+        background: #fff;
+    }
+
+    .workload-issues-chart-center strong {
+        font-size: 1.65rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .workload-issues-chart-center span {
+        margin-top: 6px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    .workload-issues-content {
+        min-width: 0;
+    }
+
+    .workload-issues-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .workload-issues-heading strong,
+    .workload-issues-heading span {
+        display: block;
+    }
+
+    .workload-issues-heading strong {
+        color: #10233f;
+        font-size: 1.02rem;
+        font-weight: 750;
+    }
+
+    .workload-issues-heading span {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: .8rem;
+        font-weight: 500;
+    }
+
+    .workload-issues-heading a {
+        flex: 0 0 auto;
+        color: #2563eb;
+        font-size: .78rem;
+        font-weight: 650;
+        text-decoration: none;
+    }
+
+    .workload-issues-heading a:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+    }
+
+    .workload-issues-breakdown {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+        margin-top: 12px;
+    }
+
+    .workload-issues-row {
+        display: grid;
+        grid-template-columns: 9px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        color: #334155;
+        font-size: .8rem;
+    }
+
+    .workload-issues-row > span:nth-child(2) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 550;
+    }
+
+    .workload-issues-row strong {
+        color: #10233f;
+        font-weight: 750;
+    }
+
+    .workload-issues-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #2563eb;
+    }
+
+    .workload-issues-row.is-fail .workload-issues-dot {
+        background: #ef4444;
+    }
+
+    .workload-issues-row.is-pass .workload-issues-dot {
+        background: #16a34a;
+    }
+
+    .workload-issues-row.is-reject .workload-issues-dot {
+        background: #94a3b8;
+    }
+
     .workload-completion-chart-center {
         width: 92px;
         height: 92px;
@@ -847,7 +1055,17 @@
     }
 
     @@media (max-width: 900px) {
+        .workload-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
         .workload-completion-panel {
+            grid-template-columns: 112px minmax(0, 1fr);
+            gap: 18px;
+            padding: 18px;
+        }
+
+        .workload-issues-panel {
             grid-template-columns: 112px minmax(0, 1fr);
             gap: 18px;
             padding: 18px;
@@ -881,12 +1099,17 @@
     }
 
     @@media (max-width: 560px) {
-        .workload-completion-panel {
+        .workload-completion-panel,
+        .workload-issues-panel {
             grid-template-columns: 1fr;
             justify-items: center;
         }
 
         .workload-completion-content {
+            width: 100%;
+        }
+
+        .workload-issues-content {
             width: 100%;
         }
 

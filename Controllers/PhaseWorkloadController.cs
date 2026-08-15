@@ -285,6 +285,39 @@ namespace ProjectTracking.Controllers
                 BaScenarioCompleted = baScenario?.Completed ?? 0
             };
 
+            var issueProjectIds = projectOptions
+                .Where(x =>
+                    (!selectedCoopId.HasValue || x.CoopId == selectedCoopId.Value) &&
+                    (!selectedProjectId.HasValue || x.ProjectId == selectedProjectId.Value))
+                .Select(x => x.ProjectId)
+                .ToList();
+            var issueQuery = _context.ProjectIssues
+                .AsNoTracking()
+                .Where(x => issueProjectIds.Contains(x.ProjectId));
+
+            if (selectedEmpId.HasValue)
+            {
+                issueQuery = issueQuery.Where(x => x.AssignTo == selectedEmpId.Value);
+            }
+
+            var issueStatuses = await issueQuery
+                .GroupBy(x => (x.IssueStatus ?? "OPEN").ToUpper())
+                .Select(group => new
+                {
+                    Status = group.Key,
+                    Total = group.Count()
+                })
+                .ToListAsync();
+            var issueSummary = new PhaseWorkloadIssueSummaryViewModel
+            {
+                Open = issueStatuses
+                    .Where(x => x.Status != "PASS" && x.Status != "FAIL" && x.Status != "REJECT")
+                    .Sum(x => x.Total),
+                Fail = issueStatuses.FirstOrDefault(x => x.Status == "FAIL")?.Total ?? 0,
+                Pass = issueStatuses.FirstOrDefault(x => x.Status == "PASS")?.Total ?? 0,
+                Reject = issueStatuses.FirstOrDefault(x => x.Status == "REJECT")?.Total ?? 0
+            };
+
             ViewBag.Year = selectedYear;
             ViewBag.YearTo = selectedYearTo;
             ViewBag.Month = selectedMonth;
@@ -309,7 +342,8 @@ namespace ProjectTracking.Controllers
             return View(new PhaseWorkloadViewModel
             {
                 Items = items,
-                Completion = completion
+                Completion = completion,
+                Issues = issueSummary
             });
         }
 
