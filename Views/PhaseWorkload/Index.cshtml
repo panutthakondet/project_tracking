@@ -10,6 +10,7 @@
     int monthTo = ViewBag.MonthTo ?? month;
     int? selectedCoopId = ViewBag.SelectedCoopId as int?;
     int? selectedProjectId = ViewBag.SelectedProjectId as int?;
+    var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var coopOptions = ViewBag.CoopOptions as IEnumerable<ProjectTracking.Models.CntMCoop>
         ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
     var projectOptions = ViewBag.ProjectOptions as IEnumerable<ProjectTracking.Models.Project>
@@ -99,6 +100,11 @@
     var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
     var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
     var invariant = System.Globalization.CultureInfo.InvariantCulture;
+    var projectTotalDays = selectedProject?.StartDate.HasValue == true
+        && selectedProject.EndDate.HasValue
+        && selectedProject.EndDate.Value.Date >= selectedProject.StartDate.Value.Date
+            ? (int?)(selectedProject.EndDate.Value.Date - selectedProject.StartDate.Value.Date).Days + 1
+            : null;
 }
 
 <div class="container-fluid px-2 px-md-3 workload-page-wrap">
@@ -244,6 +250,28 @@
                 </div>
 
             </div>
+
+            @if (selectedProject != null)
+            {
+                <section class="workload-project-period" aria-label="ช่วงเวลาดำเนินโครงการ">
+                    <div class="workload-project-period-title">
+                        <span>📁 ระยะเวลาโครงการ</span>
+                        <strong>@selectedProject.ProjectName</strong>
+                    </div>
+                    <div class="workload-project-period-item">
+                        <span>วันที่เริ่มโครงการ</span>
+                        <strong>@(selectedProject.StartDate?.ToString("dd MMMM yyyy", th) ?? "-")</strong>
+                    </div>
+                    <div class="workload-project-period-item">
+                        <span>วันที่สิ้นสุดโครงการ</span>
+                        <strong>@(selectedProject.EndDate?.ToString("dd MMMM yyyy", th) ?? "-")</strong>
+                    </div>
+                    <div class="workload-project-period-item is-total">
+                        <span>จำนวนวันทั้งหมด</span>
+                        <strong>@(projectTotalDays.HasValue ? $"{projectTotalDays.Value:N0} วัน" : "-")</strong>
+                    </div>
+                </section>
+            }
 
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
@@ -552,6 +580,102 @@
         border: 1px solid #b8d4ca;
         border-radius: 16px;
         background: #fff;
+    }
+
+    .workload-project-period {
+        display: grid;
+        grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(170px, .8fr));
+        align-items: stretch;
+        gap: 0;
+        margin: 0 0 18px;
+        border: 1px solid #b8d4ca;
+        border-radius: 16px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .workload-project-period-title,
+    .workload-project-period-item {
+        min-width: 0;
+        padding: 15px 18px;
+    }
+
+    .workload-project-period-title {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background: #f0fdfa;
+        border-right: 1px solid #cbd5e1;
+    }
+
+    .workload-project-period-title span,
+    .workload-project-period-item span {
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    .workload-project-period-title strong {
+        margin-top: 4px;
+        color: #10233f;
+        font-size: .95rem;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .workload-project-period-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    .workload-project-period-item:last-child {
+        border-right: 0;
+    }
+
+    .workload-project-period-item strong {
+        margin-top: 5px;
+        color: #10233f;
+        font-size: .92rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .workload-project-period-item.is-total strong {
+        color: #0f766e;
+        font-size: 1.05rem;
+    }
+
+    @@media (max-width: 1050px) {
+        .workload-project-period {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .workload-project-period-title {
+            grid-column: 1 / -1;
+            border-right: 0;
+            border-bottom: 1px solid #cbd5e1;
+        }
+    }
+
+    @@media (max-width: 620px) {
+        .workload-project-period {
+            grid-template-columns: 1fr;
+        }
+
+        .workload-project-period-title,
+        .workload-project-period-item {
+            grid-column: auto;
+            border-right: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .workload-project-period-item:last-child {
+            border-bottom: 0;
+        }
     }
 
     .workload-employee-heading {

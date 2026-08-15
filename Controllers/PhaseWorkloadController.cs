@@ -114,6 +114,7 @@ namespace ProjectTracking.Controllers
             else if (selectedProject.CoopId != selectedCoopId)
             {
                 selectedProjectId = null;
+                selectedProject = null;
             }
 
             if (syncProjectPeriod && (selectedProjectId.HasValue || selectedCoopId.HasValue))
@@ -291,6 +292,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedEmpId = empId;
             ViewBag.SelectedCoopId = selectedCoopId;
             ViewBag.SelectedProjectId = selectedProjectId;
+            ViewBag.SelectedProject = selectedProject;
             ViewBag.CoopOptions = projectOptions
                 .Where(x => x.Coop != null)
                 .Select(x => x.Coop!)
