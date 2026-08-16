@@ -96,13 +96,15 @@
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
     var completionStop = completion.Percent;
+    var assignPercent = completion.PhaseAssignTotal == 0
+        ? 0
+        : (int)Math.Round(completion.PhaseAssignCompleted * 100d / completion.PhaseAssignTotal, MidpointRounding.AwayFromZero);
     var devScenarioPercent = completion.DevScenarioTotal == 0
         ? 0
         : (int)Math.Round(completion.DevScenarioCompleted * 100d / completion.DevScenarioTotal, MidpointRounding.AwayFromZero);
     var baScenarioPercent = completion.BaScenarioTotal == 0
         ? 0
         : (int)Math.Round(completion.BaScenarioCompleted * 100d / completion.BaScenarioTotal, MidpointRounding.AwayFromZero);
-    var issues = Model?.Issues ?? new ProjectTracking.ViewModels.PhaseWorkloadIssueSummaryViewModel();
     var issueCompletionPercent = completion.ProjectIssueTotal == 0
         ? 0
         : (int)Math.Round(completion.ProjectIssueCompleted * 100d / completion.ProjectIssueTotal, MidpointRounding.AwayFromZero);
@@ -300,98 +302,27 @@
                         </div>
                         <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
                     </div>
-                </div>
-            </section>
 
-            <section class="workload-scenario-panel is-dev" aria-label="ความคืบหน้า Test Scenarios DEV">
-                <div class="workload-scenario-chart"
-                     style="--scenario-stop:@devScenarioPercent.ToString("0.####", invariant)%;"
-                     role="img"
-                     aria-label="Test Scenarios DEV ผ่าน @devScenarioPercent เปอร์เซ็นต์">
-                    <div class="workload-scenario-chart-center">
-                        <strong>@devScenarioPercent%</strong>
-                        <span>ผ่าน</span>
-                    </div>
-                </div>
-                <div class="workload-scenario-content">
-                    <div class="workload-scenario-heading">
-                        <strong>Test Scenarios DEV</strong>
-                        <span>ผลการทดสอบโดย DEV</span>
-                    </div>
-                    <div class="workload-scenario-stats">
-                        <span>ผ่านแล้ว <strong>@completion.DevScenarioCompleted</strong></span>
-                        <span>ทั้งหมด <strong>@completion.DevScenarioTotal</strong></span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="workload-scenario-panel is-ba" aria-label="ความคืบหน้า Test Scenarios BA">
-                <div class="workload-scenario-chart"
-                     style="--scenario-stop:@baScenarioPercent.ToString("0.####", invariant)%;"
-                     role="img"
-                     aria-label="Test Scenarios BA ผ่าน @baScenarioPercent เปอร์เซ็นต์">
-                    <div class="workload-scenario-chart-center">
-                        <strong>@baScenarioPercent%</strong>
-                        <span>ผ่าน</span>
-                    </div>
-                </div>
-                <div class="workload-scenario-content">
-                    <div class="workload-scenario-heading">
-                        <strong>Test Scenarios BA</strong>
-                        <span>ผลการทดสอบโดย BA</span>
-                    </div>
-                    <div class="workload-scenario-stats">
-                        <span>ผ่านแล้ว <strong>@completion.BaScenarioCompleted</strong></span>
-                        <span>ทั้งหมด <strong>@completion.BaScenarioTotal</strong></span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="workload-issues-panel" aria-label="สรุปปัญหาโครงการ">
-                <div class="workload-issues-chart"
-                     style="--issue-completion-stop:@issueCompletionPercent.ToString("0.####", invariant)%;"
-                     role="img"
-                     aria-label="ปัญหาโครงการปิดงานแล้ว @issueCompletionPercent เปอร์เซ็นต์">
-                    <div class="workload-issues-chart-center">
-                        <strong>@issueCompletionPercent%</strong>
-                        <span>ปิดงาน</span>
-                    </div>
-                </div>
-
-                <div class="workload-issues-content">
-                    <div class="workload-issues-heading">
-                        <div>
-                            <strong>ปัญหาโครงการ</strong>
-                            <span>สรุปสถานะจาก ProjectIssues</span>
+                    <div class="workload-completion-breakdown">
+                        <div class="workload-completion-row is-assign">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">PhaseAssigns</span>
+                            <strong>@completion.PhaseAssignCompleted / @completion.PhaseAssignTotal · @assignPercent%</strong>
                         </div>
-                        @if (selectedProjectId.HasValue)
-                        {
-                            <a asp-controller="ProjectIssues"
-                               asp-action="Index"
-                               asp-route-projectId="@selectedProjectId.Value">ดูรายละเอียด</a>
-                        }
-                    </div>
-
-                    <div class="workload-issues-breakdown">
-                        <div class="workload-issues-row is-open">
-                            <span class="workload-issues-dot"></span>
-                            <span>เปิดปัญหา / รอแก้</span>
-                            <strong>@issues.Open</strong>
+                        <div class="workload-completion-row is-dev">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">Test Scenarios DEV</span>
+                            <strong>@completion.DevScenarioCompleted / @completion.DevScenarioTotal · @devScenarioPercent%</strong>
                         </div>
-                        <div class="workload-issues-row is-fail">
-                            <span class="workload-issues-dot"></span>
-                            <span>ทดสอบไม่ผ่าน</span>
-                            <strong>@issues.Fail</strong>
+                        <div class="workload-completion-row is-ba">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">Test Scenarios BA</span>
+                            <strong>@completion.BaScenarioCompleted / @completion.BaScenarioTotal · @baScenarioPercent%</strong>
                         </div>
-                        <div class="workload-issues-row is-pass">
-                            <span class="workload-issues-dot"></span>
-                            <span>ทดสอบผ่าน</span>
-                            <strong>@issues.Pass</strong>
-                        </div>
-                        <div class="workload-issues-row is-reject">
-                            <span class="workload-issues-dot"></span>
-                            <span>ปฏิเสธ / ไม่ใช่ปัญหา</span>
-                            <strong>@issues.Reject</strong>
+                        <div class="workload-completion-row is-issue">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">ProjectIssues</span>
+                            <strong>@completion.ProjectIssueCompleted / @completion.ProjectIssueTotal · @issueCompletionPercent%</strong>
                         </div>
                     </div>
                 </div>
@@ -1270,7 +1201,7 @@
 
     /* One summary frame: the overall progress remains the visual focus. */
     .workload-summary-grid {
-        grid-template-columns: minmax(300px, 1.35fr) repeat(3, minmax(240px, 1fr));
+        grid-template-columns: 1fr;
         gap: 1px;
         padding: 1px;
         border: 1px solid #b8d4ca;
@@ -1296,7 +1227,8 @@
     }
 
     .workload-completion-panel {
-        grid-column: auto;
+        grid-column: 1 / -1;
+        min-height: 0;
         padding-inline: 24px;
         background: #effcf8;
     }
@@ -1361,6 +1293,29 @@
         font-size: 1.12rem;
     }
 
+    .workload-completion-breakdown {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        width: min(100%, 1320px);
+        margin-top: 14px;
+    }
+
+    .workload-completion-row,
+    .workload-completion-row:nth-child(2n) {
+        margin-top: 0;
+        padding: 7px 16px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 0;
+    }
+
+    .workload-completion-row:first-child {
+        padding-left: 0;
+    }
+
+    .workload-completion-row:last-child {
+        padding-right: 0;
+        border-right: 0;
+    }
+
     .workload-scenario-heading {
         padding-bottom: 8px;
     }
@@ -1379,14 +1334,44 @@
     }
 
     @@media (max-width: 1400px) {
-        .workload-summary-grid {
+        .workload-completion-breakdown {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .workload-completion-row:nth-child(2n) {
+            padding-right: 0;
+            border-right: 0;
+        }
+
+        .workload-completion-row:nth-child(2n + 1) {
+            padding-left: 0;
+        }
+
+        .workload-completion-row:nth-child(n + 3) {
+            margin-top: 6px;
         }
     }
 
     @@media (max-width: 680px) {
         .workload-summary-grid {
             grid-template-columns: 1fr;
+        }
+
+        .workload-completion-breakdown {
+            grid-template-columns: 1fr;
+        }
+
+        .workload-completion-row,
+        .workload-completion-row:nth-child(2n),
+        .workload-completion-row:nth-child(2n + 1) {
+            margin-top: 0;
+            padding: 7px 0;
+            border-right: 0;
+            border-bottom: 1px solid #dbe4ea;
+        }
+
+        .workload-completion-row:last-child {
+            border-bottom: 0;
         }
 
         .workload-completion-panel,
