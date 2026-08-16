@@ -1268,10 +1268,15 @@
         }
     }
 
-    /* Compact summary: four equal cards without repeating the same details. */
+    /* One summary frame: the overall progress remains the visual focus. */
     .workload-summary-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: minmax(300px, 1.35fr) repeat(3, minmax(240px, 1fr));
+        gap: 1px;
+        padding: 1px;
+        border: 1px solid #b8d4ca;
+        border-radius: 16px;
+        background: #d8e4e0;
+        overflow: hidden;
     }
 
     .workload-completion-panel,
@@ -1284,14 +1289,18 @@
         gap: 11px;
         min-height: 252px;
         padding: 16px 18px;
+        border: 0;
+        border-radius: 0;
+        background: #fff;
         text-align: center;
     }
 
     .workload-completion-panel {
         grid-column: auto;
+        padding-inline: 24px;
+        background: #effcf8;
     }
 
-    .workload-completion-chart,
     .workload-scenario-chart,
     .workload-issues-chart {
         width: 106px;
@@ -1299,17 +1308,34 @@
         flex: 0 0 106px;
     }
 
-    .workload-completion-chart-center,
+    .workload-completion-chart {
+        width: 122px;
+        height: 122px;
+        flex: 0 0 122px;
+        box-shadow:
+            inset 0 0 0 1px rgba(15, 118, 110, .12),
+            0 8px 22px rgba(15, 118, 110, .12);
+    }
+
     .workload-scenario-chart-center,
     .workload-issues-chart-center {
         width: 72px;
         height: 72px;
     }
 
+    .workload-completion-chart-center {
+        width: 84px;
+        height: 84px;
+    }
+
     .workload-completion-chart-center strong,
     .workload-scenario-chart-center strong,
     .workload-issues-chart-center strong {
         font-size: 1.4rem;
+    }
+
+    .workload-completion-chart-center strong {
+        font-size: 1.65rem;
     }
 
     .workload-completion-content,
@@ -1329,6 +1355,10 @@
         gap: 3px;
         padding-bottom: 0;
         border-bottom: 0;
+    }
+
+    .workload-completion-heading strong {
+        font-size: 1.12rem;
     }
 
     .workload-scenario-heading {
