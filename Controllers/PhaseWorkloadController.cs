@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
+using ProjectTracking.Models;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
@@ -353,6 +355,52 @@ namespace ProjectTracking.Controllers
             completion.ProjectIssueTotal = issueSummary.Total;
             completion.ProjectIssueCompleted = issueSummary.Pass + issueSummary.Reject;
 
+            var teamProjects = projectOptions
+                .Where(x => phaseProjectIds.Contains(x.ProjectId))
+                .ToList();
+            var teamAssigns = await _context.PhaseAssigns
+                .AsNoTracking()
+                .Include(x => x.Phase)
+                .Where(x => x.Phase != null && phaseProjectIds.Contains(x.Phase.ProjectId))
+                .ToListAsync();
+            var teamOwnerIds = teamProjects
+                .SelectMany(x => new int?[] { x.PmEmpId, x.BaEmpId })
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
+            var teamEmployeeIds = teamAssigns
+                .Select(x => x.EmpId)
+                .Concat(teamOwnerIds)
+                .Distinct()
+                .ToList();
+            var teamEmployees = await _context.Employees
+                .AsNoTracking()
+                .Where(x => teamEmployeeIds.Contains(x.EmpId))
+                .ToListAsync();
+            var teamLoginUserIds = teamEmployees
+                .Where(x => x.LoginUserId.HasValue)
+                .Select(x => x.LoginUserId!.Value)
+                .Distinct()
+                .ToList();
+            var teamProfiles = await _context.LoginUsers
+                .AsNoTracking()
+                .Where(x => teamLoginUserIds.Contains(x.UserId)
+                    || (x.EmpId.HasValue && teamEmployeeIds.Contains(x.EmpId.Value)))
+                .Select(x => new { x.UserId, x.EmpId, x.ProfileImagePath })
+                .ToListAsync();
+            var teamAvatarByEmployeeId = teamEmployees.ToDictionary(
+                employee => employee.EmpId,
+                employee => ProfileImagePathResolver.Normalize(
+                    teamProfiles.FirstOrDefault(profile =>
+                        employee.LoginUserId.HasValue && profile.UserId == employee.LoginUserId.Value)?.ProfileImagePath
+                    ?? teamProfiles.FirstOrDefault(profile => profile.EmpId == employee.EmpId)?.ProfileImagePath));
+            var teamGroups = BuildTeamGroups(
+                teamEmployees,
+                teamAssigns,
+                teamProjects.Where(x => x.PmEmpId.HasValue).Select(x => x.PmEmpId!.Value).ToHashSet(),
+                teamProjects.Where(x => x.BaEmpId.HasValue).Select(x => x.BaEmpId!.Value).ToHashSet(),
+                teamAvatarByEmployeeId);
+
             ViewBag.Year = selectedYear;
             ViewBag.YearTo = selectedYearTo;
             ViewBag.Month = selectedMonth;
@@ -378,7 +426,8 @@ namespace ProjectTracking.Controllers
             {
                 Items = items,
                 Completion = completion,
-                Issues = issueSummary
+                Issues = issueSummary,
+                TeamGroups = teamGroups
             });
         }
 
@@ -400,6 +449,144 @@ namespace ProjectTracking.Controllers
         {
             var normalized = (status ?? "").Trim().ToUpperInvariant();
             return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
+        }
+
+        private static List<ProjectTeamGroup> BuildTeamGroups(
+            IEnumerable<Employee> employees,
+            IEnumerable<PhaseAssign> assigns,
+            IReadOnlySet<int> projectManagerIds,
+            IReadOnlySet<int> businessAnalystIds,
+            IReadOnlyDictionary<int, string> avatarByEmployeeId)
+        {
+            var activeEmployees = employees
+                .Where(x => string.IsNullOrWhiteSpace(x.Status)
+                    || x.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var assignsByEmployee = assigns
+                .GroupBy(x => x.EmpId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => new
+                    {
+                        Count = x.Count(),
+                        Role = string.Join(" / ", x
+                            .Select(row => row.Role?.Trim())
+                            .Where(role => !string.IsNullOrWhiteSpace(role))
+                            .Distinct())
+                    });
+            var orderedPositions = new[]
+            {
+                "Business Development Manager",
+                "Project Manager",
+                "Project Manager IT",
+                "Business Analyst",
+                "Research and Development",
+                "Graphic Designer",
+                "Programmer Mobile Developer",
+                "Programmer Service",
+                "Programmer Web Developer"
+            };
+            var rows = activeEmployees.Select(employee =>
+            {
+                assignsByEmployee.TryGetValue(employee.EmpId, out var assignInfo);
+                var groupPosition = businessAnalystIds.Contains(employee.EmpId)
+                    ? "Business Analyst"
+                    : projectManagerIds.Contains(employee.EmpId)
+                        && !IsSamePosition(employee.Position, "Project Manager IT")
+                            ? "Project Manager"
+                            : employee.Position;
+
+                return new
+                {
+                    Employee = employee,
+                    GroupPosition = groupPosition,
+                    Role = !string.IsNullOrWhiteSpace(employee.Position)
+                        ? employee.Position!.Trim()
+                        : !string.IsNullOrWhiteSpace(assignInfo?.Role)
+                            ? assignInfo.Role
+                            : groupPosition ?? "Team Member",
+                    WorkCount = assignInfo?.Count ?? 0
+                };
+            }).ToList();
+            var usedEmployeeIds = new HashSet<int>();
+            var groups = orderedPositions
+                .Select(position => new ProjectTeamGroup
+                {
+                    Label = position,
+                    ClassName = PositionClass(position),
+                    Members = rows
+                        .Where(x => !usedEmployeeIds.Contains(x.Employee.EmpId)
+                            && IsSamePosition(x.GroupPosition, position))
+                        .OrderByDescending(x => x.WorkCount)
+                        .ThenBy(x => x.Employee.EmpName)
+                        .Select(x =>
+                        {
+                            usedEmployeeIds.Add(x.Employee.EmpId);
+                            return new ProjectOrgMember
+                            {
+                                EmpId = x.Employee.EmpId,
+                                Name = x.Employee.EmpName,
+                                Role = x.Role ?? "Team Member",
+                                WorkCount = x.WorkCount,
+                                AvatarPath = avatarByEmployeeId.GetValueOrDefault(
+                                    x.Employee.EmpId,
+                                    ProfileImagePathResolver.DefaultPath)
+                            };
+                        })
+                        .ToList()
+                })
+                .Where(x => x.Members.Count > 0)
+                .ToList();
+            var otherMembers = rows
+                .Where(x => !usedEmployeeIds.Contains(x.Employee.EmpId))
+                .OrderByDescending(x => x.WorkCount)
+                .ThenBy(x => x.Employee.EmpName)
+                .Select(x => new ProjectOrgMember
+                {
+                    EmpId = x.Employee.EmpId,
+                    Name = x.Employee.EmpName,
+                    Role = x.Role ?? "Team Member",
+                    WorkCount = x.WorkCount,
+                    AvatarPath = avatarByEmployeeId.GetValueOrDefault(
+                        x.Employee.EmpId,
+                        ProfileImagePathResolver.DefaultPath)
+                })
+                .ToList();
+
+            if (otherMembers.Count > 0)
+            {
+                groups.Add(new ProjectTeamGroup
+                {
+                    Label = "ทีมปฏิบัติการ",
+                    ClassName = "operation",
+                    Members = otherMembers
+                });
+            }
+
+            return groups;
+        }
+
+        private static bool IsSamePosition(string? actual, string expected)
+        {
+            return string.Equals(
+                NormalizePosition(actual),
+                NormalizePosition(expected),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizePosition(string? value)
+        {
+            return string.Join(" ", (value ?? "")
+                .Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private static string PositionClass(string position)
+        {
+            return NormalizePosition(position)
+                .ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("/", "-");
         }
 
         private static int ClampMonth(int month)

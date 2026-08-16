@@ -8,6 +8,7 @@ namespace ProjectTracking.ViewModels
         public List<PhaseWorkloadItemViewModel> Items { get; set; } = new();
         public PhaseWorkloadCompletionViewModel Completion { get; set; } = new();
         public PhaseWorkloadIssueSummaryViewModel Issues { get; set; } = new();
+        public List<ProjectTeamGroup> TeamGroups { get; set; } = new();
     }
 
     public class PhaseWorkloadIssueSummaryViewModel

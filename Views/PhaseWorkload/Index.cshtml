@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "แผนงานทีม";
     var items = Model?.Items ?? new List<ProjectTracking.ViewModels.PhaseWorkloadItemViewModel>();
+    var teamGroups = Model?.TeamGroups ?? new List<ProjectTracking.ViewModels.ProjectTeamGroup>();
 
     int year = ViewBag.Year;
     int yearTo = ViewBag.YearTo ?? year;
@@ -92,6 +93,15 @@
             _ => "#FFE69C"
         };
     }
+
+    string TeamLaneType(string? className) => className switch
+    {
+        "business-development-manager" => "Business",
+        "project-manager" or "project-manager-it" => "Management",
+        "business-analyst" => "Analysis",
+        "research-and-development" => "Research",
+        _ => "Delivery"
+    };
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
@@ -544,6 +554,56 @@
 
             </div>
 
+            <section class="workload-team-card" aria-label="แผนผังทีมพัฒนาระบบ">
+                <div class="workload-team-head">
+                    <span class="workload-team-icon" aria-hidden="true"></span>
+                    <div>
+                        <h2>แผนผัง ทีมพัฒนาระบบ</h2>
+                        <p>ภาพรวมทีมและบทบาทผู้รับผิดชอบตามโครงการที่เลือก</p>
+                    </div>
+                </div>
+
+                <div class="workload-team-lanes">
+                    @if (teamGroups.Count == 0)
+                    {
+                        <p class="workload-team-empty">ยังไม่มีข้อมูลทีมสำหรับโครงการที่เลือก</p>
+                    }
+                    else
+                    {
+                        @foreach (var group in teamGroups)
+                        {
+                            <section class="workload-team-lane workload-team-lane--@group.ClassName">
+                                <div class="workload-team-lane-head">
+                                    <span>@TeamLaneType(group.ClassName)</span>
+                                    <h3>@group.Label</h3>
+                                    <b>@group.Members.Count คน</b>
+                                </div>
+                                <div class="workload-team-members">
+                                    @foreach (var member in group.Members)
+                                    {
+                                        <article class="workload-team-member">
+                                            <img class="js-profile-preview"
+                                                 src="@member.AvatarPath"
+                                                 alt="@member.Name"
+                                                 data-profile-name="@member.Name"
+                                                 onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <div>
+                                                <strong>@member.Name</strong>
+                                                <small>@member.Role</small>
+                                                @if (member.WorkCount > 0)
+                                                {
+                                                    <em>@member.WorkCount งาน</em>
+                                                }
+                                            </div>
+                                        </article>
+                                    }
+                                </div>
+                            </section>
+                        }
+                    }
+                </div>
+            </section>
+
         </div>
     </div>
 
@@ -603,6 +663,215 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 18px;
         margin: 0 0 18px;
+    }
+
+    .workload-team-card {
+        margin-top: 20px;
+        padding: 22px;
+        border: 1px solid #b8d4ca;
+        border-radius: 16px;
+        background: var(--bs-body-bg, #fff);
+    }
+
+    .workload-team-head {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .workload-team-head h2 {
+        margin: 0;
+        color: var(--bs-body-color, #10233f);
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .workload-team-head p {
+        margin: 3px 0 0;
+        color: #64748b;
+        font-size: .86rem;
+        font-weight: 500;
+    }
+
+    .workload-team-icon {
+        position: relative;
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        background: linear-gradient(145deg, #eaf7ff, #e8f1ff);
+    }
+
+    .workload-team-icon::before {
+        content: "";
+        position: absolute;
+        left: 13px;
+        bottom: 12px;
+        width: 28px;
+        height: 19px;
+        border: 4px solid #2f8ee8;
+        border-top: 0;
+        border-radius: 13px 13px 5px 5px;
+    }
+
+    .workload-team-icon::after {
+        content: "";
+        position: absolute;
+        top: 12px;
+        left: 21px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #2f8ee8;
+        box-shadow: -12px 8px 0 -3px #58c7ff, 12px 8px 0 -3px #58c7ff;
+    }
+
+    .workload-team-lanes {
+        display: grid;
+        gap: 12px;
+    }
+
+    .workload-team-empty {
+        margin: 0;
+        padding: 28px;
+        border: 1px dashed #cbd5e1;
+        color: #64748b;
+        text-align: center;
+    }
+
+    .workload-team-lane {
+        --team-lane: #f97316;
+        --team-lane-soft: rgba(249, 115, 22, .08);
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 14px;
+        padding: 13px;
+        border: 2px solid var(--team-lane);
+        border-radius: 12px;
+        background: linear-gradient(90deg, var(--team-lane-soft), transparent 48%);
+    }
+
+    .workload-team-lane--business-development-manager {
+        --team-lane: #0f766e;
+        --team-lane-soft: rgba(15, 118, 110, .08);
+    }
+
+    .workload-team-lane--project-manager,
+    .workload-team-lane--project-manager-it {
+        --team-lane: #2563eb;
+        --team-lane-soft: rgba(37, 99, 235, .08);
+    }
+
+    .workload-team-lane--business-analyst {
+        --team-lane: #7c3aed;
+        --team-lane-soft: rgba(124, 58, 237, .08);
+    }
+
+    .workload-team-lane--research-and-development {
+        --team-lane: #e11d48;
+        --team-lane-soft: rgba(225, 29, 72, .08);
+    }
+
+    .workload-team-lane-head {
+        display: grid;
+        align-content: center;
+        gap: 5px;
+        padding: 8px 12px 8px 2px;
+        border-right: 1px solid #cbd5e1;
+    }
+
+    .workload-team-lane-head span {
+        color: var(--team-lane);
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .workload-team-lane-head h3 {
+        margin: 0;
+        color: var(--bs-body-color, #10233f);
+        font-size: .96rem;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .workload-team-lane-head b {
+        color: #0f766e;
+        font-size: .74rem;
+        font-weight: 650;
+    }
+
+    .workload-team-members {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .workload-team-member {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+        min-height: 82px;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: var(--bs-body-bg, #fff);
+    }
+
+    .workload-team-member img {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px var(--team-lane);
+    }
+
+    .workload-team-member div {
+        min-width: 0;
+    }
+
+    .workload-team-member strong,
+    .workload-team-member small {
+        display: block;
+        color: var(--bs-body-color, #10233f);
+        overflow-wrap: anywhere;
+    }
+
+    .workload-team-member strong {
+        font-size: .85rem;
+        font-weight: 650;
+    }
+
+    .workload-team-member small {
+        margin-top: 2px;
+        color: #64748b;
+        font-size: .75rem;
+        font-weight: 450;
+    }
+
+    .workload-team-member em {
+        display: inline-block;
+        margin-top: 5px;
+        color: var(--team-lane);
+        font-size: .72rem;
+        font-style: normal;
+        font-weight: 650;
+    }
+
+    @@media (max-width: 850px) {
+        .workload-team-lane {
+            grid-template-columns: 1fr;
+        }
+
+        .workload-team-lane-head {
+            border-right: 0;
+            border-bottom: 1px solid #cbd5e1;
+        }
     }
 
     .workload-completion-panel,
