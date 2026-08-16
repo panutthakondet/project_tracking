@@ -95,11 +95,13 @@
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
-    var completionTotal = Math.Max(completion.Total, 1);
-    var assignCompletionStop = completion.PhaseAssignCompleted * 100d / completionTotal;
-    var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
-    var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
-    var issueCompletionStop = baCompletionStop + (completion.ProjectIssueCompleted * 100d / completionTotal);
+    var completionStop = completion.Percent;
+    var devScenarioPercent = completion.DevScenarioTotal == 0
+        ? 0
+        : (int)Math.Round(completion.DevScenarioCompleted * 100d / completion.DevScenarioTotal, MidpointRounding.AwayFromZero);
+    var baScenarioPercent = completion.BaScenarioTotal == 0
+        ? 0
+        : (int)Math.Round(completion.BaScenarioCompleted * 100d / completion.BaScenarioTotal, MidpointRounding.AwayFromZero);
     var issues = Model?.Issues ?? new ProjectTracking.ViewModels.PhaseWorkloadIssueSummaryViewModel();
     var issueTotal = Math.Max(issues.Total, 1);
     var issueOpenStop = issues.Open * 100d / issueTotal;
@@ -283,9 +285,9 @@
             <div class="workload-summary-grid">
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
-                     style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%; --issue-stop:@issueCompletionStop.ToString("0.####", invariant)%;"
+                     style="--completion-stop:@completionStop.ToString("0.####", invariant)%;"
                      role="img"
-                     aria-label="งานเสร็จแล้ว @completion.Percent เปอร์เซ็นต์ แบ่งเป็น PhaseAssigns, DEV, BA และ ProjectIssues">
+                     aria-label="ความคืบหน้างานรวม @completion.Percent เปอร์เซ็นต์">
                     <div class="workload-completion-chart-center">
                         <strong>@completion.Percent%</strong>
                         <span>เสร็จสิ้น</span>
@@ -322,6 +324,50 @@
                             <span class="workload-completion-name">ProjectIssues ปิดงาน</span>
                             <strong>@completion.ProjectIssueCompleted / @completion.ProjectIssueTotal</strong>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workload-scenario-panel is-dev" aria-label="ความคืบหน้า Test Scenarios DEV">
+                <div class="workload-scenario-chart"
+                     style="--scenario-stop:@devScenarioPercent.ToString("0.####", invariant)%;"
+                     role="img"
+                     aria-label="Test Scenarios DEV ผ่าน @devScenarioPercent เปอร์เซ็นต์">
+                    <div class="workload-scenario-chart-center">
+                        <strong>@devScenarioPercent%</strong>
+                        <span>ผ่าน</span>
+                    </div>
+                </div>
+                <div class="workload-scenario-content">
+                    <div class="workload-scenario-heading">
+                        <strong>Test Scenarios DEV</strong>
+                        <span>ผลการทดสอบโดย DEV</span>
+                    </div>
+                    <div class="workload-scenario-stats">
+                        <span>ผ่านแล้ว <strong>@completion.DevScenarioCompleted</strong></span>
+                        <span>ทั้งหมด <strong>@completion.DevScenarioTotal</strong></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workload-scenario-panel is-ba" aria-label="ความคืบหน้า Test Scenarios BA">
+                <div class="workload-scenario-chart"
+                     style="--scenario-stop:@baScenarioPercent.ToString("0.####", invariant)%;"
+                     role="img"
+                     aria-label="Test Scenarios BA ผ่าน @baScenarioPercent เปอร์เซ็นต์">
+                    <div class="workload-scenario-chart-center">
+                        <strong>@baScenarioPercent%</strong>
+                        <span>ผ่าน</span>
+                    </div>
+                </div>
+                <div class="workload-scenario-content">
+                    <div class="workload-scenario-heading">
+                        <strong>Test Scenarios BA</strong>
+                        <span>ผลการทดสอบโดย BA</span>
+                    </div>
+                    <div class="workload-scenario-stats">
+                        <span>ผ่านแล้ว <strong>@completion.BaScenarioCompleted</strong></span>
+                        <span>ทั้งหมด <strong>@completion.BaScenarioTotal</strong></span>
                     </div>
                 </div>
             </section>
@@ -636,12 +682,13 @@
 
     .workload-summary-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.35fr) minmax(390px, .85fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 18px;
         margin: 0 0 18px;
     }
 
     .workload-completion-panel,
+    .workload-scenario-panel,
     .workload-issues-panel {
         display: grid;
         grid-template-columns: 150px minmax(0, 1fr);
@@ -654,6 +701,11 @@
         background: #fff;
     }
 
+    .workload-completion-panel {
+        grid-column: 1 / -1;
+    }
+
+    .workload-scenario-panel,
     .workload-issues-panel {
         grid-template-columns: 132px minmax(0, 1fr);
         gap: 20px;
@@ -783,23 +835,114 @@
     }
 
     .workload-completion-chart {
-        --assign-stop: 0%;
-        --dev-stop: 0%;
-        --ba-stop: 0%;
-        --issue-stop: 0%;
+        --completion-stop: 0%;
         width: 132px;
         height: 132px;
         border-radius: 50%;
         display: grid;
         place-items: center;
         background: conic-gradient(
-            #16a085 0 var(--assign-stop),
-            #2563eb var(--assign-stop) var(--dev-stop),
-            #7c3aed var(--dev-stop) var(--ba-stop),
-            #f97316 var(--ba-stop) var(--issue-stop),
-            #e2e8f0 var(--issue-stop) 100%
+            #16a085 0 var(--completion-stop),
+            #e2e8f0 var(--completion-stop) 100%
         );
         box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
+    }
+
+    .workload-scenario-chart {
+        --scenario-stop: 0%;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: conic-gradient(
+            #2563eb 0 var(--scenario-stop),
+            #e2e8f0 var(--scenario-stop) 100%
+        );
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .12);
+    }
+
+    .workload-scenario-panel.is-ba .workload-scenario-chart {
+        background: conic-gradient(
+            #7c3aed 0 var(--scenario-stop),
+            #e2e8f0 var(--scenario-stop) 100%
+        );
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, .12);
+    }
+
+    .workload-scenario-chart-center {
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #10233f;
+        background: #fff;
+    }
+
+    .workload-scenario-chart-center strong {
+        font-size: 1.45rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .workload-scenario-chart-center span {
+        margin-top: 6px;
+        color: #64748b;
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+    .workload-scenario-content {
+        min-width: 0;
+    }
+
+    .workload-scenario-heading {
+        padding-bottom: 10px;
+        border-bottom: 1px solid #cbd5e1;
+    }
+
+    .workload-scenario-heading strong,
+    .workload-scenario-heading span {
+        display: block;
+    }
+
+    .workload-scenario-heading strong {
+        color: #10233f;
+        font-size: 1rem;
+        font-weight: 750;
+    }
+
+    .workload-scenario-heading span {
+        margin-top: 3px;
+        color: #64748b;
+        font-size: .8rem;
+        font-weight: 500;
+    }
+
+    .workload-scenario-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+        color: #64748b;
+        font-size: .8rem;
+        font-weight: 550;
+    }
+
+    .workload-scenario-stats span {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .workload-scenario-stats strong {
+        color: #10233f;
+        font-size: .95rem;
+        font-weight: 750;
     }
 
     .workload-issues-chart {
@@ -1076,11 +1219,16 @@
         }
 
         .workload-completion-panel {
+            grid-column: auto;
+        }
+
+        .workload-completion-panel {
             grid-template-columns: 112px minmax(0, 1fr);
             gap: 18px;
             padding: 18px;
         }
 
+        .workload-scenario-panel,
         .workload-issues-panel {
             grid-template-columns: 112px minmax(0, 1fr);
             gap: 18px;
@@ -1116,6 +1264,7 @@
 
     @@media (max-width: 560px) {
         .workload-completion-panel,
+        .workload-scenario-panel,
         .workload-issues-panel {
             grid-template-columns: 1fr;
             justify-items: center;
@@ -1126,6 +1275,10 @@
         }
 
         .workload-issues-content {
+            width: 100%;
+        }
+
+        .workload-scenario-content {
             width: 100%;
         }
 
