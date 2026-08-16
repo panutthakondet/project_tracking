@@ -1229,8 +1229,13 @@
     .workload-completion-panel {
         grid-column: 1 / -1;
         min-height: 0;
-        padding-inline: 24px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 28px;
+        padding: 20px 26px;
         background: #effcf8;
+        text-align: left;
     }
 
     .workload-scenario-chart,
@@ -1284,9 +1289,11 @@
     }
 
     .workload-completion-heading {
+        align-items: flex-start;
         gap: 3px;
         padding-bottom: 0;
         border-bottom: 0;
+        text-align: left;
     }
 
     .workload-completion-heading strong {
@@ -1295,8 +1302,8 @@
 
     .workload-completion-breakdown {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        width: min(100%, 1320px);
-        margin-top: 14px;
+        width: 100%;
+        margin: 14px 0 0;
     }
 
     .workload-completion-row,
@@ -1378,6 +1385,18 @@
         .workload-scenario-panel,
         .workload-issues-panel {
             min-height: 0;
+        }
+
+        .workload-completion-panel {
+            flex-direction: column;
+            gap: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .workload-completion-heading {
+            align-items: center;
+            text-align: center;
         }
     }
 
