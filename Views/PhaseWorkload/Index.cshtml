@@ -95,11 +95,10 @@
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
-    var completionTotal = Math.Max(completion.Total, 1);
-    var assignCompletionStop = completion.PhaseAssignCompleted * 100d / completionTotal;
-    var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
-    var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
-    var issueCompletionStop = baCompletionStop + (completion.ProjectIssueCompleted * 100d / completionTotal);
+    var assignCompletionStop = completion.PhaseAssignContributionPercent;
+    var devCompletionStop = assignCompletionStop + completion.DevScenarioContributionPercent;
+    var baCompletionStop = devCompletionStop + completion.BaScenarioContributionPercent;
+    var issueCompletionStop = baCompletionStop + completion.ProjectIssueContributionPercent;
     var assignPercent = completion.PhaseAssignTotal == 0
         ? 0
         : (int)Math.Round(completion.PhaseAssignCompleted * 100d / completion.PhaseAssignTotal, MidpointRounding.AwayFromZero);
@@ -302,7 +301,7 @@
                     <div class="workload-completion-heading">
                         <div>
                             <strong>ความคืบหน้างานรวม</strong>
-                            <span>รวม Assigns, DEV, BA และ Issues</span>
+                            <span>PhaseAssigns 50% · DEV, BA และ Issues แบ่งส่วนที่เหลือเท่ากัน</span>
                         </div>
                         <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
                     </div>

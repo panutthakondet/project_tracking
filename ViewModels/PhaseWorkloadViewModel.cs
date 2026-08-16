@@ -33,9 +33,30 @@ namespace ProjectTracking.ViewModels
 
         public int Total => PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal + ProjectIssueTotal;
         public int Completed => PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted + ProjectIssueCompleted;
+        public double PhaseAssignContributionPercent => CompletionRate(PhaseAssignCompleted, PhaseAssignTotal) * 50d;
+        public double DevScenarioContributionPercent => CompletionRate(DevScenarioCompleted, DevScenarioTotal) * (50d / 3d);
+        public double BaScenarioContributionPercent => CompletionRate(BaScenarioCompleted, BaScenarioTotal) * (50d / 3d);
+        public double ProjectIssueContributionPercent => CompletionRate(ProjectIssueCompleted, ProjectIssueTotal) * (50d / 3d);
+
         public int Percent => Total == 0
             ? 0
-            : (int)Math.Round(Completed * 100d / Total, MidpointRounding.AwayFromZero);
+            : (int)Math.Round(
+                PhaseAssignContributionPercent
+                + DevScenarioContributionPercent
+                + BaScenarioContributionPercent
+                + ProjectIssueContributionPercent,
+                MidpointRounding.AwayFromZero);
+
+        private double CompletionRate(int completed, int total)
+        {
+            if (total <= 0)
+            {
+                // หมวดที่ไม่มีงานไม่ควรลดเปอร์เซ็นต์รวมของโครงการที่มีงานในหมวดอื่น
+                return Total > 0 ? 1d : 0d;
+            }
+
+            return Math.Clamp(completed / (double)total, 0d, 1d);
+        }
     }
 
     public class PhaseWorkloadItemViewModel
