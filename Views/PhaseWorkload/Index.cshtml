@@ -95,7 +95,11 @@
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
-    var completionStop = completion.Percent;
+    var completionTotal = Math.Max(completion.Total, 1);
+    var assignCompletionStop = completion.PhaseAssignCompleted * 100d / completionTotal;
+    var devCompletionStop = assignCompletionStop + (completion.DevScenarioCompleted * 100d / completionTotal);
+    var baCompletionStop = devCompletionStop + (completion.BaScenarioCompleted * 100d / completionTotal);
+    var issueCompletionStop = baCompletionStop + (completion.ProjectIssueCompleted * 100d / completionTotal);
     var assignPercent = completion.PhaseAssignTotal == 0
         ? 0
         : (int)Math.Round(completion.PhaseAssignCompleted * 100d / completion.PhaseAssignTotal, MidpointRounding.AwayFromZero);
@@ -285,9 +289,9 @@
             <div class="workload-summary-grid">
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
-                     style="--completion-stop:@completionStop.ToString("0.####", invariant)%;"
+                     style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%; --issue-stop:@issueCompletionStop.ToString("0.####", invariant)%;"
                      role="img"
-                     aria-label="ความคืบหน้างานรวม @completion.Percent เปอร์เซ็นต์">
+                     aria-label="ความคืบหน้างานรวม @completion.Percent เปอร์เซ็นต์ แบ่งสีตาม PhaseAssigns, DEV, BA และ ProjectIssues">
                     <div class="workload-completion-chart-center">
                         <strong>@completion.Percent%</strong>
                         <span>เสร็จสิ้น</span>
@@ -747,15 +751,21 @@
     }
 
     .workload-completion-chart {
-        --completion-stop: 0%;
+        --assign-stop: 0%;
+        --dev-stop: 0%;
+        --ba-stop: 0%;
+        --issue-stop: 0%;
         width: 132px;
         height: 132px;
         border-radius: 50%;
         display: grid;
         place-items: center;
         background: conic-gradient(
-            #16a085 0 var(--completion-stop),
-            #e2e8f0 var(--completion-stop) 100%
+            #16a085 0 var(--assign-stop),
+            #2563eb var(--assign-stop) var(--dev-stop),
+            #7c3aed var(--dev-stop) var(--ba-stop),
+            #f97316 var(--ba-stop) var(--issue-stop),
+            #e2e8f0 var(--issue-stop) 100%
         );
         box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .12);
     }
