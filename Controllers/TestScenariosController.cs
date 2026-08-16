@@ -334,6 +334,121 @@ namespace ProjectTracking.Controllers
             return View(scenario);
         }
 
+        [HttpGet]
+        [RequireMenu("TestScenarios.Edit")]
+        public async Task<IActionResult> UpdateStatus(int id, string? returnUrl)
+        {
+            var scenario = await _context.TestScenarios
+                .AsNoTracking()
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
+                .FirstOrDefaultAsync(x => x.scenario_id == id);
+
+            if (scenario == null) return NotFound();
+
+            await LoadUpdateStatusViewDataAsync(scenario, returnUrl);
+            return View(scenario);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("TestScenarios.Edit")]
+        public async Task<IActionResult> UpdateStatus(
+            int scenario_id,
+            string? status,
+            string? remark,
+            List<IFormFile>? files,
+            List<int>? deleteAttachmentIds,
+            string? returnUrl)
+        {
+            var scenario = await _context.TestScenarios
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
+                .FirstOrDefaultAsync(x => x.scenario_id == scenario_id);
+
+            if (scenario == null) return NotFound();
+
+            var normalizedStatus = TestScenarioDisplay.NormalizeStatus(status);
+            if (!ScenarioStatusFilters.Any(x => x.Value == normalizedStatus))
+            {
+                ModelState.AddModelError(nameof(status), "กรุณาเลือกสถานะที่ถูกต้อง");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                scenario.status = normalizedStatus;
+                scenario.remark = remark;
+                await LoadUpdateStatusViewDataAsync(scenario, returnUrl);
+                return View(scenario);
+            }
+
+            scenario.status = normalizedStatus;
+            scenario.remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim();
+            scenario.updated_at = DateTime.Now;
+
+            if (deleteAttachmentIds?.Count > 0)
+            {
+                var attachmentsToDelete = await _context.TestScenarioAttachments
+                    .Where(x => x.ScenarioId == scenario.scenario_id
+                        && deleteAttachmentIds.Contains(x.AttachmentId))
+                    .ToListAsync();
+
+                foreach (var attachment in attachmentsToDelete)
+                {
+                    DeleteScenarioAttachmentFile(attachment);
+                }
+
+                _context.TestScenarioAttachments.RemoveRange(attachmentsToDelete);
+            }
+
+            await _context.SaveChangesAsync();
+            await SaveScenarioAttachmentsAsync(scenario, files);
+
+            TempData["SuccessMessage"] = "ปรับสถานะและ Evidence เรียบร้อยแล้ว";
+
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return LocalRedirect(returnUrl!);
+            }
+
+            return RedirectToAction(nameof(Index), new
+            {
+                projectId = scenario.project_id,
+                groupId = scenario.group_id
+            });
+        }
+
+        private async Task LoadUpdateStatusViewDataAsync(TestScenario scenario, string? returnUrl)
+        {
+            ViewBag.Project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .FirstOrDefaultAsync(p => p.ProjectId == scenario.project_id);
+            ViewBag.Attachments = await _context.TestScenarioAttachments
+                .AsNoTracking()
+                .Where(x => x.ScenarioId == scenario.scenario_id)
+                .OrderBy(x => x.UploadedAt)
+                .ToListAsync();
+            ViewBag.ReturnUrl = Url.IsLocalUrl(returnUrl)
+                ? returnUrl
+                : Url.Action(nameof(Index), new
+                {
+                    projectId = scenario.project_id,
+                    groupId = scenario.group_id
+                });
+        }
+
+        private void DeleteScenarioAttachmentFile(TestScenarioAttachment attachment)
+        {
+            var relativePath = attachment.FilePath ?? "";
+            var fullPath = Path.Combine(_env.WebRootPath, relativePath.TrimStart('/'));
+
+            if (System.IO.File.Exists(fullPath))
+            {
+                System.IO.File.Delete(fullPath);
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Edit")]

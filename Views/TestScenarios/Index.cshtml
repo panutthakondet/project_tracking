@@ -927,6 +927,13 @@
 
                                     @if (CanMenu("TestScenarios.Edit"))
                                     {
+                                        <a asp-action="UpdateStatus"
+                                           asp-route-id="@item.scenario_id"
+                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"
+                                           class="btn btn-sm btn-outline-success"
+                                           title="ปรับสถานะ Remark และ Evidence">
+                                            ปรับสถานะ
+                                        </a>
                                         <a asp-action="Edit"
                                            asp-route-id="@item.scenario_id"
                                            class="btn btn-sm btn-outline-primary"

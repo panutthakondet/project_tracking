@@ -192,6 +192,10 @@
             <a href="@backUrl" class="btn btn-outline-light">กลับ</a>
             @if (CanMenu("TestScenarios.Edit"))
             {
+                <a asp-action="UpdateStatus"
+                   asp-route-id="@Model.scenario_id"
+                   asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"
+                   class="btn btn-success">ปรับสถานะ</a>
                 <a asp-action="Edit" asp-route-id="@Model.scenario_id" class="btn btn-primary">แก้ไข</a>
             }
         </div>
