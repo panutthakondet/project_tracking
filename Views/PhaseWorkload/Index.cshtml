@@ -95,10 +95,14 @@
 
     var todayText = DateTime.Today.ToString("dddd 'ที่' d MMMM yyyy", th);
     var completion = Model?.Completion ?? new ProjectTracking.ViewModels.PhaseWorkloadCompletionViewModel();
-    var assignCompletionStop = completion.PhaseAssignContributionPercent;
+    var phaseCompletionStop = completion.ProjectPhaseContributionPercent;
+    var assignCompletionStop = phaseCompletionStop + completion.PhaseAssignContributionPercent;
     var devCompletionStop = assignCompletionStop + completion.DevScenarioContributionPercent;
     var baCompletionStop = devCompletionStop + completion.BaScenarioContributionPercent;
     var issueCompletionStop = baCompletionStop + completion.ProjectIssueContributionPercent;
+    var phasePercent = completion.ProjectPhaseTotal == 0
+        ? 0
+        : (int)Math.Round(completion.ProjectPhaseCompleted * 100d / completion.ProjectPhaseTotal, MidpointRounding.AwayFromZero);
     var assignPercent = completion.PhaseAssignTotal == 0
         ? 0
         : (int)Math.Round(completion.PhaseAssignCompleted * 100d / completion.PhaseAssignTotal, MidpointRounding.AwayFromZero);
@@ -288,9 +292,9 @@
             <div class="workload-summary-grid">
             <section class="workload-completion-panel" aria-label="สรุปเปอร์เซ็นต์ความสำเร็จของงาน">
                 <div class="workload-completion-chart"
-                     style="--assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%; --issue-stop:@issueCompletionStop.ToString("0.####", invariant)%;"
+                     style="--phase-stop:@phaseCompletionStop.ToString("0.####", invariant)%; --assign-stop:@assignCompletionStop.ToString("0.####", invariant)%; --dev-stop:@devCompletionStop.ToString("0.####", invariant)%; --ba-stop:@baCompletionStop.ToString("0.####", invariant)%; --issue-stop:@issueCompletionStop.ToString("0.####", invariant)%;"
                      role="img"
-                     aria-label="ความคืบหน้างานรวม @completion.Percent เปอร์เซ็นต์ แบ่งสีตาม PhaseAssigns, DEV, BA และ ProjectIssues">
+                     aria-label="ความคืบหน้างานรวม @completion.Percent เปอร์เซ็นต์ แบ่งสีตาม ProjectPhases, PhaseAssigns, DEV, BA และ ProjectIssues">
                     <div class="workload-completion-chart-center">
                         <strong>@completion.Percent%</strong>
                         <span>เสร็จสิ้น</span>
@@ -301,12 +305,17 @@
                     <div class="workload-completion-heading">
                         <div>
                             <strong>ความคืบหน้างานรวม</strong>
-                            <span>PhaseAssigns 50% · DEV, BA และ Issues แบ่งส่วนที่เหลือเท่ากัน</span>
+                            <span>ProjectPhases 20% · PhaseAssigns 40% · DEV 15% · BA 15% · Issues 10%</span>
                         </div>
                         <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
                     </div>
 
                     <div class="workload-completion-breakdown">
+                        <div class="workload-completion-row is-phase">
+                            <span class="workload-completion-dot"></span>
+                            <span class="workload-completion-name">ProjectPhases</span>
+                            <strong>@completion.ProjectPhaseCompleted / @completion.ProjectPhaseTotal · @phasePercent%</strong>
+                        </div>
                         <div class="workload-completion-row is-assign">
                             <span class="workload-completion-dot"></span>
                             <span class="workload-completion-name">PhaseAssigns</span>
@@ -750,6 +759,7 @@
     }
 
     .workload-completion-chart {
+        --phase-stop: 0%;
         --assign-stop: 0%;
         --dev-stop: 0%;
         --ba-stop: 0%;
@@ -760,7 +770,8 @@
         display: grid;
         place-items: center;
         background: conic-gradient(
-            #16a085 0 var(--assign-stop),
+            #64748b 0 var(--phase-stop),
+            #16a085 var(--phase-stop) var(--assign-stop),
             #2563eb var(--assign-stop) var(--dev-stop),
             #7c3aed var(--dev-stop) var(--ba-stop),
             #f97316 var(--ba-stop) var(--issue-stop),
@@ -1109,6 +1120,10 @@
         background: #16a085;
     }
 
+    .workload-completion-row.is-phase .workload-completion-dot {
+        background: #64748b;
+    }
+
     .workload-completion-row.is-dev .workload-completion-dot {
         background: #2563eb;
     }
@@ -1310,7 +1325,7 @@
     }
 
     .workload-completion-breakdown {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         width: 100%;
         margin: 14px 0 0;
     }

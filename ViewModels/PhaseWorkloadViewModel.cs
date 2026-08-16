@@ -22,6 +22,14 @@ namespace ProjectTracking.ViewModels
 
     public class PhaseWorkloadCompletionViewModel
     {
+        private const double ProjectPhaseWeight = 20d;
+        private const double PhaseAssignWeight = 40d;
+        private const double DevScenarioWeight = 15d;
+        private const double BaScenarioWeight = 15d;
+        private const double ProjectIssueWeight = 10d;
+
+        public int ProjectPhaseTotal { get; set; }
+        public int ProjectPhaseCompleted { get; set; }
         public int PhaseAssignTotal { get; set; }
         public int PhaseAssignCompleted { get; set; }
         public int DevScenarioTotal { get; set; }
@@ -31,31 +39,40 @@ namespace ProjectTracking.ViewModels
         public int ProjectIssueTotal { get; set; }
         public int ProjectIssueCompleted { get; set; }
 
-        public int Total => PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal + ProjectIssueTotal;
-        public int Completed => PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted + ProjectIssueCompleted;
-        public double PhaseAssignContributionPercent => CompletionRate(PhaseAssignCompleted, PhaseAssignTotal) * 50d;
-        public double DevScenarioContributionPercent => CompletionRate(DevScenarioCompleted, DevScenarioTotal) * (50d / 3d);
-        public double BaScenarioContributionPercent => CompletionRate(BaScenarioCompleted, BaScenarioTotal) * (50d / 3d);
-        public double ProjectIssueContributionPercent => CompletionRate(ProjectIssueCompleted, ProjectIssueTotal) * (50d / 3d);
+        public int Total => ProjectPhaseTotal + PhaseAssignTotal + DevScenarioTotal + BaScenarioTotal + ProjectIssueTotal;
+        public int Completed => ProjectPhaseCompleted + PhaseAssignCompleted + DevScenarioCompleted + BaScenarioCompleted + ProjectIssueCompleted;
+
+        public double ProjectPhaseContributionPercent => ContributionPercent(ProjectPhaseCompleted, ProjectPhaseTotal, ProjectPhaseWeight);
+        public double PhaseAssignContributionPercent => ContributionPercent(PhaseAssignCompleted, PhaseAssignTotal, PhaseAssignWeight);
+        public double DevScenarioContributionPercent => ContributionPercent(DevScenarioCompleted, DevScenarioTotal, DevScenarioWeight);
+        public double BaScenarioContributionPercent => ContributionPercent(BaScenarioCompleted, BaScenarioTotal, BaScenarioWeight);
+        public double ProjectIssueContributionPercent => ContributionPercent(ProjectIssueCompleted, ProjectIssueTotal, ProjectIssueWeight);
 
         public int Percent => Total == 0
             ? 0
             : (int)Math.Round(
-                PhaseAssignContributionPercent
+                ProjectPhaseContributionPercent
+                + PhaseAssignContributionPercent
                 + DevScenarioContributionPercent
                 + BaScenarioContributionPercent
                 + ProjectIssueContributionPercent,
                 MidpointRounding.AwayFromZero);
 
-        private double CompletionRate(int completed, int total)
+        private double ContributionPercent(int completed, int total, double weight)
         {
-            if (total <= 0)
-            {
-                // หมวดที่ไม่มีงานไม่ควรลดเปอร์เซ็นต์รวมของโครงการที่มีงานในหมวดอื่น
-                return Total > 0 ? 1d : 0d;
-            }
+            if (total <= 0) return 0d;
 
-            return Math.Clamp(completed / (double)total, 0d, 1d);
+            var activeWeight =
+                (ProjectPhaseTotal > 0 ? ProjectPhaseWeight : 0d)
+                + (PhaseAssignTotal > 0 ? PhaseAssignWeight : 0d)
+                + (DevScenarioTotal > 0 ? DevScenarioWeight : 0d)
+                + (BaScenarioTotal > 0 ? BaScenarioWeight : 0d)
+                + (ProjectIssueTotal > 0 ? ProjectIssueWeight : 0d);
+
+            if (activeWeight <= 0d) return 0d;
+
+            var completionRate = Math.Clamp(completed / (double)total, 0d, 1d);
+            return completionRate * weight * 100d / activeWeight;
         }
     }
 

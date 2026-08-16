@@ -274,8 +274,41 @@ namespace ProjectTracking.Controllers
 
             var devScenario = scenarioSummary.FirstOrDefault(x => x.Type == "DEV");
             var baScenario = scenarioSummary.FirstOrDefault(x => x.Type == "BA");
+
+            var phaseProjectIds = projectOptions
+                .Where(x =>
+                    (!selectedCoopId.HasValue || x.CoopId == selectedCoopId.Value) &&
+                    (!selectedProjectId.HasValue || x.ProjectId == selectedProjectId.Value))
+                .Select(x => x.ProjectId)
+                .ToList();
+            var phaseQuery = _context.ProjectPhases
+                .AsNoTracking()
+                .Where(x =>
+                    phaseProjectIds.Contains(x.ProjectId) &&
+                    x.PlanStart.HasValue &&
+                    x.PlanStart.Value <= monthEnd &&
+                    (
+                        (x.PeriodEndDate.HasValue && x.PeriodEndDate.Value >= monthStart) ||
+                        (!x.PeriodEndDate.HasValue && x.PlanEnd.HasValue && x.PlanEnd.Value >= monthStart)
+                    ));
+
+            if (selectedEmpId.HasValue)
+            {
+                var employeePhaseIds = phaseAssigns
+                    .Where(x => x.PhaseId > 0)
+                    .Select(x => x.PhaseId)
+                    .Distinct()
+                    .ToList();
+                phaseQuery = phaseQuery.Where(x => employeePhaseIds.Contains(x.PhaseId));
+            }
+
+            var phaseStatuses = await phaseQuery
+                .Select(x => x.PhaseStatus)
+                .ToListAsync();
             var completion = new PhaseWorkloadCompletionViewModel
             {
+                ProjectPhaseTotal = phaseStatuses.Count,
+                ProjectPhaseCompleted = phaseStatuses.Count(IsProjectPhaseCompleted),
                 PhaseAssignTotal = phaseAssigns.Count,
                 PhaseAssignCompleted = phaseAssigns.Count(x =>
                     string.Equals(x.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase)),
@@ -361,6 +394,12 @@ namespace ProjectTracking.Controllers
             return string.Equals(status, "DONE", StringComparison.OrdinalIgnoreCase)
                 ? "DONE"
                 : "IN_PROGRESS";
+        }
+
+        private static bool IsProjectPhaseCompleted(string? status)
+        {
+            var normalized = (status ?? "").Trim().ToUpperInvariant();
+            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
         }
 
         private static int ClampMonth(int month)
