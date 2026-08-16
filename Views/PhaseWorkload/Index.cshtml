@@ -296,32 +296,9 @@
                     <div class="workload-completion-heading">
                         <div>
                             <strong>ความคืบหน้างานรวม</strong>
-                            <span>คำนวณจาก PhaseAssigns, Test Scenarios DEV / BA และ ProjectIssues</span>
+                            <span>รวม Assigns, DEV, BA และ Issues</span>
                         </div>
                         <span class="workload-completion-total">@completion.Completed / @completion.Total รายการ</span>
-                    </div>
-
-                    <div class="workload-completion-breakdown">
-                        <div class="workload-completion-row is-assign">
-                            <span class="workload-completion-dot"></span>
-                            <span class="workload-completion-name">PhaseAssigns เสร็จสิ้น</span>
-                            <strong>@completion.PhaseAssignCompleted / @completion.PhaseAssignTotal</strong>
-                        </div>
-                        <div class="workload-completion-row is-dev">
-                            <span class="workload-completion-dot"></span>
-                            <span class="workload-completion-name">Test Scenarios DEV ผ่าน</span>
-                            <strong>@completion.DevScenarioCompleted / @completion.DevScenarioTotal</strong>
-                        </div>
-                        <div class="workload-completion-row is-ba">
-                            <span class="workload-completion-dot"></span>
-                            <span class="workload-completion-name">Test Scenarios BA ผ่าน</span>
-                            <strong>@completion.BaScenarioCompleted / @completion.BaScenarioTotal</strong>
-                        </div>
-                        <div class="workload-completion-row is-issue">
-                            <span class="workload-completion-dot"></span>
-                            <span class="workload-completion-name">ProjectIssues ปิดงาน</span>
-                            <strong>@completion.ProjectIssueCompleted / @completion.ProjectIssueTotal</strong>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -1288,6 +1265,104 @@
 
         .workload-completion-heading {
             align-items: center;
+        }
+    }
+
+    /* Compact summary: four equal cards without repeating the same details. */
+    .workload-summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .workload-completion-panel,
+    .workload-scenario-panel,
+    .workload-issues-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 11px;
+        min-height: 252px;
+        padding: 16px 18px;
+        text-align: center;
+    }
+
+    .workload-completion-panel {
+        grid-column: auto;
+    }
+
+    .workload-completion-chart,
+    .workload-scenario-chart,
+    .workload-issues-chart {
+        width: 106px;
+        height: 106px;
+        flex: 0 0 106px;
+    }
+
+    .workload-completion-chart-center,
+    .workload-scenario-chart-center,
+    .workload-issues-chart-center {
+        width: 72px;
+        height: 72px;
+    }
+
+    .workload-completion-chart-center strong,
+    .workload-scenario-chart-center strong,
+    .workload-issues-chart-center strong {
+        font-size: 1.4rem;
+    }
+
+    .workload-completion-content,
+    .workload-scenario-content,
+    .workload-issues-content {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .workload-completion-heading,
+    .workload-scenario-heading,
+    .workload-issues-heading {
+        text-align: center;
+    }
+
+    .workload-completion-heading {
+        gap: 3px;
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .workload-scenario-heading {
+        padding-bottom: 8px;
+    }
+
+    .workload-issues-heading {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding-bottom: 8px;
+    }
+
+    .workload-scenario-stats,
+    .workload-issues-breakdown {
+        margin-top: 9px;
+    }
+
+    @@media (max-width: 1400px) {
+        .workload-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 680px) {
+        .workload-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .workload-completion-panel,
+        .workload-scenario-panel,
+        .workload-issues-panel {
+            min-height: 0;
         }
     }
 
