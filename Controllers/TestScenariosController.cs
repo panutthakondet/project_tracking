@@ -539,13 +539,26 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportTemplates(int? projectId, int? controlId, List<int> groupIds, string? scenarioType)
+        public async Task<IActionResult> ImportTemplates(
+            int? projectId,
+            int? controlId,
+            List<int> groupIds,
+            string? scenarioType,
+            string? status,
+            string? coopName)
         {
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            var selectedStatus = NormalizeIndexStatus(status);
+            var selectedCoopName = (coopName ?? "").Trim();
             if (!projectId.HasValue)
             {
                 TempData["Error"] = "กรุณาเลือกโครงการก่อน Import";
-                return RedirectToAction("Index");
+                return RedirectToAction(nameof(Index), new
+                {
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = selectedScenarioType
+                });
             }
 
             var selectedGroupIds = (groupIds ?? new List<int>())
@@ -569,7 +582,14 @@ namespace ProjectTracking.Controllers
             if (selectedGroupIds.Count == 0)
             {
                 TempData["Error"] = "ไม่พบ Template Group สำหรับ Import";
-                return RedirectToAction("Index", new { projectId, controlId });
+                return RedirectToAction(nameof(Index), new
+                {
+                    projectId,
+                    controlId,
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = selectedScenarioType
+                });
             }
 
             var result = await ImportTemplatesForGroupsAsync(projectId.Value, selectedGroupIds,
@@ -586,6 +606,10 @@ namespace ProjectTracking.Controllers
                 redirectQuery.AddRange(selectedGroupIds.Select(id => $"groupIds={id}"));
             if (!string.IsNullOrWhiteSpace(selectedScenarioType))
                 redirectQuery.Add($"scenarioType={selectedScenarioType}");
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+                redirectQuery.Add($"status={selectedStatus}");
+            if (!string.IsNullOrWhiteSpace(selectedCoopName))
+                redirectQuery.Add($"coopName={Uri.EscapeDataString(selectedCoopName)}");
 
             return Redirect($"{Url.Action(nameof(Index))}?{string.Join("&", redirectQuery)}");
         }
@@ -707,12 +731,19 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportFromDev(int? projectId)
+        public async Task<IActionResult> ImportFromDev(int? projectId, string? status, string? coopName)
         {
+            var selectedStatus = NormalizeIndexStatus(status);
+            var selectedCoopName = (coopName ?? "").Trim();
             if (!projectId.HasValue || projectId.Value <= 0)
             {
                 TempData["Error"] = "กรุณาเลือกโครงการก่อน Import จาก DEV";
-                return RedirectToAction(nameof(Index), new { scenarioType = "BA" });
+                return RedirectToAction(nameof(Index), new
+                {
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = "BA"
+                });
             }
 
             var devScenarios = await _context.TestScenarios
@@ -782,7 +813,13 @@ namespace ProjectTracking.Controllers
                     : $"ไม่มีรายการใหม่ ข้ามรายการซ้ำทั้งหมด {skippedCount} รายการ";
             }
 
-            return RedirectToAction(nameof(Index), new { projectId, scenarioType = "BA" });
+            return RedirectToAction(nameof(Index), new
+            {
+                projectId,
+                coopName = selectedCoopName,
+                status = selectedStatus,
+                scenarioType = "BA"
+            });
         }
 
         [HttpPost]

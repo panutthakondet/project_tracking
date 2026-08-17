@@ -796,6 +796,8 @@
                           onsubmit="return confirm('Import Test Scenario จาก DEV มาเป็น BA? รายการซ้ำจะถูกข้ามและสถานะของรายการใหม่จะเป็นพร้อมทดสอบ');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
+                        <input type="hidden" name="coopName" value="@selectedCoopName" />
+                        <input type="hidden" name="status" value="@selectedStatus" />
                         <button type="submit"
                                 class="btn btn-outline-primary"
                                 title="Import รายการจาก DEV มาเป็น BA">
