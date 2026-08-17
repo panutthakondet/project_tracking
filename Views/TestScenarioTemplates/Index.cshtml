@@ -337,6 +337,12 @@
         border-color: rgba(245, 158, 11, .28);
     }
 
+    .template-detail-box--remark {
+        grid-column: 1 / -1;
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
     .template-detail-box--precondition .template-detail-label {
         color: #0f766e;
     }
@@ -347,6 +353,10 @@
 
     .template-detail-box--expected .template-detail-label {
         color: #b45309;
+    }
+
+    .template-detail-box--remark .template-detail-label {
+        color: #475569;
     }
 
     .template-detail-label {
@@ -525,6 +535,13 @@ else
                                             <div class="template-detail-label">Expected Result</div>
                                             <div class="template-detail-text">@item.expected_result</div>
                                         </div>
+                                        @if (!string.IsNullOrWhiteSpace(item.remark))
+                                        {
+                                            <div class="template-detail-box template-detail-box--remark">
+                                                <div class="template-detail-label">Remark</div>
+                                                <div class="template-detail-text">@item.remark</div>
+                                            </div>
+                                        }
                                     </div>
 
                                     <div class="template-actions">

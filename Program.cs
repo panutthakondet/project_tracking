@@ -243,6 +243,7 @@ await EnsureRequirementBoardTablesAsync(app.Services);
 await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
+await EnsureTestScenarioTemplateRemarkColumnAsync(app.Services);
 await EnsureTestScenarioTypeColumnAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
 
@@ -2768,6 +2769,37 @@ static async Task EnsureTestScenarioReadyStatusValuesAsync(IServiceProvider serv
     {
         if (shouldClose)
             await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTestScenarioTemplateRemarkColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'test_scenario_templates'
+              AND column_name = 'remark';";
+
+        if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `test_scenario_templates`
+                ADD COLUMN `remark` TEXT NULL AFTER `expected_result`;";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
     }
 }
 

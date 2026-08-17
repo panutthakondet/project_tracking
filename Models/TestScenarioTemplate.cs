@@ -10,6 +10,7 @@ namespace ProjectTracking.Models
         public string? precondition { get; set; }
         public string steps { get; set; } = string.Empty;
         public string expected_result { get; set; } = string.Empty;
+        public string? remark { get; set; }
 
         public string priority_default { get; set; } = "MEDIUM";
         public string status_default { get; set; } = "READY";

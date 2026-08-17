@@ -656,6 +656,7 @@ namespace ProjectTracking.Controllers
                         precondition = t.precondition,
                         steps = t.steps,
                         expected_result = t.expected_result,
+                        remark = t.remark,
                         priority = t.priority_default,
                         scenario_type = NormalizeScenarioType(scenarioType),
                         status = TestScenarioDisplay.NormalizeStatus(t.status_default),

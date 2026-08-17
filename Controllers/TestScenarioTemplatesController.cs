@@ -173,6 +173,7 @@ namespace ProjectTracking.Controllers
             model.updated_at = DateTime.Now;
             model.is_active = true;
             model.status_default = TestScenarioDisplay.NormalizeStatus(model.status_default);
+            model.remark = string.IsNullOrWhiteSpace(model.remark) ? null : model.remark.Trim();
 
             _context.TestScenarioTemplates.Add(model);
             await _context.SaveChangesAsync();
@@ -239,6 +240,7 @@ namespace ProjectTracking.Controllers
             template.precondition = model.precondition;
             template.steps = model.steps;
             template.expected_result = model.expected_result;
+            template.remark = string.IsNullOrWhiteSpace(model.remark) ? null : model.remark.Trim();
             template.priority_default = model.priority_default;
             template.status_default = TestScenarioDisplay.NormalizeStatus(model.status_default);
             template.updated_at = DateTime.Now;
