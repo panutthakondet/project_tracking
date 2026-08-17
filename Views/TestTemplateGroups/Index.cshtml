@@ -233,7 +233,7 @@
         </select>
         @if (selectedControl.HasValue)
         {
-            <a asp-action="Index" class="btn btn-outline-secondary">ล้าง</a>
+            <a asp-action="Index" asp-route-clearControl="true" class="btn btn-outline-secondary">ล้าง</a>
         }
     </div>
 </form>

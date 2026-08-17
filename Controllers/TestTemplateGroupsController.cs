@@ -1,6 +1,7 @@
 using ProjectTracking.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
@@ -9,6 +10,7 @@ namespace ProjectTracking.Controllers
 {
     public class TestTemplateGroupsController : BaseController
     {
+        private const string IndexControlFilterKey = "TestTemplateGroups.Filter.ControlId";
         private readonly AppDbContext _context;
 
         public TestTemplateGroupsController(AppDbContext context)
@@ -17,14 +19,23 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestTemplateGroups.Index")]
-        public async Task<IActionResult> Index(int? controlId)
+        public async Task<IActionResult> Index(int? controlId, bool clearControl = false)
         {
+            var selectedControl = ResolveIndexControlFilter(controlId, clearControl);
+            if (selectedControl.HasValue && !await _context.TestTemplateGroupControls
+                    .AsNoTracking()
+                    .AnyAsync(x => x.control_id == selectedControl.Value && x.is_active))
+            {
+                HttpContext.Session.Remove(IndexControlFilterKey);
+                selectedControl = null;
+            }
+
             var query = _context.TestTemplateGroups
                 .AsNoTracking()
                 .Include(x => x.Control)
                 .AsQueryable();
-            if (controlId.HasValue)
-                query = query.Where(x => x.control_id == controlId.Value);
+            if (selectedControl.HasValue)
+                query = query.Where(x => x.control_id == selectedControl.Value);
 
             var groups = await query
                 .OrderBy(x => x.Control != null ? x.Control.sort_order : int.MaxValue)
@@ -32,7 +43,7 @@ namespace ProjectTracking.Controllers
                 .ThenByDescending(x => x.created_at)
                 .ToListAsync();
 
-            await LoadControlsAsync(controlId);
+            await LoadControlsAsync(selectedControl);
 
             return View(groups);
         }
@@ -157,6 +168,32 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.control_name)
                 .ToListAsync();
             ViewBag.SelectedControl = selectedControl;
+        }
+
+        private int? ResolveIndexControlFilter(int? controlId, bool clearControl)
+        {
+            if (clearControl)
+            {
+                HttpContext.Session.Remove(IndexControlFilterKey);
+                return null;
+            }
+
+            if (!Request.Query.ContainsKey("controlId"))
+            {
+                var rememberedValue = HttpContext.Session.GetString(IndexControlFilterKey);
+                return int.TryParse(rememberedValue, out var rememberedControlId) && rememberedControlId > 0
+                    ? rememberedControlId
+                    : null;
+            }
+
+            if (!controlId.HasValue || controlId.Value <= 0)
+            {
+                HttpContext.Session.Remove(IndexControlFilterKey);
+                return null;
+            }
+
+            HttpContext.Session.SetString(IndexControlFilterKey, controlId.Value.ToString());
+            return controlId.Value;
         }
 
         private async Task ValidateGroupAsync(TestTemplateGroup model, int? exceptId = null)
