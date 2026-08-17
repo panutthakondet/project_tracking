@@ -226,6 +226,7 @@ await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
 await EnsureProjectPmEmpIdColumnAsync(app.Services);
+await EnsureProjectTeamMemberTableAsync(app.Services);
 await EnsureStatusApprovalRequestTableAsync(app.Services);
 await EnsureMeetingStatusColumnAsync(app.Services);
 await EnsureUserNotificationTableAsync(app.Services);
@@ -686,6 +687,59 @@ static async Task EnsureProjectPmEmpIdColumnAsync(IServiceProvider services)
             command.CommandText = "CREATE INDEX `idx_project_pm_emp_id` ON `project` (`pm_emp_id`);";
             await command.ExecuteNonQueryAsync();
         }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectTeamMemberTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_team_member` (
+                `project_id` INT NOT NULL,
+                `emp_id` INT NOT NULL,
+                `member_role` VARCHAR(10) NOT NULL,
+                `sort_order` INT NOT NULL DEFAULT 0,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`project_id`, `emp_id`, `member_role`),
+                INDEX `idx_project_team_role_sort` (`project_id`, `member_role`, `sort_order`),
+                INDEX `idx_project_team_employee_role` (`emp_id`, `member_role`),
+                CONSTRAINT `fk_project_team_project`
+                    FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`) ON DELETE CASCADE,
+                CONSTRAINT `fk_project_team_employee`
+                    FOREIGN KEY (`emp_id`) REFERENCES `employee` (`emp_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT IGNORE INTO `project_team_member`
+                (`project_id`, `emp_id`, `member_role`, `sort_order`, `created_at`)
+            SELECT `project_id`, `pm_emp_id`, 'PM', 1, COALESCE(`created_at`, NOW())
+            FROM `project`
+            WHERE `pm_emp_id` IS NOT NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT IGNORE INTO `project_team_member`
+                (`project_id`, `emp_id`, `member_role`, `sort_order`, `created_at`)
+            SELECT `project_id`, `ba_emp_id`, 'BA', 1, COALESCE(`created_at`, NOW())
+            FROM `project`
+            WHERE `ba_emp_id` IS NOT NULL;";
+        await command.ExecuteNonQueryAsync();
     }
     finally
     {

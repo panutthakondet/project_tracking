@@ -295,7 +295,8 @@
                     <select id="pmFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
                         @foreach (var pm in projects
-                            .Select(x => x.PM?.EmpName)
+                            .SelectMany(x => x.ProjectManagers)
+                            .Select(x => x.EmpName)
                             .Where(x => !string.IsNullOrWhiteSpace(x))
                             .Distinct()
                             .OrderBy(x => x))
@@ -310,7 +311,8 @@
                     <select id="baFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
                         @foreach (var ba in projects
-                            .Select(x => x.BA?.EmpName)
+                            .SelectMany(x => x.BusinessAnalysts)
+                            .Select(x => x.EmpName)
                             .Where(x => !string.IsNullOrWhiteSpace(x))
                             .Distinct()
                             .OrderBy(x => x))
@@ -372,13 +374,15 @@
                 var projectDisplayName = p.ProjectDisplayName;
                 var coopName = p.Coop?.CoopName ?? "";
                 var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
-                <tr data-ba-id="@(p.BA != null ? p.BA.EmpId.ToString() : "")"
+                var projectManagers = p.ProjectManagers;
+                var businessAnalysts = p.BusinessAnalysts;
+                <tr data-ba-id="@string.Join(",", businessAnalysts.Select(e => e.EmpId))"
                     data-project="@projectDisplayName.ToLower()"
                     data-project-name="@p.ProjectName.ToLower()"
                     data-coop="@coopName.ToLower()"
                     data-department="@departmentValue"
-                    data-ba="@((p.BA?.EmpName ?? "").ToLower())"
-                    data-pm="@((p.PM?.EmpName ?? "").ToLower())"
+                    data-ba="@(p.BusinessAnalystNames.ToLower())"
+                    data-pm="@(p.ProjectManagerNames.ToLower())"
                     data-status="@((p.Status ?? "").ToLower())">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
@@ -394,12 +398,15 @@
                     <td class="col-detail project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</td>
 
                     <td class="col-pm text-center">
-                        @if (p.PM != null)
+                        @if (projectManagers.Count > 0)
                         {
-                            <span class="project-person is-table is-profile">
-                                <img class="pt-owner-avatar" src="@ProfileImage(p.PM)" alt="@p.PM.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                <span class="project-person-text"><strong>PM:</strong> @p.PM.EmpName</span>
-                            </span>
+                            foreach (var member in projectManagers)
+                            {
+                                <span class="project-person is-table is-profile">
+                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text">@member.EmpName</span>
+                                </span>
+                            }
                         }
                         else
                         {
@@ -408,12 +415,15 @@
                     </td>
 
                     <td class="col-ba text-center">
-                        @if (p.BA != null)
+                        @if (businessAnalysts.Count > 0)
                         {
-                            <span class="project-person is-table is-profile">
-                                <img class="pt-owner-avatar" src="@ProfileImage(p.BA)" alt="@p.BA.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                <span class="project-person-text"><strong>BA:</strong> @p.BA.EmpName</span>
-                            </span>
+                            foreach (var member in businessAnalysts)
+                            {
+                                <span class="project-person is-table is-profile">
+                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text">@member.EmpName</span>
+                                </span>
+                            }
                         }
                         else
                         {
@@ -584,37 +594,37 @@
             var coopName = p.Coop?.CoopName ?? "";
             var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
             var hasPendingApproval = pendingProjectApprovalIds.Contains(p.ProjectId);
+            var projectManagers = p.ProjectManagers;
+            var businessAnalysts = p.BusinessAnalysts;
             <div class="project-card"
                  data-project="@projectDisplayName.ToLower()"
                  data-project-name="@p.ProjectName.ToLower()"
                  data-coop="@coopName.ToLower()"
                  data-department="@departmentValue"
-                 data-ba="@((p.BA?.EmpName ?? "").ToLower())"
-                 data-pm="@((p.PM?.EmpName ?? "").ToLower())"
+                 data-ba="@(p.BusinessAnalystNames.ToLower())"
+                 data-pm="@(p.ProjectManagerNames.ToLower())"
                  data-status="@((p.Status ?? "").ToLower())"
-                data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BA?.EmpName} {p.PM?.EmpName}".ToLower())">
+                data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames}".ToLower())">
 
                 <div class="project-card-header">
                     <div class="project-header-content">
                         <div class="project-card-topline">
                             <span class="project-row-number">@mobileRow</span>
                             <span class="project-top-people">
-                                <span class="project-person is-profile">
-                                    <img class="pt-owner-avatar"
-                                         src="@ProfileImage(p.PM)"
-                                         alt="@(p.PM?.EmpName ?? "Project Manager")"
-                                         loading="lazy"
-                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text"><strong>PM:</strong> @(p.PM?.EmpName ?? "-")</span>
-                                </span>
-                                <span class="project-person is-profile">
-                                    <img class="pt-owner-avatar"
-                                         src="@ProfileImage(p.BA)"
-                                         alt="@(p.BA?.EmpName ?? "Business Analyst")"
-                                         loading="lazy"
-                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text"><strong>BA:</strong> @(p.BA?.EmpName ?? "-")</span>
-                                </span>
+                                @foreach (var member in projectManagers)
+                                {
+                                    <span class="project-person is-profile">
+                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
+                                    </span>
+                                }
+                                @foreach (var member in businessAnalysts)
+                                {
+                                    <span class="project-person is-profile">
+                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
+                                    </span>
+                                }
                             </span>
                         </div>
 

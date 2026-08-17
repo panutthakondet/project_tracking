@@ -951,21 +951,21 @@
         </select>
 
         <div class="phase-selected-people">
-            @if (selectedProjectModel?.PM != null)
+            @foreach (var member in selectedProjectModel?.ProjectManagers ?? Array.Empty<ProjectTracking.Models.Employee>())
             {
                 <span class="phase-selected-person-card">
                     <span class="phase-selected-person-label">PM</span>
-                    <img class="pt-owner-avatar" src="@ProfileImage(selectedProjectModel.PM)" alt="@selectedProjectModel.PM.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                    <span class="phase-selected-person-name">@selectedProjectModel.PM.EmpName</span>
+                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    <span class="phase-selected-person-name">@member.EmpName</span>
                 </span>
             }
 
-            @if (selectedProjectModel?.BA != null)
+            @foreach (var member in selectedProjectModel?.BusinessAnalysts ?? Array.Empty<ProjectTracking.Models.Employee>())
             {
                 <span class="phase-selected-person-card">
                     <span class="phase-selected-person-label">BA</span>
-                    <img class="pt-owner-avatar" src="@ProfileImage(selectedProjectModel.BA)" alt="@selectedProjectModel.BA.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                    <span class="phase-selected-person-name">@selectedProjectModel.BA.EmpName</span>
+                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                    <span class="phase-selected-person-name">@member.EmpName</span>
                 </span>
             }
 

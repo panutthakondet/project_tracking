@@ -146,6 +146,7 @@ namespace ProjectTracking.ViewModels
         public int ProjectId { get; set; }
         public int EmpId { get; set; }
         public int? BaEmpId { get; set; }
+        public List<int> BaEmpIds { get; set; } = new();
         public string ProjectName { get; set; } = "";
         public string EmployeeName { get; set; } = "";
         public string PhaseName { get; set; } = "";
@@ -213,6 +214,7 @@ namespace ProjectTracking.ViewModels
         public int? OwnerEmpId { get; set; }
         public string OwnerName { get; set; } = "";
         public int? BaEmpId { get; set; }
+        public List<int> BaEmpIds { get; set; } = new();
         public string BaName { get; set; } = "";
         public string Status { get; set; } = "";
         public string Priority { get; set; } = "";

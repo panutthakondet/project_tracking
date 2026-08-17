@@ -292,6 +292,13 @@ namespace ProjectTracking.Controllers
                 .Include(x => x.Phase!)
                     .ThenInclude(x => x.Project)
                         .ThenInclude(x => x!.Coop)
+                .Include(x => x.Phase!)
+                    .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.BA)
+                .Include(x => x.Phase!)
+                    .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.TeamMembers)
+                            .ThenInclude(x => x.Employee)
                 .Where(x => x.Phase != null
                     && ((x.PlanEnd ?? x.Phase!.PlanEnd).HasValue)
                     && (x.PlanEnd ?? x.Phase!.PlanEnd)!.Value <= riskUntil)
@@ -309,8 +316,8 @@ namespace ProjectTracking.Controllers
                 var project = row.Phase?.Project;
                 var title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"Assign #{row.AssignId}" : row.Role!;
                 var ownerName = EmployeeName(employees, row.EmpId);
-                var baEmpId = project?.BaEmpId;
-                var baName = EmployeeName(employees, baEmpId);
+                var baEmployees = project?.BusinessAnalysts ?? Array.Empty<Employee>();
+                var baName = project?.BusinessAnalystNames ?? "-";
                 var message = BuildSelectionMessage(
                     stateText,
                     project?.Coop?.CoopName,
@@ -329,9 +336,9 @@ namespace ProjectTracking.Controllers
 
                 AddSelectionItem(items, employees, hasLine, "ASSIGN_DUE", "Phase Assign", row.AssignId, row.EmpId, "เจ้าของงาน", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectDisplayNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}&empId={row.EmpId}" : $"/PhaseAssigns?empId={row.EmpId}");
 
-                if (baEmpId.HasValue)
+                foreach (var baEmployee in baEmployees)
                 {
-                    AddSelectionItem(items, employees, hasLine, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectDisplayNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
+                    AddSelectionItem(items, employees, hasLine, "ASSIGN_DUE", "Phase Assign", row.AssignId, baEmployee.EmpId, "BA", ownerName, baName, severity, stateText, project?.Coop?.CoopName, ProjectDisplayNameForSelection(project), title, row.PlanStart ?? row.Phase?.PlanStart, row.PlanEnd ?? row.Phase?.PlanEnd, row.Phase?.PeriodEndDate, overdueDays, message, project != null ? $"/PhaseAssigns?projectId={project.ProjectId}" : "/PhaseAssigns");
                 }
             }
 
@@ -339,6 +346,11 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(x => x.Project)
                     .ThenInclude(x => x!.Coop)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.BA)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.TeamMembers)
+                        .ThenInclude(x => x.Employee)
                 .Where(x => x.EndDate.HasValue && x.EndDate.Value <= riskUntil)
                 .ToListAsync();
 
@@ -351,19 +363,24 @@ namespace ProjectTracking.Controllers
                     continue;
 
                 var ownerName = EmployeeName(employees, row.AssignTo);
-                var baEmpId = row.Project?.BaEmpId;
-                var baName = EmployeeName(employees, baEmpId);
+                var baEmployees = row.Project?.BusinessAnalysts ?? Array.Empty<Employee>();
+                var baName = row.Project?.BusinessAnalystNames ?? "-";
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, row.AssignTo, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/DevDetails/{row.IssueId}");
-                if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
+                foreach (var baEmployee in baEmployees)
+                    AddSelectionItem(items, employees, hasLine, "ISSUE_DUE", "Issue", row.IssueId, baEmployee.EmpId, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), row.IssueName, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/ProjectIssues/Details/{row.IssueId}");
             }
 
             var supports = await _context.ProjectSupportOrders
                 .AsNoTracking()
                 .Include(x => x.Project)
                     .ThenInclude(x => x!.Coop)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.BA)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.TeamMembers)
+                        .ThenInclude(x => x.Employee)
                 .Where(x => x.EndDate.HasValue && x.EndDate.Value <= riskUntil)
                 .ToListAsync();
 
@@ -377,15 +394,15 @@ namespace ProjectTracking.Controllers
 
                 var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
                 var ownerName = EmployeeName(employees, row.AssignTo);
-                var baEmpId = row.Project?.BaEmpId;
-                var baName = EmployeeName(employees, baEmpId);
+                var baEmployees = row.Project?.BusinessAnalysts ?? Array.Empty<Employee>();
+                var baName = row.Project?.BusinessAnalystNames ?? "-";
                 var message = BuildSelectionMessage(stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, ownerName, baName, null, null, row.StartDate, row.EndDate, row.StartDate, row.EndDate, row.EndDate, null);
 
                 if (row.AssignTo.HasValue)
                     AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, row.AssignTo.Value, "เจ้าของงาน", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrdersDev/Details/{row.OrderId}");
 
-                if (baEmpId.HasValue)
-                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, baEmpId.Value, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
+                foreach (var baEmployee in baEmployees)
+                    AddSelectionItem(items, employees, hasLine, "SUPPORT_DUE", "Support", row.OrderId, baEmployee.EmpId, "BA", ownerName, baName, severity, stateText, row.Project?.Coop?.CoopName, ProjectDisplayNameForSelection(row.Project), title, row.StartDate, row.EndDate, row.EndDate, overdueDays, message, $"/SupportOrders/Details/{row.OrderId}");
             }
 
             return items

@@ -135,6 +135,8 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -146,6 +148,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .Include(o => o.Employee)
                 .Include(o => o.FixImages)
                 .AsQueryable();
@@ -156,7 +161,11 @@ namespace ProjectTracking.Controllers
                 query = query.Where(o => o.Project != null && o.Project.DepartmentId == departmentId.Value);
 
             if (baEmpId.HasValue && baEmpId.Value > 0)
-                query = query.Where(o => o.Project != null && o.Project.BaEmpId == baEmpId.Value);
+                query = query.Where(o => o.Project != null
+                    && (o.Project.BaEmpId == baEmpId.Value
+                        || o.Project.TeamMembers.Any(m =>
+                            m.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                            && m.EmpId == baEmpId.Value)));
 
             if (!string.IsNullOrWhiteSpace(empName))
                 query = query.Where(o => o.Employee != null && o.Employee.EmpName == empName);
@@ -193,18 +202,20 @@ namespace ProjectTracking.Controllers
                     .ToDictionaryAsync(g => g.Key, g => g.Count())
                 : new Dictionary<int, int>();
 
-            var baList = await (
-                    from order in _context.ProjectSupportOrders.AsNoTracking()
-                    join projectRow in _context.Projects.AsNoTracking()
-                        on order.ProjectId equals projectRow.ProjectId
-                    join employee in _context.Employees.AsNoTracking()
-                        on projectRow.BaEmpId equals employee.EmpId
-                    where projectRow.BaEmpId != null && (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
-                    select new
-                    {
-                        EmpId = employee.EmpId,
-                        employee.EmpName
-                    })
+            var baList = await _context.Employees
+                .AsNoTracking()
+                .Where(employee => _context.Projects.Any(projectRow =>
+                    (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
+                    && _context.ProjectSupportOrders.Any(order => order.ProjectId == projectRow.ProjectId)
+                    && (projectRow.BaEmpId == employee.EmpId
+                        || projectRow.TeamMembers.Any(member =>
+                            member.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                            && member.EmpId == employee.EmpId))))
+                .Select(employee => new
+                {
+                    employee.EmpId,
+                    employee.EmpName
+                })
                 .Distinct()
                 .OrderBy(x => x.EmpName)
                 .Select(x => new SelectListItem
@@ -636,6 +647,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.OrderId == orderId);
 
                 if (order == null)
@@ -644,8 +658,8 @@ namespace ProjectTracking.Controllers
                 var project = order.Project;
                 var recipientTargets = new Dictionary<int, string>();
 
-                if (project?.BaEmpId is > 0)
-                    recipientTargets[project.BaEmpId.Value] = $"/SupportOrders/Details/{order.OrderId}";
+                foreach (var ba in project?.BusinessAnalysts ?? Array.Empty<Employee>())
+                    recipientTargets[ba.EmpId] = $"/SupportOrders/Details/{order.OrderId}";
 
                 if (order.AssignTo is > 0)
                     recipientTargets.TryAdd(order.AssignTo.Value, $"/SupportOrdersDev/Details/{order.OrderId}");
@@ -694,6 +708,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.OrderId == orderId);
 
                 if (order == null || !order.AssignTo.HasValue || order.AssignTo.Value <= 0)
@@ -774,7 +791,7 @@ namespace ProjectTracking.Controllers
                 $"Support: {TextOrDash(order.OrderTitle)}",
                 $"รายละเอียด: {TextOrDash(order.OrderDetail)}",
                 $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Priority: {TextOrDash(order.Priority)}",
                 $"Status: {TextOrDash(order.Status)} / Dev {TextOrDash(order.DevStatus)}",
                 $"วันที่เริ่ม: {DateText(order.StartDate)}",
@@ -793,7 +810,7 @@ namespace ProjectTracking.Controllers
                 $"Project: {ProjectNameForTelegram(project)}",
                 $"Support: {TextOrDash(order.OrderTitle)}",
                 $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Status: {TextOrDash(order.Status)} / Dev {TextOrDash(order.DevStatus)}",
                 $"รายละเอียดงาน: {TextOrDash(order.OrderDetail)}",
                 $"วันที่เริ่ม: {DateText(order.StartDate)}",

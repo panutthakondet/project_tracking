@@ -151,6 +151,13 @@ namespace ProjectTracking.Services
                 .Include(x => x.Phase!)
                     .ThenInclude(x => x.Project)
                         .ThenInclude(x => x!.Coop)
+                .Include(x => x.Phase!)
+                    .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.BA)
+                .Include(x => x.Phase!)
+                    .ThenInclude(x => x.Project)
+                        .ThenInclude(x => x!.TeamMembers)
+                            .ThenInclude(member => member.Employee)
                 .Where(x => x.PlanEnd.HasValue
                     && x.PlanEnd.Value <= riskUntil
                     && x.Phase != null)
@@ -172,7 +179,7 @@ namespace ProjectTracking.Services
                     projectName,
                     title,
                     EmployeeName(employees, row.EmpId),
-                    EmployeeName(employees, row.Phase?.Project?.BaEmpId),
+                    ProjectBaNames(employees, row.Phase?.Project),
                     row.Phase?.PhaseOrder,
                     row.Phase?.PeriodOrder,
                     row.Phase?.Project?.StartDate,
@@ -184,10 +191,10 @@ namespace ProjectTracking.Services
                 var projectId = row.Phase?.ProjectId;
                 var recipients = new List<NotificationRecipient>();
 
-                if (row.Phase?.Project?.BaEmpId.HasValue == true)
+                foreach (var baEmpId in ProjectBaIds(row.Phase?.Project))
                 {
                     recipients.Add(new NotificationRecipient(
-                        row.Phase.Project.BaEmpId.Value,
+                        baEmpId,
                         projectId.HasValue ? $"/PhaseAssigns?projectId={projectId.Value}" : "/PhaseAssigns"));
                 }
 
@@ -234,6 +241,11 @@ namespace ProjectTracking.Services
                 .AsNoTracking()
                 .Include(x => x.Project)
                     .ThenInclude(x => x!.Coop)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.BA)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
                 .Where(x => x.EndDate.HasValue
                     && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
@@ -247,21 +259,20 @@ namespace ProjectTracking.Services
                     continue;
 
                 var projectName = ProjectName(row.Project);
-                var baEmpId = row.Project?.BaEmpId;
                 var message = BuildWorkMessage(
                     stateText,
                     row.Project?.Coop?.CoopName,
                     projectName,
                     row.IssueName,
                     EmployeeName(employees, row.AssignTo),
-                    EmployeeName(employees, baEmpId),
+                    ProjectBaNames(employees, row.Project),
                     row.StartDate,
                     row.EndDate);
                 var recipients = new List<NotificationRecipient>();
                 var isWaitingBaReview = IsIssueWaitingBaReview(row.IssueStatus, row.DevStatus);
 
-                if (row.Project?.BaEmpId.HasValue == true)
-                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/ProjectIssues/Details/{row.IssueId}"));
+                foreach (var baEmpId in ProjectBaIds(row.Project))
+                    recipients.Add(new NotificationRecipient(baEmpId, $"/ProjectIssues/Details/{row.IssueId}"));
 
                 if (!isWaitingBaReview)
                     recipients.Add(new NotificationRecipient(row.AssignTo, $"/ProjectIssues/DevDetails/{row.IssueId}"));
@@ -303,6 +314,11 @@ namespace ProjectTracking.Services
                 .AsNoTracking()
                 .Include(x => x.Project)
                     .ThenInclude(x => x!.Coop)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.BA)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
                 .Where(x => x.EndDate.HasValue
                     && x.EndDate.Value <= riskUntil)
                 .ToListAsync(cancellationToken);
@@ -317,21 +333,20 @@ namespace ProjectTracking.Services
 
                 var title = string.IsNullOrWhiteSpace(row.OrderTitle) ? $"Support #{row.OrderId}" : row.OrderTitle!;
                 var projectName = ProjectName(row.Project);
-                var baEmpId = row.Project?.BaEmpId;
                 var message = BuildWorkMessage(
                     stateText,
                     row.Project?.Coop?.CoopName,
                     projectName,
                     title,
                     EmployeeName(employees, row.AssignTo),
-                    EmployeeName(employees, baEmpId),
+                    ProjectBaNames(employees, row.Project),
                     row.StartDate,
                     row.EndDate);
                 var recipients = new List<NotificationRecipient>();
                 var isWaitingBaReview = IsSupportWaitingBaReview(row.Status, row.DevStatus);
 
-                if (row.Project?.BaEmpId.HasValue == true)
-                    recipients.Add(new NotificationRecipient(row.Project.BaEmpId.Value, $"/SupportOrders/Details/{row.OrderId}"));
+                foreach (var baEmpId in ProjectBaIds(row.Project))
+                    recipients.Add(new NotificationRecipient(baEmpId, $"/SupportOrders/Details/{row.OrderId}"));
 
                 if (!isWaitingBaReview && row.AssignTo.HasValue)
                     recipients.Add(new NotificationRecipient(row.AssignTo.Value, $"/SupportOrdersDev/Details/{row.OrderId}"));
@@ -373,6 +388,11 @@ namespace ProjectTracking.Services
                 .AsNoTracking()
                 .Include(x => x.Project)
                     .ThenInclude(x => x!.Coop)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.BA)
+                .Include(x => x.Project)
+                    .ThenInclude(x => x!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
                 .Where(x => x.OwnerEmpId.HasValue
                     && x.NextFollowupDate.HasValue
                     && x.NextFollowupDate.Value <= riskUntil)
@@ -391,7 +411,6 @@ namespace ProjectTracking.Services
 
                 var projectName = ProjectName(row.Project);
                 var title = string.IsNullOrWhiteSpace(row.TaskTitle) ? $"Followup #{row.FollowupId}" : row.TaskTitle!;
-                var baEmpId = row.Project?.BaEmpId;
                 var startDate = row.LastContactDate ?? row.CreatedAt;
                 var message = BuildWorkMessage(
                     stateText,
@@ -399,7 +418,7 @@ namespace ProjectTracking.Services
                     projectName,
                     title,
                     EmployeeName(employees, row.OwnerEmpId),
-                    EmployeeName(employees, baEmpId),
+                    ProjectBaNames(employees, row.Project),
                     startDate,
                     row.NextFollowupDate);
                 var recipients = new List<NotificationRecipient>
@@ -407,8 +426,8 @@ namespace ProjectTracking.Services
                     new(row.OwnerEmpId.Value, $"/Followups/Details/{row.FollowupId}")
                 };
 
-                if (baEmpId.HasValue)
-                    recipients.Add(new NotificationRecipient(baEmpId.Value, $"/Followups/Details/{row.FollowupId}"));
+                foreach (var baEmpId in ProjectBaIds(row.Project))
+                    recipients.Add(new NotificationRecipient(baEmpId, $"/Followups/Details/{row.FollowupId}"));
 
                 foreach (var recipient in UniqueRecipients(recipients))
                 {
@@ -870,6 +889,29 @@ namespace ProjectTracking.Services
             => value.ToString("dd MMM yyyy", ThaiCulture);
 
         private static readonly CultureInfo ThaiCulture = new("th-TH");
+
+        private static IReadOnlyList<int> ProjectBaIds(Project? project)
+        {
+            if (project == null)
+                return Array.Empty<int>();
+
+            return project.BusinessAnalysts
+                .Select(employee => employee.EmpId)
+                .Distinct()
+                .ToList();
+        }
+
+        private static string ProjectBaNames(
+            IReadOnlyDictionary<int, EmployeeRecipient> employees,
+            Project? project)
+        {
+            var names = ProjectBaIds(project)
+                .Select(empId => EmployeeName(employees, empId))
+                .Where(name => !string.IsNullOrWhiteSpace(name) && name != "-")
+                .Distinct()
+                .ToList();
+            return names.Count == 0 ? "-" : string.Join(", ", names);
+        }
 
         private static IEnumerable<NotificationRecipient> UniqueRecipients(IEnumerable<NotificationRecipient> recipients)
         {

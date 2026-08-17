@@ -429,7 +429,7 @@
                                         <td>
                                             <div class="assign-report-phase-text">@(assign.Phase?.PhaseDisplayName ?? "-")</div>
                                             <div class="assign-report-muted fw-normal">ผู้รับผิดชอบ: @(assign.Employee?.EmpName ?? "-")</div>
-                                            <div class="assign-report-muted fw-normal">BA: @(assign.Phase?.Project?.BA?.EmpName ?? "-")</div>
+                                            <div class="assign-report-muted fw-normal">BA: @(string.IsNullOrWhiteSpace(assign.Phase?.Project?.BusinessAnalystNames) ? "-" : assign.Phase.Project.BusinessAnalystNames)</div>
                                         </td>
                                         <td>@(string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role)</td>
                                         <td class="text-center">@DateText(assign.PlanStart) - @DateText(assign.PlanEnd)</td>

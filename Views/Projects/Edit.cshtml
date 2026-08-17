@@ -20,6 +20,8 @@
     var requirementCardDetailUrlTemplate = Url.Action("CardDetails", "RequirementBoard", new { id = "__CARD_ID__" }) ?? "";
     var coops = ViewBag.Coops as IEnumerable<ProjectTracking.Models.CntMCoop> ?? Enumerable.Empty<ProjectTracking.Models.CntMCoop>();
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    var selectedBaEmpIds = ViewBag.SelectedBaEmpIds as HashSet<int> ?? new HashSet<int>();
+    var selectedPmEmpIds = ViewBag.SelectedPmEmpIds as HashSet<int> ?? new HashSet<int>();
 }
 
 <div class="index-hero pt-form-hero">
@@ -135,32 +137,32 @@
                     </div>
                 </div>
 
-                <!-- Business Analyst -->
-                <div class="col-md-4">
+                <!-- Business Analysts -->
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        BA
+                        BA (เลือกได้มากกว่า 1 คน)
                     </label>
-                    <select asp-for="BaEmpId" class="form-select">
-                        <option value="">-- Select Business Analyst --</option>
+                    <select name="baEmpIds" class="form-select project-team-multi" multiple size="5">
                         @foreach (var emp in ViewBag.Employees)
                         {
-                            <option value="@emp.EmpId">@emp.EmpName</option>
+                            <option value="@emp.EmpId" selected="@(selectedBaEmpIds.Contains(emp.EmpId) ? "selected" : null)">@emp.EmpName</option>
                         }
                     </select>
+                    <div class="form-text">เลือกได้หลายคนด้วย Ctrl หรือ Command + คลิก</div>
                 </div>
 
-                <!-- Project Manager -->
-                <div class="col-md-4">
+                <!-- Project Managers -->
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">
-                        PM
+                        PM (เลือกได้มากกว่า 1 คน)
                     </label>
-                    <select asp-for="PmEmpId" class="form-select">
-                        <option value="">-- Select Project Manager --</option>
+                    <select name="pmEmpIds" class="form-select project-team-multi" multiple size="5">
                         @foreach (var emp in ViewBag.ProjectManagers)
                         {
-                            <option value="@emp.EmpId">@emp.EmpName</option>
+                            <option value="@emp.EmpId" selected="@(selectedPmEmpIds.Contains(emp.EmpId) ? "selected" : null)">@emp.EmpName</option>
                         }
                     </select>
+                    <div class="form-text">เลือกได้หลายคนด้วย Ctrl หรือ Command + คลิก</div>
                 </div>
 
                 <!-- Start Date -->

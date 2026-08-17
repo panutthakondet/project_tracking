@@ -186,17 +186,27 @@ namespace ProjectTracking.Services
             var currentEmpId = await GetCurrentEmpIdAsync();
             if (!currentEmpId.HasValue) return false;
 
-            var trackedPmEmpId = _context.Projects.Local
-                .FirstOrDefault(p => p.ProjectId == projectId.Value)
-                ?.PmEmpId;
+            var trackedProject = _context.Projects.Local
+                .FirstOrDefault(p => p.ProjectId == projectId.Value);
+            if (trackedProject?.PmEmpId == currentEmpId.Value)
+                return true;
 
-            var pmEmpId = trackedPmEmpId ?? await _context.Projects
+            if (_context.ProjectTeamMembers.Local.Any(m =>
+                    m.ProjectId == projectId.Value
+                    && m.EmpId == currentEmpId.Value
+                    && m.MemberRole == ProjectTeamRoles.ProjectManager
+                    && _context.Entry(m).State != EntityState.Deleted))
+            {
+                return true;
+            }
+
+            return await _context.Projects
                 .AsNoTracking()
-                .Where(p => p.ProjectId == projectId.Value)
-                .Select(p => p.PmEmpId)
-                .FirstOrDefaultAsync();
-
-            return pmEmpId.HasValue && pmEmpId.Value == currentEmpId.Value;
+                .AnyAsync(p => p.ProjectId == projectId.Value
+                    && (p.PmEmpId == currentEmpId.Value
+                        || p.TeamMembers.Any(m =>
+                            m.EmpId == currentEmpId.Value
+                            && m.MemberRole == ProjectTeamRoles.ProjectManager)));
         }
 
         private async Task<StatusApprovalRequest> GetPendingRequestAsync(int requestId)

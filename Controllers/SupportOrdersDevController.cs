@@ -350,22 +350,31 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.OrderId == orderId);
 
-                var baEmpId = order?.Project?.BaEmpId;
-                if (order == null || !baEmpId.HasValue || baEmpId.Value <= 0)
+                var baEmpIds = order?.Project?.BusinessAnalysts
+                    .Select(ba => ba.EmpId)
+                    .Distinct()
+                    .ToList() ?? new List<int>();
+                if (order == null || baEmpIds.Count == 0)
                     return;
 
                 var message = BuildFixedSupportTelegramMessage(order);
-                await SendChatNotificationToEmployeeSafelyAsync(
-                    baEmpId.Value,
-                    "แจ้ง Support แก้เสร็จ:",
-                    message,
-                    $"/SupportOrders/Details/{order.OrderId}",
-                    sendLine,
-                    sendTelegram,
-                    "fixed support",
-                    order.OrderId);
+                foreach (var baEmpId in baEmpIds)
+                {
+                    await SendChatNotificationToEmployeeSafelyAsync(
+                        baEmpId,
+                        "แจ้ง Support แก้เสร็จ:",
+                        message,
+                        $"/SupportOrders/Details/{order.OrderId}",
+                        sendLine,
+                        sendTelegram,
+                        "fixed support",
+                        order.OrderId);
+                }
             }
             catch (Exception ex)
             {
@@ -427,7 +436,7 @@ namespace ProjectTracking.Controllers
                 $"Project: {ProjectNameForTelegram(project)}",
                 $"Support: {TextOrDash(order.OrderTitle)}",
                 $"เจ้าของงาน: {TextOrDash(order.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Dev Status: {TextOrDash(order.DevStatus)}",
                 $"รายละเอียดการแก้ไข: {TextOrDash(order.DevDetail)}",
                 $"วันที่เริ่ม: {DateText(order.StartDate)}",

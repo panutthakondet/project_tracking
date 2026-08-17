@@ -40,7 +40,9 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.PM)
                     .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.BA)
-                    .ThenInclude(e => e!.LoginUser)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
+                        .ThenInclude(e => e!.LoginUser)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -59,6 +61,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.BA)
                     .ThenInclude(e => e!.LoginUser)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
+                        .ThenInclude(e => e!.LoginUser)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (selectedProject == null)
@@ -152,6 +157,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Include(p => p.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(p => p.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .OrderBy(p => p.Project != null && p.Project.Coop != null ? p.Project.Coop.CoopName : "")
                 .ThenBy(p => p.Project != null ? p.Project.ProjectName : "")
                 .ThenBy(p => p.PhaseOrder)

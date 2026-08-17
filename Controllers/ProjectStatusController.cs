@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
+using ProjectTracking.Models;
 using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
@@ -42,11 +43,36 @@ namespace ProjectTracking.Controllers
                     ProjectName = p.ProjectName,
                     CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     DepartmentId = p.DepartmentId,
+                    PmEmpId = p.PmEmpId,
                     BaEmpId = p.BaEmpId,
                     Status = p.Status,
                     EndDate = p.EndDate
                 })
                 .ToListAsync();
+
+            var projectTeamMembers = await _context.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(member => member.MemberRole == ProjectTeamRoles.ProjectManager
+                    || member.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                .Select(member => new { member.ProjectId, member.EmpId, member.MemberRole })
+                .ToListAsync();
+            var projectBaIds = projectTeamMembers
+                .Where(member => member.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                .GroupBy(member => member.ProjectId)
+                .ToDictionary(group => group.Key, group => group.Select(member => member.EmpId).Distinct().ToList());
+            var projectPmIds = projectTeamMembers
+                .Where(member => member.MemberRole == ProjectTeamRoles.ProjectManager)
+                .GroupBy(member => member.ProjectId)
+                .ToDictionary(group => group.Key, group => group.Select(member => member.EmpId).Distinct().ToList());
+            foreach (var project in allProjects)
+            {
+                project.BaEmpIds = projectBaIds.TryGetValue(project.ProjectId, out var ids)
+                    ? ids
+                    : project.BaEmpId.HasValue ? new List<int> { project.BaEmpId.Value } : new List<int>();
+                project.PmEmpIds = projectPmIds.TryGetValue(project.ProjectId, out var pmIds)
+                    ? pmIds
+                    : project.PmEmpId.HasValue ? new List<int> { project.PmEmpId.Value } : new List<int>();
+            }
 
             var departmentOptions = await _context.ProjectDepartments
                 .AsNoTracking()
@@ -367,8 +393,11 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var baEmpIds = projects
-                .Where(x => x.BaEmpId.HasValue)
-                .Select(x => x.BaEmpId!.Value)
+                .SelectMany(x => x.BaEmpIds)
+                .Distinct()
+                .ToHashSet();
+            var pmEmpIds = projects
+                .SelectMany(x => x.PmEmpIds)
                 .Distinct()
                 .ToHashSet();
 
@@ -377,10 +406,11 @@ namespace ProjectTracking.Controllers
                 var projectTeamEmpIds = assigns
                     .Select(x => x.EmpId)
                     .Concat(baEmpIds)
+                    .Concat(pmEmpIds)
                     .Distinct()
                     .ToHashSet();
 
-                var hasProjectManager = activeEmployees.Any(employee =>
+                var hasProjectManager = pmEmpIds.Count > 0 || activeEmployees.Any(employee =>
                     projectTeamEmpIds.Contains(employee.EmpId) && IsProjectManagerPosition(employee.Position));
 
                 if (!hasProjectManager)
@@ -411,8 +441,12 @@ namespace ProjectTracking.Controllers
                     });
 
             var baProjectCounts = projects
-                .Where(x => x.BaEmpId.HasValue)
-                .GroupBy(x => x.BaEmpId!.Value)
+                .SelectMany(project => project.BaEmpIds.Select(empId => new { project.ProjectId, EmpId = empId }))
+                .GroupBy(x => x.EmpId)
+                .ToDictionary(x => x.Key, x => x.Count());
+            var pmProjectCounts = projects
+                .SelectMany(project => project.PmEmpIds.Select(empId => new { project.ProjectId, EmpId = empId }))
+                .GroupBy(x => x.EmpId)
                 .ToDictionary(x => x.Key, x => x.Count());
 
             var teamRows = activeEmployees
@@ -420,6 +454,7 @@ namespace ProjectTracking.Controllers
                 {
                     assignGroups.TryGetValue(employee.EmpId, out var assignInfo);
                     baProjectCounts.TryGetValue(employee.EmpId, out var baProjectCount);
+                    pmProjectCounts.TryGetValue(employee.EmpId, out var pmProjectCount);
 
                     return new TeamMemberRow
                     {
@@ -427,10 +462,12 @@ namespace ProjectTracking.Controllers
                         Name = employee.Name,
                         Position = employee.Position,
                         AvatarPath = employee.AvatarPath,
-                        RoleText = baEmpIds.Contains(employee.EmpId)
+                        RoleText = pmEmpIds.Contains(employee.EmpId)
+                            ? $"Project Manager {assignInfo?.RoleText}".Trim()
+                            : baEmpIds.Contains(employee.EmpId)
                             ? $"Business Analyst {assignInfo?.RoleText}".Trim()
                             : assignInfo?.RoleText,
-                        WorkCount = (assignInfo?.WorkCount ?? 0) + baProjectCount
+                        WorkCount = (assignInfo?.WorkCount ?? 0) + baProjectCount + pmProjectCount
                     };
                 })
                 .ToList();
@@ -715,7 +752,10 @@ namespace ProjectTracking.Controllers
             public string ProjectDisplayName => string.IsNullOrWhiteSpace(CoopName)
                 ? ProjectName
                 : $"{CoopName} - {ProjectName}";
+            public int? PmEmpId { get; set; }
+            public List<int> PmEmpIds { get; set; } = new();
             public int? BaEmpId { get; set; }
+            public List<int> BaEmpIds { get; set; } = new();
             public string Status { get; set; } = "PLAN";
             public DateTime? EndDate { get; set; }
         }

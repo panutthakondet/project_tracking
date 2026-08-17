@@ -16,6 +16,7 @@ namespace ProjectTracking.Data
         public DbSet<Employee> Employees { get; set; }
         public DbSet<CntMCoop> CntMCoops { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
         public DbSet<ProjectDepartment> ProjectDepartments { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
@@ -109,6 +110,33 @@ namespace ProjectTracking.Data
             {
                 entity.HasIndex(x => x.DepartmentCode).IsUnique();
                 entity.HasIndex(x => new { x.IsActive, x.SortOrder });
+            });
+
+            modelBuilder.Entity<ProjectTeamMember>(entity =>
+            {
+                entity.ToTable("project_team_member");
+                entity.HasKey(x => new { x.ProjectId, x.EmpId, x.MemberRole });
+
+                entity.Property(x => x.ProjectId).HasColumnName("project_id").HasColumnType("int");
+                entity.Property(x => x.EmpId).HasColumnName("emp_id").HasColumnType("int");
+                entity.Property(x => x.MemberRole).HasColumnName("member_role").HasColumnType("varchar(10)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order").HasColumnType("int");
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+
+                entity.HasOne(x => x.Project)
+                    .WithMany(x => x.TeamMembers)
+                    .HasForeignKey(x => x.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany()
+                    .HasForeignKey(x => x.EmpId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.ProjectId, x.MemberRole, x.SortOrder })
+                    .HasDatabaseName("idx_project_team_role_sort");
+                entity.HasIndex(x => new { x.EmpId, x.MemberRole })
+                    .HasDatabaseName("idx_project_team_employee_role");
             });
 
             modelBuilder.Entity<Project>(entity =>

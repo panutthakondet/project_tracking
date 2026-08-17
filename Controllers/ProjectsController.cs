@@ -43,6 +43,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.PM)
                     .ThenInclude(e => e!.LoginUser)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
+                        .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
                 .AsNoTracking()
@@ -50,7 +53,9 @@ namespace ProjectTracking.Controllers
 
             if (baEmpId.HasValue)
             {
-                query = query.Where(p => p.BaEmpId == baEmpId.Value);
+                query = query.Where(p => p.BaEmpId == baEmpId.Value
+                    || p.TeamMembers.Any(m => m.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                        && m.EmpId == baEmpId.Value));
             }
 
             if (departmentId.HasValue)
@@ -85,6 +90,8 @@ namespace ProjectTracking.Controllers
             var allProjects = await _context.Projects
                 .Include(p => p.BA)
                 .Include(p => p.PM)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
                 .AsNoTracking()
@@ -98,7 +105,9 @@ namespace ProjectTracking.Controllers
                 query = query.Where(p => p.ProjectId == projectId.Value);
 
             if (baEmpId.HasValue)
-                query = query.Where(p => p.BaEmpId == baEmpId.Value);
+                query = query.Where(p => p.BaEmpId == baEmpId.Value
+                    || p.TeamMembers.Any(m => m.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                        && m.EmpId == baEmpId.Value));
 
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase));
@@ -108,8 +117,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Projects = allProjects;
             ViewBag.BaList = allProjects
-                .Where(p => p.BA != null)
-                .Select(p => p.BA!)
+                .SelectMany(p => p.BusinessAnalysts)
                 .GroupBy(e => e.EmpId)
                 .Select(g => g.First())
                 .OrderBy(e => e.EmpName)
@@ -144,6 +152,8 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
                 .Include(p => p.PM)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .Include(p => p.Department)
                 .FirstOrDefaultAsync(p => p.ProjectId == id);
 
@@ -238,7 +248,7 @@ namespace ProjectTracking.Controllers
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
                 GeneratedAt = DateTime.Now,
-                BusinessAnalystName = project.BA?.EmpName ?? "",
+                BusinessAnalystName = project.BusinessAnalystNames,
                 Phases = phases
                     .Select((p, index) => new
                     {
@@ -283,7 +293,9 @@ namespace ProjectTracking.Controllers
         [ValidateAntiForgeryToken]
         [RequireMenu("Projects.Create")]
         public async Task<IActionResult> Create(
-            Project project
+            Project project,
+            List<int>? baEmpIds,
+            List<int>? pmEmpIds
         )
         {
             ModelState.Remove(nameof(Project.StartDate));
@@ -294,16 +306,25 @@ namespace ProjectTracking.Controllers
 
             if (!ModelState.IsValid)
             {
-                await LoadProjectFormLookupsAsync(project.RequirementCardId);
+                await LoadProjectFormLookupsAsync(project.RequirementCardId, baEmpIds, pmEmpIds);
 
                 return View(project);
             }
+
+            var selectedBaEmpIds = await ResolveProjectTeamEmployeeIdsAsync(baEmpIds);
+            var selectedPmEmpIds = await ResolveProjectTeamEmployeeIdsAsync(pmEmpIds);
+            project.BaEmpId = selectedBaEmpIds.FirstOrDefault() is var firstBa && firstBa > 0 ? firstBa : null;
+            project.PmEmpId = selectedPmEmpIds.FirstOrDefault() is var firstPm && firstPm > 0 ? firstPm : null;
 
             // 1️⃣ Save Project ก่อน
             project.CreatedAt = DateTime.Now;
             project.EntryId = await GetCurrentEntryIdAsync();
             _context.Projects.Add(project);
             await SyncRequirementCardColumnForProjectStatusAsync(project.RequirementCardId, project.Status);
+            await _context.SaveChangesAsync();
+
+            await SyncProjectTeamMembersAsync(project.ProjectId, ProjectTeamRoles.BusinessAnalyst, selectedBaEmpIds);
+            await SyncProjectTeamMembersAsync(project.ProjectId, ProjectTeamRoles.ProjectManager, selectedPmEmpIds);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
@@ -315,13 +336,28 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Edit")]
         public async Task<IActionResult> Edit(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _context.Projects
+                .Include(p => p.TeamMembers)
+                .FirstOrDefaultAsync(p => p.ProjectId == id);
             if (project == null)
             {
                 return NotFound();
             }
 
-            await LoadProjectFormLookupsAsync(project.RequirementCardId);
+            await LoadProjectFormLookupsAsync(
+                project.RequirementCardId,
+                project.TeamMembers
+                    .Where(m => m.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                    .OrderBy(m => m.SortOrder)
+                    .Select(m => m.EmpId)
+                    .DefaultIfEmpty(project.BaEmpId ?? 0)
+                    .Where(x => x > 0),
+                project.TeamMembers
+                    .Where(m => m.MemberRole == ProjectTeamRoles.ProjectManager)
+                    .OrderBy(m => m.SortOrder)
+                    .Select(m => m.EmpId)
+                    .DefaultIfEmpty(project.PmEmpId ?? 0)
+                    .Where(x => x > 0));
 
             return View(project);
         }
@@ -334,7 +370,9 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Edit")]
         public async Task<IActionResult> Edit(
             int id,
-            Project model
+            Project model,
+            List<int>? baEmpIds,
+            List<int>? pmEmpIds
         )
         {
             if (id == 0 && model.ProjectId > 0)
@@ -361,7 +399,7 @@ namespace ProjectTracking.Controllers
 
             if (!ModelState.IsValid)
             {
-                await LoadProjectFormLookupsAsync(model.RequirementCardId);
+                await LoadProjectFormLookupsAsync(model.RequirementCardId, baEmpIds, pmEmpIds);
 
                 return View(model);
             }
@@ -389,8 +427,12 @@ namespace ProjectTracking.Controllers
             db.FigmaLink = model.FigmaLink;
 
             // 🔹 BUSINESS ANALYST
-            db.BaEmpId = model.BaEmpId;
-            db.PmEmpId = model.PmEmpId;
+            var selectedBaEmpIds = await ResolveProjectTeamEmployeeIdsAsync(baEmpIds);
+            var selectedPmEmpIds = await ResolveProjectTeamEmployeeIdsAsync(pmEmpIds);
+            db.BaEmpId = selectedBaEmpIds.FirstOrDefault() is var firstBa && firstBa > 0 ? firstBa : null;
+            db.PmEmpId = selectedPmEmpIds.FirstOrDefault() is var firstPm && firstPm > 0 ? firstPm : null;
+            await SyncProjectTeamMembersAsync(db.ProjectId, ProjectTeamRoles.BusinessAnalyst, selectedBaEmpIds);
+            await SyncProjectTeamMembersAsync(db.ProjectId, ProjectTeamRoles.ProjectManager, selectedPmEmpIds);
             db.RequirementCardId = model.RequirementCardId;
             db.CreatedAt = DateTime.Now;
             db.EntryId = await GetCurrentEntryIdAsync();
@@ -503,8 +545,14 @@ namespace ProjectTracking.Controllers
             return null;
         }
 
-        private async Task LoadProjectFormLookupsAsync(int? selectedRequirementCardId = null)
+        private async Task LoadProjectFormLookupsAsync(
+            int? selectedRequirementCardId = null,
+            IEnumerable<int>? selectedBaEmpIds = null,
+            IEnumerable<int>? selectedPmEmpIds = null)
         {
+            ViewBag.SelectedBaEmpIds = (selectedBaEmpIds ?? Array.Empty<int>()).ToHashSet();
+            ViewBag.SelectedPmEmpIds = (selectedPmEmpIds ?? Array.Empty<int>()).ToHashSet();
+
             ViewBag.Employees = await _context.Employees
                 .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
                 .OrderBy(e => e.EmpName)
@@ -541,6 +589,57 @@ namespace ProjectTracking.Controllers
                     Selected = c.CardId == selectedRequirementCardId
                 })
                 .ToList();
+        }
+
+        private async Task<List<int>> ResolveProjectTeamEmployeeIdsAsync(IEnumerable<int>? employeeIds)
+        {
+            var requestedIds = (employeeIds ?? Array.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (requestedIds.Count == 0)
+                return new List<int>();
+
+            var validIds = (await _context.Employees
+                    .AsNoTracking()
+                    .Where(e => requestedIds.Contains(e.EmpId))
+                    .Select(e => e.EmpId)
+                    .ToListAsync())
+                .ToHashSet();
+
+            return requestedIds.Where(validIds.Contains).ToList();
+        }
+
+        private async Task SyncProjectTeamMembersAsync(int projectId, string role, IReadOnlyList<int> employeeIds)
+        {
+            var existing = await _context.ProjectTeamMembers
+                .Where(m => m.ProjectId == projectId && m.MemberRole == role)
+                .ToListAsync();
+            var selectedIds = employeeIds.ToHashSet();
+
+            _context.ProjectTeamMembers.RemoveRange(existing.Where(m => !selectedIds.Contains(m.EmpId)));
+
+            for (var index = 0; index < employeeIds.Count; index++)
+            {
+                var empId = employeeIds[index];
+                var member = existing.FirstOrDefault(m => m.EmpId == empId);
+                if (member == null)
+                {
+                    _context.ProjectTeamMembers.Add(new ProjectTeamMember
+                    {
+                        ProjectId = projectId,
+                        EmpId = empId,
+                        MemberRole = role,
+                        SortOrder = index + 1,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+                else
+                {
+                    member.SortOrder = index + 1;
+                }
+            }
         }
 
         private static DateTime? ParseProjectDate(string? value)

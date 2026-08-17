@@ -172,6 +172,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .Include(i => i.Images)
                 .Include(i => i.FixImages)
                 .Include(i => i.Employee)
@@ -183,7 +186,11 @@ namespace ProjectTracking.Controllers
                 query = query.Where(i => i.Project != null && i.Project.DepartmentId == departmentId.Value);
 
             if (baEmpId.HasValue)
-                query = query.Where(i => i.Project != null && i.Project.BaEmpId == baEmpId.Value);
+                query = query.Where(i => i.Project != null
+                    && (i.Project.BaEmpId == baEmpId.Value
+                        || i.Project.TeamMembers.Any(m =>
+                            m.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                            && m.EmpId == baEmpId.Value)));
 
             if (!string.IsNullOrWhiteSpace(empName))
                 query = query.Where(i => i.Employee != null && i.Employee.EmpName == empName);
@@ -955,18 +962,20 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedEmp = empName;
             ViewBag.SelectedBA = baEmpId;
 
-            var baQuery =
-                from issue in _context.ProjectIssues.AsNoTracking()
-                join projectRow in _context.Projects.AsNoTracking()
-                    on issue.ProjectId equals projectRow.ProjectId
-                join employee in _context.Employees.AsNoTracking()
-                    on projectRow.BaEmpId equals employee.EmpId
-                where projectRow.BaEmpId != null && (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
-                select new
+            var baQuery = _context.Employees
+                .AsNoTracking()
+                .Where(employee => _context.Projects.Any(projectRow =>
+                    (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
+                    && _context.ProjectIssues.Any(issue => issue.ProjectId == projectRow.ProjectId)
+                    && (projectRow.BaEmpId == employee.EmpId
+                        || projectRow.TeamMembers.Any(member =>
+                            member.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                            && member.EmpId == employee.EmpId))))
+                .Select(employee => new
                 {
-                    EmpId = employee.EmpId,
+                    employee.EmpId,
                     employee.EmpName
-                };
+                });
 
             ViewBag.BAList = await baQuery
                 .Distinct()
@@ -1216,6 +1225,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.IssueId == issueId);
 
                 if (issue == null)
@@ -1224,8 +1236,8 @@ namespace ProjectTracking.Controllers
                 var project = issue.Project;
                 var recipientTargets = new Dictionary<int, string>();
 
-                if (project?.BaEmpId is > 0)
-                    recipientTargets[project.BaEmpId.Value] = $"/ProjectIssues/Details/{issue.IssueId}";
+                foreach (var ba in project?.BusinessAnalysts ?? Array.Empty<Employee>())
+                    recipientTargets[ba.EmpId] = $"/ProjectIssues/Details/{issue.IssueId}";
 
                 if (issue.AssignTo > 0)
                     recipientTargets.TryAdd(issue.AssignTo, $"/ProjectIssues/DevDetails/{issue.IssueId}");
@@ -1274,22 +1286,29 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.IssueId == issueId);
 
-                var baEmpId = issue?.Project?.BaEmpId;
-                if (issue == null || !baEmpId.HasValue || baEmpId.Value <= 0)
+                var baEmpIds = issue?.Project?.BusinessAnalysts.Select(ba => ba.EmpId).Distinct().ToList()
+                    ?? new List<int>();
+                if (issue == null || baEmpIds.Count == 0)
                     return;
 
                 var message = BuildFixedIssueTelegramMessage(issue);
-                await SendChatNotificationToEmployeeSafelyAsync(
-                    baEmpId.Value,
-                    "แจ้ง Issue แก้เสร็จ:",
-                    message,
-                    $"/ProjectIssues/Details/{issue.IssueId}",
-                    sendLine,
-                    sendTelegram,
-                    "fixed issue",
-                    issue.IssueId);
+                foreach (var baEmpId in baEmpIds)
+                {
+                    await SendChatNotificationToEmployeeSafelyAsync(
+                        baEmpId,
+                        "แจ้ง Issue แก้เสร็จ:",
+                        message,
+                        $"/ProjectIssues/Details/{issue.IssueId}",
+                        sendLine,
+                        sendTelegram,
+                        "fixed issue",
+                        issue.IssueId);
+                }
             }
             catch (Exception ex)
             {
@@ -1316,6 +1335,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(p => p!.Coop)
                     .Include(x => x.Project)
                         .ThenInclude(p => p!.BA)
+                    .Include(x => x.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
                     .FirstOrDefaultAsync(x => x.IssueId == issueId);
 
                 if (issue == null || issue.AssignTo <= 0)
@@ -1396,7 +1418,7 @@ namespace ProjectTracking.Controllers
                 $"Issue: {TextOrDash(issue.IssueName)}",
                 $"รายละเอียด: {TextOrDash(issue.IssueDetail)}",
                 $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Priority: {TextOrDash(issue.IssuePriority)}",
                 $"Status: {TextOrDash(issue.IssueStatus)} / Dev {TextOrDash(issue.DevStatus)}",
                 $"วันที่เริ่ม: {DateText(issue.StartDate)}",
@@ -1415,7 +1437,7 @@ namespace ProjectTracking.Controllers
                 $"Project: {ProjectNameForTelegram(project)}",
                 $"Issue: {TextOrDash(issue.IssueName)}",
                 $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Dev Status: {TextOrDash(issue.DevStatus)}",
                 $"รายละเอียดการแก้ไข: {TextOrDash(issue.DevDetail)}",
                 $"วันที่เริ่ม: {DateText(issue.StartDate)}",
@@ -1434,7 +1456,7 @@ namespace ProjectTracking.Controllers
                 $"Project: {ProjectNameForTelegram(project)}",
                 $"Issue: {TextOrDash(issue.IssueName)}",
                 $"เจ้าของงาน: {TextOrDash(issue.Employee?.EmpName)}",
-                $"BA: {TextOrDash(project?.BA?.EmpName)}",
+                $"BA: {TextOrDash(project?.BusinessAnalystNames)}",
                 $"Status: {TextOrDash(issue.IssueStatus)} / Dev {TextOrDash(issue.DevStatus)}",
                 $"รายละเอียดปัญหา: {TextOrDash(issue.IssueDetail)}",
                 $"วันที่เริ่ม: {DateText(issue.StartDate)}",

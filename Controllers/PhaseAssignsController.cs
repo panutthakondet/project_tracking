@@ -96,6 +96,8 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -638,6 +640,8 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -1434,8 +1438,8 @@ namespace ProjectTracking.Controllers
                 var projectUrl = $"/PhaseAssigns/Index?projectId={assign.ProjectId}";
                 var ownerUrl = $"/PhaseAssigns/Index?projectId={assign.ProjectId}&empId={assign.EmpId}";
 
-                if (assign.BaEmpId is > 0)
-                    recipients[assign.BaEmpId.Value] = projectUrl;
+                foreach (var baEmpId in assign.BaEmpIds)
+                    recipients[baEmpId] = projectUrl;
 
                 if (assign.EmpId > 0)
                     recipients.TryAdd(assign.EmpId, ownerUrl);
@@ -1540,7 +1544,22 @@ namespace ProjectTracking.Controllers
                     Remark = a.Remark
                 };
 
-            return await query.FirstOrDefaultAsync(HttpContext.RequestAborted);
+            var row = await query.FirstOrDefaultAsync(HttpContext.RequestAborted);
+            if (row == null)
+                return null;
+
+            row.BaEmpIds = await _context.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(member => member.ProjectId == row.ProjectId
+                    && member.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                .OrderBy(member => member.SortOrder)
+                .Select(member => member.EmpId)
+                .Distinct()
+                .ToListAsync(HttpContext.RequestAborted);
+            if (row.BaEmpIds.Count == 0 && row.BaEmpId is > 0)
+                row.BaEmpIds.Add(row.BaEmpId.Value);
+
+            return row;
         }
 
         private static string BuildCreatedPhaseAssignTelegramMessage(PhaseAssignNotificationRow assign)
@@ -1610,6 +1629,7 @@ namespace ProjectTracking.Controllers
             public int EmpId { get; set; }
             public string? OwnerName { get; set; }
             public int? BaEmpId { get; set; }
+            public List<int> BaEmpIds { get; set; } = new();
             public string? BaName { get; set; }
             public DateTime? PlanStart { get; set; }
             public DateTime? PlanEnd { get; set; }

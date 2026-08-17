@@ -36,7 +36,10 @@ namespace ProjectTracking.Controllers
                 {
                     var pmProjectIds = _context.Projects
                         .AsNoTracking()
-                        .Where(p => p.PmEmpId == currentEmpId.Value)
+                        .Where(p => p.PmEmpId == currentEmpId.Value
+                            || p.TeamMembers.Any(m =>
+                                m.EmpId == currentEmpId.Value
+                                && m.MemberRole == ProjectTeamRoles.ProjectManager))
                         .Select(p => (int?)p.ProjectId);
 
                     baseQuery = baseQuery.Where(r => r.ProjectId.HasValue && pmProjectIds.Contains(r.ProjectId));

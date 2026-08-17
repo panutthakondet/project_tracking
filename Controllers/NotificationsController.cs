@@ -227,6 +227,11 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(phase => phase.Project!)
                             .ThenInclude(project => project.BA)
                                 .ThenInclude(ba => ba!.LoginUser)
+                    .Include(x => x.Phase!)
+                        .ThenInclude(phase => phase.Project!)
+                            .ThenInclude(project => project.TeamMembers)
+                                .ThenInclude(member => member.Employee)
+                                    .ThenInclude(employee => employee!.LoginUser)
                     .Where(x => assignIds.Contains(x.AssignId))
                     .ToDictionaryAsync(x => x.AssignId);
 
@@ -241,6 +246,10 @@ namespace ProjectTracking.Controllers
                     .Include(x => x.Project!)
                         .ThenInclude(project => project.BA)
                             .ThenInclude(ba => ba!.LoginUser)
+                    .Include(x => x.Project!)
+                        .ThenInclude(project => project.TeamMembers)
+                            .ThenInclude(member => member.Employee)
+                                .ThenInclude(employee => employee!.LoginUser)
                     .Where(x => followupIds.Contains(x.FollowupId))
                     .ToDictionaryAsync(x => x.FollowupId);
 
@@ -304,8 +313,8 @@ namespace ProjectTracking.Controllers
                 item.Title = FirstText(assign.Role, phase?.PhaseDisplayName, notification.Title);
                 item.ProjectName = ProjectDisplayName(project);
                 item.CoopName = project?.Coop?.CoopName ?? "-";
-                item.BaName = project?.BA?.EmpName ?? "-";
-                item.BaAvatarPath = ProfileImage(project?.BA);
+                item.BaName = string.IsNullOrWhiteSpace(project?.BusinessAnalystNames) ? "-" : project.BusinessAnalystNames;
+                item.BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault());
                 item.OwnerName = assign.Employee?.EmpName ?? item.OwnerName;
                 item.OwnerAvatarPath = ProfileImage(assign.Employee);
                 item.DateText = FormatDateRange(assign.PlanStart ?? phase?.PlanStart, assign.PlanEnd ?? phase?.PlanEnd);
@@ -318,8 +327,8 @@ namespace ProjectTracking.Controllers
                 item.Title = FirstText(followup.TaskTitle, notification.Title);
                 item.ProjectName = ProjectDisplayName(project);
                 item.CoopName = project?.Coop?.CoopName ?? "-";
-                item.BaName = project?.BA?.EmpName ?? "-";
-                item.BaAvatarPath = ProfileImage(project?.BA);
+                item.BaName = string.IsNullOrWhiteSpace(project?.BusinessAnalystNames) ? "-" : project.BusinessAnalystNames;
+                item.BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault());
                 item.OwnerName = followup.Owner?.EmpName ?? item.OwnerName;
                 item.OwnerAvatarPath = ProfileImage(followup.Owner);
                 item.DateText = FormatDate(followup.NextFollowupDate);

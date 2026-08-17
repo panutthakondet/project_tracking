@@ -68,6 +68,21 @@ namespace ProjectTracking.Models
         [ForeignKey("PmEmpId")]
         public Employee? PM { get; set; }
 
+        public ICollection<ProjectTeamMember> TeamMembers { get; set; }
+            = new List<ProjectTeamMember>();
+
+        [NotMapped]
+        public IReadOnlyList<Employee> ProjectManagers => GetRoleMembers(ProjectTeamRoles.ProjectManager, PM);
+
+        [NotMapped]
+        public IReadOnlyList<Employee> BusinessAnalysts => GetRoleMembers(ProjectTeamRoles.BusinessAnalyst, BA);
+
+        [NotMapped]
+        public string ProjectManagerNames => string.Join(", ", ProjectManagers.Select(e => e.EmpName));
+
+        [NotMapped]
+        public string BusinessAnalystNames => string.Join(", ", BusinessAnalysts.Select(e => e.EmpName));
+
         [Column("start_date")]
         public DateTime? StartDate { get; set; }
 
@@ -119,5 +134,26 @@ namespace ProjectTracking.Models
         [Column("remote_url")]
         [StringLength(255)]
         public string? RemoteUrl { get; set; }
+
+        private IReadOnlyList<Employee> GetRoleMembers(string role, Employee? legacyMember)
+        {
+            var members = TeamMembers
+                .Where(x => string.Equals(x.MemberRole, role, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Employee?.EmpName)
+                .Select(x => x.Employee)
+                .Where(x => x != null)
+                .Cast<Employee>()
+                .GroupBy(x => x.EmpId)
+                .Select(x => x.First())
+                .ToList();
+
+            if (members.Count == 0 && legacyMember != null)
+            {
+                members.Add(legacyMember);
+            }
+
+            return members;
+        }
     }
 }

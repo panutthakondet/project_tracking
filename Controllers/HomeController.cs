@@ -201,7 +201,10 @@ namespace ProjectTracking.Controllers
                     {
                         var pmProjectIds = _context.Projects
                             .AsNoTracking()
-                            .Where(project => project.PmEmpId == currentEmpId.Value)
+                            .Where(project => project.PmEmpId == currentEmpId.Value
+                                || project.TeamMembers.Any(member =>
+                                    member.MemberRole == ProjectTeamRoles.ProjectManager
+                                    && member.EmpId == currentEmpId.Value))
                             .Select(project => (int?)project.ProjectId);
 
                         pendingApprovalQuery = pendingApprovalQuery
@@ -329,7 +332,9 @@ namespace ProjectTracking.Controllers
             var responsibleProjectDepartmentId = await _context.Projects
                 .AsNoTracking()
                 .Where(project => project.DepartmentId.HasValue
-                    && (project.PmEmpId == employeeId || project.BaEmpId == employeeId))
+                    && (project.PmEmpId == employeeId
+                        || project.BaEmpId == employeeId
+                        || project.TeamMembers.Any(member => member.EmpId == employeeId)))
                 .GroupBy(project => project.DepartmentId!.Value)
                 .OrderByDescending(group => group.Count())
                 .Select(group => (int?)group.Key)
@@ -641,6 +646,32 @@ namespace ProjectTracking.Controllers
                     EntryId = p.EntryId
                 })
                 .ToListAsync();
+
+            var dashboardProjectIds = projects.Select(project => project.ProjectId).ToList();
+            var dashboardTeamMembers = await _context.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(member => dashboardProjectIds.Contains(member.ProjectId))
+                .Select(member => new { member.ProjectId, member.EmpId, member.MemberRole })
+                .ToListAsync();
+            foreach (var project in projects)
+            {
+                project.PmEmpIds = dashboardTeamMembers
+                    .Where(member => member.ProjectId == project.ProjectId
+                        && member.MemberRole == ProjectTeamRoles.ProjectManager)
+                    .Select(member => member.EmpId)
+                    .Distinct()
+                    .ToList();
+                project.BaEmpIds = dashboardTeamMembers
+                    .Where(member => member.ProjectId == project.ProjectId
+                        && member.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                    .Select(member => member.EmpId)
+                    .Distinct()
+                    .ToList();
+                if (project.PmEmpIds.Count == 0 && project.PmEmpId.HasValue)
+                    project.PmEmpIds.Add(project.PmEmpId.Value);
+                if (project.BaEmpIds.Count == 0 && project.BaEmpId.HasValue)
+                    project.BaEmpIds.Add(project.BaEmpId.Value);
+            }
 
             var projectOverviewDepartments = await _context.ProjectDepartments
                 .AsNoTracking()
@@ -958,9 +989,7 @@ namespace ProjectTracking.Controllers
             var scopedEmployeeIds = selectedDashboardDepartment == "all"
                 ? employees.Select(employee => employee.EmpId).ToHashSet()
                 : scopedProjects
-                    .SelectMany(project => new int?[] { project.PmEmpId, project.BaEmpId })
-                    .Where(empId => empId.HasValue)
-                    .Select(empId => empId!.Value)
+                    .SelectMany(project => project.PmEmpIds.Concat(project.BaEmpIds))
                     .Concat(scopedAssigns.Select(assign => assign.EmpId))
                     .Concat(scopedIssues.Select(issue => issue.EmpId))
                     .Concat(scopedSupportOrders.Where(order => order.AssignTo.HasValue).Select(order => order.AssignTo!.Value))
@@ -1260,32 +1289,34 @@ namespace ProjectTracking.Controllers
                 .GroupBy(x => x.EmpId)
                 .ToDictionary(x => x.Key, x => x.Count());
             var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeePosition, EmployeeAvatar, today);
-            var projectBaById = projects.ToDictionary(project => project.ProjectId, project => project.BaEmpId);
+            var projectBaById = projects.ToDictionary(
+                project => project.ProjectId,
+                project => (IReadOnlyCollection<int>)project.BaEmpIds);
             var phaseById = phases
                 .GroupBy(phase => phase.PhaseId)
                 .ToDictionary(group => group.Key, group => group.First());
-            int? ProjectBaEmpId(int? projectId)
+            IReadOnlyCollection<int> ProjectBaEmpIds(int? projectId)
             {
-                return projectId.HasValue && projectBaById.TryGetValue(projectId.Value, out var baEmpId)
-                    ? baEmpId
-                    : null;
+                return projectId.HasValue && projectBaById.TryGetValue(projectId.Value, out var baEmpIds)
+                    ? baEmpIds
+                    : Array.Empty<int>();
             }
 
             var visibleOpenAssigns = scopedAssigns
                 .Where(assign => !IsDashboardAssignDone(assign))
-                .Where(assign => CanSeeOpenAssign(assign, phaseById, ProjectBaEmpId, currentEmpId, isAdmin))
+                .Where(assign => CanSeeOpenAssign(assign, phaseById, ProjectBaEmpIds, currentEmpId, isAdmin))
                 .ToList();
             var visibleOpenIssues = scopedIssues
                 .Where(i => !IsIssueResolved(i))
-                .Where(i => CanSeeOpenIssue(i, ProjectBaEmpId, currentEmpId, isAdmin))
+                .Where(i => CanSeeOpenIssue(i, ProjectBaEmpIds, currentEmpId, isAdmin))
                 .ToList();
             var visibleOpenSupportOrders = scopedSupportOrders
                 .Where(o => !IsSupportOrderClosed(o.Status, o.DevStatus))
-                .Where(o => CanSeeOpenSupport(o, ProjectBaEmpId, currentEmpId, isAdmin))
+                .Where(o => CanSeeOpenSupport(o, ProjectBaEmpIds, currentEmpId, isAdmin))
                 .ToList();
             var visibleOpenFollowups = scopedFollowups
                 .Where(followup => !IsFollowupClosed(followup.Status))
-                .Where(followup => CanSeeOpenFollowup(followup, ProjectBaEmpId, currentEmpId, isAdmin))
+                .Where(followup => CanSeeOpenFollowup(followup, ProjectBaEmpIds, currentEmpId, isAdmin))
                 .ToList();
             var openIssueSupportCount = visibleOpenAssigns.Count + visibleOpenIssues.Count + visibleOpenSupportOrders.Count + visibleOpenFollowups.Count;
             var openIssueSupportItems = BuildOpenIssueSupportItems(
@@ -1296,7 +1327,7 @@ namespace ProjectTracking.Controllers
                 phaseById,
                 ProjectName,
                 EmployeeName,
-                ProjectBaEmpId,
+                ProjectBaEmpIds,
                 currentEmpId,
                 isAdmin,
                 th);
@@ -1476,7 +1507,7 @@ namespace ProjectTracking.Controllers
                 if (IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus))
                 {
                     projectById.TryGetValue(phase.ProjectId, out var doneProject);
-                    AddLineOverdueOverviewItem(items, "DONE", assign.EmpId, doneProject?.BaEmpId);
+                    AddLineOverdueOverviewItem(items, "DONE", assign.EmpId, doneProject?.BaEmpIds);
                     continue;
                 }
 
@@ -1484,7 +1515,7 @@ namespace ProjectTracking.Controllers
                     continue;
 
                 projectById.TryGetValue(phase.ProjectId, out var project);
-                AddLineOverdueOverviewItem(items, severity, assign.EmpId, project?.BaEmpId);
+                AddLineOverdueOverviewItem(items, severity, assign.EmpId, project?.BaEmpIds);
             }
 
             var total = items.Count;
@@ -1528,6 +1559,11 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Project)
                         .ThenInclude(p => p!.BA)
                             .ThenInclude(ba => ba!.LoginUser)
+                .Include(a => a.Phase!)
+                    .ThenInclude(p => p!.Project)
+                        .ThenInclude(p => p!.TeamMembers)
+                            .ThenInclude(m => m.Employee)
+                                .ThenInclude(e => e!.LoginUser)
                 .ToListAsync();
 
             var affectedProjectIds = assigns
@@ -1582,8 +1618,8 @@ namespace ProjectTracking.Controllers
                     Role = string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role!,
                     OwnerName = assign.Employee?.EmpName ?? "-",
                     OwnerAvatarPath = ResolveProfileImagePath(assign.Employee?.LoginUser?.ProfileImagePath),
-                    BaName = project.BA?.EmpName ?? "-",
-                    BaAvatarPath = ResolveProfileImagePath(project.BA?.LoginUser?.ProfileImagePath),
+                    BaName = string.IsNullOrWhiteSpace(project.BusinessAnalystNames) ? "-" : project.BusinessAnalystNames,
+                    BaAvatarPath = ResolveProfileImagePath(project.BusinessAnalysts.FirstOrDefault()?.LoginUser?.ProfileImagePath),
                     StatusCategory = category,
                     StatusText = category switch
                     {
@@ -1681,11 +1717,12 @@ namespace ProjectTracking.Controllers
         private static void AddLineOverdueOverviewItem(
             IList<LineOverdueOverviewItem> items,
             string severity,
-            params int?[] recipientEmpIds)
+            int ownerEmpId,
+            IEnumerable<int>? baEmpIds)
         {
-            var recipients = recipientEmpIds
-                .Where(x => x.HasValue && x.Value > 0)
-                .Select(x => x!.Value)
+            var recipients = new[] { ownerEmpId }
+                .Concat(baEmpIds ?? Array.Empty<int>())
+                .Where(x => x > 0)
                 .Distinct()
                 .ToHashSet();
 
@@ -1870,6 +1907,25 @@ namespace ProjectTracking.Controllers
                     EntryId = p.EntryId
                 })
                 .ToListAsync();
+
+            var activityProjectIds = projects.Select(p => p.ProjectId).ToList();
+            var activityBaMembers = await _context.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(m => activityProjectIds.Contains(m.ProjectId)
+                    && m.MemberRole == ProjectTeamRoles.BusinessAnalyst)
+                .OrderBy(m => m.SortOrder)
+                .Select(m => new { m.ProjectId, m.EmpId })
+                .ToListAsync();
+            foreach (var project in projects)
+            {
+                project.BaEmpIds = activityBaMembers
+                    .Where(m => m.ProjectId == project.ProjectId)
+                    .Select(m => m.EmpId)
+                    .Distinct()
+                    .ToList();
+                if (project.BaEmpIds.Count == 0 && project.BaEmpId.HasValue)
+                    project.BaEmpIds.Add(project.BaEmpId.Value);
+            }
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
@@ -2082,13 +2138,13 @@ namespace ProjectTracking.Controllers
                 .ToDictionary(g => g.Key, g => g.First());
             var projectOwnerById = projects
                 .GroupBy(p => p.ProjectId)
-                .ToDictionary(g => g.Key, g => g.First().BaEmpId);
+                .ToDictionary(g => g.Key, g => (IReadOnlyList<int>)g.First().BaEmpIds);
 
             string ProjectOwnerName(int? projectId)
             {
                 if (projectId == null) return "ระบบ";
-                return projectOwnerById.TryGetValue(projectId.Value, out var ownerEmpId)
-                    ? employeeName(ownerEmpId)
+                return projectOwnerById.TryGetValue(projectId.Value, out var ownerEmpIds) && ownerEmpIds.Count > 0
+                    ? string.Join(", ", ownerEmpIds.Select(ownerEmpId => employeeName(ownerEmpId)))
                     : "ระบบ";
             }
 
@@ -2100,7 +2156,7 @@ namespace ProjectTracking.Controllers
                     {
                         Actor = employeeName(p.EntryId),
                         Detail = $"อัปเดตโครงการ: {p.ProjectName}",
-                        OwnerText = $"เจ้าของงาน: {employeeName(p.BaEmpId)}",
+                        OwnerText = $"เจ้าของงาน: {(p.BaEmpIds.Count > 0 ? string.Join(", ", p.BaEmpIds.Select(empId => employeeName(empId))) : "ระบบ")}",
                         TimeText = RelativeTimeThai(p.CreatedAt.Value, now),
                         Color = ProjectActivityColor(p.Status),
                         AvatarPath = employeeAvatar(p.EntryId),
@@ -2474,12 +2530,15 @@ namespace ProjectTracking.Controllers
                         return null;
                     }
 
-                    var ownerEmpId = project.BaEmpId
-                        ?? projectAssigns
+                    var ownerEmpIds = project.BaEmpIds.Count > 0
+                        ? project.BaEmpIds
+                        : projectAssigns
                             .GroupBy(a => a.EmpId)
                             .OrderByDescending(g => g.Count())
-                            .Select(g => (int?)g.Key)
-                            .FirstOrDefault();
+                            .Select(g => g.Key)
+                            .Take(1)
+                            .ToList();
+                    var ownerEmpId = ownerEmpIds.Select(id => (int?)id).FirstOrDefault();
                     var dueText = BuildProjectDueText(project, projectPhases, projectAssigns, projectFollowups, projectSupportOrders, today, th);
                     var riskLevel = score >= 12 ? "สูง" : score >= 6 ? "กลาง" : "เฝ้าระวัง";
                     var riskColor = score >= 12 ? "pink" : score >= 6 ? "orange" : "blue";
@@ -2488,7 +2547,9 @@ namespace ProjectTracking.Controllers
                     {
                         ProjectId = project.ProjectId,
                         ProjectName = project.ProjectDisplayName,
-                        OwnerName = employeeName(ownerEmpId),
+                        OwnerName = ownerEmpIds.Count > 0
+                            ? string.Join(", ", ownerEmpIds.Select(id => employeeName(id)))
+                            : "-",
                         AvatarPath = employeeAvatar(ownerEmpId),
                         RiskLevel = riskLevel,
                         RiskColor = riskColor,
@@ -2933,7 +2994,7 @@ namespace ProjectTracking.Controllers
             IReadOnlyDictionary<int, DashboardPhaseRow> phaseById,
             Func<int?, string> projectName,
             Func<int?, string> employeeName,
-            Func<int?, int?> projectBaEmpId,
+            Func<int?, IReadOnlyCollection<int>> projectBaEmpIds,
             int? currentEmpId,
             bool isAdmin,
             CultureInfo culture)
@@ -2980,7 +3041,7 @@ namespace ProjectTracking.Controllers
                         ProjectName = projectName(i.ProjectId),
                         OwnerName = employeeName(i.EmpId),
                         DueText = i.EndDate.HasValue ? FormatDashboardDate(i.EndDate, culture) : "ยังไม่กำหนด",
-                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(i.ProjectId), currentEmpId, isAdmin)
+                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpIds(i.ProjectId), currentEmpId, isAdmin)
                             ? $"/ProjectIssues/Details/{i.IssueId}"
                             : $"/ProjectIssues/DevDetails/{i.IssueId}",
                         Color = IsHighPriority(i.IssuePriority) ? "pink" : "orange"
@@ -2997,7 +3058,7 @@ namespace ProjectTracking.Controllers
                         ProjectName = projectName(o.ProjectId),
                         OwnerName = employeeName(o.AssignTo),
                         DueText = o.EndDate.HasValue ? FormatDashboardDate(o.EndDate, culture) : "ยังไม่กำหนด",
-                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpId(o.ProjectId), currentEmpId, isAdmin)
+                        Url = ShouldUseBaOpenWorkRoute(projectBaEmpIds(o.ProjectId), currentEmpId, isAdmin)
                             ? $"/SupportOrders/Details/{o.OrderId}"
                             : $"/SupportOrdersDev/Details/{o.OrderId}",
                         Color = IsHighPriority(o.Priority) ? "pink" : "cyan"
@@ -3041,32 +3102,32 @@ namespace ProjectTracking.Controllers
 
         private static bool CanSeeOpenIssue(
             DashboardIssueRow issue,
-            Func<int?, int?> projectBaEmpId,
+            Func<int?, IReadOnlyCollection<int>> projectBaEmpIds,
             int? currentEmpId,
             bool isAdmin)
         {
             return currentEmpId.HasValue &&
                 (issue.EmpId == currentEmpId.Value ||
                     issue.CreatedBy == currentEmpId.Value ||
-                    projectBaEmpId(issue.ProjectId) == currentEmpId.Value);
+                    projectBaEmpIds(issue.ProjectId).Contains(currentEmpId.Value));
         }
 
         private static bool CanSeeOpenSupport(
             DashboardSupportOrderRow supportOrder,
-            Func<int?, int?> projectBaEmpId,
+            Func<int?, IReadOnlyCollection<int>> projectBaEmpIds,
             int? currentEmpId,
             bool isAdmin)
         {
             return currentEmpId.HasValue &&
                 (supportOrder.AssignTo == currentEmpId.Value ||
                     supportOrder.CreatedBy == currentEmpId.Value ||
-                    projectBaEmpId(supportOrder.ProjectId) == currentEmpId.Value);
+                    projectBaEmpIds(supportOrder.ProjectId).Contains(currentEmpId.Value));
         }
 
         private static bool CanSeeOpenAssign(
             DashboardAssignRow assign,
             IReadOnlyDictionary<int, DashboardPhaseRow> phaseById,
-            Func<int?, int?> projectBaEmpId,
+            Func<int?, IReadOnlyCollection<int>> projectBaEmpIds,
             int? currentEmpId,
             bool isAdmin)
         {
@@ -3078,24 +3139,24 @@ namespace ProjectTracking.Controllers
                 : (int?)null;
 
             return assign.EmpId == currentEmpId.Value ||
-                projectBaEmpId(projectId) == currentEmpId.Value;
+                projectBaEmpIds(projectId).Contains(currentEmpId.Value);
         }
 
         private static bool CanSeeOpenFollowup(
             DashboardFollowupRow followup,
-            Func<int?, int?> projectBaEmpId,
+            Func<int?, IReadOnlyCollection<int>> projectBaEmpIds,
             int? currentEmpId,
             bool isAdmin)
         {
             return currentEmpId.HasValue &&
                 (followup.OwnerEmpId == currentEmpId.Value ||
                     followup.CreatedByEmpId == currentEmpId.Value ||
-                    projectBaEmpId(followup.ProjectId) == currentEmpId.Value);
+                    projectBaEmpIds(followup.ProjectId).Contains(currentEmpId.Value));
         }
 
-        private static bool ShouldUseBaOpenWorkRoute(int? projectBaEmpId, int? currentEmpId, bool isAdmin)
+        private static bool ShouldUseBaOpenWorkRoute(IReadOnlyCollection<int> projectBaEmpIds, int? currentEmpId, bool isAdmin)
         {
-            return isAdmin || (currentEmpId.HasValue && projectBaEmpId == currentEmpId.Value);
+            return isAdmin || (currentEmpId.HasValue && projectBaEmpIds.Contains(currentEmpId.Value));
         }
 
         private static string RelativeTimeThai(DateTime value, DateTime now)
@@ -3375,11 +3436,13 @@ namespace ProjectTracking.Controllers
             public int? DepartmentId { get; set; }
             public string? DepartmentName { get; set; }
             public int? PmEmpId { get; set; }
+            public List<int> PmEmpIds { get; set; } = new();
             public string ProjectDisplayName =>
                 string.IsNullOrWhiteSpace(CoopName)
                     ? ProjectName
                     : $"{CoopName} - {ProjectName}";
             public int? BaEmpId { get; set; }
+            public List<int> BaEmpIds { get; set; } = new();
             public string? Status { get; set; }
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }

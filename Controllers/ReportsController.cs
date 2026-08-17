@@ -208,6 +208,8 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .AsQueryable();
             if (departmentId.HasValue)
                 projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
@@ -226,11 +228,11 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var baOptions = projects
-                .Where(p => p.BaEmpId.HasValue)
-                .Select(p => new EmployeeReportOptionViewModel
+                .SelectMany(p => p.BusinessAnalysts)
+                .Select(employee => new EmployeeReportOptionViewModel
                 {
-                    EmpId = p.BaEmpId!.Value,
-                    EmpName = p.BA?.EmpName ?? $"BA #{p.BaEmpId.Value}"
+                    EmpId = employee.EmpId,
+                    EmpName = employee.EmpName
                 })
                 .GroupBy(x => x.EmpId)
                 .Select(x => x.First())
@@ -254,6 +256,10 @@ namespace ProjectTracking.Controllers
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
                     .ThenInclude(p => p!.Coop)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
                 assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
@@ -276,6 +282,7 @@ namespace ProjectTracking.Controllers
                         ProjectId = phase.ProjectId,
                         EmpId = a.EmpId,
                         BaEmpId = project?.BaEmpId,
+                        BaEmpIds = project?.BusinessAnalysts.Select(e => e.EmpId).ToList() ?? new List<int>(),
                         ProjectName = project?.ProjectDisplayName ?? "-",
                         EmployeeName = a.Employee?.EmpName ?? "-",
                         PhaseName = phase.PhaseName,
@@ -301,7 +308,7 @@ namespace ProjectTracking.Controllers
             var rows = allRows
                 .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
                 .Where(r => !empId.HasValue || r.EmpId == empId.Value)
-                .Where(r => !baEmpId.HasValue || r.BaEmpId == baEmpId.Value)
+                .Where(r => !baEmpId.HasValue || r.BaEmpIds.Contains(baEmpId.Value))
                 .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.StatusCategory == selectedStatus)
                 .Where(r => string.IsNullOrWhiteSpace(selectedAssignStatus) || r.AssignStatus == selectedAssignStatus)
                 .OrderBy(r => r.ProjectName)
@@ -393,6 +400,8 @@ namespace ProjectTracking.Controllers
             var projectQuery = _context.Projects
                 .Include(p => p.Coop)
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
                 projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
@@ -411,11 +420,11 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             var baOptions = projects
-                .Where(p => p.BaEmpId.HasValue)
-                .Select(p => new EmployeeReportOptionViewModel
+                .SelectMany(p => p.BusinessAnalysts)
+                .Select(employee => new EmployeeReportOptionViewModel
                 {
-                    EmpId = p.BaEmpId!.Value,
-                    EmpName = p.BA?.EmpName ?? $"BA #{p.BaEmpId.Value}"
+                    EmpId = employee.EmpId,
+                    EmpName = employee.EmpName
                 })
                 .GroupBy(x => x.EmpId)
                 .Select(x => x.First())
@@ -442,6 +451,10 @@ namespace ProjectTracking.Controllers
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
                 assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
@@ -453,6 +466,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Include(i => i.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .Include(i => i.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
@@ -465,6 +481,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(p => p!.Coop)
                 .Include(o => o.Project)
                     .ThenInclude(p => p!.BA)
+                .Include(o => o.Project)
+                    .ThenInclude(p => p!.TeamMembers)
+                        .ThenInclude(m => m.Employee)
                 .Include(o => o.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
@@ -501,7 +520,8 @@ namespace ProjectTracking.Controllers
                     OwnerEmpId = assign.EmpId,
                     OwnerName = assign.Employee?.EmpName ?? "-",
                     BaEmpId = project?.BaEmpId,
-                    BaName = project?.BA?.EmpName ?? "-",
+                    BaEmpIds = project?.BusinessAnalysts.Select(e => e.EmpId).ToList() ?? new List<int>(),
+                    BaName = string.IsNullOrWhiteSpace(project?.BusinessAnalystNames) ? "-" : project.BusinessAnalystNames,
                     Status = string.IsNullOrWhiteSpace(assign.WorkStatus) ? "-" : assign.WorkStatus!,
                     Priority = "-",
                     StartDate = startDate,
@@ -538,7 +558,8 @@ namespace ProjectTracking.Controllers
                     OwnerEmpId = issue.AssignTo,
                     OwnerName = issue.Employee?.EmpName ?? "-",
                     BaEmpId = issue.Project?.BaEmpId,
-                    BaName = issue.Project?.BA?.EmpName ?? "-",
+                    BaEmpIds = issue.Project?.BusinessAnalysts.Select(e => e.EmpId).ToList() ?? new List<int>(),
+                    BaName = string.IsNullOrWhiteSpace(issue.Project?.BusinessAnalystNames) ? "-" : issue.Project.BusinessAnalystNames,
                     Status = $"Issue: {TextOrDash(issue.IssueStatus)} / Dev: {TextOrDash(issue.DevStatus)} / จำนวน FAIL: {issue.ReopenCount}",
                     Priority = TextOrDash(issue.IssuePriority),
                     StartDate = startDate,
@@ -574,7 +595,8 @@ namespace ProjectTracking.Controllers
                     OwnerEmpId = order.AssignTo,
                     OwnerName = order.Employee?.EmpName ?? "-",
                     BaEmpId = order.Project?.BaEmpId,
-                    BaName = order.Project?.BA?.EmpName ?? "-",
+                    BaEmpIds = order.Project?.BusinessAnalysts.Select(e => e.EmpId).ToList() ?? new List<int>(),
+                    BaName = string.IsNullOrWhiteSpace(order.Project?.BusinessAnalystNames) ? "-" : order.Project.BusinessAnalystNames,
                     Status = $"Status: {TextOrDash(order.Status)} / Dev: {TextOrDash(order.DevStatus)} / จำนวน FAIL: {order.ReopenCount}",
                     Priority = TextOrDash(order.Priority),
                     StartDate = startDate,
@@ -588,7 +610,7 @@ namespace ProjectTracking.Controllers
             rows = rows
                 .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
                 .Where(r => !empId.HasValue || r.OwnerEmpId == empId.Value)
-                .Where(r => !baEmpId.HasValue || r.BaEmpId == baEmpId.Value)
+                .Where(r => !baEmpId.HasValue || r.BaEmpIds.Contains(baEmpId.Value))
                 .Where(r => string.IsNullOrWhiteSpace(selectedWorkType) || r.WorkType == selectedWorkType)
                 .Where(r => string.IsNullOrWhiteSpace(selectedSection) || r.Section == selectedSection)
                 .OrderBy(r => PendingSectionOrder(r.Section))
@@ -741,6 +763,8 @@ namespace ProjectTracking.Controllers
 
             var projectQuery = _context.Projects
                 .Include(p => p.BA)
+                .Include(p => p.TeamMembers)
+                    .ThenInclude(m => m.Employee)
                 .Include(p => p.Coop)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
@@ -921,13 +945,14 @@ namespace ProjectTracking.Controllers
                     var progress = CalculateProjectProgress(project.Status, projectPhases, projectAssigns);
                     var riskLevel = score >= 12 ? "สูง" : score >= 6 ? "กลาง" : "เฝ้าระวัง";
                     var riskTone = score >= 12 ? "danger" : score >= 6 ? "warning" : "info";
-                    var ownerName = project.BA?.EmpName
-                        ?? projectAssigns
+                    var ownerName = !string.IsNullOrWhiteSpace(project.BusinessAnalystNames)
+                        ? project.BusinessAnalystNames
+                        : projectAssigns
                             .GroupBy(a => a.EmpId)
                             .OrderByDescending(g => g.Count())
                             .Select(g => EmployeeName(employees, g.Key))
                             .FirstOrDefault()
-                        ?? "-";
+                            ?? "-";
 
                     return new ExecutiveRiskProjectViewModel
                     {

@@ -97,6 +97,10 @@ namespace ProjectTracking.Controllers
             var projectOptions = await _context.Projects
                 .AsNoTracking()
                 .Include(x => x.Coop)
+                .Include(x => x.PM)
+                .Include(x => x.BA)
+                .Include(x => x.TeamMembers)
+                    .ThenInclude(member => member.Employee)
                 .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
                 .ThenBy(x => x.ProjectName)
                 .ToListAsync();
@@ -364,9 +368,8 @@ namespace ProjectTracking.Controllers
                 .Where(x => x.Phase != null && phaseProjectIds.Contains(x.Phase.ProjectId))
                 .ToListAsync();
             var teamOwnerIds = teamProjects
-                .SelectMany(x => new int?[] { x.PmEmpId, x.BaEmpId })
-                .Where(x => x.HasValue)
-                .Select(x => x!.Value)
+                .SelectMany(x => x.ProjectManagers.Concat(x.BusinessAnalysts))
+                .Select(x => x.EmpId)
                 .ToHashSet();
             var teamEmployeeIds = teamAssigns
                 .Select(x => x.EmpId)
@@ -397,8 +400,8 @@ namespace ProjectTracking.Controllers
             var teamGroups = BuildTeamGroups(
                 teamEmployees,
                 teamAssigns,
-                teamProjects.Where(x => x.PmEmpId.HasValue).Select(x => x.PmEmpId!.Value).ToHashSet(),
-                teamProjects.Where(x => x.BaEmpId.HasValue).Select(x => x.BaEmpId!.Value).ToHashSet(),
+                teamProjects.SelectMany(x => x.ProjectManagers).Select(x => x.EmpId).ToHashSet(),
+                teamProjects.SelectMany(x => x.BusinessAnalysts).Select(x => x.EmpId).ToHashSet(),
                 teamAvatarByEmployeeId);
 
             ViewBag.Year = selectedYear;

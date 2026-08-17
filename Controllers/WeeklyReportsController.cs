@@ -300,7 +300,10 @@ namespace ProjectTracking.Controllers
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(x => x.Coop)
-                .Where(x => x.BaEmpId == empId.Value)
+                .Where(x => x.BaEmpId == empId.Value
+                    || x.TeamMembers.Any(member =>
+                        member.MemberRole == ProjectTeamRoles.BusinessAnalyst
+                        && member.EmpId == empId.Value))
                 .ToListAsync();
 
             var projectIds = projects.Select(x => x.ProjectId).ToHashSet();

@@ -669,7 +669,7 @@
                         {
                             order.ProjectId,
                             ProjectName = TextOrDash(order.Project?.ProjectDisplayName),
-                            BAName = TextOrDash(order.Project?.BA?.EmpName)
+                            BAName = TextOrDash(order.Project?.BusinessAnalystNames)
                         })
                         .OrderBy(group => group.Key.ProjectName)
                         .ToList();
@@ -728,7 +728,7 @@
                                 <div class="meta-stack">
                                     <div>
                                         <span class="meta-label">BA</span>
-                                        <div class="meta-value">@TextOrDash(order.Project?.BA?.EmpName)</div>
+                                        <div class="meta-value">@TextOrDash(order.Project?.BusinessAnalystNames)</div>
                                     </div>
                                     <div>
                                         <span class="meta-label">Assign To</span>

@@ -409,7 +409,7 @@
                                         </td>
                                         <td>
                                             <div class="phase-report-phase-text">@phase.PhaseDisplayName</div>
-                                            <div class="phase-report-muted fw-normal">BA: @(phase.Project?.BA?.EmpName ?? "-")</div>
+                                            <div class="phase-report-muted fw-normal">BA: @(string.IsNullOrWhiteSpace(phase.Project?.BusinessAnalystNames) ? "-" : phase.Project.BusinessAnalystNames)</div>
                                         </td>
                                         <td class="text-center">@DateText(phase.PlanStart) - @DateText(phase.PlanEnd)</td>
                                         <td class="text-center">@DateText(phase.PeriodEndDate)</td>

@@ -41,6 +41,11 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(phase => phase!.Project)
                         .ThenInclude(project => project!.BA)
                             .ThenInclude(ba => ba!.LoginUser)
+                .Include(assign => assign.Phase)
+                    .ThenInclude(phase => phase!.Project)
+                        .ThenInclude(project => project!.TeamMembers)
+                            .ThenInclude(member => member.Employee)
+                                .ThenInclude(employee => employee!.LoginUser)
                 .Include(assign => assign.Employee)
                     .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
@@ -58,6 +63,10 @@ namespace ProjectTracking.Controllers
                 .Include(issue => issue.Project)
                     .ThenInclude(project => project!.BA)
                         .ThenInclude(ba => ba!.LoginUser)
+                .Include(issue => issue.Project)
+                    .ThenInclude(project => project!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
+                            .ThenInclude(employee => employee!.LoginUser)
                 .Include(issue => issue.Employee)
                     .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
@@ -75,6 +84,10 @@ namespace ProjectTracking.Controllers
                 .Include(order => order.Project)
                     .ThenInclude(project => project!.BA)
                         .ThenInclude(ba => ba!.LoginUser)
+                .Include(order => order.Project)
+                    .ThenInclude(project => project!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
+                            .ThenInclude(employee => employee!.LoginUser)
                 .Include(order => order.Employee)
                     .ThenInclude(employee => employee!.LoginUser)
                 .ToListAsync();
@@ -92,6 +105,10 @@ namespace ProjectTracking.Controllers
                 .Include(followup => followup.Project)
                     .ThenInclude(project => project!.BA)
                         .ThenInclude(ba => ba!.LoginUser)
+                .Include(followup => followup.Project)
+                    .ThenInclude(project => project!.TeamMembers)
+                        .ThenInclude(member => member.Employee)
+                            .ThenInclude(employee => employee!.LoginUser)
                 .Include(followup => followup.Owner)
                     .ThenInclude(owner => owner!.LoginUser)
                 .Include(followup => followup.CreatedByEmployee)
@@ -180,7 +197,7 @@ namespace ProjectTracking.Controllers
             var dueDate = assign.PlanEnd ?? phase?.PlanEnd;
             var startDate = assign.PlanStart ?? phase?.PlanStart;
             var isOwner = currentEmpId.HasValue && assign.EmpId == currentEmpId.Value;
-            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var isBa = IsProjectBa(project, currentEmpId);
             var roleText = isOwner ? "ผู้รับผิดชอบ" : isAdmin ? "Admin" : isBa ? "BA" : "User";
             var title = FirstText(assign.Role, phase?.PhaseDisplayName, $"PhaseAssign #{assign.AssignId}");
 
@@ -191,8 +208,8 @@ namespace ProjectTracking.Controllers
                 Title = title,
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
-                BaName = project?.BA?.EmpName ?? "-",
-                BaAvatarPath = ProfileImage(project?.BA),
+                BaName = ProjectBaNames(project),
+                BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault()),
                 OwnerName = assign.Employee?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(assign.Employee),
                 Detail = CleanDetail(assign.Remark ?? phase?.PhaseDisplayName),
@@ -243,7 +260,7 @@ namespace ProjectTracking.Controllers
         {
             var project = issue.Project;
             var isAssignee = currentEmpId.HasValue && issue.AssignTo == currentEmpId.Value;
-            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var isBa = IsProjectBa(project, currentEmpId);
             var roleText = isAssignee ? "Dev" : isAdmin ? "Admin" : isBa ? "BA" : "User";
 
             return new OpenIssueSupportItemViewModel
@@ -253,8 +270,8 @@ namespace ProjectTracking.Controllers
                 Title = string.IsNullOrWhiteSpace(issue.IssueName) ? $"Issue #{issue.IssueId}" : issue.IssueName.Trim(),
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
-                BaName = project?.BA?.EmpName ?? "-",
-                BaAvatarPath = ProfileImage(project?.BA),
+                BaName = ProjectBaNames(project),
+                BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault()),
                 OwnerName = issue.Employee?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(issue.Employee),
                 Detail = CleanDetail(issue.IssueDetail),
@@ -280,7 +297,7 @@ namespace ProjectTracking.Controllers
             var owner = followup.Owner ?? followup.CreatedByEmployee;
             var isOwner = currentEmpId.HasValue && followup.OwnerEmpId == currentEmpId.Value;
             var isCreator = currentEmpId.HasValue && followup.CreatedByEmpId == currentEmpId.Value;
-            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var isBa = IsProjectBa(project, currentEmpId);
             var roleText = isOwner ? "เจ้าของงาน" : isCreator ? "ผู้สร้าง" : isAdmin ? "Admin" : isBa ? "BA" : "User";
 
             return new OpenIssueSupportItemViewModel
@@ -290,8 +307,8 @@ namespace ProjectTracking.Controllers
                 Title = string.IsNullOrWhiteSpace(followup.TaskTitle) ? $"Followup #{followup.FollowupId}" : followup.TaskTitle.Trim(),
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
-                BaName = project?.BA?.EmpName ?? "-",
-                BaAvatarPath = ProfileImage(project?.BA),
+                BaName = ProjectBaNames(project),
+                BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault()),
                 OwnerName = owner?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(owner),
                 Detail = CleanDetail(followup.PartnerName),
@@ -313,7 +330,7 @@ namespace ProjectTracking.Controllers
         {
             var project = order.Project;
             var isAssignee = currentEmpId.HasValue && order.AssignTo == currentEmpId.Value;
-            var isBa = currentEmpId.HasValue && project?.BaEmpId == currentEmpId.Value;
+            var isBa = IsProjectBa(project, currentEmpId);
             var roleText = isAssignee ? "Dev" : isAdmin ? "Admin" : isBa ? "BA" : "User";
 
             return new OpenIssueSupportItemViewModel
@@ -323,8 +340,8 @@ namespace ProjectTracking.Controllers
                 Title = string.IsNullOrWhiteSpace(order.OrderTitle) ? $"Support #{order.OrderId}" : order.OrderTitle.Trim(),
                 ProjectName = ProjectDisplayName(project),
                 CoopName = project?.Coop?.CoopName ?? "-",
-                BaName = project?.BA?.EmpName ?? "-",
-                BaAvatarPath = ProfileImage(project?.BA),
+                BaName = ProjectBaNames(project),
+                BaAvatarPath = ProfileImage(project?.BusinessAnalysts.FirstOrDefault()),
                 OwnerName = order.Employee?.EmpName ?? "-",
                 OwnerAvatarPath = ProfileImage(order.Employee),
                 Detail = CleanDetail(order.OrderDetail),
@@ -349,7 +366,7 @@ namespace ProjectTracking.Controllers
             return currentEmpId.HasValue &&
                 (issue.AssignTo == currentEmpId.Value ||
                     issue.CreatedBy == currentEmpId.Value ||
-                    issue.Project?.BaEmpId == currentEmpId.Value);
+                    IsProjectBa(issue.Project, currentEmpId));
         }
 
         private static bool CanSeeSupport(ProjectSupportOrder order, int? currentEmpId, bool isAdmin)
@@ -357,13 +374,13 @@ namespace ProjectTracking.Controllers
             return currentEmpId.HasValue &&
                 (order.AssignTo == currentEmpId.Value ||
                     order.CreatedBy == currentEmpId.Value ||
-                    order.Project?.BaEmpId == currentEmpId.Value);
+                    IsProjectBa(order.Project, currentEmpId));
         }
 
         private static bool CanSeeAssign(PhaseAssign assign, int? currentEmpId, bool isAdmin)
         {
             return currentEmpId.HasValue &&
-                (assign.EmpId == currentEmpId.Value || assign.Phase?.Project?.BaEmpId == currentEmpId.Value);
+                (assign.EmpId == currentEmpId.Value || IsProjectBa(assign.Phase?.Project, currentEmpId));
         }
 
         private static bool CanSeeFollowup(ProjectFollowup followup, int? currentEmpId, bool isAdmin)
@@ -371,8 +388,18 @@ namespace ProjectTracking.Controllers
             return currentEmpId.HasValue &&
                 (followup.OwnerEmpId == currentEmpId.Value ||
                     followup.CreatedByEmpId == currentEmpId.Value ||
-                    followup.Project?.BaEmpId == currentEmpId.Value);
+                    IsProjectBa(followup.Project, currentEmpId));
         }
+
+        private static bool IsProjectBa(Project? project, int? employeeId)
+            => employeeId.HasValue
+                && project != null
+                && project.BusinessAnalysts.Any(employee => employee.EmpId == employeeId.Value);
+
+        private static string ProjectBaNames(Project? project)
+            => string.IsNullOrWhiteSpace(project?.BusinessAnalystNames)
+                ? "-"
+                : project.BusinessAnalystNames;
 
         private static bool IsPhaseAssignIncomplete(PhaseAssign assign)
         {
