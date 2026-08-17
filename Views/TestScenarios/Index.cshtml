@@ -396,6 +396,12 @@
         border-color: rgba(245, 158, 11, .28);
     }
 
+    .scenario-detail-box--remark {
+        grid-column: 1 / -1;
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
     .scenario-detail-box--precondition .scenario-detail-label {
         color: #0f766e;
     }
@@ -406,6 +412,10 @@
 
     .scenario-detail-box--expected .scenario-detail-label {
         color: #b45309;
+    }
+
+    .scenario-detail-box--remark .scenario-detail-label {
+        color: #475569;
     }
 
     .scenario-detail-label {
@@ -914,6 +924,13 @@
                                         <div class="scenario-detail-label">Expected Result</div>
                                         <div class="scenario-detail-text">@item.expected_result</div>
                                     </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.remark))
+                                    {
+                                        <div class="scenario-detail-box scenario-detail-box--remark">
+                                            <div class="scenario-detail-label">หมายเหตุ</div>
+                                            <div class="scenario-detail-text">@item.remark</div>
+                                        </div>
+                                    }
                                 </div>
 
                                 <div class="scenario-card-actions">
