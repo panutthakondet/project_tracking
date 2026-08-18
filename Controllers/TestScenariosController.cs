@@ -22,6 +22,7 @@ namespace ProjectTracking.Controllers
     {
         private const string IndexStatusFilterKey = "TestScenarios.Filter.Status";
         private const string IndexScenarioTypeFilterKey = "TestScenarios.Filter.ScenarioType";
+        private const string IndexDepartmentFilterKey = "TestScenarios.Filter.DepartmentId";
         private static readonly (string Value, string Text)[] ScenarioStatusFilters =
         {
             ("READY", "พร้อมทดสอบ"),
@@ -177,10 +178,19 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestScenarios.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? scenarioType, string? coopName)
+        public async Task<IActionResult> Index(int? projectId, int? controlId, int? groupId, List<int>? groupIds, string? status, string? scenarioType, string? coopName, int? departmentId)
         {
             var selectedStatus = ResolveIndexStatusFilter(status);
             var selectedScenarioType = ResolveIndexScenarioTypeFilter(scenarioType);
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName)
+                .ToListAsync();
+            var selectedDepartmentId = ResolveIndexDepartmentFilter(
+                departmentId,
+                departments.Select(x => x.DepartmentId).ToHashSet());
             var selectedCoopName = (coopName ?? "").Trim();
             var projects = await _context.Projects
                 .Include(p => p.Coop)
@@ -212,14 +222,38 @@ namespace ProjectTracking.Controllers
             if (selectedGroupIds.Count == 0 && groupId.HasValue && groupId.Value > 0)
                 selectedGroupIds.Add(groupId.Value);
 
-            var groups = await _context.TestTemplateGroups
+            var allGroups = await _context.TestTemplateGroups
                 .AsNoTracking()
                 .Include(g => g.Control)
+                    .ThenInclude(c => c!.Department)
                 .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
-                .OrderBy(g => g.Control!.sort_order)
+                .OrderBy(g => g.Control!.Department != null ? g.Control.Department.SortOrder : int.MaxValue)
+                .ThenBy(g => g.Control!.Department != null ? g.Control.Department.DepartmentName : "")
+                .ThenBy(g => g.Control!.sort_order)
                 .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
+
+            if (!Request.Query.ContainsKey("departmentId"))
+            {
+                var linkedDepartmentIds = allGroups
+                    .Where(g => selectedGroupIds.Contains(g.group_id)
+                        || (controlId.HasValue && g.control_id == controlId.Value))
+                    .Select(g => g.Control?.department_id)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .Distinct()
+                    .ToList();
+                if (linkedDepartmentIds.Count == 1)
+                {
+                    selectedDepartmentId = linkedDepartmentIds[0];
+                    HttpContext.Session.SetString(IndexDepartmentFilterKey, selectedDepartmentId.Value.ToString());
+                }
+            }
+
+            var groups = selectedDepartmentId.HasValue
+                ? allGroups.Where(g => g.Control?.department_id == selectedDepartmentId.Value).ToList()
+                : new List<TestTemplateGroup>();
 
             var controls = groups
                 .Where(g => g.Control != null)
@@ -248,6 +282,9 @@ namespace ProjectTracking.Controllers
                 .Where(x =>
                     (!projectId.HasValue || x.project_id == projectId) &&
                     (string.IsNullOrWhiteSpace(selectedCoopName) || selectedCoopProjectIds.Contains(x.project_id)) &&
+                    (!selectedDepartmentId.HasValue ||
+                        (x.Group != null && x.Group.Control != null &&
+                            x.Group.Control.department_id == selectedDepartmentId.Value)) &&
                     (!selectedControlId.HasValue ||
                         (x.Group != null && x.Group.control_id == selectedControlId.Value)) &&
                     (selectedControlGroupIds.Count == 0 ||
@@ -263,6 +300,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Groups = groups;
             ViewBag.Controls = controls;
+            ViewBag.Departments = departments;
             ViewBag.Projects = projects;
             ViewBag.CoopOptions = coopOptions;
 
@@ -276,6 +314,7 @@ namespace ProjectTracking.Controllers
             ViewBag.StatusList = ScenarioStatusFilters;
             ViewBag.SelectedStatus = selectedStatus;
             ViewBag.SelectedScenarioType = selectedScenarioType;
+            ViewBag.SelectedDepartmentId = selectedDepartmentId;
 
             return View(scenarios);
         }
@@ -525,15 +564,26 @@ namespace ProjectTracking.Controllers
 
         [HttpGet]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportTemplates(int? projectId, int? groupId)
+        public async Task<IActionResult> ImportTemplates(int? projectId, int? groupId, string? scenarioType, int? departmentId)
         {
-            if (!projectId.HasValue || !groupId.HasValue)
-                return RedirectToAction("Index");
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            if (string.IsNullOrWhiteSpace(selectedScenarioType) || !departmentId.HasValue)
+            {
+                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import";
+                return RedirectToAction(nameof(Index), new { projectId, groupId, scenarioType = selectedScenarioType, departmentId });
+            }
 
-            var result = await ImportTemplatesForGroupsAsync(projectId.Value, new[] { groupId.Value });
+            if (!projectId.HasValue || !groupId.HasValue)
+                return RedirectToAction(nameof(Index), new { projectId, groupId, scenarioType = selectedScenarioType, departmentId });
+
+            var result = await ImportTemplatesForGroupsAsync(
+                projectId.Value,
+                new[] { groupId.Value },
+                selectedScenarioType,
+                departmentId.Value);
             SetImportTemplatesMessage(result);
 
-            return RedirectToAction("Index", new { projectId, groupId });
+            return RedirectToAction(nameof(Index), new { projectId, groupId, scenarioType = selectedScenarioType, departmentId });
         }
 
         [HttpPost]
@@ -545,11 +595,29 @@ namespace ProjectTracking.Controllers
             List<int> groupIds,
             string? scenarioType,
             string? status,
-            string? coopName)
+            string? coopName,
+            int? departmentId)
         {
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var selectedStatus = NormalizeIndexStatus(status);
             var selectedCoopName = (coopName ?? "").Trim();
+            var departmentExists = departmentId.HasValue && await _context.ProjectDepartments
+                .AsNoTracking()
+                .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
+            if (string.IsNullOrWhiteSpace(selectedScenarioType) || !departmentExists)
+            {
+                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import";
+                return RedirectToAction(nameof(Index), new
+                {
+                    projectId,
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = selectedScenarioType,
+                    departmentId
+                });
+            }
+            var selectedDepartmentId = departmentId!.Value;
+
             if (!projectId.HasValue)
             {
                 TempData["Error"] = "กรุณาเลือกโครงการก่อน Import";
@@ -557,7 +625,8 @@ namespace ProjectTracking.Controllers
                 {
                     coopName = selectedCoopName,
                     status = selectedStatus,
-                    scenarioType = selectedScenarioType
+                    scenarioType = selectedScenarioType,
+                    departmentId
                 });
             }
 
@@ -574,9 +643,34 @@ namespace ProjectTracking.Controllers
                     .Where(g => g.is_active
                         && g.control_id == controlId.Value
                         && g.Control != null
-                        && g.Control.is_active)
+                        && g.Control.is_active
+                        && g.Control.department_id == selectedDepartmentId)
                     .Select(g => g.group_id)
                     .ToListAsync();
+            }
+
+            var allowedGroupIds = await _context.TestTemplateGroups
+                .AsNoTracking()
+                .Where(g => g.is_active
+                    && g.Control != null
+                    && g.Control.is_active
+                    && g.Control.department_id == selectedDepartmentId
+                    && selectedGroupIds.Contains(g.group_id))
+                .Select(g => g.group_id)
+                .ToListAsync();
+
+            if (allowedGroupIds.Count != selectedGroupIds.Count)
+            {
+                TempData["Error"] = "Template Group ที่เลือกไม่อยู่ในฝ่ายที่ระบุ กรุณาเลือกใหม่";
+                return RedirectToAction(nameof(Index), new
+                {
+                    projectId,
+                    controlId,
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = selectedScenarioType,
+                    departmentId
+                });
             }
 
             if (selectedGroupIds.Count == 0)
@@ -588,12 +682,16 @@ namespace ProjectTracking.Controllers
                     controlId,
                     coopName = selectedCoopName,
                     status = selectedStatus,
-                    scenarioType = selectedScenarioType
+                    scenarioType = selectedScenarioType,
+                    departmentId
                 });
             }
 
-            var result = await ImportTemplatesForGroupsAsync(projectId.Value, selectedGroupIds,
-                string.IsNullOrWhiteSpace(selectedScenarioType) ? "BA" : selectedScenarioType);
+            var result = await ImportTemplatesForGroupsAsync(
+                projectId.Value,
+                selectedGroupIds,
+                selectedScenarioType,
+                selectedDepartmentId);
             SetImportTemplatesMessage(result);
 
             var redirectQuery = new List<string>
@@ -610,11 +708,16 @@ namespace ProjectTracking.Controllers
                 redirectQuery.Add($"status={selectedStatus}");
             if (!string.IsNullOrWhiteSpace(selectedCoopName))
                 redirectQuery.Add($"coopName={Uri.EscapeDataString(selectedCoopName)}");
+            redirectQuery.Add($"departmentId={selectedDepartmentId}");
 
             return Redirect($"{Url.Action(nameof(Index))}?{string.Join("&", redirectQuery)}");
         }
 
-        private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(int projectId, IEnumerable<int> groupIds, string scenarioType = "BA")
+        private async Task<ImportTemplatesResult> ImportTemplatesForGroupsAsync(
+            int projectId,
+            IEnumerable<int> groupIds,
+            string scenarioType,
+            int departmentId)
         {
             var selectedGroupIds = groupIds
                 .Distinct()
@@ -629,6 +732,7 @@ namespace ProjectTracking.Controllers
                 .Where(g => g.is_active
                     && g.Control != null
                     && g.Control.is_active
+                    && g.Control.department_id == departmentId
                     && selectedGroupIds.Contains(g.group_id))
                 .OrderBy(g => g.Control != null ? g.Control.sort_order : int.MaxValue)
                 .ThenBy(g => g.sort_order)
@@ -731,10 +835,33 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Import")]
-        public async Task<IActionResult> ImportFromDev(int? projectId, string? status, string? coopName)
+        public async Task<IActionResult> ImportFromDev(
+            int? projectId,
+            string? status,
+            string? coopName,
+            string? scenarioType,
+            int? departmentId)
         {
             var selectedStatus = NormalizeIndexStatus(status);
             var selectedCoopName = (coopName ?? "").Trim();
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            var departmentExists = departmentId.HasValue && await _context.ProjectDepartments
+                .AsNoTracking()
+                .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
+            if (selectedScenarioType != "BA" || !departmentExists)
+            {
+                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV";
+                return RedirectToAction(nameof(Index), new
+                {
+                    projectId,
+                    coopName = selectedCoopName,
+                    status = selectedStatus,
+                    scenarioType = selectedScenarioType,
+                    departmentId
+                });
+            }
+            var selectedDepartmentId = departmentId!.Value;
+
             if (!projectId.HasValue || projectId.Value <= 0)
             {
                 TempData["Error"] = "กรุณาเลือกโครงการก่อน Import จาก DEV";
@@ -742,7 +869,8 @@ namespace ProjectTracking.Controllers
                 {
                     coopName = selectedCoopName,
                     status = selectedStatus,
-                    scenarioType = "BA"
+                    scenarioType = "BA",
+                    departmentId
                 });
             }
 
@@ -750,7 +878,11 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(x => x.Group)
                     .ThenInclude(x => x!.Control)
-                .Where(x => x.project_id == projectId.Value && x.scenario_type == "DEV")
+                .Where(x => x.project_id == projectId.Value
+                    && x.scenario_type == "DEV"
+                    && x.Group != null
+                    && x.Group.Control != null
+                    && x.Group.Control.department_id == selectedDepartmentId)
                 .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
                 .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
                 .ThenBy(x => x.sort_order)
@@ -759,7 +891,11 @@ namespace ProjectTracking.Controllers
 
             var existingBaRows = await _context.TestScenarios
                 .AsNoTracking()
-                .Where(x => x.project_id == projectId.Value && x.scenario_type == "BA")
+                .Where(x => x.project_id == projectId.Value
+                    && x.scenario_type == "BA"
+                    && x.Group != null
+                    && x.Group.Control != null
+                    && x.Group.Control.department_id == selectedDepartmentId)
                 .Select(x => new { x.group_id, x.title })
                 .ToListAsync();
             var existingBaKeys = existingBaRows
@@ -818,7 +954,8 @@ namespace ProjectTracking.Controllers
                 projectId,
                 coopName = selectedCoopName,
                 status = selectedStatus,
-                scenarioType = "BA"
+                scenarioType = "BA",
+                departmentId
             });
         }
 
@@ -937,7 +1074,7 @@ namespace ProjectTracking.Controllers
         }
         [HttpGet]
         [RequireMenu("TestScenarios.Export")]
-        public IActionResult ExportPdf(int projectId, int? controlId, List<int> groupIds, string? status, string? scenarioType)
+        public IActionResult ExportPdf(int projectId, int? controlId, List<int> groupIds, string? status, string? scenarioType, int? departmentId)
         {
             var selectedStatus = NormalizeIndexStatus(status);
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
@@ -950,6 +1087,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(x => x!.Control)
                 .Where(x =>
                     x.project_id == projectId &&
+                    (!departmentId.HasValue ||
+                        (x.Group != null && x.Group.Control != null &&
+                            x.Group.Control.department_id == departmentId.Value)) &&
                     (
                         (selectedGroupIds.Count == 0 && !controlId.HasValue) ||
                         (selectedGroupIds.Count > 0 && x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)) ||
@@ -1019,17 +1159,22 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.DeleteAll")]
-        public async Task<IActionResult> DeleteAll(int projectId, string? scenarioType)
+        public async Task<IActionResult> DeleteAll(int projectId, string? scenarioType, int? departmentId)
         {
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var scenarios = await _context.TestScenarios
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
                 .Where(x =>
                     x.project_id == projectId &&
+                    (!departmentId.HasValue ||
+                        (x.Group != null && x.Group.Control != null &&
+                            x.Group.Control.department_id == departmentId.Value)) &&
                     (string.IsNullOrWhiteSpace(selectedScenarioType) || x.scenario_type == selectedScenarioType))
                 .ToListAsync();
 
             if (!scenarios.Any())
-                return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType });
+                return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType, departmentId });
 
             var scenarioIds = scenarios.Select(s => s.scenario_id).ToList();
 
@@ -1055,7 +1200,7 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
             await RenumberScenarioCodesAsync(projectId);
 
-            return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType });
+            return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType, departmentId });
         }
         [HttpPost]
         [RequireMenu("TestScenarios.Sort")]
@@ -1116,6 +1261,27 @@ namespace ProjectTracking.Controllers
 
             HttpContext.Session.SetString(IndexScenarioTypeFilterKey, selectedScenarioType);
             return selectedScenarioType;
+        }
+
+        private int? ResolveIndexDepartmentFilter(int? departmentId, IReadOnlySet<int> activeDepartmentIds)
+        {
+            if (!Request.Query.ContainsKey("departmentId"))
+            {
+                var rememberedValue = HttpContext.Session.GetString(IndexDepartmentFilterKey);
+                return int.TryParse(rememberedValue, out var rememberedDepartmentId)
+                    && activeDepartmentIds.Contains(rememberedDepartmentId)
+                        ? rememberedDepartmentId
+                        : null;
+            }
+
+            if (!departmentId.HasValue || !activeDepartmentIds.Contains(departmentId.Value))
+            {
+                HttpContext.Session.Remove(IndexDepartmentFilterKey);
+                return null;
+            }
+
+            HttpContext.Session.SetString(IndexDepartmentFilterKey, departmentId.Value.ToString());
+            return departmentId.Value;
         }
 
         private static string NormalizeIndexStatus(string? status)

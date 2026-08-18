@@ -22,6 +22,8 @@
     var statusList = ViewBag.StatusList as IEnumerable<(string Value, string Text)> ?? Enumerable.Empty<(string Value, string Text)>();
     var selectedStatus = ((ViewBag.SelectedStatus as string) ?? "").Trim().ToUpperInvariant();
     var selectedScenarioType = ((ViewBag.SelectedScenarioType as string) ?? "").Trim().ToUpperInvariant();
+    var departments = ViewBag.Departments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    int? selectedDepartmentId = ViewBag.SelectedDepartmentId != null ? Convert.ToInt32(ViewBag.SelectedDepartmentId) : null;
     var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
     int? selectedControlId = ViewBag.SelectedControlId != null ? Convert.ToInt32(ViewBag.SelectedControlId) : null;
@@ -532,17 +534,18 @@
 
     .scenario-filter-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px);
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px) minmax(180px, 240px);
         grid-template-areas:
-            "coop coop coop"
-            "project type status"
-            "groups groups groups";
+            "coop coop coop coop"
+            "project department type status"
+            "groups groups groups groups";
         gap: 16px;
         align-items: end;
     }
 
     .scenario-filter-coop,
     .scenario-filter-project,
+    .scenario-filter-department,
     .scenario-filter-type,
     .scenario-filter-status,
     .scenario-filter-groups {
@@ -560,6 +563,8 @@
     .scenario-filter-status {
         grid-area: status;
     }
+
+    .scenario-filter-department { grid-area: department; }
 
     .scenario-filter-type { grid-area: type; }
 
@@ -588,6 +593,7 @@
             grid-template-areas:
                 "coop"
                 "project"
+                "department"
                 "type"
                 "status"
                 "groups";
@@ -685,6 +691,24 @@
                     </select>
                 </div>
 
+                <div class="scenario-filter-department">
+                    <label class="form-label">ฝ่าย</label>
+                    <select name="departmentId"
+                            class="form-select"
+                            data-scenario-department-filter
+                            data-placeholder="ค้นหาฝ่าย..."
+                            onchange="changeScenarioDepartment(this)">
+                        <option value="">-- ทุกฝ่าย --</option>
+                        @foreach (var department in departments)
+                        {
+                            <option value="@department.DepartmentId"
+                                    selected="@(selectedDepartmentId == department.DepartmentId ? "selected" : null)">
+                                @department.DepartmentName
+                            </option>
+                        }
+                    </select>
+                </div>
+
                 <div class="scenario-filter-type">
                     <label class="form-label">Type ผู้ทดสอบ</label>
                     <select name="scenarioType" class="form-select" onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
@@ -772,6 +796,7 @@
                     <input type="hidden" name="coopName" value="@selectedCoopName" />
                     <input type="hidden" name="status" value="@selectedStatus" />
                     <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
+                    <input type="hidden" name="departmentId" value="@selectedDepartmentId" />
                     <button type="submit"
                             class="btn btn-primary"
                             title="Import Template">
@@ -793,11 +818,13 @@
                     <form asp-action="ImportFromDev"
                           method="post"
                           style="display:inline;"
-                          onsubmit="return confirm('Import Test Scenario จาก DEV มาเป็น BA? รายการซ้ำจะถูกข้ามและสถานะของรายการใหม่จะเป็นพร้อมทดสอบ');">
+                          onsubmit="return importFromDev();">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="projectId" value="@ViewBag.SelectedProject" />
                         <input type="hidden" name="coopName" value="@selectedCoopName" />
                         <input type="hidden" name="status" value="@selectedStatus" />
+                        <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
+                        <input type="hidden" name="departmentId" value="@selectedDepartmentId" />
                         <button type="submit"
                                 class="btn btn-outline-primary"
                                 title="Import รายการจาก DEV มาเป็น BA">
@@ -822,6 +849,7 @@
                       onsubmit="return confirm('@(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ลบ Test Scenario ทุก Type ของโครงการนี้?" : $"ลบ Test Scenario Type {selectedScenarioType} ทั้งหมดของโครงการนี้?") การกระทำนี้ไม่สามารถย้อนกลับได้');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
+                    <input type="hidden" name="departmentId" value="@selectedDepartmentId" />
                     <button type="submit" class="btn btn-danger" title="ลบทั้งหมด">Delete All</button>
                 </form>
             }
@@ -1097,6 +1125,16 @@
 
     window.submitScenarioFilter = submitScenarioFilter;
 
+    function changeScenarioDepartment(select) {
+        const form = select?.form;
+        if (!form) return;
+
+        const controlSelect = form.querySelector('[data-control-select]');
+        if (controlSelect) controlSelect.value = '';
+        form.querySelectorAll('input[name="groupIds"]').forEach(input => input.remove());
+        form.submit();
+    }
+
     function initScenarioProjectCoopFilter() {
         const coopFilter = document.querySelector('[data-scenario-coop-filter]');
         const projectFilter = document.querySelector('[data-scenario-project-filter]');
@@ -1301,6 +1339,13 @@
     }
 
     function importSelectedGroups() {
+        const scenarioType = document.querySelector('select[name="scenarioType"]')?.value || '';
+        const departmentId = document.querySelector('select[name="departmentId"]')?.value || '';
+        if (!scenarioType || !departmentId) {
+            alert('กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import');
+            return false;
+        }
+
         const controlSelect = document.querySelector('[data-control-select]');
         const selectedControlId = controlSelect?.value || '';
         const selectedControlName = controlSelect?.selectedOptions[0]?.text || '';
@@ -1321,6 +1366,17 @@
         return confirm(`Import Templates จาก ${selectedGroups.size} Group ที่เลือกเข้าโครงการนี้?`);
     }
 
+    function importFromDev() {
+        const scenarioType = document.querySelector('select[name="scenarioType"]')?.value || '';
+        const departmentId = document.querySelector('select[name="departmentId"]')?.value || '';
+        if (scenarioType !== 'BA' || !departmentId) {
+            alert('กรุณาเลือก Type ผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV');
+            return false;
+        }
+
+        return confirm('Import Test Scenario จาก DEV มาเป็น BA? รายการซ้ำจะถูกข้ามและสถานะของรายการใหม่จะเป็นพร้อมทดสอบ');
+    }
+
     function previewPdf() {
         const projectId = document.querySelector('select[name="projectId"]')?.value || '';
         const controlId = document.querySelector('[data-control-select]')?.value || '';
@@ -1333,12 +1389,16 @@
         let url = `/TestScenarios/ExportPdf?projectId=${projectId}`;
         const status = document.querySelector('select[name="status"]')?.value;
         const scenarioType = document.querySelector('select[name="scenarioType"]')?.value;
+        const departmentId = document.querySelector('select[name="departmentId"]')?.value;
 
         if (status) {
             url += `&status=${encodeURIComponent(status)}`;
         }
         if (scenarioType) {
             url += `&scenarioType=${encodeURIComponent(scenarioType)}`;
+        }
+        if (departmentId) {
+            url += `&departmentId=${encodeURIComponent(departmentId)}`;
         }
 
         if (controlId) {
