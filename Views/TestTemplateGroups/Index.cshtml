@@ -3,7 +3,9 @@
 @using Microsoft.AspNetCore.Http
 
 @{
+    var departments = ViewBag.Departments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
+    int? selectedDepartment = ViewBag.SelectedDepartment as int?;
     int? selectedControl = ViewBag.SelectedControl as int?;
     var departmentSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>())
         .GroupBy(g => new
@@ -266,21 +268,47 @@
 </div>
 
 <form asp-action="Index" method="get" class="card card-body mb-3">
-    <label class="form-label">Template Groups Control</label>
-    <div class="d-flex gap-2">
-        <select name="controlId" class="form-select" onchange="this.form.submit()">
-            <option value="">ทั้งหมด</option>
-            @foreach (var control in controls)
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-5">
+            <label for="templateGroupDepartmentFilter" class="form-label">ฝ่าย</label>
+            <select id="templateGroupDepartmentFilter"
+                    name="departmentId"
+                    class="form-select"
+                    data-placeholder="ค้นหาฝ่าย..."
+                    onchange="this.form.elements['controlId'].value = ''; this.form.submit()">
+                <option value="">-- ทุกฝ่าย --</option>
+                @foreach (var department in departments)
+                {
+                    <option value="@department.DepartmentId"
+                            selected="@(selectedDepartment == department.DepartmentId ? "selected" : null)">
+                        @department.DepartmentName
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-lg-6">
+            <label for="templateGroupControlFilter" class="form-label">Template Groups Control</label>
+            <select id="templateGroupControlFilter"
+                    name="controlId"
+                    class="form-select"
+                    data-placeholder="ค้นหา Template Groups Control..."
+                    disabled="@(!selectedDepartment.HasValue ? "disabled" : null)"
+                    onchange="this.form.submit()">
+                <option value="">-- ทุก Control --</option>
+                @foreach (var control in controls)
+                {
+                    <option value="@control.control_id" selected="@(selectedControl == control.control_id ? "selected" : null)">
+                        @control.control_name
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-lg-1 d-grid">
+            @if (selectedDepartment.HasValue || selectedControl.HasValue)
             {
-                <option value="@control.control_id" selected="@(selectedControl == control.control_id)">
-                    @(control.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย") / @control.control_name
-                </option>
+                <a asp-action="Index" asp-route-departmentId="0" asp-route-controlId="0" class="btn btn-outline-secondary">ล้าง</a>
             }
-        </select>
-        @if (selectedControl.HasValue)
-        {
-            <a asp-action="Index" asp-route-clearControl="true" class="btn btn-outline-secondary">ล้าง</a>
-        }
+        </div>
     </div>
 </form>
 

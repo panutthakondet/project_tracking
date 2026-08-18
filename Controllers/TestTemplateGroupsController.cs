@@ -10,6 +10,7 @@ namespace ProjectTracking.Controllers
 {
     public class TestTemplateGroupsController : BaseController
     {
+        private const string IndexDepartmentFilterKey = "TestTemplateGroups.Filter.DepartmentId";
         private const string IndexControlFilterKey = "TestTemplateGroups.Filter.ControlId";
         private readonly AppDbContext _context;
 
@@ -19,22 +20,65 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("TestTemplateGroups.Index")]
-        public async Task<IActionResult> Index(int? controlId, bool clearControl = false)
+        public async Task<IActionResult> Index(int? departmentId, int? controlId, bool clearControl = false)
         {
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName)
+                .ToListAsync();
+            var selectedDepartment = ResolveIndexDepartmentFilter(
+                departmentId,
+                departments.Select(x => x.DepartmentId).ToHashSet());
+
+            var allControls = await _context.TestTemplateGroupControls
+                .AsNoTracking()
+                .Include(x => x.Department)
+                .Where(x => x.is_active)
+                .OrderBy(x => x.Department != null ? x.Department.SortOrder : int.MaxValue)
+                .ThenBy(x => x.Department != null ? x.Department.DepartmentName : "")
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.control_name)
+                .ToListAsync();
+
             var selectedControl = ResolveIndexControlFilter(controlId, clearControl);
-            if (selectedControl.HasValue && !await _context.TestTemplateGroupControls
-                    .AsNoTracking()
-                    .AnyAsync(x => x.control_id == selectedControl.Value && x.is_active))
+            var selectedControlRow = selectedControl.HasValue
+                ? allControls.FirstOrDefault(x => x.control_id == selectedControl.Value)
+                : null;
+            if (selectedControl.HasValue && selectedControlRow == null)
             {
                 HttpContext.Session.Remove(IndexControlFilterKey);
                 selectedControl = null;
             }
+
+            if (!selectedDepartment.HasValue
+                && !Request.Query.ContainsKey("departmentId")
+                && selectedControlRow?.department_id is int rememberedDepartmentId)
+            {
+                selectedDepartment = rememberedDepartmentId;
+                HttpContext.Session.SetString(IndexDepartmentFilterKey, rememberedDepartmentId.ToString());
+            }
+
+            if (!selectedDepartment.HasValue
+                || (selectedControlRow != null && selectedControlRow.department_id != selectedDepartment))
+            {
+                HttpContext.Session.Remove(IndexControlFilterKey);
+                selectedControl = null;
+                selectedControlRow = null;
+            }
+
+            var controls = selectedDepartment.HasValue
+                ? allControls.Where(x => x.department_id == selectedDepartment.Value).ToList()
+                : new List<TestTemplateGroupControl>();
 
             var query = _context.TestTemplateGroups
                 .AsNoTracking()
                 .Include(x => x.Control)
                     .ThenInclude(x => x!.Department)
                 .AsQueryable();
+            if (selectedDepartment.HasValue)
+                query = query.Where(x => x.Control != null && x.Control.department_id == selectedDepartment.Value);
             if (selectedControl.HasValue)
                 query = query.Where(x => x.control_id == selectedControl.Value);
 
@@ -46,7 +90,10 @@ namespace ProjectTracking.Controllers
                 .ThenByDescending(x => x.created_at)
                 .ToListAsync();
 
-            await LoadControlsAsync(selectedControl);
+            ViewBag.Departments = departments;
+            ViewBag.Controls = controls;
+            ViewBag.SelectedDepartment = selectedDepartment;
+            ViewBag.SelectedControl = selectedControl;
 
             return View(groups);
         }
@@ -200,6 +247,27 @@ namespace ProjectTracking.Controllers
 
             HttpContext.Session.SetString(IndexControlFilterKey, controlId.Value.ToString());
             return controlId.Value;
+        }
+
+        private int? ResolveIndexDepartmentFilter(int? departmentId, IReadOnlySet<int> activeDepartmentIds)
+        {
+            if (!Request.Query.ContainsKey("departmentId"))
+            {
+                var rememberedValue = HttpContext.Session.GetString(IndexDepartmentFilterKey);
+                return int.TryParse(rememberedValue, out var rememberedDepartmentId)
+                    && activeDepartmentIds.Contains(rememberedDepartmentId)
+                        ? rememberedDepartmentId
+                        : null;
+            }
+
+            if (!departmentId.HasValue || !activeDepartmentIds.Contains(departmentId.Value))
+            {
+                HttpContext.Session.Remove(IndexDepartmentFilterKey);
+                return null;
+            }
+
+            HttpContext.Session.SetString(IndexDepartmentFilterKey, departmentId.Value.ToString());
+            return departmentId.Value;
         }
 
         private async Task ValidateGroupAsync(TestTemplateGroup model, int? exceptId = null)
