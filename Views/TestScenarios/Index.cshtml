@@ -1212,7 +1212,7 @@
                 .sort((left, right) => left.sort - right.sort || left.name.localeCompare(right.name, 'th'))
                 .forEach(item => {
                     const option = new Option(item.name, String(item.id));
-                    option.dataset.label = `${item.controlName} / ${item.name}`;
+                    option.dataset.label = item.name;
                     option.disabled = selectedGroups.has(String(item.id));
                     select.add(option);
                 });
@@ -1350,7 +1350,7 @@
         initialSelectedGroupIds.forEach(id => {
             const item = scenarioTemplateGroups.find(group => String(group.id) === String(id));
             if (item) {
-                selectedGroups.set(String(item.id), `${item.controlName} / ${item.name}`);
+                selectedGroups.set(String(item.id), item.name);
             }
         });
 
