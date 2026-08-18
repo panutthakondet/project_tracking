@@ -1609,6 +1609,9 @@ namespace ProjectTracking.Data
                     .HasColumnType("datetime")
                     .IsRequired(false);
 
+                entity.HasIndex(x => new { x.group_id, x.template_id })
+                    .HasDatabaseName("idx_test_scenario_templates_group_template");
+
                 entity.HasOne(x => x.Group)
                     .WithMany(g => g.Templates)
                     .HasForeignKey(x => x.group_id)

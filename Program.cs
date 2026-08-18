@@ -244,6 +244,7 @@ await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
 await EnsureTestScenarioTemplateRemarkColumnAsync(app.Services);
+await EnsureTestScenarioTemplateIndexesAsync(app.Services);
 await EnsureTestScenarioTypeColumnAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
 
@@ -2840,6 +2841,51 @@ static async Task EnsureTestScenarioTemplateRemarkColumnAsync(IServiceProvider s
                 ADD COLUMN `remark` TEXT NULL AFTER `expected_result`;";
             await command.ExecuteNonQueryAsync();
         }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureTestScenarioTemplateIndexesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_scenario_templates';";
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM (
+                SELECT INDEX_NAME
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'test_scenario_templates'
+                GROUP BY INDEX_NAME
+                HAVING INDEX_NAME = 'idx_test_scenario_templates_group_template'
+                    OR GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)
+                       LIKE 'group_id,template_id%'
+            ) AS matching_indexes;";
+        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (indexExists) return;
+
+        command.CommandText = @"
+            CREATE INDEX `idx_test_scenario_templates_group_template`
+            ON `test_scenario_templates` (`group_id`, `template_id`);";
+        await command.ExecuteNonQueryAsync();
     }
     finally
     {

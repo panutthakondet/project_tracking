@@ -119,9 +119,7 @@ namespace ProjectTracking.Controllers
             }
 
             var templates = selectedDepartmentId.HasValue
-                ? await query
-                    .OrderBy(x => x.template_id)
-                    .ToListAsync()
+                ? await query.ToListAsync()
                 : new List<TestScenarioTemplate>();
 
             ViewBag.Departments = departments;
