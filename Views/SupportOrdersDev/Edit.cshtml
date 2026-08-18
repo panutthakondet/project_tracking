@@ -3,7 +3,7 @@
 @using System.Linq
 
 @{
-    ViewData["Title"] = "แก้ไขงานสนับสนุน";
+    ViewData["Title"] = "อัปเดตการแก้ไขงาน Support";
 
     var order = Model ?? new ProjectTracking.Models.ProjectSupportOrder();
     var th = new CultureInfo("th-TH");
@@ -14,6 +14,7 @@
     var gitHistories = ViewBag.GitHistories as IEnumerable<ProjectTracking.Models.ProjectSupportOrderGitHistory>
         ?? new List<ProjectTracking.Models.ProjectSupportOrderGitHistory>();
     var currentDevStatus = (ViewBag.CurrentDevStatus as string) ?? order.DevStatus ?? "-";
+    var projectName = order.Project?.ProjectDisplayName ?? $"Project #{order.ProjectId}";
 
     string TextOrDash(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", th) ?? "-";
@@ -270,9 +271,15 @@
     }
 </style>
 
-<div class="support-dev-edit-page">
-    <h3>แก้ไขงานสนับสนุน</h3>
+<div class="index-hero pt-form-hero">
+    <div class="index-hero__content">
+        <span class="index-eyebrow">ProjectTracking</span>
+        <h2 class="index-title">อัปเดตการแก้ไขงาน Support</h2>
+        <p class="index-subtitle">Support Order Dev #@order.OrderId · @projectName</p>
+    </div>
+</div>
 
+<div class="support-dev-edit-page">
     <form asp-action="Edit" asp-route-id="@order.OrderId" asp-route-projectId="@order.ProjectId" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
@@ -285,7 +292,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label>Project</label>
-                    <div class="support-dev-readonly">@TextOrDash(order.Project?.ProjectDisplayName)</div>
+                    <div class="support-dev-readonly">@projectName</div>
                 </div>
 
                 <div class="mb-3">
