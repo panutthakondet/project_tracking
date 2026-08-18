@@ -883,6 +883,22 @@ main {
   width: 100%;
 }
 
+/* Keep searchable dropdowns above the cards, alerts and tables that follow them. */
+.pt-dropdown-layer-open {
+  position: relative !important;
+  z-index: 2000 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+.pt-dropdown-layer-open :is(.card-body, .row, [class*="col-"]) {
+  overflow: visible !important;
+}
+
+.pt-search-select.is-open {
+  z-index: 2001;
+}
+
 .pt-project-coop-filter {
   margin-bottom: 10px;
 }
@@ -920,7 +936,7 @@ main {
   left: 0;
   right: 0;
   top: calc(100% + 4px);
-  z-index: 1055;
+  z-index: 2002;
   width: 100%;
   max-height: 250px;
   overflow-y: auto;

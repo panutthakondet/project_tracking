@@ -118,10 +118,14 @@
 
         scope.querySelectorAll(".pt-search-select").forEach(wrapper => {
             const select = wrapper.previousElementSibling;
+            const layerHost = wrapper.closest(".card, .page-header-card, .modal-content") || wrapper.closest("form");
             if (select && select.matches("select")) {
                 restoreNativeSelect(select);
             }
             wrapper.remove();
+            if (layerHost && !layerHost.querySelector(".pt-search-select.is-open")) {
+                layerHost.classList.remove("pt-dropdown-layer-open");
+            }
         });
 
         scope.querySelectorAll("select.pt-native-select-hidden, select.pt-dropdown-enhanced").forEach(restoreNativeSelect);
@@ -168,6 +172,17 @@
         select.classList.add(enhancedClass, "pt-native-select-hidden");
         select.tabIndex = -1;
 
+        const layerHost = wrapper.closest(".card, .page-header-card, .modal-content")
+            || wrapper.closest("form")
+            || wrapper.parentElement;
+
+        function syncLayerHost() {
+            if (!layerHost) return;
+            layerHost.classList.toggle(
+                "pt-dropdown-layer-open",
+                !!layerHost.querySelector(".pt-search-select.is-open"));
+        }
+
         function validateInput() {
             if (!wasRequired) return;
             input.setCustomValidity(select.value ? "" : "กรุณาเลือกจากรายการ");
@@ -182,6 +197,7 @@
 
         function closeDropdown() {
             wrapper.classList.remove("is-open");
+            syncLayerHost();
         }
 
         function openDropdown() {
@@ -189,6 +205,7 @@
             input.value = "";
             renderOptions(input.value);
             wrapper.classList.add("is-open");
+            syncLayerHost();
         }
 
         function selectValue(value, text) {
@@ -238,6 +255,7 @@
         input.addEventListener("input", function () {
             renderOptions(input.value);
             wrapper.classList.add("is-open");
+            syncLayerHost();
             validateInput();
         });
         input.addEventListener("keydown", function (event) {
