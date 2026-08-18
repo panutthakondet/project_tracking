@@ -244,8 +244,8 @@ await EnsureIssueDevStatusValuesAsync(app.Services);
 await EnsureSupportOrderStatusValuesAsync(app.Services);
 await EnsureTestScenarioReadyStatusValuesAsync(app.Services);
 await EnsureTestScenarioTemplateRemarkColumnAsync(app.Services);
-await EnsureTestScenarioTemplateIndexesAsync(app.Services);
 await EnsureTestScenarioTypeColumnAsync(app.Services);
+await EnsureTestScenarioIndexesAsync(app.Services);
 await EnsureDevGitHistoryTablesAsync(app.Services);
 
 if (args.Contains("--cleanup-statuses", StringComparer.OrdinalIgnoreCase))
@@ -2848,7 +2848,7 @@ static async Task EnsureTestScenarioTemplateRemarkColumnAsync(IServiceProvider s
     }
 }
 
-static async Task EnsureTestScenarioTemplateIndexesAsync(IServiceProvider services)
+static async Task EnsureTestScenarioIndexesAsync(IServiceProvider services)
 {
     using var scope = services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -2858,39 +2858,87 @@ static async Task EnsureTestScenarioTemplateIndexesAsync(IServiceProvider servic
 
     try
     {
-        using var command = connection.CreateCommand();
-        command.CommandText = @"
-            SELECT COUNT(*)
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'test_scenario_templates';";
-        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
-        if (!tableExists) return;
+        await EnsureIndexAsync(
+            connection,
+            "test_scenario_templates",
+            "idx_test_scenario_templates_group_template",
+            "group_id,template_id",
+            "CREATE INDEX `idx_test_scenario_templates_group_template` ON `test_scenario_templates` (`group_id`, `template_id`);");
 
-        command.CommandText = @"
-            SELECT COUNT(*)
-            FROM (
-                SELECT INDEX_NAME
-                FROM INFORMATION_SCHEMA.STATISTICS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'test_scenario_templates'
-                GROUP BY INDEX_NAME
-                HAVING INDEX_NAME = 'idx_test_scenario_templates_group_template'
-                    OR GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)
-                       LIKE 'group_id,template_id%'
-            ) AS matching_indexes;";
-        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
-        if (indexExists) return;
+        await EnsureIndexAsync(
+            connection,
+            "test_template_group_controls",
+            "idx_test_template_group_controls_department_active_sort",
+            "department_id,is_active,sort_order",
+            "CREATE INDEX `idx_test_template_group_controls_department_active_sort` ON `test_template_group_controls` (`department_id`, `is_active`, `sort_order`);");
 
-        command.CommandText = @"
-            CREATE INDEX `idx_test_scenario_templates_group_template`
-            ON `test_scenario_templates` (`group_id`, `template_id`);";
-        await command.ExecuteNonQueryAsync();
+        await EnsureIndexAsync(
+            connection,
+            "test_template_groups",
+            "idx_test_template_groups_control_active_sort",
+            "control_id,is_active,sort_order",
+            "CREATE INDEX `idx_test_template_groups_control_active_sort` ON `test_template_groups` (`control_id`, `is_active`, `sort_order`);");
+
+        await EnsureIndexAsync(
+            connection,
+            "project_test_scenarios",
+            "idx_project_test_scenarios_project_type_status_sort",
+            "project_id,scenario_type,status,sort_order",
+            "CREATE INDEX `idx_project_test_scenarios_project_type_status_sort` ON `project_test_scenarios` (`project_id`, `scenario_type`, `status`, `sort_order`);");
+
+        await EnsureIndexAsync(
+            connection,
+            "project_test_scenarios",
+            "idx_project_test_scenarios_project_group_type",
+            "project_id,group_id,scenario_type",
+            "CREATE INDEX `idx_project_test_scenarios_project_group_type` ON `project_test_scenarios` (`project_id`, `group_id`, `scenario_type`);");
+
+        await EnsureIndexAsync(
+            connection,
+            "test_scenario_attachments",
+            "idx_test_scenario_attachments_scenario_uploaded",
+            "scenario_id,uploaded_at",
+            "CREATE INDEX `idx_test_scenario_attachments_scenario_uploaded` ON `test_scenario_attachments` (`scenario_id`, `uploaded_at`);");
     }
     finally
     {
         if (shouldClose) await connection.CloseAsync();
     }
+}
+
+static async Task EnsureIndexAsync(
+    System.Data.Common.DbConnection connection,
+    string tableName,
+    string indexName,
+    string columnPrefix,
+    string createSql)
+{
+    using var command = connection.CreateCommand();
+    command.CommandText = $@"
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = '{tableName}';";
+    var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+    if (!tableExists) return;
+
+    command.CommandText = $@"
+        SELECT COUNT(*)
+        FROM (
+            SELECT INDEX_NAME
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = '{tableName}'
+            GROUP BY INDEX_NAME
+            HAVING INDEX_NAME = '{indexName}'
+                OR GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)
+                   LIKE '{columnPrefix}%'
+        ) AS matching_indexes;";
+    var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+    if (indexExists) return;
+
+    command.CommandText = createSql;
+    await command.ExecuteNonQueryAsync();
 }
 
 static async Task EnsureTestScenarioTypeColumnAsync(IServiceProvider services)

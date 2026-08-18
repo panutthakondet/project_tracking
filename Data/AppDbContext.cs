@@ -1546,6 +1546,10 @@ namespace ProjectTracking.Data
                     .IsRequired(false);
 
                 entity.HasIndex(x => x.project_id);
+                entity.HasIndex(x => new { x.project_id, x.scenario_type, x.status, x.sort_order })
+                    .HasDatabaseName("idx_project_test_scenarios_project_type_status_sort");
+                entity.HasIndex(x => new { x.project_id, x.group_id, x.scenario_type })
+                    .HasDatabaseName("idx_project_test_scenarios_project_group_type");
 
                 entity.HasOne<Project>()
                     .WithMany()
@@ -1633,6 +1637,8 @@ namespace ProjectTracking.Data
                 entity.Property(x => x.created_at).HasColumnType("datetime");
                 entity.HasIndex(x => new { x.is_active, x.sort_order });
                 entity.HasIndex(x => new { x.department_id, x.sort_order });
+                entity.HasIndex(x => new { x.department_id, x.is_active, x.sort_order })
+                    .HasDatabaseName("idx_test_template_group_controls_department_active_sort");
                 entity.HasOne(x => x.Department)
                     .WithMany(x => x.TestTemplateGroupControls)
                     .HasForeignKey(x => x.department_id)
@@ -1670,6 +1676,9 @@ namespace ProjectTracking.Data
 
                 entity.Property(x => x.created_at)
                     .HasColumnType("datetime");
+
+                entity.HasIndex(x => new { x.control_id, x.is_active, x.sort_order })
+                    .HasDatabaseName("idx_test_template_groups_control_active_sort");
 
                 entity.HasOne(x => x.Control)
                     .WithMany(x => x.Groups)
@@ -2129,6 +2138,8 @@ namespace ProjectTracking.Data
                 entity.Property(e => e.FileSize).HasColumnName("file_size");
                 entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
                 entity.Property(e => e.UploadedAt).HasColumnName("uploaded_at");
+                entity.HasIndex(e => new { e.ScenarioId, e.UploadedAt })
+                    .HasDatabaseName("idx_test_scenario_attachments_scenario_uploaded");
             });
 
             // =========================
