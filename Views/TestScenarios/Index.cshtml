@@ -453,20 +453,7 @@
 
     .scenario-group-picker__controls {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 14px;
-        align-items: stretch;
-    }
-
-    .scenario-group-picker__field {
-        display: grid;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .scenario-group-picker__group-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr) auto;
         gap: 10px;
         align-items: stretch;
     }
@@ -550,8 +537,7 @@
         grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px) minmax(180px, 240px);
         grid-template-areas:
             "coop coop coop coop"
-            "project project type status"
-            "department department department department"
+            "project department type status"
             "groups groups groups groups";
         gap: 16px;
         align-items: end;
@@ -628,10 +614,6 @@
         }
 
         .scenario-group-picker__controls {
-            grid-template-columns: 1fr;
-        }
-
-        .scenario-group-picker__group-row {
             grid-template-columns: 1fr;
         }
     }
@@ -737,29 +719,22 @@
                 </div>
 
                 <div class="scenario-filter-groups">
+                    <label class="form-label">Template Groups Control / Template Group</label>
                     <div class="scenario-group-picker" data-group-picker>
                         <div class="scenario-group-picker__controls">
-                            <div class="scenario-group-picker__field">
-                                <label class="form-label">Template Groups Control</label>
-                                <select name="controlId" class="form-select" data-control-select>
-                                    <option value="">-- แสดงทั้งหมด --</option>
-                                    @foreach (var control in controls)
-                                    {
-                                        <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="scenario-group-picker__field">
-                                <label class="form-label">Template Group</label>
-                                <div class="scenario-group-picker__group-row">
-                                    <select class="form-select" data-group-select>
-                                        <option value="">-- แสดงทุก Group --</option>
-                                    </select>
-                                    <button type="button" class="btn btn-outline-primary btn-pill" data-group-add>
-                                        เพิ่ม
-                                    </button>
-                                </div>
-                            </div>
+                            <select name="controlId" class="form-select" data-control-select>
+                                <option value="">-- แสดงทั้งหมด --</option>
+                                @foreach (var control in controls)
+                                {
+                                    <option value="@control.control_id" selected="@(selectedControlId == control.control_id)">@control.control_name</option>
+                                }
+                            </select>
+                            <select class="form-select" data-group-select>
+                                <option value="">-- แสดงทุก Group --</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-pill" data-group-add>
+                                เพิ่ม
+                            </button>
                         </div>
                         <div class="scenario-selected-groups" data-group-list></div>
                         <div data-group-filter-inputs></div>
