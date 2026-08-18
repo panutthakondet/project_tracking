@@ -1623,11 +1623,18 @@ namespace ProjectTracking.Data
                 entity.ToTable("test_template_group_controls");
                 entity.HasKey(x => x.control_id);
                 entity.Property(x => x.control_id).HasColumnName("control_id");
+                entity.Property(x => x.department_id).HasColumnName("department_id").IsRequired(false);
                 entity.Property(x => x.control_name).HasColumnType("varchar(200)").IsRequired();
                 entity.Property(x => x.sort_order).HasColumnType("int").HasDefaultValue(0);
                 entity.Property(x => x.is_active).HasColumnType("tinyint(1)").HasDefaultValue(true);
                 entity.Property(x => x.created_at).HasColumnType("datetime");
                 entity.HasIndex(x => new { x.is_active, x.sort_order });
+                entity.HasIndex(x => new { x.department_id, x.sort_order });
+                entity.HasOne(x => x.Department)
+                    .WithMany(x => x.TestTemplateGroupControls)
+                    .HasForeignKey(x => x.department_id)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // =========================

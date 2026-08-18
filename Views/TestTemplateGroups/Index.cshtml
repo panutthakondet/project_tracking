@@ -5,15 +5,15 @@
 @{
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl> ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>();
     int? selectedControl = ViewBag.SelectedControl as int?;
-    var groupedRows = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>())
+    var departmentSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>())
         .GroupBy(g => new
         {
-            ControlId = g.control_id,
-            ControlName = g.Control?.control_name ?? "ยังไม่กำหนด Control",
-            ControlSort = g.Control?.sort_order ?? int.MaxValue
+            DepartmentId = g.Control?.department_id,
+            DepartmentName = g.Control?.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย",
+            DepartmentSort = g.Control?.Department?.SortOrder ?? int.MaxValue
         })
-        .OrderBy(g => g.Key.ControlSort)
-        .ThenBy(g => g.Key.ControlName);
+        .OrderBy(g => g.Key.DepartmentSort)
+        .ThenBy(g => g.Key.DepartmentName);
     bool CanMenu(string key)
     {
         var role = (Context.Session.GetString("Role") ?? "").Trim();
@@ -47,7 +47,51 @@
 
     .template-control-sections {
         display: grid;
+        gap: 14px;
+        padding: 14px;
+    }
+
+    .template-department-sections {
+        display: grid;
         gap: 18px;
+    }
+
+    .template-department-section {
+        overflow: hidden;
+        background: #f8fbff;
+        border: 1px solid #b9d8e8;
+        border-radius: 12px;
+    }
+
+    .template-department-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: #dff3fa;
+        border-bottom: 1px solid #b9d8e8;
+    }
+
+    .template-department-header h3 {
+        margin: 0;
+        color: #10233f;
+        font-size: 1.08rem;
+        font-weight: 600;
+    }
+
+    .template-department-eyebrow {
+        display: block;
+        margin-bottom: 2px;
+        color: #64748b;
+        font-size: .78rem;
+        font-weight: 400;
+    }
+
+    .template-department-count {
+        color: #0f766e;
+        font-size: .9rem;
+        font-weight: 500;
     }
 
     .template-control-section {
@@ -228,7 +272,9 @@
             <option value="">ทั้งหมด</option>
             @foreach (var control in controls)
             {
-                <option value="@control.control_id" selected="@(selectedControl == control.control_id)">@control.control_name</option>
+                <option value="@control.control_id" selected="@(selectedControl == control.control_id)">
+                    @(control.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย") / @control.control_name
+                </option>
             }
         </select>
         @if (selectedControl.HasValue)
@@ -244,76 +290,84 @@
     return;
 }
 
-<div class="template-control-sections">
-    @foreach (var controlGroup in groupedRows)
+<div class="template-department-sections">
+    @foreach (var departmentSection in departmentSections)
     {
-        <section class="template-control-section">
-            <header class="template-control-header">
+        <section class="template-department-section">
+            <header class="template-department-header">
                 <div>
-                    <p class="template-control-eyebrow">Template Groups Control</p>
-                    <h3 class="template-control-title">@controlGroup.Key.ControlName</h3>
+                    <span class="template-department-eyebrow">ฝ่าย</span>
+                    <h3>@departmentSection.Key.DepartmentName</h3>
                 </div>
-                <span class="template-control-count">@controlGroup.Count() Group</span>
+                <span class="template-department-count">@departmentSection.Count() Group</span>
             </header>
 
-            <div class="group-card-list" data-control-id="@(controlGroup.Key.ControlId?.ToString() ?? "unassigned")">
-                @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
+            <div class="template-control-sections">
+                @foreach (var controlGroup in departmentSection
+                    .GroupBy(g => new
+                    {
+                        ControlId = g.control_id,
+                        ControlName = g.Control?.control_name ?? "ยังไม่กำหนด Control",
+                        ControlSort = g.Control?.sort_order ?? int.MaxValue
+                    })
+                    .OrderBy(g => g.Key.ControlSort)
+                    .ThenBy(g => g.Key.ControlName))
                 {
-                    <article class="group-card @(g.is_active ? "is-active" : "is-inactive")" data-id="@g.group_id">
-                        <div class="group-card-head">
-                            @if (CanMenu("TestTemplateGroups.Sort"))
-                            {
-                                <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
-                            }
+                    <section class="template-control-section">
+                        <header class="template-control-header">
                             <div>
-                                <div class="group-card-title">@g.group_name</div>
-                                <div class="group-card-subtitle">ลำดับภายใน Control: @g.sort_order</div>
+                                <p class="template-control-eyebrow">Template Groups Control</p>
+                                <h4 class="template-control-title">@controlGroup.Key.ControlName</h4>
                             </div>
-                        </div>
+                            <span class="template-control-count">@controlGroup.Count() Group</span>
+                        </header>
 
-                        <div class="group-card-meta">
-                            <span class="group-pill">Order: @g.sort_order</span>
-                            <span class="group-pill">Created: @g.created_at.ToString("dd/MM/yyyy")</span>
-                        </div>
+                        <div class="group-card-list" data-control-id="@(controlGroup.Key.ControlId?.ToString() ?? "unassigned")">
+                            @foreach (var g in controlGroup.OrderBy(x => x.sort_order).ThenBy(x => x.group_name))
+                            {
+                                <article class="group-card @(g.is_active ? "is-active" : "is-inactive")" data-id="@g.group_id">
+                                    <div class="group-card-head">
+                                        @if (CanMenu("TestTemplateGroups.Sort"))
+                                        {
+                                            <span class="group-drag" title="ลากเพื่อสลับลำดับ">☰</span>
+                                        }
+                                        <div>
+                                            <div class="group-card-title">@g.group_name</div>
+                                            <div class="group-card-subtitle">ลำดับภายใน Control: @g.sort_order</div>
+                                        </div>
+                                    </div>
 
-                        <div class="group-actions">
-                            @if (CanMenu("TestTemplateGroups.Edit"))
-                            {
-                                <a asp-action="Edit"
-                                   asp-route-id="@g.group_id"
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="แก้ไขกลุ่ม">
-                                    Edit
-                                </a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">
-                                    Edit
-                                </button>
-                            }
+                                    <div class="group-card-meta">
+                                        <span class="group-pill">Order: @g.sort_order</span>
+                                        <span class="group-pill">Created: @g.created_at.ToString("dd/MM/yyyy")</span>
+                                    </div>
 
-                            @if (CanMenu("TestTemplateGroups.Delete"))
-                            {
-                                <form asp-action="Delete"
-                                      asp-route-id="@g.group_id"
-                                      method="post"
-                                      class="d-inline"
-                                      onsubmit="return confirm('Delete this group?');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบกลุ่ม">
-                                        Delete
-                                    </button>
-                                </form>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">
-                                    Delete
-                                </button>
+                                    <div class="group-actions">
+                                        @if (CanMenu("TestTemplateGroups.Edit"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@g.group_id" class="btn btn-sm btn-outline-primary" title="แก้ไขกลุ่ม">Edit</a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์แก้ไข">Edit</button>
+                                        }
+
+                                        @if (CanMenu("TestTemplateGroups.Delete"))
+                                        {
+                                            <form asp-action="Delete" asp-route-id="@g.group_id" method="post" class="d-inline" onsubmit="return confirm('Delete this group?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบกลุ่ม">Delete</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="ไม่มีสิทธิ์ลบ">Delete</button>
+                                        }
+                                    </div>
+                                </article>
                             }
                         </div>
-                    </article>
+                    </section>
                 }
             </div>
         </section>

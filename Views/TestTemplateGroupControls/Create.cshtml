@@ -1,8 +1,23 @@
 @model ProjectTracking.Models.TestTemplateGroupControl
-@{ ViewData["Title"] = "เพิ่ม Template Groups Control"; }
+@{
+    ViewData["Title"] = "เพิ่ม Template Groups Control";
+    var departments = ViewBag.Departments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
+        ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+}
 <h2>เพิ่ม Template Groups Control</h2>
 <form asp-action="Create" method="post" class="card card-body">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="department_id" class="form-label">ฝ่าย</label>
+        <select asp-for="department_id" class="form-select" required>
+            <option value="">-- เลือกฝ่าย --</option>
+            @foreach (var department in departments)
+            {
+                <option value="@department.DepartmentId">@department.DepartmentName</option>
+            }
+        </select>
+        <span asp-validation-for="department_id" class="text-danger"></span>
+    </div>
     <div class="mb-3"><label class="form-label">ชื่อ Control</label><input asp-for="control_name" class="form-control" required /><span asp-validation-for="control_name" class="text-danger"></span></div>
     <div class="mb-3"><label class="form-label">Sort Order</label><input asp-for="sort_order" class="form-control" type="number" min="0" /></div>
     <div class="pt-form-actions"><button class="btn btn-primary">Save</button><a asp-action="Index" class="btn btn-outline-secondary">Back</a></div>

@@ -33,12 +33,15 @@ namespace ProjectTracking.Controllers
             var query = _context.TestTemplateGroups
                 .AsNoTracking()
                 .Include(x => x.Control)
+                    .ThenInclude(x => x!.Department)
                 .AsQueryable();
             if (selectedControl.HasValue)
                 query = query.Where(x => x.control_id == selectedControl.Value);
 
             var groups = await query
-                .OrderBy(x => x.Control != null ? x.Control.sort_order : int.MaxValue)
+                .OrderBy(x => x.Control != null && x.Control.Department != null ? x.Control.Department.SortOrder : int.MaxValue)
+                .ThenBy(x => x.Control != null && x.Control.Department != null ? x.Control.Department.DepartmentName : "")
+                .ThenBy(x => x.Control != null ? x.Control.sort_order : int.MaxValue)
                 .ThenBy(x => x.sort_order)
                 .ThenByDescending(x => x.created_at)
                 .ToListAsync();
@@ -163,8 +166,11 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Controls = await _context.TestTemplateGroupControls
                 .AsNoTracking()
+                .Include(x => x.Department)
                 .Where(x => x.is_active)
-                .OrderBy(x => x.sort_order)
+                .OrderBy(x => x.Department != null ? x.Department.SortOrder : int.MaxValue)
+                .ThenBy(x => x.Department != null ? x.Department.DepartmentName : "")
+                .ThenBy(x => x.sort_order)
                 .ThenBy(x => x.control_name)
                 .ToListAsync();
             ViewBag.SelectedControl = selectedControl;

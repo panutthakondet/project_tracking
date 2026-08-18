@@ -11,7 +11,10 @@
                 <label class="form-label">Template Groups Control</label>
                 <select asp-for="control_id" class="form-select">
                     <option value="">-- ยังไม่กำหนด Control --</option>
-                    @foreach (var control in controls) { <option value="@control.control_id">@control.control_name</option> }
+                    @foreach (var control in controls)
+                    {
+                        <option value="@control.control_id">@(control.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย") / @control.control_name</option>
+                    }
                 </select>
                 <span asp-validation-for="control_id" class="text-danger"></span>
             </div>

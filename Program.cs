@@ -765,6 +765,7 @@ static async Task EnsureTestTemplateGroupControlTableAsync(IServiceProvider serv
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS `test_template_group_controls` (
               `control_id` INT NOT NULL AUTO_INCREMENT,
+              `department_id` INT NULL,
               `control_name` VARCHAR(200) NOT NULL,
               `sort_order` INT NOT NULL DEFAULT 0,
               `is_active` TINYINT(1) NOT NULL DEFAULT 1,
@@ -773,6 +774,49 @@ static async Task EnsureTestTemplateGroupControlTableAsync(IServiceProvider serv
               KEY `idx_template_group_controls_active_sort` (`is_active`, `sort_order`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_group_controls'
+              AND COLUMN_NAME = 'department_id';";
+        var departmentColumnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (departmentColumnExists == 0)
+        {
+            command.CommandText = "ALTER TABLE `test_template_group_controls` ADD COLUMN `department_id` INT NULL AFTER `control_id`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_group_controls'
+              AND INDEX_NAME = 'idx_template_group_controls_department_sort';";
+        var departmentIndexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (departmentIndexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_template_group_controls_department_sort` ON `test_template_group_controls` (`department_id`, `sort_order`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'test_template_group_controls'
+              AND CONSTRAINT_NAME = 'fk_template_group_controls_department';";
+        var departmentForeignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (departmentForeignKeyExists == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `test_template_group_controls`
+                ADD CONSTRAINT `fk_template_group_controls_department`
+                FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
+                ON UPDATE CASCADE ON DELETE SET NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         command.CommandText = @"
             SELECT COUNT(*)

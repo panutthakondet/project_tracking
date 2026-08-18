@@ -26,5 +26,6 @@ namespace ProjectTracking.Models
 
         public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+        public ICollection<TestTemplateGroupControl> TestTemplateGroupControls { get; set; } = new List<TestTemplateGroupControl>();
     }
 }
