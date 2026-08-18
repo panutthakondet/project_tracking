@@ -569,7 +569,7 @@ namespace ProjectTracking.Controllers
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             if (string.IsNullOrWhiteSpace(selectedScenarioType) || !departmentId.HasValue)
             {
-                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import";
+                TempData["Error"] = "กรุณาเลือกผู้ทดสอบและฝ่ายก่อน Import";
                 return RedirectToAction(nameof(Index), new { projectId, groupId, scenarioType = selectedScenarioType, departmentId });
             }
 
@@ -606,7 +606,7 @@ namespace ProjectTracking.Controllers
                 .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
             if (string.IsNullOrWhiteSpace(selectedScenarioType) || !departmentExists)
             {
-                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import";
+                TempData["Error"] = "กรุณาเลือกผู้ทดสอบและฝ่ายก่อน Import";
                 return RedirectToAction(nameof(Index), new
                 {
                     projectId,
@@ -850,7 +850,7 @@ namespace ProjectTracking.Controllers
                 .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
             if (selectedScenarioType != "BA" || !departmentExists)
             {
-                TempData["Error"] = "กรุณาเลือก Type ผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV";
+                TempData["Error"] = "กรุณาเลือกผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV";
                 return RedirectToAction(nameof(Index), new
                 {
                     projectId,

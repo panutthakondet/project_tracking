@@ -534,11 +534,12 @@
 
     .scenario-filter-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px) minmax(180px, 240px);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         grid-template-areas:
-            "coop coop coop coop"
-            "project department type status"
-            "groups groups groups groups";
+            "coop coop coop"
+            "project project project"
+            "department type status"
+            "groups groups groups";
         gap: 16px;
         align-items: end;
     }
@@ -675,22 +676,6 @@
                     </select>
                 </div>
 
-                <div class="scenario-filter-status">
-                    <label class="form-label">สถานะ</label>
-                    <select name="status"
-                            class="form-select"
-                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
-                        <option value="">-- ทุกสถานะ --</option>
-                        @foreach (var statusOption in statusList)
-                        {
-                            <option value="@statusOption.Value"
-                                    selected="@(selectedStatus == statusOption.Value ? "selected" : null)">
-                                @statusOption.Text
-                            </option>
-                        }
-                    </select>
-                </div>
-
                 <div class="scenario-filter-department">
                     <label class="form-label">ฝ่าย</label>
                     <select name="departmentId"
@@ -710,11 +695,27 @@
                 </div>
 
                 <div class="scenario-filter-type">
-                    <label class="form-label">Type ผู้ทดสอบ</label>
+                    <label class="form-label">ผู้ทดสอบ</label>
                     <select name="scenarioType" class="form-select" onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
-                        <option value="">-- ทุก Type --</option>
+                        <option value="">-- ผู้ทดสอบทั้งหมด --</option>
                         <option value="BA" selected="@(selectedScenarioType == "BA" ? "selected" : null)">BA</option>
                         <option value="DEV" selected="@(selectedScenarioType == "DEV" ? "selected" : null)">DEV</option>
+                    </select>
+                </div>
+
+                <div class="scenario-filter-status">
+                    <label class="form-label">สถานะ</label>
+                    <select name="status"
+                            class="form-select"
+                            onchange="window.submitScenarioFilter ? window.submitScenarioFilter() : this.form.submit()">
+                        <option value="">-- ทุกสถานะ --</option>
+                        @foreach (var statusOption in statusList)
+                        {
+                            <option value="@statusOption.Value"
+                                    selected="@(selectedStatus == statusOption.Value ? "selected" : null)">
+                                @statusOption.Text
+                            </option>
+                        }
                     </select>
                 </div>
 
@@ -846,7 +847,7 @@
                       asp-route-projectId="@ViewBag.SelectedProject"
                       method="post"
                       style="display:inline;"
-                      onsubmit="return confirm('@(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ลบ Test Scenario ทุก Type ของโครงการนี้?" : $"ลบ Test Scenario Type {selectedScenarioType} ทั้งหมดของโครงการนี้?") การกระทำนี้ไม่สามารถย้อนกลับได้');">
+                      onsubmit="return confirm('@(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ลบ Test Scenario ของผู้ทดสอบทั้งหมดในโครงการนี้?" : $"ลบ Test Scenario ของผู้ทดสอบ {selectedScenarioType} ทั้งหมดในโครงการนี้?") การกระทำนี้ไม่สามารถย้อนกลับได้');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
                     <input type="hidden" name="departmentId" value="@selectedDepartmentId" />
@@ -1342,7 +1343,7 @@
         const scenarioType = document.querySelector('select[name="scenarioType"]')?.value || '';
         const departmentId = document.querySelector('select[name="departmentId"]')?.value || '';
         if (!scenarioType || !departmentId) {
-            alert('กรุณาเลือก Type ผู้ทดสอบ และฝ่ายก่อน Import');
+            alert('กรุณาเลือกผู้ทดสอบและฝ่ายก่อน Import');
             return false;
         }
 
@@ -1370,7 +1371,7 @@
         const scenarioType = document.querySelector('select[name="scenarioType"]')?.value || '';
         const departmentId = document.querySelector('select[name="departmentId"]')?.value || '';
         if (scenarioType !== 'BA' || !departmentId) {
-            alert('กรุณาเลือก Type ผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV');
+            alert('กรุณาเลือกผู้ทดสอบเป็น BA และเลือกฝ่ายก่อน Import จาก DEV');
             return false;
         }
 
