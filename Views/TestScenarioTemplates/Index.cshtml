@@ -9,6 +9,8 @@
 
 
 @{
+    var departments = ViewBag.Departments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
+                      ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var groups = ViewBag.Groups as IEnumerable<ProjectTracking.Models.TestTemplateGroup>
                  ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroup>();
     var controls = ViewBag.Controls as IEnumerable<ProjectTracking.Models.TestTemplateGroupControl>
@@ -17,6 +19,11 @@
 @{
     int? selectedGroupId = null;
     int? selectedControlId = null;
+    int? selectedDepartmentId = null;
+    if (ViewBag.SelectedDepartmentId != null)
+    {
+        selectedDepartmentId = (int)ViewBag.SelectedDepartmentId;
+    }
     if (ViewBag.SelectedGroupId != null)
     {
         selectedGroupId = (int)ViewBag.SelectedGroupId;
@@ -29,11 +36,15 @@
     var controlSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestScenarioTemplate>())
         .GroupBy(x => new
         {
+            DepartmentName = x.Group?.Control?.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย",
+            DepartmentSort = x.Group?.Control?.Department?.SortOrder ?? int.MaxValue,
             ControlId = x.Group?.control_id,
             ControlName = x.Group?.Control?.control_name ?? "ยังไม่กำหนด Control",
             ControlSort = x.Group?.Control?.sort_order ?? int.MaxValue
         })
-        .OrderBy(x => x.Key.ControlSort)
+        .OrderBy(x => x.Key.DepartmentSort)
+        .ThenBy(x => x.Key.DepartmentName)
+        .ThenBy(x => x.Key.ControlSort)
         .ThenBy(x => x.Key.ControlName);
 
     string StatusTextClass(string? status)
@@ -428,11 +439,21 @@
 
 <div class="page-header-card mb-4">
     <div class="card-body">
-        <form method="get">
+        <form method="get" id="templateFilterForm">
             <div class="row g-3">
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-4">
+                    <label class="form-label">ฝ่าย</label>
+                    <select id="departmentFilter" name="departmentId" class="form-select" onchange="onDepartmentChange()">
+                        <option value="">-- ทุกฝ่าย --</option>
+                        @foreach (var department in departments)
+                        {
+                            <option value="@department.DepartmentId" selected="@(selectedDepartmentId == department.DepartmentId)">@department.DepartmentName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-lg-4">
                     <label class="form-label">Template Groups Control</label>
-                    <select id="controlFilter" name="controlId" class="form-select" onchange="onControlChange()">
+                    <select id="controlFilter" name="controlId" class="form-select" onchange="onControlChange()" disabled="@(!selectedDepartmentId.HasValue)">
                         <option value="">-- Select Control --</option>
                         @foreach (var control in controls)
                         {
@@ -440,7 +461,7 @@
                         }
                     </select>
                 </div>
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-4">
                     <label class="form-label">Template Group</label>
                     <select id="templateFilter"
                             name="groupId"
@@ -468,7 +489,7 @@ else
             <section class="template-control-section">
                 <header class="template-control-header">
                     <div>
-                        <p class="template-control-eyebrow">Template Groups Control</p>
+                        <p class="template-control-eyebrow">ฝ่าย @controlSection.Key.DepartmentName · Template Groups Control</p>
                         <h3 class="template-control-title">@controlSection.Key.ControlName</h3>
                     </div>
                     <span class="template-control-count">@controlSection.Count() Template</span>
@@ -621,6 +642,11 @@ else
             sort = g.sort_order
         })));
 
+    function buildIndexUrl(parameters) {
+        var query = new URLSearchParams(parameters);
+        return "/TestScenarioTemplates" + (query.toString() ? "?" + query.toString() : "");
+    }
+
     function applyControlToGroups(resetGroup) {
         var control = document.getElementById("controlFilter");
         var group = document.getElementById("templateFilter");
@@ -660,29 +686,32 @@ else
 
     function onControlChange() {
         applyControlToGroups(true);
+        var department = document.getElementById("departmentFilter").value || "";
         var selectedControl = document.getElementById("controlFilter").value || "";
-        var url = "/TestScenarioTemplates";
+        var parameters = { departmentId: department };
         if (selectedControl) {
-            url += "?controlId=" + encodeURIComponent(selectedControl);
+            parameters.controlId = selectedControl;
         }
-        window.location.href = url;
+        window.location.href = buildIndexUrl(parameters);
+    }
+
+    function onDepartmentChange() {
+        var department = document.getElementById("departmentFilter").value || "";
+        window.location.href = buildIndexUrl({ departmentId: department });
     }
 
     function onGroupChange() {
+        var department = document.getElementById("departmentFilter").value || "";
         var control = document.getElementById("controlFilter").value || "";
         var selected = document.getElementById("templateFilter").value || "";
-        var url = "/TestScenarioTemplates";
-        var query = [];
+        var parameters = { departmentId: department };
         if (control) {
-            query.push("controlId=" + encodeURIComponent(control));
+            parameters.controlId = control;
         }
         if (selected) {
-            query.push("groupId=" + encodeURIComponent(selected));
+            parameters.groupId = selected;
         }
-        if (query.length) {
-            url += "?" + query.join("&");
-        }
-        window.location.href = url;
+        window.location.href = buildIndexUrl(parameters);
     }
 
     function filterTemplates() {
@@ -712,6 +741,11 @@ else
 
             var selectedControl = document.getElementById("controlFilter").value;
             var selectedGroup = document.getElementById("templateFilter").value;
+            var selectedDepartment = document.getElementById("departmentFilter").value;
+            if (!selectedDepartment) {
+                alert("กรุณาเลือกฝ่ายก่อน");
+                return;
+            }
             if (!selectedControl) {
                 alert("กรุณาเลือก Template Groups Control ก่อน");
                 return;

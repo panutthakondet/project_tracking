@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
@@ -9,6 +10,7 @@ namespace ProjectTracking.Controllers
 {
     public class TestScenarioTemplatesController : BaseController
     {
+        private const string IndexDepartmentFilterKey = "TestScenarioTemplates.Filter.DepartmentId";
         private readonly AppDbContext _context;
 
         public TestScenarioTemplatesController(AppDbContext context)
@@ -20,24 +22,40 @@ namespace ProjectTracking.Controllers
         // INDEX
         // =========================
         [RequireMenu("TestScenarioTemplates.Index")]
-        public async Task<IActionResult> Index(int? controlId, int? groupId)
+        public async Task<IActionResult> Index(int? departmentId, int? controlId, int? groupId)
         {
-            if (!groupId.HasValue && TempData["LastGroupId"] != null)
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DepartmentName)
+                .ToListAsync();
+            var selectedDepartmentId = ResolveIndexDepartmentFilter(
+                departmentId,
+                departments.Select(x => x.DepartmentId).ToHashSet());
+
+            if (!groupId.HasValue
+                && !Request.Query.ContainsKey("departmentId")
+                && !Request.Query.ContainsKey("controlId")
+                && TempData["LastGroupId"] != null)
             {
                 groupId = Convert.ToInt32(TempData["LastGroupId"]);
             }
 
-            var groups = await _context.TestTemplateGroups
+            var allGroups = await _context.TestTemplateGroups
                 .Include(g => g.Control)
+                    .ThenInclude(c => c!.Department)
                 .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
-                .OrderBy(g => g.Control!.sort_order)
+                .OrderBy(g => g.Control!.Department != null ? g.Control.Department.SortOrder : int.MaxValue)
+                .ThenBy(g => g.Control!.Department != null ? g.Control.Department.DepartmentName : "")
+                .ThenBy(g => g.Control!.sort_order)
                 .ThenBy(g => g.sort_order)
                 .ThenBy(g => g.group_name)
                 .ToListAsync();
 
             if (groupId.HasValue)
             {
-                var selectedGroup = groups.FirstOrDefault(g => g.group_id == groupId.Value);
+                var selectedGroup = allGroups.FirstOrDefault(g => g.group_id == groupId.Value);
                 if (selectedGroup == null)
                 {
                     groupId = null;
@@ -45,12 +63,42 @@ namespace ProjectTracking.Controllers
                 else
                 {
                     controlId = selectedGroup.control_id;
+                    selectedDepartmentId = selectedGroup.Control?.department_id;
                 }
             }
+
+            var selectedControl = controlId.HasValue
+                ? allGroups.Select(g => g.Control).FirstOrDefault(c => c?.control_id == controlId.Value)
+                : null;
+            if (controlId.HasValue && selectedControl == null)
+            {
+                controlId = null;
+                groupId = null;
+            }
+            else if (selectedControl != null)
+            {
+                if (!selectedDepartmentId.HasValue && !Request.Query.ContainsKey("departmentId"))
+                {
+                    selectedDepartmentId = selectedControl.department_id;
+                }
+                else if (selectedControl.department_id != selectedDepartmentId)
+                {
+                    controlId = null;
+                    groupId = null;
+                }
+            }
+
+            if (selectedDepartmentId.HasValue)
+                HttpContext.Session.SetString(IndexDepartmentFilterKey, selectedDepartmentId.Value.ToString());
+
+            var groups = selectedDepartmentId.HasValue
+                ? allGroups.Where(g => g.Control?.department_id == selectedDepartmentId.Value).ToList()
+                : new List<TestTemplateGroup>();
 
             var query = _context.TestScenarioTemplates
                 .Include(x => x.Group)
                     .ThenInclude(g => g!.Control)
+                        .ThenInclude(c => c!.Department)
                 .AsQueryable();
 
             if (groupId.HasValue)
@@ -61,17 +109,25 @@ namespace ProjectTracking.Controllers
             {
                 query = query.Where(x => x.Group != null && x.Group.control_id == controlId);
             }
+            else if (selectedDepartmentId.HasValue)
+            {
+                query = query.Where(x => x.Group != null
+                    && x.Group.Control != null
+                    && x.Group.Control.department_id == selectedDepartmentId.Value);
+            }
 
             var templates = await query
                 .OrderBy(x => x.template_id)
                 .ToListAsync();
 
+            ViewBag.Departments = departments;
             ViewBag.Groups = groups;
             ViewBag.Controls = groups
                 .Where(g => g.Control != null)
                 .Select(g => g.Control!)
                 .DistinctBy(c => c.control_id)
                 .ToList();
+            ViewBag.SelectedDepartmentId = selectedDepartmentId;
             ViewBag.SelectedControlId = controlId;
             ViewBag.SelectedGroupId = groupId;
             ViewBag.GroupId = groupId;
@@ -294,6 +350,27 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index), new { groupId = gid });
+        }
+
+        private int? ResolveIndexDepartmentFilter(int? departmentId, IReadOnlySet<int> activeDepartmentIds)
+        {
+            if (!Request.Query.ContainsKey("departmentId"))
+            {
+                var rememberedValue = HttpContext.Session.GetString(IndexDepartmentFilterKey);
+                return int.TryParse(rememberedValue, out var rememberedDepartmentId)
+                    && activeDepartmentIds.Contains(rememberedDepartmentId)
+                        ? rememberedDepartmentId
+                        : null;
+            }
+
+            if (!departmentId.HasValue || !activeDepartmentIds.Contains(departmentId.Value))
+            {
+                HttpContext.Session.Remove(IndexDepartmentFilterKey);
+                return null;
+            }
+
+            HttpContext.Session.SetString(IndexDepartmentFilterKey, departmentId.Value.ToString());
+            return departmentId.Value;
         }
     }
 }
