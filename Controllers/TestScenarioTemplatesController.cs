@@ -43,6 +43,7 @@ namespace ProjectTracking.Controllers
             }
 
             var allGroups = await _context.TestTemplateGroups
+                .AsNoTracking()
                 .Include(g => g.Control)
                     .ThenInclude(c => c!.Department)
                 .Where(g => g.is_active && g.control_id.HasValue && g.Control != null && g.Control.is_active)
@@ -96,6 +97,7 @@ namespace ProjectTracking.Controllers
                 : new List<TestTemplateGroup>();
 
             var query = _context.TestScenarioTemplates
+                .AsNoTracking()
                 .Include(x => x.Group)
                     .ThenInclude(g => g!.Control)
                         .ThenInclude(c => c!.Department)
@@ -116,9 +118,11 @@ namespace ProjectTracking.Controllers
                     && x.Group.Control.department_id == selectedDepartmentId.Value);
             }
 
-            var templates = await query
-                .OrderBy(x => x.template_id)
-                .ToListAsync();
+            var templates = selectedDepartmentId.HasValue
+                ? await query
+                    .OrderBy(x => x.template_id)
+                    .ToListAsync()
+                : new List<TestScenarioTemplate>();
 
             ViewBag.Departments = departments;
             ViewBag.Groups = groups;

@@ -222,6 +222,8 @@
         border-radius: 14px !important;
         padding: 16px;
         box-shadow: 0 8px 22px rgba(15, 35, 64, .06);
+        content-visibility: auto;
+        contain-intrinsic-size: auto 320px;
     }
 
     .template-card.is-success { border-color: #22c55e; }
@@ -477,7 +479,11 @@
     </div>
 </div>
 
-@if (Model == null || !Model.Any())
+@if (!selectedDepartmentId.HasValue)
+{
+    <div class="alert alert-info">กรุณาเลือกฝ่ายเพื่อแสดง Scenario Template</div>
+}
+else if (Model == null || !Model.Any())
 {
     <div class="alert alert-warning">ไม่พบ Scenario Template</div>
 }
