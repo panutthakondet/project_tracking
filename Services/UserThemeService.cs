@@ -2058,9 +2058,12 @@ main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-her
 
 main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead,
 main.route-controller-projectissues :is(.issue-git-table, .dev-git-table) thead th {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
+    color: var(--pt-surface-contrast-muted) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.index-hero, .support-hero, .support-detail-hero, .support-dev-hero) {
@@ -2082,9 +2085,12 @@ main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is
 
 main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead,
 main:is(.route-controller-supportorders, .route-controller-supportordersdev) :is(.support-git-table, .support-dev-git-table, .dev-git-table) thead th {
-    color: var(--pt-sidebar-contrast) !important;
-    background: linear-gradient(135deg, var(--pt-sidebar-bg), var(--pt-sidebar-deep)) !important;
-    border-color: var(--pt-border) !important;
+    color: var(--pt-surface-contrast-muted) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 html body main:is(
