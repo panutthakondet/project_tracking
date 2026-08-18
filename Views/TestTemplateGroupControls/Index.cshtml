@@ -2,6 +2,9 @@
 @using Microsoft.AspNetCore.Http
 @{
     ViewData["Title"] = "Template Groups Control";
+    var departments = ViewBag.Departments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
+        ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
+    int? selectedDepartmentId = ViewBag.SelectedDepartmentId as int?;
     var departmentSections = (Model ?? Enumerable.Empty<ProjectTracking.Models.TestTemplateGroupControl>())
         .GroupBy(item => new
         {
@@ -30,10 +33,34 @@
     <div class="index-actions">
         @if (CanMenu("TestTemplateGroupControls.Create"))
         {
-            <a asp-action="Create" class="btn btn-success">Add Control</a>
+            <a asp-action="Create" asp-route-departmentId="@selectedDepartmentId" class="btn btn-success">Add Control</a>
         }
     </div>
 </div>
+
+<form asp-action="Index" method="get" class="card card-body mb-3">
+    <label for="controlDepartmentFilter" class="form-label">ฝ่าย</label>
+    <div class="d-flex gap-2">
+        <select id="controlDepartmentFilter"
+                name="departmentId"
+                class="form-select"
+                data-placeholder="ค้นหาฝ่าย..."
+                onchange="this.form.submit()">
+            <option value="">-- ทุกฝ่าย --</option>
+            @foreach (var department in departments)
+            {
+                <option value="@department.DepartmentId"
+                        selected="@(selectedDepartmentId == department.DepartmentId ? "selected" : null)">
+                    @department.DepartmentName
+                </option>
+            }
+        </select>
+        @if (selectedDepartmentId.HasValue)
+        {
+            <a asp-action="Index" asp-route-departmentId="0" class="btn btn-outline-secondary">ล้าง</a>
+        }
+    </div>
+</form>
 
 @if (Model == null || !Model.Any())
 {
