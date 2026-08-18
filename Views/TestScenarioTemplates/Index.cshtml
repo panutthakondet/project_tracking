@@ -443,7 +443,7 @@
     <div class="card-body">
         <form method="get" id="templateFilterForm">
             <div class="row g-3">
-                <div class="col-12 col-lg-4">
+                <div class="col-12">
                     <label class="form-label">ฝ่าย</label>
                     <select id="departmentFilter" name="departmentId" class="form-select" onchange="onDepartmentChange()">
                         <option value="">-- ทุกฝ่าย --</option>
@@ -453,7 +453,7 @@
                         }
                     </select>
                 </div>
-                <div class="col-12 col-lg-4">
+                <div class="col-12 col-lg-6">
                     <label class="form-label">Template Groups Control</label>
                     <select id="controlFilter" name="controlId" class="form-select" onchange="onControlChange()" disabled="@(!selectedDepartmentId.HasValue)">
                         <option value="">-- Select Control --</option>
@@ -463,7 +463,7 @@
                         }
                     </select>
                 </div>
-                <div class="col-12 col-lg-4">
+                <div class="col-12 col-lg-6">
                     <label class="form-label">Template Group</label>
                     <select id="templateFilter"
                             name="groupId"
