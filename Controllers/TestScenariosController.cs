@@ -962,7 +962,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.Delete")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, string? returnUrl)
         {
             var scenario = await _context.TestScenarios.FindAsync(id);
             if (scenario == null) return NotFound();
@@ -970,6 +970,9 @@ namespace ProjectTracking.Controllers
             _context.TestScenarios.Remove(scenario);
             await _context.SaveChangesAsync();
             await RenumberScenarioCodesAsync(scenario.project_id);
+
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
 
             return RedirectToAction("Index", new { projectId = scenario.project_id });
         }
@@ -1159,7 +1162,7 @@ namespace ProjectTracking.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequireMenu("TestScenarios.DeleteAll")]
-        public async Task<IActionResult> DeleteAll(int projectId, string? scenarioType, int? departmentId)
+        public async Task<IActionResult> DeleteAll(int projectId, string? scenarioType, int? departmentId, string? returnUrl)
         {
             var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
             var scenarios = await _context.TestScenarios
@@ -1174,7 +1177,12 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             if (!scenarios.Any())
+            {
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return LocalRedirect(returnUrl);
+
                 return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType, departmentId });
+            }
 
             var scenarioIds = scenarios.Select(s => s.scenario_id).ToList();
 
@@ -1199,6 +1207,9 @@ namespace ProjectTracking.Controllers
 
             await _context.SaveChangesAsync();
             await RenumberScenarioCodesAsync(projectId);
+
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
 
             return RedirectToAction("Index", new { projectId, scenarioType = selectedScenarioType, departmentId });
         }

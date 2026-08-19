@@ -870,6 +870,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="scenarioType" value="@selectedScenarioType" />
                     <input type="hidden" name="departmentId" value="@selectedDepartmentId" />
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
                     <button type="submit" class="btn btn-danger" title="ลบทั้งหมด">Delete All</button>
                 </form>
             }
@@ -1023,6 +1024,7 @@
                                               class="d-inline"
                                               onsubmit="return confirm('Delete this scenario?');">
                                             @Html.AntiForgeryToken()
+                                            <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
                                                 Delete
                                             </button>
