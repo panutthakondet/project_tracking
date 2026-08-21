@@ -89,6 +89,17 @@
             font-weight: 400;
         }
 
+        .phase-period-row {
+            display: flex;
+            align-items: baseline;
+            gap: 28px;
+        }
+
+        .phase-period-item {
+            display: inline-flex;
+            align-items: baseline;
+        }
+
         .section {
             margin-top: 8px;
         }
@@ -181,14 +192,15 @@
         <span class="text-value">@Model.Phase?.Project?.ProjectDisplayName</span>
     </div>
 
-    <div class="row">
-        <span class="label">ส่วนที่ :</span>
-        <span class="text-value">@Model.Phase?.PhaseOrder</span>
-    </div>
-
-    <div class="row">
-        <span class="label">งวดที่ :</span>
-        <span class="text-value">@Model.Phase?.PeriodOrder</span>
+    <div class="row phase-period-row">
+        <span class="phase-period-item">
+            <span class="label">ส่วนที่ :</span>
+            <span class="text-value">@Model.Phase?.PhaseOrder</span>
+        </span>
+        <span class="phase-period-item">
+            <span class="label">งวดที่ :</span>
+            <span class="text-value">@Model.Phase?.PeriodOrder</span>
+        </span>
     </div>
 
     <div class="row">
