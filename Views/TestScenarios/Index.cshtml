@@ -889,11 +889,29 @@
                         onclick="previewPdf()">
                     👁 Preview PDF
                 </button>
+                <button type="button"
+                        class="btn btn-outline-primary"
+                        title="Export Test Scenario เป็นไฟล์ข้อความ"
+                        onclick="exportScenarioFile('txt')">
+                    📄 Export .TEXT
+                </button>
+                <button type="button"
+                        class="btn btn-outline-primary"
+                        title="Export Test Scenario เป็นไฟล์ Markdown"
+                        onclick="exportScenarioFile('md')">
+                    📄 Export .md
+                </button>
             }
             else
             {
                 <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ Preview">
                     👁 Preview PDF
+                </button>
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ Export TEXT">
+                    📄 Export .TEXT
+                </button>
+                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ Export Markdown">
+                    📄 Export .md
                 </button>
             }
 
@@ -1432,6 +1450,40 @@
             });
 
         window.open(url, '_blank');
+    }
+
+    function exportScenarioFile(format) {
+        const projectId = document.querySelector('select[name="projectId"]')?.value || '';
+        const controlId = document.querySelector('[data-control-select]')?.value || '';
+
+        if (!projectId) {
+            alert('กรุณาเลือก Project ก่อน');
+            return;
+        }
+
+        let url = `/TestScenarios/ExportFile?projectId=${projectId}&format=${encodeURIComponent(format)}`;
+        const status = document.querySelector('select[name="status"]')?.value;
+        const scenarioType = document.querySelector('select[name="scenarioType"]')?.value;
+        const departmentId = document.querySelector('select[name="departmentId"]')?.value;
+
+        if (status) {
+            url += `&status=${encodeURIComponent(status)}`;
+        }
+        if (scenarioType) {
+            url += `&scenarioType=${encodeURIComponent(scenarioType)}`;
+        }
+        if (departmentId) {
+            url += `&departmentId=${encodeURIComponent(departmentId)}`;
+        }
+        if (controlId) {
+            url += `&controlId=${encodeURIComponent(controlId)}`;
+        }
+
+        selectedGroups.forEach((label, id) => {
+            url += `&groupIds=${id}`;
+        });
+
+        window.location.href = url;
     }
 
     initScenarioProjectCoopFilter();

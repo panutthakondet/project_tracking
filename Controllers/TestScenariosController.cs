@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using System.Text;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -1157,6 +1158,178 @@ namespace ProjectTracking.Controllers
             Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
             Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'";
             return File(pdf, "application/pdf");
+        }
+
+        [HttpGet]
+        [RequireMenu("TestScenarios.Export")]
+        public async Task<IActionResult> ExportFile(
+            int projectId,
+            int? controlId,
+            List<int>? groupIds,
+            string? status,
+            string? scenarioType,
+            int? departmentId,
+            string? format)
+        {
+            var selectedStatus = NormalizeIndexStatus(status);
+            var selectedScenarioType = NormalizeScenarioTypeFilter(scenarioType);
+            var selectedGroupIds = (groupIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var project = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.Coop)
+                .Include(p => p.Department)
+                .FirstOrDefaultAsync(p => p.ProjectId == projectId);
+
+            if (project == null)
+                return NotFound();
+
+            var scenarios = await _context.TestScenarios
+                .AsNoTracking()
+                .Include(x => x.Group)
+                    .ThenInclude(x => x!.Control)
+                .Where(x =>
+                    x.project_id == projectId &&
+                    (!departmentId.HasValue ||
+                        (x.Group != null && x.Group.Control != null &&
+                            x.Group.Control.department_id == departmentId.Value)) &&
+                    (
+                        (selectedGroupIds.Count == 0 && !controlId.HasValue) ||
+                        (selectedGroupIds.Count > 0 && x.group_id.HasValue && selectedGroupIds.Contains(x.group_id.Value)) ||
+                        (selectedGroupIds.Count == 0
+                            && controlId.HasValue
+                            && x.Group != null
+                            && x.Group.is_active
+                            && x.Group.Control != null
+                            && x.Group.Control.is_active
+                            && x.Group.control_id == controlId.Value)
+                    ) &&
+                    (string.IsNullOrWhiteSpace(selectedStatus) || x.status == selectedStatus) &&
+                    (string.IsNullOrWhiteSpace(selectedScenarioType) || x.scenario_type == selectedScenarioType)
+                )
+                .OrderBy(x => x.Group != null && x.Group.Control != null ? x.Group.Control.sort_order : int.MaxValue)
+                .ThenBy(x => x.Group != null ? x.Group.sort_order : int.MaxValue)
+                .ThenBy(x => x.sort_order)
+                .ThenBy(x => x.scenario_id)
+                .ToListAsync();
+
+            static string TextOrDash(string? value) =>
+                string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+            var isMarkdown = string.Equals(format?.Trim(), "md", StringComparison.OrdinalIgnoreCase);
+            var text = new StringBuilder();
+
+            if (isMarkdown)
+            {
+                text.AppendLine("# Test Scenarios");
+                text.AppendLine();
+                text.AppendLine($"- **สหกรณ์:** {TextOrDash(project.Coop?.CoopName)}");
+                text.AppendLine($"- **โครงการ:** {TextOrDash(project.ProjectName)}");
+                text.AppendLine($"- **ฝ่าย:** {TextOrDash(project.Department?.DepartmentName)}");
+                text.AppendLine($"- **ผู้ทดสอบ:** {(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ทั้งหมด" : selectedScenarioType)}");
+                text.AppendLine($"- **สถานะ:** {(string.IsNullOrWhiteSpace(selectedStatus) ? "ทั้งหมด" : TestScenarioDisplay.StatusText(selectedStatus))}");
+                text.AppendLine($"- **จำนวน:** {scenarios.Count} รายการ");
+                text.AppendLine($"- **วันที่ Export:** {DateTime.Now:dd/MM/yyyy HH:mm}");
+                text.AppendLine();
+                text.AppendLine("---");
+
+                for (var index = 0; index < scenarios.Count; index++)
+                {
+                    var scenario = scenarios[index];
+                    text.AppendLine();
+                    text.AppendLine($"## {index + 1:D3}. {TextOrDash(scenario.scenario_code)} - {TextOrDash(scenario.title)}");
+                    text.AppendLine();
+                    text.AppendLine($"- **Template Groups Control:** {TextOrDash(scenario.Group?.Control?.control_name)}");
+                    text.AppendLine($"- **Template Group:** {TextOrDash(scenario.Group?.group_name)}");
+                    text.AppendLine($"- **ผู้ทดสอบ:** {TextOrDash(scenario.scenario_type)}");
+                    text.AppendLine($"- **Priority:** {TextOrDash(scenario.priority)}");
+                    text.AppendLine($"- **สถานะ:** {TestScenarioDisplay.StatusText(scenario.status)}");
+                    text.AppendLine();
+                    text.AppendLine("### Precondition");
+                    text.AppendLine();
+                    text.AppendLine(TextOrDash(scenario.precondition));
+                    text.AppendLine();
+                    text.AppendLine("### Test Steps");
+                    text.AppendLine();
+                    text.AppendLine(TextOrDash(scenario.steps));
+                    text.AppendLine();
+                    text.AppendLine("### Expected Result");
+                    text.AppendLine();
+                    text.AppendLine(TextOrDash(scenario.expected_result));
+                    text.AppendLine();
+                    text.AppendLine("### Remark");
+                    text.AppendLine();
+                    text.AppendLine(TextOrDash(scenario.remark));
+                    text.AppendLine();
+                    text.AppendLine("---");
+                }
+
+                if (scenarios.Count == 0)
+                {
+                    text.AppendLine();
+                    text.AppendLine("> ไม่พบ Test Scenario ตามตัวกรองที่เลือก");
+                }
+            }
+            else
+            {
+                text.AppendLine("TEST SCENARIOS");
+                text.AppendLine(new string('=', 80));
+                text.AppendLine($"สหกรณ์: {TextOrDash(project.Coop?.CoopName)}");
+                text.AppendLine($"โครงการ: {TextOrDash(project.ProjectName)}");
+                text.AppendLine($"ฝ่าย: {TextOrDash(project.Department?.DepartmentName)}");
+                text.AppendLine($"ผู้ทดสอบ: {(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ทั้งหมด" : selectedScenarioType)}");
+                text.AppendLine($"สถานะ: {(string.IsNullOrWhiteSpace(selectedStatus) ? "ทั้งหมด" : TestScenarioDisplay.StatusText(selectedStatus))}");
+                text.AppendLine($"จำนวน: {scenarios.Count} รายการ");
+                text.AppendLine($"วันที่ Export: {DateTime.Now:dd/MM/yyyy HH:mm}");
+                text.AppendLine(new string('=', 80));
+
+                for (var index = 0; index < scenarios.Count; index++)
+                {
+                    var scenario = scenarios[index];
+                    text.AppendLine();
+                    text.AppendLine($"[{index + 1:D3}] {TextOrDash(scenario.scenario_code)} - {TextOrDash(scenario.title)}");
+                    text.AppendLine(new string('-', 80));
+                    text.AppendLine($"Template Groups Control: {TextOrDash(scenario.Group?.Control?.control_name)}");
+                    text.AppendLine($"Template Group: {TextOrDash(scenario.Group?.group_name)}");
+                    text.AppendLine($"ผู้ทดสอบ: {TextOrDash(scenario.scenario_type)}");
+                    text.AppendLine($"Priority: {TextOrDash(scenario.priority)}");
+                    text.AppendLine($"สถานะ: {TestScenarioDisplay.StatusText(scenario.status)}");
+                    text.AppendLine();
+                    text.AppendLine("PRECONDITION");
+                    text.AppendLine(TextOrDash(scenario.precondition));
+                    text.AppendLine();
+                    text.AppendLine("TEST STEPS");
+                    text.AppendLine(TextOrDash(scenario.steps));
+                    text.AppendLine();
+                    text.AppendLine("EXPECTED RESULT");
+                    text.AppendLine(TextOrDash(scenario.expected_result));
+                    text.AppendLine();
+                    text.AppendLine("REMARK");
+                    text.AppendLine(TextOrDash(scenario.remark));
+                    text.AppendLine(new string('=', 80));
+                }
+
+                if (scenarios.Count == 0)
+                {
+                    text.AppendLine();
+                    text.AppendLine("ไม่พบ Test Scenario ตามตัวกรองที่เลือก");
+                }
+            }
+
+            var content = text.ToString().ReplaceLineEndings("\r\n");
+            var bytes = Encoding.UTF8.GetPreamble()
+                .Concat(Encoding.UTF8.GetBytes(content))
+                .ToArray();
+            var extension = isMarkdown ? "md" : "txt";
+            var contentType = isMarkdown
+                ? "text/markdown; charset=utf-8"
+                : "text/plain; charset=utf-8";
+            var fileName = $"TestScenarios_Project-{projectId}_{DateTime.Now:yyyyMMdd-HHmm}.{extension}";
+
+            return File(bytes, contentType, fileName);
         }
 
         [HttpPost]
