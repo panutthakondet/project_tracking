@@ -73,6 +73,9 @@
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
         ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var selectedDepartmentId = ViewBag.SelectedDepartmentId as int?;
+    var reportPreferenceUser = (Context.Session.GetString("Username") ?? "anonymous")
+        .Trim()
+        .ToLowerInvariant();
 
     string GroupIconPath(string group)
     {
@@ -756,7 +759,27 @@
     const listTitle = document.getElementById('reportListTitle');
     const listSubtitle = document.getElementById('reportListSubtitle');
     const listCount = document.getElementById('reportListCount');
+    const reportPreferenceUser = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(reportPreferenceUser));
+    const activeGroupStorageKey = `ProjectTracking.Reports.ActiveGroup:${reportPreferenceUser}`;
     let activeFilter = filterButtons.find(button => button.classList.contains('is-active'))?.dataset.reportFilter || '';
+
+    function readRememberedGroup() {
+        try {
+            return window.localStorage.getItem(activeGroupStorageKey) || '';
+        } catch {
+            return '';
+        }
+    }
+
+    function rememberGroup(groupName) {
+        if (!groupName) return;
+
+        try {
+            window.localStorage.setItem(activeGroupStorageKey, groupName);
+        } catch {
+            // Browser อาจปิดการใช้งาน storage; หน้ายังทำงานต่อด้วยค่าเริ่มต้นได้
+        }
+    }
 
     function applyReportFilter(button) {
         activeFilter = button?.dataset.reportFilter || activeFilter;
@@ -777,6 +800,8 @@
         if (noResult) {
             noResult.style.display = visibleCount > 0 ? 'none' : '';
         }
+
+        rememberGroup(activeFilter);
     }
 
     filterButtons.forEach(button => {
@@ -786,7 +811,13 @@
     });
 
     if (filterButtons.length > 0) {
-        applyReportFilter(filterButtons.find(button => button.classList.contains('is-active')) || filterButtons[0]);
+        const rememberedGroup = readRememberedGroup();
+        const rememberedButton = filterButtons.find(button => button.dataset.reportFilter === rememberedGroup);
+        const initialButton = rememberedButton
+            || filterButtons.find(button => button.classList.contains('is-active'))
+            || filterButtons[0];
+
+        applyReportFilter(initialButton);
     }
 })();
 </script>
