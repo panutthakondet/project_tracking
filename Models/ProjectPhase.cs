@@ -75,8 +75,17 @@ namespace ProjectTracking.Models
 
         // ✅ สถานะงวดงาน
         [Column("phase_status")]
-        [StringLength(50)]
+        [StringLength(100)]
         public string? PhaseStatus { get; set; } = "วางแผน";
+
+        [Column("status_id")]
+        public int? StatusId { get; set; }
+
+        [ForeignKey(nameof(StatusId))]
+        public ProjectPhaseStatusDefinition? StatusDefinition { get; set; }
+
+        [NotMapped]
+        public string StatusDescription => StatusDefinition?.StatusDesc ?? PhaseStatus ?? "-";
 
         // Navigation
         public Project? Project { get; set; }

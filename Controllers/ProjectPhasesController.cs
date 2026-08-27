@@ -17,15 +17,18 @@ namespace ProjectTracking.Controllers
     {
         private readonly AppDbContext _context;
         private readonly StatusApprovalService _statusApprovalService;
+        private readonly WorkflowStatusService _workflowStatusService;
         private const string SubmittedStatus = "ส่งงวดงานแล้ว";
         private const string ApprovedPaymentStatus = "อนุมัติจ่ายเงินแล้ว";
 
         public ProjectPhasesController(
             AppDbContext context,
-            StatusApprovalService statusApprovalService)
+            StatusApprovalService statusApprovalService,
+            WorkflowStatusService workflowStatusService)
         {
             _context = context;
             _statusApprovalService = statusApprovalService;
+            _workflowStatusService = workflowStatusService;
         }
 
         // ===========================
@@ -77,6 +80,7 @@ namespace ProjectTracking.Controllers
 
             var phases = await _context.ProjectPhases
                 .AsNoTracking()
+                .Include(p => p.StatusDefinition)
                 .Where(p => p.ProjectId == projectId)
                 .OrderBy(p => p.PhaseOrder)
                 .ThenBy(p => p.PeriodOrder)
@@ -107,6 +111,9 @@ namespace ProjectTracking.Controllers
                     join loginUser in _context.LoginUsers.AsNoTracking()
                         on employee.LoginUserId equals (int?)loginUser.UserId into loginUserJoin
                     from loginUser in loginUserJoin.DefaultIfEmpty()
+                    join statusDefinition in _context.PhaseAssignStatuses.AsNoTracking()
+                        on assign.StatusId equals (int?)statusDefinition.StatusId into statusJoin
+                    from statusDefinition in statusJoin.DefaultIfEmpty()
                     where phaseIds.Contains(assign.PhaseId)
                     orderby assign.PhaseSort ?? int.MaxValue, assign.AssignId
                     select new PhaseAssign
@@ -118,6 +125,8 @@ namespace ProjectTracking.Controllers
                         PlanStart = assign.PlanStart,
                         PlanEnd = assign.PlanEnd,
                         WorkStatus = assign.WorkStatus,
+                        StatusId = assign.StatusId,
+                        StatusDefinition = statusDefinition,
                         Remark = assign.Remark,
                         Employee = new Employee
                         {
@@ -160,6 +169,7 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Project)
                     .ThenInclude(p => p!.TeamMembers)
                         .ThenInclude(m => m.Employee)
+                .Include(p => p.StatusDefinition)
                 .OrderBy(p => p.Project != null && p.Project.Coop != null ? p.Project.Coop.CoopName : "")
                 .ThenBy(p => p.Project != null ? p.Project.ProjectName : "")
                 .ThenBy(p => p.PhaseOrder)
@@ -184,13 +194,17 @@ namespace ProjectTracking.Controllers
             }
             else if (!string.IsNullOrWhiteSpace(phaseStatus))
             {
-                query = query.Where(p => string.Equals(p.PhaseStatus, phaseStatus, StringComparison.OrdinalIgnoreCase));
+                query = query.Where(p =>
+                    string.Equals(p.PhaseStatus, phaseStatus, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.StatusDefinition?.StatusCode, phaseStatus, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.StatusDefinition?.StatusDesc, phaseStatus, StringComparison.OrdinalIgnoreCase));
             }
 
             ViewBag.Projects = projects;
             ViewBag.SelectedCoopName = coopName;
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedPhaseStatus = phaseStatus;
+            ViewBag.ProjectPhaseStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.ProjectPhase);
             ViewBag.Today = today;
 
             return View(query.ToList());
@@ -240,12 +254,18 @@ namespace ProjectTracking.Controllers
 
             ViewBag.PhaseTypeList = GetPhaseTypeList("MAIN");
 
+            var defaultStatusId = await _workflowStatusService.ResolveIdAsync(
+                WorkflowStatusTypes.ProjectPhase,
+                "PLAN");
+            await LoadPhaseStatusLookupAsync(defaultStatusId);
+
             return View(new ProjectPhase
             {
                 ProjectId = project.ProjectId,
                 PhaseType = "MAIN",
                 PhaseOrder = lastPhase?.PhaseOrder ?? 1,
-                PeriodOrder = (lastPhase?.PeriodOrder ?? 0) + 1
+                PeriodOrder = (lastPhase?.PeriodOrder ?? 0) + 1,
+                StatusId = defaultStatusId
             });
         }
 
@@ -310,6 +330,15 @@ namespace ProjectTracking.Controllers
             ModelState.Remove("PlanStart");
             ModelState.Remove("PlanEnd");
             ModelState.Remove("ActualEnd");
+
+            var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
+                WorkflowStatusTypes.ProjectPhase,
+                phase.StatusId,
+                phase.PhaseStatus);
+            phase.StatusId = selectedStatus.StatusId;
+            phase.PhaseStatus = NormalizePhaseStatus(selectedStatus.LegacyValue);
+            if (!phase.StatusId.HasValue)
+                ModelState.AddModelError(nameof(ProjectPhase.StatusId), "กรุณาเลือกสถานะงวดงาน");
             if (phase.ProjectId <= 0)
             {
                 ModelState.AddModelError("ProjectId", "กรุณาเลือก Project");
@@ -341,6 +370,7 @@ namespace ProjectTracking.Controllers
                 ViewBag.LastPeriodEnd = lastPhase?.ActualEnd?.ToString("yyyy-MM-dd") ?? "";
 
                 ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
+                await LoadPhaseStatusLookupAsync(phase.StatusId);
 
                 return View(phase);
             }
@@ -354,8 +384,6 @@ namespace ProjectTracking.Controllers
             phase.PhaseSort = lastSort + 1;
             phase.CreatedAt = DateTime.Now;
             phase.EntryId = await GetCurrentEntryIdAsync();
-            phase.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
-
             _context.ProjectPhases.Add(phase);
             await _context.SaveChangesAsync();
 
@@ -376,6 +404,9 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             phase.PhaseStatus = NormalizePhaseStatus(phase.PhaseStatus);
+            phase.StatusId ??= await _workflowStatusService.ResolveIdAsync(
+                WorkflowStatusTypes.ProjectPhase,
+                phase.PhaseStatus);
 
             // หาส่วนงานก่อนหน้าตาม phase_id
             var previousPhase = await _context.ProjectPhases
@@ -390,6 +421,7 @@ namespace ProjectTracking.Controllers
             ViewBag.LastPeriodEnd = previousPhase?.ActualEnd?.ToString("yyyy-MM-dd") ?? "";
 
             ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
+            await LoadPhaseStatusLookupAsync(phase.StatusId);
 
             return View(phase);
         }
@@ -414,6 +446,15 @@ namespace ProjectTracking.Controllers
             ModelState.Remove("PlanEnd");
             ModelState.Remove("ActualEnd");
 
+            var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
+                WorkflowStatusTypes.ProjectPhase,
+                phase.StatusId,
+                phase.PhaseStatus);
+            phase.StatusId = selectedStatus.StatusId;
+            phase.PhaseStatus = NormalizePhaseStatus(selectedStatus.LegacyValue);
+            if (!phase.StatusId.HasValue)
+                ModelState.AddModelError(nameof(ProjectPhase.StatusId), "กรุณาเลือกสถานะงวดงาน");
+
             if (phase.PhaseOrder <= 0)
                 ModelState.AddModelError("PhaseOrder", "กรุณาระบุส่วนงาน");
 
@@ -423,6 +464,7 @@ namespace ProjectTracking.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.PhaseTypeList = GetPhaseTypeList(phase.PhaseType);
+                await LoadPhaseStatusLookupAsync(phase.StatusId);
                 return View(phase);
             }
 
@@ -431,7 +473,9 @@ namespace ProjectTracking.Controllers
                 return NotFound();
 
             var oldStatus = existing.PhaseStatus;
+            var oldStatusId = existing.StatusId;
             var requestedStatus = NormalizePhaseStatus(phase.PhaseStatus);
+            var requestedStatusId = phase.StatusId;
 
             // ✅ อัปเดตเฉพาะฟิลด์ที่แก้ได้จากฟอร์ม (คงค่า PhaseSort เดิมไว้)
             existing.PhaseName = phase.PhaseName;
@@ -451,6 +495,7 @@ namespace ProjectTracking.Controllers
             if (requirePmApproval)
             {
                 existing.PhaseStatus = oldStatus;
+                existing.StatusId = oldStatusId;
 
                 var project = await _context.Projects
                     .AsNoTracking()
@@ -472,6 +517,7 @@ namespace ProjectTracking.Controllers
             else
             {
                 existing.PhaseStatus = requestedStatus;
+                existing.StatusId = requestedStatusId;
             }
 
             var linkedAssigns = await _context.PhaseAssigns
@@ -810,6 +856,15 @@ namespace ProjectTracking.Controllers
             return string.Equals((status ?? "").Trim(), ApprovedPaymentStatus, StringComparison.OrdinalIgnoreCase)
                 ? SubmittedStatus
                 : status;
+        }
+
+        private async Task LoadPhaseStatusLookupAsync(int? selectedStatusId)
+        {
+            ViewBag.ProjectPhaseStatuses = new SelectList(
+                await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.ProjectPhase),
+                nameof(StatusDefinitionOption.StatusId),
+                nameof(StatusDefinitionOption.StatusDesc),
+                selectedStatusId);
         }
     }
 }

@@ -190,6 +190,7 @@ builder.Services.AddScoped<LineNotificationSettingsService>();
 builder.Services.AddHttpClient<TelegramMessagingService>();
 builder.Services.AddScoped<TelegramNotificationSettingsService>();
 builder.Services.AddScoped<StatusApprovalService>();
+builder.Services.AddScoped<WorkflowStatusService>();
 builder.Services.AddScoped<OverdueMailService>();
 builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
@@ -222,6 +223,7 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureProjectDepartmentTableAsync(app.Services);
+await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
@@ -1024,8 +1026,8 @@ static async Task EnsureStatusApprovalRequestTableAsync(IServiceProvider service
                 `project_id` INT NULL,
                 `project_name` VARCHAR(255) NULL,
                 `target_title` VARCHAR(500) NULL,
-                `current_status` VARCHAR(50) NULL,
-                `requested_status` VARCHAR(50) NOT NULL,
+                `current_status` VARCHAR(100) NULL,
+                `requested_status` VARCHAR(100) NOT NULL,
                 `request_status` VARCHAR(20) NOT NULL DEFAULT 'PENDING',
                 `request_note` VARCHAR(1000) NULL,
                 `requested_by_user_id` INT NULL,
@@ -1038,6 +1040,12 @@ static async Task EnsureStatusApprovalRequestTableAsync(IServiceProvider service
                 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`request_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `status_approval_requests`
+              MODIFY COLUMN `current_status` VARCHAR(100) NULL,
+              MODIFY COLUMN `requested_status` VARCHAR(100) NOT NULL;";
         await command.ExecuteNonQueryAsync();
 
         await EnsureStatusApprovalIndexAsync(
@@ -2940,6 +2948,237 @@ static async Task EnsureIndexAsync(
 
     command.CommandText = createSql;
     await command.ExecuteNonQueryAsync();
+}
+
+static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        async Task CreateStatusMasterAsync(string tableName, string uniqueIndexName, string activeIndexName)
+        {
+            command.CommandText = $@"
+                CREATE TABLE IF NOT EXISTS `{tableName}` (
+                  `status_id` int NOT NULL AUTO_INCREMENT,
+                  `status_code` varchar(50) NOT NULL,
+                  `status_desc` varchar(100) NOT NULL,
+                  `sort_order` int NOT NULL DEFAULT 0,
+                  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+                  PRIMARY KEY (`status_id`),
+                  UNIQUE KEY `{uniqueIndexName}` (`status_code`),
+                  KEY `{activeIndexName}` (`is_active`, `sort_order`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await CreateStatusMasterAsync("project_status", "uq_project_status_code", "idx_project_status_active_sort");
+        await CreateStatusMasterAsync("project_phase_status", "uq_project_phase_status_code", "idx_project_phase_status_active_sort");
+        await CreateStatusMasterAsync("phase_assign_status", "uq_phase_assign_status_code", "idx_phase_assign_status_active_sort");
+
+        async Task SeedStatusesAsync(string tableName, string valuesSql)
+        {
+            command.CommandText = $@"
+                INSERT INTO `{tableName}` (`status_code`, `status_desc`, `sort_order`, `is_active`)
+                VALUES {valuesSql}
+                ON DUPLICATE KEY UPDATE
+                    `status_desc` = VALUES(`status_desc`),
+                    `sort_order` = VALUES(`sort_order`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await SeedStatusesAsync("project_status", @"
+            ('PLAN', 'วางแผน', 10, 1),
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
+            ('DONE', 'เสร็จสิ้น', 30, 1)");
+        await SeedStatusesAsync("project_phase_status", @"
+            ('PLAN', 'วางแผน', 10, 1),
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
+            ('SUBMITTED', 'ส่งงวดงานแล้ว', 30, 1)");
+        await SeedStatusesAsync("phase_assign_status", @"
+            ('PLAN', 'วางแผน', 10, 1),
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
+            ('DONE', 'เสร็จสิ้น', 30, 1)");
+
+        async Task<bool> TableExistsAsync(string tableName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}';";
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND COLUMN_NAME = '{columnName}';";
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task<string?> ColumnTypeAsync(string tableName, string columnName)
+        {
+            command.CommandText = $@"
+                SELECT DATA_TYPE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND COLUMN_NAME = '{columnName}'
+                LIMIT 1;";
+            return (await command.ExecuteScalarAsync())?.ToString();
+        }
+
+        async Task EnsureStatusColumnAsync(
+            string tableName,
+            string legacyColumn,
+            string modifyLegacySql,
+            string addStatusIdSql)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+
+            if (string.Equals(await ColumnTypeAsync(tableName, legacyColumn), "enum", StringComparison.OrdinalIgnoreCase))
+            {
+                command.CommandText = modifyLegacySql;
+                await command.ExecuteNonQueryAsync();
+            }
+
+            if (!await ColumnExistsAsync(tableName, "status_id"))
+            {
+                command.CommandText = addStatusIdSql;
+                await command.ExecuteNonQueryAsync();
+            }
+        }
+
+        await EnsureStatusColumnAsync(
+            "project",
+            "status",
+            "ALTER TABLE `project` MODIFY COLUMN `status` varchar(100) NOT NULL DEFAULT 'PLAN';",
+            "ALTER TABLE `project` ADD COLUMN `status_id` int NULL AFTER `status`;");
+        await EnsureStatusColumnAsync(
+            "project_phase",
+            "phase_status",
+            "ALTER TABLE `project_phase` MODIFY COLUMN `phase_status` varchar(100) NULL DEFAULT 'วางแผน';",
+            "ALTER TABLE `project_phase` ADD COLUMN `status_id` int NULL AFTER `phase_status`;");
+        await EnsureStatusColumnAsync(
+            "phase_assign",
+            "work_status",
+            "ALTER TABLE `phase_assign` MODIFY COLUMN `work_status` varchar(100) NULL;",
+            "ALTER TABLE `phase_assign` ADD COLUMN `status_id` int NULL AFTER `work_status`;");
+
+        async Task ImportLegacyStatusesAsync(
+            string tableName,
+            string legacyColumn,
+            string masterTable,
+            bool keepThaiDescriptionInLegacyColumn)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+
+            command.CommandText = $@"
+                INSERT INTO `{masterTable}`
+                    (`status_code`, `status_desc`, `sort_order`, `is_active`)
+                SELECT LEFT(TRIM(src.`legacy_status`), 50), LEFT(TRIM(src.`legacy_status`), 100), 900, 1
+                FROM (
+                    SELECT DISTINCT `{legacyColumn}` AS `legacy_status`
+                    FROM `{tableName}`
+                    WHERE `{legacyColumn}` IS NOT NULL AND TRIM(`{legacyColumn}`) <> ''
+                ) src
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM `{masterTable}` status_master
+                    WHERE UPPER(TRIM(status_master.`status_code`)) = UPPER(TRIM(src.`legacy_status`))
+                       OR UPPER(TRIM(status_master.`status_desc`)) = UPPER(TRIM(src.`legacy_status`))
+                );";
+            await command.ExecuteNonQueryAsync();
+
+            command.CommandText = $@"
+                UPDATE `{tableName}` target
+                INNER JOIN `{masterTable}` status_master
+                    ON UPPER(TRIM(status_master.`status_code`)) = UPPER(TRIM(target.`{legacyColumn}`))
+                    OR UPPER(TRIM(status_master.`status_desc`)) = UPPER(TRIM(target.`{legacyColumn}`))
+                SET target.`status_id` = status_master.`status_id`,
+                    target.`{legacyColumn}` = {(keepThaiDescriptionInLegacyColumn ? "status_master.`status_desc`" : "status_master.`status_code`")};";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await ImportLegacyStatusesAsync("project", "status", "project_status", false);
+        await ImportLegacyStatusesAsync("project_phase", "phase_status", "project_phase_status", true);
+        await ImportLegacyStatusesAsync("phase_assign", "work_status", "phase_assign_status", false);
+
+        async Task BackfillDefaultStatusAsync(
+            string tableName,
+            string legacyColumn,
+            string masterTable,
+            string defaultStatusCode,
+            bool keepThaiDescriptionInLegacyColumn)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+
+            command.CommandText = $@"
+                UPDATE `{tableName}` target
+                INNER JOIN `{masterTable}` status_master
+                    ON status_master.`status_code` = '{defaultStatusCode}'
+                SET target.`status_id` = status_master.`status_id`,
+                    target.`{legacyColumn}` = {(keepThaiDescriptionInLegacyColumn ? "status_master.`status_desc`" : "status_master.`status_code`")}
+                WHERE target.`status_id` IS NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await BackfillDefaultStatusAsync("project", "status", "project_status", "PLAN", false);
+        await BackfillDefaultStatusAsync("project_phase", "phase_status", "project_phase_status", "PLAN", true);
+        await BackfillDefaultStatusAsync("phase_assign", "work_status", "phase_assign_status", "IN_PROGRESS", false);
+
+        async Task EnsureIndexAsync(string tableName, string indexName)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND INDEX_NAME = '{indexName}';";
+            if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0) return;
+            command.CommandText = $"CREATE INDEX `{indexName}` ON `{tableName}` (`status_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        async Task EnsureForeignKeyAsync(string tableName, string masterTable, string constraintName)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+                WHERE CONSTRAINT_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND CONSTRAINT_NAME = '{constraintName}';";
+            if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0) return;
+            command.CommandText = $@"
+                ALTER TABLE `{tableName}`
+                ADD CONSTRAINT `{constraintName}` FOREIGN KEY (`status_id`)
+                REFERENCES `{masterTable}` (`status_id`) ON DELETE RESTRICT ON UPDATE CASCADE;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureIndexAsync("project", "idx_project_status_id");
+        await EnsureIndexAsync("project_phase", "idx_project_phase_status_id");
+        await EnsureIndexAsync("phase_assign", "idx_phase_assign_status_id");
+        await EnsureForeignKeyAsync("project", "project_status", "fk_project_status");
+        await EnsureForeignKeyAsync("project_phase", "project_phase_status", "fk_project_phase_status");
+        await EnsureForeignKeyAsync("phase_assign", "phase_assign_status", "fk_phase_assign_status");
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
 }
 
 static async Task EnsurePhaseAssignActualDateColumnsAsync(IServiceProvider services)

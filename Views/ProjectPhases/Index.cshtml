@@ -77,9 +77,8 @@
     string ProfileImage(ProjectTracking.Models.Employee? employee)
         => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
 
-    string AssignStatusText(string? status) => string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase)
-        ? "เสร็จสิ้น"
-        : "กำลังดำเนินการ";
+    string AssignStatusText(ProjectTracking.Models.PhaseAssign assign)
+        => assign.StatusDescription;
 }
 
 <style>
@@ -1077,7 +1076,7 @@
                                 _ => "bg-light text-dark"
                             };
                         }
-                        <span class="badge @badgeClass px-3 py-2">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
+                        <span class="badge @badgeClass px-3 py-2">@phase.StatusDescription</span>
                         </td>
 
                         <td class="text-center">
@@ -1216,7 +1215,7 @@ else
                     </div>
                     <div class="phase-status-row">
                         <small>สถานะงาน</small>
-                        <span class="badge @PhaseStatusClass(status)">@(string.IsNullOrEmpty(status) ? "-" : status)</span>
+                        <span class="badge @PhaseStatusClass(status)">@phase.StatusDescription</span>
                         @if (hasPendingApproval)
                         {
                             <span class="badge bg-warning text-dark phase-approval-pending-badge">
@@ -1344,7 +1343,7 @@ else
                                             <strong>กำหนดวันที่</strong>
                                             @(assign.PlanStart?.ToString("dd MMM yyyy", th) ?? "-") - @(assign.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                                         </div>
-                                        <span class="phase-assign-state @(assignDone ? "is-done" : "")">@AssignStatusText(assign.WorkStatus)</span>
+                                        <span class="phase-assign-state @(assignDone ? "is-done" : "")">@AssignStatusText(assign)</span>
                                     </article>
                                 }
                             </div>

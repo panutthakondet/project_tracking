@@ -9,6 +9,8 @@
     var selectedProjectId = ViewBag.SelectedProjectId as int?;
     var selectedStatus = ViewBag.SelectedPhaseStatus as string;
     var today = ViewBag.Today as DateTime? ?? DateTime.Today;
+    var phaseStatuses = ViewBag.ProjectPhaseStatuses as IEnumerable<ProjectTracking.Models.StatusDefinitionOption>
+        ?? Enumerable.Empty<ProjectTracking.Models.StatusDefinitionOption>();
     var th = new CultureInfo("th-TH");
     var coopList = projects
         .Select(x => x.Coop?.CoopName)
@@ -40,9 +42,6 @@
     var overdueCount = rows.Count(x => OverdueDays(x) > 0);
     var doneCount = rows.Count(x => IsDone(x.PhaseStatus));
     var activeCount = rows.Count(x => !IsDone(x.PhaseStatus) && OverdueDays(x) == 0);
-    var statusOptions = projects.Any()
-        ? rows.Select(x => x.PhaseStatus).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList()
-        : new List<string?>();
     var phaseCoopGroups = rows
         .GroupBy(x => string.IsNullOrWhiteSpace(x.Project?.Coop?.CoopName) ? "-" : x.Project!.Coop!.CoopName!)
         .OrderBy(x => x.Key)
@@ -332,9 +331,13 @@
             <select id="phaseStatus" name="phaseStatus" class="form-select" data-placeholder="พิมพ์ค้นหา Status...">
                 <option value="">-- All Statuses --</option>
                 <option value="DELAY" selected="@(string.Equals(selectedStatus, "DELAY", StringComparison.OrdinalIgnoreCase))">ล่าช้า</option>
-                @foreach (var status in statusOptions)
+                @foreach (var status in phaseStatuses)
                 {
-                    <option value="@status" selected="@(string.Equals(selectedStatus, status, StringComparison.OrdinalIgnoreCase))">@StatusText(status)</option>
+                    <option value="@status.StatusCode"
+                            selected="@(string.Equals(selectedStatus, status.StatusCode, StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(selectedStatus, status.StatusDesc, StringComparison.OrdinalIgnoreCase))">
+                        @status.StatusDesc
+                    </option>
                 }
             </select>
         </div>
@@ -413,7 +416,7 @@
                                         </td>
                                         <td class="text-center">@DateText(phase.PlanStart) - @DateText(phase.PlanEnd)</td>
                                         <td class="text-center">@DateText(phase.PeriodEndDate)</td>
-                                        <td class="text-center">@StatusText(phase.PhaseStatus)</td>
+                                        <td class="text-center">@StatusText(phase.StatusDescription)</td>
                                         <td class="text-center">
                                             @if (overdueDays > 0)
                                             {

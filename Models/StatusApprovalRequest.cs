@@ -30,11 +30,11 @@ namespace ProjectTracking.Models
         public string? TargetTitle { get; set; }
 
         [Column("current_status")]
-        [StringLength(50)]
+        [StringLength(100)]
         public string? CurrentStatus { get; set; }
 
         [Column("requested_status")]
-        [StringLength(50)]
+        [StringLength(100)]
         public string RequestedStatus { get; set; } = "";
 
         [Column("request_status")]

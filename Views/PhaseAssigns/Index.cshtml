@@ -1041,11 +1041,15 @@ thead .sticky-col { z-index: 5; }
                             <span class="assign-status-badges">
                                 @if (a.WorkStatus == "DONE")
                                 {
-                                    <span class="badge bg-success">เสร็จสิ้น</span>
+                                    <span class="badge bg-success">@a.StatusDescription</span>
+                                }
+                                else if (a.WorkStatus == "IN_PROGRESS")
+                                {
+                                    <span class="badge bg-warning text-dark">@a.StatusDescription</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-warning text-dark">กำลังดำเนินการ</span>
+                                    <span class="badge bg-secondary">@a.StatusDescription</span>
                                 }
                                 @if (hasPendingApproval)
                                 {

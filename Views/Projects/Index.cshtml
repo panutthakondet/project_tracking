@@ -36,13 +36,6 @@
         "DONE" => 3,
         _ => 4
     };
-    string ProjectStatusText(string? status) => NormalizeProjectStatus(status) switch
-    {
-        "PLAN" => "วางแผน",
-        "IN_PROGRESS" => "กำลังดำเนินการ",
-        "DONE" => "เสร็จสิ้น",
-        _ => string.IsNullOrWhiteSpace(status) ? "-" : status!
-    };
     IReadOnlyList<(string Label, string? Url)> ProjectSystemItems(string? linkName)
     {
         if (string.IsNullOrWhiteSpace(linkName))
@@ -326,9 +319,11 @@
                     <label class="form-label fw-bold">🔄 สถานะ</label>
                     <select id="statusFilter" class="form-select form-select-lg">
                         <option value="">ทั้งหมด</option>
-                        <option value="PLAN">วางแผน</option>
-                        <option value="IN_PROGRESS">กำลังดำเนินการ</option>
-                        <option value="DONE">เสร็จสิ้น</option>
+                        @foreach (var status in (ViewBag.ProjectStatuses as IEnumerable<ProjectTracking.Models.StatusDefinitionOption>
+                            ?? Enumerable.Empty<ProjectTracking.Models.StatusDefinitionOption>()))
+                        {
+                            <option value="@status.StatusCode">@status.StatusDesc</option>
+                        }
                     </select>
                 </div>
             </div>
@@ -478,7 +473,7 @@
                                 : p.Status == "IN_PROGRESS"
                                     ? "bg-info"
                                     : "bg-warning text-dark")">
-                            @ProjectStatusText(p.Status)
+                            @p.StatusDescription
                         </span>
                     </td>
 
@@ -651,7 +646,7 @@
                                                 : p.Status == "IN_PROGRESS"
                                                     ? "bg-info"
                                                     : "bg-warning text-dark")">
-                                            @ProjectStatusText(p.Status)
+                                            @p.StatusDescription
                                         </span>
                                         @if (hasPendingApproval)
                                         {

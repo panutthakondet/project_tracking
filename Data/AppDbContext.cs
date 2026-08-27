@@ -21,6 +21,9 @@ namespace ProjectTracking.Data
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
+        public DbSet<ProjectStatusDefinition> ProjectStatuses { get; set; }
+        public DbSet<ProjectPhaseStatusDefinition> ProjectPhaseStatuses { get; set; }
+        public DbSet<PhaseAssignStatusDefinition> PhaseAssignStatuses { get; set; }
         public DbSet<LoginUser> LoginUsers { get; set; }
         public DbSet<UserMenu> UserMenus { get; set; }
         public DbSet<ThemePreset> ThemePresets { get; set; }
@@ -146,6 +149,57 @@ namespace ProjectTracking.Data
                     .HasForeignKey(x => x.DepartmentId)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.StatusDefinition)
+                    .WithMany()
+                    .HasForeignKey(x => x.StatusId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ProjectPhase>(entity =>
+            {
+                entity.HasOne(x => x.StatusDefinition)
+                    .WithMany()
+                    .HasForeignKey(x => x.StatusId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<PhaseAssign>(entity =>
+            {
+                entity.HasOne(x => x.StatusDefinition)
+                    .WithMany()
+                    .HasForeignKey(x => x.StatusId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ProjectStatusDefinition>(entity =>
+            {
+                entity.HasIndex(x => x.StatusCode)
+                    .IsUnique()
+                    .HasDatabaseName("uq_project_status_code");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder })
+                    .HasDatabaseName("idx_project_status_active_sort");
+            });
+
+            modelBuilder.Entity<ProjectPhaseStatusDefinition>(entity =>
+            {
+                entity.HasIndex(x => x.StatusCode)
+                    .IsUnique()
+                    .HasDatabaseName("uq_project_phase_status_code");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder })
+                    .HasDatabaseName("idx_project_phase_status_active_sort");
+            });
+
+            modelBuilder.Entity<PhaseAssignStatusDefinition>(entity =>
+            {
+                entity.HasIndex(x => x.StatusCode)
+                    .IsUnique()
+                    .HasDatabaseName("uq_phase_assign_status_code");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder })
+                    .HasDatabaseName("idx_phase_assign_status_active_sort");
             });
 
             modelBuilder.Entity<Employee>(entity =>
@@ -2393,6 +2447,183 @@ namespace ProjectTracking.Data
                     .HasForeignKey(x => x.EmpId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            SynchronizeWorkflowStatusReferences();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override async Task<int> SaveChangesAsync(
+            bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
+        {
+            await SynchronizeWorkflowStatusReferencesAsync(cancellationToken);
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void SynchronizeWorkflowStatusReferences()
+        {
+            ChangeTracker.DetectChanges();
+            if (!HasWorkflowStatusChanges()) return;
+
+            var projectDefinitions = ProjectStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToList();
+            var phaseDefinitions = ProjectPhaseStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToList();
+            var assignDefinitions = PhaseAssignStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToList();
+            ApplyWorkflowStatusReferences(projectDefinitions, phaseDefinitions, assignDefinitions);
+        }
+
+        private async Task SynchronizeWorkflowStatusReferencesAsync(CancellationToken cancellationToken)
+        {
+            ChangeTracker.DetectChanges();
+            if (!HasWorkflowStatusChanges()) return;
+
+            var projectDefinitions = await ProjectStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToListAsync(cancellationToken);
+            var phaseDefinitions = await ProjectPhaseStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToListAsync(cancellationToken);
+            var assignDefinitions = await PhaseAssignStatuses.AsNoTracking()
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                }).ToListAsync(cancellationToken);
+            ApplyWorkflowStatusReferences(projectDefinitions, phaseDefinitions, assignDefinitions);
+        }
+
+        private bool HasWorkflowStatusChanges()
+        {
+            return ChangeTracker.Entries<Project>().Any(ShouldSyncProject)
+                || ChangeTracker.Entries<ProjectPhase>().Any(ShouldSyncProjectPhase)
+                || ChangeTracker.Entries<PhaseAssign>().Any(ShouldSyncPhaseAssign);
+        }
+
+        private void ApplyWorkflowStatusReferences(
+            IReadOnlyCollection<StatusDefinitionOption> projectDefinitions,
+            IReadOnlyCollection<StatusDefinitionOption> phaseDefinitions,
+            IReadOnlyCollection<StatusDefinitionOption> assignDefinitions)
+        {
+            foreach (var entry in ChangeTracker.Entries<Project>().Where(ShouldSyncProject))
+            {
+                var preferId = StatusIdWasSelected(entry, nameof(Project.StatusId));
+                var definition = FindWorkflowStatus(
+                    projectDefinitions,
+                    entry.Entity.StatusId,
+                    entry.Entity.Status,
+                    preferId);
+                if (definition == null) continue;
+                entry.Entity.StatusId = definition.StatusId;
+                entry.Entity.Status = definition.StatusCode;
+            }
+
+            foreach (var entry in ChangeTracker.Entries<ProjectPhase>().Where(ShouldSyncProjectPhase))
+            {
+                var preferId = StatusIdWasSelected(entry, nameof(ProjectPhase.StatusId));
+                var definition = FindWorkflowStatus(
+                    phaseDefinitions,
+                    entry.Entity.StatusId,
+                    entry.Entity.PhaseStatus,
+                    preferId);
+                if (definition == null) continue;
+                entry.Entity.StatusId = definition.StatusId;
+                entry.Entity.PhaseStatus = definition.StatusDesc;
+            }
+
+            foreach (var entry in ChangeTracker.Entries<PhaseAssign>().Where(ShouldSyncPhaseAssign))
+            {
+                var preferId = StatusIdWasSelected(entry, nameof(PhaseAssign.StatusId));
+                var definition = FindWorkflowStatus(
+                    assignDefinitions,
+                    entry.Entity.StatusId,
+                    entry.Entity.WorkStatus,
+                    preferId);
+                if (definition == null) continue;
+                entry.Entity.StatusId = definition.StatusId;
+                entry.Entity.WorkStatus = definition.StatusCode;
+            }
+        }
+
+        private static bool ShouldSyncProject(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Project> entry)
+            => ShouldSync(entry, nameof(Project.StatusId), nameof(Project.Status));
+
+        private static bool ShouldSyncProjectPhase(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ProjectPhase> entry)
+            => ShouldSync(entry, nameof(ProjectPhase.StatusId), nameof(ProjectPhase.PhaseStatus));
+
+        private static bool ShouldSyncPhaseAssign(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<PhaseAssign> entry)
+            => ShouldSync(entry, nameof(PhaseAssign.StatusId), nameof(PhaseAssign.WorkStatus));
+
+        private static bool ShouldSync(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string idProperty, string legacyProperty)
+        {
+            return entry.State == EntityState.Added
+                || (entry.State == EntityState.Modified
+                    && (entry.Property(idProperty).IsModified || entry.Property(legacyProperty).IsModified));
+        }
+
+        private static bool StatusIdWasSelected(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string idProperty)
+            => entry.State == EntityState.Added
+                ? entry.Property(idProperty).CurrentValue != null
+                : entry.Property(idProperty).IsModified;
+
+        private static StatusDefinitionOption? FindWorkflowStatus(
+            IEnumerable<StatusDefinitionOption> definitions,
+            int? statusId,
+            string? legacyValue,
+            bool preferId)
+        {
+            if (preferId && statusId.HasValue)
+            {
+                var byId = definitions.FirstOrDefault(x => x.StatusId == statusId.Value);
+                if (byId != null) return byId;
+            }
+
+            var normalized = (legacyValue ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                var byLegacy = definitions.FirstOrDefault(x =>
+                    string.Equals(x.StatusCode, normalized, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.StatusDesc, normalized, StringComparison.OrdinalIgnoreCase));
+                if (byLegacy != null) return byLegacy;
+            }
+
+            return !preferId && statusId.HasValue
+                ? definitions.FirstOrDefault(x => x.StatusId == statusId.Value)
+                : null;
         }
     }
 }

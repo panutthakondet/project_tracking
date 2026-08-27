@@ -104,6 +104,15 @@ namespace ProjectTracking.Models
         [Column("status")]
         public string Status { get; set; } = "PLAN";
 
+        [Column("status_id")]
+        public int? StatusId { get; set; }
+
+        [ForeignKey(nameof(StatusId))]
+        public ProjectStatusDefinition? StatusDefinition { get; set; }
+
+        [NotMapped]
+        public string StatusDescription => StatusDefinition?.StatusDesc ?? Status;
+
         // ======================
         // 🔗 FIGMA LINK
         // ======================

@@ -53,6 +53,15 @@ namespace ProjectTracking.Models
         [Column("work_status")]
         public string? WorkStatus { get; set; }
 
+        [Column("status_id")]
+        public int? StatusId { get; set; }
+
+        [ForeignKey(nameof(StatusId))]
+        public PhaseAssignStatusDefinition? StatusDefinition { get; set; }
+
+        [NotMapped]
+        public string StatusDescription => StatusDefinition?.StatusDesc ?? WorkStatus ?? "-";
+
 
         // remark ใน MySQL เป็น varchar(1000)
         [MaxLength(1000)]

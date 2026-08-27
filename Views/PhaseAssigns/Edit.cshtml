@@ -164,15 +164,12 @@
                     <label class="form-label fw-semibold">
                         สถานะงาน
                     </label>
-                    <select asp-for="WorkStatus"
+                    <select asp-for="StatusId"
+                            asp-items="ViewBag.PhaseAssignStatuses"
                             class="form-select">
-                        <option value="IN_PROGRESS">
-                            กำลังดำเนินการ
-                        </option>
-                        <option value="DONE">
-                            เสร็จสิ้น
-                        </option>
+                        <option value="">-- เลือกสถานะ --</option>
                     </select>
+                    <span asp-validation-for="StatusId" class="text-danger"></span>
                 </div>
 
                 <!-- ================= REMARK ================= -->

@@ -7,7 +7,8 @@
     var rows = (Model ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
     var projectList = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
     var baList = ViewBag.BaList as IEnumerable<ProjectTracking.Models.Employee> ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
-    var statusList = ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var projectStatuses = ViewBag.ProjectStatuses as IEnumerable<ProjectTracking.Models.StatusDefinitionOption>
+        ?? Enumerable.Empty<ProjectTracking.Models.StatusDefinitionOption>();
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
     var selectedBaEmpId = ViewBag.SelectedBaEmpId is int baEmpId ? baEmpId : (int?)null;
@@ -478,9 +479,12 @@
             <label for="status">Status</label>
             <select id="status" name="status" data-placeholder="🔍 พิมพ์ค้นหา Status..." onchange="this.form.submit()">
                 <option value="">-- All Statuses --</option>
-                @foreach (var item in statusList)
+                @foreach (var item in projectStatuses)
                 {
-                    <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@item</option>
+                    <option value="@item.StatusCode"
+                            selected="@(string.Equals(selectedStatus, item.StatusCode, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @item.StatusDesc
+                    </option>
                 }
             </select>
         </div>
@@ -617,7 +621,7 @@
                                 <div><span class="label">Start:</span> @DateText(project.StartDate)</div>
                                 <div><span class="label">End:</span> @DateText(project.EndDate)</div>
                                 <div class="cell-sub">
-                                    <span class="status-text @StatusClass(project.Status)">@TextOrDash(project.Status)</span>
+                                    <span class="status-text @StatusClass(project.Status)">@TextOrDash(project.StatusDescription)</span>
                                 </div>
                             </td>
                         </tr>

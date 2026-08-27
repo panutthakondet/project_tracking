@@ -103,12 +103,12 @@
                     <label class="form-label fw-semibold">
                         สถานะ
                     </label>
-                    <select asp-for="Status"
+                    <select asp-for="StatusId"
+                            asp-items="ViewBag.ProjectStatuses"
                             class="form-select">
-                        <option value="PLAN">PLAN</option>
-                        <option value="IN_PROGRESS">IN PROGRESS</option>
-                        <option value="DONE">DONE</option>
+                        <option value="">-- เลือกสถานะ --</option>
                     </select>
+                    <span asp-validation-for="StatusId" class="text-danger"></span>
                 </div>
 
                 <!-- Project Board Card -->

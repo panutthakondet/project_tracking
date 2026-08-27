@@ -11,6 +11,8 @@
     var selectedEmpId = ViewBag.SelectedEmpId as int?;
     var selectedStatus = ViewBag.SelectedWorkStatus as string;
     var today = ViewBag.Today as DateTime? ?? DateTime.Today;
+    var assignStatuses = ViewBag.PhaseAssignStatuses as IEnumerable<ProjectTracking.Models.StatusDefinitionOption>
+        ?? Enumerable.Empty<ProjectTracking.Models.StatusDefinitionOption>();
     var th = new CultureInfo("th-TH");
     var coopList = projects
         .Select(x => x.Coop?.CoopName)
@@ -26,19 +28,6 @@
         return string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
     }
 
-    bool IsInProgress(string? status)
-    {
-        return string.Equals((status ?? "").Trim(), "IN_PROGRESS", StringComparison.OrdinalIgnoreCase);
-    }
-
-    string StatusText(string? value)
-    {
-        if (string.Equals((value ?? "").Trim(), "DELAY", StringComparison.OrdinalIgnoreCase)) return "ล่าช้า";
-        if (IsDone(value)) return "DONE";
-        if (IsInProgress(value)) return "IN_PROGRESS";
-        return string.IsNullOrWhiteSpace(value) ? "-" : value!;
-    }
-
     int OverdueDays(ProjectTracking.Models.PhaseAssign assign)
     {
         if (!assign.PlanEnd.HasValue || IsDone(assign.WorkStatus) || assign.PlanEnd.Value.Date >= today) return 0;
@@ -49,7 +38,6 @@
     var overdueCount = rows.Count(x => OverdueDays(x) > 0);
     var doneCount = rows.Count(x => IsDone(x.WorkStatus));
     var progressCount = rows.Count(x => !IsDone(x.WorkStatus));
-    var statusOptions = rows.Select(x => x.WorkStatus).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
     var assignCoopGroups = rows
         .GroupBy(x => string.IsNullOrWhiteSpace(x.Phase?.Project?.Coop?.CoopName) ? "-" : x.Phase!.Project!.Coop!.CoopName!)
         .OrderBy(x => x.Key)
@@ -351,9 +339,13 @@
             <select id="workStatus" name="workStatus" class="form-select" data-placeholder="พิมพ์ค้นหา Status...">
                 <option value="">-- All Statuses --</option>
                 <option value="DELAY" selected="@(string.Equals(selectedStatus, "DELAY", StringComparison.OrdinalIgnoreCase))">ล่าช้า</option>
-                @foreach (var status in statusOptions)
+                @foreach (var status in assignStatuses)
                 {
-                    <option value="@status" selected="@(string.Equals(selectedStatus, status, StringComparison.OrdinalIgnoreCase))">@StatusText(status)</option>
+                    <option value="@status.StatusCode"
+                            selected="@(string.Equals(selectedStatus, status.StatusCode, StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(selectedStatus, status.StatusDesc, StringComparison.OrdinalIgnoreCase))">
+                        @status.StatusDesc
+                    </option>
                 }
             </select>
         </div>

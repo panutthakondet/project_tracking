@@ -15,15 +15,18 @@ namespace ProjectTracking.Controllers
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly StatusApprovalService _statusApprovalService;
+        private readonly WorkflowStatusService _workflowStatusService;
 
         public ProjectsController(
             AppDbContext context,
             IWebHostEnvironment env,
-            StatusApprovalService statusApprovalService)
+            StatusApprovalService statusApprovalService,
+            WorkflowStatusService workflowStatusService)
         {
             _context = context;
             _env = env;
             _statusApprovalService = statusApprovalService;
+            _workflowStatusService = workflowStatusService;
         }
 
         // ===========================
@@ -48,6 +51,7 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
+                .Include(p => p.StatusDefinition)
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -65,6 +69,7 @@ namespace ProjectTracking.Controllers
 
             ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
             ViewBag.SelectedDepartmentId = departmentId;
+            ViewBag.ProjectStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.Project);
 
             var projects = OrderProjects(await query.ToListAsync()).ToList();
             var projectIds = projects.Select(p => p.ProjectId).ToList();
@@ -94,6 +99,7 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(m => m.Employee)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
+                .Include(p => p.StatusDefinition)
                 .AsNoTracking()
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -110,7 +116,10 @@ namespace ProjectTracking.Controllers
                         && m.EmpId == baEmpId.Value));
 
             if (!string.IsNullOrWhiteSpace(status))
-                query = query.Where(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase));
+                query = query.Where(p =>
+                    string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.StatusDefinition?.StatusCode, status, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.StatusDefinition?.StatusDesc, status, StringComparison.OrdinalIgnoreCase));
 
             if (departmentId.HasValue)
                 query = query.Where(p => p.DepartmentId == departmentId.Value);
@@ -122,12 +131,7 @@ namespace ProjectTracking.Controllers
                 .Select(g => g.First())
                 .OrderBy(e => e.EmpName)
                 .ToList();
-            ViewBag.StatusList = allProjects
-                .Select(p => p.Status)
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(s => s)
-                .ToList();
+            ViewBag.ProjectStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.Project);
             ViewBag.SelectedProjectId = projectId;
             ViewBag.SelectedBaEmpId = baEmpId;
             ViewBag.SelectedStatus = status ?? "";
@@ -281,9 +285,13 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Projects.Create")]
         public async Task<IActionResult> Create()
         {
-            await LoadProjectFormLookupsAsync();
+            var model = new Project
+            {
+                StatusId = await _workflowStatusService.ResolveIdAsync(WorkflowStatusTypes.Project, "PLAN")
+            };
+            await LoadProjectFormLookupsAsync(selectedStatusId: model.StatusId);
 
-            return View(new Project());
+            return View(model);
         }
 
         // ===========================
@@ -303,10 +311,18 @@ namespace ProjectTracking.Controllers
             project.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             project.EndDate = ParseProjectDate(Request.Form["EndDate"]);
             await ValidateProjectDepartmentAsync(project.DepartmentId);
+            var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
+                WorkflowStatusTypes.Project,
+                project.StatusId,
+                project.Status);
+            project.StatusId = selectedStatus.StatusId;
+            project.Status = selectedStatus.LegacyValue;
+            if (!project.StatusId.HasValue)
+                ModelState.AddModelError(nameof(Project.StatusId), "กรุณาเลือกสถานะโครงการ");
 
             if (!ModelState.IsValid)
             {
-                await LoadProjectFormLookupsAsync(project.RequirementCardId, baEmpIds, pmEmpIds);
+                await LoadProjectFormLookupsAsync(project.RequirementCardId, baEmpIds, pmEmpIds, project.StatusId);
 
                 return View(project);
             }
@@ -357,7 +373,8 @@ namespace ProjectTracking.Controllers
                     .OrderBy(m => m.SortOrder)
                     .Select(m => m.EmpId)
                     .DefaultIfEmpty(project.PmEmpId ?? 0)
-                    .Where(x => x > 0));
+                    .Where(x => x > 0),
+                project.StatusId);
 
             return View(project);
         }
@@ -396,10 +413,18 @@ namespace ProjectTracking.Controllers
             model.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             model.EndDate = ParseProjectDate(Request.Form["EndDate"]);
             await ValidateProjectDepartmentAsync(model.DepartmentId);
+            var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
+                WorkflowStatusTypes.Project,
+                model.StatusId,
+                model.Status);
+            model.StatusId = selectedStatus.StatusId;
+            model.Status = selectedStatus.LegacyValue;
+            if (!model.StatusId.HasValue)
+                ModelState.AddModelError(nameof(Project.StatusId), "กรุณาเลือกสถานะโครงการ");
 
             if (!ModelState.IsValid)
             {
-                await LoadProjectFormLookupsAsync(model.RequirementCardId, baEmpIds, pmEmpIds);
+                await LoadProjectFormLookupsAsync(model.RequirementCardId, baEmpIds, pmEmpIds, model.StatusId);
 
                 return View(model);
             }
@@ -408,6 +433,7 @@ namespace ProjectTracking.Controllers
             // ✅ UPDATE FIELD (ครบทุกช่อง)
             // ===============================
             var oldStatus = db.Status;
+            var oldStatusId = db.StatusId;
             var requestedStatus = model.Status;
 
             db.ProjectName = model.ProjectName;
@@ -444,6 +470,7 @@ namespace ProjectTracking.Controllers
             if (requirePmApproval)
             {
                 db.Status = oldStatus;
+                db.StatusId = oldStatusId;
 
                 var coopName = db.CoopId.HasValue
                     ? await _context.CntMCoops
@@ -471,6 +498,7 @@ namespace ProjectTracking.Controllers
             else
             {
                 db.Status = requestedStatus;
+                db.StatusId = model.StatusId;
             }
 
             await SyncRequirementCardColumnForProjectStatusAsync(db.RequirementCardId, db.Status);
@@ -548,7 +576,8 @@ namespace ProjectTracking.Controllers
         private async Task LoadProjectFormLookupsAsync(
             int? selectedRequirementCardId = null,
             IEnumerable<int>? selectedBaEmpIds = null,
-            IEnumerable<int>? selectedPmEmpIds = null)
+            IEnumerable<int>? selectedPmEmpIds = null,
+            int? selectedStatusId = null)
         {
             ViewBag.SelectedBaEmpIds = (selectedBaEmpIds ?? Array.Empty<int>()).ToHashSet();
             ViewBag.SelectedPmEmpIds = (selectedPmEmpIds ?? Array.Empty<int>()).ToHashSet();
@@ -572,6 +601,11 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
 
             ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
+            ViewBag.ProjectStatuses = new SelectList(
+                await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.Project),
+                nameof(StatusDefinitionOption.StatusId),
+                nameof(StatusDefinitionOption.StatusDesc),
+                selectedStatusId);
 
             var cards = await _context.RequirementCards
                 .AsNoTracking()
