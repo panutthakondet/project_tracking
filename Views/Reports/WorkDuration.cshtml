@@ -468,12 +468,14 @@
     </main>
     <script>
         (() => {
+            const form = document.getElementById('workDurationFilters');
             const department = document.getElementById('departmentId');
             const employee = document.getElementById('empId');
             department?.addEventListener('change', () => {
                 if (employee) employee.value = '';
-                document.getElementById('workDurationFilters')?.submit();
+                form?.requestSubmit();
             });
+            employee?.addEventListener('change', () => form?.requestSubmit());
         })();
     </script>
 </body>
