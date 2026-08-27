@@ -111,10 +111,7 @@ namespace ProjectTracking.Services
             var selected = await FindAsync(statusType, statusId, cancellationToken);
             if (selected != null)
             {
-                var compatibilityValue = statusType == WorkflowStatusTypes.ProjectPhase
-                    ? selected.StatusDesc
-                    : selected.StatusCode;
-                return (selected.StatusId, compatibilityValue);
+                return (selected.StatusId, selected.StatusDesc);
             }
 
             var fallback = (fallbackValue ?? string.Empty).Trim();

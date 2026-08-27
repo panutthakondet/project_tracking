@@ -1243,12 +1243,22 @@ namespace ProjectTracking.Controllers
                 .Select(group => new { EmpId = group.Key, Count = group.Count() })
                 .ToDictionaryAsync(row => row.EmpId, row => row.Count);
 
-            var assignCounts = await _context.PhaseAssigns
+            var assignRows = await _context.PhaseAssigns
                 .AsNoTracking()
-                .Where(assign => !ClosedAssignStatuses.Contains((assign.WorkStatus ?? "").ToUpper()))
+                .Include(assign => assign.StatusDefinition)
+                .Select(assign => new
+                {
+                    assign.EmpId,
+                    assign.WorkStatus,
+                    StatusCode = assign.StatusDefinition != null ? assign.StatusDefinition.StatusCode : null
+                })
+                .ToListAsync();
+            var assignCounts = assignRows
+                .Where(assign => !ClosedAssignStatuses.Contains(
+                    assign.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(assign.WorkStatus)))
                 .GroupBy(assign => assign.EmpId)
                 .Select(group => new { EmpId = group.Key, Count = group.Count() })
-                .ToDictionaryAsync(row => row.EmpId, row => row.Count);
+                .ToDictionary(row => row.EmpId, row => row.Count);
 
             var todayMeetings = await _context.Meetings
                 .AsNoTracking()

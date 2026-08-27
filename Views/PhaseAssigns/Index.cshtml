@@ -979,7 +979,8 @@ thead .sticky-col { z-index: 5; }
             var periodOrder = ReadNestedInt(a, "ProjectPhase", "PeriodOrder")
                            ?? ReadNestedInt(a, "Phase", "PeriodOrder");
             var hasPendingApproval = pendingAssignApprovalIds.Contains(a.AssignId);
-            <div class="assign-card @(a.WorkStatus == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
+            var workStatusCode = a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus);
+            <div class="assign-card @(workStatusCode == "DONE" ? "is-done" : "is-progress")" data-assign-id="@a.AssignId">
                 <section class="assign-card-left">
                     <div class="assign-card-header-row align-items-center mb-1">
                         <div class="min-w-0">
@@ -1039,11 +1040,11 @@ thead .sticky-col { z-index: 5; }
                         <div class="assign-status-row">
                             <small>สถานะงาน:</small>
                             <span class="assign-status-badges">
-                                @if (a.WorkStatus == "DONE")
+                                @if (workStatusCode == "DONE")
                                 {
                                     <span class="badge bg-success">@a.StatusDescription</span>
                                 }
-                                else if (a.WorkStatus == "IN_PROGRESS")
+                                else if (workStatusCode == "IN_PROGRESS")
                                 {
                                     <span class="badge bg-warning text-dark">@a.StatusDescription</span>
                                 }

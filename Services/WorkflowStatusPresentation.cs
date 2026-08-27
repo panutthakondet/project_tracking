@@ -22,6 +22,24 @@ namespace ProjectTracking.Services
         public static string Normalize(string? value)
             => (value ?? string.Empty).Trim().ToUpperInvariant();
 
+        /// <summary>
+        /// Converts the Thai descriptions used by the three workflow tables
+        /// back to their well-known codes for business-rule comparisons only.
+        /// Display text and selectable options still come from the master tables.
+        /// </summary>
+        public static string Code(string? codeOrDescription)
+        {
+            var value = (codeOrDescription ?? string.Empty).Trim();
+            return value switch
+            {
+                "กำลังดำเนินการ" or "กำลังทำ" => "IN_PROGRESS",
+                "เสร็จสิ้น" or "เสร็จแล้ว" or "เสร็จสิ้นแล้ว" => "DONE",
+                "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" => "SUBMITTED",
+                "วางแผน" => "PLAN",
+                _ => value.ToUpperInvariant().Replace(" ", "_").Replace("-", "_")
+            };
+        }
+
         public static string Description(
             IEnumerable<StatusDefinitionOption> definitions,
             string? codeOrDescription,

@@ -5,7 +5,7 @@ UPDATE `project` source_row
 INNER JOIN `project_status` in_progress ON in_progress.`status_code` = 'IN_PROGRESS'
 LEFT JOIN `project_status` current_status ON current_status.`status_id` = source_row.`status_id`
 SET source_row.`status_id` = in_progress.`status_id`,
-    source_row.`status` = in_progress.`status_code`
+    source_row.`status` = in_progress.`status_desc`
 WHERE UPPER(TRIM(COALESCE(source_row.`status`, ''))) = 'PLAN'
    OR TRIM(COALESCE(source_row.`status`, '')) = 'วางแผน'
    OR UPPER(TRIM(COALESCE(current_status.`status_code`, ''))) = 'PLAN'
@@ -25,7 +25,7 @@ UPDATE `phase_assign` source_row
 INNER JOIN `phase_assign_status` in_progress ON in_progress.`status_code` = 'IN_PROGRESS'
 LEFT JOIN `phase_assign_status` current_status ON current_status.`status_id` = source_row.`status_id`
 SET source_row.`status_id` = in_progress.`status_id`,
-    source_row.`work_status` = in_progress.`status_code`
+    source_row.`work_status` = in_progress.`status_desc`
 WHERE UPPER(TRIM(COALESCE(source_row.`work_status`, ''))) = 'PLAN'
    OR TRIM(COALESCE(source_row.`work_status`, '')) = 'วางแผน'
    OR UPPER(TRIM(COALESCE(current_status.`status_code`, ''))) = 'PLAN'
@@ -58,6 +58,6 @@ WHERE UPPER(TRIM(`status_code`)) = 'PLAN' OR TRIM(`status_desc`) = 'วางแ
 
 COMMIT;
 
-ALTER TABLE `project` ALTER COLUMN `status` SET DEFAULT 'IN_PROGRESS';
+ALTER TABLE `project` ALTER COLUMN `status` SET DEFAULT 'กำลังดำเนินการ';
 ALTER TABLE `project_phase` ALTER COLUMN `phase_status` SET DEFAULT 'กำลังดำเนินการ';
-ALTER TABLE `phase_assign` ALTER COLUMN `work_status` SET DEFAULT 'IN_PROGRESS';
+ALTER TABLE `phase_assign` ALTER COLUMN `work_status` SET DEFAULT 'กำลังดำเนินการ';

@@ -3097,8 +3097,8 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
         await EnsureLegacyDefaultAsync(
             "project",
             "status",
-            "IN_PROGRESS",
-            "ALTER TABLE `project` ALTER COLUMN `status` SET DEFAULT 'IN_PROGRESS';");
+            "กำลังดำเนินการ",
+            "ALTER TABLE `project` ALTER COLUMN `status` SET DEFAULT 'กำลังดำเนินการ';");
         await EnsureLegacyDefaultAsync(
             "project_phase",
             "phase_status",
@@ -3107,8 +3107,8 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
         await EnsureLegacyDefaultAsync(
             "phase_assign",
             "work_status",
-            "IN_PROGRESS",
-            "ALTER TABLE `phase_assign` ALTER COLUMN `work_status` SET DEFAULT 'IN_PROGRESS';");
+            "กำลังดำเนินการ",
+            "ALTER TABLE `phase_assign` ALTER COLUMN `work_status` SET DEFAULT 'กำลังดำเนินการ';");
 
         async Task RemovePlanningStatusAsync(
             string tableName,
@@ -3139,9 +3139,9 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
             await command.ExecuteNonQueryAsync();
         }
 
-        await RemovePlanningStatusAsync("project", "status", "project_status", false);
+        await RemovePlanningStatusAsync("project", "status", "project_status", true);
         await RemovePlanningStatusAsync("project_phase", "phase_status", "project_phase_status", true);
-        await RemovePlanningStatusAsync("phase_assign", "work_status", "phase_assign_status", false);
+        await RemovePlanningStatusAsync("phase_assign", "work_status", "phase_assign_status", true);
 
         if (await TableExistsAsync("status_approval_requests"))
         {
@@ -3199,9 +3199,9 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
             await command.ExecuteNonQueryAsync();
         }
 
-        await ImportLegacyStatusesAsync("project", "status", "project_status", false);
+        await ImportLegacyStatusesAsync("project", "status", "project_status", true);
         await ImportLegacyStatusesAsync("project_phase", "phase_status", "project_phase_status", true);
-        await ImportLegacyStatusesAsync("phase_assign", "work_status", "phase_assign_status", false);
+        await ImportLegacyStatusesAsync("phase_assign", "work_status", "phase_assign_status", true);
 
         async Task BackfillDefaultStatusAsync(
             string tableName,
@@ -3222,9 +3222,30 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
             await command.ExecuteNonQueryAsync();
         }
 
-        await BackfillDefaultStatusAsync("project", "status", "project_status", "IN_PROGRESS", false);
+        await BackfillDefaultStatusAsync("project", "status", "project_status", "IN_PROGRESS", true);
         await BackfillDefaultStatusAsync("project_phase", "phase_status", "project_phase_status", "IN_PROGRESS", true);
-        await BackfillDefaultStatusAsync("phase_assign", "work_status", "phase_assign_status", "IN_PROGRESS", false);
+        await BackfillDefaultStatusAsync("phase_assign", "work_status", "phase_assign_status", "IN_PROGRESS", true);
+
+        // Requirement Board keeps draft project phases outside project_phase.
+        // Normalize those drafts too so an import cannot reintroduce PLAN or an English code.
+        if (await TableExistsAsync("requirement_card_phase_items"))
+        {
+            command.CommandText = @"
+                UPDATE `requirement_card_phase_items` draft
+                INNER JOIN `project_phase_status` in_progress
+                    ON in_progress.`status_code` = 'IN_PROGRESS'
+                SET draft.`phase_status` = in_progress.`status_desc`
+                WHERE UPPER(TRIM(COALESCE(draft.`phase_status`, ''))) = 'PLAN'
+                   OR TRIM(COALESCE(draft.`phase_status`, '')) = 'วางแผน'
+                   OR TRIM(COALESCE(draft.`phase_status`, '')) = '';
+
+                UPDATE `requirement_card_phase_items` draft
+                INNER JOIN `project_phase_status` status_master
+                    ON UPPER(TRIM(status_master.`status_code`)) = UPPER(TRIM(draft.`phase_status`))
+                    OR UPPER(TRIM(status_master.`status_desc`)) = UPPER(TRIM(draft.`phase_status`))
+                SET draft.`phase_status` = status_master.`status_desc`;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         async Task EnsureIndexAsync(string tableName, string indexName)
         {

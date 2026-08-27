@@ -253,7 +253,7 @@ namespace ProjectTracking.Controllers
                 "IN_PROGRESS");
             var defaultModel = new PhaseAssign
             {
-                WorkStatus = "IN_PROGRESS",
+                WorkStatus = "กำลังดำเนินการ",
                 StatusId = defaultStatusId
             };
             if (selectedPhase != null)
@@ -775,7 +775,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsAssignDone(string? status)
         {
-            return string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
+            return WorkflowStatusPresentation.Code(status) == "DONE";
         }
 
         private async Task<string?> LoadPrintReportFiltersAsync(int? projectId, int? empId, string? role, int? departmentId)

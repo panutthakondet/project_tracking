@@ -681,19 +681,16 @@ namespace ProjectTracking.Controllers
         }
 
         private static string NormalizeProjectStatus(string? status)
-        {
-            var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
-            return normalized switch
+            => WorkflowStatusPresentation.Code(status) switch
             {
-                "DONE" or "COMPLETED" or "COMPLETE" or "FINISHED" or "เสร็จสิ้น" or "เสร็จแล้ว" => "DONE",
-                "IN_PROGRESS" or "IN PROGRESS" or "WIP" or "WORKING" or "กำลังดำเนินการ" or "กำลังทำ" => "IN_PROGRESS",
-                _ => normalized.Replace(" ", "_").Replace("-", "_")
+                "COMPLETED" or "COMPLETE" or "FINISHED" => "DONE",
+                "WIP" or "WORKING" => "IN_PROGRESS",
+                var value => value
             };
-        }
 
         private static bool IsAssignDone(AssignRow assign)
         {
-            return string.Equals(assign.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase);
+            return WorkflowStatusPresentation.Code(assign.WorkStatus) == "DONE";
         }
 
         private static bool IsAssignDelayed(AssignRow assign, DateTime today)

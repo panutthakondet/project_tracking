@@ -101,7 +101,7 @@ else
                 @(a.PlanEnd?.ToString("dd MMM yyyy", th))
             </td>
             <td class="text-center">
-                <span class="badge @(a.WorkStatus == "DONE" ? "bg-success" : "bg-warning text-dark")">@a.StatusDescription</span>
+                <span class="badge @((a.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(a.WorkStatus)) == "DONE" ? "bg-success" : "bg-warning text-dark")">@a.StatusDescription</span>
             </td>
             <td>@a.Remark</td>
         </tr>

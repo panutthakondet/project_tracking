@@ -34,7 +34,7 @@ namespace ProjectTracking.Models
 
         [StringLength(50)]
         [Column("phase_status")]
-        public string? PhaseStatus { get; set; } = "วางแผน";
+        public string? PhaseStatus { get; set; } = "กำลังดำเนินการ";
 
         [Column("plan_start")]
         public DateTime? PlanStart { get; set; }

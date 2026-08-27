@@ -937,7 +937,7 @@ namespace ProjectTracking.Controllers
             var work = Norm(workStatus);
             var phase = Norm(phaseStatus);
             return work == "DONE"
-                || phase is "DONE" or "ส่งงวดงานแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
+                || phase is "DONE" or "SUBMITTED";
         }
 
         private static string DateText(DateTime? value)
@@ -947,7 +947,7 @@ namespace ProjectTracking.Controllers
             => value.Length <= maxLength ? value : value[..maxLength];
 
         private static string Norm(string? value)
-            => (value ?? "").Trim().ToUpperInvariant();
+            => WorkflowStatusPresentation.Code(value);
 
         private async Task<int> GetOverdueRiskDaysAsync()
         {

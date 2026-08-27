@@ -317,7 +317,7 @@ namespace ProjectTracking.Controllers
                 ProjectPhaseCompleted = phaseStatuses.Count(IsProjectPhaseCompleted),
                 PhaseAssignTotal = phaseAssigns.Count,
                 PhaseAssignCompleted = phaseAssigns.Count(x =>
-                    string.Equals(x.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase)),
+                    WorkflowStatusPresentation.Code(x.WorkStatus) == "DONE"),
                 DevScenarioTotal = devScenario?.Total ?? 0,
                 DevScenarioCompleted = devScenario?.Completed ?? 0,
                 BaScenarioTotal = baScenario?.Total ?? 0,
@@ -443,7 +443,7 @@ namespace ProjectTracking.Controllers
 
         private static string NormalizePhaseAssignState(string? status)
         {
-            return string.Equals(status, "DONE", StringComparison.OrdinalIgnoreCase)
+            return WorkflowStatusPresentation.Code(status) == "DONE"
                 ? "DONE"
                 : "IN_PROGRESS";
         }

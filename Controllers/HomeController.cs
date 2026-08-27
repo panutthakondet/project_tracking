@@ -1785,7 +1785,7 @@ namespace ProjectTracking.Controllers
             var work = Norm(workStatus);
             var phase = Norm(phaseStatus);
             return work == "DONE"
-                || phase is "DONE" or "ส่งงวดงานแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+                || phase is "DONE" or "SUBMITTED";
         }
 
         private static bool IsLineOverdueIssueDone(string? issueStatus, string? devStatus)
@@ -1807,7 +1807,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsLineOverdueFollowupDone(string? status)
         {
-            return Norm(status) is "DONE" or "CLOSED" or "RESOLVED" or "FIXED" or "PASS" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
+            return Norm(status) is "DONE" or "CLOSED" or "RESOLVED" or "FIXED" or "PASS";
         }
 
         [RequireMenu("Home.Index")]
@@ -2366,7 +2366,7 @@ namespace ProjectTracking.Controllers
                         var status = Norm(phase.PhaseStatus);
                         return date >= monthStart &&
                                date < nextMonthStart &&
-                               (status == "กำลังดำเนินการ" || status == "IN_PROGRESS");
+                               status == "IN_PROGRESS";
                     });
                     var pending = assigns.Count(a =>
                     {
@@ -2375,7 +2375,7 @@ namespace ProjectTracking.Controllers
                         var status = Norm(phase.PhaseStatus);
                         return date >= monthStart &&
                                date < nextMonthStart &&
-                               (status == "วางแผน" || status == "PENDING" || status == "PLAN");
+                               (status == "PENDING" || status == "PLAN");
                     });
 
                     return new HomeDashboardTaskPeriod
@@ -3242,7 +3242,7 @@ namespace ProjectTracking.Controllers
         private static bool IsPhaseDone(string? status)
         {
             var normalized = Norm(status);
-            return normalized is "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว" or "DONE";
+            return normalized is "SUBMITTED" or "DONE";
         }
 
         private static bool IsIssueResolved(DashboardIssueRow issue)
@@ -3319,7 +3319,7 @@ namespace ProjectTracking.Controllers
         private static string PhaseActivityColor(string? status, string? phaseType)
         {
             if (IsPhaseDone(status)) return "green";
-            if (Norm(status) == "กำลังดำเนินการ") return "orange";
+            if (Norm(status) == "IN_PROGRESS") return "orange";
             return Norm(phaseType) == "SUPPORT" ? "cyan" : "blue";
         }
 
@@ -3378,9 +3378,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static string Norm(string? value)
-        {
-            return (value ?? "").Trim().ToUpperInvariant();
-        }
+            => WorkflowStatusPresentation.Code(value);
 
         private static string NormalizeDashboardDinoName(string? value)
         {

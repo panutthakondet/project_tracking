@@ -1526,7 +1526,7 @@ namespace ProjectTracking.Controllers
 
         private static bool IsPhaseDone(string? status)
         {
-            return Norm(status) is "DONE" or "ส่งงวดงานแล้ว" or "อนุมัติจ่ายเงินแล้ว";
+            return Norm(status) is "DONE" or "SUBMITTED";
         }
 
         private static DateTime? AssignPhaseBucketDate(PhaseAssign assign, ProjectPhase phase)
@@ -1627,8 +1627,6 @@ namespace ProjectTracking.Controllers
         }
 
         private static string Norm(string? value)
-        {
-            return (value ?? "").Trim().ToUpperInvariant();
-        }
+            => WorkflowStatusPresentation.Code(value);
     }
 }

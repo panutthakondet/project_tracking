@@ -366,7 +366,7 @@
                     data-department="@departmentValue"
                     data-ba="@(p.BusinessAnalystNames.ToLower())"
                     data-pm="@(p.ProjectManagerNames.ToLower())"
-                    data-status="@((p.Status ?? "").ToLower())">
+                    data-status="@((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)).ToLowerInvariant())">
                     <td class="sticky-col-1 col-id text-center">@rowNo</td>
 
                     <td class="sticky-col-2 col-name">
@@ -456,9 +456,9 @@
 
                     <td class="text-center col-status">
                         <span class="badge
-                            @(p.Status == "DONE"
+                            @((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "DONE"
                                 ? "bg-success"
-                                : p.Status == "IN_PROGRESS"
+                                : (p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "IN_PROGRESS"
                                     ? "bg-info"
                                     : "bg-warning text-dark")">
                             @p.StatusDescription
@@ -586,7 +586,7 @@
                  data-department="@departmentValue"
                  data-ba="@(p.BusinessAnalystNames.ToLower())"
                  data-pm="@(p.ProjectManagerNames.ToLower())"
-                 data-status="@((p.Status ?? "").ToLower())"
+                 data-status="@((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)).ToLowerInvariant())"
                 data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames}".ToLower())">
 
                 <div class="project-card-header">
@@ -629,9 +629,9 @@
                                     <span class="project-title-label">สถานะ:</span>
                                     <span class="project-status">
                                         <span class="badge rounded-pill px-3 py-2
-                                            @(p.Status == "DONE"
+                                            @((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "DONE"
                                                 ? "bg-success"
-                                                : p.Status == "IN_PROGRESS"
+                                                : (p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "IN_PROGRESS"
                                                     ? "bg-info"
                                                     : "bg-warning text-dark")">
                                             @p.StatusDescription

@@ -25,7 +25,7 @@
 
     bool IsDone(string? status)
     {
-        return string.Equals((status ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
+        return ProjectTracking.Services.WorkflowStatusPresentation.Code(status) == "DONE";
     }
 
     int OverdueDays(ProjectTracking.Models.PhaseAssign assign)

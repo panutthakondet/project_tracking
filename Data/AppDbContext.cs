@@ -2549,7 +2549,7 @@ namespace ProjectTracking.Data
                     preferId);
                 if (definition == null) continue;
                 entry.Entity.StatusId = definition.StatusId;
-                entry.Entity.Status = definition.StatusCode;
+                entry.Entity.Status = definition.StatusDesc;
             }
 
             foreach (var entry in ChangeTracker.Entries<ProjectPhase>().Where(ShouldSyncProjectPhase))
@@ -2575,7 +2575,7 @@ namespace ProjectTracking.Data
                     preferId);
                 if (definition == null) continue;
                 entry.Entity.StatusId = definition.StatusId;
-                entry.Entity.WorkStatus = definition.StatusCode;
+                entry.Entity.WorkStatus = definition.StatusDesc;
             }
         }
 

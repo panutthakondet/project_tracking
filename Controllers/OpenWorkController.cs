@@ -545,8 +545,6 @@ namespace ProjectTracking.Controllers
         }
 
         private static string Norm(string? value)
-        {
-            return (value ?? "").Trim().ToUpperInvariant();
-        }
+            => WorkflowStatusPresentation.Code(value);
     }
 }

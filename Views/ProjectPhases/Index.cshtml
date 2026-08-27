@@ -1312,7 +1312,7 @@ else
                             <div class="phase-assign-list">
                                 @foreach (var assign in phaseAssigns)
                                 {
-                                    var assignDone = string.Equals((assign.WorkStatus ?? "").Trim(), "DONE", StringComparison.OrdinalIgnoreCase);
+                                    var assignDone = (assign.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(assign.WorkStatus)) == "DONE";
                                     <article class="phase-assign-item">
                                         <div class="phase-assign-person">
                                             <img src="@ProfileImage(assign.Employee)"

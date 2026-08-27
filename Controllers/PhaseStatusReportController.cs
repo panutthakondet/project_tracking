@@ -682,7 +682,7 @@ namespace ProjectTracking.Controllers
             var work = Norm(workStatus);
             var phase = Norm(phaseStatus);
             return work == "DONE"
-                || phase is "DONE" or "ส่งงวดงานแล้ว" or "เสร็จสิ้น" or "เสร็จสิ้นแล้ว";
+                || phase is "DONE" or "SUBMITTED";
         }
 
         private static string NormalizeReportStatus(string? workStatus, string? phaseStatus, int overdueDays)
@@ -694,16 +694,14 @@ namespace ProjectTracking.Controllers
             if (work == "IN_PROGRESS") return "IN_PROGRESS";
 
             var phase = Norm(phaseStatus);
-            if (phase == "กำลังดำเนินการ") return "IN_PROGRESS";
-            if (phase == "วางแผน") return "PLAN";
+            if (phase == "IN_PROGRESS") return "IN_PROGRESS";
+            if (phase == "PLAN") return "PLAN";
 
             return string.IsNullOrWhiteSpace(work) ? phase : work;
         }
 
         private static string Norm(string? value)
-        {
-            return (value ?? "").Trim().ToUpperInvariant();
-        }
+            => WorkflowStatusPresentation.Code(value);
 
         private async Task<int> GetOverdueRiskDaysAsync()
         {

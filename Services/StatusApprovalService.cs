@@ -346,13 +346,7 @@ namespace ProjectTracking.Services
         }
 
         private static string NormalizeCodeStatus(string? status)
-        {
-            return (status ?? "")
-                .Trim()
-                .ToUpperInvariant()
-                .Replace(" ", "_")
-                .Replace("-", "_");
-        }
+            => WorkflowStatusPresentation.Code(status);
 
         private static string NormalizeBoardColumnName(string? value)
         {

@@ -75,7 +75,7 @@
         .OrderBy(x => x.Key.EmpName)
         .ToList();
 
-    string NormalizeStatus(string? status) => (status ?? "").Trim().ToUpperInvariant();
+    string NormalizeStatus(string? status) => ProjectTracking.Services.WorkflowStatusPresentation.Code(status);
 
     string StatusLabel(string? status) => NormalizeStatus(status) switch
     {

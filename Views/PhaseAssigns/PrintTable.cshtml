@@ -23,7 +23,7 @@
 
     string WorkStatusClass(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
+        return ProjectTracking.Services.WorkflowStatusPresentation.Code(status) switch
         {
             "DONE" => "status-text is-done",
             "IN_PROGRESS" => "status-text is-progress",

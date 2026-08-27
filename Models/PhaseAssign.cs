@@ -51,7 +51,7 @@ namespace ProjectTracking.Models
         public int? EntryId { get; set; }
 
         [Column("work_status")]
-        public string? WorkStatus { get; set; }
+        public string? WorkStatus { get; set; } = "กำลังดำเนินการ";
 
         [Column("status_id")]
         public int? StatusId { get; set; }

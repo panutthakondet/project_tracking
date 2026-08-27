@@ -32,7 +32,7 @@
     string SelectedDepartmentName() => selectedDepartmentId.HasValue
         ? departments.FirstOrDefault(x => x.DepartmentId == selectedDepartmentId.Value)?.DepartmentName ?? "-"
         : "ทุกฝ่าย";
-    string StatusClass(string? status) => (status ?? "").Trim().ToUpperInvariant() switch
+    string StatusClass(string? status) => ProjectTracking.Services.WorkflowStatusPresentation.Code(status) switch
     {
         "DONE" => "success",
         "IN_PROGRESS" => "info",
@@ -620,7 +620,7 @@
                                 <div><span class="label">Start:</span> @DateText(project.StartDate)</div>
                                 <div><span class="label">End:</span> @DateText(project.EndDate)</div>
                                 <div class="cell-sub">
-                                    <span class="status-text @StatusClass(project.Status)">@TextOrDash(project.StatusDescription)</span>
+                                    <span class="status-text @StatusClass(project.StatusDefinition?.StatusCode ?? project.Status)">@TextOrDash(project.StatusDescription)</span>
                                 </div>
                             </td>
                         </tr>
