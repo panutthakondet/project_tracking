@@ -590,7 +590,6 @@
                             <span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span>
                         }
                     </div>
-                    <button type="button" class="section-control" data-collapse-target="timelineContent" aria-expanded="true">ย่อ</button>
                 </div>
             </div>
             <div class="section-body" id="timelineContent">
@@ -716,7 +715,6 @@
         <section class="section" id="workDetailSection">
             <div class="section-head">
                 <div><h2>รายละเอียดงานและระยะเวลา</h2><p>Actual Start บันทึกอัตโนมัติจาก Plan Start และ Actual End บันทึกเมื่อสถานะเสร็จสิ้น</p></div>
-                <button type="button" class="section-control" data-collapse-target="workDetailContent" aria-expanded="true">ย่อ</button>
             </div>
             <div class="section-body" id="workDetailContent">
                 @if (completedTaskCount > 0)
@@ -898,18 +896,6 @@
             });
             employee?.addEventListener('change', () => form?.requestSubmit());
             document.querySelectorAll('#workDurationFilters select').forEach(enhanceSelect);
-
-            document.querySelectorAll('[data-collapse-target]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const target = document.getElementById(button.dataset.collapseTarget);
-                    if (!target) return;
-
-                    const willCollapse = !target.hidden;
-                    target.hidden = willCollapse;
-                    button.textContent = willCollapse ? 'ขยาย' : 'ย่อ';
-                    button.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
-                });
-            });
 
             document.querySelectorAll('[data-completed-toggle]').forEach(button => {
                 button.addEventListener('click', () => {
