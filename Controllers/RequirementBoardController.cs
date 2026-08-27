@@ -168,6 +168,16 @@ namespace ProjectTracking.Controllers
             ApplyPermissionFlags(model);
 
             ViewBag.OpenCardId = cardId;
+            var phaseStatusDefinitions = await _context.ProjectPhaseStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.StatusId)
+                .ToListAsync();
+            ViewBag.DefaultProjectPhaseStatus = phaseStatusDefinitions
+                .FirstOrDefault(x => string.Equals(x.StatusCode, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))?.StatusDesc
+                ?? phaseStatusDefinitions.FirstOrDefault()?.StatusDesc
+                ?? string.Empty;
             return View(model);
         }
 
@@ -1182,6 +1192,15 @@ namespace ProjectTracking.Controllers
             var userId = CurrentUserId();
             var empId = CurrentEmpId();
             var sort = 1;
+            var statusDefinitions = await _context.ProjectPhaseStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.StatusId)
+                .ToListAsync();
+            var defaultStatus = statusDefinitions
+                .FirstOrDefault(x => string.Equals(x.StatusCode, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+                ?? statusDefinitions.FirstOrDefault();
 
             foreach (var input in inputs)
             {
@@ -1196,7 +1215,7 @@ namespace ProjectTracking.Controllers
                     PhaseOrder = Math.Max(1, input.PhaseOrder),
                     PeriodOrder = Math.Max(1, input.PeriodOrder),
                     PhaseSort = sort++,
-                    PhaseStatus = NormalizePhaseStatus(input.PhaseStatus),
+                    PhaseStatus = ResolvePhaseStatusDescription(statusDefinitions, input.PhaseStatus, defaultStatus),
                     PlanStart = ParseBoardDate(input.PlanStart),
                     PlanEnd = ParseBoardDate(input.PlanEnd),
                     PeriodEndDate = ParseBoardDate(input.PeriodEndDate),
@@ -1214,15 +1233,16 @@ namespace ProjectTracking.Controllers
             return text == "SUPPORT" ? "SUPPORT" : "MAIN";
         }
 
-        private static string NormalizePhaseStatus(string? value)
+        private static string ResolvePhaseStatusDescription(
+            IReadOnlyCollection<ProjectPhaseStatusDefinition> definitions,
+            string? value,
+            ProjectPhaseStatusDefinition? fallback)
         {
             var text = (value ?? "").Trim();
-            return text switch
-            {
-                "กำลังดำเนินการ" => "กำลังดำเนินการ",
-                "ส่งงวดงานแล้ว" => "ส่งงวดงานแล้ว",
-                _ => "วางแผน"
-            };
+            var definition = definitions.FirstOrDefault(x =>
+                string.Equals(x.StatusCode, text, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(x.StatusDesc, text, StringComparison.OrdinalIgnoreCase));
+            return definition?.StatusDesc ?? fallback?.StatusDesc ?? text;
         }
 
         private static string NormalizeLabelColor(string? value)

@@ -21,8 +21,18 @@
         .OrderBy(x => x)
         .ToList();
 
-    var doneCount = assignments.Count(a => string.Equals(a.WorkStatus, "DONE", StringComparison.OrdinalIgnoreCase));
-    var progressCount = assignments.Count(a => string.Equals(a.WorkStatus, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
+    var statusDefinitions = ViewBag.PhaseAssignStatuses as IEnumerable<ProjectTracking.Models.StatusDefinitionOption>
+        ?? Enumerable.Empty<ProjectTracking.Models.StatusDefinitionOption>();
+    var statusKpis = statusDefinitions
+        .OrderBy(x => x.SortOrder)
+        .Select((definition, index) => new
+        {
+            Definition = definition,
+            Count = assignments.Count(a => a.StatusId == definition.StatusId
+                || (!a.StatusId.HasValue && string.Equals(a.WorkStatus, definition.StatusCode, StringComparison.OrdinalIgnoreCase))),
+            ClassName = index % 2 == 0 ? "" : "warning"
+        })
+        .ToList();
     var roleCount = assignments
         .Select(a => a.Role)
         .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -32,16 +42,6 @@
     string FormatDate(DateTime? value)
     {
         return value?.ToString("dd MMM yyyy", th) ?? "-";
-    }
-
-    string WorkStatusText(string? status)
-    {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "เสร็จสิ้น",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
-        };
     }
 
     string WorkStatusClass(string? status)
@@ -474,16 +474,14 @@
             <strong>@assignments.Count</strong>
             <small>รายการมอบหมายทั้งหมด</small>
         </article>
-        <article class="kpi">
-            <span>Done</span>
-            <strong>@doneCount</strong>
-            <small>เสร็จสิ้น</small>
-        </article>
-        <article class="kpi warning">
-            <span>In Progress</span>
-            <strong>@progressCount</strong>
-            <small>กำลังดำเนินการ</small>
-        </article>
+        @foreach (var statusKpi in statusKpis)
+        {
+            <article class="kpi @statusKpi.ClassName">
+                <span>@statusKpi.Definition.StatusCode</span>
+                <strong>@statusKpi.Count</strong>
+                <small>@statusKpi.Definition.StatusDesc</small>
+            </article>
+        }
         <article class="kpi">
             <span>Roles</span>
             <strong>@roleCount</strong>
@@ -530,7 +528,7 @@
                     <td>@(string.IsNullOrWhiteSpace(assignment.Role) ? "-" : assignment.Role)</td>
                     <td class="text-center">
                         <span class="@WorkStatusClass(assignment.WorkStatus)">
-                            @WorkStatusText(assignment.WorkStatus)
+                            @assignment.StatusDescription
                         </span>
                     </td>
                     <td class="text-center">@FormatDate(assignment.PlanStart) - @FormatDate(assignment.PlanEnd)</td>

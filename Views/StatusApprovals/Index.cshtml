@@ -415,7 +415,7 @@
                             </td>
                             <td>@TextOrDash(item.ProjectName)</td>
                             <td>
-                                <div>@StatusLabel(item.CurrentStatus) → @StatusLabel(item.RequestedStatus)</div>
+                                <div>@StatusLabel(item.TargetType, item.CurrentStatus) → @StatusLabel(item.TargetType, item.RequestedStatus)</div>
                                 <div class="approval-meta">เฉพาะสถานะเสร็จสิ้น</div>
                             </td>
                             <td>@EmpLabel(item.RequestedByEmpId, employeeNames)</td>
@@ -464,7 +464,7 @@
                     </div>
                     <div class="approval-meta">@TargetTypeLabel(item.TargetType)</div>
                     <div class="approval-meta">โครงการ: @TextOrDash(item.ProjectName)</div>
-                    <div class="approval-meta">สถานะ: @StatusLabel(item.CurrentStatus) → @StatusLabel(item.RequestedStatus)</div>
+                    <div class="approval-meta">สถานะ: @StatusLabel(item.TargetType, item.CurrentStatus) → @StatusLabel(item.TargetType, item.RequestedStatus)</div>
                     <div class="approval-meta">ผู้ขอ: @EmpLabel(item.RequestedByEmpId, employeeNames)</div>
                     <div class="approval-meta">วันที่ขอ: @FormatDateTime(item.RequestedAt)</div>
 
@@ -539,18 +539,15 @@
         };
     }
 
-    private static string StatusLabel(string? value)
+    private string StatusLabel(string? targetType, string? value)
     {
         var status = (value ?? "").Trim();
         if (string.IsNullOrWhiteSpace(status)) return "-";
-
-        return status.ToUpperInvariant() switch
-        {
-            "PLAN" => "วางแผน",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            "DONE" => "เสร็จสิ้น",
-            _ => status
-        };
+        var descriptions = ViewBag.WorkflowStatusDescriptions as IDictionary<string, string>;
+        var key = $"{(targetType ?? "").Trim().ToUpperInvariant()}:{status}";
+        return descriptions != null && descriptions.TryGetValue(key, out var description)
+            ? description
+            : status;
     }
 
     private static string TextOrDash(string? value)

@@ -139,7 +139,7 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedDepartmentId = departmentId;
 
             var result = query
-                .OrderBy(p => ProjectSortOrder(p.Status))
+                .OrderBy(p => p.StatusDefinition?.SortOrder ?? int.MaxValue)
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -798,21 +798,10 @@ namespace ProjectTracking.Controllers
         private static IOrderedEnumerable<Project> OrderProjects(IEnumerable<Project> projects)
         {
             return projects
-                .OrderBy(p => ProjectSortOrder(p.Status))
+                .OrderBy(p => p.StatusDefinition?.SortOrder ?? int.MaxValue)
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName);
-        }
-
-        private static int ProjectSortOrder(string? status)
-        {
-            return NormalizeProjectStatus(status) switch
-            {
-                "IN_PROGRESS" => 1,
-                "PLAN" => 2,
-                "DONE" => 3,
-                _ => 4
-            };
         }
 
         private static string NormalizeProjectStatus(string? status)

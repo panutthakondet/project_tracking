@@ -5,6 +5,15 @@
     Layout = null;
     var report = Model ?? new ProjectTracking.ViewModels.WorkDurationReportViewModel();
     var th = new CultureInfo("th-TH");
+    var workflowStatusRows = report.AssignStatusDefinitions
+        .Select((definition, index) => new
+        {
+            Definition = definition,
+            Count = report.Tasks.Count(task => string.Equals(task.WorkflowStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase)),
+            ClassName = (index % 4) switch { 0 => "success", 1 => "warning", 2 => "blue", _ => "planned" },
+            Color = (index % 4) switch { 0 => "var(--wd-success)", 1 => "var(--wd-warning)", 2 => "var(--wd-blue)", _ => "var(--wd-planned)" }
+        })
+        .ToList();
     var timelineStart = new DateTime(report.StartDate.Year, report.StartDate.Month, 1);
     var timelineEnd = new DateTime(report.EndDate.Year, report.EndDate.Month, DateTime.DaysInMonth(report.EndDate.Year, report.EndDate.Month));
     var timelineMonthCount = ((timelineEnd.Year - timelineStart.Year) * 12) + timelineEnd.Month - timelineStart.Month + 1;
@@ -400,10 +409,11 @@
 
         <section class="kpi-grid" aria-label="ข้อมูลสรุป">
             <article class="kpi blue"><span>งานทั้งหมด</span><strong>@report.Summary.Total</strong><small>PhaseAssigns ในช่วงที่เลือก</small></article>
-            <article class="kpi success"><span>เสร็จสิ้น</span><strong>@report.Summary.Completed</strong><small>@report.Summary.CompletionPercent% ของงานทั้งหมด</small></article>
-            <article class="kpi warning"><span>กำลังดำเนินการ</span><strong>@report.Summary.InProgress</strong><small>เริ่มงานและยังไม่เสร็จ</small></article>
+            @foreach (var statusRow in workflowStatusRows)
+            {
+                <article class="kpi @statusRow.ClassName"><span>@statusRow.Definition.StatusDesc</span><strong>@statusRow.Count</strong><small>จากตารางสถานะ Phase Assign</small></article>
+            }
             <article class="kpi danger"><span>ล่าช้า</span><strong>@report.Summary.Overdue</strong><small>กำลังทำและเลย Plan End</small></article>
-            <article class="kpi planned"><span>วางแผน</span><strong>@report.Summary.Planned</strong><small>อิงสถานะ PLAN จาก Work Status</small></article>
             <article class="kpi"><span>เฉลี่ยตามแผน</span><strong>@Number(report.Summary.AveragePlanDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
             <article class="kpi"><span>เฉลี่ยเวลาที่ใช้</span><strong>@Number(report.Summary.AverageActualDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
         </section>
@@ -423,16 +433,17 @@
                 </div>
                 <div>
                     <div class="status-stack" aria-label="สัดส่วนสถานะงาน">
-                        <span style="width:@Percent(report.Summary.Completed, report.Summary.Total)%; background:var(--wd-success)"></span>
-                        <span style="width:@Percent(report.Summary.InProgress, report.Summary.Total)%; background:var(--wd-warning)"></span>
-                        <span style="width:@Percent(report.Summary.Overdue, report.Summary.Total)%; background:var(--wd-danger)"></span>
-                        <span style="width:@Percent(report.Summary.Planned, report.Summary.Total)%; background:var(--wd-planned)"></span>
+                        @foreach (var statusRow in workflowStatusRows)
+                        {
+                            <span style="width:@Percent(statusRow.Count, report.Summary.Total)%; background:@statusRow.Color"></span>
+                        }
                     </div>
                     <div class="status-numbers">
-                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-success)"></i>เสร็จสิ้น</span><strong>@report.Summary.Completed</strong></div>
-                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-warning)"></i>กำลังดำเนินการ</span><strong>@report.Summary.InProgress</strong></div>
+                        @foreach (var statusRow in workflowStatusRows)
+                        {
+                            <div class="status-number"><span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span><strong>@statusRow.Count</strong></div>
+                        }
                         <div class="status-number"><span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span><strong>@report.Summary.Overdue</strong></div>
-                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-planned)"></i>วางแผน</span><strong>@report.Summary.Planned</strong></div>
                     </div>
                 </div>
             </div>
@@ -475,10 +486,11 @@
             <div class="section-head">
                 <div><h2>Timeline แผนและการทำงานจริง</h2><p>กรอบสีน้ำเงินคือแผน · แถบสีด้านล่างคือระยะเวลาที่ทำจริงและสถานะปัจจุบัน</p></div>
                 <div class="legend">
-                    <span><i class="dot" style="--dot:var(--wd-success)"></i>เสร็จสิ้น</span>
-                    <span><i class="dot" style="--dot:var(--wd-warning)"></i>กำลังดำเนินการ</span>
+                    @foreach (var statusRow in workflowStatusRows)
+                    {
+                        <span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span>
+                    }
                     <span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span>
-                    <span><i class="dot" style="--dot:var(--wd-planned)"></i>วางแผน</span>
                 </div>
             </div>
             @if (!report.Tasks.Any())

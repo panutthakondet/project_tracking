@@ -29,6 +29,7 @@ namespace ProjectTracking.Controllers
             var query = _context.PhaseAssigns
                 .Include(a => a.Employee)
                 .Include(a => a.Phase)
+                .Include(a => a.StatusDefinition)
                 .AsQueryable();
 
             if (projectId != null)
@@ -67,6 +68,7 @@ namespace ProjectTracking.Controllers
             var query = _context.PhaseAssigns
                 .Include(a => a.Employee)
                 .Include(a => a.Phase)
+                .Include(a => a.StatusDefinition)
                 .AsQueryable();
 
             if (projectId != null)

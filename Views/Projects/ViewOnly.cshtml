@@ -36,7 +36,6 @@
     {
         "DONE" => "success",
         "IN_PROGRESS" => "info",
-        "PLAN" => "warning",
         _ => "muted"
     };
     IEnumerable<string> SplitParts(string? value) => (value ?? "")
@@ -45,9 +44,16 @@
         .Where(x => !string.IsNullOrWhiteSpace(x));
 
     var total = rows.Count;
-    var planCount = rows.Count(x => string.Equals(x.Status, "PLAN", StringComparison.OrdinalIgnoreCase));
-    var progressCount = rows.Count(x => string.Equals(x.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase));
-    var doneCount = rows.Count(x => string.Equals(x.Status, "DONE", StringComparison.OrdinalIgnoreCase));
+    var statusKpis = projectStatuses
+        .OrderBy(x => x.SortOrder)
+        .Select((definition, index) => new
+        {
+            Definition = definition,
+            Count = rows.Count(x => x.StatusId == definition.StatusId
+                || (!x.StatusId.HasValue && string.Equals(x.Status, definition.StatusCode, StringComparison.OrdinalIgnoreCase))),
+            ClassName = (index % 3) switch { 0 => "info", 1 => "success", _ => "warning" }
+        })
+        .ToList();
     var figmaCount = rows.Count(x => !string.IsNullOrWhiteSpace(x.FigmaLink));
 }
 
@@ -497,21 +503,14 @@
             <strong>@total</strong>
             <small>โครงการทั้งหมด</small>
         </article>
-        <article class="kpi warning">
-            <span>Plan</span>
-            <strong>@planCount</strong>
-            <small>วางแผน</small>
-        </article>
-        <article class="kpi info">
-            <span>In Progress</span>
-            <strong>@progressCount</strong>
-            <small>กำลังดำเนินการ</small>
-        </article>
-        <article class="kpi success">
-            <span>Done</span>
-            <strong>@doneCount</strong>
-            <small>เสร็จสิ้น</small>
-        </article>
+        @foreach (var statusKpi in statusKpis)
+        {
+            <article class="kpi @statusKpi.ClassName">
+                <span>@statusKpi.Definition.StatusCode</span>
+                <strong>@statusKpi.Count</strong>
+                <small>@statusKpi.Definition.StatusDesc</small>
+            </article>
+        }
         <article class="kpi">
             <span>Figma</span>
             <strong>@figmaCount</strong>

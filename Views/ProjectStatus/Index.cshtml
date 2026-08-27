@@ -31,15 +31,18 @@
         .ToList();
     var hasTeamMembers = statusPage.TeamGroups.Any(x => x.Members.Count > 0);
     string PercentText(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
-    var completedMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("เสร็จ")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "เสร็จสิ้น", Color = "#18c57a" };
-    var progressMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("กำลัง")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "กำลังดำเนินการ", Color = "#f59e0b" };
-    var planMetric = statusPage.StatusMetrics.FirstOrDefault(x => x.Label.Contains("วาง")) ?? new ProjectTracking.ViewModels.ProjectStatusMetric { Label = "วางแผน", Color = "#2f8ee8" };
-    var statusCardMetrics = new[]
-    {
-        new { Metric = completedMetric, ClassName = "completed", Icon = "✓" },
-        new { Metric = progressMetric, ClassName = "progressing", Icon = "◔" },
-        new { Metric = planMetric, ClassName = "planning", Icon = "□" }
-    };
+    var statusCardClasses = new[] { "completed", "progressing", "planning" };
+    var statusCardIcons = new[] { "●", "◔", "□" };
+    var statusCardMetrics = statusPage.StatusMetrics
+        .OrderBy(x => x.SortOrder)
+        .Select((metric, index) => new
+        {
+            Metric = metric,
+            ClassName = statusCardClasses[index % statusCardClasses.Length],
+            Icon = statusCardIcons[index % statusCardIcons.Length],
+            SideClass = index == 0 ? "right" : index == 1 ? "left" : "plan"
+        })
+        .ToList();
     var taskOverviewTotalEmployees = statusPage.TaskOverview.Count;
     var taskOverviewTotalTasks = statusPage.TaskOverview.Sum(x => x.TotalCount);
     var taskOverviewDoneTasks = statusPage.TaskOverview.Sum(x => x.DoneCount);
@@ -147,30 +150,12 @@
                 </div>
 
                 <div class="project-status-donut-stage">
-                    @if (completedMetric.Count > 0)
+                    @foreach (var item in statusCardMetrics.Where(x => x.Metric.Count > 0).Take(3))
                     {
-                        <div class="donut-side-label donut-side-label--right" style="--label-color:@completedMetric.Color;">
-                            <strong>@PercentText(completedMetric.Percent)%</strong>
-                            <b>@completedMetric.Label</b>
-                            <span>@completedMetric.Count โครงการ</span>
-                        </div>
-                    }
-
-                    @if (progressMetric.Count > 0)
-                    {
-                        <div class="donut-side-label donut-side-label--left" style="--label-color:@progressMetric.Color;">
-                            <strong>@PercentText(progressMetric.Percent)%</strong>
-                            <b>@progressMetric.Label</b>
-                            <span>@progressMetric.Count โครงการ</span>
-                        </div>
-                    }
-
-                    @if (planMetric.Count > 0)
-                    {
-                        <div class="donut-side-label donut-side-label--plan" style="--label-color:@planMetric.Color;">
-                            <strong>@PercentText(planMetric.Percent)%</strong>
-                            <b>@planMetric.Label</b>
-                            <span>@planMetric.Count โครงการ</span>
+                        <div class="donut-side-label donut-side-label--@item.SideClass" style="--label-color:@item.Metric.Color;">
+                            <strong>@PercentText(item.Metric.Percent)%</strong>
+                            <b>@item.Metric.Label</b>
+                            <span>@item.Metric.Count โครงการ</span>
                         </div>
                     }
 

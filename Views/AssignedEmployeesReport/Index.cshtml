@@ -130,18 +130,7 @@
                         @(a.PlanEnd?.ToString("dd MMM yyyy", th) ?? "-")
                     </td>
                     <td class="text-center">
-                        @if (a.WorkStatus == "DONE")
-                        {
-                            <span class="badge bg-success">
-                                ✅ เสร็จสิ้น
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning text-dark">
-                                🟡 กำลังดำเนินการ
-                            </span>
-                        }
+                        <span class="badge @(a.WorkStatus == "DONE" ? "bg-success" : "bg-warning text-dark")">@a.StatusDescription</span>
                     </td>
                     <td style="white-space:normal;">@a.Remark</td>
                 </tr>

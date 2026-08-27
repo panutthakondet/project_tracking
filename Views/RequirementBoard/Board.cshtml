@@ -6,6 +6,7 @@
     var canCreate = Model.CanCreate;
     var canEdit = Model.CanEdit;
     var canDelete = Model.CanDelete;
+    var defaultProjectPhaseStatus = (ViewBag.DefaultProjectPhaseStatus as string ?? "").Trim();
 
     string FileSize(long bytes)
     {
@@ -2772,7 +2773,7 @@
                                                             <input class="form-control" type="number" min="1" name="phaseItems[0].PeriodOrder" value="1" data-phase-field="PeriodOrder" />
                                                         </div>
                                                         <input type="hidden" name="phaseItems[0].PhaseType" value="MAIN" data-phase-field="PhaseType" />
-                                                        <input type="hidden" name="phaseItems[0].PhaseStatus" value="วางแผน" data-phase-field="PhaseStatus" />
+                                                        <input type="hidden" name="phaseItems[0].PhaseStatus" value="@defaultProjectPhaseStatus" data-phase-field="PhaseStatus" />
                                                         <div class="rb-phase-name-field">
                                                             <label>รายละเอียดงาน</label>
                                                             <textarea class="form-control" maxlength="500" name="phaseItems[0].PhaseName" data-phase-field="PhaseName" placeholder="เพิ่มรายละเอียดงาน"></textarea>
@@ -3065,7 +3066,7 @@
                                                 <input class="form-control" type="number" min="1" name="phaseItems[@i].PeriodOrder" value="@(phaseItem?.PeriodOrder ?? 1)" data-phase-field="PeriodOrder" />
                                             </div>
                                             <input type="hidden" name="phaseItems[@i].PhaseType" value="@(phaseItem?.PhaseType ?? "MAIN")" data-phase-field="PhaseType" />
-                                            <input type="hidden" name="phaseItems[@i].PhaseStatus" value="@(phaseItem?.PhaseStatus ?? "วางแผน")" data-phase-field="PhaseStatus" />
+                                            <input type="hidden" name="phaseItems[@i].PhaseStatus" value="@(phaseItem?.PhaseStatus ?? defaultProjectPhaseStatus)" data-phase-field="PhaseStatus" />
                                             <div class="rb-phase-name-field">
                                                 <label>รายละเอียดงาน</label>
                                                 <textarea class="form-control" maxlength="500" name="phaseItems[@i].PhaseName" data-phase-field="PhaseName" placeholder="เพิ่มรายละเอียดงาน">@(phaseItem?.PhaseName)</textarea>
@@ -4634,7 +4635,7 @@
                     }
 
                     if (fieldName === 'PhaseStatus') {
-                        field.value = 'วางแผน';
+                        field.value = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(defaultProjectPhaseStatus));
                     }
                 });
             }

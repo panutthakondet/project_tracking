@@ -25,15 +25,12 @@
 
     string StatusText(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "เสร็จสิ้น",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            "DELAY" => "ล่าช้า",
-            "PLAN" => "วางแผน",
-            "ALL STATUSES" => "ทั้งหมด",
-            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
-        };
+        var value = (status ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(value)) return "-";
+        if (value.Equals("DELAY", StringComparison.OrdinalIgnoreCase)) return "ล่าช้า";
+        if (value.Equals("ALL STATUSES", StringComparison.OrdinalIgnoreCase)) return "ทั้งหมด";
+        var descriptions = ViewBag.WorkflowStatusDescriptions as IDictionary<string, string>;
+        return descriptions != null && descriptions.TryGetValue(value, out var description) ? description : value;
     }
 
     string StatusTextClass(string? status)
@@ -43,7 +40,6 @@
             "DONE" => "phase-status-text is-done",
             "IN_PROGRESS" => "phase-status-text is-progress",
             "DELAY" => "phase-status-text is-delay",
-            "PLAN" => "phase-status-text is-plan",
             _ => "phase-status-text is-muted"
         };
     }
@@ -55,7 +51,6 @@
             "DONE" => "is-done",
             "IN_PROGRESS" => "is-progress",
             "DELAY" => "is-delay",
-            "PLAN" => "is-plan",
             _ => "is-muted"
         };
     }

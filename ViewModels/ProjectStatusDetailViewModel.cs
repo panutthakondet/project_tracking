@@ -11,9 +11,6 @@ namespace ProjectTracking.ViewModels
         public int? SelectedDepartmentId { get; set; }
         public List<ProjectDepartmentOption> DepartmentOptions { get; set; } = new();
         public int TotalProjects { get; set; }
-        public int DoneProjects { get; set; }
-        public int InProgressProjects { get; set; }
-        public int PlanProjects { get; set; }
         public int DelayedProjects { get; set; }
         public string WeekRangeText { get; set; } = string.Empty;
         public string ProjectStatusChart { get; set; } = "conic-gradient(#e5e7eb 0 100%)";
@@ -41,6 +38,8 @@ namespace ProjectTracking.ViewModels
 
     public class ProjectStatusMetric
     {
+        public string StatusCode { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
         public string Label { get; set; } = string.Empty;
         public int Count { get; set; }
         public decimal Percent { get; set; }

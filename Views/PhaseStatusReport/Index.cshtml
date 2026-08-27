@@ -29,10 +29,8 @@
         .ToList();
 
     var total = rows.Count;
-    var done = rows.Count(x => x.PhaseStatus == "DONE");
-    var inProgress = rows.Count(x => x.PhaseStatus == "IN_PROGRESS");
-    var delay = rows.Count(x => x.PhaseStatus == "DELAY");
     var overdueDays = rows.Sum(x => x.OverdueDays ?? 0);
+    var statusOrder = (ViewBag.StatusList as IEnumerable<string> ?? Enumerable.Empty<string>()).ToList();
     var selectedProjectItem = (ViewBag.ProjectList as IEnumerable<SelectListItem>)?
         .FirstOrDefault(x => x.Value == (ViewBag.SelectedProject as string));
     var selectedCoopName = selectedProjectItem?.Group?.Name ?? "";
@@ -49,15 +47,12 @@
 
     string StatusText(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "เสร็จสิ้น",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            "DELAY" => "ล่าช้า",
-            "PLAN" => "วางแผน",
-            "ALL STATUSES" => "ทั้งหมด",
-            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
-        };
+        var value = (status ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(value)) return "-";
+        if (value.Equals("DELAY", StringComparison.OrdinalIgnoreCase)) return "ล่าช้า";
+        if (value.Equals("ALL STATUSES", StringComparison.OrdinalIgnoreCase)) return "ทั้งหมด";
+        var descriptions = ViewBag.WorkflowStatusDescriptions as IDictionary<string, string>;
+        return descriptions != null && descriptions.TryGetValue(value, out var description) ? description : value;
     }
 
     string StatusTextClass(string? status)
@@ -67,10 +62,21 @@
             "DONE" => "status-text success",
             "IN_PROGRESS" => "status-text warning",
             "DELAY" => "status-text danger",
-            "PLAN" => "status-text info",
             _ => "status-text muted"
         };
     }
+
+    var statusSummary = statusOrder
+        .Select((status, index) => new
+        {
+            Code = status,
+            Description = StatusText(status),
+            Count = rows.Count(x => string.Equals(x.PhaseStatus, status, StringComparison.OrdinalIgnoreCase)),
+            ClassName = string.Equals(status, "DELAY", StringComparison.OrdinalIgnoreCase)
+                ? "danger"
+                : (index % 2 == 0 ? "info" : "warning")
+        })
+        .ToList();
 
 }
 
@@ -524,21 +530,14 @@
             <strong>@total</strong>
             <small>รายการทั้งหมด</small>
         </article>
-        <article class="kpi">
-            <span>Done</span>
-            <strong>@done</strong>
-            <small>เสร็จสิ้น</small>
-        </article>
-        <article class="kpi warning">
-            <span>In Progress</span>
-            <strong>@inProgress</strong>
-            <small>กำลังดำเนินการ</small>
-        </article>
-        <article class="kpi danger">
-            <span>Delay</span>
-            <strong>@delay</strong>
-            <small>ล่าช้า</small>
-        </article>
+        @foreach (var statusItem in statusSummary)
+        {
+            <article class="kpi @statusItem.ClassName">
+                <span>@statusItem.Code</span>
+                <strong>@statusItem.Count</strong>
+                <small>@statusItem.Description</small>
+            </article>
+        }
         <article class="kpi warning">
             <span>Total Overdue</span>
             <strong>@overdueDays</strong>

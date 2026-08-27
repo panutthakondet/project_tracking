@@ -22,20 +22,8 @@
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var selectedDepartmentId = ViewBag.SelectedDepartmentId is int departmentId ? departmentId : (int?)null;
     var pendingProjectApprovalIds = ViewBag.PendingProjectApprovalIds as ISet<int> ?? new HashSet<int>();
-    string NormalizeProjectStatus(string? status) => (status ?? "")
-        .Trim()
-        .ToUpperInvariant()
-        .Replace(" ", "_")
-        .Replace("-", "_");
     string ProfileImage(ProjectTracking.Models.Employee? employee)
         => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
-    int ProjectSortOrder(string? status) => NormalizeProjectStatus(status) switch
-    {
-        "IN_PROGRESS" => 1,
-        "PLAN" => 2,
-        "DONE" => 3,
-        _ => 4
-    };
     IReadOnlyList<(string Label, string? Url)> ProjectSystemItems(string? linkName)
     {
         if (string.IsNullOrWhiteSpace(linkName))
@@ -73,7 +61,7 @@
         return items;
     }
     var orderedProjects = projects
-        .OrderBy(x => ProjectSortOrder(x.Status))
+        .OrderBy(x => x.StatusDefinition?.SortOrder ?? int.MaxValue)
         .ThenBy(x => x.EndDate ?? DateTime.MaxValue)
         .ThenBy(x => x.ProjectDisplayName)
         .ToList();

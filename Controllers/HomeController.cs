@@ -439,8 +439,9 @@ namespace ProjectTracking.Controllers
                 .Where(p =>
                     p.ProjectName.Contains(keyword) ||
                     p.Status.Contains(keyword) ||
+                    (p.StatusDefinition != null && p.StatusDefinition.StatusDesc.Contains(keyword)) ||
                     (p.Coop != null && p.Coop.CoopName.Contains(keyword)))
-                .OrderBy(p => p.Status == "IN_PROGRESS" ? 1 : p.Status == "PLAN" ? 2 : p.Status == "DONE" ? 3 : 4)
+                .OrderBy(p => p.StatusDefinition != null ? p.StatusDefinition.SortOrder : int.MaxValue)
                 .ThenBy(p => p.EndDate)
                 .ThenBy(p => p.ProjectName)
                 .Select(p => new
@@ -448,6 +449,7 @@ namespace ProjectTracking.Controllers
                     p.ProjectId,
                     p.ProjectName,
                     p.Status,
+                    StatusDescription = p.StatusDefinition != null ? p.StatusDefinition.StatusDesc : p.Status,
                     CoopName = p.Coop != null ? p.Coop.CoopName : null
                 })
                 .Take(6)
@@ -457,7 +459,7 @@ namespace ProjectTracking.Controllers
             {
                 Type = "Projects",
                 Title = p.ProjectName,
-                Detail = $"{ProjectStatusText(p.Status)}{(string.IsNullOrWhiteSpace(p.CoopName) ? string.Empty : $" · {p.CoopName}")}",
+                Detail = $"{p.StatusDescription}{(string.IsNullOrWhiteSpace(p.CoopName) ? string.Empty : $" · {p.CoopName}")}",
                 Url = $"/Projects/Edit/{p.ProjectId}",
                 Color = "blue"
             }));
@@ -639,11 +641,28 @@ namespace ProjectTracking.Controllers
                     DepartmentName = p.Department != null ? p.Department.DepartmentName : null,
                     PmEmpId = p.PmEmpId,
                     BaEmpId = p.BaEmpId,
-                    Status = p.Status,
+                    StatusId = p.StatusId,
+                    Status = p.StatusDefinition != null ? p.StatusDefinition.StatusCode : p.Status,
+                    StatusDescription = p.StatusDefinition != null ? p.StatusDefinition.StatusDesc : p.Status,
+                    StatusSortOrder = p.StatusDefinition != null ? p.StatusDefinition.SortOrder : int.MaxValue,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
                     CreatedAt = p.CreatedAt,
                     EntryId = p.EntryId
+                })
+                .ToListAsync();
+
+            var projectStatusDefinitions = await _context.ProjectStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.StatusId)
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
                 })
                 .ToListAsync();
 
@@ -1117,16 +1136,19 @@ namespace ProjectTracking.Controllers
                 return projectNameById.TryGetValue(projectId.Value, out var name) ? name : "-";
             }
 
-            var completedProjectCount = scopedProjects.Count(p => Norm(p.Status) == "DONE");
-            var inProgressProjectCount = scopedProjects.Count(p => Norm(p.Status) == "IN_PROGRESS");
-            var pendingProjectCount = scopedProjects.Count(p => Norm(p.Status) == "PLAN");
-
-            var projectStatusMetrics = new List<HomeDashboardMetric>
-            {
-                CreateMetric("Completed", completedProjectCount, scopedProjects.Count, "green"),
-                CreateMetric("In Progress", inProgressProjectCount, scopedProjects.Count, "blue"),
-                CreateMetric("Pending", pendingProjectCount, scopedProjects.Count, "orange")
-            };
+            var projectStatusMetrics = projectStatusDefinitions
+                .Select((definition, index) =>
+                {
+                    var metric = CreateMetric(
+                        definition.StatusDesc,
+                        scopedProjects.Count(p => p.StatusId == definition.StatusId
+                            || (!p.StatusId.HasValue && string.Equals(Norm(p.Status), Norm(definition.StatusCode), StringComparison.OrdinalIgnoreCase))),
+                        scopedProjects.Count,
+                        WorkflowStatusPresentation.Tone(definition, index));
+                    metric.StatusCode = definition.StatusCode;
+                    return metric;
+                })
+                .ToList();
 
             var issueMetrics = new List<HomeDashboardMetric>
             {
@@ -1172,7 +1194,7 @@ namespace ProjectTracking.Controllers
             };
 
             var projectOverviewProjects = scopedProjects
-                .OrderBy(p => ProjectOverviewSort(p.Status))
+                .OrderBy(p => p.StatusSortOrder)
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.ProjectDisplayName)
                 .Select(p => new HomeDashboardProjectOverviewItem
@@ -1182,7 +1204,7 @@ namespace ProjectTracking.Controllers
                     DepartmentName = string.IsNullOrWhiteSpace(p.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : p.DepartmentName,
                     ProjectName = p.ProjectDisplayName,
                     StatusCode = Norm(p.Status),
-                    StatusText = ProjectStatusText(p.Status),
+                    StatusText = string.IsNullOrWhiteSpace(p.StatusDescription) ? p.Status ?? "-" : p.StatusDescription,
                     StatusColor = ProjectActivityColor(p.Status),
                     StartText = FormatDashboardDate(p.StartDate, th),
                     EndText = FormatDashboardDate(p.EndDate, th)
@@ -3406,28 +3428,6 @@ namespace ProjectTracking.Controllers
             return date?.ToString("dd MMM yyyy", culture) ?? "-";
         }
 
-        private static int ProjectOverviewSort(string? status)
-        {
-            return Norm(status).Replace(" ", "_").Replace("-", "_") switch
-            {
-                "IN_PROGRESS" => 1,
-                "PLAN" => 2,
-                "DONE" => 3,
-                _ => 4
-            };
-        }
-
-        private static string ProjectStatusText(string? status)
-        {
-            return Norm(status) switch
-            {
-                "DONE" => "Completed",
-                "IN_PROGRESS" => "In Progress",
-                "PLAN" => "Pending",
-                _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
-            };
-        }
-
         private sealed class DashboardProjectRow
         {
             public int ProjectId { get; set; }
@@ -3443,7 +3443,10 @@ namespace ProjectTracking.Controllers
                     : $"{CoopName} - {ProjectName}";
             public int? BaEmpId { get; set; }
             public List<int> BaEmpIds { get; set; } = new();
+            public int? StatusId { get; set; }
             public string? Status { get; set; }
+            public string? StatusDescription { get; set; }
+            public int StatusSortOrder { get; set; } = int.MaxValue;
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
             public DateTime? CreatedAt { get; set; }

@@ -214,6 +214,18 @@ namespace ProjectTracking.Controllers
             var selectedStatus = Norm(status);
             var selectedAssignStatus = Norm(assignStatus);
             var username = HttpContext.Session.GetString("Username") ?? "-";
+            var phaseStatusDefinitions = await _context.ProjectPhaseStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.StatusId)
+                .Select(x => new StatusDefinitionOption { StatusId = x.StatusId, StatusCode = x.StatusCode, StatusDesc = x.StatusDesc, SortOrder = x.SortOrder })
+                .ToListAsync();
+            var assignStatusDefinitions = await _context.PhaseAssignStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.StatusId)
+                .Select(x => new StatusDefinitionOption { StatusId = x.StatusId, StatusCode = x.StatusCode, StatusDesc = x.StatusDesc, SortOrder = x.SortOrder })
+                .ToListAsync();
 
             var projectQuery = _context.Projects
                 .AsNoTracking()
@@ -264,6 +276,9 @@ namespace ProjectTracking.Controllers
 
             var assignQuery = _context.PhaseAssigns
                 .Include(a => a.Employee)
+                .Include(a => a.StatusDefinition)
+                .Include(a => a.Phase)
+                    .ThenInclude(p => p!.StatusDefinition)
                 .Include(a => a.Phase)
                     .ThenInclude(p => p!.Project)
                     .ThenInclude(p => p!.Coop)
@@ -284,7 +299,12 @@ namespace ProjectTracking.Controllers
                     var phase = a.Phase!;
                     var project = phase.Project;
                     var bucketDate = AssignPhaseBucketDate(a, phase);
-                    var statusMeta = PhaseStatusMeta(phase.PhaseStatus);
+                    var phaseStatusCode = phase.StatusDefinition?.StatusCode ?? Norm(phase.PhaseStatus);
+                    var assignStatusCode = a.StatusDefinition?.StatusCode ?? Norm(a.WorkStatus);
+                    var phaseDefinition = phaseStatusDefinitions.FirstOrDefault(x =>
+                        string.Equals(x.StatusCode, phaseStatusCode, StringComparison.OrdinalIgnoreCase));
+                    var assignDefinition = assignStatusDefinitions.FirstOrDefault(x =>
+                        string.Equals(x.StatusCode, assignStatusCode, StringComparison.OrdinalIgnoreCase));
                     var month = bucketDate?.Month ?? 0;
 
                     return new TaskProgressReportRowViewModel
@@ -299,12 +319,18 @@ namespace ProjectTracking.Controllers
                         PhaseName = phase.PhaseName,
                         PhasePeriodLabel = phase.PhasePeriodLabel,
                         Role = string.IsNullOrWhiteSpace(a.Role) ? "-" : a.Role!,
-                        StatusCategory = statusMeta.Category,
-                        StatusText = statusMeta.Text,
-                        StatusTone = statusMeta.Tone,
-                        AssignStatus = Norm(a.WorkStatus),
-                        AssignStatusText = AssignStatusText(a.WorkStatus),
-                        AssignStatusTone = AssignStatusTone(a.WorkStatus),
+                        PhaseStatusCode = phaseStatusCode,
+                        StatusText = phase.StatusDefinition?.StatusDesc
+                            ?? WorkflowStatusPresentation.Description(phaseStatusDefinitions, phase.PhaseStatus),
+                        StatusTone = phaseDefinition == null
+                            ? "muted"
+                            : WorkflowStatusPresentation.Tone(phaseDefinition, phaseStatusDefinitions.IndexOf(phaseDefinition)),
+                        AssignStatus = assignStatusCode,
+                        AssignStatusText = a.StatusDefinition?.StatusDesc
+                            ?? WorkflowStatusPresentation.Description(assignStatusDefinitions, a.WorkStatus),
+                        AssignStatusTone = assignDefinition == null
+                            ? "muted"
+                            : WorkflowStatusPresentation.Tone(assignDefinition, assignStatusDefinitions.IndexOf(assignDefinition)),
                         PlanStart = a.PlanStart ?? phase.PlanStart,
                         PlanEnd = a.PlanEnd ?? phase.PlanEnd,
                         PeriodEnd = phase.PeriodEndDate,
@@ -320,7 +346,7 @@ namespace ProjectTracking.Controllers
                 .Where(r => !projectId.HasValue || r.ProjectId == projectId.Value)
                 .Where(r => !empId.HasValue || r.EmpId == empId.Value)
                 .Where(r => !baEmpId.HasValue || r.BaEmpIds.Contains(baEmpId.Value))
-                .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.StatusCategory == selectedStatus)
+                .Where(r => string.IsNullOrWhiteSpace(selectedStatus) || r.PhaseStatusCode == selectedStatus)
                 .Where(r => string.IsNullOrWhiteSpace(selectedAssignStatus) || r.AssignStatus == selectedAssignStatus)
                 .OrderBy(r => r.ProjectName)
                 .ThenBy(r => r.Month)
@@ -340,9 +366,16 @@ namespace ProjectTracking.Controllers
                 {
                     Month = month,
                     MonthName = new DateTime(selectedYear, month, 1).ToString("MMM", th),
-                    Completed = rows.Count(r => r.Month == month && r.StatusCategory == "DONE"),
-                    InProgress = rows.Count(r => r.Month == month && r.StatusCategory == "IN_PROGRESS"),
-                    Pending = rows.Count(r => r.Month == month && r.StatusCategory == "PENDING")
+                    Total = rows.Count(r => r.Month == month),
+                    StatusCounts = phaseStatusDefinitions.Select((definition, index) => new TaskProgressStatusCountViewModel
+                    {
+                        StatusCode = definition.StatusCode,
+                        StatusDesc = definition.StatusDesc,
+                        Tone = WorkflowStatusPresentation.Tone(definition, index),
+                        SortOrder = definition.SortOrder,
+                        Count = rows.Count(r => r.Month == month
+                            && string.Equals(r.PhaseStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase))
+                    }).ToList()
                 })
                 .ToList();
 
@@ -355,15 +388,7 @@ namespace ProjectTracking.Controllers
                 .OrderByDescending(x => x)
                 .ToList();
 
-            var assignStatusOptions = allRows
-                .Select(r => r.AssignStatus)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Append(selectedAssignStatus)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(x => AssignStatusSort(x))
-                .ThenBy(x => x)
-                .ToList();
+            var assignStatusOptions = assignStatusDefinitions.Select(x => x.StatusCode).ToList();
 
             var model = new TaskProgressReportViewModel
             {
@@ -382,14 +407,21 @@ namespace ProjectTracking.Controllers
                 EmployeeOptions = employees,
                 BaOptions = baOptions,
                 AssignStatusOptions = assignStatusOptions,
+                PhaseStatusDefinitions = phaseStatusDefinitions,
+                AssignStatusDefinitions = assignStatusDefinitions,
                 Summary = new TaskProgressSummaryViewModel
                 {
                     Total = rows.Count,
-                    Completed = rows.Count(r => r.StatusCategory == "DONE"),
-                    InProgress = rows.Count(r => r.StatusCategory == "IN_PROGRESS"),
-                    Pending = rows.Count(r => r.StatusCategory == "PENDING"),
                     Projects = rows.Select(r => r.ProjectId).Distinct().Count(),
-                    Employees = rows.Select(r => r.EmployeeName).Distinct().Count()
+                    Employees = rows.Select(r => r.EmployeeName).Distinct().Count(),
+                    StatusCounts = phaseStatusDefinitions.Select((definition, index) => new TaskProgressStatusCountViewModel
+                    {
+                        StatusCode = definition.StatusCode,
+                        StatusDesc = definition.StatusDesc,
+                        Tone = WorkflowStatusPresentation.Tone(definition, index),
+                        SortOrder = definition.SortOrder,
+                        Count = rows.Count(r => string.Equals(r.PhaseStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase))
+                    }).ToList()
                 },
                 Months = months,
                 Rows = rows
@@ -771,6 +803,12 @@ namespace ProjectTracking.Controllers
             DateTime? requestedEndDate)
         {
             var departmentOptions = await GetDepartmentOptionsAsync();
+            var assignStatusDefinitions = await _context.PhaseAssignStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.StatusId)
+                .Select(x => new StatusDefinitionOption { StatusId = x.StatusId, StatusCode = x.StatusCode, StatusDesc = x.StatusDesc, SortOrder = x.SortOrder })
+                .ToListAsync();
             var hasDepartmentQuery = HttpContext.Request.Query.ContainsKey("departmentId");
             var showAllDepartments = hasDepartmentQuery && requestedDepartmentId == 0;
             var departmentId = showAllDepartments
@@ -814,6 +852,7 @@ namespace ProjectTracking.Controllers
             var assignments = employeeIds.Count == 0
                 ? new List<PhaseAssign>()
                 : await _context.PhaseAssigns
+                    .Include(row => row.StatusDefinition)
                     .AsNoTracking()
                     .Where(row => employeeIds.Contains(row.EmpId))
                     .Where(row =>
@@ -896,14 +935,12 @@ namespace ProjectTracking.Controllers
                         PlanDays = planDays,
                         ActualDays = actualDays,
                         VarianceDays = actualDays > 0 && planDays > 0 ? actualDays - planDays : 0,
+                        WorkflowStatusCode = assign.StatusDefinition?.StatusCode ?? Norm(assign.WorkStatus),
                         StatusCode = statusCode,
-                        StatusText = statusCode switch
-                        {
-                            "DONE" => "เสร็จสิ้น",
-                            "OVERDUE" => "ล่าช้า",
-                            "PLANNED" => "วางแผน",
-                            _ => "กำลังดำเนินการ"
-                        },
+                        StatusText = overdue
+                            ? "ล่าช้า"
+                            : assign.StatusDefinition?.StatusDesc
+                                ?? WorkflowStatusPresentation.Description(assignStatusDefinitions, assign.WorkStatus),
                         StatusTone = statusCode switch
                         {
                             "DONE" => "success",
@@ -976,6 +1013,7 @@ namespace ProjectTracking.Controllers
                     EmpId = row.EmpId,
                     EmpName = row.EmpName
                 }).ToList(),
+                AssignStatusDefinitions = assignStatusDefinitions,
                 Summary = new WorkDurationSummaryViewModel
                 {
                     Total = tasks.Count,
@@ -1513,58 +1551,6 @@ namespace ProjectTracking.Controllers
                 ?? phase.PlanEnd
                 ?? phase.PeriodEndDate
                 ?? phase.CreatedAt;
-        }
-
-        private static (string Category, string Text, string Tone) PhaseStatusMeta(string? status)
-        {
-            var normalized = Norm(status);
-
-            if (IsPhaseDone(status))
-            {
-                return ("DONE", "ส่งงวดงานแล้ว", "success");
-            }
-
-            if (normalized is "กำลังดำเนินการ" or "IN_PROGRESS")
-            {
-                return ("IN_PROGRESS", "กำลังดำเนินการ", "info");
-            }
-
-            if (normalized is "วางแผน" or "PLAN" or "PENDING")
-            {
-                return ("PENDING", "วางแผน", "warning");
-            }
-
-            return ("OTHER", string.IsNullOrWhiteSpace(status) ? "-" : status.Trim(), "muted");
-        }
-
-        private static string AssignStatusText(string? status)
-        {
-            return Norm(status) switch
-            {
-                "DONE" => "เสร็จสิ้น",
-                "IN_PROGRESS" => "กำลังดำเนินการ",
-                _ => string.IsNullOrWhiteSpace(status) ? "-" : status.Trim()
-            };
-        }
-
-        private static string AssignStatusTone(string? status)
-        {
-            return Norm(status) switch
-            {
-                "DONE" => "success",
-                "IN_PROGRESS" => "info",
-                _ => "muted"
-            };
-        }
-
-        private static int AssignStatusSort(string? status)
-        {
-            return Norm(status) switch
-            {
-                "IN_PROGRESS" => 1,
-                "DONE" => 2,
-                _ => 99
-            };
         }
 
         private static bool IsIssueResolved(ProjectIssue issue)

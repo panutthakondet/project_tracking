@@ -31,6 +31,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseStatusReport.Index")]
         public async Task<IActionResult> Index(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
+            await LoadWorkflowStatusDescriptionsAsync();
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var allRows = await BuildPhaseOwnerStatusRowsAsync(departmentId);
 
@@ -102,6 +103,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseStatusReport.Print")]
         public async Task<IActionResult> Print(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
+            await LoadWorkflowStatusDescriptionsAsync();
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var result = (await BuildPhaseOwnerStatusRowsAsync(departmentId)).AsEnumerable();
 
@@ -131,6 +133,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("PhaseStatusReport.Print")]
         public async Task<IActionResult> PrintTable(string? empName, string? projectName, string? phaseStatus, int? departmentId)
         {
+            await LoadWorkflowStatusDescriptionsAsync();
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var result = (await BuildPhaseOwnerStatusRowsAsync(departmentId)).AsEnumerable();
 
@@ -714,6 +717,21 @@ namespace ProjectTracking.Controllers
                 return Math.Clamp(riskDays, 0, 30);
 
             return Math.Clamp(_configuration.GetValue<int?>("OVERDUE_NOTIFICATION_RISK_DAYS") ?? 7, 0, 30);
+        }
+
+        private async Task LoadWorkflowStatusDescriptionsAsync()
+        {
+            var descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var phaseStatuses = await _context.ProjectPhaseStatuses.AsNoTracking()
+                .Select(x => new { x.StatusCode, x.StatusDesc }).ToListAsync();
+            var assignStatuses = await _context.PhaseAssignStatuses.AsNoTracking()
+                .Select(x => new { x.StatusCode, x.StatusDesc }).ToListAsync();
+            foreach (var row in phaseStatuses.Concat(assignStatuses))
+            {
+                descriptions[row.StatusCode] = row.StatusDesc;
+                descriptions[row.StatusDesc] = row.StatusDesc;
+            }
+            ViewBag.WorkflowStatusDescriptions = descriptions;
         }
 
         private static int StatusRank(string? status)

@@ -46,36 +46,23 @@
 
     string StatusName(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "ส่งงวดงานแล้ว",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            "PENDING" => "วางแผน",
-            _ => "All Phase Statuses"
-        };
+        return string.IsNullOrWhiteSpace(status)
+            ? "All Phase Statuses"
+            : report.PhaseStatusDefinitions.FirstOrDefault(x =>
+                string.Equals(x.StatusCode, status, StringComparison.OrdinalIgnoreCase))?.StatusDesc ?? status.Trim();
     }
 
     string AssignStatusName(string? status)
     {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "เสร็จสิ้น",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            _ => string.IsNullOrWhiteSpace(status) ? "All Assign Statuses" : status.Trim()
-        };
+        return string.IsNullOrWhiteSpace(status)
+            ? "All Assign Statuses"
+            : report.AssignStatusDefinitions.FirstOrDefault(x =>
+                string.Equals(x.StatusCode, status, StringComparison.OrdinalIgnoreCase))?.StatusDesc ?? status.Trim();
     }
 
-    var statusOptions = new[]
-    {
-        new { Value = "", Text = "-- All Phase Statuses --" },
-        new { Value = "DONE", Text = "ส่งงวดงานแล้ว" },
-        new { Value = "IN_PROGRESS", Text = "กำลังดำเนินการ" },
-        new { Value = "PENDING", Text = "วางแผน" }
-    };
+    var statusOptions = report.PhaseStatusDefinitions;
 
-    var assignStatusOptions = report.AssignStatusOptions.Any()
-        ? report.AssignStatusOptions
-        : new List<string> { "IN_PROGRESS", "DONE" };
+    var assignStatusOptions = report.AssignStatusOptions;
 
     var coopOptions = report.ProjectOptions
         .Select(x => x.CoopName)
@@ -576,10 +563,11 @@
         <div class="field">
             <label for="status">Phase Status</label>
             <select id="status" name="status" data-placeholder="พิมพ์ค้นหา Phase Status..." onchange="this.form.submit()">
+                <option value="">-- All Phase Statuses --</option>
                 @foreach (var option in statusOptions)
                 {
-                    <option value="@option.Value" selected="@(report.Status == option.Value ? "selected" : null)">
-                        @option.Text
+                    <option value="@option.StatusCode" selected="@(string.Equals(report.Status, option.StatusCode, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">
+                        @option.StatusDesc
                     </option>
                 }
             </select>
@@ -605,21 +593,14 @@
             <strong>@report.Summary.Total</strong>
             <small>งานทั้งหมดตามเงื่อนไข</small>
         </article>
-        <article class="kpi success">
-            <span>Completed</span>
-            <strong>@report.Summary.Completed</strong>
-            <small>อิงสถานะส่งงวดงานแล้ว</small>
-        </article>
-        <article class="kpi info">
-            <span>In Progress</span>
-            <strong>@report.Summary.InProgress</strong>
-            <small>อิงสถานะกำลังดำเนินการ</small>
-        </article>
-        <article class="kpi warning">
-            <span>Pending</span>
-            <strong>@report.Summary.Pending</strong>
-            <small>อิงสถานะวางแผน</small>
-        </article>
+        @foreach (var statusCount in report.Summary.StatusCounts.OrderBy(x => x.SortOrder))
+        {
+            <article class="kpi @statusCount.Tone">
+                <span>@statusCount.StatusCode</span>
+                <strong>@statusCount.Count</strong>
+                <small>@statusCount.StatusDesc</small>
+            </article>
+        }
         <article class="kpi">
             <span>Projects</span>
             <strong>@report.Summary.Projects</strong>
@@ -635,19 +616,13 @@
     <section class="report-section">
         <h2>Monthly Summary</h2>
         <table class="monthly-table">
-            <colgroup>
-                <col class="col-month" />
-                <col class="col-count" />
-                <col class="col-count" />
-                <col class="col-count" />
-                <col class="col-count" />
-            </colgroup>
             <thead>
                 <tr>
                     <th>Month</th>
-                    <th>Completed</th>
-                    <th>In Progress</th>
-                    <th>Pending</th>
+                    @foreach (var definition in report.PhaseStatusDefinitions.OrderBy(x => x.SortOrder))
+                    {
+                        <th>@definition.StatusDesc</th>
+                    }
                     <th>Total</th>
                 </tr>
             </thead>
@@ -656,9 +631,11 @@
                 {
                     <tr>
                         <td class="text-center">@month.MonthName</td>
-                        <td class="text-center">@month.Completed</td>
-                        <td class="text-center">@month.InProgress</td>
-                        <td class="text-center">@month.Pending</td>
+                        @foreach (var definition in report.PhaseStatusDefinitions.OrderBy(x => x.SortOrder))
+                        {
+                            var statusCount = month.StatusCounts.FirstOrDefault(x => x.StatusCode == definition.StatusCode)?.Count ?? 0;
+                            <td class="text-center">@statusCount</td>
+                        }
                         <td class="text-center"><strong>@month.Total</strong></td>
                     </tr>
                 }

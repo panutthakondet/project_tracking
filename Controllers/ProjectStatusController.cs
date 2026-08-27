@@ -45,6 +45,7 @@ namespace ProjectTracking.Controllers
                     DepartmentId = p.DepartmentId,
                     PmEmpId = p.PmEmpId,
                     BaEmpId = p.BaEmpId,
+                    StatusId = p.StatusId,
                     Status = p.Status,
                     EndDate = p.EndDate
                 })
@@ -102,6 +103,20 @@ namespace ProjectTracking.Controllers
                 ? availableProjects.Where(x => x.ProjectId == selectedProjectId.Value).ToList()
                 : availableProjects;
             var selectedProjectIds = projects.Select(x => x.ProjectId).ToList();
+
+            var projectStatusDefinitions = await _context.ProjectStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.StatusId)
+                .Select(x => new StatusDefinitionOption
+                {
+                    StatusId = x.StatusId,
+                    StatusCode = x.StatusCode,
+                    StatusDesc = x.StatusDesc,
+                    SortOrder = x.SortOrder
+                })
+                .ToListAsync();
 
             var employees = await (
                 from employee in _context.Employees.AsNoTracking()
@@ -195,21 +210,19 @@ namespace ProjectTracking.Controllers
                 .ToDictionaryAsync(x => x.EmpId, x => x.Count);
 
             var totalProjects = projects.Count;
-            var doneProjects = projects.Count(p => IsProjectDone(p));
             var delayedProjects = projects.Count(p => IsProjectDelayed(p, today));
-            var inProgressProjects = projects.Count(p =>
-                !IsProjectDone(p)
-                && NormalizeProjectStatus(p.Status) == "IN_PROGRESS");
-            var planProjects = projects.Count(p =>
-                !IsProjectDone(p)
-                && NormalizeProjectStatus(p.Status) != "IN_PROGRESS");
 
-            var statusMetrics = new List<ProjectStatusMetric>
-            {
-                BuildStatusMetric("เสร็จสิ้น", doneProjects, totalProjects, "#19c979"),
-                BuildStatusMetric("กำลังดำเนินการ", inProgressProjects, totalProjects, "#ffb444"),
-                BuildStatusMetric("วางแผน", planProjects, totalProjects, "#33a1ff")
-            };
+            var statusMetrics = projectStatusDefinitions
+                .Select((definition, index) => BuildStatusMetric(
+                    definition,
+                    projects.Count(p => p.StatusId == definition.StatusId
+                        || (!p.StatusId.HasValue && string.Equals(
+                            NormalizeProjectStatus(p.Status),
+                            WorkflowStatusPresentation.Normalize(definition.StatusCode),
+                            StringComparison.OrdinalIgnoreCase))),
+                    totalProjects,
+                    WorkflowStatusPresentation.Color(definition, index)))
+                .ToList();
 
             var model = new ProjectStatusDetailViewModel
             {
@@ -228,9 +241,6 @@ namespace ProjectTracking.Controllers
                     })
                     .ToList(),
                 TotalProjects = totalProjects,
-                DoneProjects = doneProjects,
-                InProgressProjects = inProgressProjects,
-                PlanProjects = planProjects,
                 DelayedProjects = delayedProjects,
                 WeekRangeText = $"{weekStart.ToString("dd MMM", th)} - {weekEnd.ToString("dd MMM yyyy", th)}",
                 StatusMetrics = statusMetrics,
@@ -244,11 +254,13 @@ namespace ProjectTracking.Controllers
             return View(model);
         }
 
-        private static ProjectStatusMetric BuildStatusMetric(string label, int count, int total, string color)
+        private static ProjectStatusMetric BuildStatusMetric(StatusDefinitionOption definition, int count, int total, string color)
         {
             return new ProjectStatusMetric
             {
-                Label = label,
+                StatusCode = definition.StatusCode,
+                SortOrder = definition.SortOrder,
+                Label = definition.StatusDesc,
                 Count = count,
                 Percent = total <= 0 ? 0 : Math.Round(count * 100m / total, 1),
                 Color = color
@@ -670,12 +682,12 @@ namespace ProjectTracking.Controllers
 
         private static string NormalizeProjectStatus(string? status)
         {
-            var normalized = (status ?? "PLAN").Trim().ToUpperInvariant();
+            var normalized = (status ?? string.Empty).Trim().ToUpperInvariant();
             return normalized switch
             {
                 "DONE" or "COMPLETED" or "COMPLETE" or "FINISHED" or "เสร็จสิ้น" or "เสร็จแล้ว" => "DONE",
                 "IN_PROGRESS" or "IN PROGRESS" or "WIP" or "WORKING" or "กำลังดำเนินการ" or "กำลังทำ" => "IN_PROGRESS",
-                _ => "PLAN"
+                _ => normalized.Replace(" ", "_").Replace("-", "_")
             };
         }
 
@@ -756,7 +768,8 @@ namespace ProjectTracking.Controllers
             public List<int> PmEmpIds { get; set; } = new();
             public int? BaEmpId { get; set; }
             public List<int> BaEmpIds { get; set; } = new();
-            public string Status { get; set; } = "PLAN";
+            public int? StatusId { get; set; }
+            public string Status { get; set; } = "IN_PROGRESS";
             public DateTime? EndDate { get; set; }
         }
 

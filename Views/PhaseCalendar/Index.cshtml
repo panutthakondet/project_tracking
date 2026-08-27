@@ -730,22 +730,13 @@
             return div.innerHTML;
         }
 
-        function phaseStatusColor(status) {
-            if (status === 'วางแผน') return '#64748b';
-            if (status === 'กำลังดำเนินการ') return '#f59e0b';
-            if (status === 'ส่งงวดงานแล้ว') return '#22c55e';
-            if (status === 'อนุมัติแล้ว') return '#22c55e';
-            if (status === 'ตีกลับ') return '#ef4444';
-            return '#64748b';
+        function phaseStatusColor(status, props) {
+            return props?.statusColor || '#64748b';
         }
 
-        function phaseStatusClass(status) {
-            if (status === 'วางแผน') return 'status-plan';
-            if (status === 'กำลังดำเนินการ') return 'status-progress';
-            if (status === 'ส่งงวดงานแล้ว') return 'status-submitted';
-            if (status === 'อนุมัติแล้ว') return 'status-approved';
-            if (status === 'ตีกลับ') return 'status-rejected';
-            return 'status-plan';
+        function phaseStatusClass(status, props) {
+            const code = String(props?.phaseStatusCode || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
+            return code ? `status-${code}` : 'status-dynamic';
         }
 
         if (calendarThaiDateEl) {
@@ -789,12 +780,7 @@
                     const response = await fetch('/PhaseCalendar/List');
                     const data = await response.json();
 
-                    const filtered = data.filter(x =>
-                        ['วางแผน', 'กำลังดำเนินการ', 'ตีกลับ']
-                            .includes(x.extendedProps?.phaseStatus)
-                    );
-
-                    successCallback(filtered);
+                    successCallback(data);
                 } catch (err) {
                     failureCallback(err);
                 }
@@ -802,7 +788,7 @@
 
             eventContent: function (arg) {
                 const props = arg.event.extendedProps;
-                const statusColor = phaseStatusColor(props.phaseStatus);
+                const statusColor = phaseStatusColor(props.phaseStatus, props);
 
                 return {
                     html: `
@@ -827,7 +813,7 @@
             },
 
             eventClassNames: function (arg) {
-                return [phaseStatusClass(arg.event.extendedProps?.phaseStatus)];
+                return [phaseStatusClass(arg.event.extendedProps?.phaseStatus, arg.event.extendedProps)];
             },
 
             eventClick: function(info) {
@@ -914,10 +900,6 @@
         container.innerHTML = '';
 
         data
-        .filter(item =>
-            ['วางแผน', 'กำลังดำเนินการ', 'ตีกลับ']
-                .includes(item.extendedProps?.phaseStatus)
-        )
         .sort((a, b) => {
             const dateA = a.extendedProps?.planEnd
                 ? new Date(a.extendedProps.planEnd)
@@ -931,23 +913,13 @@
         })
         .forEach(item => {
 
-            const statusColor =
-                item.extendedProps.phaseStatus === 'วางแผน' ? '#94a3b8' :
-                item.extendedProps.phaseStatus === 'กำลังดำเนินการ' ? '#f59e0b' :
-                item.extendedProps.phaseStatus === 'ส่งงวดงานแล้ว' ? '#22c55e' :
-                item.extendedProps.phaseStatus === 'อนุมัติแล้ว' ? '#22c55e' :
-                item.extendedProps.phaseStatus === 'ตีกลับ' ? '#ef4444' : '#64748b';
-            const statusClass =
-                item.extendedProps.phaseStatus === 'วางแผน' ? 'status-plan' :
-                item.extendedProps.phaseStatus === 'กำลังดำเนินการ' ? 'status-progress' :
-                item.extendedProps.phaseStatus === 'ส่งงวดงานแล้ว' ? 'status-submitted' :
-                item.extendedProps.phaseStatus === 'อนุมัติแล้ว' ? 'status-approved' :
-                item.extendedProps.phaseStatus === 'ตีกลับ' ? 'status-rejected' : 'status-plan';
+            const statusColor = phaseStatusColor(item.extendedProps.phaseStatus, item.extendedProps);
+            const statusClass = phaseStatusClass(item.extendedProps.phaseStatus, item.extendedProps);
             const projectId = item.extendedProps.projectId;
             const href = projectId ? `/ProjectPhases?projectId=${projectId}` : '/ProjectPhases';
 
             container.innerHTML += `
-                <a class="phase-card ${statusClass}" href="${href}">
+                <a class="phase-card ${statusClass}" style="--phase-card-border:${statusColor}" href="${href}">
 
                     <div class="phase-title">
                         ${escapePhaseHtml(item.extendedProps.projectName)}

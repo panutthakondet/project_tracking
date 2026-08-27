@@ -77,6 +77,27 @@ namespace ProjectTracking.Controllers
                     .Where(e => employeeIds.Contains(e.EmpId))
                     .ToDictionaryAsync(e => e.EmpId, e => e.EmpName ?? $"Emp #{e.EmpId}");
 
+            var statusDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            void AddDescriptions(string type, IEnumerable<(string Code, string Desc)> rows)
+            {
+                foreach (var row in rows)
+                {
+                    statusDescriptions[$"{type}:{row.Code}"] = row.Desc;
+                    statusDescriptions[$"{type}:{row.Desc}"] = row.Desc;
+                }
+            }
+
+            var projectStatuses = await _context.ProjectStatuses.AsNoTracking()
+                .Select(x => new { x.StatusCode, x.StatusDesc }).ToListAsync();
+            var phaseStatuses = await _context.ProjectPhaseStatuses.AsNoTracking()
+                .Select(x => new { x.StatusCode, x.StatusDesc }).ToListAsync();
+            var assignStatuses = await _context.PhaseAssignStatuses.AsNoTracking()
+                .Select(x => new { x.StatusCode, x.StatusDesc }).ToListAsync();
+            AddDescriptions("PROJECT", projectStatuses.Select(x => (x.StatusCode, x.StatusDesc)));
+            AddDescriptions("PROJECT_PHASE", phaseStatuses.Select(x => (x.StatusCode, x.StatusDesc)));
+            AddDescriptions("PHASE_ASSIGN", assignStatuses.Select(x => (x.StatusCode, x.StatusDesc)));
+            ViewBag.WorkflowStatusDescriptions = statusDescriptions;
+
             return View(requests);
         }
 

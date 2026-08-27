@@ -21,16 +21,6 @@
         return $"{FormatDate(start)} - {FormatDate(end)}";
     }
 
-    string WorkStatusText(string? status)
-    {
-        return (status ?? "").Trim().ToUpperInvariant() switch
-        {
-            "DONE" => "เสร็จสิ้น",
-            "IN_PROGRESS" => "กำลังดำเนินการ",
-            _ => string.IsNullOrWhiteSpace(status) ? "-" : status
-        };
-    }
-
     string WorkStatusClass(string? status)
     {
         return (status ?? "").Trim().ToUpperInvariant() switch
@@ -287,7 +277,7 @@
                             <td>
                                 <strong>@(row.Employee?.EmpName ?? "-")</strong><br />
                                 <span class="@WorkStatusClass(row.WorkStatus)">
-                                    @WorkStatusText(row.WorkStatus)
+                                    @row.StatusDescription
                                 </span>
                             </td>
                             <td class="text-center">@PhasePeriod(row)</td>

@@ -107,6 +107,7 @@ namespace ProjectTracking.ViewModels
 
     public class HomeDashboardMetric
     {
+        public string StatusCode { get; set; } = "";
         public string Label { get; set; } = "";
         public int Count { get; set; }
         public decimal Percent { get; set; }

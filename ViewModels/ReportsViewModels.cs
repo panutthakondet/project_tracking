@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ProjectTracking.Models;
 
 namespace ProjectTracking.ViewModels
 {
@@ -114,6 +115,8 @@ namespace ProjectTracking.ViewModels
         public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
         public List<EmployeeReportOptionViewModel> BaOptions { get; set; } = new();
         public List<string> AssignStatusOptions { get; set; } = new();
+        public List<StatusDefinitionOption> PhaseStatusDefinitions { get; set; } = new();
+        public List<StatusDefinitionOption> AssignStatusDefinitions { get; set; } = new();
         public TaskProgressSummaryViewModel Summary { get; set; } = new();
         public List<TaskProgressMonthViewModel> Months { get; set; } = new();
         public List<TaskProgressReportRowViewModel> Rows { get; set; } = new();
@@ -122,21 +125,26 @@ namespace ProjectTracking.ViewModels
     public class TaskProgressSummaryViewModel
     {
         public int Total { get; set; }
-        public int Completed { get; set; }
-        public int InProgress { get; set; }
-        public int Pending { get; set; }
         public int Projects { get; set; }
         public int Employees { get; set; }
+        public List<TaskProgressStatusCountViewModel> StatusCounts { get; set; } = new();
     }
 
     public class TaskProgressMonthViewModel
     {
         public int Month { get; set; }
         public string MonthName { get; set; } = "";
-        public int Completed { get; set; }
-        public int InProgress { get; set; }
-        public int Pending { get; set; }
-        public int Total => Completed + InProgress + Pending;
+        public int Total { get; set; }
+        public List<TaskProgressStatusCountViewModel> StatusCounts { get; set; } = new();
+    }
+
+    public class TaskProgressStatusCountViewModel
+    {
+        public string StatusCode { get; set; } = "";
+        public string StatusDesc { get; set; } = "";
+        public string Tone { get; set; } = "muted";
+        public int SortOrder { get; set; }
+        public int Count { get; set; }
     }
 
     public class TaskProgressReportRowViewModel
@@ -152,7 +160,7 @@ namespace ProjectTracking.ViewModels
         public string PhaseName { get; set; } = "";
         public string PhasePeriodLabel { get; set; } = "";
         public string Role { get; set; } = "";
-        public string StatusCategory { get; set; } = "";
+        public string PhaseStatusCode { get; set; } = "";
         public string StatusText { get; set; } = "";
         public string StatusTone { get; set; } = "";
         public string AssignStatus { get; set; } = "";
@@ -257,6 +265,7 @@ namespace ProjectTracking.ViewModels
         public string GeneratedBy { get; set; } = "";
         public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
         public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public List<StatusDefinitionOption> AssignStatusDefinitions { get; set; } = new();
         public WorkDurationSummaryViewModel Summary { get; set; } = new();
         public List<WorkDurationEmployeeViewModel> Employees { get; set; } = new();
         public List<WorkDurationTaskViewModel> Tasks { get; set; } = new();
@@ -309,6 +318,7 @@ namespace ProjectTracking.ViewModels
         public int PlanDays { get; set; }
         public int ActualDays { get; set; }
         public int VarianceDays { get; set; }
+        public string WorkflowStatusCode { get; set; } = "";
         public string StatusCode { get; set; } = "";
         public string StatusText { get; set; } = "";
         public string StatusTone { get; set; } = "";

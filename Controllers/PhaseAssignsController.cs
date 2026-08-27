@@ -655,6 +655,7 @@ namespace ProjectTracking.Controllers
         {
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role, departmentId);
+            ViewBag.PhaseAssignStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.PhaseAssign);
             return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole, departmentId));
         }
 
@@ -664,6 +665,7 @@ namespace ProjectTracking.Controllers
         {
             departmentId = await ReportDepartmentSupport.LoadAsync(this, _context, departmentId);
             var selectedRole = await LoadPrintReportFiltersAsync(projectId, empId, role, departmentId);
+            ViewBag.PhaseAssignStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.PhaseAssign);
             ViewBag.PrintDate = DateTime.Now;
             return View(await BuildPrintReportRowsAsync(projectId, empId, selectedRole, departmentId));
         }
@@ -853,33 +855,15 @@ namespace ProjectTracking.Controllers
 
         private async Task<List<PhaseAssign>> BuildPrintReportRowsAsync(int? projectId, int? empId, string? role, int? departmentId)
         {
-            var query =
-                from a in _context.PhaseAssigns.AsNoTracking()
-                join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
-                join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
-                join project in _context.Projects.AsNoTracking() on ph.ProjectId equals project.ProjectId
-                where !departmentId.HasValue || project.DepartmentId == departmentId.Value
-                select new PhaseAssign
-                {
-                    AssignId = a.AssignId,
-                    PhaseId = a.PhaseId,
-                    PhaseOrder = a.PhaseOrder,
-                    PhaseSort = a.PhaseSort,
-                    EmpId = a.EmpId,
-                    Role = a.Role,
-                    PlanStart = a.PlanStart,
-                    PlanEnd = a.PlanEnd,
-                    WorkStatus = a.WorkStatus,
-                    Remark = a.Remark,
-
-                    Phase = ph,
-                    Employee = e,
-
-                    Logs = _context.PhaseAssignLogs
-                        .Where(l => l.AssignId == a.AssignId)
-                        .OrderBy(l => l.RoundNo)
-                        .ToList()
-                };
+            var query = _context.PhaseAssigns
+                .AsNoTracking()
+                .Include(a => a.StatusDefinition)
+                .Include(a => a.Employee)
+                .Include(a => a.Phase)
+                    .ThenInclude(ph => ph!.Project)
+                .Include(a => a.Logs)
+                .Where(a => !departmentId.HasValue
+                    || (a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value));
 
             if (projectId.HasValue)
                 query = query.Where(x => x.Phase != null && x.Phase.ProjectId == projectId.Value);

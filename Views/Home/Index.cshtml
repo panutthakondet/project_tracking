@@ -483,7 +483,7 @@
                         <div class="metric-list">
                             @foreach (var metric in dashboard.ProjectStatusMetrics)
                             {
-                                <span data-project-status-metric="@metric.Label"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
+                                <span data-project-status-metric="@metric.StatusCode" data-project-status-color="@metric.HexColor"><i class="dot @metric.Color"></i><span class="metric-name">@metric.Label</span><b>@metric.CountPercentText</b></span>
                             }
                         </div>
                         <small class="project-status-updated">ⓘ ข้อมูลอัปเดตล่าสุด @DateTime.Now.ToString("dd MMM yyyy เวลา HH:mm น.", new CultureInfo("th-TH"))</small>
@@ -8130,35 +8130,45 @@ html body main .dashboard-view :is(.overview-detail-btn, .dashboard-action-link)
         const emptyMessage = document.querySelector('.project-overview-empty');
         const donut = document.querySelector('[data-project-status-donut]');
         const totalElement = document.querySelector('[data-project-status-total]');
+        const statusKey = value => String(value ?? '').trim().toUpperCase();
         const metricElements = new Map(
             Array.from(document.querySelectorAll('[data-project-status-metric]'))
-                .map(element => [element.dataset.projectStatusMetric, element.querySelector('b')])
+                .map(element => [statusKey(element.dataset.projectStatusMetric), {
+                    value: element.querySelector('b'),
+                    color: element.dataset.projectStatusColor || '#64748b'
+                }])
         );
         const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
         const updateStatusSummary = matchingDepartmentRows => {
             const total = matchingDepartmentRows.length;
-            const counts = {
-                'Completed': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'DONE').length,
-                'In Progress': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'IN_PROGRESS').length,
-                'Pending': matchingDepartmentRows.filter(row => row.dataset.projectStatus === 'PLAN').length
-            };
+            const counts = new Map(Array.from(metricElements.keys()).map(code => [code, 0]));
+            matchingDepartmentRows.forEach(row => {
+                const code = statusKey(row.dataset.projectStatus);
+                counts.set(code, (counts.get(code) || 0) + 1);
+            });
 
             if (totalElement) totalElement.textContent = String(total);
 
-            Object.entries(counts).forEach(([label, count]) => {
+            counts.forEach((count, code) => {
                 const percent = total === 0 ? 0 : (count * 100 / total);
-                const valueElement = metricElements.get(label);
-                if (valueElement) valueElement.textContent = `${count} (${percent.toLocaleString('th-TH', { maximumFractionDigits: 1 })}%)`;
+                const metric = metricElements.get(code);
+                if (metric?.value) metric.value.textContent = `${count} (${percent.toLocaleString('th-TH', { maximumFractionDigits: 1 })}%)`;
             });
 
             if (donut) {
-                const completedEnd = total === 0 ? 0 : counts['Completed'] * 100 / total;
-                const progressEnd = total === 0 ? 0 : completedEnd + counts['In Progress'] * 100 / total;
-                const pendingEnd = total === 0 ? 0 : progressEnd + counts.Pending * 100 / total;
-                donut.style.setProperty('--donut', total === 0
+                let cursor = 0;
+                const slices = [];
+                counts.forEach((count, code) => {
+                    if (count <= 0) return;
+                    const next = cursor + (count * 100 / total);
+                    const color = metricElements.get(code)?.color || '#64748b';
+                    slices.push(`${color} ${cursor}% ${next}%`);
+                    cursor = next;
+                });
+                donut.style.setProperty('--donut', total === 0 || slices.length === 0
                     ? 'conic-gradient(#263450 0 100%)'
-                    : `conic-gradient(#10d58f 0 ${completedEnd}%, #1688f5 ${completedEnd}% ${progressEnd}%, #fb9a13 ${progressEnd}% ${pendingEnd}%, #263450 ${pendingEnd}% 100%)`);
+                    : `conic-gradient(${slices.join(', ')})`);
             }
         };
 

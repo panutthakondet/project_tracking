@@ -39,11 +39,11 @@
         .ThenBy(p => (p.PhaseSort == 0 ? int.MaxValue : p.PhaseSort))
         .ThenBy(p => p.PhaseId);
 
-    string PhaseStatusClass(string? status) => (status ?? "").Trim() switch
+    string PhaseStatusClass(ProjectTracking.Models.ProjectPhase phase) =>
+        (phase.StatusDefinition?.StatusCode ?? phase.PhaseStatus ?? "").Trim().ToUpperInvariant() switch
     {
-        "วางแผน" => "bg-secondary",
-        "กำลังดำเนินการ" => "bg-primary",
-        "ส่งงวดงานแล้ว" => "bg-success",
+        "IN_PROGRESS" => "bg-primary",
+        "DONE" or "SUBMITTED" or "COMPLETED" => "bg-success",
         _ => "bg-light text-dark"
     };
 
@@ -1066,17 +1066,7 @@
                         </td>
 
                         <td class="text-center">
-                        @{
-                            var status = phase.PhaseStatus ?? "";
-                            string badgeClass = status switch
-                            {
-                                "วางแผน" => "bg-secondary",
-                                "กำลังดำเนินการ" => "bg-primary",
-                                "ส่งงวดงานแล้ว" => "bg-success",
-                                _ => "bg-light text-dark"
-                            };
-                        }
-                        <span class="badge @badgeClass px-3 py-2">@phase.StatusDescription</span>
+                        <span class="badge @PhaseStatusClass(phase) px-3 py-2">@phase.StatusDescription</span>
                         </td>
 
                         <td class="text-center">
@@ -1163,7 +1153,6 @@ else
         var displayNo = rowCard;
         rowCard++;
 
-        var status = phase.PhaseStatus ?? "";
         var hasPendingApproval = pendingPhaseApprovalIds.Contains(phase.PhaseId);
         var phaseAssigns = phaseAssignsByPhaseId.TryGetValue(phase.PhaseId, out var assignedRows)
             ? assignedRows
@@ -1215,7 +1204,7 @@ else
                     </div>
                     <div class="phase-status-row">
                         <small>สถานะงาน</small>
-                        <span class="badge @PhaseStatusClass(status)">@phase.StatusDescription</span>
+                        <span class="badge @PhaseStatusClass(phase)">@phase.StatusDescription</span>
                         @if (hasPendingApproval)
                         {
                             <span class="badge bg-warning text-dark phase-approval-pending-badge">
