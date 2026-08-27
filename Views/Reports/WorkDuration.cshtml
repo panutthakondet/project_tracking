@@ -6,9 +6,31 @@
     var report = Model ?? new ProjectTracking.ViewModels.WorkDurationReportViewModel();
     var th = new CultureInfo("th-TH");
     var rangeDays = Math.Max(1, (report.EndDate.Date - report.StartDate.Date).Days + 1);
-    var weekCount = Math.Max(1, (int)Math.Ceiling(rangeDays / 7d));
-    var timelineAxisWidth = Math.Max(700, weekCount * 64);
-    var weekWidthPercent = Math.Min(100m, 700m / rangeDays);
+    var timelineMonths = new List<(DateTime Start, DateTime End, decimal Width)>();
+    var timelineWeeks = new List<(DateTime Start, DateTime End, int Number, decimal Width)>();
+    var monthCursor = report.StartDate.Date;
+    while (monthCursor <= report.EndDate.Date)
+    {
+        var calendarMonthEnd = new DateTime(monthCursor.Year, monthCursor.Month, DateTime.DaysInMonth(monthCursor.Year, monthCursor.Month));
+        var monthEnd = calendarMonthEnd > report.EndDate.Date ? report.EndDate.Date : calendarMonthEnd;
+        var monthDays = (monthEnd - monthCursor).Days + 1;
+        timelineMonths.Add((monthCursor, monthEnd, monthDays * 100m / rangeDays));
+        monthCursor = monthEnd.AddDays(1);
+    }
+
+    var weekCursor = report.StartDate.Date;
+    while (weekCursor <= report.EndDate.Date)
+    {
+        var weekNumber = ((weekCursor.Day - 1) / 7) + 1;
+        var calendarWeekEndDay = Math.Min(weekNumber * 7, DateTime.DaysInMonth(weekCursor.Year, weekCursor.Month));
+        var calendarWeekEnd = new DateTime(weekCursor.Year, weekCursor.Month, calendarWeekEndDay);
+        var weekEnd = calendarWeekEnd > report.EndDate.Date ? report.EndDate.Date : calendarWeekEnd;
+        var weekDays = (weekEnd - weekCursor).Days + 1;
+        timelineWeeks.Add((weekCursor, weekEnd, weekNumber, weekDays * 100m / rangeDays));
+        weekCursor = weekEnd.AddDays(1);
+    }
+
+    var timelineAxisWidth = Math.Max(700, timelineWeeks.Count * 64);
     var maxEmployeeDays = Math.Max(1, report.Employees.Select(row => Math.Max(row.PlanDays, row.ActualDays)).DefaultIfEmpty(1).Max());
 
     string DateText(DateTime? value) => value?.ToString("dd MMM yy", th) ?? "-";
@@ -209,10 +231,12 @@
             display: grid;
             grid-template-columns: 290px minmax(var(--timeline-axis-width), 1fr);
         }
-        .timeline-head { min-height: 48px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 1px solid var(--wd-border); }
+        .timeline-head { min-height: 68px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 1px solid var(--wd-border); }
         .timeline-head > div:first-child { display: flex; align-items: center; padding: 0 12px; font-weight: 700; }
-        .timeline-axis { position: relative; display: flex; border-left: 1px solid var(--wd-border); }
-        .timeline-axis span {
+        .timeline-axis { position: relative; display: grid; grid-template-rows: 30px 38px; border-left: 1px solid var(--wd-border); }
+        .timeline-months, .timeline-weeks { min-width: 0; display: flex; }
+        .timeline-months { border-bottom: 1px solid var(--wd-border); }
+        .timeline-months span, .timeline-weeks span {
             min-width: 0;
             flex: 0 0 var(--cell-width);
             display: flex;
@@ -225,8 +249,10 @@
             text-align: center;
             white-space: nowrap;
         }
-        .timeline-axis strong { color: var(--wd-ink); font-size: 9px; line-height: 1; }
-        .timeline-axis small { color: var(--wd-muted); font-size: 7px; font-weight: 500; line-height: 1.15; }
+        .timeline-months span { padding: 3px 4px; background: color-mix(in srgb, var(--wd-accent) 8%, var(--wd-soft)); }
+        .timeline-months strong { color: var(--wd-ink); font-size: 10px; line-height: 1; }
+        .timeline-weeks strong { color: var(--wd-ink); font-size: 9px; line-height: 1; }
+        .timeline-weeks small { color: var(--wd-muted); font-size: 7px; font-weight: 500; line-height: 1.15; }
         .timeline-row { min-height: 58px; border-bottom: 1px solid var(--wd-border); }
         .timeline-row:last-child { border-bottom: 0; }
         .timeline-label { min-width: 0; padding: 9px 12px; }
@@ -237,12 +263,22 @@
             position: relative;
             min-width: 0;
             border-left: 1px solid var(--wd-border);
-            background-image: linear-gradient(90deg, transparent calc(100% - 1px), var(--wd-border) 0);
-            background-repeat: repeat-x;
-            background-size: var(--week-width) 100%;
-            background-position: left top;
         }
-        .timeline-bar { position: absolute; left: var(--left); width: var(--width); min-width: 3px; }
+        .timeline-week-cells {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            display: flex;
+            pointer-events: none;
+        }
+        .timeline-week-cells span {
+            min-width: 0;
+            flex: 0 0 var(--cell-width);
+            border-right: 1px solid var(--wd-border);
+            background: color-mix(in srgb, var(--wd-soft) 38%, transparent);
+        }
+        .timeline-week-cells span:nth-child(even) { background: color-mix(in srgb, var(--wd-accent) 4%, transparent); }
+        .timeline-bar { position: absolute; z-index: 1; left: var(--left); width: var(--width); min-width: 3px; }
         .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-blue); background: color-mix(in srgb, var(--wd-blue) 12%, transparent); }
         .timeline-bar.actual { top: 32px; height: 12px; background: var(--bar); }
         .table-wrap { overflow-x: auto; border: 1px solid var(--wd-border); }
@@ -421,21 +457,27 @@
             }
             else
             {
-                <div class="timeline" style="--timeline-axis-width:@(timelineAxisWidth)px; --week-width:@weekWidthPercent.ToString("0.######", CultureInfo.InvariantCulture)%">
+                <div class="timeline" style="--timeline-axis-width:@(timelineAxisWidth)px">
                     <div class="timeline-head">
                         <div>งาน / ผู้รับผิดชอบ</div>
                         <div class="timeline-axis">
-                            @for (var week = 0; week < weekCount; week++)
-                            {
-                                var weekStart = report.StartDate.AddDays(week * 7).Date;
-                                var weekEnd = weekStart.AddDays(6) > report.EndDate.Date ? report.EndDate.Date : weekStart.AddDays(6);
-                                var weekDays = (weekEnd - weekStart).Days + 1;
-                                var cellWidth = weekDays * 100m / rangeDays;
-                                <span style="--cell-width:@cellWidth.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(weekStart) – @DateText(weekEnd)">
-                                    <strong>W@((week + 1).ToString("00"))</strong>
-                                    <small>@weekStart.ToString("dd/MM", th)–@weekEnd.ToString("dd/MM", th)</small>
-                                </span>
-                            }
+                            <div class="timeline-months">
+                                @foreach (var month in timelineMonths)
+                                {
+                                    <span style="--cell-width:@month.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(month.Start) – @DateText(month.End)">
+                                        <strong>@month.Start.ToString("MMM yy", th)</strong>
+                                    </span>
+                                }
+                            </div>
+                            <div class="timeline-weeks">
+                                @foreach (var week in timelineWeeks)
+                                {
+                                    <span style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(week.Start) – @DateText(week.End)">
+                                        <strong>W@week.Number</strong>
+                                        <small>@week.Start.ToString("dd/MM", th)–@week.End.ToString("dd/MM", th)</small>
+                                    </span>
+                                }
+                            </div>
                         </div>
                     </div>
                     @foreach (var task in report.Tasks)
@@ -447,6 +489,12 @@
                         <div class="timeline-row">
                             <div class="timeline-label"><strong>@task.WorkName</strong><span>@task.EmployeeName · @task.ProjectName</span></div>
                             <div class="timeline-track">
+                                <div class="timeline-week-cells" aria-hidden="true">
+                                    @foreach (var week in timelineWeeks)
+                                    {
+                                        <span style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%"></span>
+                                    }
+                                </div>
                                 @if (plan.Width > 0)
                                 {
                                     <span class="timeline-bar plan" style="--left:@plan.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@plan.Width.ToString("0.###", CultureInfo.InvariantCulture)%"></span>
