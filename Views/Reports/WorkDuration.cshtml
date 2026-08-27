@@ -33,7 +33,7 @@
         .GroupBy(month => month.Start.Year)
         .Select(group => (Year: group.Key, Width: group.Count() * 400m / timelineColumnCount))
         .ToList();
-    var timelineAxisWidth = Math.Max(700, timelineWeeks.Count * 64);
+    var timelineAxisWidth = Math.Max(480, timelineWeeks.Count * 32);
     var maxEmployeeDays = Math.Max(1, report.Employees.Select(row => Math.Max(row.PlanDays, row.ActualDays)).DefaultIfEmpty(1).Max());
 
     string DateText(DateTime? value) => value?.ToString("dd MMM yy", th) ?? "-";
