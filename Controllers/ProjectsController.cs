@@ -287,7 +287,7 @@ namespace ProjectTracking.Controllers
         {
             var model = new Project
             {
-                StatusId = await _workflowStatusService.ResolveIdAsync(WorkflowStatusTypes.Project, "PLAN")
+                StatusId = await _workflowStatusService.ResolveIdAsync(WorkflowStatusTypes.Project, "IN_PROGRESS")
             };
             await LoadProjectFormLookupsAsync(selectedStatusId: model.StatusId);
 

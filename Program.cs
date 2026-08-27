@@ -2993,17 +2993,14 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
         }
 
         await SeedStatusesAsync("project_status", @"
-            ('PLAN', 'วางแผน', 10, 1),
-            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-            ('DONE', 'เสร็จสิ้น', 30, 1)");
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+            ('DONE', 'เสร็จสิ้น', 20, 1)");
         await SeedStatusesAsync("project_phase_status", @"
-            ('PLAN', 'วางแผน', 10, 1),
-            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-            ('SUBMITTED', 'ส่งงวดงานแล้ว', 30, 1)");
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+            ('SUBMITTED', 'ส่งงวดงานแล้ว', 20, 1)");
         await SeedStatusesAsync("phase_assign_status", @"
-            ('PLAN', 'วางแผน', 10, 1),
-            ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-            ('DONE', 'เสร็จสิ้น', 30, 1)");
+            ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+            ('DONE', 'เสร็จสิ้น', 20, 1)");
 
         async Task<bool> TableExistsAsync(string tableName)
         {
@@ -3062,18 +3059,110 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
         await EnsureStatusColumnAsync(
             "project",
             "status",
-            "ALTER TABLE `project` MODIFY COLUMN `status` varchar(100) NOT NULL DEFAULT 'PLAN';",
+            "ALTER TABLE `project` MODIFY COLUMN `status` varchar(100) NOT NULL DEFAULT 'IN_PROGRESS';",
             "ALTER TABLE `project` ADD COLUMN `status_id` int NULL AFTER `status`;");
         await EnsureStatusColumnAsync(
             "project_phase",
             "phase_status",
-            "ALTER TABLE `project_phase` MODIFY COLUMN `phase_status` varchar(100) NULL DEFAULT 'วางแผน';",
+            "ALTER TABLE `project_phase` MODIFY COLUMN `phase_status` varchar(100) NULL DEFAULT 'กำลังดำเนินการ';",
             "ALTER TABLE `project_phase` ADD COLUMN `status_id` int NULL AFTER `phase_status`;");
         await EnsureStatusColumnAsync(
             "phase_assign",
             "work_status",
             "ALTER TABLE `phase_assign` MODIFY COLUMN `work_status` varchar(100) NULL;",
             "ALTER TABLE `phase_assign` ADD COLUMN `status_id` int NULL AFTER `work_status`;");
+
+        async Task EnsureLegacyDefaultAsync(
+            string tableName,
+            string columnName,
+            string expectedDefault,
+            string alterSql)
+        {
+            if (!await TableExistsAsync(tableName) || !await ColumnExistsAsync(tableName, columnName)) return;
+
+            command.CommandText = $@"
+                SELECT COLUMN_DEFAULT
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '{tableName}'
+                  AND COLUMN_NAME = '{columnName}'
+                LIMIT 1;";
+            var currentDefault = (await command.ExecuteScalarAsync())?.ToString() ?? string.Empty;
+            if (string.Equals(currentDefault, expectedDefault, StringComparison.OrdinalIgnoreCase)) return;
+
+            command.CommandText = alterSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureLegacyDefaultAsync(
+            "project",
+            "status",
+            "IN_PROGRESS",
+            "ALTER TABLE `project` ALTER COLUMN `status` SET DEFAULT 'IN_PROGRESS';");
+        await EnsureLegacyDefaultAsync(
+            "project_phase",
+            "phase_status",
+            "กำลังดำเนินการ",
+            "ALTER TABLE `project_phase` ALTER COLUMN `phase_status` SET DEFAULT 'กำลังดำเนินการ';");
+        await EnsureLegacyDefaultAsync(
+            "phase_assign",
+            "work_status",
+            "IN_PROGRESS",
+            "ALTER TABLE `phase_assign` ALTER COLUMN `work_status` SET DEFAULT 'IN_PROGRESS';");
+
+        async Task RemovePlanningStatusAsync(
+            string tableName,
+            string legacyColumn,
+            string masterTable,
+            bool keepThaiDescriptionInLegacyColumn)
+        {
+            if (!await TableExistsAsync(tableName)) return;
+
+            command.CommandText = $@"
+                UPDATE `{tableName}` target
+                INNER JOIN `{masterTable}` in_progress
+                    ON in_progress.`status_code` = 'IN_PROGRESS'
+                LEFT JOIN `{masterTable}` current_status
+                    ON current_status.`status_id` = target.`status_id`
+                SET target.`status_id` = in_progress.`status_id`,
+                    target.`{legacyColumn}` = {(keepThaiDescriptionInLegacyColumn ? "in_progress.`status_desc`" : "in_progress.`status_code`")}
+                WHERE UPPER(TRIM(COALESCE(target.`{legacyColumn}`, ''))) = 'PLAN'
+                   OR TRIM(COALESCE(target.`{legacyColumn}`, '')) = 'วางแผน'
+                   OR UPPER(TRIM(COALESCE(current_status.`status_code`, ''))) = 'PLAN'
+                   OR TRIM(COALESCE(current_status.`status_desc`, '')) = 'วางแผน';";
+            await command.ExecuteNonQueryAsync();
+
+            command.CommandText = $@"
+                DELETE FROM `{masterTable}`
+                WHERE UPPER(TRIM(`status_code`)) = 'PLAN'
+                   OR TRIM(`status_desc`) = 'วางแผน';";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await RemovePlanningStatusAsync("project", "status", "project_status", false);
+        await RemovePlanningStatusAsync("project_phase", "phase_status", "project_phase_status", true);
+        await RemovePlanningStatusAsync("phase_assign", "work_status", "phase_assign_status", false);
+
+        if (await TableExistsAsync("status_approval_requests"))
+        {
+            command.CommandText = @"
+                UPDATE `status_approval_requests`
+                SET `current_status` = CASE
+                        WHEN `target_type` = 'PROJECT_PHASE' THEN 'กำลังดำเนินการ'
+                        ELSE 'IN_PROGRESS'
+                    END
+                WHERE UPPER(TRIM(COALESCE(`current_status`, ''))) = 'PLAN'
+                   OR TRIM(COALESCE(`current_status`, '')) = 'วางแผน';
+
+                UPDATE `status_approval_requests`
+                SET `requested_status` = CASE
+                        WHEN `target_type` = 'PROJECT_PHASE' THEN 'กำลังดำเนินการ'
+                        ELSE 'IN_PROGRESS'
+                    END
+                WHERE UPPER(TRIM(COALESCE(`requested_status`, ''))) = 'PLAN'
+                   OR TRIM(COALESCE(`requested_status`, '')) = 'วางแผน';";
+            await command.ExecuteNonQueryAsync();
+        }
 
         async Task ImportLegacyStatusesAsync(
             string tableName,
@@ -3133,8 +3222,8 @@ static async Task EnsureWorkflowStatusTablesAsync(IServiceProvider services)
             await command.ExecuteNonQueryAsync();
         }
 
-        await BackfillDefaultStatusAsync("project", "status", "project_status", "PLAN", false);
-        await BackfillDefaultStatusAsync("project_phase", "phase_status", "project_phase_status", "PLAN", true);
+        await BackfillDefaultStatusAsync("project", "status", "project_status", "IN_PROGRESS", false);
+        await BackfillDefaultStatusAsync("project_phase", "phase_status", "project_phase_status", "IN_PROGRESS", true);
         await BackfillDefaultStatusAsync("phase_assign", "work_status", "phase_assign_status", "IN_PROGRESS", false);
 
         async Task EnsureIndexAsync(string tableName, string indexName)

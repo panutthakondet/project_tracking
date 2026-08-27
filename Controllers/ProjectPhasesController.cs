@@ -256,7 +256,7 @@ namespace ProjectTracking.Controllers
 
             var defaultStatusId = await _workflowStatusService.ResolveIdAsync(
                 WorkflowStatusTypes.ProjectPhase,
-                "PLAN");
+                "IN_PROGRESS");
             await LoadPhaseStatusLookupAsync(defaultStatusId);
 
             return View(new ProjectPhase

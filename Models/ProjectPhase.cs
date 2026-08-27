@@ -76,7 +76,7 @@ namespace ProjectTracking.Models
         // ✅ สถานะงวดงาน
         [Column("phase_status")]
         [StringLength(100)]
-        public string? PhaseStatus { get; set; } = "วางแผน";
+        public string? PhaseStatus { get; set; } = "กำลังดำเนินการ";
 
         [Column("status_id")]
         public int? StatusId { get; set; }

@@ -35,25 +35,22 @@ CREATE TABLE IF NOT EXISTS `phase_assign_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `project_status` (`status_code`, `status_desc`, `sort_order`, `is_active`) VALUES
-  ('PLAN', 'วางแผน', 10, 1),
-  ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-  ('DONE', 'เสร็จสิ้น', 30, 1)
+  ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+  ('DONE', 'เสร็จสิ้น', 20, 1)
 ON DUPLICATE KEY UPDATE
   `status_desc` = VALUES(`status_desc`),
   `sort_order` = VALUES(`sort_order`);
 
 INSERT INTO `project_phase_status` (`status_code`, `status_desc`, `sort_order`, `is_active`) VALUES
-  ('PLAN', 'วางแผน', 10, 1),
-  ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-  ('SUBMITTED', 'ส่งงวดงานแล้ว', 30, 1)
+  ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+  ('SUBMITTED', 'ส่งงวดงานแล้ว', 20, 1)
 ON DUPLICATE KEY UPDATE
   `status_desc` = VALUES(`status_desc`),
   `sort_order` = VALUES(`sort_order`);
 
 INSERT INTO `phase_assign_status` (`status_code`, `status_desc`, `sort_order`, `is_active`) VALUES
-  ('PLAN', 'วางแผน', 10, 1),
-  ('IN_PROGRESS', 'กำลังดำเนินการ', 20, 1),
-  ('DONE', 'เสร็จสิ้น', 30, 1)
+  ('IN_PROGRESS', 'กำลังดำเนินการ', 10, 1),
+  ('DONE', 'เสร็จสิ้น', 20, 1)
 ON DUPLICATE KEY UPDATE
   `status_desc` = VALUES(`status_desc`),
   `sort_order` = VALUES(`sort_order`);

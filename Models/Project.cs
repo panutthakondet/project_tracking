@@ -102,7 +102,7 @@ namespace ProjectTracking.Models
         public RequirementCard? RequirementCard { get; set; }
 
         [Column("status")]
-        public string Status { get; set; } = "PLAN";
+        public string Status { get; set; } = "IN_PROGRESS";
 
         [Column("status_id")]
         public int? StatusId { get; set; }
