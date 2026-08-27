@@ -273,6 +273,7 @@ namespace ProjectTracking.ViewModels
 
     public class WorkDurationSummaryViewModel
     {
+        public int TotalProjects { get; set; }
         public int Total { get; set; }
         public int Completed { get; set; }
         public int InProgress { get; set; }

@@ -1016,6 +1016,11 @@ namespace ProjectTracking.Controllers
                 AssignStatusDefinitions = assignStatusDefinitions,
                 Summary = new WorkDurationSummaryViewModel
                 {
+                    TotalProjects = tasks
+                        .Where(row => row.ProjectId > 0)
+                        .Select(row => row.ProjectId)
+                        .Distinct()
+                        .Count(),
                     Total = tasks.Count,
                     Completed = completedCount,
                     InProgress = tasks.Count(row => row.StatusCode == "IN_PROGRESS"),
