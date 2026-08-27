@@ -5,31 +5,34 @@
     Layout = null;
     var report = Model ?? new ProjectTracking.ViewModels.WorkDurationReportViewModel();
     var th = new CultureInfo("th-TH");
-    var rangeDays = Math.Max(1, (report.EndDate.Date - report.StartDate.Date).Days + 1);
-    var timelineMonths = new List<(DateTime Start, DateTime End, decimal Width)>();
-    var timelineWeeks = new List<(DateTime Start, DateTime End, int Number, decimal Width)>();
-    var monthCursor = report.StartDate.Date;
-    while (monthCursor <= report.EndDate.Date)
+    var timelineStart = new DateTime(report.StartDate.Year, report.StartDate.Month, 1);
+    var timelineEnd = new DateTime(report.EndDate.Year, report.EndDate.Month, DateTime.DaysInMonth(report.EndDate.Year, report.EndDate.Month));
+    var timelineMonthCount = ((timelineEnd.Year - timelineStart.Year) * 12) + timelineEnd.Month - timelineStart.Month + 1;
+    var timelineColumnCount = Math.Max(4, timelineMonthCount * 4);
+    var timelineMonths = new List<(DateTime Start, DateTime End, int Tone, decimal Width)>();
+    var timelineWeeks = new List<(DateTime Start, DateTime End, int Number, int Tone, decimal Width)>();
+    var monthCursor = timelineStart;
+    var monthIndex = 0;
+    while (monthCursor <= timelineEnd)
     {
         var calendarMonthEnd = new DateTime(monthCursor.Year, monthCursor.Month, DateTime.DaysInMonth(monthCursor.Year, monthCursor.Month));
-        var monthEnd = calendarMonthEnd > report.EndDate.Date ? report.EndDate.Date : calendarMonthEnd;
-        var monthDays = (monthEnd - monthCursor).Days + 1;
-        timelineMonths.Add((monthCursor, monthEnd, monthDays * 100m / rangeDays));
-        monthCursor = monthEnd.AddDays(1);
+        var tone = monthIndex % 8;
+        timelineMonths.Add((monthCursor, calendarMonthEnd, tone, 400m / timelineColumnCount));
+        for (var weekNumber = 1; weekNumber <= 4; weekNumber++)
+        {
+            var weekStartDay = weekNumber switch { 1 => 1, 2 => 8, 3 => 15, _ => 22 };
+            var weekStart = new DateTime(monthCursor.Year, monthCursor.Month, weekStartDay);
+            var weekEnd = weekNumber < 4 ? weekStart.AddDays(6) : calendarMonthEnd;
+            timelineWeeks.Add((weekStart, weekEnd, weekNumber, tone, 100m / timelineColumnCount));
+        }
+        monthCursor = monthCursor.AddMonths(1);
+        monthIndex++;
     }
 
-    var weekCursor = report.StartDate.Date;
-    while (weekCursor <= report.EndDate.Date)
-    {
-        var weekNumber = ((weekCursor.Day - 1) / 7) + 1;
-        var calendarWeekEndDay = Math.Min(weekNumber * 7, DateTime.DaysInMonth(weekCursor.Year, weekCursor.Month));
-        var calendarWeekEnd = new DateTime(weekCursor.Year, weekCursor.Month, calendarWeekEndDay);
-        var weekEnd = calendarWeekEnd > report.EndDate.Date ? report.EndDate.Date : calendarWeekEnd;
-        var weekDays = (weekEnd - weekCursor).Days + 1;
-        timelineWeeks.Add((weekCursor, weekEnd, weekNumber, weekDays * 100m / rangeDays));
-        weekCursor = weekEnd.AddDays(1);
-    }
-
+    var timelineYears = timelineMonths
+        .GroupBy(month => month.Start.Year)
+        .Select(group => (Year: group.Key, Width: group.Count() * 400m / timelineColumnCount))
+        .ToList();
     var timelineAxisWidth = Math.Max(700, timelineWeeks.Count * 64);
     var maxEmployeeDays = Math.Max(1, report.Employees.Select(row => Math.Max(row.PlanDays, row.ActualDays)).DefaultIfEmpty(1).Max());
 
@@ -53,8 +56,21 @@
             return (0, 0);
         }
 
-        var left = (decimal)(clippedStart - report.StartDate.Date).Days * 100m / rangeDays;
-        var width = (decimal)((clippedEnd - clippedStart).Days + 1) * 100m / rangeDays;
+        decimal AxisCoordinate(DateTime date, bool afterDay)
+        {
+            var axisMonthIndex = ((date.Year - timelineStart.Year) * 12) + date.Month - timelineStart.Month;
+            var weekIndex = date.Day <= 7 ? 0 : date.Day <= 14 ? 1 : date.Day <= 21 ? 2 : 3;
+            var bucketStartDay = weekIndex switch { 0 => 1, 1 => 8, 2 => 15, _ => 22 };
+            var bucketEndDay = weekIndex < 3 ? bucketStartDay + 6 : DateTime.DaysInMonth(date.Year, date.Month);
+            var bucketDays = bucketEndDay - bucketStartDay + 1;
+            var dayOffset = date.Day - bucketStartDay + (afterDay ? 1 : 0);
+            return (axisMonthIndex * 4m) + weekIndex + ((decimal)dayOffset / bucketDays);
+        }
+
+        var leftCoordinate = AxisCoordinate(clippedStart, false);
+        var rightCoordinate = AxisCoordinate(clippedEnd, true);
+        var left = leftCoordinate * 100m / timelineColumnCount;
+        var width = (rightCoordinate - leftCoordinate) * 100m / timelineColumnCount;
         return (left, Math.Max(width, .45m));
     }
 }
@@ -81,6 +97,7 @@
             --wd-danger: #ef476f;
             --wd-planned: #8291a7;
             --wd-blue: #2f6fec;
+            --wd-grid: color-mix(in srgb, var(--wd-ink) 44%, var(--wd-border));
         }
         html { min-width: 1180px; background: var(--wd-bg); }
         body {
@@ -224,19 +241,19 @@
         .variance { font-size: 11px; font-weight: 700; text-align: right; }
         .variance.late { color: var(--wd-danger); }
         .variance.early { color: var(--wd-success); }
-        .timeline { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--wd-border); scrollbar-color: var(--wd-accent) var(--wd-soft); }
+        .timeline { overflow-x: auto; overflow-y: hidden; border: 2px solid var(--wd-grid); scrollbar-color: var(--wd-accent) var(--wd-soft); }
         .timeline-head, .timeline-row {
             width: 100%;
             min-width: calc(290px + var(--timeline-axis-width));
             display: grid;
             grid-template-columns: 290px minmax(var(--timeline-axis-width), 1fr);
         }
-        .timeline-head { min-height: 68px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 1px solid var(--wd-border); }
+        .timeline-head { min-height: 90px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 2px solid var(--wd-grid); }
         .timeline-head > div:first-child { display: flex; align-items: center; padding: 0 12px; font-weight: 700; }
-        .timeline-axis { position: relative; display: grid; grid-template-rows: 30px 38px; border-left: 1px solid var(--wd-border); }
-        .timeline-months, .timeline-weeks { min-width: 0; display: flex; }
-        .timeline-months { border-bottom: 1px solid var(--wd-border); }
-        .timeline-months span, .timeline-weeks span {
+        .timeline-axis { position: relative; display: grid; grid-template-rows: 26px 32px 32px; border-left: 2px solid var(--wd-grid); }
+        .timeline-years, .timeline-months, .timeline-weeks { min-width: 0; display: flex; }
+        .timeline-years, .timeline-months { border-bottom: 2px solid var(--wd-grid); }
+        .timeline-years span, .timeline-months span, .timeline-weeks span {
             min-width: 0;
             flex: 0 0 var(--cell-width);
             display: flex;
@@ -245,15 +262,25 @@
             justify-content: center;
             gap: 2px;
             padding: 4px 2px;
-            border-right: 1px solid var(--wd-border);
+            border-right: 1px solid var(--wd-grid);
             text-align: center;
             white-space: nowrap;
         }
-        .timeline-months span { padding: 3px 4px; background: color-mix(in srgb, var(--wd-accent) 8%, var(--wd-soft)); }
-        .timeline-months strong { color: var(--wd-ink); font-size: 10px; line-height: 1; }
-        .timeline-weeks strong { color: var(--wd-ink); font-size: 9px; line-height: 1; }
-        .timeline-weeks small { color: var(--wd-muted); font-size: 7px; font-weight: 500; line-height: 1.15; }
-        .timeline-row { min-height: 58px; border-bottom: 1px solid var(--wd-border); }
+        .timeline-years span { padding: 3px 4px; background: linear-gradient(180deg, color-mix(in srgb, var(--wd-accent) 22%, var(--wd-surface)), color-mix(in srgb, var(--wd-accent) 10%, var(--wd-surface))); }
+        .timeline-years strong { color: var(--wd-ink); font-size: 13px; line-height: 1; }
+        .timeline-months span { padding: 3px 4px; background: var(--month-head); }
+        .timeline-months strong { color: var(--month-text); font-size: 11px; line-height: 1; }
+        .timeline-weeks span { padding: 3px 2px; color: var(--month-text); background: var(--month-body); }
+        .timeline-weeks strong { color: var(--month-text); font-size: 10px; line-height: 1; }
+        .month-tone-0 { --month-head:#d9f7ef; --month-body:#f0fdfa; --month-text:#0f766e; }
+        .month-tone-1 { --month-head:#dbeafe; --month-body:#eff6ff; --month-text:#1d4ed8; }
+        .month-tone-2 { --month-head:#ede9fe; --month-body:#f5f3ff; --month-text:#6d28d9; }
+        .month-tone-3 { --month-head:#fef3c7; --month-body:#fffbeb; --month-text:#b45309; }
+        .month-tone-4 { --month-head:#ffe4e6; --month-body:#fff1f2; --month-text:#be123c; }
+        .month-tone-5 { --month-head:#cffafe; --month-body:#ecfeff; --month-text:#0e7490; }
+        .month-tone-6 { --month-head:#dcfce7; --month-body:#f0fdf4; --month-text:#15803d; }
+        .month-tone-7 { --month-head:#f1f5f9; --month-body:#f8fafc; --month-text:#334155; }
+        .timeline-row { min-height: 58px; border-bottom: 2px solid var(--wd-grid); }
         .timeline-row:last-child { border-bottom: 0; }
         .timeline-label { min-width: 0; padding: 9px 12px; }
         .timeline-label strong, .timeline-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -262,7 +289,7 @@
         .timeline-track {
             position: relative;
             min-width: 0;
-            border-left: 1px solid var(--wd-border);
+            border-left: 2px solid var(--wd-grid);
         }
         .timeline-week-cells {
             position: absolute;
@@ -274,10 +301,9 @@
         .timeline-week-cells span {
             min-width: 0;
             flex: 0 0 var(--cell-width);
-            border-right: 1px solid var(--wd-border);
-            background: color-mix(in srgb, var(--wd-soft) 38%, transparent);
+            border-right: 1px solid var(--wd-grid);
+            background: color-mix(in srgb, var(--month-body) 44%, transparent);
         }
-        .timeline-week-cells span:nth-child(even) { background: color-mix(in srgb, var(--wd-accent) 4%, transparent); }
         .timeline-bar { position: absolute; z-index: 1; left: var(--left); width: var(--width); min-width: 3px; }
         .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-blue); background: color-mix(in srgb, var(--wd-blue) 12%, transparent); }
         .timeline-bar.actual { top: 32px; height: 12px; background: var(--bar); }
@@ -461,20 +487,27 @@
                     <div class="timeline-head">
                         <div>งาน / ผู้รับผิดชอบ</div>
                         <div class="timeline-axis">
+                            <div class="timeline-years">
+                                @foreach (var year in timelineYears)
+                                {
+                                    <span style="--cell-width:@year.Width.ToString("0.######", CultureInfo.InvariantCulture)%">
+                                        <strong>@(year.Year + 543)</strong>
+                                    </span>
+                                }
+                            </div>
                             <div class="timeline-months">
                                 @foreach (var month in timelineMonths)
                                 {
-                                    <span style="--cell-width:@month.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(month.Start) – @DateText(month.End)">
-                                        <strong>@month.Start.ToString("MMM yy", th)</strong>
+                                    <span class="month-tone-@month.Tone" style="--cell-width:@month.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(month.Start) – @DateText(month.End)">
+                                        <strong>@month.Start.ToString("MMM", th)</strong>
                                     </span>
                                 }
                             </div>
                             <div class="timeline-weeks">
                                 @foreach (var week in timelineWeeks)
                                 {
-                                    <span style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(week.Start) – @DateText(week.End)">
-                                        <strong>W@week.Number</strong>
-                                        <small>@week.Start.ToString("dd/MM", th)–@week.End.ToString("dd/MM", th)</small>
+                                    <span class="month-tone-@week.Tone" style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%" title="@DateText(week.Start) – @DateText(week.End)">
+                                        <strong>@week.Number</strong>
                                     </span>
                                 }
                             </div>
@@ -492,7 +525,7 @@
                                 <div class="timeline-week-cells" aria-hidden="true">
                                     @foreach (var week in timelineWeeks)
                                     {
-                                        <span style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%"></span>
+                                        <span class="month-tone-@week.Tone" style="--cell-width:@week.Width.ToString("0.######", CultureInfo.InvariantCulture)%"></span>
                                     }
                                 </div>
                                 @if (plan.Width > 0)
