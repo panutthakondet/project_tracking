@@ -43,7 +43,7 @@
     <style>
         * { box-sizing: border-box; }
         :root {
-            --wd-bg: var(--pt-page-bg, #edf6f3);
+            --wd-bg: var(--pt-body-bg, #edf6f3);
             --wd-surface: var(--pt-surface, #ffffff);
             --wd-soft: var(--pt-surface-soft, #f5f9fb);
             --wd-ink: var(--pt-surface-contrast, #10233f);
@@ -75,16 +75,17 @@
             justify-content: space-between;
             gap: 24px;
             padding: 22px 26px;
-            color: #fff;
+            color: var(--pt-sidebar-contrast, #fff);
             background:
-                linear-gradient(135deg, color-mix(in srgb, var(--pt-sidebar-bg, #0c2d44) 92%, #000), var(--wd-accent-dark));
-            border: 1px solid color-mix(in srgb, var(--wd-accent) 54%, transparent);
-            box-shadow: 0 18px 40px color-mix(in srgb, var(--wd-accent-dark) 18%, transparent);
+                radial-gradient(circle at 88% 10%, var(--pt-accent-glow, rgba(20,184,166,.24)), transparent 30%),
+                linear-gradient(135deg, var(--pt-sidebar-bg, #102443), var(--pt-sidebar-deep, #1f3b63));
+            border: 1px solid var(--pt-border-strong, rgba(20,184,166,.48));
+            box-shadow: 0 18px 40px var(--pt-shadow, rgba(15,35,64,.18)), inset 0 1px 0 rgba(255,255,255,.10);
         }
         .hero-copy { min-width: 0; }
-        .eyebrow { margin: 0 0 5px; color: #7ce6d8; font-size: 11px; font-weight: 700; letter-spacing: .08em !important; text-transform: uppercase; }
+        .eyebrow { margin: 0 0 5px; color: var(--pt-sidebar-contrast-muted, rgba(255,255,255,.76)); font-size: 11px; font-weight: 700; letter-spacing: .08em !important; text-transform: uppercase; }
         .hero h1 { margin: 0; font-size: clamp(25px, 2.3vw, 38px); line-height: 1.2; }
-        .hero p { margin: 7px 0 0; color: rgba(255,255,255,.75); font-size: 14px; }
+        .hero p { margin: 7px 0 0; color: var(--pt-sidebar-contrast-muted, rgba(255,255,255,.76)); font-size: 14px; }
         .hero-actions { display: flex; gap: 9px; flex: 0 0 auto; }
         .btn {
             min-height: 40px;
@@ -95,7 +96,7 @@
             padding: 8px 15px;
             border: 1px solid rgba(255,255,255,.45);
             border-radius: 10px;
-            color: #fff;
+            color: var(--pt-sidebar-contrast, #fff);
             background: rgba(255,255,255,.09);
             font-size: 13px;
             font-weight: 700;
@@ -103,7 +104,7 @@
             text-decoration: none;
             cursor: pointer;
         }
-        .btn:hover, .btn:focus-visible { color: #fff; border-color: #fff; background: rgba(255,255,255,.16); }
+        .btn:hover, .btn:focus-visible { color: var(--pt-sidebar-contrast, #fff); border-color: var(--pt-sidebar-contrast, #fff); background: rgba(255,255,255,.16); }
         .btn.primary { color: #fff; border-color: var(--wd-accent); background: var(--wd-accent); }
         .filter-panel {
             margin-top: 14px;
@@ -243,8 +244,9 @@
             @@page { size: A3 landscape; margin: 8mm; }
             html, body { min-width: 0; background: #fff !important; }
             .page { padding: 0; }
-            .hero { color: #10233f; background: #fff; border: 1px solid #9fb1c3; box-shadow: none; }
-            .hero p, .eyebrow { color: #52657b; }
+            body.pt-standalone-report .hero.print-header { color: #10233f !important; background: #fff !important; border: 1px solid #9fb1c3 !important; box-shadow: none !important; }
+            body.pt-standalone-report .hero.print-header :is(h1, p, .eyebrow) { color: #10233f !important; -webkit-text-fill-color: #10233f !important; }
+            body.pt-standalone-report .hero.print-header :is(p, .eyebrow) { color: #52657b !important; -webkit-text-fill-color: #52657b !important; }
             .hero-actions, .filter-panel { display: none !important; }
             .section, .kpi { box-shadow: none; break-inside: avoid; }
             .employee-row { break-inside: avoid; }
@@ -254,15 +256,15 @@
 </head>
 <body class="pt-standalone-report">
     <main class="page">
-        <header class="hero">
+        <header class="hero print-header">
             <div class="hero-copy">
                 <div class="eyebrow">PROJECT TRACKING · EXECUTIVE ANALYTICS</div>
                 <h1>วิเคราะห์สถานะและระยะเวลางาน</h1>
                 <p>เปรียบเทียบแผนกับเวลาที่ใช้จริงจาก PhaseAssigns แบบรายฝ่าย รายบุคคล และภาพรวม</p>
             </div>
             <div class="hero-actions">
-                <button type="button" class="btn" onclick="window.print()">พิมพ์รายงาน</button>
-                <a asp-controller="Home" asp-action="Index" class="btn">กลับ Dashboard</a>
+                <button type="button" class="btn report-btn" onclick="window.print()">พิมพ์รายงาน</button>
+                <a asp-controller="Home" asp-action="Index" class="btn report-btn">กลับ Dashboard</a>
             </div>
         </header>
 
