@@ -157,6 +157,8 @@
         .btn:hover, .btn:focus-visible { color: var(--pt-sidebar-contrast, #fff); border-color: var(--pt-sidebar-contrast, #fff); background: rgba(255,255,255,.16); }
         .btn.primary { color: #fff; border-color: var(--wd-accent); background: var(--wd-accent); }
         .filter-panel {
+            position: relative;
+            z-index: 20;
             margin-top: 14px;
             padding: 15px;
             border: 1px solid var(--wd-border);
@@ -179,6 +181,52 @@
             outline: none;
         }
         .field select:focus, .field input:focus { border-color: var(--wd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--wd-accent) 16%, transparent); }
+        .pt-native-select-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .pt-search-select { position: relative; width: 100%; }
+        .pt-search-select.is-open { z-index: 30; }
+        .pt-search-select__input { cursor: text; }
+        .pt-search-select__dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            left: 0;
+            z-index: 31;
+            display: none;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid var(--wd-border);
+            background: var(--wd-surface);
+            box-shadow: 0 14px 28px color-mix(in srgb, var(--wd-ink) 18%, transparent);
+        }
+        .pt-search-select.is-open .pt-search-select__dropdown { display: block; }
+        .pt-search-select__option,
+        .pt-search-select__empty {
+            width: 100%;
+            padding: 9px 11px;
+            border: 0;
+            border-bottom: 1px solid var(--wd-border);
+            color: var(--wd-ink);
+            background: var(--wd-surface);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: left;
+        }
+        .pt-search-select__option { cursor: pointer; }
+        .pt-search-select__option:hover,
+        .pt-search-select__option:focus-visible,
+        .pt-search-select__option.is-selected {
+            color: var(--wd-ink);
+            background: color-mix(in srgb, var(--wd-accent) 14%, var(--wd-surface));
+            outline: none;
+        }
+        .pt-search-select__empty { color: var(--wd-muted); }
         .filter-submit { min-height: 42px; border: 0; border-radius: 9px; padding: 0 20px; }
         .selection-note { margin: 9px 1px 0; color: var(--wd-muted); font-size: 11px; }
         .selection-note strong { color: var(--wd-ink); }
@@ -388,7 +436,7 @@
             <form method="get" asp-action="WorkDuration" class="filters" id="workDurationFilters">
                 <div class="field">
                     <label for="departmentId">ฝ่าย</label>
-                    <select id="departmentId" name="departmentId">
+                    <select id="departmentId" name="departmentId" data-placeholder="พิมพ์ค้นหาฝ่าย...">
                         <option value="0" selected="@(report.DepartmentFilterValue == 0 ? "selected" : null)">ทุกฝ่าย</option>
                         @foreach (var department in report.DepartmentOptions)
                         {
@@ -398,7 +446,7 @@
                 </div>
                 <div class="field">
                     <label for="empId">ผู้รับผิดชอบ</label>
-                    <select id="empId" name="empId">
+                    <select id="empId" name="empId" data-placeholder="พิมพ์ค้นหาผู้รับผิดชอบ...">
                         <option value="">พนักงานทั้งหมดในฝ่าย</option>
                         @foreach (var employee in report.EmployeeOptions)
                         {
@@ -659,11 +707,124 @@
             const form = document.getElementById('workDurationFilters');
             const department = document.getElementById('departmentId');
             const employee = document.getElementById('empId');
+
+            function normalize(value) {
+                return (value || '').toString().trim().toLocaleLowerCase('th-TH');
+            }
+
+            function getSelectedOption(select) {
+                return select.options[select.selectedIndex] || null;
+            }
+
+            function dispatchSelectChange(select) {
+                select.dispatchEvent(new Event('input', { bubbles: true }));
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function enhanceSelect(select) {
+                if (!select || select.classList.contains('pt-dropdown-enhanced')) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'pt-search-select';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'pt-search-select__input';
+                input.autocomplete = 'off';
+                input.setAttribute('role', 'combobox');
+                input.setAttribute('aria-expanded', 'false');
+                input.placeholder = select.dataset.placeholder || 'พิมพ์ค้นหา...';
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'pt-search-select__dropdown';
+                dropdown.setAttribute('role', 'listbox');
+
+                select.insertAdjacentElement('afterend', wrapper);
+                wrapper.appendChild(input);
+                wrapper.appendChild(dropdown);
+                select.classList.add('pt-dropdown-enhanced', 'pt-native-select-hidden');
+                select.tabIndex = -1;
+
+                function syncInput() {
+                    const selected = getSelectedOption(select);
+                    input.value = selected ? selected.text : '';
+                }
+
+                function closeDropdown() {
+                    wrapper.classList.remove('is-open');
+                    input.setAttribute('aria-expanded', 'false');
+                }
+
+                function renderOptions(filter = '') {
+                    dropdown.innerHTML = '';
+                    const keyword = normalize(filter);
+                    const options = Array.from(select.options).filter(option =>
+                        !keyword || normalize(`${option.text} ${option.value}`).includes(keyword));
+
+                    if (!options.length) {
+                        const empty = document.createElement('div');
+                        empty.className = 'pt-search-select__empty';
+                        empty.textContent = 'ไม่พบข้อมูล';
+                        dropdown.appendChild(empty);
+                        return;
+                    }
+
+                    options.forEach(option => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'pt-search-select__option';
+                        button.setAttribute('role', 'option');
+                        button.setAttribute('aria-selected', option.value === select.value ? 'true' : 'false');
+                        if (option.value === select.value) button.classList.add('is-selected');
+                        button.textContent = option.text;
+                        button.addEventListener('click', () => {
+                            select.value = option.value;
+                            closeDropdown();
+                            syncInput();
+                            dispatchSelectChange(select);
+                        });
+                        dropdown.appendChild(button);
+                    });
+                }
+
+                function openDropdown() {
+                    input.value = '';
+                    renderOptions();
+                    wrapper.classList.add('is-open');
+                    input.setAttribute('aria-expanded', 'true');
+                }
+
+                input.addEventListener('focus', openDropdown);
+                input.addEventListener('click', openDropdown);
+                input.addEventListener('input', () => {
+                    renderOptions(input.value);
+                    wrapper.classList.add('is-open');
+                    input.setAttribute('aria-expanded', 'true');
+                });
+                input.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') {
+                        closeDropdown();
+                        syncInput();
+                        input.blur();
+                    }
+                });
+                select.addEventListener('change', syncInput);
+                document.addEventListener('click', event => {
+                    if (!wrapper.contains(event.target)) {
+                        closeDropdown();
+                        syncInput();
+                    }
+                });
+
+                syncInput();
+            }
+
             department?.addEventListener('change', () => {
                 if (employee) employee.value = '';
                 form?.requestSubmit();
             });
             employee?.addEventListener('change', () => form?.requestSubmit());
+            document.querySelectorAll('#workDurationFilters select').forEach(enhanceSelect);
         })();
     </script>
 </body>
