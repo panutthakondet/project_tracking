@@ -313,8 +313,11 @@
             background: color-mix(in srgb, var(--month-body) 44%, transparent);
         }
         .timeline-bar { position: absolute; z-index: 1; left: var(--left); width: var(--width); min-width: 3px; }
-        .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-blue); background: color-mix(in srgb, var(--wd-blue) 12%, transparent); }
+        .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-planned); background: color-mix(in srgb, var(--wd-planned) 10%, transparent); }
         .timeline-bar.actual { top: 32px; height: 12px; background: var(--bar); }
+        .timeline-bar.actual.status-fallback {
+            background: repeating-linear-gradient(135deg, var(--bar) 0 7px, color-mix(in srgb, var(--bar) 68%, white) 7px 12px);
+        }
         .table-wrap { overflow-x: auto; border: 1px solid var(--wd-border); }
         table { width: 100%; min-width: 1280px; border-collapse: collapse; }
         th, td { padding: 10px 11px; border-bottom: 1px solid var(--wd-border); text-align: left; vertical-align: top; }
@@ -484,7 +487,7 @@
 
         <section class="section">
             <div class="section-head">
-                <div><h2>Timeline แผนและการทำงานจริง</h2><p>กรอบสีน้ำเงินคือแผน · แถบสีด้านล่างคือระยะเวลาที่ทำจริงและสถานะปัจจุบัน</p></div>
+                <div><h2>Timeline แผนและการทำงานจริง</h2><p>กรอบสีเทาคือแผน · แถบสีด้านล่างใช้สีตามสถานะ PhaseAssign · ลายเฉียงคือรายการที่ยังไม่มีช่วงทำจริงที่วาดได้</p></div>
                 <div class="legend">
                     @foreach (var statusRow in workflowStatusRows)
                     {
@@ -536,12 +539,16 @@
                         var actual = task.IsCompleted || task.HasStarted
                             ? TimelinePosition(task.ActualStart, effectiveActualEnd)
                             : (Left: 0m, Width: 0m);
-                        var actualColor = task.IsOverdue ? "var(--wd-danger)" : task.StatusColor;
+                        var statusUsesPlanFallback = actual.Width <= 0 && plan.Width > 0;
+                        var statusBar = statusUsesPlanFallback ? plan : actual;
+                        var actualColor = task.StatusColor;
                         var timelineLabelTooltip = $"งาน: {task.WorkName} | ผู้รับผิดชอบ: {task.EmployeeName} | โครงการ: {task.ProjectName}";
                         var planTooltip = $"แผน: {DateText(task.PlanStart)} – {DateText(task.PlanEnd)}";
-                        var actualTooltip = task.IsCompleted
-                            ? $"ทำจริง: {DateText(task.ActualStart)} – {DateText(task.ActualEnd)} · {task.StatusText}"
-                            : $"ทำจริง: {DateText(task.ActualStart)} – วันนี้ · {task.StatusText}";
+                        var actualTooltip = statusUsesPlanFallback
+                            ? $"สถานะ: {task.StatusText} · ยังไม่มีช่วงทำจริงที่วาดได้ จึงแสดงสีสถานะตามช่วงแผน"
+                            : task.IsCompleted
+                                ? $"ทำจริง: {DateText(task.ActualStart)} – {DateText(task.ActualEnd)} · {task.StatusText}"
+                                : $"ทำจริง: {DateText(task.ActualStart)} – วันนี้ · {task.StatusText}";
                         <div class="timeline-row">
                             <div class="timeline-label"
                                  title="@timelineLabelTooltip"
@@ -560,9 +567,12 @@
                                 {
                                     <span class="timeline-bar plan" title="@planTooltip" style="--left:@plan.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@plan.Width.ToString("0.###", CultureInfo.InvariantCulture)%"></span>
                                 }
-                                @if (actual.Width > 0)
+                                @if (statusBar.Width > 0)
                                 {
-                                    <span class="timeline-bar actual" title="@actualTooltip" style="--left:@actual.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@actual.Width.ToString("0.###", CultureInfo.InvariantCulture)%; --bar:@actualColor"></span>
+                                    <span class="timeline-bar actual @(statusUsesPlanFallback ? "status-fallback" : "")"
+                                          title="@actualTooltip"
+                                          aria-label="@actualTooltip"
+                                          style="--left:@statusBar.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@statusBar.Width.ToString("0.###", CultureInfo.InvariantCulture)%; --bar:@actualColor"></span>
                                 }
                             </div>
                         </div>
