@@ -5,6 +5,8 @@
     Layout = null;
     var report = Model ?? new ProjectTracking.ViewModels.WorkDurationReportViewModel();
     var th = new CultureInfo("th-TH");
+    var incompleteTaskCount = report.Tasks.Count(task => !task.IsCompleted);
+    var completedTaskCount = report.Tasks.Count(task => task.IsCompleted);
     var workflowStatusRows = report.AssignStatusDefinitions
         .Select((definition, index) => new
         {
@@ -259,6 +261,26 @@
         .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
         .section-head h2 { margin: 0; color: var(--wd-ink); font-size: 17px; line-height: 1.3; }
         .section-head p { margin: 4px 0 0; color: var(--wd-muted); font-size: 11px; }
+        .section-head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+        .section-control {
+            min-height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 11px;
+            border: 1px solid var(--wd-accent);
+            color: var(--wd-accent-dark);
+            background: transparent;
+            font: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .section-control:hover,
+        .section-control:focus-visible { color: #fff; background: var(--wd-accent); outline: none; }
+        .completed-toggle-row { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 9px; }
+        .completed-item.is-hidden { display: none !important; }
+        .section-default-empty { margin-bottom: 9px; padding: 10px 12px; color: var(--wd-muted); border: 1px dashed var(--wd-border); background: var(--wd-soft); font-size: 10px; text-align: center; }
         .legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: var(--wd-muted); font-size: 10px; }
         .legend span { display: inline-flex; align-items: center; gap: 5px; }
         .dot { width: 9px; height: 9px; display: inline-block; border-radius: 50%; background: var(--dot); }
@@ -415,7 +437,7 @@
             body.pt-standalone-report .hero.print-header { color: #10233f !important; background: #fff !important; border: 1px solid #9fb1c3 !important; box-shadow: none !important; }
             body.pt-standalone-report .hero.print-header :is(h1, p, .eyebrow) { color: #10233f !important; -webkit-text-fill-color: #10233f !important; }
             body.pt-standalone-report .hero.print-header :is(p, .eyebrow) { color: #52657b !important; -webkit-text-fill-color: #52657b !important; }
-            .hero-actions, .filter-panel { display: none !important; }
+            .hero-actions, .filter-panel, .section-control, .completed-toggle-row { display: none !important; }
             .section, .kpi { box-shadow: none; break-inside: avoid; }
             .employee-row { break-inside: avoid; }
         }
@@ -558,41 +580,60 @@
             }
         </section>
 
-        <section class="section">
+        <section class="section" id="timelineSection">
             <div class="section-head">
                 <div><h2>Timeline แผนและการทำงานจริง</h2><p>กรอบสีเทาคือแผน · แถบสีด้านล่างใช้สีตามสถานะ PhaseAssign · ลายเฉียงคือรายการที่ยังไม่มีช่วงทำจริงที่วาดได้</p></div>
-                <div class="legend">
-                    @foreach (var statusRow in workflowStatusRows)
+                <div class="section-head-actions">
+                    <div class="legend">
+                        @foreach (var statusRow in workflowStatusRows)
+                        {
+                            <span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span>
+                        }
+                    </div>
+                    <button type="button" class="section-control" data-collapse-target="timelineContent" aria-expanded="true">ย่อ</button>
+                </div>
+            </div>
+            <div class="section-body" id="timelineContent">
+                <div class="timeline-guide" aria-label="คำอธิบายสถานะและแถบ Timeline">
+                    <div class="timeline-guide-item">
+                        <strong>สีสถานะงาน</strong>
+                        <span>ดึงจากตาราง phase_assign_status โดยตรง เช่น น้ำเงิน = กำลังดำเนินการ และเขียว = เสร็จสิ้น</span>
+                    </div>
+                    <div class="timeline-guide-item">
+                        <strong>กรอบสีเทา</strong>
+                        <span>ช่วงวันที่ตามแผนจาก Plan Start ถึง Plan End ไม่ใช่สถานะงาน</span>
+                    </div>
+                    <div class="timeline-guide-item">
+                        <strong>แถบสีทึบ / ลายเฉียง</strong>
+                        <span>สีทึบคือช่วงทำจริง ส่วนลายเฉียงคือยังไม่มีช่วงทำจริงที่วาดได้ จึงวางสีสถานะตามช่วงแผน</span>
+                    </div>
+                    <div class="timeline-guide-item">
+                        <strong>ล่าช้า</strong>
+                        <span>เป็นผลวิเคราะห์เมื่อยังไม่เสร็จและวันนี้เกิน Plan End ไม่ใช่สถานะใหม่ และไม่เปลี่ยนสีสถานะหลัก</span>
+                    </div>
+                </div>
+                @if (completedTaskCount > 0)
+                {
+                    <div class="completed-toggle-row">
+                        <button type="button"
+                                class="section-control"
+                                data-completed-toggle="timeline"
+                                data-show-text="แสดงงานเสร็จสิ้น (@completedTaskCount)"
+                                data-hide-text="ซ่อนงานเสร็จสิ้น (@completedTaskCount)"
+                                aria-expanded="false">แสดงงานเสร็จสิ้น (@completedTaskCount)</button>
+                    </div>
+                }
+                @if (!report.Tasks.Any())
+                {
+                    <div class="empty">ไม่พบ Timeline ในช่วงที่เลือก</div>
+                }
+                else
+                {
+                    @if (incompleteTaskCount == 0)
                     {
-                        <span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span>
+                        <div class="section-default-empty" data-default-empty="timeline">ไม่มีงานที่ยังไม่เสร็จสิ้น กด “แสดงงานเสร็จสิ้น” เพื่อดูรายการทั้งหมด</div>
                     }
-                </div>
-            </div>
-            <div class="timeline-guide" aria-label="คำอธิบายสถานะและแถบ Timeline">
-                <div class="timeline-guide-item">
-                    <strong>สีสถานะงาน</strong>
-                    <span>ดึงจากตาราง phase_assign_status โดยตรง เช่น น้ำเงิน = กำลังดำเนินการ และเขียว = เสร็จสิ้น</span>
-                </div>
-                <div class="timeline-guide-item">
-                    <strong>กรอบสีเทา</strong>
-                    <span>ช่วงวันที่ตามแผนจาก Plan Start ถึง Plan End ไม่ใช่สถานะงาน</span>
-                </div>
-                <div class="timeline-guide-item">
-                    <strong>แถบสีทึบ / ลายเฉียง</strong>
-                    <span>สีทึบคือช่วงทำจริง ส่วนลายเฉียงคือยังไม่มีช่วงทำจริงที่วาดได้ จึงวางสีสถานะตามช่วงแผน</span>
-                </div>
-                <div class="timeline-guide-item">
-                    <strong>ล่าช้า</strong>
-                    <span>เป็นผลวิเคราะห์เมื่อยังไม่เสร็จและวันนี้เกิน Plan End ไม่ใช่สถานะใหม่ และไม่เปลี่ยนสีสถานะหลัก</span>
-                </div>
-            </div>
-            @if (!report.Tasks.Any())
-            {
-                <div class="empty">ไม่พบ Timeline ในช่วงที่เลือก</div>
-            }
-            else
-            {
-                <div class="timeline" style="--timeline-axis-width:@(timelineAxisWidth)px">
+                    <div class="timeline" style="--timeline-axis-width:@(timelineAxisWidth)px">
                     <div class="timeline-head">
                         <div>งาน / ผู้รับผิดชอบ</div>
                         <div class="timeline-axis">
@@ -639,7 +680,7 @@
                             : task.IsCompleted
                                 ? $"ทำจริง: {DateText(task.ActualStart)} – {DateText(task.ActualEnd)} · {task.StatusText}"
                                 : $"ทำจริง: {DateText(task.ActualStart)} – วันนี้ · {task.StatusText}";
-                        <div class="timeline-row">
+                        <div class="timeline-row @(task.IsCompleted ? "completed-item is-hidden" : "")" data-completed-group="timeline">
                             <div class="timeline-label"
                                  title="@timelineLabelTooltip"
                                  aria-label="@timelineLabelTooltip">
@@ -667,20 +708,40 @@
                             </div>
                         </div>
                     }
-                </div>
-            }
+                    </div>
+                }
+            </div>
         </section>
 
-        <section class="section">
-            <div class="section-head"><div><h2>รายละเอียดงานและระยะเวลา</h2><p>Actual Start บันทึกอัตโนมัติจาก Plan Start และ Actual End บันทึกเมื่อสถานะเสร็จสิ้น</p></div></div>
-            @if (!report.Tasks.Any())
-            {
-                <div class="empty">ไม่พบรายการงาน</div>
-            }
-            else
-            {
-                <div class="table-wrap">
-                    <table>
+        <section class="section" id="workDetailSection">
+            <div class="section-head">
+                <div><h2>รายละเอียดงานและระยะเวลา</h2><p>Actual Start บันทึกอัตโนมัติจาก Plan Start และ Actual End บันทึกเมื่อสถานะเสร็จสิ้น</p></div>
+                <button type="button" class="section-control" data-collapse-target="workDetailContent" aria-expanded="true">ย่อ</button>
+            </div>
+            <div class="section-body" id="workDetailContent">
+                @if (completedTaskCount > 0)
+                {
+                    <div class="completed-toggle-row">
+                        <button type="button"
+                                class="section-control"
+                                data-completed-toggle="details"
+                                data-show-text="แสดงงานเสร็จสิ้น (@completedTaskCount)"
+                                data-hide-text="ซ่อนงานเสร็จสิ้น (@completedTaskCount)"
+                                aria-expanded="false">แสดงงานเสร็จสิ้น (@completedTaskCount)</button>
+                    </div>
+                }
+                @if (!report.Tasks.Any())
+                {
+                    <div class="empty">ไม่พบรายการงาน</div>
+                }
+                else
+                {
+                    @if (incompleteTaskCount == 0)
+                    {
+                        <div class="section-default-empty" data-default-empty="details">ไม่มีงานที่ยังไม่เสร็จสิ้น กด “แสดงงานเสร็จสิ้น” เพื่อดูรายการทั้งหมด</div>
+                    }
+                    <div class="table-wrap">
+                        <table>
                         <thead><tr><th>#</th><th>ผู้รับผิดชอบ</th><th>โครงการ / งาน</th><th>สถานะ</th><th>แผน</th><th>ทำจริง</th><th class="num">วันตามแผน</th><th class="num">วันที่ใช้</th><th class="num">ต่างจากแผน</th></tr></thead>
                         <tbody>
                             @{ var sequence = 1; }
@@ -693,7 +754,7 @@
                                         : task.IsCompleted
                                             ? $"{DateText(task.ActualStart)} – {DateText(task.ActualEnd)}"
                                             : $"{DateText(task.ActualStart)} – วันนี้";
-                                <tr>
+                                <tr class="@(task.IsCompleted ? "completed-item is-hidden" : "")" data-completed-group="details">
                                     <td>@sequence</td>
                                     <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
                                     <td><span class="cell-main">@task.WorkName</span><span class="cell-sub">@task.ProjectName</span></td>
@@ -707,9 +768,10 @@
                                 sequence++;
                             }
                         </tbody>
-                    </table>
-                </div>
-            }
+                        </table>
+                    </div>
+                }
+            </div>
         </section>
         <div class="footer-note">อัปเดตข้อมูล @report.GeneratedAt.ToString("dd MMM yyyy HH:mm", th) · ผู้ใช้งาน @report.GeneratedBy</div>
     </main>
@@ -836,6 +898,34 @@
             });
             employee?.addEventListener('change', () => form?.requestSubmit());
             document.querySelectorAll('#workDurationFilters select').forEach(enhanceSelect);
+
+            document.querySelectorAll('[data-collapse-target]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = document.getElementById(button.dataset.collapseTarget);
+                    if (!target) return;
+
+                    const willCollapse = !target.hidden;
+                    target.hidden = willCollapse;
+                    button.textContent = willCollapse ? 'ขยาย' : 'ย่อ';
+                    button.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
+                });
+            });
+
+            document.querySelectorAll('[data-completed-toggle]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const group = button.dataset.completedToggle;
+                    const willShow = button.getAttribute('aria-expanded') !== 'true';
+                    document.querySelectorAll(`[data-completed-group="${group}"]`).forEach(item => {
+                        item.classList.toggle('is-hidden', !willShow);
+                    });
+
+                    const defaultEmpty = document.querySelector(`[data-default-empty="${group}"]`);
+                    if (defaultEmpty) defaultEmpty.hidden = willShow;
+
+                    button.textContent = willShow ? button.dataset.hideText : button.dataset.showText;
+                    button.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+                });
+            });
         })();
     </script>
 </body>
