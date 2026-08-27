@@ -10,6 +10,9 @@
         {
             Definition = definition,
             Count = report.Tasks.Count(task => string.Equals(task.WorkflowStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase)),
+            StackCount = report.Tasks.Count(task =>
+                string.Equals(task.WorkflowStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase)
+                && !task.IsOverdue),
             Color = ProjectTracking.Services.WorkflowStatusPresentation.Color(definition, index)
         })
         .ToList();
@@ -297,6 +300,7 @@
         .status-number { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 1px solid var(--wd-border); background: var(--wd-soft); }
         .status-number span { display: flex; align-items: center; gap: 6px; color: var(--wd-muted); font-size: 10px; }
         .status-number strong { color: var(--wd-ink); font-size: 13px; }
+        .status-stack-note { margin: 7px 0 0; color: var(--wd-muted); font-size: 9px; text-align: right; }
         .employee-chart { display: grid; gap: 8px; }
         .employee-row { display: grid; grid-template-columns: minmax(215px, 1.25fr) minmax(420px, 4fr) 82px 72px; gap: 12px; align-items: center; min-height: 48px; padding: 7px 10px; border-bottom: 1px solid var(--wd-border); }
         .employee-row:last-child { border-bottom: 0; }
@@ -485,7 +489,7 @@
 
         <section class="section">
             <div class="section-head">
-                <div><h2>ภาพรวมสถานะงาน</h2><p>สถานะหลักจาก Work Status · ความล่าช้าเทียบ Plan End กับ Actual End/วันนี้</p></div>
+                <div><h2>ภาพรวมสถานะงาน</h2><p>แถบสีแบ่งรายการแบบไม่ซ้ำ · งานที่เลย Plan End และยังไม่เสร็จจะแยกเป็นสีแดง “ล่าช้า”</p></div>
             </div>
             <div class="status-layout">
                 <div class="completion">
@@ -500,16 +504,23 @@
                     <div class="status-stack" aria-label="สัดส่วนสถานะงาน">
                         @foreach (var statusRow in workflowStatusRows)
                         {
-                            <span style="width:@Percent(statusRow.Count, report.Summary.Total)%; background:@statusRow.Color"></span>
+                            <span title="@statusRow.Definition.StatusDesc: @statusRow.StackCount งาน"
+                                  style="width:@Percent(statusRow.StackCount, report.Summary.Total)%; background:@statusRow.Color"></span>
+                        }
+                        @if (report.Summary.Overdue > 0)
+                        {
+                            <span title="ล่าช้า: @report.Summary.Overdue งาน"
+                                  style="width:@Percent(report.Summary.Overdue, report.Summary.Total)%; background:var(--wd-danger)"></span>
                         }
                     </div>
                     <div class="status-numbers">
                         @foreach (var statusRow in workflowStatusRows)
                         {
-                            <div class="status-number"><span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span><strong>@statusRow.Count</strong></div>
+                            <div class="status-number"><span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span><strong>@statusRow.StackCount</strong></div>
                         }
                         <div class="status-number"><span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span><strong>@report.Summary.Overdue</strong></div>
                     </div>
+                    <p class="status-stack-note">จำนวนในกราฟส่วนนี้ไม่ซ้ำกัน โดยงานล่าช้าถูกแยกออกจากสถานะเดิมเฉพาะการแสดงผล</p>
                 </div>
             </div>
         </section>
