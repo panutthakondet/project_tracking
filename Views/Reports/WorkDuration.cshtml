@@ -10,8 +10,7 @@
         {
             Definition = definition,
             Count = report.Tasks.Count(task => string.Equals(task.WorkflowStatusCode, definition.StatusCode, StringComparison.OrdinalIgnoreCase)),
-            ClassName = (index % 4) switch { 0 => "success", 1 => "warning", 2 => "blue", _ => "planned" },
-            Color = (index % 4) switch { 0 => "var(--wd-success)", 1 => "var(--wd-warning)", 2 => "var(--wd-blue)", _ => "var(--wd-planned)" }
+            Color = ProjectTracking.Services.WorkflowStatusPresentation.Color(definition, index)
         })
         .ToList();
     var timelineStart = new DateTime(report.StartDate.Year, report.StartDate.Month, 1);
@@ -183,7 +182,7 @@
         .filter-submit { min-height: 42px; border: 0; border-radius: 9px; padding: 0 20px; }
         .selection-note { margin: 9px 1px 0; color: var(--wd-muted); font-size: 11px; }
         .selection-note strong { color: var(--wd-ink); }
-        .kpi-grid { display: grid; grid-template-columns: repeat(7, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 14px; }
         .kpi {
             min-height: 94px;
             padding: 13px 14px;
@@ -412,7 +411,7 @@
             <article class="kpi blue"><span>งานทั้งหมด</span><strong>@report.Summary.Total</strong><small>PhaseAssigns ในช่วงที่เลือก</small></article>
             @foreach (var statusRow in workflowStatusRows)
             {
-                <article class="kpi @statusRow.ClassName"><span>@statusRow.Definition.StatusDesc</span><strong>@statusRow.Count</strong><small>จากตารางสถานะ Phase Assign</small></article>
+                <article class="kpi" style="--tone:@statusRow.Color"><span>@statusRow.Definition.StatusDesc</span><strong>@statusRow.Count</strong><small>จากตารางสถานะ Phase Assign</small></article>
             }
             <article class="kpi danger"><span>ล่าช้า</span><strong>@report.Summary.Overdue</strong><small>กำลังทำและเลย Plan End</small></article>
             <article class="kpi"><span>เฉลี่ยตามแผน</span><strong>@Number(report.Summary.AveragePlanDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
@@ -452,7 +451,7 @@
 
         <section class="section">
             <div class="section-head">
-                <div><h2>แผนเทียบเวลาที่ใช้จริงรายคน</h2><p>แผน = ผลรวม Plan Start ถึง Plan End · เวลาที่ใช้ = Actual Start ถึง Actual End/วันนี้</p></div>
+                <div><h2>แผนเทียบเวลาที่ใช้จริงรายคน</h2><p>แผน = ผลรวม Plan Start ถึง Plan End · เวลาที่ใช้ = Actual Start ถึง Actual End/วันนี้ · ตัวเลขขวาสุดเทียบวันจบจริงกับ Plan End</p></div>
                 <div class="legend">
                     <span><i class="dot" style="--dot:var(--wd-blue)"></i>วันตามแผน</span>
                     <span><i class="dot" style="--dot:var(--wd-accent)"></i>วันที่ใช้จริง</span>
@@ -533,10 +532,16 @@
                     @foreach (var task in report.Tasks)
                     {
                         var plan = TimelinePosition(task.PlanStart, task.PlanEnd);
-                        var effectiveActualEnd = task.IsCompleted ? task.ActualEnd : DateTime.Today;
-                        var actual = TimelinePosition(task.ActualStart, effectiveActualEnd);
-                        var actualColor = task.StatusCode switch { "DONE" => "var(--wd-success)", "OVERDUE" => "var(--wd-danger)", "PLANNED" => "var(--wd-planned)", _ => "var(--wd-warning)" };
+                        var effectiveActualEnd = task.IsCompleted ? task.ActualEnd : task.HasStarted ? DateTime.Today : null;
+                        var actual = task.IsCompleted || task.HasStarted
+                            ? TimelinePosition(task.ActualStart, effectiveActualEnd)
+                            : (Left: 0m, Width: 0m);
+                        var actualColor = task.IsOverdue ? "var(--wd-danger)" : task.StatusColor;
                         var timelineLabelTooltip = $"งาน: {task.WorkName} | ผู้รับผิดชอบ: {task.EmployeeName} | โครงการ: {task.ProjectName}";
+                        var planTooltip = $"แผน: {DateText(task.PlanStart)} – {DateText(task.PlanEnd)}";
+                        var actualTooltip = task.IsCompleted
+                            ? $"ทำจริง: {DateText(task.ActualStart)} – {DateText(task.ActualEnd)} · {task.StatusText}"
+                            : $"ทำจริง: {DateText(task.ActualStart)} – วันนี้ · {task.StatusText}";
                         <div class="timeline-row">
                             <div class="timeline-label"
                                  title="@timelineLabelTooltip"
@@ -553,11 +558,11 @@
                                 </div>
                                 @if (plan.Width > 0)
                                 {
-                                    <span class="timeline-bar plan" style="--left:@plan.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@plan.Width.ToString("0.###", CultureInfo.InvariantCulture)%"></span>
+                                    <span class="timeline-bar plan" title="@planTooltip" style="--left:@plan.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@plan.Width.ToString("0.###", CultureInfo.InvariantCulture)%"></span>
                                 }
                                 @if (actual.Width > 0)
                                 {
-                                    <span class="timeline-bar actual" style="--left:@actual.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@actual.Width.ToString("0.###", CultureInfo.InvariantCulture)%; --bar:@actualColor"></span>
+                                    <span class="timeline-bar actual" title="@actualTooltip" style="--left:@actual.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@actual.Width.ToString("0.###", CultureInfo.InvariantCulture)%; --bar:@actualColor"></span>
                                 }
                             </div>
                         </div>
@@ -581,13 +586,20 @@
                             @{ var sequence = 1; }
                             @foreach (var task in report.Tasks)
                             {
+                                var actualPeriodText = !task.ActualStart.HasValue
+                                    ? "-"
+                                    : !task.IsCompleted && !task.HasStarted
+                                        ? "ยังไม่เริ่ม"
+                                        : task.IsCompleted
+                                            ? $"{DateText(task.ActualStart)} – {DateText(task.ActualEnd)}"
+                                            : $"{DateText(task.ActualStart)} – วันนี้";
                                 <tr>
                                     <td>@sequence</td>
                                     <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
                                     <td><span class="cell-main">@task.WorkName</span><span class="cell-sub">@task.ProjectName</span></td>
-                                    <td><span class="status @task.StatusTone">@task.StatusText</span><span class="cell-sub status-result @task.ScheduleTone">@task.ScheduleText</span></td>
+                                    <td><span class="status" style="--status:@task.StatusColor">@task.StatusText</span><span class="cell-sub status-result @task.ScheduleTone">@task.ScheduleText</span></td>
                                     <td>@DateText(task.PlanStart) – @DateText(task.PlanEnd)</td>
-                                    <td>@DateText(task.ActualStart) – @(task.IsCompleted ? DateText(task.ActualEnd) : "วันนี้")</td>
+                                    <td>@actualPeriodText</td>
                                     <td class="num">@task.PlanDays</td>
                                     <td class="num">@task.ActualDays</td>
                                     <td class="num">@(task.VarianceDays > 0 ? "+" : "")@task.VarianceDays</td>

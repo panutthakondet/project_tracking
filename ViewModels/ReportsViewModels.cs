@@ -322,9 +322,10 @@ namespace ProjectTracking.ViewModels
         public string WorkflowStatusCode { get; set; } = "";
         public string StatusCode { get; set; } = "";
         public string StatusText { get; set; } = "";
-        public string StatusTone { get; set; } = "";
+        public string StatusColor { get; set; } = "#8291a7";
         public string ScheduleText { get; set; } = "";
         public string ScheduleTone { get; set; } = "";
+        public bool HasStarted { get; set; }
         public bool IsCompleted { get; set; }
         public bool IsOverdue { get; set; }
         public bool IsCompletedLate { get; set; }

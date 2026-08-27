@@ -805,7 +805,6 @@ namespace ProjectTracking.Controllers
             var departmentOptions = await GetDepartmentOptionsAsync();
             var assignStatusDefinitions = await _context.PhaseAssignStatuses
                 .AsNoTracking()
-                .Where(x => x.IsActive)
                 .OrderBy(x => x.SortOrder).ThenBy(x => x.StatusId)
                 .Select(x => new StatusDefinitionOption { StatusId = x.StatusId, StatusCode = x.StatusCode, StatusDesc = x.StatusDesc, SortOrder = x.SortOrder })
                 .ToListAsync();
@@ -856,8 +855,12 @@ namespace ProjectTracking.Controllers
                     .AsNoTracking()
                     .Where(row => employeeIds.Contains(row.EmpId))
                     .Where(row =>
-                        (row.PlanStart ?? row.ActualStart ?? row.CreatedAt) <= endDate
-                        && (row.PlanEnd ?? row.ActualEnd ?? row.PlanStart ?? row.ActualStart ?? row.CreatedAt) >= startDate)
+                        (row.PlanStart.HasValue && row.PlanStart.Value <= endDate)
+                        || (row.ActualStart.HasValue && row.ActualStart.Value <= endDate)
+                        || (!row.PlanStart.HasValue
+                            && !row.ActualStart.HasValue
+                            && row.CreatedAt.HasValue
+                            && row.CreatedAt.Value <= endDate))
                     .ToListAsync();
 
             var phaseIds = assignments.Select(row => row.PhaseId).Distinct().ToList();
@@ -888,35 +891,57 @@ namespace ProjectTracking.Controllers
                     var projectId = phase?.ProjectId ?? 0;
                     projectMap.TryGetValue(projectId, out var project);
 
-                    var normalizedWorkStatus = Norm(assign.WorkStatus);
-                    var completed = StatusApprovalService.IsPhaseAssignCompletionStatus(assign.WorkStatus);
-                    var planned = normalizedWorkStatus is "PLAN" or "PLANNED" or "PENDING" or "TO DO" or "TODO" or "วางแผน";
+                    var statusDefinitionIndex = assignStatusDefinitions.FindIndex(definition =>
+                        (assign.StatusId.HasValue && definition.StatusId == assign.StatusId.Value)
+                        || string.Equals(definition.StatusCode, assign.StatusDefinition?.StatusCode, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(definition.StatusCode, assign.WorkStatus, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(definition.StatusDesc, assign.WorkStatus, StringComparison.OrdinalIgnoreCase));
+                    var statusDefinition = statusDefinitionIndex >= 0
+                        ? assignStatusDefinitions[statusDefinitionIndex]
+                        : null;
+                    var workflowStatusCode = WorkflowStatusPresentation.Code(
+                        statusDefinition?.StatusCode
+                        ?? assign.StatusDefinition?.StatusCode
+                        ?? assign.WorkStatus);
+                    var completed = workflowStatusCode is "DONE" or "COMPLETED";
+                    var planned = workflowStatusCode is "PLAN" or "PLANNED" or "PENDING" or "TO_DO" or "TODO";
                     var overdue = !completed && assign.PlanEnd?.Date < today;
                     var statusCode = completed ? "DONE" : overdue ? "OVERDUE" : planned ? "PLANNED" : "IN_PROGRESS";
                     var actualStart = assign.ActualStart?.Date ?? assign.PlanStart?.Date;
                     var actualEnd = assign.ActualEnd?.Date;
-                    var effectiveActualEnd = completed ? actualEnd : today;
+                    var hasStarted = actualStart.HasValue && actualStart.Value <= today;
+                    var effectiveActualEnd = completed ? actualEnd : hasStarted ? today : null;
                     var planDays = InclusiveDays(assign.PlanStart, assign.PlanEnd);
                     var actualDays = actualStart.HasValue && effectiveActualEnd.HasValue && effectiveActualEnd.Value >= actualStart.Value
                         ? InclusiveDays(actualStart, effectiveActualEnd)
                         : 0;
+                    var scheduleVarianceDays = completed && actualEnd.HasValue && assign.PlanEnd.HasValue
+                        ? (actualEnd.Value - assign.PlanEnd.Value.Date).Days
+                        : overdue && assign.PlanEnd.HasValue
+                            ? (today - assign.PlanEnd.Value.Date).Days
+                            : 0;
                     var isCompletedLate = completed
-                        && actualEnd.HasValue
-                        && assign.PlanEnd.HasValue
-                        && actualEnd.Value > assign.PlanEnd.Value.Date;
+                        && scheduleVarianceDays > 0;
                     var scheduleText = completed
                         ? !actualEnd.HasValue
                             ? "ไม่มีวันที่เสร็จจริง"
                             : !assign.PlanEnd.HasValue
                                 ? "ไม่มีวันสิ้นสุดตามแผน"
-                                : isCompletedLate
-                                    ? $"เสร็จล่าช้า {(actualEnd.Value - assign.PlanEnd.Value.Date).Days} วัน"
-                                    : "เสร็จทันแผน"
+                                : scheduleVarianceDays > 0
+                                    ? $"เสร็จล่าช้า {scheduleVarianceDays} วัน"
+                                    : scheduleVarianceDays < 0
+                                        ? $"เสร็จก่อนแผน {-scheduleVarianceDays} วัน"
+                                        : "เสร็จตามแผน"
                         : overdue
                             ? $"ล่าช้า {(today - assign.PlanEnd!.Value.Date).Days} วัน"
+                            : !hasStarted
+                                ? "ยังไม่ถึงวันเริ่มตามแผน"
                             : planned
                                 ? "รอเริ่มตามแผน"
                                 : "อยู่ในแผน";
+                    var statusColor = statusDefinition == null
+                        ? "#8291a7"
+                        : WorkflowStatusPresentation.Color(statusDefinition, statusDefinitionIndex);
 
                     return new WorkDurationTaskViewModel
                     {
@@ -934,33 +959,34 @@ namespace ProjectTracking.Controllers
                         ActualEnd = actualEnd,
                         PlanDays = planDays,
                         ActualDays = actualDays,
-                        VarianceDays = actualDays > 0 && planDays > 0 ? actualDays - planDays : 0,
-                        WorkflowStatusCode = assign.StatusDefinition?.StatusCode ?? Norm(assign.WorkStatus),
+                        VarianceDays = scheduleVarianceDays,
+                        WorkflowStatusCode = workflowStatusCode,
                         StatusCode = statusCode,
-                        StatusText = overdue
-                            ? "ล่าช้า"
-                            : assign.StatusDefinition?.StatusDesc
-                                ?? WorkflowStatusPresentation.Description(assignStatusDefinitions, assign.WorkStatus),
-                        StatusTone = statusCode switch
-                        {
-                            "DONE" => "success",
-                            "OVERDUE" => "danger",
-                            "PLANNED" => "muted",
-                            _ => "warning"
-                        },
+                        StatusText = statusDefinition?.StatusDesc
+                            ?? assign.StatusDefinition?.StatusDesc
+                            ?? WorkflowStatusPresentation.Description(assignStatusDefinitions, assign.WorkStatus),
+                        StatusColor = statusColor,
                         ScheduleText = scheduleText,
                         ScheduleTone = isCompletedLate || overdue
                             ? "danger"
                             : completed
                                 ? "success"
-                                : planned
+                                : !hasStarted || planned
                                     ? "muted"
                                     : "info",
+                        HasStarted = hasStarted,
                         IsCompleted = completed,
                         IsOverdue = overdue,
                         IsCompletedLate = isCompletedLate
                     };
                 })
+                .Where(row =>
+                    ReportRangeOverlaps(row.PlanStart, row.PlanEnd, startDate, endDate)
+                    || ReportRangeOverlaps(
+                        row.ActualStart,
+                        row.IsCompleted ? row.ActualEnd : row.HasStarted ? today : row.ActualStart,
+                        startDate,
+                        endDate))
                 .OrderBy(row => row.EmployeeName)
                 .ThenBy(row => row.PlanStart ?? DateTime.MaxValue)
                 .ThenBy(row => row.AssignId)
@@ -1044,6 +1070,24 @@ namespace ProjectTracking.Controllers
             }
 
             return (endDate.Value.Date - startDate.Value.Date).Days + 1;
+        }
+
+        private static bool ReportRangeOverlaps(
+            DateTime? intervalStart,
+            DateTime? intervalEnd,
+            DateTime reportStart,
+            DateTime reportEnd)
+        {
+            if (!intervalStart.HasValue)
+            {
+                return false;
+            }
+
+            var start = intervalStart.Value.Date;
+            var end = (intervalEnd ?? intervalStart).Value.Date;
+            return end >= start
+                && start <= reportEnd.Date
+                && end >= reportStart.Date;
         }
 
         private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync(int? departmentId)
