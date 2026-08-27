@@ -33,7 +33,7 @@
         .GroupBy(month => month.Start.Year)
         .Select(group => (Year: group.Key, Width: group.Count() * 400m / timelineColumnCount))
         .ToList();
-    var timelineAxisWidth = Math.Max(480, timelineWeeks.Count * 32);
+    var timelineAxisWidth = timelineWeeks.Count * 24;
     var maxEmployeeDays = Math.Max(1, report.Employees.Select(row => Math.Max(row.PlanDays, row.ActualDays)).DefaultIfEmpty(1).Max());
 
     string DateText(DateTime? value) => value?.ToString("dd MMM yy", th) ?? "-";
@@ -241,12 +241,12 @@
         .variance { font-size: 11px; font-weight: 700; text-align: right; }
         .variance.late { color: var(--wd-danger); }
         .variance.early { color: var(--wd-success); }
-        .timeline { overflow-x: auto; overflow-y: hidden; border: 2px solid var(--wd-grid); scrollbar-color: var(--wd-accent) var(--wd-soft); }
+        .timeline { width: fit-content; max-width: 100%; overflow-x: auto; overflow-y: hidden; border: 2px solid var(--wd-grid); scrollbar-color: var(--wd-accent) var(--wd-soft); }
         .timeline-head, .timeline-row {
-            width: 100%;
+            width: calc(290px + var(--timeline-axis-width));
             min-width: calc(290px + var(--timeline-axis-width));
             display: grid;
-            grid-template-columns: 290px minmax(var(--timeline-axis-width), 1fr);
+            grid-template-columns: 290px var(--timeline-axis-width);
         }
         .timeline-head { min-height: 90px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 2px solid var(--wd-grid); }
         .timeline-head > div:first-child { display: flex; align-items: center; padding: 0 12px; font-weight: 700; }
