@@ -987,7 +987,8 @@ namespace ProjectTracking.Controllers
                         row.IsCompleted ? row.ActualEnd : row.HasStarted ? today : row.ActualStart,
                         startDate,
                         endDate))
-                .OrderBy(row => row.EmployeeName)
+                .OrderBy(row => row.IsCompleted)
+                .ThenBy(row => row.EmployeeName)
                 .ThenBy(row => row.PlanStart ?? DateTime.MaxValue)
                 .ThenBy(row => row.AssignId)
                 .ToList();
