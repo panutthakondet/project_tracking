@@ -222,6 +222,7 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureProjectDepartmentTableAsync(app.Services);
+await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -2939,6 +2940,72 @@ static async Task EnsureIndexAsync(
 
     command.CommandText = createSql;
     await command.ExecuteNonQueryAsync();
+}
+
+static async Task EnsurePhaseAssignActualDateColumnsAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'phase_assign';";
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        async Task<bool> EnsureColumnAsync(string columnName, string alterSql)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'phase_assign'
+                  AND COLUMN_NAME = '{columnName}';";
+            var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+            if (exists) return false;
+
+            command.CommandText = alterSql;
+            await command.ExecuteNonQueryAsync();
+            return true;
+        }
+
+        var actualStartAdded = await EnsureColumnAsync("actual_start", @"
+            ALTER TABLE `phase_assign`
+            ADD COLUMN `actual_start` date NULL AFTER `plan_end`;");
+
+        var actualEndAdded = await EnsureColumnAsync("actual_end", @"
+            ALTER TABLE `phase_assign`
+            ADD COLUMN `actual_end` date NULL AFTER `actual_start`;");
+
+        // Backfill ครั้งเดียวเฉพาะตอนสร้างคอลัมน์ เพื่อไม่เขียนทับ Actual ของงานใหม่ทุกครั้งที่เปิดระบบ
+        if (actualStartAdded)
+        {
+            command.CommandText = @"
+                UPDATE `phase_assign`
+                SET `actual_start` = `plan_start`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        if (actualEndAdded)
+        {
+            command.CommandText = @"
+                UPDATE `phase_assign`
+                SET `actual_end` = `plan_end`;";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
 }
 
 static async Task EnsureTestScenarioTypeColumnAsync(IServiceProvider services)
