@@ -315,6 +315,10 @@
         tbody tr:last-child td { border-bottom: 0; }
         .cell-main { display: block; font-weight: 600; }
         .cell-sub { display: block; margin-top: 2px; color: var(--wd-muted); font-size: 9px; font-weight: 400; }
+        .status-result.success { color: var(--wd-success); }
+        .status-result.danger { color: var(--wd-danger); }
+        .status-result.info { color: var(--wd-blue); }
+        .status-result.muted { color: var(--wd-muted); }
         .status { display: inline-flex; min-width: 92px; justify-content: center; padding: 5px 8px; border: 1px solid var(--status); color: var(--status); background: transparent; font-size: 9px; font-weight: 700; }
         .status.success { --status: var(--wd-success); }
         .status.warning { --status: var(--wd-warning); }
@@ -398,15 +402,15 @@
             <article class="kpi blue"><span>งานทั้งหมด</span><strong>@report.Summary.Total</strong><small>PhaseAssigns ในช่วงที่เลือก</small></article>
             <article class="kpi success"><span>เสร็จสิ้น</span><strong>@report.Summary.Completed</strong><small>@report.Summary.CompletionPercent% ของงานทั้งหมด</small></article>
             <article class="kpi warning"><span>กำลังดำเนินการ</span><strong>@report.Summary.InProgress</strong><small>เริ่มงานและยังไม่เสร็จ</small></article>
-            <article class="kpi danger"><span>ล่าช้า</span><strong>@report.Summary.Overdue</strong><small>เลย Plan End และยังไม่เสร็จ</small></article>
-            <article class="kpi planned"><span>วางแผน</span><strong>@report.Summary.Planned</strong><small>ยังไม่ถึงวันเริ่มตามแผน</small></article>
+            <article class="kpi danger"><span>ล่าช้า</span><strong>@report.Summary.Overdue</strong><small>กำลังทำและเลย Plan End</small></article>
+            <article class="kpi planned"><span>วางแผน</span><strong>@report.Summary.Planned</strong><small>อิงสถานะ PLAN จาก Work Status</small></article>
             <article class="kpi"><span>เฉลี่ยตามแผน</span><strong>@Number(report.Summary.AveragePlanDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
             <article class="kpi"><span>เฉลี่ยเวลาที่ใช้</span><strong>@Number(report.Summary.AverageActualDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
         </section>
 
         <section class="section">
             <div class="section-head">
-                <div><h2>ภาพรวมสถานะงาน</h2><p>สถานะคำนวณจาก Work Status และวันสิ้นสุดตามแผน</p></div>
+                <div><h2>ภาพรวมสถานะงาน</h2><p>สถานะหลักจาก Work Status · ความล่าช้าเทียบ Plan End กับ Actual End/วันนี้</p></div>
             </div>
             <div class="status-layout">
                 <div class="completion">
@@ -562,7 +566,7 @@
                                     <td>@sequence</td>
                                     <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
                                     <td><span class="cell-main">@task.WorkName</span><span class="cell-sub">@task.ProjectName</span></td>
-                                    <td><span class="status @task.StatusTone">@task.StatusText</span></td>
+                                    <td><span class="status @task.StatusTone">@task.StatusText</span><span class="cell-sub status-result @task.ScheduleTone">@task.ScheduleText</span></td>
                                     <td>@DateText(task.PlanStart) – @DateText(task.PlanEnd)</td>
                                     <td>@DateText(task.ActualStart) – @(task.IsCompleted ? DateText(task.ActualEnd) : "วันนี้")</td>
                                     <td class="num">@task.PlanDays</td>

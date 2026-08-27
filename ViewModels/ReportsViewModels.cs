@@ -312,8 +312,11 @@ namespace ProjectTracking.ViewModels
         public string StatusCode { get; set; } = "";
         public string StatusText { get; set; } = "";
         public string StatusTone { get; set; } = "";
+        public string ScheduleText { get; set; } = "";
+        public string ScheduleTone { get; set; } = "";
         public bool IsCompleted { get; set; }
         public bool IsOverdue { get; set; }
+        public bool IsCompletedLate { get; set; }
     }
 
     public class MeetingReportRowViewModel

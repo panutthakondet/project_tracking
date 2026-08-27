@@ -849,17 +849,35 @@ namespace ProjectTracking.Controllers
                     var projectId = phase?.ProjectId ?? 0;
                     projectMap.TryGetValue(projectId, out var project);
 
+                    var normalizedWorkStatus = Norm(assign.WorkStatus);
                     var completed = StatusApprovalService.IsPhaseAssignCompletionStatus(assign.WorkStatus);
+                    var planned = normalizedWorkStatus is "PLAN" or "PLANNED" or "PENDING" or "TO DO" or "TODO" or "วางแผน";
                     var overdue = !completed && assign.PlanEnd?.Date < today;
-                    var planned = !completed && !overdue && assign.PlanStart?.Date > today;
                     var statusCode = completed ? "DONE" : overdue ? "OVERDUE" : planned ? "PLANNED" : "IN_PROGRESS";
                     var actualStart = assign.ActualStart?.Date ?? assign.PlanStart?.Date;
-                    var completedEndFallback = assign.ActualEnd?.Date ?? assign.CreatedAt?.Date ?? assign.PlanEnd?.Date;
-                    var actualEnd = completed ? completedEndFallback : today;
+                    var actualEnd = assign.ActualEnd?.Date;
+                    var effectiveActualEnd = completed ? actualEnd : today;
                     var planDays = InclusiveDays(assign.PlanStart, assign.PlanEnd);
-                    var actualDays = actualStart.HasValue && actualEnd.HasValue && actualEnd.Value >= actualStart.Value
-                        ? InclusiveDays(actualStart, actualEnd)
+                    var actualDays = actualStart.HasValue && effectiveActualEnd.HasValue && effectiveActualEnd.Value >= actualStart.Value
+                        ? InclusiveDays(actualStart, effectiveActualEnd)
                         : 0;
+                    var isCompletedLate = completed
+                        && actualEnd.HasValue
+                        && assign.PlanEnd.HasValue
+                        && actualEnd.Value > assign.PlanEnd.Value.Date;
+                    var scheduleText = completed
+                        ? !actualEnd.HasValue
+                            ? "ไม่มีวันที่เสร็จจริง"
+                            : !assign.PlanEnd.HasValue
+                                ? "ไม่มีวันสิ้นสุดตามแผน"
+                                : isCompletedLate
+                                    ? $"เสร็จล่าช้า {(actualEnd.Value - assign.PlanEnd.Value.Date).Days} วัน"
+                                    : "เสร็จทันแผน"
+                        : overdue
+                            ? $"ล่าช้า {(today - assign.PlanEnd!.Value.Date).Days} วัน"
+                            : planned
+                                ? "รอเริ่มตามแผน"
+                                : "อยู่ในแผน";
 
                     return new WorkDurationTaskViewModel
                     {
@@ -874,7 +892,7 @@ namespace ProjectTracking.Controllers
                         PlanStart = assign.PlanStart?.Date,
                         PlanEnd = assign.PlanEnd?.Date,
                         ActualStart = actualStart,
-                        ActualEnd = completed ? completedEndFallback : null,
+                        ActualEnd = actualEnd,
                         PlanDays = planDays,
                         ActualDays = actualDays,
                         VarianceDays = actualDays > 0 && planDays > 0 ? actualDays - planDays : 0,
@@ -893,8 +911,17 @@ namespace ProjectTracking.Controllers
                             "PLANNED" => "muted",
                             _ => "warning"
                         },
+                        ScheduleText = scheduleText,
+                        ScheduleTone = isCompletedLate || overdue
+                            ? "danger"
+                            : completed
+                                ? "success"
+                                : planned
+                                    ? "muted"
+                                    : "info",
                         IsCompleted = completed,
-                        IsOverdue = overdue
+                        IsOverdue = overdue,
+                        IsCompletedLate = isCompletedLate
                     };
                 })
                 .OrderBy(row => row.EmployeeName)
