@@ -211,6 +211,20 @@
         .legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: var(--wd-muted); font-size: 10px; }
         .legend span { display: inline-flex; align-items: center; gap: 5px; }
         .dot { width: 9px; height: 9px; display: inline-block; border-radius: 50%; background: var(--dot); }
+        .timeline-guide {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .timeline-guide-item {
+            min-width: 0;
+            padding: 9px 10px;
+            border: 1px solid var(--wd-border);
+            background: var(--wd-soft);
+        }
+        .timeline-guide-item strong { display: block; color: var(--wd-ink); font-size: 10px; }
+        .timeline-guide-item span { display: block; margin-top: 3px; color: var(--wd-muted); font-size: 9px; line-height: 1.45; }
         .status-layout { display: grid; grid-template-columns: minmax(300px, .7fr) minmax(520px, 2fr); gap: 24px; align-items: center; }
         .completion { display: flex; align-items: center; gap: 18px; }
         .donut {
@@ -493,7 +507,24 @@
                     {
                         <span><i class="dot" style="--dot:@statusRow.Color"></i>@statusRow.Definition.StatusDesc</span>
                     }
-                    <span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span>
+                </div>
+            </div>
+            <div class="timeline-guide" aria-label="คำอธิบายสถานะและแถบ Timeline">
+                <div class="timeline-guide-item">
+                    <strong>สีสถานะงาน</strong>
+                    <span>ดึงจากตาราง phase_assign_status โดยตรง เช่น น้ำเงิน = กำลังดำเนินการ และเขียว = เสร็จสิ้น</span>
+                </div>
+                <div class="timeline-guide-item">
+                    <strong>กรอบสีเทา</strong>
+                    <span>ช่วงวันที่ตามแผนจาก Plan Start ถึง Plan End ไม่ใช่สถานะงาน</span>
+                </div>
+                <div class="timeline-guide-item">
+                    <strong>แถบสีทึบ / ลายเฉียง</strong>
+                    <span>สีทึบคือช่วงทำจริง ส่วนลายเฉียงคือยังไม่มีช่วงทำจริงที่วาดได้ จึงวางสีสถานะตามช่วงแผน</span>
+                </div>
+                <div class="timeline-guide-item">
+                    <strong>ล่าช้า</strong>
+                    <span>เป็นผลวิเคราะห์เมื่อยังไม่เสร็จและวันนี้เกิน Plan End ไม่ใช่สถานะใหม่ และไม่เปลี่ยนสีสถานะหลัก</span>
                 </div>
             </div>
             @if (!report.Tasks.Any())
