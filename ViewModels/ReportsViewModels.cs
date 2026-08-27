@@ -245,6 +245,77 @@ namespace ProjectTracking.ViewModels
         public string EmpName { get; set; } = "";
     }
 
+    public class WorkDurationReportViewModel
+    {
+        public int DepartmentFilterValue { get; set; }
+        public int? DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = "ทุกฝ่าย";
+        public int? EmpId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public DateTime GeneratedAt { get; set; }
+        public string GeneratedBy { get; set; } = "";
+        public List<DepartmentReportOptionViewModel> DepartmentOptions { get; set; } = new();
+        public List<EmployeeReportOptionViewModel> EmployeeOptions { get; set; } = new();
+        public WorkDurationSummaryViewModel Summary { get; set; } = new();
+        public List<WorkDurationEmployeeViewModel> Employees { get; set; } = new();
+        public List<WorkDurationTaskViewModel> Tasks { get; set; } = new();
+    }
+
+    public class WorkDurationSummaryViewModel
+    {
+        public int Total { get; set; }
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Planned { get; set; }
+        public int Overdue { get; set; }
+        public int CompletionPercent { get; set; }
+        public decimal AveragePlanDays { get; set; }
+        public decimal AverageActualDays { get; set; }
+        public int TotalVarianceDays { get; set; }
+    }
+
+    public class WorkDurationEmployeeViewModel
+    {
+        public int EmpId { get; set; }
+        public string EmployeeName { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string DepartmentName { get; set; } = "";
+        public int Total { get; set; }
+        public int Completed { get; set; }
+        public int InProgress { get; set; }
+        public int Planned { get; set; }
+        public int Overdue { get; set; }
+        public int PlanDays { get; set; }
+        public int ActualDays { get; set; }
+        public int VarianceDays { get; set; }
+        public int CompletionPercent { get; set; }
+    }
+
+    public class WorkDurationTaskViewModel
+    {
+        public int AssignId { get; set; }
+        public int ProjectId { get; set; }
+        public int EmpId { get; set; }
+        public string EmployeeName { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string DepartmentName { get; set; } = "";
+        public string ProjectName { get; set; } = "";
+        public string WorkName { get; set; } = "";
+        public DateTime? PlanStart { get; set; }
+        public DateTime? PlanEnd { get; set; }
+        public DateTime? ActualStart { get; set; }
+        public DateTime? ActualEnd { get; set; }
+        public int PlanDays { get; set; }
+        public int ActualDays { get; set; }
+        public int VarianceDays { get; set; }
+        public string StatusCode { get; set; } = "";
+        public string StatusText { get; set; } = "";
+        public string StatusTone { get; set; } = "";
+        public bool IsCompleted { get; set; }
+        public bool IsOverdue { get; set; }
+    }
+
     public class MeetingReportRowViewModel
     {
         public int Id { get; set; }

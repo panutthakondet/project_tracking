@@ -416,6 +416,10 @@
                         <span class="project-overview-action-icon team" aria-hidden="true"></span>
                         <span>ทีมงานพัฒนา</span>
                     </a>
+                    <a asp-controller="Reports" asp-action="WorkDuration" class="panel-filter compact project-overview-action duration">
+                        <span class="project-overview-action-icon duration" aria-hidden="true"></span>
+                        <span>สถานะและเวลา</span>
+                    </a>
                 </div>
             </div>
             <div class="project-overview-combined">
@@ -3110,6 +3114,12 @@
         inset 0 1px 0 rgba(255,255,255,.18);
 }
 
+.project-overview-action.duration {
+    --dashboard-action-bg: linear-gradient(135deg, #8054dc 0%, #5c34b1 100%);
+    --dashboard-action-border: #aa87ff;
+    --dashboard-action-shadow: rgba(124,58,237,.22);
+}
+
 .project-overview-action:hover,
 .project-overview-action:focus-visible {
     background:var(--dashboard-action-bg) !important;
@@ -3181,6 +3191,33 @@
     border-radius:8px 8px 3px 3px;
     background:currentColor;
     clip-path:polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+}
+
+.project-overview-action-icon.duration {
+    border:2px solid currentColor;
+    border-radius:50%;
+}
+
+.project-overview-action-icon.duration::before,
+.project-overview-action-icon.duration::after {
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:2px;
+    border-radius:2px;
+    background:currentColor;
+    transform-origin:50% 100%;
+}
+
+.project-overview-action-icon.duration::before {
+    height:5px;
+    transform:translate(-50%,-100%);
+}
+
+.project-overview-action-icon.duration::after {
+    height:4px;
+    transform:translate(-50%,-100%) rotate(120deg);
 }
 
 .panel-actions {
@@ -7654,6 +7691,16 @@ html body main .dashboard-view .panel-project-overview .project-overview-action.
     box-shadow:
         0 0 0 2px rgba(94,234,212,.26),
         0 16px 28px rgba(20,184,166,.20),
+        inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+html body main .dashboard-view .panel-project-overview .project-overview-action.panel-filter.compact.duration {
+    color:#ffffff !important;
+    background:linear-gradient(135deg, #8054dc 0%, #5c34b1 100%) !important;
+    border:2px solid #aa87ff !important;
+    box-shadow:
+        0 0 0 2px rgba(196,181,253,.24),
+        0 16px 28px rgba(124,58,237,.22),
         inset 0 1px 0 rgba(255,255,255,.22) !important;
 }
 

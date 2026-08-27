@@ -1,0 +1,478 @@
+@model ProjectTracking.ViewModels.WorkDurationReportViewModel
+@using System.Globalization
+
+@{
+    Layout = null;
+    var report = Model ?? new ProjectTracking.ViewModels.WorkDurationReportViewModel();
+    var th = new CultureInfo("th-TH");
+    var rangeDays = Math.Max(1, (report.EndDate.Date - report.StartDate.Date).Days + 1);
+    var maxEmployeeDays = Math.Max(1, report.Employees.Select(row => Math.Max(row.PlanDays, row.ActualDays)).DefaultIfEmpty(1).Max());
+
+    string DateText(DateTime? value) => value?.ToString("dd MMM yy", th) ?? "-";
+    string DateInput(DateTime value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    string Number(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
+    string Percent(int value, int total) => total <= 0 ? "0" : (value * 100d / total).ToString("0.##", CultureInfo.InvariantCulture);
+
+    (decimal Left, decimal Width) TimelinePosition(DateTime? start, DateTime? end)
+    {
+        if (!start.HasValue)
+        {
+            return (0, 0);
+        }
+
+        var clippedStart = start.Value.Date < report.StartDate.Date ? report.StartDate.Date : start.Value.Date;
+        var rawEnd = end?.Date ?? clippedStart;
+        var clippedEnd = rawEnd > report.EndDate.Date ? report.EndDate.Date : rawEnd;
+        if (clippedEnd < report.StartDate.Date || clippedStart > report.EndDate.Date || clippedEnd < clippedStart)
+        {
+            return (0, 0);
+        }
+
+        var left = (decimal)(clippedStart - report.StartDate.Date).Days * 100m / rangeDays;
+        var width = (decimal)((clippedEnd - clippedStart).Days + 1) * 100m / rangeDays;
+        return (left, Math.Max(width, .45m));
+    }
+}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>วิเคราะห์สถานะและระยะเวลางาน</title>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --wd-bg: var(--pt-page-bg, #edf6f3);
+            --wd-surface: var(--pt-surface, #ffffff);
+            --wd-soft: var(--pt-surface-soft, #f5f9fb);
+            --wd-ink: var(--pt-surface-contrast, #10233f);
+            --wd-muted: var(--pt-surface-contrast-muted, #66778d);
+            --wd-border: var(--pt-border, #cddde6);
+            --wd-accent: var(--pt-accent, #159c8c);
+            --wd-accent-dark: var(--pt-accent-dark, #0c675f);
+            --wd-success: #18a67f;
+            --wd-warning: #f59e0b;
+            --wd-danger: #ef476f;
+            --wd-planned: #8291a7;
+            --wd-blue: #2f6fec;
+        }
+        html { min-width: 1180px; background: var(--wd-bg); }
+        body {
+            min-width: 1180px;
+            margin: 0;
+            color: var(--wd-ink);
+            background:
+                radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--wd-accent) 12%, transparent), transparent 30%),
+                var(--wd-bg);
+            font-size: 13px;
+        }
+        a { color: inherit; }
+        .page { width: 100%; min-height: 100vh; padding: 18px; }
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 22px 26px;
+            color: #fff;
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--pt-sidebar-bg, #0c2d44) 92%, #000), var(--wd-accent-dark));
+            border: 1px solid color-mix(in srgb, var(--wd-accent) 54%, transparent);
+            box-shadow: 0 18px 40px color-mix(in srgb, var(--wd-accent-dark) 18%, transparent);
+        }
+        .hero-copy { min-width: 0; }
+        .eyebrow { margin: 0 0 5px; color: #7ce6d8; font-size: 11px; font-weight: 700; letter-spacing: .08em !important; text-transform: uppercase; }
+        .hero h1 { margin: 0; font-size: clamp(25px, 2.3vw, 38px); line-height: 1.2; }
+        .hero p { margin: 7px 0 0; color: rgba(255,255,255,.75); font-size: 14px; }
+        .hero-actions { display: flex; gap: 9px; flex: 0 0 auto; }
+        .btn {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,.45);
+            border-radius: 10px;
+            color: #fff;
+            background: rgba(255,255,255,.09);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn:hover, .btn:focus-visible { color: #fff; border-color: #fff; background: rgba(255,255,255,.16); }
+        .btn.primary { color: #fff; border-color: var(--wd-accent); background: var(--wd-accent); }
+        .filter-panel {
+            margin-top: 14px;
+            padding: 15px;
+            border: 1px solid var(--wd-border);
+            background: var(--wd-surface);
+            box-shadow: 0 10px 24px color-mix(in srgb, var(--wd-ink) 7%, transparent);
+        }
+        .filters { display: grid; grid-template-columns: minmax(190px, 1fr) minmax(220px, 1.25fr) 165px 165px auto; gap: 12px; align-items: end; }
+        .field { display: grid; gap: 5px; min-width: 0; }
+        .field label { color: var(--wd-muted); font-size: 11px; font-weight: 700; }
+        .field select, .field input {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 11px;
+            border: 1px solid var(--wd-border);
+            border-radius: 9px;
+            color: var(--wd-ink);
+            background: var(--wd-surface);
+            font: inherit;
+            font-weight: 500;
+            outline: none;
+        }
+        .field select:focus, .field input:focus { border-color: var(--wd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--wd-accent) 16%, transparent); }
+        .filter-submit { min-height: 42px; border: 0; border-radius: 9px; padding: 0 20px; }
+        .selection-note { margin: 9px 1px 0; color: var(--wd-muted); font-size: 11px; }
+        .selection-note strong { color: var(--wd-ink); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(7, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+        .kpi {
+            min-height: 94px;
+            padding: 13px 14px;
+            border: 1px solid var(--wd-border);
+            border-top: 3px solid var(--tone, var(--wd-accent));
+            background: var(--wd-surface);
+        }
+        .kpi span { display: block; color: var(--wd-muted); font-size: 11px; }
+        .kpi strong { display: block; margin-top: 8px; color: var(--tone, var(--wd-ink)); font-size: 24px; line-height: 1; }
+        .kpi small { display: block; margin-top: 6px; color: var(--wd-muted); font-size: 10px; }
+        .kpi.success { --tone: var(--wd-success); }
+        .kpi.warning { --tone: var(--wd-warning); }
+        .kpi.danger { --tone: var(--wd-danger); }
+        .kpi.planned { --tone: var(--wd-planned); }
+        .kpi.blue { --tone: var(--wd-blue); }
+        .section {
+            margin-top: 14px;
+            padding: 16px;
+            border: 1px solid var(--wd-border);
+            background: var(--wd-surface);
+            box-shadow: 0 10px 24px color-mix(in srgb, var(--wd-ink) 5%, transparent);
+        }
+        .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+        .section-head h2 { margin: 0; color: var(--wd-ink); font-size: 17px; line-height: 1.3; }
+        .section-head p { margin: 4px 0 0; color: var(--wd-muted); font-size: 11px; }
+        .legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: var(--wd-muted); font-size: 10px; }
+        .legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .dot { width: 9px; height: 9px; display: inline-block; border-radius: 50%; background: var(--dot); }
+        .status-layout { display: grid; grid-template-columns: minmax(300px, .7fr) minmax(520px, 2fr); gap: 24px; align-items: center; }
+        .completion { display: flex; align-items: center; gap: 18px; }
+        .donut {
+            --value: @report.Summary.CompletionPercent;
+            width: 122px;
+            height: 122px;
+            flex: 0 0 122px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: conic-gradient(var(--wd-success) calc(var(--value) * 1%), color-mix(in srgb, var(--wd-border) 65%, transparent) 0);
+            position: relative;
+        }
+        .donut::after { content: ""; width: 82px; height: 82px; border-radius: 50%; background: var(--wd-surface); position: absolute; }
+        .donut strong { position: relative; z-index: 1; color: var(--wd-ink); font-size: 24px; }
+        .completion-copy h3 { margin: 0; font-size: 15px; }
+        .completion-copy strong { display: block; margin-top: 6px; color: var(--wd-success); font-size: 18px; }
+        .completion-copy p { margin: 5px 0 0; color: var(--wd-muted); font-size: 11px; }
+        .status-stack { height: 28px; display: flex; overflow: hidden; border: 1px solid var(--wd-border); background: var(--wd-soft); }
+        .status-stack span { min-width: 0; height: 100%; display: block; }
+        .status-numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 11px; }
+        .status-number { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 1px solid var(--wd-border); background: var(--wd-soft); }
+        .status-number span { display: flex; align-items: center; gap: 6px; color: var(--wd-muted); font-size: 10px; }
+        .status-number strong { color: var(--wd-ink); font-size: 13px; }
+        .employee-chart { display: grid; gap: 8px; }
+        .employee-row { display: grid; grid-template-columns: minmax(215px, 1.25fr) minmax(420px, 4fr) 82px 72px; gap: 12px; align-items: center; min-height: 48px; padding: 7px 10px; border-bottom: 1px solid var(--wd-border); }
+        .employee-row:last-child { border-bottom: 0; }
+        .employee-name { min-width: 0; }
+        .employee-name strong { display: block; overflow: hidden; color: var(--wd-ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        .employee-name small { display: block; overflow: hidden; margin-top: 2px; color: var(--wd-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+        .duration-bars { display: grid; gap: 5px; }
+        .bar-track { height: 9px; overflow: hidden; background: var(--wd-soft); border: 1px solid var(--wd-border); }
+        .bar-fill { height: 100%; min-width: 2px; background: var(--bar); }
+        .employee-days { color: var(--wd-muted); font-size: 10px; text-align: right; white-space: nowrap; }
+        .employee-days strong { color: var(--wd-ink); }
+        .variance { font-size: 11px; font-weight: 700; text-align: right; }
+        .variance.late { color: var(--wd-danger); }
+        .variance.early { color: var(--wd-success); }
+        .timeline { overflow: hidden; border: 1px solid var(--wd-border); }
+        .timeline-head, .timeline-row { display: grid; grid-template-columns: 290px minmax(700px, 1fr); }
+        .timeline-head { min-height: 38px; color: var(--wd-muted); background: var(--wd-soft); border-bottom: 1px solid var(--wd-border); }
+        .timeline-head > div:first-child { display: flex; align-items: center; padding: 0 12px; font-weight: 700; }
+        .timeline-axis { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); border-left: 1px solid var(--wd-border); }
+        .timeline-axis span { display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--wd-border); font-size: 9px; }
+        .timeline-row { min-height: 58px; border-bottom: 1px solid var(--wd-border); }
+        .timeline-row:last-child { border-bottom: 0; }
+        .timeline-label { min-width: 0; padding: 9px 12px; }
+        .timeline-label strong, .timeline-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .timeline-label strong { color: var(--wd-ink); font-size: 11px; }
+        .timeline-label span { margin-top: 3px; color: var(--wd-muted); font-size: 9px; }
+        .timeline-track {
+            position: relative;
+            min-width: 0;
+            border-left: 1px solid var(--wd-border);
+            background: repeating-linear-gradient(90deg, transparent 0, transparent calc(8.333% - 1px), var(--wd-border) calc(8.333% - 1px), var(--wd-border) 8.333%);
+        }
+        .timeline-bar { position: absolute; left: var(--left); width: var(--width); min-width: 3px; }
+        .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-blue); background: color-mix(in srgb, var(--wd-blue) 12%, transparent); }
+        .timeline-bar.actual { top: 32px; height: 12px; background: var(--bar); }
+        .table-wrap { overflow-x: auto; border: 1px solid var(--wd-border); }
+        table { width: 100%; min-width: 1280px; border-collapse: collapse; }
+        th, td { padding: 10px 11px; border-bottom: 1px solid var(--wd-border); text-align: left; vertical-align: top; }
+        th { color: var(--wd-muted); background: var(--wd-soft); font-size: 10px; white-space: nowrap; }
+        td { color: var(--wd-ink); font-size: 10px; }
+        tbody tr:last-child td { border-bottom: 0; }
+        .cell-main { display: block; font-weight: 600; }
+        .cell-sub { display: block; margin-top: 2px; color: var(--wd-muted); font-size: 9px; font-weight: 400; }
+        .status { display: inline-flex; min-width: 92px; justify-content: center; padding: 5px 8px; border: 1px solid var(--status); color: var(--status); background: transparent; font-size: 9px; font-weight: 700; }
+        .status.success { --status: var(--wd-success); }
+        .status.warning { --status: var(--wd-warning); }
+        .status.danger { --status: var(--wd-danger); }
+        .status.muted { --status: var(--wd-planned); }
+        .num { text-align: right; white-space: nowrap; }
+        .empty { padding: 34px 18px; color: var(--wd-muted); border: 1px dashed var(--wd-border); background: var(--wd-soft); text-align: center; }
+        .footer-note { margin: 12px 2px 0; color: var(--wd-muted); font-size: 10px; text-align: right; }
+        @@media (max-width: 1360px) {
+            .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+            .filters { grid-template-columns: 1fr 1.2fr 150px 150px auto; }
+        }
+        @@media print {
+            @@page { size: A3 landscape; margin: 8mm; }
+            html, body { min-width: 0; background: #fff !important; }
+            .page { padding: 0; }
+            .hero { color: #10233f; background: #fff; border: 1px solid #9fb1c3; box-shadow: none; }
+            .hero p, .eyebrow { color: #52657b; }
+            .hero-actions, .filter-panel { display: none !important; }
+            .section, .kpi { box-shadow: none; break-inside: avoid; }
+            .employee-row { break-inside: avoid; }
+        }
+    </style>
+    @await Html.PartialAsync("_StandaloneTheme")
+</head>
+<body class="pt-standalone-report">
+    <main class="page">
+        <header class="hero">
+            <div class="hero-copy">
+                <div class="eyebrow">PROJECT TRACKING · EXECUTIVE ANALYTICS</div>
+                <h1>วิเคราะห์สถานะและระยะเวลางาน</h1>
+                <p>เปรียบเทียบแผนกับเวลาที่ใช้จริงจาก PhaseAssigns แบบรายฝ่าย รายบุคคล และภาพรวม</p>
+            </div>
+            <div class="hero-actions">
+                <button type="button" class="btn" onclick="window.print()">พิมพ์รายงาน</button>
+                <a asp-controller="Home" asp-action="Index" class="btn">กลับ Dashboard</a>
+            </div>
+        </header>
+
+        <section class="filter-panel">
+            <form method="get" asp-action="WorkDuration" class="filters" id="workDurationFilters">
+                <div class="field">
+                    <label for="departmentId">ฝ่าย</label>
+                    <select id="departmentId" name="departmentId">
+                        <option value="0" selected="@(report.DepartmentFilterValue == 0 ? "selected" : null)">ทุกฝ่าย</option>
+                        @foreach (var department in report.DepartmentOptions)
+                        {
+                            <option value="@department.DepartmentId" selected="@(report.DepartmentFilterValue == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="empId">ผู้รับผิดชอบ</label>
+                    <select id="empId" name="empId">
+                        <option value="">พนักงานทั้งหมดในฝ่าย</option>
+                        @foreach (var employee in report.EmployeeOptions)
+                        {
+                            <option value="@employee.EmpId" selected="@(report.EmpId == employee.EmpId ? "selected" : null)">@employee.EmpName</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="startDate">ตั้งแต่วันที่</label>
+                    <input id="startDate" name="startDate" type="date" value="@DateInput(report.StartDate)" />
+                </div>
+                <div class="field">
+                    <label for="endDate">ถึงวันที่</label>
+                    <input id="endDate" name="endDate" type="date" value="@DateInput(report.EndDate)" />
+                </div>
+                <button class="btn primary filter-submit" type="submit">แสดงข้อมูล</button>
+            </form>
+            <div class="selection-note">
+                กำลังแสดง <strong>@report.DepartmentName</strong>
+                · @(report.EmpId.HasValue ? report.EmployeeOptions.FirstOrDefault(row => row.EmpId == report.EmpId)?.EmpName : "พนักงานทั้งหมด")
+                · @DateText(report.StartDate) ถึง @DateText(report.EndDate)
+            </div>
+        </section>
+
+        <section class="kpi-grid" aria-label="ข้อมูลสรุป">
+            <article class="kpi blue"><span>งานทั้งหมด</span><strong>@report.Summary.Total</strong><small>PhaseAssigns ในช่วงที่เลือก</small></article>
+            <article class="kpi success"><span>เสร็จสิ้น</span><strong>@report.Summary.Completed</strong><small>@report.Summary.CompletionPercent% ของงานทั้งหมด</small></article>
+            <article class="kpi warning"><span>กำลังดำเนินการ</span><strong>@report.Summary.InProgress</strong><small>เริ่มงานและยังไม่เสร็จ</small></article>
+            <article class="kpi danger"><span>ล่าช้า</span><strong>@report.Summary.Overdue</strong><small>เลย Plan End และยังไม่เสร็จ</small></article>
+            <article class="kpi planned"><span>วางแผน</span><strong>@report.Summary.Planned</strong><small>ยังไม่ถึงวันเริ่มตามแผน</small></article>
+            <article class="kpi"><span>เฉลี่ยตามแผน</span><strong>@Number(report.Summary.AveragePlanDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
+            <article class="kpi"><span>เฉลี่ยเวลาที่ใช้</span><strong>@Number(report.Summary.AverageActualDays)</strong><small>วันปฏิทินต่อรายการ</small></article>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <div><h2>ภาพรวมสถานะงาน</h2><p>สถานะคำนวณจาก Work Status และวันสิ้นสุดตามแผน</p></div>
+            </div>
+            <div class="status-layout">
+                <div class="completion">
+                    <div class="donut"><strong>@report.Summary.CompletionPercent%</strong></div>
+                    <div class="completion-copy">
+                        <h3>ความคืบหน้าจากจำนวนงาน</h3>
+                        <strong>@report.Summary.Completed / @report.Summary.Total รายการ</strong>
+                        <p>นับงานสถานะเสร็จสิ้นเทียบกับงานทั้งหมดในตัวกรอง</p>
+                    </div>
+                </div>
+                <div>
+                    <div class="status-stack" aria-label="สัดส่วนสถานะงาน">
+                        <span style="width:@Percent(report.Summary.Completed, report.Summary.Total)%; background:var(--wd-success)"></span>
+                        <span style="width:@Percent(report.Summary.InProgress, report.Summary.Total)%; background:var(--wd-warning)"></span>
+                        <span style="width:@Percent(report.Summary.Overdue, report.Summary.Total)%; background:var(--wd-danger)"></span>
+                        <span style="width:@Percent(report.Summary.Planned, report.Summary.Total)%; background:var(--wd-planned)"></span>
+                    </div>
+                    <div class="status-numbers">
+                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-success)"></i>เสร็จสิ้น</span><strong>@report.Summary.Completed</strong></div>
+                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-warning)"></i>กำลังดำเนินการ</span><strong>@report.Summary.InProgress</strong></div>
+                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span><strong>@report.Summary.Overdue</strong></div>
+                        <div class="status-number"><span><i class="dot" style="--dot:var(--wd-planned)"></i>วางแผน</span><strong>@report.Summary.Planned</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <div><h2>แผนเทียบเวลาที่ใช้จริงรายคน</h2><p>แผน = ผลรวม Plan Start ถึง Plan End · เวลาที่ใช้ = Actual Start ถึง Actual End/วันนี้</p></div>
+                <div class="legend">
+                    <span><i class="dot" style="--dot:var(--wd-blue)"></i>วันตามแผน</span>
+                    <span><i class="dot" style="--dot:var(--wd-accent)"></i>วันที่ใช้จริง</span>
+                </div>
+            </div>
+            @if (!report.Employees.Any())
+            {
+                <div class="empty">ไม่พบข้อมูลมอบหมายงานในช่วงที่เลือก</div>
+            }
+            else
+            {
+                <div class="employee-chart">
+                    @foreach (var employee in report.Employees)
+                    {
+                        var planWidth = employee.PlanDays * 100m / maxEmployeeDays;
+                        var actualWidth = employee.ActualDays * 100m / maxEmployeeDays;
+                        <div class="employee-row">
+                            <div class="employee-name"><strong>@employee.EmployeeName</strong><small>@employee.DepartmentName · @employee.Position · @employee.Total งาน</small></div>
+                            <div class="duration-bars">
+                                <div class="bar-track"><div class="bar-fill" style="--bar:var(--wd-blue); width:@planWidth.ToString("0.##", CultureInfo.InvariantCulture)%"></div></div>
+                                <div class="bar-track"><div class="bar-fill" style="--bar:var(--wd-accent); width:@actualWidth.ToString("0.##", CultureInfo.InvariantCulture)%"></div></div>
+                            </div>
+                            <div class="employee-days"><strong>@employee.PlanDays</strong> / @employee.ActualDays วัน</div>
+                            <div class="variance @(employee.VarianceDays > 0 ? "late" : employee.VarianceDays < 0 ? "early" : "")">@(employee.VarianceDays > 0 ? "+" : "")@employee.VarianceDays วัน</div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <div><h2>Timeline แผนและการทำงานจริง</h2><p>กรอบสีน้ำเงินคือแผน · แถบสีด้านล่างคือระยะเวลาที่ทำจริงและสถานะปัจจุบัน</p></div>
+                <div class="legend">
+                    <span><i class="dot" style="--dot:var(--wd-success)"></i>เสร็จสิ้น</span>
+                    <span><i class="dot" style="--dot:var(--wd-warning)"></i>กำลังดำเนินการ</span>
+                    <span><i class="dot" style="--dot:var(--wd-danger)"></i>ล่าช้า</span>
+                    <span><i class="dot" style="--dot:var(--wd-planned)"></i>วางแผน</span>
+                </div>
+            </div>
+            @if (!report.Tasks.Any())
+            {
+                <div class="empty">ไม่พบ Timeline ในช่วงที่เลือก</div>
+            }
+            else
+            {
+                <div class="timeline">
+                    <div class="timeline-head">
+                        <div>งาน / ผู้รับผิดชอบ</div>
+                        <div class="timeline-axis">
+                            @for (var month = 0; month < 12; month++)
+                            {
+                                var tickDate = report.StartDate.AddDays((double)rangeDays * month / 12d);
+                                <span>@tickDate.ToString("MMM yy", th)</span>
+                            }
+                        </div>
+                    </div>
+                    @foreach (var task in report.Tasks)
+                    {
+                        var plan = TimelinePosition(task.PlanStart, task.PlanEnd);
+                        var effectiveActualEnd = task.IsCompleted ? task.ActualEnd : DateTime.Today;
+                        var actual = TimelinePosition(task.ActualStart, effectiveActualEnd);
+                        var actualColor = task.StatusCode switch { "DONE" => "var(--wd-success)", "OVERDUE" => "var(--wd-danger)", "PLANNED" => "var(--wd-planned)", _ => "var(--wd-warning)" };
+                        <div class="timeline-row">
+                            <div class="timeline-label"><strong>@task.WorkName</strong><span>@task.EmployeeName · @task.ProjectName</span></div>
+                            <div class="timeline-track">
+                                @if (plan.Width > 0)
+                                {
+                                    <span class="timeline-bar plan" style="--left:@plan.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@plan.Width.ToString("0.###", CultureInfo.InvariantCulture)%"></span>
+                                }
+                                @if (actual.Width > 0)
+                                {
+                                    <span class="timeline-bar actual" style="--left:@actual.Left.ToString("0.###", CultureInfo.InvariantCulture)%; --width:@actual.Width.ToString("0.###", CultureInfo.InvariantCulture)%; --bar:@actualColor"></span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="section">
+            <div class="section-head"><div><h2>รายละเอียดงานและระยะเวลา</h2><p>Actual Start บันทึกอัตโนมัติจาก Plan Start และ Actual End บันทึกเมื่อสถานะเสร็จสิ้น</p></div></div>
+            @if (!report.Tasks.Any())
+            {
+                <div class="empty">ไม่พบรายการงาน</div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>#</th><th>ผู้รับผิดชอบ</th><th>โครงการ / งาน</th><th>สถานะ</th><th>แผน</th><th>ทำจริง</th><th class="num">วันตามแผน</th><th class="num">วันที่ใช้</th><th class="num">ต่างจากแผน</th></tr></thead>
+                        <tbody>
+                            @{ var sequence = 1; }
+                            @foreach (var task in report.Tasks)
+                            {
+                                <tr>
+                                    <td>@sequence</td>
+                                    <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
+                                    <td><span class="cell-main">@task.WorkName</span><span class="cell-sub">@task.ProjectName</span></td>
+                                    <td><span class="status @task.StatusTone">@task.StatusText</span></td>
+                                    <td>@DateText(task.PlanStart) – @DateText(task.PlanEnd)</td>
+                                    <td>@DateText(task.ActualStart) – @(task.IsCompleted ? DateText(task.ActualEnd) : "วันนี้")</td>
+                                    <td class="num">@task.PlanDays</td>
+                                    <td class="num">@task.ActualDays</td>
+                                    <td class="num">@(task.VarianceDays > 0 ? "+" : "")@task.VarianceDays</td>
+                                </tr>
+                                sequence++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+        <div class="footer-note">อัปเดตข้อมูล @report.GeneratedAt.ToString("dd MMM yyyy HH:mm", th) · ผู้ใช้งาน @report.GeneratedBy</div>
+    </main>
+    <script>
+        (() => {
+            const department = document.getElementById('departmentId');
+            const employee = document.getElementById('empId');
+            department?.addEventListener('change', () => {
+                if (employee) employee.value = '';
+                document.getElementById('workDurationFilters')?.submit();
+            });
+        })();
+    </script>
+</body>
+</html>

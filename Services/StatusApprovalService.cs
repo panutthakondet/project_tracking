@@ -257,6 +257,10 @@ namespace ProjectTracking.Services
                     throw new InvalidOperationException("ไม่พบรายการมอบหมายที่ต้องอนุมัติ");
 
                 assign.WorkStatus = request.RequestedStatus;
+                assign.ActualStart = assign.PlanStart?.Date;
+                assign.ActualEnd = IsPhaseAssignCompletionStatus(assign.WorkStatus)
+                    ? assign.ActualEnd ?? now.Date
+                    : null;
                 assign.CreatedAt = now;
                 assign.EntryId = reviewerEmpId;
                 return;

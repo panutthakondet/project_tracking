@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Middleware;
 using ProjectTracking.Models;
+using ProjectTracking.Services;
 using ProjectTracking.ViewModels;
 
 namespace ProjectTracking.Controllers
@@ -191,6 +192,16 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Executive(int? departmentId)
         {
             return View(await BuildExecutiveReportAsync(departmentId));
+        }
+
+        [RequireMenu("Home.Index")]
+        public async Task<IActionResult> WorkDuration(
+            int? departmentId,
+            int? empId,
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            return View(await BuildWorkDurationReportAsync(departmentId, empId, startDate, endDate));
         }
 
         [RequireMenu("Reports.Index")]
@@ -751,6 +762,218 @@ namespace ProjectTracking.Controllers
             return cleaned.Length <= maxLength
                 ? cleaned
                 : cleaned[..maxLength].TrimEnd() + "...";
+        }
+
+        private async Task<WorkDurationReportViewModel> BuildWorkDurationReportAsync(
+            int? requestedDepartmentId,
+            int? requestedEmpId,
+            DateTime? requestedStartDate,
+            DateTime? requestedEndDate)
+        {
+            var departmentOptions = await GetDepartmentOptionsAsync();
+            var hasDepartmentQuery = HttpContext.Request.Query.ContainsKey("departmentId");
+            var showAllDepartments = hasDepartmentQuery && requestedDepartmentId == 0;
+            var departmentId = showAllDepartments
+                ? null
+                : ValidateDepartmentId(requestedDepartmentId, departmentOptions);
+
+            if (!hasDepartmentQuery)
+            {
+                departmentId = await ResolveCurrentUserDepartmentIdAsync(departmentOptions);
+            }
+
+            var today = DateTime.Today;
+            var startDate = requestedStartDate?.Date ?? new DateTime(today.Year, 1, 1);
+            var endDate = requestedEndDate?.Date ?? new DateTime(today.Year, 12, 31);
+            if (startDate > endDate)
+            {
+                (startDate, endDate) = (endDate, startDate);
+            }
+
+            var employeeQuery = _context.Employees
+                .Include(row => row.Department)
+                .AsNoTracking()
+                .Where(row => row.Status == "ACTIVE");
+            if (departmentId.HasValue)
+            {
+                employeeQuery = employeeQuery.Where(row => row.DepartmentId == departmentId.Value);
+            }
+
+            var employees = await employeeQuery
+                .OrderBy(row => row.EmpName)
+                .ToListAsync();
+            var validEmployeeIds = employees.Select(row => row.EmpId).ToHashSet();
+            var empId = requestedEmpId.HasValue && validEmployeeIds.Contains(requestedEmpId.Value)
+                ? requestedEmpId
+                : null;
+
+            var employeeIds = empId.HasValue
+                ? new HashSet<int> { empId.Value }
+                : validEmployeeIds;
+
+            var assignments = employeeIds.Count == 0
+                ? new List<PhaseAssign>()
+                : await _context.PhaseAssigns
+                    .AsNoTracking()
+                    .Where(row => employeeIds.Contains(row.EmpId))
+                    .Where(row =>
+                        (row.PlanStart ?? row.ActualStart ?? row.CreatedAt) <= endDate
+                        && (row.PlanEnd ?? row.ActualEnd ?? row.PlanStart ?? row.ActualStart ?? row.CreatedAt) >= startDate)
+                    .ToListAsync();
+
+            var phaseIds = assignments.Select(row => row.PhaseId).Distinct().ToList();
+            var phases = phaseIds.Count == 0
+                ? new List<ProjectPhase>()
+                : await _context.ProjectPhases
+                    .AsNoTracking()
+                    .Where(row => phaseIds.Contains(row.PhaseId))
+                    .ToListAsync();
+            var phaseMap = phases.ToDictionary(row => row.PhaseId);
+
+            var projectIds = phases.Select(row => row.ProjectId).Distinct().ToList();
+            var projects = projectIds.Count == 0
+                ? new List<Project>()
+                : await _context.Projects
+                    .Include(row => row.Coop)
+                    .AsNoTracking()
+                    .Where(row => projectIds.Contains(row.ProjectId))
+                    .ToListAsync();
+            var projectMap = projects.ToDictionary(row => row.ProjectId);
+            var employeeMap = employees.ToDictionary(row => row.EmpId);
+
+            var tasks = assignments
+                .Select(assign =>
+                {
+                    employeeMap.TryGetValue(assign.EmpId, out var employee);
+                    phaseMap.TryGetValue(assign.PhaseId, out var phase);
+                    var projectId = phase?.ProjectId ?? 0;
+                    projectMap.TryGetValue(projectId, out var project);
+
+                    var completed = StatusApprovalService.IsPhaseAssignCompletionStatus(assign.WorkStatus);
+                    var overdue = !completed && assign.PlanEnd?.Date < today;
+                    var planned = !completed && !overdue && assign.PlanStart?.Date > today;
+                    var statusCode = completed ? "DONE" : overdue ? "OVERDUE" : planned ? "PLANNED" : "IN_PROGRESS";
+                    var actualStart = assign.ActualStart?.Date ?? assign.PlanStart?.Date;
+                    var completedEndFallback = assign.ActualEnd?.Date ?? assign.CreatedAt?.Date ?? assign.PlanEnd?.Date;
+                    var actualEnd = completed ? completedEndFallback : today;
+                    var planDays = InclusiveDays(assign.PlanStart, assign.PlanEnd);
+                    var actualDays = actualStart.HasValue && actualEnd.HasValue && actualEnd.Value >= actualStart.Value
+                        ? InclusiveDays(actualStart, actualEnd)
+                        : 0;
+
+                    return new WorkDurationTaskViewModel
+                    {
+                        AssignId = assign.AssignId,
+                        ProjectId = projectId,
+                        EmpId = assign.EmpId,
+                        EmployeeName = employee?.EmpName ?? "-",
+                        Position = employee?.Position?.Trim() ?? "-",
+                        DepartmentName = employee?.Department?.DepartmentName?.Trim() ?? "-",
+                        ProjectName = project?.ProjectDisplayName ?? "-",
+                        WorkName = string.IsNullOrWhiteSpace(assign.Role) ? phase?.PhaseName ?? "-" : assign.Role.Trim(),
+                        PlanStart = assign.PlanStart?.Date,
+                        PlanEnd = assign.PlanEnd?.Date,
+                        ActualStart = actualStart,
+                        ActualEnd = completed ? completedEndFallback : null,
+                        PlanDays = planDays,
+                        ActualDays = actualDays,
+                        VarianceDays = actualDays > 0 && planDays > 0 ? actualDays - planDays : 0,
+                        StatusCode = statusCode,
+                        StatusText = statusCode switch
+                        {
+                            "DONE" => "เสร็จสิ้น",
+                            "OVERDUE" => "ล่าช้า",
+                            "PLANNED" => "วางแผน",
+                            _ => "กำลังดำเนินการ"
+                        },
+                        StatusTone = statusCode switch
+                        {
+                            "DONE" => "success",
+                            "OVERDUE" => "danger",
+                            "PLANNED" => "muted",
+                            _ => "warning"
+                        },
+                        IsCompleted = completed,
+                        IsOverdue = overdue
+                    };
+                })
+                .OrderBy(row => row.EmployeeName)
+                .ThenBy(row => row.PlanStart ?? DateTime.MaxValue)
+                .ThenBy(row => row.AssignId)
+                .ToList();
+
+            var employeeRows = tasks
+                .GroupBy(row => new { row.EmpId, row.EmployeeName, row.Position, row.DepartmentName })
+                .Select(group => new WorkDurationEmployeeViewModel
+                {
+                    EmpId = group.Key.EmpId,
+                    EmployeeName = group.Key.EmployeeName,
+                    Position = group.Key.Position,
+                    DepartmentName = group.Key.DepartmentName,
+                    Total = group.Count(),
+                    Completed = group.Count(row => row.StatusCode == "DONE"),
+                    InProgress = group.Count(row => row.StatusCode == "IN_PROGRESS"),
+                    Planned = group.Count(row => row.StatusCode == "PLANNED"),
+                    Overdue = group.Count(row => row.StatusCode == "OVERDUE"),
+                    PlanDays = group.Sum(row => row.PlanDays),
+                    ActualDays = group.Sum(row => row.ActualDays),
+                    VarianceDays = group.Sum(row => row.VarianceDays),
+                    CompletionPercent = group.Any()
+                        ? (int)Math.Round(group.Count(row => row.IsCompleted) * 100d / group.Count())
+                        : 0
+                })
+                .OrderByDescending(row => row.Overdue)
+                .ThenByDescending(row => row.Total)
+                .ThenBy(row => row.EmployeeName)
+                .ToList();
+
+            var completedCount = tasks.Count(row => row.StatusCode == "DONE");
+            var measuredPlanDays = tasks.Where(row => row.PlanDays > 0).Select(row => row.PlanDays).ToList();
+            var measuredActualDays = tasks.Where(row => row.ActualDays > 0).Select(row => row.ActualDays).ToList();
+
+            return new WorkDurationReportViewModel
+            {
+                DepartmentFilterValue = showAllDepartments ? 0 : departmentId ?? 0,
+                DepartmentId = departmentId,
+                DepartmentName = departmentId.HasValue
+                    ? departmentOptions.FirstOrDefault(row => row.DepartmentId == departmentId.Value)?.DepartmentName ?? "ทุกฝ่าย"
+                    : "ทุกฝ่าย",
+                EmpId = empId,
+                StartDate = startDate,
+                EndDate = endDate,
+                GeneratedAt = DateTime.Now,
+                GeneratedBy = HttpContext.Session.GetString("Username") ?? "-",
+                DepartmentOptions = departmentOptions,
+                EmployeeOptions = employees.Select(row => new EmployeeReportOptionViewModel
+                {
+                    EmpId = row.EmpId,
+                    EmpName = row.EmpName
+                }).ToList(),
+                Summary = new WorkDurationSummaryViewModel
+                {
+                    Total = tasks.Count,
+                    Completed = completedCount,
+                    InProgress = tasks.Count(row => row.StatusCode == "IN_PROGRESS"),
+                    Planned = tasks.Count(row => row.StatusCode == "PLANNED"),
+                    Overdue = tasks.Count(row => row.StatusCode == "OVERDUE"),
+                    CompletionPercent = tasks.Count == 0 ? 0 : (int)Math.Round(completedCount * 100d / tasks.Count),
+                    AveragePlanDays = measuredPlanDays.Count == 0 ? 0 : Math.Round((decimal)measuredPlanDays.Average(), 1),
+                    AverageActualDays = measuredActualDays.Count == 0 ? 0 : Math.Round((decimal)measuredActualDays.Average(), 1),
+                    TotalVarianceDays = tasks.Sum(row => row.VarianceDays)
+                },
+                Employees = employeeRows,
+                Tasks = tasks
+            };
+        }
+
+        private static int InclusiveDays(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue || endDate.Value.Date < startDate.Value.Date)
+            {
+                return 0;
+            }
+
+            return (endDate.Value.Date - startDate.Value.Date).Days + 1;
         }
 
         private async Task<ExecutiveReportViewModel> BuildExecutiveReportAsync(int? departmentId)
@@ -1346,6 +1569,41 @@ namespace ProjectTracking.Controllers
                     DepartmentName = row.DepartmentName
                 })
                 .ToListAsync();
+        }
+
+        private async Task<int?> ResolveCurrentUserDepartmentIdAsync(
+            IReadOnlyCollection<DepartmentReportOptionViewModel> options)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            var empId = HttpContext.Session.GetInt32("EmpId")
+                ?? await _context.LoginUsers
+                    .AsNoTracking()
+                    .Where(row => row.UserId == userId.Value)
+                    .Select(row => row.EmpId)
+                    .FirstOrDefaultAsync()
+                ?? await _context.Employees
+                    .AsNoTracking()
+                    .Where(row => row.LoginUserId == userId.Value)
+                    .Select(row => (int?)row.EmpId)
+                    .FirstOrDefaultAsync();
+
+            if (!empId.HasValue)
+            {
+                return null;
+            }
+
+            var departmentId = await _context.Employees
+                .AsNoTracking()
+                .Where(row => row.EmpId == empId.Value)
+                .Select(row => row.DepartmentId)
+                .FirstOrDefaultAsync();
+
+            return ValidateDepartmentId(departmentId, options);
         }
 
         private static int? ValidateDepartmentId(int? departmentId, IReadOnlyCollection<DepartmentReportOptionViewModel> options)

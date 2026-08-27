@@ -339,6 +339,7 @@ namespace ProjectTracking.Controllers
             }
             if (string.IsNullOrWhiteSpace(model.WorkStatus))
                 model.WorkStatus = "IN_PROGRESS";
+            SyncActualPeriod(model);
             model.CreatedAt = DateTime.Now;
             model.EntryId = await GetCurrentEntryIdAsync();
             _context.PhaseAssigns.Add(model);
@@ -562,6 +563,8 @@ namespace ProjectTracking.Controllers
             {
                 db.WorkStatus = requestedStatus;
             }
+
+            SyncActualPeriod(db);
 
             await _context.SaveChangesAsync();
 
@@ -986,6 +989,7 @@ namespace ProjectTracking.Controllers
                 _context.PhaseAssignLogs.Add(log);
 
                 assign.WorkStatus = status == "PASS" ? "DONE" : "IN_PROGRESS";
+                SyncActualPeriod(assign);
                 assign.CreatedAt = DateTime.Now;
                 assign.EntryId = await GetCurrentEntryIdAsync();
 
@@ -1002,6 +1006,22 @@ namespace ProjectTracking.Controllers
             {
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
+        }
+
+        private static void SyncActualPeriod(PhaseAssign assign)
+        {
+            // ผู้ใช้ไม่ต้องกรอก Actual Start เอง: ให้ยึดวันเริ่มตามแผนเสมอ
+            assign.ActualStart = assign.PlanStart?.Date;
+
+            if (StatusApprovalService.IsPhaseAssignCompletionStatus(assign.WorkStatus))
+            {
+                assign.ActualEnd ??= DateTime.Today;
+                return;
+            }
+
+            // เมื่อเปิดงานกลับมาแก้ไขใหม่ ให้รอบปัจจุบันยังไม่มีวันสิ้นสุด
+            // ประวัติ PASS / REWORK ยังคงอยู่ใน phase_assign_logs
+            assign.ActualEnd = null;
         }
 
         // =====================================================
