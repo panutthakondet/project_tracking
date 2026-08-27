@@ -535,8 +535,14 @@
                         var effectiveActualEnd = task.IsCompleted ? task.ActualEnd : DateTime.Today;
                         var actual = TimelinePosition(task.ActualStart, effectiveActualEnd);
                         var actualColor = task.StatusCode switch { "DONE" => "var(--wd-success)", "OVERDUE" => "var(--wd-danger)", "PLANNED" => "var(--wd-planned)", _ => "var(--wd-warning)" };
+                        var timelineLabelTooltip = $"งาน: {task.WorkName} | ผู้รับผิดชอบ: {task.EmployeeName} | โครงการ: {task.ProjectName}";
                         <div class="timeline-row">
-                            <div class="timeline-label"><strong>@task.WorkName</strong><span>@task.EmployeeName · @task.ProjectName</span></div>
+                            <div class="timeline-label"
+                                 title="@timelineLabelTooltip"
+                                 aria-label="@timelineLabelTooltip">
+                                <strong>@task.WorkName</strong>
+                                <span>@task.EmployeeName · @task.ProjectName</span>
+                            </div>
                             <div class="timeline-track">
                                 <div class="timeline-week-cells" aria-hidden="true">
                                     @foreach (var week in timelineWeeks)
