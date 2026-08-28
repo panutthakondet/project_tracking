@@ -776,11 +776,11 @@
                             {
                                 var actualPeriodText = !task.ActualStart.HasValue
                                     ? "-"
-                                    : !task.IsCompleted && !task.HasStarted
-                                        ? "ยังไม่เริ่ม"
-                                        : task.IsCompleted
-                                            ? $"{DateText(task.ActualStart)} – {DateText(task.ActualEnd)}"
-                                            : $"{DateText(task.ActualStart)} – วันนี้";
+                                    : task.IsCompleted
+                                        ? $"{DateText(task.ActualStart)} – {DateText(task.ActualEnd)}"
+                                        : task.HasStarted
+                                            ? $"{DateText(task.ActualStart)} – วันนี้"
+                                            : $"{DateText(task.ActualStart)} – ยังไม่เริ่ม";
                                 <tr class="@(task.IsCompleted ? "completed-item is-hidden" : "")" data-completed-group="details">
                                     <td>@sequence</td>
                                     <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
