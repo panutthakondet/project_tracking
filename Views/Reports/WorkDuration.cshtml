@@ -433,7 +433,7 @@
             background: repeating-linear-gradient(135deg, var(--bar) 0 7px, color-mix(in srgb, var(--bar) 68%, white) 7px 12px);
         }
         .table-wrap { overflow-x: auto; border: 1px solid var(--wd-border); }
-        table { width: 100%; min-width: 1420px; border-collapse: collapse; }
+        table { width: 100%; min-width: 1280px; border-collapse: collapse; }
         th, td { padding: 10px 11px; border-bottom: 1px solid var(--wd-border); text-align: left; vertical-align: top; }
         th { color: var(--wd-muted); background: var(--wd-soft); font-size: 10px; white-space: nowrap; }
         td { color: var(--wd-ink); font-size: 10px; }
@@ -769,7 +769,7 @@
                     }
                     <div class="table-wrap">
                         <table>
-                        <thead><tr><th>#</th><th>ผู้รับผิดชอบ</th><th>โครงการ / งาน</th><th>งวดงาน</th><th>สถานะ</th><th>แผน</th><th>ทำจริง</th><th class="num">วันตามแผน</th><th class="num">วันที่ใช้</th><th class="num">ต่างจากแผน</th></tr></thead>
+                        <thead><tr><th>#</th><th>ผู้รับผิดชอบ</th><th>โครงการ / งวดงาน / งาน</th><th>สถานะ</th><th>แผน</th><th>ทำจริง</th><th class="num">วันตามแผน</th><th class="num">วันที่ใช้</th><th class="num">ต่างจากแผน</th></tr></thead>
                         <tbody>
                             @{ var sequence = 1; }
                             @foreach (var task in detailTasks)
@@ -784,8 +784,7 @@
                                 <tr class="@(task.IsCompleted ? "completed-item is-hidden" : "")" data-completed-group="details">
                                     <td>@sequence</td>
                                     <td><span class="cell-main">@task.EmployeeName</span><span class="cell-sub">@task.DepartmentName · @task.Position</span></td>
-                                    <td><span class="cell-main">@task.WorkName</span><span class="cell-sub">@task.ProjectName</span></td>
-                                    <td><span class="cell-main cell-period">@PhasePeriodText(task)</span><span class="cell-sub">@task.PeriodName</span></td>
+                                    <td><span class="cell-main">@task.WorkName</span><span class="cell-sub cell-period">@PhasePeriodText(task)</span><span class="cell-sub">@task.ProjectName</span></td>
                                     <td><span class="status" style="--status:@task.StatusColor">@task.StatusText</span><span class="cell-sub status-result @task.ScheduleTone">@task.ScheduleText</span></td>
                                     <td>@DateText(task.PlanStart) – @DateText(task.PlanEnd)</td>
                                     <td>@actualPeriodText</td>

@@ -956,7 +956,6 @@ namespace ProjectTracking.Controllers
                         DepartmentName = employee?.Department?.DepartmentName?.Trim() ?? "-",
                         CoopName = project?.Coop?.CoopName?.Trim() ?? "-",
                         ProjectName = project?.ProjectDisplayName ?? "-",
-                        PeriodName = string.IsNullOrWhiteSpace(phase?.PhaseName) ? "-" : phase.PhaseName.Trim(),
                         WorkName = string.IsNullOrWhiteSpace(assign.Role) ? phase?.PhaseName ?? "-" : assign.Role.Trim(),
                         PlanStart = assign.PlanStart?.Date,
                         PlanEnd = assign.PlanEnd?.Date,
