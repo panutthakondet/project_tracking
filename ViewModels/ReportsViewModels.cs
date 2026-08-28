@@ -307,9 +307,13 @@ namespace ProjectTracking.ViewModels
         public int AssignId { get; set; }
         public int ProjectId { get; set; }
         public int EmpId { get; set; }
+        public int? PhaseOrder { get; set; }
+        public int? PeriodOrder { get; set; }
+        public int? PhaseSort { get; set; }
         public string EmployeeName { get; set; } = "";
         public string Position { get; set; } = "";
         public string DepartmentName { get; set; } = "";
+        public string CoopName { get; set; } = "";
         public string ProjectName { get; set; } = "";
         public string WorkName { get; set; } = "";
         public DateTime? PlanStart { get; set; }

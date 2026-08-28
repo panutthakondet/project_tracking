@@ -948,9 +948,13 @@ namespace ProjectTracking.Controllers
                         AssignId = assign.AssignId,
                         ProjectId = projectId,
                         EmpId = assign.EmpId,
+                        PhaseOrder = phase?.PhaseOrder,
+                        PeriodOrder = phase?.PeriodOrder,
+                        PhaseSort = assign.PhaseSort,
                         EmployeeName = employee?.EmpName ?? "-",
                         Position = employee?.Position?.Trim() ?? "-",
                         DepartmentName = employee?.Department?.DepartmentName?.Trim() ?? "-",
+                        CoopName = project?.Coop?.CoopName?.Trim() ?? "-",
                         ProjectName = project?.ProjectDisplayName ?? "-",
                         WorkName = string.IsNullOrWhiteSpace(assign.Role) ? phase?.PhaseName ?? "-" : assign.Role.Trim(),
                         PlanStart = assign.PlanStart?.Date,
@@ -988,8 +992,13 @@ namespace ProjectTracking.Controllers
                         startDate,
                         endDate))
                 .OrderBy(row => row.IsCompleted)
-                .ThenBy(row => row.EmployeeName)
+                .ThenBy(row => row.CoopName)
+                .ThenBy(row => row.ProjectName)
+                .ThenBy(row => row.PhaseOrder ?? int.MaxValue)
+                .ThenBy(row => row.PeriodOrder ?? int.MaxValue)
+                .ThenBy(row => row.PhaseSort ?? int.MaxValue)
                 .ThenBy(row => row.PlanStart ?? DateTime.MaxValue)
+                .ThenBy(row => row.EmployeeName)
                 .ThenBy(row => row.AssignId)
                 .ToList();
 

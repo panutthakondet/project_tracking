@@ -53,6 +53,20 @@
     string DateInput(DateTime value) => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     string Number(decimal value) => value.ToString("0.#", CultureInfo.InvariantCulture);
     string Percent(int value, int total) => total <= 0 ? "0" : (value * 100d / total).ToString("0.##", CultureInfo.InvariantCulture);
+    string PhasePeriodText(ProjectTracking.ViewModels.WorkDurationTaskViewModel task)
+    {
+        if (task.PhaseOrder.HasValue && task.PeriodOrder.HasValue)
+        {
+            return $"ส่วนที่ {task.PhaseOrder.Value} / งวดที่ {task.PeriodOrder.Value}";
+        }
+
+        if (task.PeriodOrder.HasValue)
+        {
+            return $"งวดที่ {task.PeriodOrder.Value}";
+        }
+
+        return task.PhaseOrder.HasValue ? $"ส่วนที่ {task.PhaseOrder.Value}" : "ไม่ระบุงวดงาน";
+    }
 
     (decimal Left, decimal Width) TimelinePosition(DateTime? start, DateTime? end)
     {
@@ -376,12 +390,13 @@
         .month-tone-5 { --month-head:#cffafe; --month-body:#ecfeff; --month-text:#0e7490; }
         .month-tone-6 { --month-head:#dcfce7; --month-body:#f0fdf4; --month-text:#15803d; }
         .month-tone-7 { --month-head:#f1f5f9; --month-body:#f8fafc; --month-text:#334155; }
-        .timeline-row { min-height: 58px; border-bottom: 2px solid var(--wd-grid); }
+        .timeline-row { min-height: 68px; border-bottom: 2px solid var(--wd-grid); }
         .timeline-row:last-child { border-bottom: 0; }
         .timeline-label { min-width: 0; padding: 9px 12px; }
         .timeline-label strong, .timeline-label span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .timeline-label strong { color: var(--wd-ink); font-size: 11px; }
         .timeline-label span { margin-top: 3px; color: var(--wd-muted); font-size: 9px; }
+        .timeline-label .timeline-period { color: var(--wd-ink); font-size: 9px; font-weight: 600; }
         .timeline-track {
             position: relative;
             min-width: 0;
@@ -401,8 +416,8 @@
             background: color-mix(in srgb, var(--month-body) 44%, transparent);
         }
         .timeline-bar { position: absolute; z-index: 1; left: var(--left); width: var(--width); min-width: 3px; }
-        .timeline-bar.plan { top: 13px; height: 12px; border: 2px solid var(--wd-planned); background: color-mix(in srgb, var(--wd-planned) 10%, transparent); }
-        .timeline-bar.actual { top: 32px; height: 12px; background: var(--bar); }
+        .timeline-bar.plan { top: 17px; height: 12px; border: 2px solid var(--wd-planned); background: color-mix(in srgb, var(--wd-planned) 10%, transparent); }
+        .timeline-bar.actual { top: 40px; height: 12px; background: var(--bar); }
         .timeline-bar.actual.status-fallback {
             background: repeating-linear-gradient(135deg, var(--bar) 0 7px, color-mix(in srgb, var(--bar) 68%, white) 7px 12px);
         }
@@ -672,7 +687,8 @@
                         var statusUsesPlanFallback = actual.Width <= 0 && plan.Width > 0;
                         var statusBar = statusUsesPlanFallback ? plan : actual;
                         var actualColor = task.StatusColor;
-                        var timelineLabelTooltip = $"งาน: {task.WorkName} | ผู้รับผิดชอบ: {task.EmployeeName} | โครงการ: {task.ProjectName}";
+                        var phasePeriodText = PhasePeriodText(task);
+                        var timelineLabelTooltip = $"งาน: {task.WorkName} | {phasePeriodText} | ผู้รับผิดชอบ: {task.EmployeeName} | สหกรณ์: {task.CoopName} | โครงการ: {task.ProjectName}";
                         var planTooltip = $"แผน: {DateText(task.PlanStart)} – {DateText(task.PlanEnd)}";
                         var actualTooltip = statusUsesPlanFallback
                             ? $"สถานะ: {task.StatusText} · ยังไม่มีช่วงทำจริงที่วาดได้ จึงแสดงสีสถานะตามช่วงแผน"
@@ -682,8 +698,9 @@
                         <div class="timeline-row @(task.IsCompleted ? "completed-item is-hidden" : "")" data-completed-group="timeline">
                             <div class="timeline-label"
                                  title="@timelineLabelTooltip"
-                                 aria-label="@timelineLabelTooltip">
+                                aria-label="@timelineLabelTooltip">
                                 <strong>@task.WorkName</strong>
+                                <span class="timeline-period">@phasePeriodText</span>
                                 <span>@task.EmployeeName · @task.ProjectName</span>
                             </div>
                             <div class="timeline-track">
