@@ -315,6 +315,7 @@ namespace ProjectTracking.ViewModels
         public string DepartmentName { get; set; } = "";
         public string CoopName { get; set; } = "";
         public string ProjectName { get; set; } = "";
+        public string PeriodName { get; set; } = "";
         public string WorkName { get; set; } = "";
         public DateTime? PlanStart { get; set; }
         public DateTime? PlanEnd { get; set; }
