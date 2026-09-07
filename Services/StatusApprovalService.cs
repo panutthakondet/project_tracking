@@ -34,9 +34,8 @@ namespace ProjectTracking.Services
 
         public static bool IsProjectPhaseCompletionStatus(string? status)
         {
-            var trimmed = (status ?? "").Trim();
-            return string.Equals(trimmed, SubmittedPhaseStatus, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(trimmed, ApprovedPaymentPhaseStatus, StringComparison.OrdinalIgnoreCase);
+            var normalized = NormalizeCodeStatus(status);
+            return normalized is "SUBMITTED" or "DONE";
         }
 
         public static bool IsPhaseAssignCompletionStatus(string? status)
@@ -73,6 +72,101 @@ namespace ProjectTracking.Services
                 .Where(u => u.UserId == userId.Value)
                 .Select(u => u.EmpId)
                 .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Synchronizes the parent project from all current phase statuses.
+        /// Status descriptions are read from the master tables rather than
+        /// duplicated in this business rule.
+        /// </summary>
+        public async Task<bool> SyncProjectStatusFromPhasesAsync(
+            int projectId,
+            int? changedByEmpId = null,
+            DateTime? changedAt = null)
+        {
+            if (projectId <= 0) return false;
+
+            var phases = await _context.ProjectPhases
+                .Where(x => x.ProjectId == projectId)
+                .ToListAsync();
+
+            // Database queries do not include newly-added rows and can still
+            // encounter rows marked for deletion. Merge the pending unit of work
+            // so the parent status is correct in the same SaveChanges call.
+            var trackedEntries = _context.ChangeTracker
+                .Entries<ProjectPhase>()
+                .Where(x => x.Entity.ProjectId == projectId)
+                .ToList();
+
+            var deletedIds = trackedEntries
+                .Where(x => x.State == EntityState.Deleted)
+                .Select(x => x.Entity.PhaseId)
+                .ToHashSet();
+            phases.RemoveAll(x => deletedIds.Contains(x.PhaseId));
+
+            foreach (var entry in trackedEntries.Where(x => x.State == EntityState.Added))
+            {
+                if (!phases.Contains(entry.Entity))
+                    phases.Add(entry.Entity);
+            }
+
+            if (phases.Count == 0) return false;
+
+            var phaseStatusById = await _context.ProjectPhaseStatuses
+                .AsNoTracking()
+                .ToDictionaryAsync(x => x.StatusId, x => x.StatusCode);
+
+            string PhaseStatusCode(ProjectPhase phase)
+            {
+                var code = NormalizeCodeStatus(phase.PhaseStatus);
+                if (!string.IsNullOrWhiteSpace(code)) return code;
+
+                return phase.StatusId.HasValue
+                    && phaseStatusById.TryGetValue(phase.StatusId.Value, out var statusCode)
+                        ? NormalizeCodeStatus(statusCode)
+                        : string.Empty;
+            }
+
+            var phaseCodes = phases.Select(PhaseStatusCode).ToList();
+            var allPhasesCompleted = phaseCodes.All(x => x is "SUBMITTED" or "DONE");
+            var hasInProgressPhase = phaseCodes.Any(x => x == "IN_PROGRESS");
+            var desiredProjectCode = allPhasesCompleted
+                ? "DONE"
+                : hasInProgressPhase
+                    ? "IN_PROGRESS"
+                    : null;
+
+            if (desiredProjectCode == null) return false;
+
+            var desiredStatus = await _context.ProjectStatuses
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.StatusCode == desiredProjectCode)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.StatusId)
+                .FirstOrDefaultAsync();
+            if (desiredStatus == null) return false;
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(x => x.ProjectId == projectId);
+            if (project == null) return false;
+
+            if (project.StatusId == desiredStatus.StatusId
+                && string.Equals(project.Status, desiredStatus.StatusDesc, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            project.StatusId = desiredStatus.StatusId;
+            project.Status = desiredStatus.StatusDesc;
+            project.CreatedAt = changedAt ?? DateTime.Now;
+            if (changedByEmpId.HasValue)
+                project.EntryId = changedByEmpId;
+
+            await SyncRequirementCardColumnForProjectStatusAsync(
+                project.RequirementCardId,
+                desiredStatus.StatusDesc);
+
+            return true;
         }
 
         public async Task<bool> CanApplyCompletionStatusImmediatelyAsync(int? projectId)
@@ -247,6 +341,7 @@ namespace ProjectTracking.Services
                 phase.PhaseStatus = NormalizePhaseStatus(request.RequestedStatus);
                 phase.CreatedAt = now;
                 phase.EntryId = reviewerEmpId;
+                await SyncProjectStatusFromPhasesAsync(phase.ProjectId, reviewerEmpId, now);
                 return;
             }
 

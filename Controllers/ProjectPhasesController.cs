@@ -385,6 +385,10 @@ namespace ProjectTracking.Controllers
             phase.CreatedAt = DateTime.Now;
             phase.EntryId = await GetCurrentEntryIdAsync();
             _context.ProjectPhases.Add(phase);
+            await _statusApprovalService.SyncProjectStatusFromPhasesAsync(
+                phase.ProjectId,
+                phase.EntryId,
+                phase.CreatedAt);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index), new { projectId = phase.ProjectId });
@@ -529,6 +533,14 @@ namespace ProjectTracking.Controllers
                 assign.PhaseOrder = existing.PhaseOrder;
             }
 
+            if (!requirePmApproval)
+            {
+                await _statusApprovalService.SyncProjectStatusFromPhasesAsync(
+                    existing.ProjectId,
+                    existing.EntryId,
+                    existing.CreatedAt);
+            }
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index), new { projectId = existing.ProjectId });
@@ -586,6 +598,10 @@ namespace ProjectTracking.Controllers
                 }
 
                 _context.ProjectPhases.Remove(phase);
+                await _statusApprovalService.SyncProjectStatusFromPhasesAsync(
+                    realProjectId,
+                    entryId,
+                    DateTime.Now);
 
                 var affected = await _context.SaveChangesAsync();
 
@@ -719,6 +735,10 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Index), new { projectId });
             }
 
+            await _statusApprovalService.SyncProjectStatusFromPhasesAsync(
+                projectId,
+                entryId,
+                now);
             await _context.SaveChangesAsync();
             TempData["Success"] = skipped > 0
                 ? $"Import จาก Project Board แล้ว {imported} รายการ ข้ามรายการซ้ำ/ว่าง {skipped} รายการ"
