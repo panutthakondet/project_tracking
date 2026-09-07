@@ -415,9 +415,9 @@
 </head>
 <body class="pt-standalone-report">
     <div class="report-actions">
-        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
-        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
-        <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
+        <button type="button" class="report-btn primary" onclick="window.print()">พิมพ์</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">ศูนย์รวมรายงาน</a>
+        <a asp-controller="Home" asp-action="Index" class="report-btn">แดชบอร์ด</a>
     </div>
 
     <header class="print-header">
@@ -608,7 +608,7 @@
                                     <span class="label">Figma:</span>
                                     @if (!string.IsNullOrWhiteSpace(project.FigmaLink))
                                     {
-                                        <a href="@project.FigmaLink" target="_blank" rel="noopener noreferrer">Open Figma</a>
+                                        <a href="@project.FigmaLink" target="_blank" rel="noopener noreferrer">เปิด Figma</a>
                                     }
                                     else
                                     {
