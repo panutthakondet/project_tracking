@@ -33,7 +33,11 @@ namespace ProjectTracking.Controllers
         // LIST
         // ===========================
         [RequireMenu("Projects.Index")]
-        public async Task<IActionResult> Index(int? baEmpId, int? departmentId)
+        public async Task<IActionResult> Index(
+            int? baEmpId,
+            int? departmentId,
+            int? coopId,
+            int? projectId)
         {
             // Load Business Analyst list for dropdown filter
             ViewBag.Employees = _context.Employees
@@ -72,6 +76,26 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectStatuses = await _workflowStatusService.GetActiveAsync(WorkflowStatusTypes.Project);
 
             var projects = OrderProjects(await query.ToListAsync()).ToList();
+            var selectedProject = projectId.HasValue
+                ? projects.FirstOrDefault(p => p.ProjectId == projectId.Value)
+                : null;
+
+            if (selectedProject == null)
+            {
+                projectId = null;
+            }
+            else
+            {
+                coopId = selectedProject.CoopId;
+            }
+
+            if (coopId.HasValue && projects.All(p => p.CoopId != coopId.Value))
+            {
+                coopId = null;
+            }
+
+            ViewBag.SelectedCoopId = coopId;
+            ViewBag.SelectedProjectId = projectId;
             var projectIds = projects.Select(p => p.ProjectId).ToList();
 
             ViewBag.PendingProjectApprovalIds = projectIds.Count == 0

@@ -444,13 +444,14 @@
                                 var projectSearchText = $"{project.ProjectName} {project.DepartmentName} {project.StatusText} {project.StartText} {project.EndText}";
                                 var projectDepartmentValue = project.DepartmentId?.ToString() ?? "unassigned";
                                 <a class="project-overview-row"
-                                   asp-controller="ProjectPhases"
+                                   asp-controller="Projects"
                                    asp-action="Index"
                                    asp-route-projectId="@project.ProjectId"
+                                   asp-route-coopId="@project.CoopId"
                                    data-project-search="@projectSearchText"
                                    data-project-department-id="@projectDepartmentValue"
                                    data-project-status="@project.StatusCode"
-                                   title="ดูงวดงานของ @project.ProjectName">
+                                   title="เปิดโครงการ @project.ProjectName">
                                     <span class="project-overview-icon" aria-hidden="true"></span>
                                     <span class="project-overview-name-wrap">
                                         <span class="project-overview-name" title="@project.ProjectName">@project.ProjectName</span>

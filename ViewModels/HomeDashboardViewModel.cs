@@ -167,6 +167,7 @@ namespace ProjectTracking.ViewModels
     public class HomeDashboardProjectOverviewItem
     {
         public int ProjectId { get; set; }
+        public int? CoopId { get; set; }
         public int? DepartmentId { get; set; }
         public string DepartmentName { get; set; } = "ยังไม่กำหนดฝ่าย";
         public string ProjectName { get; set; } = "";

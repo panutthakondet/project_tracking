@@ -635,6 +635,7 @@ namespace ProjectTracking.Controllers
                 .Select(p => new DashboardProjectRow
                 {
                     ProjectId = p.ProjectId,
+                    CoopId = p.CoopId,
                     ProjectName = p.ProjectName,
                     CoopName = p.Coop != null ? p.Coop.CoopName : null,
                     DepartmentId = p.DepartmentId,
@@ -1200,6 +1201,7 @@ namespace ProjectTracking.Controllers
                 .Select(p => new HomeDashboardProjectOverviewItem
                 {
                     ProjectId = p.ProjectId,
+                    CoopId = p.CoopId,
                     DepartmentId = p.DepartmentId,
                     DepartmentName = string.IsNullOrWhiteSpace(p.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : p.DepartmentName,
                     ProjectName = p.ProjectDisplayName,
@@ -3429,6 +3431,7 @@ namespace ProjectTracking.Controllers
         private sealed class DashboardProjectRow
         {
             public int ProjectId { get; set; }
+            public int? CoopId { get; set; }
             public string ProjectName { get; set; } = "";
             public string? CoopName { get; set; }
             public int? DepartmentId { get; set; }

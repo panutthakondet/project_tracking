@@ -21,6 +21,9 @@
     var projects = (Model ?? Enumerable.Empty<ProjectTracking.Models.Project>()).ToList();
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var selectedDepartmentId = ViewBag.SelectedDepartmentId is int departmentId ? departmentId : (int?)null;
+    var selectedCoopId = ViewBag.SelectedCoopId is int coopId ? coopId : (int?)null;
+    var selectedProjectId = ViewBag.SelectedProjectId is int projectId ? projectId : (int?)null;
+    var hasLinkedProjectFilter = selectedCoopId.HasValue || selectedProjectId.HasValue;
     var pendingProjectApprovalIds = ViewBag.PendingProjectApprovalIds as ISet<int> ?? new HashSet<int>();
     string ProfileImage(ProjectTracking.Models.Employee? employee)
         => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
@@ -225,19 +228,19 @@
 
 <div class="card shadow-sm border-0 rounded-4 mb-3">
     <div class="card-body py-3">
-        <div class="project-filter-form">
+        <div class="project-filter-form" data-has-linked-project-filter="@(hasLinkedProjectFilter ? "true" : "false")">
 
             <div class="project-filter-row">
                 <label class="form-label fw-bold">🏢 สหกรณ์</label>
                 <select id="coopFilter" class="form-select form-select-lg" data-show-empty-option-text="true">
                     <option value="">ทั้งหมด</option>
-                    @foreach (var coopName in projects
-                        .Select(x => x.Coop?.CoopName)
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .Distinct()
-                        .OrderBy(x => x))
+                    @foreach (var coop in projects
+                        .Where(x => x.CoopId.HasValue && x.Coop != null && !string.IsNullOrWhiteSpace(x.Coop.CoopName))
+                        .GroupBy(x => new { CoopId = x.CoopId!.Value, x.Coop!.CoopName })
+                        .Select(group => group.Key)
+                        .OrderBy(x => x.CoopName))
                     {
-                        <option value="@coopName">@coopName</option>
+                        <option value="@coop.CoopId" selected="@(selectedCoopId == coop.CoopId ? "selected" : null)">@coop.CoopName</option>
                     }
                 </select>
             </div>
@@ -248,10 +251,11 @@
                     <option value="">ทั้งหมด</option>
                     @foreach (var p in projects.OrderBy(x => x.ProjectDisplayName))
                     {
-                        <option value="@p.ProjectDisplayName"
-                                data-coop-name="@(p.Coop?.CoopName ?? "")"
+                        <option value="@p.ProjectId"
+                                data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
                                 data-department="@(p.DepartmentId?.ToString() ?? "unassigned")"
-                                data-project-name="@p.ProjectName">
+                                data-project-name="@p.ProjectName"
+                                selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
                             @p.ProjectName
                         </option>
                     }
@@ -360,6 +364,8 @@
                 var projectManagers = p.ProjectManagers;
                 var businessAnalysts = p.BusinessAnalysts;
                 <tr data-ba-id="@string.Join(",", businessAnalysts.Select(e => e.EmpId))"
+                    data-project-id="@p.ProjectId"
+                    data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
                     data-project="@projectDisplayName.ToLower()"
                     data-project-name="@p.ProjectName.ToLower()"
                     data-coop="@coopName.ToLower()"
@@ -580,6 +586,8 @@
             var projectManagers = p.ProjectManagers;
             var businessAnalysts = p.BusinessAnalysts;
             <div class="project-card"
+                 data-project-id="@p.ProjectId"
+                 data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
                  data-project="@projectDisplayName.ToLower()"
                  data-project-name="@p.ProjectName.ToLower()"
                  data-coop="@coopName.ToLower()"
@@ -1803,12 +1811,12 @@ window.applyProjectFilter = function () {
     let visibleCardNo = 1;
     document.querySelectorAll(".project-card").forEach(card => {
 
-        const projectName = (
-            card.dataset.project || ""
+        const projectId = (
+            card.dataset.projectId || ""
         ).trim().toLowerCase();
 
-        const coopName = (
-            card.dataset.coop || ""
+        const coopId = (
+            card.dataset.coopId || "unassigned"
         ).trim().toLowerCase();
 
         const baName = (
@@ -1826,10 +1834,10 @@ window.applyProjectFilter = function () {
         ).trim().toLowerCase();
 
         const matchProject = !selectedProject ||
-                             projectName === selectedProject;
+                             projectId === selectedProject;
 
         const matchCoop = !selectedCoop ||
-                          coopName === selectedCoop;
+                          coopId === selectedCoop;
 
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
@@ -1856,12 +1864,12 @@ window.applyProjectFilter = function () {
     let visibleRowNo = 1;
     document.querySelectorAll("#projectTable tbody tr").forEach(row => {
 
-        const projectName = (
-            row.dataset.project || ""
+        const projectId = (
+            row.dataset.projectId || ""
         ).trim().toLowerCase();
 
-        const coopName = (
-            row.dataset.coop || ""
+        const coopId = (
+            row.dataset.coopId || "unassigned"
         ).trim().toLowerCase();
 
         const baName = (
@@ -1879,10 +1887,10 @@ window.applyProjectFilter = function () {
         ).trim().toLowerCase();
 
         const matchProject = !selectedProject ||
-                             projectName === selectedProject;
+                             projectId === selectedProject;
 
         const matchCoop = !selectedCoop ||
-                          coopName === selectedCoop;
+                          coopId === selectedCoop;
 
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
@@ -1919,12 +1927,24 @@ function restoreFilter(selectId, storageKey) {
     }
 }
 
-restoreFilter("coopFilter", "projects.selectedCoop");
-restoreFilter("projectFilter", "projects.selectedProject");
-restoreFilter("departmentFilter", "projects.selectedDepartment");
-restoreFilter("baFilter", "projects.selectedBa");
-restoreFilter("pmFilter", "projects.selectedPm");
-restoreFilter("statusFilter", "projects.selectedStatus");
+const hasLinkedProjectFilter = document.querySelector(".project-filter-form")
+    ?.dataset.hasLinkedProjectFilter === "true";
+
+if (hasLinkedProjectFilter) {
+    localStorage.setItem("projects.selectedCoop", document.getElementById("coopFilter")?.value || "");
+    localStorage.setItem("projects.selectedProject", document.getElementById("projectFilter")?.value || "");
+    localStorage.removeItem("projects.selectedDepartment");
+    localStorage.removeItem("projects.selectedBa");
+    localStorage.removeItem("projects.selectedPm");
+    localStorage.removeItem("projects.selectedStatus");
+} else {
+    restoreFilter("coopFilter", "projects.selectedCoop");
+    restoreFilter("projectFilter", "projects.selectedProject");
+    restoreFilter("departmentFilter", "projects.selectedDepartment");
+    restoreFilter("baFilter", "projects.selectedBa");
+    restoreFilter("pmFilter", "projects.selectedPm");
+    restoreFilter("statusFilter", "projects.selectedStatus");
+}
 
 function syncProjectFilterOptions() {
     const coopFilter = document.getElementById("coopFilter");
@@ -1936,7 +1956,7 @@ function syncProjectFilterOptions() {
     const selectedDepartment = (departmentFilter?.value || "").trim().toLowerCase();
     Array.from(projectSelect.options).forEach(option => {
         const visible = option.value === "" ||
-            ((!selectedCoop || (option.dataset.coopName || "").trim().toLowerCase() === selectedCoop) &&
+            ((!selectedCoop || (option.dataset.coopId || "unassigned").trim().toLowerCase() === selectedCoop) &&
              (!selectedDepartment || (option.dataset.department || "unassigned").trim().toLowerCase() === selectedDepartment));
         option.hidden = !visible;
         option.disabled = !visible;
