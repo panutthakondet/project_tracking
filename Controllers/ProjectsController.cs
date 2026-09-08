@@ -98,6 +98,63 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedProjectId = projectId;
             var projectIds = projects.Select(p => p.ProjectId).ToList();
 
+            var relatedMembersByProject = new Dictionary<int, List<ProjectOrgMember>>();
+            if (projectIds.Count > 0)
+            {
+                var relatedMemberRows = await (
+                    from assign in _context.PhaseAssigns.AsNoTracking()
+                    join phase in _context.ProjectPhases.AsNoTracking()
+                        on assign.PhaseId equals phase.PhaseId
+                    join employee in _context.Employees.AsNoTracking()
+                        on assign.EmpId equals employee.EmpId
+                    join login in _context.LoginUsers.AsNoTracking()
+                        on employee.LoginUserId equals (int?)login.UserId into loginJoin
+                    from login in loginJoin.DefaultIfEmpty()
+                    where projectIds.Contains(phase.ProjectId)
+                    select new
+                    {
+                        phase.ProjectId,
+                        employee.EmpId,
+                        employee.EmpName,
+                        employee.Position,
+                        ProfileImagePath = login != null ? login.ProfileImagePath : null
+                    })
+                    .ToListAsync();
+
+                var leadEmployeeIdsByProject = projects.ToDictionary(
+                    project => project.ProjectId,
+                    project => project.ProjectManagers
+                        .Concat(project.BusinessAnalysts)
+                        .Select(employee => employee.EmpId)
+                        .ToHashSet());
+
+                foreach (var projectGroup in relatedMemberRows.GroupBy(row => row.ProjectId))
+                {
+                    var leadEmployeeIds = leadEmployeeIdsByProject[projectGroup.Key];
+                    relatedMembersByProject[projectGroup.Key] = projectGroup
+                        .Where(row => !leadEmployeeIds.Contains(row.EmpId))
+                        .GroupBy(row => row.EmpId)
+                        .Select(employeeGroup =>
+                        {
+                            var employee = employeeGroup.First();
+                            return new ProjectOrgMember
+                            {
+                                EmpId = employee.EmpId,
+                                Name = employee.EmpName,
+                                Role = string.IsNullOrWhiteSpace(employee.Position)
+                                    ? "ผู้เกี่ยวข้อง"
+                                    : employee.Position.Trim(),
+                                AvatarPath = ProfileImagePathResolver.Normalize(employee.ProfileImagePath),
+                                WorkCount = employeeGroup.Count()
+                            };
+                        })
+                        .OrderBy(member => member.Name)
+                        .ToList();
+                }
+            }
+
+            ViewBag.ProjectRelatedMembers = relatedMembersByProject;
+
             ViewBag.PendingProjectApprovalIds = projectIds.Count == 0
                 ? new HashSet<int>()
                 : (await _context.StatusApprovalRequests
