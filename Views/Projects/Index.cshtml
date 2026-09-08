@@ -87,61 +87,6 @@
     </div>
 
     <div class="index-actions">
-        <a asp-controller="ProjectStatus"
-           asp-action="Index"
-           class="btn btn-outline-info"
-           title="ดูสถานะโครงการ">
-            สถานะโครงการ
-        </a>
-
-        @if (CanMenu("ProjectIssues.Index"))
-        {
-            <a asp-controller="ProjectIssues"
-               asp-action="Index"
-               class="btn btn-outline-danger"
-               title="ดูปัญหาโครงการ">
-                ปัญหาโครงการ
-            </a>
-        }
-        else
-        {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูปัญหาโครงการ">
-                ปัญหาโครงการ
-            </button>
-        }
-
-        @if (CanMenu("SupportOrders.Index"))
-        {
-            <a asp-controller="SupportOrders"
-           asp-action="Index"
-           class="btn btn-outline-warning"
-               title="ดูงานสนับสนุน">
-                งานสนับสนุน
-            </a>
-        }
-        else
-        {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูงานสนับสนุน">
-                งานสนับสนุน
-            </button>
-        }
-
-        @if (CanMenu("TestScenarios.Index"))
-        {
-            <a asp-controller="TestScenarios"
-           asp-action="Index"
-           class="btn btn-outline-primary"
-               title="ดูข้อมูลทดสอบ">
-                ข้อมูลทดสอบ
-            </a>
-        }
-        else
-        {
-            <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์ดูข้อมูลทดสอบ">
-                ข้อมูลทดสอบ
-            </button>
-        }
-
         <button id="ThaiCalendarNoteButton"
                 type="button"
                 class="btn btn-outline-warning"
