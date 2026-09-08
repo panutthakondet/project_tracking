@@ -1626,11 +1626,20 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 .project-label {
     display: inline-flex;
     min-width: 0;
-    color: #0f172a;
-    font-size: .88rem;
+    color: var(--pt-surface-contrast, #0f172a);
+    font-size: .92rem;
     font-weight: 700;
-    line-height: 1.38;
+    line-height: 1.42;
     text-transform: none;
+}
+
+.project-title-label,
+.project-label,
+.project-date-label {
+    color: var(--pt-surface-contrast, #0f172a) !important;
+    font-size: .92rem;
+    font-weight: 700 !important;
+    line-height: 1.42;
 }
 
 .project-label::after,
