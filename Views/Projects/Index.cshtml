@@ -592,6 +592,8 @@
                 ? projectRelatedMembers
                 : new List<ProjectOrgMember>();
             var relatedMemberSearch = string.Join(" ", relatedMembers.Select(member => $"{member.Name} {member.Role}"));
+            var projectStatusCode = p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status);
+            var cardSystemItems = ProjectSystemItems(p.LinkName);
             <div class="project-card"
                  data-project-id="@p.ProjectId"
                  data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
@@ -601,174 +603,160 @@
                  data-department="@departmentValue"
                  data-ba="@(p.BusinessAnalystNames.ToLower())"
                  data-pm="@(p.ProjectManagerNames.ToLower())"
-                 data-status="@((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)).ToLowerInvariant())"
+                 data-status="@(projectStatusCode.ToLowerInvariant())"
                 data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
 
-                <div class="project-card-header">
-                    <div class="project-header-content">
-                        <div class="project-card-topline">
-                            <span class="project-row-number">@mobileRow</span>
-                            <span class="project-top-people">
-                                @foreach (var member in projectManagers)
+                <div class="project-team-header">
+                    <div class="project-team-leads">
+                        <span class="project-row-number">@mobileRow</span>
+                        <span class="project-top-people">
+                            @foreach (var member in projectManagers)
+                            {
+                                <span class="project-person is-profile">
+                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
+                                </span>
+                            }
+                            @foreach (var member in businessAnalysts)
+                            {
+                                <span class="project-person is-profile">
+                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                    <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
+                                </span>
+                            }
+                        </span>
+                    </div>
+
+                    @if (relatedMembers.Count > 0)
+                    {
+                        <div class="project-related-people">
+                            <span class="project-related-list">
+                                @foreach (var member in relatedMembers)
                                 {
-                                    <span class="project-person is-profile">
-                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
-                                    </span>
-                                }
-                                @foreach (var member in businessAnalysts)
-                                {
-                                    <span class="project-person is-profile">
-                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
+                                    <span class="project-related-member" title="@($"{member.Name} · {member.Role}")">
+                                        <img class="pt-owner-avatar" src="@member.AvatarPath" alt="@member.Name" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span class="project-related-member-text">
+                                            <span class="project-related-member-name">@member.Name</span>
+                                            <span class="project-related-member-role">@member.Role</span>
+                                        </span>
                                     </span>
                                 }
                             </span>
                         </div>
-
-                        @if (relatedMembers.Count > 0)
-                        {
-                            <div class="project-related-people">
-                                <span class="project-related-list">
-                                    @foreach (var member in relatedMembers)
-                                    {
-                                        <span class="project-related-member" title="@($"{member.Name} · {member.Role}")">
-                                            <img class="pt-owner-avatar" src="@member.AvatarPath" alt="@member.Name" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                            <span class="project-related-member-text">
-                                                <span class="project-related-member-name">@member.Name</span>
-                                                <span class="project-related-member-role">@member.Role</span>
-                                            </span>
-                                        </span>
-                                    }
-                                </span>
-                            </div>
-                        }
-
-                        <div class="project-title-row">
-                            <div class="project-title-stack">
-                                <div class="project-title-line">
-                                    <span class="project-title-label">สหกรณ์:</span>
-                                    <span class="project-coop-name">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</span>
-                                </div>
-                                <div class="project-title-line">
-                                    <span class="project-title-label">โครงการ:</span>
-                                    <span class="project-project-name">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</span>
-                                </div>
-                                <div class="project-title-line">
-                                    <span class="project-title-label">ฝ่าย:</span>
-                                    <span>@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
-                                </div>
-                                <div class="project-title-line project-status-line">
-                                    <span class="project-title-label">สถานะ:</span>
-                                    <span class="project-status">
-                                        <span class="badge rounded-pill px-3 py-2
-                                            @((p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "DONE"
-                                                ? "bg-success"
-                                                : (p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status)) == "IN_PROGRESS"
-                                                    ? "bg-info"
-                                                    : "bg-warning text-dark")">
-                                            @p.StatusDescription
-                                        </span>
-                                        @if (hasPendingApproval)
-                                        {
-                                            <span class="badge rounded-pill px-3 py-2 bg-warning text-dark project-approval-pending-badge">
-                                                รออนุมัติ
-                                            </span>
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    }
                 </div>
 
-                <div class="project-card-main">
-                    <div class="project-info">
-                        <div class="project-info-row project-detail-row">
-                            <span class="project-label">รายละเอียดเพิ่มเติม</span>
-                            <span class="project-value project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</span>
+                <div class="project-overview-grid">
+                    <section class="project-summary-panel" aria-label="ข้อมูลโครงการ">
+                        <div class="project-summary-row">
+                            <span class="project-summary-icon" aria-hidden="true">⌂</span>
+                            <span class="project-summary-label">สหกรณ์:</span>
+                            <span class="project-summary-value">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</span>
                         </div>
-
-                    <div class="project-info-row project-system-row">
-                        <span class="project-label">ระบบ</span>
-
-                        <span class="project-system-value">
-                            @{
-                                var cardSystemItems = ProjectSystemItems(p.LinkName);
-                            }
-                            @if (cardSystemItems.Count > 0)
-                            {
-                                foreach (var item in cardSystemItems)
+                        <div class="project-summary-row">
+                            <span class="project-summary-icon" aria-hidden="true">▤</span>
+                            <span class="project-summary-label">โครงการ:</span>
+                            <span class="project-summary-value">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</span>
+                        </div>
+                        <div class="project-summary-row">
+                            <span class="project-summary-icon" aria-hidden="true">▣</span>
+                            <span class="project-summary-label">ฝ่าย:</span>
+                            <span class="project-summary-value">@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
+                        </div>
+                        <div class="project-summary-row">
+                            <span class="project-summary-icon" aria-hidden="true">▥</span>
+                            <span class="project-summary-label">สถานะ:</span>
+                            <span class="project-summary-value project-status">
+                                <span class="project-summary-status @(projectStatusCode == "DONE" ? "is-done" : projectStatusCode == "IN_PROGRESS" ? "is-progress" : "is-other")">
+                                    @p.StatusDescription
+                                </span>
+                                @if (hasPendingApproval)
                                 {
-                                    <span class="project-system-chip">
-                                        @if (!string.IsNullOrWhiteSpace(item.Url))
-                                        {
-                                            <span class="project-system-key">@item.Label</span>
-                                            <a href="@item.Url"
-                                               target="_blank"
-                                               rel="noopener noreferrer">
-                                                @item.Url
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <span class="project-system-text">@item.Label</span>
-                                        }
-                                    </span>
+                                    <span class="project-approval-pending-badge">รออนุมัติ</span>
                                 }
-                            }
-                            else
-                            {
-                                <span>-</span>
-                            }
-                        </span>
-                    </div>
-
-                    <div class="project-info-row project-db-row">
-                        <span class="project-label">ฐานข้อมูล</span>
-                        <span class="project-value">@(p.DatabaseName ?? "-")</span>
-                    </div>
-
-                    <div class="project-info-row project-test-row">
-                        <span class="project-label">ทะเบียนทดสอบ</span>
-                        <span class="project-value text-break">
-                            @(string.IsNullOrWhiteSpace(p.TestAccount)
-                                ? "-"
-                                : p.TestAccount)
-                        </span>
-                    </div>
-
-                    <div class="project-info-row project-remote-row">
-                        <span class="project-label">รีโมท</span>
-                        <span class="project-value text-break">
-                            @(string.IsNullOrWhiteSpace(p.RemoteUrl)
-                                ? "-"
-                                : p.RemoteUrl)
-                        </span>
-                    </div>
-
-                        <div class="project-info-row project-date-row">
-                            <div class="project-date-item">
-                                <span class="project-date-label">วันที่เริ่ม</span>
-                                <span class="project-date-value">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
-                            </div>
-                            <div class="project-date-item">
-                                <span class="project-date-label">วันที่สิ้นสุด</span>
-                                <span class="project-date-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
-                            </div>
+                            </span>
                         </div>
-                    </div>
+                        @if (!string.IsNullOrWhiteSpace(p.ProjectDetail) && p.ProjectDetail.Trim() != "-")
+                        {
+                            <div class="project-summary-row project-summary-detail">
+                                <span class="project-summary-icon" aria-hidden="true">≡</span>
+                                <span class="project-summary-label">รายละเอียด:</span>
+                                <span class="project-summary-value">@p.ProjectDetail.Trim()</span>
+                            </div>
+                        }
+                    </section>
 
                     <div class="project-phase-action">
                         <a asp-controller="ProjectPhases"
                            asp-action="Index"
                            asp-route-projectId="@p.ProjectId"
-                           class="btn btn-outline-info btn-sm"
+                           class="project-phase-tile"
                            title="ดูงวดงานของโครงการ">
-                            🧩 งวดงาน
+                            <span class="project-phase-tile__body">
+                                <span class="project-phase-tile__icon" aria-hidden="true">🧩</span>
+                                <span class="project-phase-tile__title">งวดงาน</span>
+                                <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                            </span>
+                            <span class="project-phase-tile__footer">▥&nbsp; ดูรายละเอียดงวดงานทั้งหมด</span>
                         </a>
                     </div>
                 </div>
+
+                <section class="project-tech-panel" aria-label="ข้อมูลระบบและระยะเวลาโครงการ">
+                    <div class="project-tech-column">
+                        <div class="project-tech-row project-tech-system-row">
+                            <span class="project-tech-icon" aria-hidden="true">▰</span>
+                            <span class="project-tech-label">ระบบ:</span>
+                            <span class="project-tech-value project-system-value">
+                                @if (cardSystemItems.Count > 0)
+                                {
+                                    foreach (var item in cardSystemItems)
+                                    {
+                                        <span class="project-system-chip">
+                                            @if (!string.IsNullOrWhiteSpace(item.Url))
+                                            {
+                                                <span class="project-system-key">@item.Label</span>
+                                                <a href="@item.Url" target="_blank" rel="noopener noreferrer">@item.Url</a>
+                                            }
+                                            else
+                                            {
+                                                <span class="project-system-text">@item.Label</span>
+                                            }
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="project-tech-row">
+                            <span class="project-tech-icon" aria-hidden="true">◉</span>
+                            <span class="project-tech-label">ฐานข้อมูล:</span>
+                            <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)</span>
+                        </div>
+                        <div class="project-tech-row">
+                            <span class="project-tech-icon" aria-hidden="true">♟</span>
+                            <span class="project-tech-label">ทะเบียนทดสอบ:</span>
+                            <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</span>
+                        </div>
+                    </div>
+                    <div class="project-tech-column">
+                        <div class="project-tech-row">
+                            <span class="project-tech-icon" aria-hidden="true">▧</span>
+                            <span class="project-tech-label">รีโมท:</span>
+                            <span class="project-tech-value project-preserve-lines">@(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)</span>
+                        </div>
+                        <div class="project-tech-row project-tech-date-row">
+                            <span class="project-tech-icon" aria-hidden="true">▦</span>
+                            <span class="project-tech-label">วันที่เริ่ม:</span>
+                            <span class="project-tech-value">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                            <span class="project-tech-label project-tech-end-label">วันที่สิ้นสุด:</span>
+                            <span class="project-tech-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                        </div>
+                    </div>
+                </section>
 
                 <div class="project-actions">
                     <a asp-action="ProductionMemo"
@@ -1740,6 +1728,434 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 @@media (max-width: 575.98px) {
     .thai-calendar-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Project card layout: team, project summary, phase tile and technical details. */
+.project-card {
+    --project-card-text: var(--pt-surface-contrast, #10233f);
+    --project-card-muted: var(--pt-surface-contrast-muted, #64748b);
+    --project-card-border: var(--pt-border, #cfe2f3);
+    --project-card-surface: var(--pt-surface, #ffffff);
+    --project-card-soft: var(--pt-surface-soft, #f5f9fd);
+    padding: 24px 26px 20px;
+    color: var(--project-card-text);
+    background: var(--project-card-surface);
+    border: 1px solid var(--project-card-border);
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(15, 35, 64, .08);
+}
+
+.project-team-header {
+    min-width: 0;
+    margin-bottom: 18px;
+}
+
+.project-team-leads {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.project-card .project-row-number {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    color: var(--project-card-text);
+    background: var(--project-card-soft);
+    border-color: var(--project-card-border);
+    border-radius: 12px;
+}
+
+.project-card .project-top-people {
+    gap: 10px 30px;
+}
+
+.project-card .project-top-people .project-person.is-profile {
+    max-width: min(100%, 520px);
+    color: var(--project-card-text);
+    font-size: .96rem;
+    font-weight: 400;
+}
+
+.project-card .project-top-people .project-person.is-profile img {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border: 2px solid var(--project-card-border);
+    background: var(--project-card-surface);
+}
+
+.project-card .project-person strong {
+    color: var(--project-card-text);
+    font-weight: 700;
+}
+
+.project-card .project-related-people {
+    margin: 12px 0 0 58px;
+    color: var(--project-card-text);
+}
+
+.project-card .project-related-list {
+    gap: 12px 28px;
+}
+
+.project-card .project-related-member {
+    max-width: 320px;
+    color: var(--project-card-text);
+}
+
+.project-card .project-related-member > img {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-color: var(--project-card-border);
+    background: var(--project-card-surface);
+}
+
+.project-card .project-related-member-name {
+    color: var(--project-card-text);
+    font-size: .86rem;
+    font-weight: 500;
+}
+
+.project-card .project-related-member-role {
+    color: var(--project-card-muted);
+    font-size: .74rem;
+    font-weight: 400;
+}
+
+.project-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 310px);
+    align-items: stretch;
+    gap: 18px;
+    min-width: 0;
+}
+
+.project-summary-panel,
+.project-tech-panel {
+    min-width: 0;
+    background: var(--project-card-soft);
+    border: 1px solid color-mix(in srgb, var(--project-card-border) 72%, transparent);
+    border-radius: 14px;
+}
+
+.project-summary-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 20px;
+}
+
+.project-summary-row {
+    display: grid;
+    grid-template-columns: 28px 108px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    min-width: 0;
+}
+
+.project-summary-icon,
+.project-tech-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    min-height: 24px;
+    color: var(--pt-accent, #258af4);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.project-card .project-summary-label,
+.project-card .project-tech-label {
+    color: var(--project-card-text) !important;
+    -webkit-text-fill-color: var(--project-card-text) !important;
+    font-size: .88rem !important;
+    font-weight: 700 !important;
+    line-height: 1.45 !important;
+}
+
+.project-card .project-summary-value,
+.project-card .project-tech-value,
+.project-card .project-system-value,
+.project-card .project-system-key,
+.project-card .project-system-text {
+    min-width: 0;
+    color: var(--project-card-text) !important;
+    -webkit-text-fill-color: var(--project-card-text) !important;
+    font-size: .88rem;
+    font-weight: 400;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.project-summary-detail {
+    padding-top: 8px;
+    border-top: 1px solid var(--project-card-border);
+}
+
+.project-card .project-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.project-summary-status,
+.project-card .project-approval-pending-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: .25rem .78rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .82rem;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.project-summary-status.is-done {
+    color: #087f4f;
+    background: #d9fbe9;
+    border-color: #a7efca;
+}
+
+.project-summary-status.is-progress {
+    color: #0b6f54;
+    background: #d9f7e8;
+    border-color: #a8ebca;
+}
+
+.project-summary-status.is-other,
+.project-card .project-approval-pending-badge {
+    color: #a65d00;
+    background: #fff3d1;
+    border-color: #f7d990;
+}
+
+.project-phase-action {
+    display: flex;
+    min-width: 0;
+}
+
+.project-phase-tile {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    min-height: 194px;
+    overflow: hidden;
+    color: var(--pt-accent-contrast, #ffffff) !important;
+    text-decoration: none !important;
+    background: linear-gradient(145deg, var(--pt-accent, #3195ff), var(--pt-accent-dark, #145edf));
+    border: 1px solid color-mix(in srgb, var(--pt-accent, #3195ff) 78%, #ffffff 22%);
+    border-radius: 16px;
+    box-shadow: 0 12px 24px var(--pt-accent-soft, rgba(37, 138, 244, .22));
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.project-phase-tile:hover {
+    color: var(--pt-accent-contrast, #ffffff) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px var(--pt-accent-glow, rgba(37, 138, 244, .3));
+}
+
+.project-phase-tile__body {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 48px;
+}
+
+.project-phase-tile__icon {
+    font-size: 3rem;
+    line-height: 1;
+    filter: grayscale(1) brightness(0) invert(1);
+}
+
+.project-phase-tile__title {
+    color: inherit;
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.project-phase-tile__arrow {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pt-accent-dark, #145edf);
+    background: rgba(255, 255, 255, .72);
+    border-radius: 50%;
+    font-size: 2rem;
+    font-weight: 400;
+    transform: translateY(-50%);
+}
+
+.project-phase-tile__footer {
+    display: flex;
+    align-items: center;
+    min-height: 46px;
+    padding: 10px 16px;
+    color: inherit;
+    background: rgba(0, 38, 130, .16);
+    font-size: .82rem;
+    font-weight: 650;
+}
+
+.project-tech-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 14px;
+    padding: 16px 20px;
+}
+
+.project-tech-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.project-tech-column + .project-tech-column {
+    margin-left: 22px;
+    padding-left: 22px;
+    border-left: 1px solid var(--project-card-border);
+}
+
+.project-tech-row {
+    display: grid;
+    grid-template-columns: 28px 116px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    min-width: 0;
+}
+
+.project-tech-system-row {
+    align-items: baseline;
+}
+
+.project-card .project-system-value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.project-card .project-system-chip {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px;
+    width: 100%;
+}
+
+.project-card .project-system-value a {
+    min-width: 0;
+    color: #0d6efd !important;
+    -webkit-text-fill-color: #0d6efd !important;
+    overflow-wrap: anywhere;
+}
+
+.project-preserve-lines {
+    white-space: pre-line;
+}
+
+.project-tech-date-row {
+    grid-template-columns: 28px 116px minmax(90px, 1fr);
+}
+
+.project-tech-end-label {
+    grid-column: 2;
+}
+
+.project-mobile-cards .project-actions {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    overflow: visible;
+}
+
+@@media (max-width: 1199.98px) {
+    .project-mobile-cards .project-actions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@@media (max-width: 767.98px) {
+    .project-card {
+        padding: 18px;
+    }
+
+    .project-team-leads {
+        align-items: flex-start;
+    }
+
+    .project-card .project-top-people {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .project-card .project-top-people .project-person.is-profile {
+        max-width: 100%;
+    }
+
+    .project-card .project-related-people {
+        margin-left: 0;
+    }
+
+    .project-overview-grid,
+    .project-tech-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .project-phase-tile {
+        min-height: 150px;
+    }
+
+    .project-tech-column + .project-tech-column {
+        margin: 12px 0 0;
+        padding: 12px 0 0;
+        border-top: 1px solid var(--project-card-border);
+        border-left: 0;
+    }
+
+    .project-mobile-cards .project-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@@media (max-width: 479.98px) {
+    .project-summary-row,
+    .project-tech-row,
+    .project-tech-date-row {
+        grid-template-columns: 24px minmax(0, 1fr);
+    }
+
+    .project-summary-value,
+    .project-tech-value,
+    .project-system-value {
+        grid-column: 2;
+    }
+
+    .project-tech-end-label {
+        grid-column: 2;
     }
 }
 
