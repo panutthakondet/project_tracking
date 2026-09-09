@@ -594,22 +594,22 @@
                 <div class="project-overview-grid">
                     <section class="project-summary-panel" aria-label="ข้อมูลโครงการ">
                         <div class="project-summary-row">
-                            <span class="project-summary-icon" aria-hidden="true">⌂</span>
+                            <span class="project-summary-icon project-local-icon project-local-icon--building" aria-hidden="true"></span>
                             <span class="project-summary-label">สหกรณ์:</span>
                             <span class="project-summary-value">@(string.IsNullOrWhiteSpace(coopName) ? "-" : coopName)</span>
                         </div>
                         <div class="project-summary-row">
-                            <span class="project-summary-icon" aria-hidden="true">▤</span>
+                            <span class="project-summary-icon project-local-icon project-local-icon--project" aria-hidden="true"></span>
                             <span class="project-summary-label">โครงการ:</span>
                             <span class="project-summary-value">@(string.IsNullOrWhiteSpace(p.ProjectName) ? "-" : p.ProjectName)</span>
                         </div>
                         <div class="project-summary-row">
-                            <span class="project-summary-icon" aria-hidden="true">▣</span>
+                            <span class="project-summary-icon project-local-icon project-local-icon--department" aria-hidden="true"></span>
                             <span class="project-summary-label">ฝ่าย:</span>
                             <span class="project-summary-value">@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
                         </div>
                         <div class="project-summary-row">
-                            <span class="project-summary-icon" aria-hidden="true">▥</span>
+                            <span class="project-summary-icon project-local-icon project-local-icon--status" aria-hidden="true"></span>
                             <span class="project-summary-label">สถานะ:</span>
                             <span class="project-summary-value project-status">
                                 <span class="project-summary-status @(projectStatusCode == "DONE" ? "is-done" : projectStatusCode == "IN_PROGRESS" ? "is-progress" : "is-other")">
@@ -624,7 +624,7 @@
                         @if (!string.IsNullOrWhiteSpace(p.ProjectDetail) && p.ProjectDetail.Trim() != "-")
                         {
                             <div class="project-summary-row project-summary-detail">
-                                <span class="project-summary-icon" aria-hidden="true">≡</span>
+                                <span class="project-summary-icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
                                 <span class="project-summary-label">รายละเอียด:</span>
                                 <span class="project-summary-value">@p.ProjectDetail.Trim()</span>
                             </div>
@@ -638,11 +638,14 @@
                            class="project-phase-tile"
                            title="ดูงวดงานของโครงการ">
                             <span class="project-phase-tile__body">
-                                <span class="project-phase-tile__icon" aria-hidden="true">🧩</span>
+                                <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
                                 <span class="project-phase-tile__title">งวดงาน</span>
                                 <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
                             </span>
-                            <span class="project-phase-tile__footer">▥&nbsp; ดูรายละเอียดงวดงานทั้งหมด</span>
+                            <span class="project-phase-tile__footer">
+                                <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                <span>ดูรายละเอียดงวดงานทั้งหมด</span>
+                            </span>
                         </a>
                     </div>
                 </div>
@@ -650,7 +653,7 @@
                 <section class="project-tech-panel" aria-label="ข้อมูลระบบและระยะเวลาโครงการ">
                     <div class="project-tech-column">
                         <div class="project-tech-row project-tech-system-row">
-                            <span class="project-tech-icon" aria-hidden="true">▰</span>
+                            <span class="project-tech-icon project-local-icon project-local-icon--system" aria-hidden="true"></span>
                             <span class="project-tech-label">ระบบ:</span>
                             <span class="project-tech-value project-system-value">
                                 @if (cardSystemItems.Count > 0)
@@ -677,24 +680,24 @@
                             </span>
                         </div>
                         <div class="project-tech-row">
-                            <span class="project-tech-icon" aria-hidden="true">◉</span>
+                            <span class="project-tech-icon project-local-icon project-local-icon--database" aria-hidden="true"></span>
                             <span class="project-tech-label">ฐานข้อมูล:</span>
                             <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.DatabaseName) ? "-" : p.DatabaseName)</span>
                         </div>
                         <div class="project-tech-row">
-                            <span class="project-tech-icon" aria-hidden="true">♟</span>
+                            <span class="project-tech-icon project-local-icon project-local-icon--account" aria-hidden="true"></span>
                             <span class="project-tech-label">ทะเบียนทดสอบ:</span>
                             <span class="project-tech-value">@(string.IsNullOrWhiteSpace(p.TestAccount) ? "-" : p.TestAccount)</span>
                         </div>
                     </div>
                     <div class="project-tech-column">
                         <div class="project-tech-row">
-                            <span class="project-tech-icon" aria-hidden="true">▧</span>
+                            <span class="project-tech-icon project-local-icon project-local-icon--remote" aria-hidden="true"></span>
                             <span class="project-tech-label">รีโมท:</span>
                             <span class="project-tech-value project-preserve-lines">@(string.IsNullOrWhiteSpace(p.RemoteUrl) ? "-" : p.RemoteUrl)</span>
                         </div>
                         <div class="project-tech-row project-tech-date-row">
-                            <span class="project-tech-icon" aria-hidden="true">▦</span>
+                            <span class="project-tech-icon project-local-icon project-local-icon--calendar" aria-hidden="true"></span>
                             <span class="project-tech-label">วันที่เริ่ม:</span>
                             <span class="project-tech-value">@(p.StartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                             <span class="project-tech-label project-tech-end-label">วันที่สิ้นสุด:</span>
@@ -1816,6 +1819,36 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     line-height: 1;
 }
 
+.project-local-icon {
+    --project-local-icon-source: none;
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    background-color: currentColor;
+    -webkit-mask-image: var(--project-local-icon-source);
+    mask-image: var(--project-local-icon-source);
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+.project-local-icon--building { --project-local-icon-source: url('/images/icons/projects/building.svg'); }
+.project-local-icon--project { --project-local-icon-source: url('/images/icons/projects/folder2-open.svg'); }
+.project-local-icon--department { --project-local-icon-source: url('/images/icons/projects/briefcase.svg'); }
+.project-local-icon--status { --project-local-icon-source: url('/images/icons/projects/bar-chart-line.svg'); }
+.project-local-icon--detail { --project-local-icon-source: url('/images/icons/projects/card-text.svg'); }
+.project-local-icon--phase { --project-local-icon-source: url('/images/icons/projects/puzzle-fill.svg'); }
+.project-local-icon--system { --project-local-icon-source: url('/images/icons/projects/display.svg'); }
+.project-local-icon--database { --project-local-icon-source: url('/images/icons/projects/database.svg'); }
+.project-local-icon--account { --project-local-icon-source: url('/images/icons/projects/people.svg'); }
+.project-local-icon--remote { --project-local-icon-source: url('/images/icons/projects/pc-display-horizontal.svg'); }
+.project-local-icon--calendar { --project-local-icon-source: url('/images/icons/projects/calendar3.svg'); }
+.project-local-icon--list { --project-local-icon-source: url('/images/icons/projects/list-ul.svg'); }
+
 .project-card .project-summary-label,
 .project-card .project-tech-label {
     color: var(--project-card-text) !important;
@@ -1925,9 +1958,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-phase-tile__icon {
-    font-size: 3rem;
-    line-height: 1;
-    filter: grayscale(1) brightness(0) invert(1);
+    width: 50px;
+    height: 50px;
+    color: var(--pt-accent-contrast, #ffffff);
 }
 
 .project-phase-tile__title {
@@ -1959,10 +1992,16 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     align-items: center;
     min-height: 46px;
     padding: 10px 16px;
+    gap: 8px;
     color: inherit;
     background: rgba(0, 38, 130, .16);
     font-size: .82rem;
     font-weight: 650;
+}
+
+.project-phase-tile__footer-icon {
+    width: 17px;
+    height: 17px;
 }
 
 .project-tech-panel {
