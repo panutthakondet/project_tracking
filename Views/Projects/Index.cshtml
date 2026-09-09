@@ -657,7 +657,7 @@
                                 {
                                     foreach (var item in cardSystemItems)
                                     {
-                                        <span class="project-system-chip">
+                                        <span class="project-system-chip @(!string.IsNullOrWhiteSpace(item.Url) ? "" : "is-text-only")">
                                             @if (!string.IsNullOrWhiteSpace(item.Url))
                                             {
                                                 <span class="project-system-key">@item.Label</span>
@@ -1967,7 +1967,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-tech-panel {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
     gap: 0;
     margin-top: 14px;
     padding: 16px 20px;
@@ -1978,6 +1978,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     flex-direction: column;
     gap: 12px;
     min-width: 0;
+    overflow: hidden;
 }
 
 .project-tech-column + .project-tech-column {
@@ -2003,6 +2004,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     flex-direction: column;
     align-items: flex-start;
     gap: 3px;
+    width: 100%;
+    overflow: hidden;
 }
 
 .project-card .project-system-chip {
@@ -2010,6 +2013,23 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 4px;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.project-card .project-system-chip.is-text-only {
+    display: block;
+    white-space: normal;
+}
+
+.project-card .project-system-chip.is-text-only .project-system-text {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .project-card .project-system-value a {
