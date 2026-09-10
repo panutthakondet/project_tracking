@@ -211,17 +211,6 @@ namespace ProjectTracking.Controllers
                     .ThenBy(phase => phase.PhaseId)
                     .ToListAsync();
 
-                var phaseIds = phases.Select(phase => phase.PhaseId).ToList();
-                var canViewAssignments = HasMenuPermission("PhaseAssigns.Index");
-                var assignmentCounts = phaseIds.Count == 0 || !canViewAssignments
-                    ? new Dictionary<int, int>()
-                    : await _context.PhaseAssigns
-                        .AsNoTracking()
-                        .Where(assign => phaseIds.Contains(assign.PhaseId))
-                        .GroupBy(assign => assign.PhaseId)
-                        .Select(group => new { PhaseId = group.Key, Count = group.Count() })
-                        .ToDictionaryAsync(row => row.PhaseId, row => row.Count);
-
                 return Json(new
                 {
                     items = phases.Select(phase =>
@@ -237,10 +226,7 @@ namespace ProjectTracking.Controllers
                             dateRange = DateRange(phase.PlanStart, phase.PlanEnd),
                             dueDate = DateText(phase.PeriodEndDate),
                             status = phase.StatusDescription,
-                            statusTone = StatusTone(statusCode),
-                            assignmentCount = canViewAssignments
-                                ? (int?)assignmentCounts.GetValueOrDefault(phase.PhaseId)
-                                : null
+                            statusTone = StatusTone(statusCode)
                         };
                     })
                 });

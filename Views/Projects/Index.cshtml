@@ -2695,9 +2695,6 @@ function renderProjectPhases(panel, items) {
         <article class="project-inline-item project-inline-item--phase">
             <div class="project-inline-sequence">
                 <strong>ส่วนที่ ${escapeProjectInlineText(item.phaseOrder)} งวดที่ ${escapeProjectInlineText(item.periodOrder)}</strong>
-                ${item.assignmentCount == null
-                    ? ""
-                    : `<small>${escapeProjectInlineText(item.assignmentCount)} งานที่มอบหมาย</small>`}
             </div>
             <div class="project-inline-phase-name">
                 <strong>${escapeProjectInlineText(item.name || "-")}</strong>
