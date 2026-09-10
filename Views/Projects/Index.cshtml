@@ -1839,18 +1839,16 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-card .project-top-people {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
     width: 100%;
-    gap: 10px 30px;
-}
-
-.project-card .project-top-people .project-person.is-profile:not(:first-child),
-.project-card .project-related-list .project-related-member:not(:first-child) {
-    padding-inline-start: 28px;
-    border-inline-start: 1px solid color-mix(in srgb, var(--project-card-border) 88%, transparent);
+    gap: 14px 28px;
 }
 
 .project-card .project-top-people .project-person.is-profile {
-    max-width: min(100%, 520px);
+    width: 100%;
+    max-width: none;
     color: var(--project-card-text);
     font-size: .96rem;
     font-weight: 400;
@@ -1877,11 +1875,15 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-card .project-related-list {
-    gap: 12px 28px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 14px 28px;
 }
 
 .project-card .project-related-member {
-    max-width: 320px;
+    width: 100%;
+    max-width: none;
     color: var(--project-card-text);
 }
 
@@ -2447,6 +2449,11 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 @@media (max-width: 1199.98px) {
+    .project-card .project-top-people,
+    .project-card .project-related-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .project-mobile-cards .project-actions {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
@@ -2469,9 +2476,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
     .project-card .project-top-people {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
     }
 
     .project-card .project-top-people .project-person.is-profile {
@@ -2479,22 +2485,13 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
     .project-card .project-related-list {
-        flex-direction: column;
-        gap: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
     }
 
     .project-card .project-related-member {
         width: 100%;
         max-width: 100%;
-    }
-
-    .project-card .project-top-people .project-person.is-profile:not(:first-child),
-    .project-card .project-related-list .project-related-member:not(:first-child) {
-        margin-top: 10px;
-        padding-top: 10px;
-        padding-inline-start: 0;
-        border-top: 1px solid color-mix(in srgb, var(--project-card-border) 88%, transparent);
-        border-inline-start: 0;
     }
 
     .project-card .project-related-people {
