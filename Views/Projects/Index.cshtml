@@ -571,20 +571,26 @@
                                         <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
                                     </span>
                                 }
-                                @foreach (var member in businessAnalysts)
-                                {
-                                    <span class="project-person is-profile">
-                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
-                                    </span>
-                                }
                             </span>
                         </div>
 
-                        @if (relatedMembers.Count > 0)
+                        @if (businessAnalysts.Count > 0 || relatedMembers.Count > 0)
                         {
                             <div class="project-related-people">
                                 <span class="project-related-list">
+                                    @foreach (var member in businessAnalysts)
+                                    {
+                                        var memberRole = string.IsNullOrWhiteSpace(member.Position)
+                                            ? "Business Analyst"
+                                            : member.Position.Trim();
+                                        <span class="project-related-member" title="@($"{member.EmpName} · {memberRole}")">
+                                            <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <span class="project-related-member-text">
+                                                <span class="project-related-member-name">@member.EmpName</span>
+                                                <span class="project-related-member-role">@memberRole</span>
+                                            </span>
+                                        </span>
+                                    }
                                     @foreach (var member in relatedMembers)
                                     {
                                         <span class="project-related-member" title="@($"{member.Name} · {member.Role}")">
