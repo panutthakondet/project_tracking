@@ -9,6 +9,7 @@ namespace ProjectTracking.ViewModels
         public string SelectedProjectName { get; set; } = "ทุกโครงการ";
         public List<ProjectStatusOption> ProjectOptions { get; set; } = new();
         public int? SelectedDepartmentId { get; set; }
+        public string SelectedDepartmentName { get; set; } = "ทุกฝ่าย";
         public List<ProjectDepartmentOption> DepartmentOptions { get; set; } = new();
         public int TotalProjects { get; set; }
         public int DelayedProjects { get; set; }

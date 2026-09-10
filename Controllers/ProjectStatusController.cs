@@ -25,13 +25,8 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Home.Index")]
-        public async Task<IActionResult> Index(int? projectId, int? departmentId)
+        public async Task<IActionResult> Index(int? departmentId)
         {
-            var today = DateTime.Today;
-            var th = new CultureInfo("th-TH");
-            var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).Date;
-            var weekEnd = weekStart.AddDays(6);
-
             var allProjects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
@@ -95,13 +90,7 @@ namespace ProjectTracking.Controllers
                 ? allProjects.Where(x => x.DepartmentId == selectedDepartmentId.Value).ToList()
                 : allProjects;
 
-            var selectedProjectId = projectId.HasValue && availableProjects.Any(x => x.ProjectId == projectId.Value)
-                ? projectId.Value
-                : (int?)null;
-
-            var projects = selectedProjectId.HasValue
-                ? availableProjects.Where(x => x.ProjectId == selectedProjectId.Value).ToList()
-                : availableProjects;
+            var projects = availableProjects;
             var selectedProjectIds = projects.Select(x => x.ProjectId).ToList();
 
             var projectStatusDefinitions = await _context.ProjectStatuses
@@ -128,6 +117,7 @@ namespace ProjectTracking.Controllers
                     EmpId = employee.EmpId,
                     Name = employee.EmpName,
                     Position = employee.Position,
+                    DepartmentId = employee.DepartmentId,
                     Status = employee.Status,
                     AvatarPath = login != null ? login.ProfileImagePath : null
                 })
@@ -165,52 +155,14 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            if (selectedProjectId.HasValue || selectedDepartmentId.HasValue)
+            if (selectedDepartmentId.HasValue)
             {
                 assigns = assigns
                     .Where(x => selectedProjectIds.Contains(x.ProjectId))
                     .ToList();
             }
 
-            var openIssueCountsQuery = _context.ProjectIssues
-                .AsNoTracking()
-                .Where(issue => issue.IssueStatus.ToUpper() == "OPEN");
-
-            var openSupportCountsQuery = _context.ProjectSupportOrders
-                .AsNoTracking()
-                .Where(order => order.AssignTo.HasValue
-                    && order.Status != null
-                    && order.Status.ToUpper() == "OPEN");
-
-            if (selectedProjectId.HasValue)
-            {
-                openIssueCountsQuery = openIssueCountsQuery
-                    .Where(issue => issue.ProjectId == selectedProjectId.Value);
-
-                openSupportCountsQuery = openSupportCountsQuery
-                    .Where(order => order.ProjectId == selectedProjectId.Value);
-            }
-            else if (selectedDepartmentId.HasValue)
-            {
-                openIssueCountsQuery = openIssueCountsQuery
-                    .Where(issue => selectedProjectIds.Contains(issue.ProjectId));
-
-                openSupportCountsQuery = openSupportCountsQuery
-                    .Where(order => selectedProjectIds.Contains(order.ProjectId));
-            }
-
-            var openIssueCounts = await openIssueCountsQuery
-                .GroupBy(issue => issue.AssignTo)
-                .Select(group => new { EmpId = group.Key, Count = group.Count() })
-                .ToDictionaryAsync(x => x.EmpId, x => x.Count);
-
-            var openSupportCounts = await openSupportCountsQuery
-                .GroupBy(order => order.AssignTo!.Value)
-                .Select(group => new { EmpId = group.Key, Count = group.Count() })
-                .ToDictionaryAsync(x => x.EmpId, x => x.Count);
-
             var totalProjects = projects.Count;
-            var delayedProjects = projects.Count(p => IsProjectDelayed(p, today));
 
             var statusMetrics = projectStatusDefinitions
                 .Select((definition, index) => BuildStatusMetric(
@@ -226,27 +178,14 @@ namespace ProjectTracking.Controllers
 
             var model = new ProjectStatusDetailViewModel
             {
-                SelectedProjectId = selectedProjectId,
                 SelectedDepartmentId = selectedDepartmentId,
+                SelectedDepartmentName = selectedDepartmentId.HasValue
+                    ? departmentOptions.First(x => x.DepartmentId == selectedDepartmentId.Value).DepartmentName
+                    : "ทุกฝ่าย",
                 DepartmentOptions = departmentOptions,
-                SelectedProjectName = selectedProjectId.HasValue
-                    ? projects.FirstOrDefault()?.ProjectDisplayName ?? "ทุกโครงการ"
-                    : "ทุกโครงการ",
-                ProjectOptions = availableProjects
-                    .Select(p => new ProjectStatusOption
-                    {
-                        ProjectId = p.ProjectId,
-                        ProjectName = p.ProjectDisplayName,
-                        DepartmentId = p.DepartmentId
-                    })
-                    .ToList(),
                 TotalProjects = totalProjects,
-                DelayedProjects = delayedProjects,
-                WeekRangeText = $"{weekStart.ToString("dd MMM", th)} - {weekEnd.ToString("dd MMM yyyy", th)}",
                 StatusMetrics = statusMetrics,
-                ProjectStatusChart = BuildConicGradient(statusMetrics),
-                TaskOverview = BuildTaskOverview(assigns, employees, openIssueCounts, openSupportCounts, today),
-                ThisWeekTasks = BuildThisWeekTasks(assigns, weekStart, weekEnd, today, th)
+                ProjectStatusChart = BuildConicGradient(statusMetrics)
             };
 
             BuildTeamGroups(model, projects, assigns, employees);
@@ -404,6 +343,13 @@ namespace ProjectTracking.Controllers
                 .Where(x => string.IsNullOrWhiteSpace(x.Status) || x.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
+            if (model.SelectedDepartmentId.HasValue)
+            {
+                activeEmployees = activeEmployees
+                    .Where(x => x.DepartmentId == model.SelectedDepartmentId.Value)
+                    .ToList();
+            }
+
             var baEmpIds = projects
                 .SelectMany(x => x.BaEmpIds)
                 .Distinct()
@@ -412,31 +358,6 @@ namespace ProjectTracking.Controllers
                 .SelectMany(x => x.PmEmpIds)
                 .Distinct()
                 .ToHashSet();
-
-            if (model.SelectedProjectId.HasValue)
-            {
-                var projectTeamEmpIds = assigns
-                    .Select(x => x.EmpId)
-                    .Concat(baEmpIds)
-                    .Concat(pmEmpIds)
-                    .Distinct()
-                    .ToHashSet();
-
-                var hasProjectManager = pmEmpIds.Count > 0 || activeEmployees.Any(employee =>
-                    projectTeamEmpIds.Contains(employee.EmpId) && IsProjectManagerPosition(employee.Position));
-
-                if (!hasProjectManager)
-                {
-                    foreach (var projectManager in activeEmployees.Where(employee => IsProjectManagerPosition(employee.Position)))
-                    {
-                        projectTeamEmpIds.Add(projectManager.EmpId);
-                    }
-                }
-
-                activeEmployees = activeEmployees
-                    .Where(x => projectTeamEmpIds.Contains(x.EmpId))
-                    .ToList();
-            }
 
             var assignGroups = assigns
                 .GroupBy(x => x.EmpId)
@@ -775,6 +696,7 @@ namespace ProjectTracking.Controllers
             public int EmpId { get; set; }
             public string Name { get; set; } = string.Empty;
             public string? Position { get; set; }
+            public int? DepartmentId { get; set; }
             public string? Status { get; set; }
             public string? AvatarPath { get; set; }
         }

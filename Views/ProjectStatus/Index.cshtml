@@ -43,38 +43,6 @@
             SideClass = index == 0 ? "right" : index == 1 ? "left" : "plan"
         })
         .ToList();
-    var taskOverviewTotalEmployees = statusPage.TaskOverview.Count;
-    var taskOverviewTotalTasks = statusPage.TaskOverview.Sum(x => x.TotalCount);
-    var taskOverviewDoneTasks = statusPage.TaskOverview.Sum(x => x.DoneCount);
-    var taskOverviewWorkingTasks = statusPage.TaskOverview.Sum(x => x.InProgressCount);
-    var taskOverviewDelayTasks = statusPage.TaskOverview.Sum(x => x.DelayCount);
-    var taskOverviewOpenIssueTasks = statusPage.TaskOverview.Sum(x => x.OpenIssueCount);
-    var taskOverviewOpenSupportTasks = statusPage.TaskOverview.Sum(x => x.OpenSupportCount);
-    var taskOverviewDonePercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDoneTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewWorkingPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewWorkingTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewDelayPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewDelayTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewOpenIssuePercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewOpenIssueTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewOpenSupportPercent = taskOverviewTotalTasks <= 0 ? 0 : Math.Round(taskOverviewOpenSupportTasks * 100m / taskOverviewTotalTasks, 2);
-    var taskOverviewMaxValue = statusPage.TaskOverview.Count == 0
-        ? 0
-        : statusPage.TaskOverview.Max(x => new[] { x.DoneCount, x.InProgressCount, x.DelayCount, x.OpenIssueCount, x.OpenSupportCount }.Max());
-    var taskOverviewAxisMax = Math.Max(25, (int)Math.Ceiling(taskOverviewMaxValue / 5m) * 5);
-    var taskOverviewAxisStep = Math.Max(1, taskOverviewAxisMax / 5);
-    var taskOverviewAxisTicks = Enumerable.Range(0, 6)
-        .Select(i => taskOverviewAxisMax - (i * taskOverviewAxisStep))
-        .ToList();
-    var taskOverviewFirstChartCount = (int)Math.Ceiling(statusPage.TaskOverview.Count / 2m);
-    var taskOverviewGroups = statusPage.TaskOverview
-        .Select((member, index) => new { Member = member, Index = index })
-        .GroupBy(x => x.Index < taskOverviewFirstChartCount ? 0 : 1)
-        .Select(group => group.Select(x => x.Member).ToList())
-        .Where(group => group.Count > 0)
-        .ToList();
-    var weeklyTotalTasks = statusPage.ThisWeekTasks.Count;
-    var weeklyDoneTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "done");
-    var weeklyDelayTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "stuck");
-    var weeklyWorkingTasks = statusPage.ThisWeekTasks.Count(x => x.StatusClass == "working");
-    var weeklyNearDueTasks = Math.Max(0, weeklyTotalTasks - weeklyDoneTasks - weeklyDelayTasks);
 }
 
 <div class="project-status-page">
@@ -82,7 +50,7 @@
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
             <h1 class="index-title">ทีมงานและสถานะโครงการ</h1>
-            <p class="index-subtitle">@statusPage.SelectedProjectName</p>
+            <p class="index-subtitle">@statusPage.SelectedDepartmentName</p>
         </div>
         <div class="project-status-actions index-actions">
             <a asp-controller="Home" asp-action="Index" class="status-back-link">กลับ Dashboard</a>
@@ -93,33 +61,13 @@
         <div class="card-body py-3">
             <form asp-controller="ProjectStatus" asp-action="Index" method="get" class="project-filter-form">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-12">
                         <label for="departmentId" class="form-label fw-bold">ฝ่าย</label>
                         <select id="departmentId" name="departmentId" class="form-select rounded-3" onchange="this.form.submit()">
                             <option value="">ทุกฝ่าย</option>
                             @foreach (var department in statusPage.DepartmentOptions)
                             {
                                 <option value="@department.DepartmentId" selected="@(statusPage.SelectedDepartmentId == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-7">
-                        <label for="projectId" class="form-label fw-bold">📁 โครงการ</label>
-                        <select id="projectId"
-                                name="projectId"
-                                class="form-select rounded-3"
-                                onchange="this.form.submit()">
-                            <option value="">ทุกโครงการ</option>
-                            @foreach (var project in statusPage.ProjectOptions)
-                            {
-                                if (statusPage.SelectedProjectId == project.ProjectId)
-                                {
-                                    <option value="@project.ProjectId" selected>@project.ProjectName</option>
-                                }
-                                else
-                                {
-                                    <option value="@project.ProjectId">@project.ProjectName</option>
-                                }
                             }
                         </select>
                     </div>
@@ -192,115 +140,6 @@
                 </div>
             </article>
 
-            <article class="status-board-card task-overview-card">
-                <div class="light-report-head">
-                    <div class="light-report-title">
-                        <span class="light-report-icon light-report-icon--people" aria-hidden="true"></span>
-                        <div>
-                            <h2>ภาพรวมงานตามผู้รับผิดชอบ</h2>
-                            <p>สรุปสถานะงานทั้งหมดของแต่ละผู้รับผิดชอบ</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="task-chart-legend">
-                    <span><i class="done"></i>เสร็จแล้ว</span>
-                    <span><i class="working"></i>กำลังทำ</span>
-                    <span><i class="stuck"></i>ล่าช้า</span>
-                    <span><i class="issue-open"></i>Issues OPEN</span>
-                    <span><i class="support-open"></i>Support OPEN</span>
-                </div>
-
-                @if (statusPage.TaskOverview.Count == 0)
-                {
-                    <p class="status-empty">ยังไม่มีข้อมูลงานสำหรับแสดงผล</p>
-                }
-                else
-                {
-                    <div class="task-overview-plots">
-                        @foreach (var chartMembers in taskOverviewGroups)
-                        {
-                            <div class="task-overview-plot" style="--task-axis-max:@taskOverviewAxisMax;">
-                                <div class="task-y-axis" aria-hidden="true">
-                                    <span class="task-y-title">จำนวนงาน (งาน)</span>
-                                    @foreach (var tick in taskOverviewAxisTicks)
-                                    {
-                                        var tickPosition = Math.Round((taskOverviewAxisMax - tick) * 100m / taskOverviewAxisMax, 3);
-                                        <span style="--tick:@tickPosition.ToString("0.###", CultureInfo.InvariantCulture);">@tick</span>
-                                    }
-                                </div>
-                                <div class="task-overview-scroll">
-                                    <div class="task-overview-chart" style="--task-count:@chartMembers.Count; --task-min-width:@(Math.Max(1, chartMembers.Count) * 132)px;">
-                                        @foreach (var member in chartMembers)
-                                        {
-                                            var doneHeight = Math.Round(Math.Min(member.DoneCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                            var workingHeight = Math.Round(Math.Min(member.InProgressCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                            var delayHeight = Math.Round(Math.Min(member.DelayCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                            var openIssueHeight = Math.Round(Math.Min(member.OpenIssueCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                            var openSupportHeight = Math.Round(Math.Min(member.OpenSupportCount, taskOverviewAxisMax) * 100m / taskOverviewAxisMax, 3);
-                                            <div class="task-overview-item" title="@member.Name">
-                                                <div class="task-stack-frame" aria-label="@member.Name เสร็จแล้ว @member.DoneCount งาน กำลังทำ @member.InProgressCount งาน ล่าช้า @member.DelayCount งาน Issues OPEN @member.OpenIssueCount งาน Support OPEN @member.OpenSupportCount งาน">
-                                                    <span class="task-single-bar done @(member.DoneCount == 0 ? "is-zero" : "")"
-                                                          title="เสร็จแล้ว @member.DoneCount งาน"
-                                                          style="--bar-height:@doneHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                        <em>@member.DoneCount</em>
-                                                        <i></i>
-                                                    </span>
-                                                    <span class="task-single-bar working @(member.InProgressCount == 0 ? "is-zero" : "")"
-                                                          title="กำลังทำ @member.InProgressCount งาน"
-                                                          style="--bar-height:@workingHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                        <em>@member.InProgressCount</em>
-                                                        <i></i>
-                                                    </span>
-                                                    <span class="task-single-bar stuck @(member.DelayCount == 0 ? "is-zero" : "")"
-                                                          title="ล่าช้า @member.DelayCount งาน"
-                                                          style="--bar-height:@delayHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                        <em>@member.DelayCount</em>
-                                                        <i></i>
-                                                    </span>
-                                                    <span class="task-single-bar issue-open @(member.OpenIssueCount == 0 ? "is-zero" : "")"
-                                                          title="Issues OPEN @member.OpenIssueCount งาน"
-                                                          style="--bar-height:@openIssueHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                        <em>@member.OpenIssueCount</em>
-                                                        <i></i>
-                                                    </span>
-                                                    <span class="task-single-bar support-open @(member.OpenSupportCount == 0 ? "is-zero" : "")"
-                                                          title="Support OPEN @member.OpenSupportCount งาน"
-                                                          style="--bar-height:@openSupportHeight.ToString("0.###", CultureInfo.InvariantCulture)%;">
-                                                        <em>@member.OpenSupportCount</em>
-                                                        <i></i>
-                                                    </span>
-                                                </div>
-                                                <div class="task-member-card">
-                                                    <small>รวม @member.TotalCount งาน</small>
-                                                    <img class="js-profile-preview"
-                                                         src="@member.AvatarPath"
-                                                         alt="@member.Name"
-                                                         data-profile-name="@member.Name"
-                                                         onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                    <b>@member.Name</b>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        <span class="task-x-title" aria-hidden="true">ผู้รับผิดชอบ</span>
-                    </div>
-
-                    <div class="task-overview-footer">
-                        <span class="footer-info">ⓘ</span>
-                        <span>รวมทั้งหมด <b>@taskOverviewTotalEmployees</b> คน</span>
-                        <span>รวมงานทั้งหมด <b>@taskOverviewTotalTasks</b> งาน</span>
-                        <span class="footer-status footer-status--done"><i></i>เสร็จแล้ว <b>@taskOverviewDoneTasks</b> งาน (@PercentText(taskOverviewDonePercent)%)</span>
-                        <span class="footer-status footer-status--working"><i></i>กำลังทำ <b>@taskOverviewWorkingTasks</b> งาน (@PercentText(taskOverviewWorkingPercent)%)</span>
-                        <span class="footer-status footer-status--stuck"><i></i>ล่าช้า <b>@taskOverviewDelayTasks</b> งาน (@PercentText(taskOverviewDelayPercent)%)</span>
-                        <span class="footer-status footer-status--issue-open"><i></i>Issues OPEN <b>@taskOverviewOpenIssueTasks</b> งาน (@PercentText(taskOverviewOpenIssuePercent)%)</span>
-                        <span class="footer-status footer-status--support-open"><i></i>Support OPEN <b>@taskOverviewOpenSupportTasks</b> งาน (@PercentText(taskOverviewOpenSupportPercent)%)</span>
-                    </div>
-                }
-            </article>
         </div>
 
         <div class="status-right-column">
@@ -487,81 +326,6 @@
                 </div>
             </article>
 
-            <article class="status-board-card week-task-card">
-                <div class="light-report-head">
-                    <div class="light-report-title">
-                        <span class="light-report-icon light-report-icon--tasks" aria-hidden="true"></span>
-                        <div>
-                            <h2>งานสัปดาห์นี้</h2>
-                            <p>ติดตามความคืบหน้าและกำหนดส่งงาน</p>
-                        </div>
-                    </div>
-                    <div class="light-date-pill">
-                        <span aria-hidden="true">▣</span>
-                        @statusPage.WeekRangeText
-                    </div>
-                </div>
-
-                @if (statusPage.ThisWeekTasks.Count == 0)
-                {
-                    <p class="status-empty">สัปดาห์นี้ยังไม่มีงานตามแผน</p>
-                }
-                else
-                {
-                    <div class="week-task-table-wrap">
-                        <table class="week-task-table">
-                            <colgroup>
-                                <col class="week-col-task" />
-                                <col class="week-col-owner" />
-                                <col class="week-col-due" />
-                                <col class="week-col-status" />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>งาน</th>
-                                    <th>ผู้รับผิดชอบ</th>
-                                    <th>กำหนดส่ง</th>
-                                    <th>สถานะ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var task in statusPage.ThisWeekTasks)
-                                {
-                                    <tr class="week-row-@task.StatusClass">
-                                        <td>
-                                            <span class="week-task-icon @task.StatusClass" aria-hidden="true">□</span>
-                                            <span class="week-task-copy">
-                                                <b>@task.Title</b>
-                                                <small>@task.ProjectName</small>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="task-owner">
-                                                <img class="js-profile-preview"
-                                                     src="@task.AvatarPath"
-                                                     alt="@task.OwnerName"
-                                                     data-profile-name="@task.OwnerName"
-                                                     onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                                @task.OwnerName
-                                            </span>
-                                        </td>
-                                        <td>@task.DueDateText</td>
-                                        <td><span class="week-status @task.StatusClass">@task.StatusText</span></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="week-task-footer">
-                        <span><i class="week-total-icon"></i>รวมทั้งหมด <b>@weeklyTotalTasks</b> งาน</span>
-                        <span><i class="near"></i>ใกล้ถึงกำหนด <b>@weeklyNearDueTasks</b> งาน</span>
-                        <span class="week-foot-status stuck"><i></i>ล่าช้า <b>@weeklyDelayTasks</b> งาน</span>
-                        <span class="week-foot-status working"><i></i>กำลังทำ <b>@weeklyWorkingTasks</b> งาน</span>
-                        <span class="week-foot-status done"><i></i>เสร็จสิ้น <b>@weeklyDoneTasks</b> งาน</span>
-                    </div>
-                }
-            </article>
         </div>
     </section>
 </div>
@@ -4051,6 +3815,24 @@
         .status-pie-card .project-status-mini-progress span {
             background: linear-gradient(90deg, color-mix(in srgb, var(--status-color) 88%, #fff), var(--status-color));
             box-shadow: 0 0 16px color-mix(in srgb, var(--status-color) 28%, transparent);
+        }
+
+        .status-pie-card .project-status-summary-card {
+            align-items: center;
+            justify-items: center;
+            text-align: center;
+        }
+
+        .status-pie-card .project-status-summary-card > b,
+        .status-pie-card .project-status-summary-card > strong,
+        .status-pie-card .project-status-summary-card > small {
+            width: 100%;
+            text-align: center;
+            justify-self: center;
+        }
+
+        .status-pie-card .project-status-mini-progress {
+            justify-self: center;
         }
 
         .status-pie-card .project-status-showcase__head,
