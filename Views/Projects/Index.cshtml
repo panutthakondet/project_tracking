@@ -543,6 +543,8 @@
             var phasesPanelId = $"projectCardPhases-{p.ProjectId}";
             var assignmentsPanelId = $"projectCardAssignments-{p.ProjectId}";
             var inlineDetailsUrl = Url.Action("InlineDetails", "Projects", new { id = p.ProjectId }) ?? "";
+            var canViewProjectPhases = CanMenu("ProjectPhases.Index");
+            var canViewPhaseAssigns = CanMenu("PhaseAssigns.Index");
             <div class="project-card"
                  data-project-id="@p.ProjectId"
                  data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
@@ -605,7 +607,7 @@
                         <span class="project-local-icon project-local-icon--project" aria-hidden="true"></span>
                         <span>ข้อมูลโครงการ</span>
                     </button>
-                    @if (CanMenu("ProjectPhases.Index"))
+                    @if (canViewProjectPhases)
                     {
                         <button type="button"
                                 class="project-card-tab"
@@ -619,7 +621,7 @@
                             <span class="project-card-tab-count" data-project-tab-count="phases" aria-hidden="true"></span>
                         </button>
                     }
-                    @if (CanMenu("PhaseAssigns.Index"))
+                    @if (canViewPhaseAssigns)
                     {
                         <button type="button"
                                 class="project-card-tab"
@@ -638,7 +640,7 @@
                 <section class="project-card-tab-panel is-active"
                          id="@projectPanelId"
                          role="tabpanel">
-                <div class="project-overview-grid project-overview-grid--summary">
+                <div class="project-overview-grid @(!canViewProjectPhases ? "project-overview-grid--summary" : "")">
                     <section class="project-summary-panel" aria-label="ข้อมูลโครงการ">
                         <div class="project-summary-row">
                             <span class="project-summary-icon project-local-icon project-local-icon--building" aria-hidden="true"></span>
@@ -677,6 +679,27 @@
                             </div>
                         }
                     </section>
+
+                    @if (canViewProjectPhases)
+                    {
+                        <div class="project-phase-action">
+                            <a asp-controller="ProjectPhases"
+                               asp-action="Index"
+                               asp-route-projectId="@p.ProjectId"
+                               class="project-phase-tile"
+                               title="เพิ่มหรือจัดการงวดงานของโครงการ">
+                                <span class="project-phase-tile__body">
+                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
+                                    <span class="project-phase-tile__title">เพิ่มงวดงาน</span>
+                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                </span>
+                                <span class="project-phase-tile__footer">
+                                    <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                    <span>ไปหน้าจัดการงวดงาน</span>
+                                </span>
+                            </a>
+                        </div>
+                    }
                 </div>
 
                 <section class="project-tech-panel" aria-label="ข้อมูลระบบและระยะเวลาโครงการ">
@@ -736,7 +759,7 @@
                 </section>
                 </section>
 
-                @if (CanMenu("ProjectPhases.Index"))
+                @if (canViewProjectPhases)
                 {
                     <section class="project-card-tab-panel project-inline-panel"
                              id="@phasesPanelId"
@@ -748,7 +771,7 @@
                     </section>
                 }
 
-                @if (CanMenu("PhaseAssigns.Index"))
+                @if (canViewPhaseAssigns)
                 {
                     <section class="project-card-tab-panel project-inline-panel"
                              id="@assignmentsPanelId"
