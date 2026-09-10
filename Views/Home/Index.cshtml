@@ -21,6 +21,13 @@
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
     var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
     var pendingStatusApprovalCount = Convert.ToInt32(ViewBag.PendingStatusApprovalCount ?? 0);
+    var selectedProjectStatusDepartmentId = int.TryParse(
+        dashboard.SelectedDashboardDepartment,
+        NumberStyles.Integer,
+        CultureInfo.InvariantCulture,
+        out var parsedProjectStatusDepartmentId)
+            ? parsedProjectStatusDepartmentId
+            : (int?)null;
     if (string.IsNullOrWhiteSpace(dashboardDinoName))
     {
         dashboardDinoName = "Dino";
@@ -412,7 +419,10 @@
                         <span class="project-overview-action-icon details" aria-hidden="true"></span>
                         <span>รายละเอียด</span>
                     </a>
-                    <a asp-controller="ProjectStatus" asp-action="Index" class="panel-filter compact project-overview-action team">
+                    <a asp-controller="ProjectStatus"
+                       asp-action="Index"
+                       asp-route-departmentId="@selectedProjectStatusDepartmentId"
+                       class="panel-filter compact project-overview-action team">
                         <span class="project-overview-action-icon team" aria-hidden="true"></span>
                         <span>ทีมงานพัฒนา</span>
                     </a>
@@ -441,7 +451,7 @@
                         {
                             foreach (var project in dashboard.ProjectOverviewProjects)
                             {
-                                var projectSearchText = $"{project.ProjectName} {project.DepartmentName} {project.StatusText} {project.StartText} {project.EndText}";
+                                var projectSearchText = $"{project.ProjectName} {project.DepartmentName} {project.StatusText}";
                                 var projectDepartmentValue = project.DepartmentId?.ToString() ?? "unassigned";
                                 <a class="project-overview-row"
                                    asp-controller="Projects"
@@ -458,14 +468,6 @@
                                         <span class="project-overview-department-name">@project.DepartmentName</span>
                                     </span>
                                     <span class="project-overview-status @project.StatusColor">@project.StatusText</span>
-                                    <span class="project-overview-date">
-                                        <span class="project-overview-mobile-label">เริ่ม</span>
-                                        <time>@project.StartText</time>
-                                    </span>
-                                    <span class="project-overview-date">
-                                        <span class="project-overview-mobile-label">สิ้นสุด</span>
-                                        <time>@project.EndText</time>
-                                    </span>
                                 </a>
                             }
                             <p class="empty-state project-overview-empty" hidden>ไม่พบโครงการที่ค้นหา</p>
@@ -3589,7 +3591,7 @@
 .project-overview-head,
 .project-overview-row {
     display:grid;
-    grid-template-columns:68px minmax(0, 1fr) 150px 220px;
+    grid-template-columns:68px minmax(0, 1fr) 150px;
     grid-template-rows:auto auto;
     align-items:center;
     gap:6px 18px;
@@ -3785,74 +3787,9 @@
     border-color:rgba(255,79,127,.28);
 }
 
-.project-overview-date {
-    position:relative;
-    min-width:0;
-    grid-column:4;
-    grid-row:1;
-    justify-self:start;
-    display:grid;
-    grid-template-columns:auto auto;
-    gap:4px 8px;
-    align-items:center;
-    justify-content:start;
-    padding-left:24px;
-}
-
-.project-overview-date::after {
-    content:"";
-    position:absolute;
-    left:0;
-    top:-2px;
-    bottom:-2px;
-    border-left:1px dashed rgba(148,163,184,.28);
-}
-
-.project-overview-mobile-label {
-    display:inline !important;
-    color:#a9b8d6;
-    font-size:12px;
-    font-weight:800;
-}
-
-.project-overview-row time {
-    color:#d9e4fb;
-    font-size:13px;
-    font-weight:900;
-    text-align:center;
-    white-space:nowrap;
-}
-
-.project-overview-date::before {
-    content:"▣";
-    grid-row:1 / span 2;
-    align-self:center;
-    color:#b8c7e4;
-    font-size:14px;
-}
-
-.project-overview-date + .project-overview-date {
-    grid-column:4;
-    grid-row:2;
-    margin-top:0;
-}
-
-.project-overview-date .project-overview-mobile-label {
-    grid-column:2;
-}
-
-.project-overview-date time {
-    grid-column:2;
-}
-
 @@container (max-width:560px) {
     .project-overview-row {
         grid-template-columns:48px minmax(0, 1fr) !important;
-    }
-
-    .project-overview-date {
-        grid-column:2 !important;
-        justify-self:start !important;
     }
 
     .project-overview-status {
@@ -3902,7 +3839,7 @@
 
     .project-overview-row {
         display:grid !important;
-        grid-template-columns:56px minmax(0, 1fr) 132px 180px !important;
+        grid-template-columns:56px minmax(0, 1fr) 132px !important;
         align-items:center !important;
         justify-content:stretch !important;
         min-width:0 !important;
@@ -3948,31 +3885,6 @@
         content:none !important;
     }
 
-    .project-overview-date {
-        grid-column:4 !important;
-        grid-row:1 !important;
-        position:relative;
-        display:inline-flex !important;
-        align-items:center !important;
-        justify-content:flex-start !important;
-        gap:4px !important;
-        min-width:0 !important;
-        padding-left:18px !important;
-        white-space:nowrap !important;
-    }
-
-    .project-overview-date + .project-overview-date {
-        grid-column:4 !important;
-        grid-row:2 !important;
-        margin-top:0 !important;
-    }
-
-    .project-overview-mobile-label {
-        display:inline !important;
-        color:#8fa4c8;
-        font-size:10px;
-        font-weight:800;
-    }
 
     .project-overview-icon {
         width:48px;
@@ -7489,27 +7401,6 @@
     }
     .project-overview-status::before {
         content:none !important;
-    }
-    .project-overview-date {
-        grid-column:2 !important;
-        display:grid !important;
-        grid-template-columns:auto auto !important;
-        align-items:center !important;
-        justify-content:start !important;
-        gap:4px 8px !important;
-        min-width:0 !important;
-        white-space:nowrap !important;
-    }
-
-    .project-overview-date + .project-overview-date {
-        grid-column:2 !important;
-        margin-top:0 !important;
-    }
-    .project-overview-mobile-label {
-        display:inline !important;
-        color:#8fa4c8;
-        font-size:10px;
-        font-weight:800;
     }
     .panel-team .workload-list { grid-template-columns:1fr; }
     .progress-row { grid-template-columns:1fr; gap:6px; }
