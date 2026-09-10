@@ -623,7 +623,7 @@
     .phase-selected-overview {
         margin-top: 14px;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(230px, 280px);
+        grid-template-columns: minmax(0, 1fr) minmax(440px, 580px);
         align-items: stretch;
         gap: 18px;
         max-width: 100%;
@@ -678,11 +678,12 @@
         overflow-wrap: anywhere;
     }
 
-    .phase-selected-assign-action {
+    .phase-selected-actions {
         min-width: 0;
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
         align-items: stretch;
-        justify-content: flex-end;
     }
 
     .phase-selected-assign-tile {
@@ -699,10 +700,15 @@
         border: 1px solid color-mix(in srgb, var(--pt-accent, #3195ff) 78%, #fff 22%);
         border-radius: 16px;
         box-shadow: 0 12px 24px var(--pt-accent-soft, rgba(37, 138, 244, .22));
+        padding: 0;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        appearance: none;
         transition: transform .18s ease, box-shadow .18s ease;
     }
 
-    a.phase-selected-assign-tile:hover {
+    .phase-selected-assign-tile:not(.is-disabled):hover {
         color: var(--pt-accent-contrast, #fff) !important;
         transform: translateY(-2px);
         box-shadow: 0 16px 30px var(--pt-accent-glow, rgba(37, 138, 244, .3));
@@ -794,11 +800,25 @@
         --phase-selected-local-icon-source: url('/images/icons/projects/list-ul.svg');
     }
 
+    .phase-selected-local-icon--import {
+        --phase-selected-local-icon-source: url('/images/icons/projects/folder2-open.svg');
+    }
+
+    .phase-selected-local-icon--phase {
+        --phase-selected-local-icon-source: url('/images/icons/projects/puzzle-fill.svg');
+    }
+
     #projectDropdown {
         width: 100%;
         border-radius: 14px;
         box-shadow: 0 14px 28px rgba(15, 35, 64, .12);
     }
+    @@media (max-width: 1199.98px) {
+        .phase-selected-overview {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
     @@media (max-width: 991.98px) {
         .phase-card {
             grid-template-columns: 1fr;
@@ -825,16 +845,16 @@
             grid-template-columns: minmax(0, 1fr);
         }
 
-        .phase-selected-assign-action {
-            justify-content: stretch;
-        }
-
         .phase-selected-assign-tile {
             min-height: 126px;
         }
     }
 
     @@media (max-width: 575.98px) {
+        .phase-selected-actions {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
         .thai-calendar-grid {
             grid-template-columns: 1fr;
         }
@@ -869,7 +889,7 @@
                asp-action="Index"
                class="btn btn-outline-secondary"
                title="กลับไปหน้ารายการโครงการ">
-                โครงการ
+                กลับไปโครงการ
             </a>
 
             <button id="RequirementCardDetailButton"
@@ -893,36 +913,14 @@
                 <a asp-action="Create"
                    asp-route-projectId="@selectedProject.ProjectId"
                    class="btn btn-primary"
-                   title="เพิ่มส่วนงาน">
-                    เพิ่มส่วนงาน
+                   title="เพิ่มส่วนงานและงวดงาน">
+                    เพิ่มส่วนงาน-งวดงาน
                 </a>
-
-                @if (selectedProject.RequirementCardId != null)
-                {
-                    <form asp-action="ImportFromRequirementCard"
-                          method="post"
-                          class="d-inline"
-                          onsubmit="return confirm('Import ร่างส่วนงาน/งวดงานจาก Project Board เข้ามาใน Project นี้หรือไม่?');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="projectId" value="@selectedProject.ProjectId" />
-                        <button type="submit"
-                                class="btn btn-outline-success"
-                                title="ดึงข้อมูลส่วนงาน/งวดงานจาก Project Board Card">
-                            นำเข้า Project Board
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <button class="btn btn-outline-secondary" disabled title="โครงการนี้ยังไม่ได้ผูก Project Board Card">
-                        นำเข้า Project Board
-                    </button>
-                }
             }
             else
             {
-                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มส่วนงาน">
-                    เพิ่มส่วนงาน
+                <button class="btn btn-primary" disabled title="ไม่มีสิทธิ์เพิ่มส่วนงานและงวดงาน">
+                    เพิ่มส่วนงาน-งวดงาน
                 </button>
             }
 
@@ -1067,7 +1065,7 @@
 
             @if (selectedProject != null)
             {
-                <div class="phase-selected-assign-action">
+                <div class="phase-selected-actions">
                     @if (CanMenu("PhaseAssigns.Index"))
                     {
                         <a asp-controller="PhaseAssigns"
@@ -1098,12 +1096,59 @@
                             </span>
                         </span>
                     }
+
+                    @if (CanMenu("ProjectPhases.Create") && selectedProject.RequirementCardId != null)
+                    {
+                        <button type="submit"
+                                form="importRequirementCardForm"
+                                class="phase-selected-assign-tile phase-selected-import-tile"
+                                title="ดึงข้อมูลส่วนงานและงวดงานจาก Project Board">
+                            <span class="phase-selected-assign-tile__body">
+                                <span class="phase-selected-local-icon phase-selected-local-icon--import" aria-hidden="true"></span>
+                                <span class="phase-selected-assign-tile__title">นำเข้า Project Board</span>
+                                <span class="phase-selected-assign-tile__arrow" aria-hidden="true">›</span>
+                            </span>
+                            <span class="phase-selected-assign-tile__footer">
+                                <span class="phase-selected-local-icon phase-selected-local-icon--phase" aria-hidden="true"></span>
+                                <span>นำเข้าส่วนงานและงวดงาน</span>
+                            </span>
+                        </button>
+                    }
+                    else
+                    {
+                        var importDisabledTitle = !CanMenu("ProjectPhases.Create")
+                            ? "ไม่มีสิทธิ์นำเข้า Project Board"
+                            : "โครงการนี้ยังไม่ได้ผูก Project Board Card";
+                        <span class="phase-selected-assign-tile phase-selected-import-tile is-disabled"
+                              aria-disabled="true"
+                              title="@importDisabledTitle">
+                            <span class="phase-selected-assign-tile__body">
+                                <span class="phase-selected-local-icon phase-selected-local-icon--import" aria-hidden="true"></span>
+                                <span class="phase-selected-assign-tile__title">นำเข้า Project Board</span>
+                            </span>
+                            <span class="phase-selected-assign-tile__footer">
+                                <span>@importDisabledTitle</span>
+                            </span>
+                        </span>
+                    }
                 </div>
             }
         </div>
 
     </div>
 </form>
+
+@if (selectedProjectModel?.RequirementCardId != null && CanMenu("ProjectPhases.Create"))
+{
+    <form id="importRequirementCardForm"
+          asp-action="ImportFromRequirementCard"
+          method="post"
+          class="d-none"
+          onsubmit="return confirm('Import ร่างส่วนงาน/งวดงานจาก Project Board เข้ามาใน Project นี้หรือไม่?');">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="projectId" value="@selectedProjectModel!.ProjectId" />
+    </form>
+}
 
 @if (selectedProject != null)
 {
@@ -1194,24 +1239,6 @@
                             {
                                 <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์แก้ไข">
                                     แก้ไข
-                                </button>
-                            }
-
-                            @if (CanMenu("PhaseAssigns.Index"))
-                            {
-                                <a asp-controller="PhaseAssigns"
-                                   asp-action="Index"
-                                   asp-route-projectId="@selectedProject.ProjectId"
-                                   asp-route-phaseId="@phase.PhaseId"
-                                   class="btn btn-sm btn-outline-info me-1"
-                                   title="มอบงาน">
-                                    มอบงาน
-                                </a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-outline-secondary me-1" disabled title="ไม่มีสิทธิ์มอบงาน">
-                                    มอบงาน
                                 </button>
                             }
 
@@ -1355,24 +1382,6 @@ else
                     {
                         <button class="btn btn-outline-secondary btn-sm" disabled>
                             แก้ไข
-                        </button>
-                    }
-
-                    @if (CanMenu("PhaseAssigns.Create"))
-                    {
-                        <a asp-controller="PhaseAssigns"
-                           asp-action="Create"
-                           asp-route-projectId="@selectedProject.ProjectId"
-                           asp-route-phaseId="@phase.PhaseId"
-                           class="btn btn-outline-success btn-sm"
-                           title="มอบงาน">
-                            มอบงาน
-                        </a>
-                    }
-                    else
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" disabled title="ไม่มีสิทธิ์มอบงาน">
-                            มอบงาน
                         </button>
                     }
 
