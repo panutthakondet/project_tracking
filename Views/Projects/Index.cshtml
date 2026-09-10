@@ -545,6 +545,8 @@
             var inlineDetailsUrl = Url.Action("InlineDetails", "Projects", new { id = p.ProjectId }) ?? "";
             var canViewProjectPhases = CanMenu("ProjectPhases.Index");
             var canViewPhaseAssigns = CanMenu("PhaseAssigns.Index");
+            var canViewPhaseWorkload = CanMenu("PhaseWorkload.Index");
+            var hasProjectOverviewActions = canViewProjectPhases || canViewPhaseWorkload;
             <div class="project-card"
                  data-project-id="@p.ProjectId"
                  data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
@@ -640,7 +642,7 @@
                 <section class="project-card-tab-panel is-active"
                          id="@projectPanelId"
                          role="tabpanel">
-                <div class="project-overview-grid @(!canViewProjectPhases ? "project-overview-grid--summary" : "")">
+                <div class="project-overview-grid @(!hasProjectOverviewActions ? "project-overview-grid--summary" : "")">
                     <section class="project-summary-panel" aria-label="ข้อมูลโครงการ">
                         <div class="project-summary-row">
                             <span class="project-summary-icon project-local-icon project-local-icon--building" aria-hidden="true"></span>
@@ -680,24 +682,54 @@
                         }
                     </section>
 
-                    @if (canViewProjectPhases)
+                    @if (hasProjectOverviewActions)
                     {
-                        <div class="project-phase-action">
-                            <a asp-controller="ProjectPhases"
-                               asp-action="Index"
-                               asp-route-projectId="@p.ProjectId"
-                               class="project-phase-tile"
-                               title="เพิ่มหรือจัดการงวดงานของโครงการ">
-                                <span class="project-phase-tile__body">
-                                    <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
-                                    <span class="project-phase-tile__title">เพิ่มงวดงาน</span>
-                                    <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
-                                </span>
-                                <span class="project-phase-tile__footer">
-                                    <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
-                                    <span>ไปหน้าจัดการงวดงาน</span>
-                                </span>
-                            </a>
+                        <div class="project-phase-actions @(!(canViewProjectPhases && canViewPhaseWorkload) ? "is-single" : "")">
+                            @if (canViewProjectPhases)
+                            {
+                                <div class="project-phase-action">
+                                    <a asp-controller="ProjectPhases"
+                                       asp-action="Index"
+                                       asp-route-projectId="@p.ProjectId"
+                                       class="project-phase-tile"
+                                       title="เพิ่มหรือจัดการงวดงานของโครงการ">
+                                        <span class="project-phase-tile__body">
+                                            <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
+                                            <span class="project-phase-tile__title">เพิ่มงวดงาน</span>
+                                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                        </span>
+                                        <span class="project-phase-tile__footer">
+                                            <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                            <span>ไปหน้าจัดการงวดงาน</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            }
+
+                            @if (canViewPhaseWorkload)
+                            {
+                                <div class="project-phase-action">
+                                    <a asp-controller="PhaseWorkload"
+                                       asp-action="Index"
+                                       asp-route-coopId="@p.CoopId"
+                                       asp-route-projectId="@p.ProjectId"
+                                       asp-route-periodStart="@p.StartDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
+                                       asp-route-periodEnd="@p.EndDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
+                                       asp-route-syncProjectPeriod="true"
+                                       class="project-phase-tile project-phase-tile--workload"
+                                       title="ดูแผนงานทีมของโครงการ">
+                                        <span class="project-phase-tile__body">
+                                            <span class="project-phase-tile__icon project-local-icon project-local-icon--account" aria-hidden="true"></span>
+                                            <span class="project-phase-tile__title">แผนงานทีม</span>
+                                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                        </span>
+                                        <span class="project-phase-tile__footer">
+                                            <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--calendar" aria-hidden="true"></span>
+                                            <span>ดูแผนงานรายสัปดาห์</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -2068,7 +2100,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-overview-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 310px);
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
     align-items: stretch;
     gap: 18px;
     min-width: 0;
@@ -2214,6 +2246,17 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     min-width: 0;
 }
 
+.project-phase-actions {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.project-phase-actions.is-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .project-phase-tile {
     position: relative;
     display: flex;
@@ -2246,7 +2289,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 20px 48px;
+    padding: 18px 40px 18px 16px;
 }
 
 .project-phase-tile__icon {
@@ -2257,14 +2300,14 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-phase-tile__title {
     color: inherit;
-    font-size: 1.4rem;
+    font-size: 1.05rem;
     font-weight: 800;
     line-height: 1.2;
 }
 
 .project-phase-tile__arrow {
     position: absolute;
-    right: 18px;
+    right: 10px;
     top: 50%;
     width: 36px;
     height: 36px;
@@ -2287,7 +2330,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     gap: 8px;
     color: inherit;
     background: rgba(0, 38, 130, .16);
-    font-size: .82rem;
+    font-size: .74rem;
     font-weight: 650;
 }
 
@@ -2453,6 +2496,12 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
     .project-mobile-cards .project-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@@media (max-width: 575.98px) {
+    .project-phase-actions {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
