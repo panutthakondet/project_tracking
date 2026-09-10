@@ -2021,12 +2021,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     border-radius: 9px;
 }
 
-.project-inline-item--phase {
-    grid-template-columns: minmax(135px, .55fr) minmax(220px, 1.5fr) minmax(190px, .8fr) auto;
-}
-
+.project-inline-item--phase,
 .project-inline-item--assignment {
-    grid-template-columns: minmax(210px, .8fr) minmax(240px, 1.4fr) minmax(190px, .7fr) auto;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.5fr) minmax(0, .8fr) 150px;
 }
 
 .project-inline-sequence,
@@ -2079,7 +2076,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-inline-status {
+    width: 100%;
     justify-self: end;
+    text-align: right;
     white-space: nowrap;
     font-size: .78rem;
     font-weight: 650;
@@ -2097,7 +2096,9 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     }
 
     .project-inline-status {
+        width: auto;
         justify-self: start;
+        text-align: left;
     }
 }
 
