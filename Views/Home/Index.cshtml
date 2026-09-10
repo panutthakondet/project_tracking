@@ -2271,6 +2271,7 @@
 .kpi-card::before {
     content:"";
     position:absolute;
+    z-index:1;
     width:82px;
     height:82px;
     left:24px;
@@ -2281,13 +2282,20 @@
     box-shadow:0 0 26px color-mix(in srgb, var(--kpi-accent) 55%, transparent), inset 0 0 30px color-mix(in srgb, var(--kpi-accent) 22%, transparent);
 }
 
+.kpi-card::after {
+    content:"";
+    position:absolute;
+    z-index:0;
+    pointer-events:none;
+}
+
 .kpi-blue { --kpi-accent:#1688f5; --kpi-deep:#002257; }
 .kpi-purple { --kpi-accent:#7c22ff; --kpi-deep:#26005a; }
 .kpi-orange { --kpi-accent:#ff7a00; --kpi-deep:#5a2300; }
 .kpi-pink { --kpi-accent:#ff2d73; --kpi-deep:#5b0022; }
 
 .kpi-icon {
-    z-index:1;
+    z-index:2;
     position:absolute;
     left:24px;
     top:42px;
@@ -2315,7 +2323,6 @@
     left:128px;
     right:24px;
     top:48px;
-    z-index:1;
 }
 
 .kpi-card p {
@@ -2352,7 +2359,7 @@
     position:absolute;
     top:18px;
     right:22px;
-    z-index:2;
+    z-index:3;
     color:#fff;
     font-size:19px;
     font-weight:1000;
@@ -2362,6 +2369,7 @@
 
 .kpi-dots {
     position:absolute;
+    z-index:1;
     left:24px;
     bottom:22px;
     width:62px;
@@ -2372,6 +2380,7 @@
 
 .kpi-wave {
     position:absolute;
+    z-index:1;
     right:22px;
     bottom:18px;
     width:150px;
@@ -2412,6 +2421,7 @@
 
 .kpi-bars {
     position:absolute;
+    z-index:1;
     right:20px;
     bottom:18px;
     transform:scale(.78);
@@ -2437,6 +2447,77 @@
         linear-gradient(to top, var(--kpi-accent) 0 52px, transparent 52px) 96px 100%/14px 100% no-repeat,
         linear-gradient(to top, var(--kpi-accent) 0 72px, transparent 72px) 120px 100%/14px 100% no-repeat;
     filter:drop-shadow(0 0 10px color-mix(in srgb, var(--kpi-accent) 45%, transparent));
+}
+
+/* Card artwork follows the four visual styles used by the dashboard summary. */
+.kpi-blue::after {
+    left:0;
+    right:0;
+    bottom:-1px;
+    height:66px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 74' preserveAspectRatio='none'%3E%3Cpath d='M0 25 C54 5 91 49 148 41 C207 32 246 4 360 27 L360 74 L0 74 Z' fill='%2342b9ff' fill-opacity='.88'/%3E%3Cpath d='M0 43 C70 19 104 64 177 49 C244 35 287 25 360 44 L360 74 L0 74 Z' fill='%231388ef' fill-opacity='.92'/%3E%3Cpath d='M0 57 C74 35 123 69 191 58 C266 45 307 42 360 54 L360 74 L0 74 Z' fill='%230060c8' fill-opacity='.94'/%3E%3C/svg%3E") center bottom / 100% 100% no-repeat;
+    filter:drop-shadow(0 -8px 18px rgba(22,136,245,.22));
+}
+
+.kpi-blue .kpi-dots {
+    left:auto;
+    right:20px;
+    bottom:62px;
+    width:54px;
+    height:54px;
+    opacity:.72;
+}
+
+.kpi-blue .kpi-wave,
+.kpi-purple .kpi-wave,
+.kpi-pink .kpi-wave {
+    display:none;
+}
+
+.kpi-purple::after {
+    right:-34px;
+    bottom:-54px;
+    width:220px;
+    height:150px;
+    background:
+        radial-gradient(circle at 78% 35%, rgba(124,34,255,.48) 0 26%, transparent 27%),
+        radial-gradient(circle at 33% 86%, rgba(123,56,220,.36) 0 24%, transparent 25%),
+        radial-gradient(circle at 4% 96%, rgba(101,55,184,.3) 0 18%, transparent 19%);
+}
+
+.kpi-purple .kpi-dots {
+    bottom:18px;
+    opacity:.7;
+}
+
+.kpi-orange::after {
+    left:0;
+    top:0;
+    width:126px;
+    height:106px;
+    opacity:.78;
+    background:repeating-linear-gradient(
+        135deg,
+        rgba(255,122,0,.9) 0 14px,
+        rgba(255,122,0,.22) 14px 28px,
+        rgba(2,18,43,.2) 28px 40px
+    );
+    clip-path:polygon(0 0, 100% 0, 0 100%);
+}
+
+.kpi-orange .kpi-dots,
+.kpi-pink .kpi-dots {
+    display:none;
+}
+
+.kpi-pink::after {
+    right:-8px;
+    bottom:-8px;
+    width:58%;
+    height:104px;
+    opacity:.68;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='92' viewBox='0 0 160 92'%3E%3Cg fill='none' stroke='%23ff2d73' stroke-width='1.5' stroke-opacity='.62'%3E%3Cpath d='M23 2 43 13v23L23 47 3 36V13Z'/%3E%3Cpath d='M69 2 89 13v23L69 47 49 36V13Z'/%3E%3Cpath d='M115 2 135 13v23l-20 11-20-11V13Z'/%3E%3Cpath d='M46 43 66 54v23L46 88 26 77V54Z'/%3E%3Cpath d='M92 43 112 54v23L92 88 72 77V54Z'/%3E%3Cpath d='M138 43 158 54v23l-20 11-20-11V54Z'/%3E%3C/g%3E%3Cg fill='%23ff2d73'%3E%3Ccircle cx='23' cy='2' r='2.6'/%3E%3Ccircle cx='43' cy='36' r='2.6'/%3E%3Ccircle cx='69' cy='47' r='2.6'/%3E%3Ccircle cx='115' cy='2' r='2.6'/%3E%3Ccircle cx='135' cy='36' r='2.6'/%3E%3Ccircle cx='92' cy='88' r='2.6'/%3E%3Ccircle cx='158' cy='54' r='2.6'/%3E%3C/g%3E%3C/svg%3E") right bottom / 176px 102px repeat-x;
+    filter:drop-shadow(0 0 12px rgba(255,45,115,.32));
 }
 
 .dashboard-grid {
