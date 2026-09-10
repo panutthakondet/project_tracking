@@ -560,43 +560,45 @@
                 data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
 
                 <div class="project-team-header">
-                    <div class="project-team-leads">
-                        <span class="project-row-number">@mobileRow</span>
-                        <span class="project-top-people">
-                            @foreach (var member in projectManagers)
-                            {
-                                <span class="project-person is-profile">
-                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
-                                </span>
-                            }
-                            @foreach (var member in businessAnalysts)
-                            {
-                                <span class="project-person is-profile">
-                                    <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                    <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
-                                </span>
-                            }
-                        </span>
-                    </div>
-
-                    @if (relatedMembers.Count > 0)
-                    {
-                        <div class="project-related-people">
-                            <span class="project-related-list">
-                                @foreach (var member in relatedMembers)
+                    <span class="project-row-number" aria-label="ลำดับที่ @mobileRow">@mobileRow</span>
+                    <div class="project-team-members">
+                        <div class="project-team-leads">
+                            <span class="project-top-people">
+                                @foreach (var member in projectManagers)
                                 {
-                                    <span class="project-related-member" title="@($"{member.Name} · {member.Role}")">
-                                        <img class="pt-owner-avatar" src="@member.AvatarPath" alt="@member.Name" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
-                                        <span class="project-related-member-text">
-                                            <span class="project-related-member-name">@member.Name</span>
-                                            <span class="project-related-member-role">@member.Role</span>
-                                        </span>
+                                    <span class="project-person is-profile">
+                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span class="project-person-text"><strong>PM:</strong> @member.EmpName</span>
+                                    </span>
+                                }
+                                @foreach (var member in businessAnalysts)
+                                {
+                                    <span class="project-person is-profile">
+                                        <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                        <span class="project-person-text"><strong>BA:</strong> @member.EmpName</span>
                                     </span>
                                 }
                             </span>
                         </div>
-                    }
+
+                        @if (relatedMembers.Count > 0)
+                        {
+                            <div class="project-related-people">
+                                <span class="project-related-list">
+                                    @foreach (var member in relatedMembers)
+                                    {
+                                        <span class="project-related-member" title="@($"{member.Name} · {member.Role}")">
+                                            <img class="pt-owner-avatar" src="@member.AvatarPath" alt="@member.Name" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                                            <span class="project-related-member-text">
+                                                <span class="project-related-member-name">@member.Name</span>
+                                                <span class="project-related-member-role">@member.Role</span>
+                                            </span>
+                                        </span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <div class="project-card-tabs" role="tablist" aria-label="ข้อมูลของ @projectDisplayName">
@@ -1804,21 +1806,32 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-team-header {
+    position: relative;
     min-width: 0;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
+    padding: 16px 74px 16px 18px;
+    color: var(--project-card-text);
+    background: var(--project-card-soft);
+    border: 1px solid var(--project-card-border);
+    border-radius: 14px;
+}
+
+.project-team-members {
+    min-width: 0;
 }
 
 .project-team-leads {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+    display: block;
     min-width: 0;
 }
 
 .project-card .project-row-number {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1;
     width: 42px;
     height: 42px;
-    flex: 0 0 42px;
     color: var(--project-card-text);
     background: var(--project-card-soft);
     border-color: var(--project-card-border);
@@ -1826,6 +1839,7 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-card .project-top-people {
+    width: 100%;
     gap: 10px 30px;
 }
 
@@ -1856,8 +1870,10 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-card .project-related-people {
-    margin: 12px 0 0 58px;
+    margin: 14px 0 0;
+    padding-top: 14px;
     color: var(--project-card-text);
+    border-top: 1px solid color-mix(in srgb, var(--project-card-border) 88%, transparent);
 }
 
 .project-card .project-related-list {
@@ -2441,8 +2457,15 @@ main.route-controller-projects .project-card .project-status .project-approval-p
         padding: 18px;
     }
 
-    .project-team-leads {
-        align-items: flex-start;
+    .project-team-header {
+        padding: 14px 58px 14px 14px;
+    }
+
+    .project-card .project-row-number {
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
     }
 
     .project-card .project-top-people {
