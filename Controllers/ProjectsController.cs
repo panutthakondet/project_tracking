@@ -170,6 +170,129 @@ namespace ProjectTracking.Controllers
             return View(projects);
         }
 
+        [HttpGet]
+        [RequireMenu("Projects.Index")]
+        public async Task<IActionResult> InlineDetails(int id, string? section)
+        {
+            var projectExists = await _context.Projects
+                .AsNoTracking()
+                .AnyAsync(project => project.ProjectId == id);
+            if (!projectExists)
+            {
+                return NotFound();
+            }
+
+            var sectionKey = (section ?? "").Trim().ToLowerInvariant();
+            var thaiCulture = new CultureInfo("th-TH");
+            string DateText(DateTime? value) => value?.ToString("dd MMM yyyy", thaiCulture) ?? "-";
+            string DateRange(DateTime? start, DateTime? end) => $"{DateText(start)} - {DateText(end)}";
+            static string StatusTone(string? statusCode) => statusCode switch
+            {
+                "DONE" => "done",
+                "DELAY" => "delay",
+                "IN_PROGRESS" => "progress",
+                _ => "other"
+            };
+
+            if (sectionKey == "phases")
+            {
+                if (!HasMenuPermission("ProjectPhases.Index"))
+                {
+                    return Forbid();
+                }
+
+                var phases = await _context.ProjectPhases
+                    .AsNoTracking()
+                    .Include(phase => phase.StatusDefinition)
+                    .Where(phase => phase.ProjectId == id)
+                    .OrderBy(phase => phase.PhaseOrder)
+                    .ThenBy(phase => phase.PeriodOrder)
+                    .ThenBy(phase => phase.PhaseSort == 0 ? int.MaxValue : phase.PhaseSort)
+                    .ThenBy(phase => phase.PhaseId)
+                    .ToListAsync();
+
+                var phaseIds = phases.Select(phase => phase.PhaseId).ToList();
+                var canViewAssignments = HasMenuPermission("PhaseAssigns.Index");
+                var assignmentCounts = phaseIds.Count == 0 || !canViewAssignments
+                    ? new Dictionary<int, int>()
+                    : await _context.PhaseAssigns
+                        .AsNoTracking()
+                        .Where(assign => phaseIds.Contains(assign.PhaseId))
+                        .GroupBy(assign => assign.PhaseId)
+                        .Select(group => new { PhaseId = group.Key, Count = group.Count() })
+                        .ToDictionaryAsync(row => row.PhaseId, row => row.Count);
+
+                return Json(new
+                {
+                    items = phases.Select(phase =>
+                    {
+                        var statusCode = WorkflowStatusPresentation.Code(
+                            phase.StatusDefinition?.StatusCode ?? phase.PhaseStatus);
+                        return new
+                        {
+                            id = phase.PhaseId,
+                            phaseOrder = phase.PhaseOrder,
+                            periodOrder = phase.PeriodOrder,
+                            name = phase.PhaseName,
+                            dateRange = DateRange(phase.PlanStart, phase.PlanEnd),
+                            dueDate = DateText(phase.PeriodEndDate),
+                            status = phase.StatusDescription,
+                            statusTone = StatusTone(statusCode),
+                            assignmentCount = canViewAssignments
+                                ? (int?)assignmentCounts.GetValueOrDefault(phase.PhaseId)
+                                : null
+                        };
+                    })
+                });
+            }
+
+            if (sectionKey == "assignments")
+            {
+                if (!HasMenuPermission("PhaseAssigns.Index"))
+                {
+                    return Forbid();
+                }
+
+                var assignments = await _context.PhaseAssigns
+                    .AsNoTracking()
+                    .Include(assign => assign.Phase)
+                    .Include(assign => assign.Employee)
+                        .ThenInclude(employee => employee!.LoginUser)
+                    .Include(assign => assign.StatusDefinition)
+                    .Where(assign => assign.Phase != null && assign.Phase.ProjectId == id)
+                    .OrderBy(assign => assign.Phase!.PhaseOrder)
+                    .ThenBy(assign => assign.Phase!.PeriodOrder)
+                    .ThenBy(assign => assign.PhaseSort ?? int.MaxValue)
+                    .ThenBy(assign => assign.AssignId)
+                    .ToListAsync();
+
+                return Json(new
+                {
+                    items = assignments.Select(assign =>
+                    {
+                        var statusCode = WorkflowStatusPresentation.Code(
+                            assign.StatusDefinition?.StatusCode ?? assign.WorkStatus);
+                        return new
+                        {
+                            id = assign.AssignId,
+                            phaseOrder = assign.Phase?.PhaseOrder ?? 0,
+                            periodOrder = assign.Phase?.PeriodOrder ?? 0,
+                            phaseName = assign.Phase?.PhaseName ?? "-",
+                            work = string.IsNullOrWhiteSpace(assign.Role) ? "ยังไม่ระบุงานที่รับผิดชอบ" : assign.Role.Trim(),
+                            employeeName = assign.Employee?.EmpName ?? "ยังไม่กำหนดผู้รับผิดชอบ",
+                            position = string.IsNullOrWhiteSpace(assign.Employee?.Position) ? "-" : assign.Employee.Position.Trim(),
+                            profileImage = ProfileImagePathResolver.Normalize(assign.Employee?.LoginUser?.ProfileImagePath),
+                            dateRange = DateRange(assign.PlanStart, assign.PlanEnd),
+                            status = assign.StatusDescription,
+                            statusTone = StatusTone(statusCode)
+                        };
+                    })
+                });
+            }
+
+            return BadRequest(new { message = "ไม่พบข้อมูล Tab ที่เลือก" });
+        }
+
         [RequireMenu("Projects.Index")]
         public async Task<IActionResult> ViewOnly(int? projectId, int? baEmpId, string? status, int? departmentId)
         {
@@ -883,6 +1006,20 @@ namespace ProjectTracking.Controllers
                 .ThenBy(p => p.EndDate ?? DateTime.MaxValue)
                 .ThenBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName);
+        }
+
+        private bool HasMenuPermission(string key)
+        {
+            var role = (HttpContext.Session.GetString("Role") ?? "").Trim();
+            if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var menus = HttpContext.Session.GetString("Menus") ?? "";
+            return menus
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Any(menu => string.Equals(menu.Trim(), key, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string NormalizeProjectStatus(string? status)

@@ -109,37 +109,6 @@
     </div>
 </div>
 
-<nav class="projects-module-tabs" aria-label="เมนูข้อมูลโครงการ">
-    <span class="projects-module-tab active" aria-current="page">
-        <span class="project-local-icon project-local-icon--project" aria-hidden="true"></span>
-        <span>โครงการ</span>
-    </span>
-    @if (CanMenu("ProjectPhases.Index"))
-    {
-        <a asp-controller="ProjectPhases"
-           asp-action="Index"
-           asp-route-projectId="@selectedProjectId"
-           class="projects-module-tab"
-           data-project-module-tab
-           data-base-url="@Url.Action("Index", "ProjectPhases")">
-            <span class="project-local-icon project-local-icon--phase" aria-hidden="true"></span>
-            <span>งวดงาน</span>
-        </a>
-    }
-    @if (CanMenu("PhaseAssigns.Index"))
-    {
-        <a asp-controller="PhaseAssigns"
-           asp-action="Index"
-           asp-route-projectId="@selectedProjectId"
-           class="projects-module-tab"
-           data-project-module-tab
-           data-base-url="@Url.Action("Index", "PhaseAssigns")">
-            <span class="project-local-icon project-local-icon--account" aria-hidden="true"></span>
-            <span>งานที่มอบหมาย</span>
-        </a>
-    }
-</nav>
-
 <aside class="requirement-card-popup requirement-card-note thai-calendar-note" id="ThaiCalendarNoteModal" aria-hidden="true">
     <div class="requirement-card-note__panel">
         <div class="requirement-card-popup__header" id="ThaiCalendarNoteHeader">
@@ -570,6 +539,10 @@
             var relatedMemberSearch = string.Join(" ", relatedMembers.Select(member => $"{member.Name} {member.Role}"));
             var projectStatusCode = p.StatusDefinition?.StatusCode ?? ProjectTracking.Services.WorkflowStatusPresentation.Code(p.Status);
             var cardSystemItems = ProjectSystemItems(p.LinkName);
+            var projectPanelId = $"projectCardSummary-{p.ProjectId}";
+            var phasesPanelId = $"projectCardPhases-{p.ProjectId}";
+            var assignmentsPanelId = $"projectCardAssignments-{p.ProjectId}";
+            var inlineDetailsUrl = Url.Action("InlineDetails", "Projects", new { id = p.ProjectId }) ?? "";
             <div class="project-card"
                  data-project-id="@p.ProjectId"
                  data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
@@ -622,7 +595,50 @@
                     }
                 </div>
 
-                <div class="project-overview-grid">
+                <div class="project-card-tabs" role="tablist" aria-label="ข้อมูลของ @projectDisplayName">
+                    <button type="button"
+                            class="project-card-tab is-active"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="@projectPanelId"
+                            data-project-card-tab="@projectPanelId">
+                        <span class="project-local-icon project-local-icon--project" aria-hidden="true"></span>
+                        <span>ข้อมูลโครงการ</span>
+                    </button>
+                    @if (CanMenu("ProjectPhases.Index"))
+                    {
+                        <button type="button"
+                                class="project-card-tab"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="@phasesPanelId"
+                                tabindex="-1"
+                                data-project-card-tab="@phasesPanelId">
+                            <span class="project-local-icon project-local-icon--phase" aria-hidden="true"></span>
+                            <span>งวดงาน</span>
+                            <span class="project-card-tab-count" data-project-tab-count="phases" aria-hidden="true"></span>
+                        </button>
+                    }
+                    @if (CanMenu("PhaseAssigns.Index"))
+                    {
+                        <button type="button"
+                                class="project-card-tab"
+                                role="tab"
+                                aria-selected="false"
+                                aria-controls="@assignmentsPanelId"
+                                tabindex="-1"
+                                data-project-card-tab="@assignmentsPanelId">
+                            <span class="project-local-icon project-local-icon--account" aria-hidden="true"></span>
+                            <span>งานที่มอบหมาย</span>
+                            <span class="project-card-tab-count" data-project-tab-count="assignments" aria-hidden="true"></span>
+                        </button>
+                    }
+                </div>
+
+                <section class="project-card-tab-panel is-active"
+                         id="@projectPanelId"
+                         role="tabpanel">
+                <div class="project-overview-grid project-overview-grid--summary">
                     <section class="project-summary-panel" aria-label="ข้อมูลโครงการ">
                         <div class="project-summary-row">
                             <span class="project-summary-icon project-local-icon project-local-icon--building" aria-hidden="true"></span>
@@ -661,24 +677,6 @@
                             </div>
                         }
                     </section>
-
-                    <div class="project-phase-action">
-                        <a asp-controller="ProjectPhases"
-                           asp-action="Index"
-                           asp-route-projectId="@p.ProjectId"
-                           class="project-phase-tile"
-                           title="ดูงวดงานของโครงการ">
-                            <span class="project-phase-tile__body">
-                                <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
-                                <span class="project-phase-tile__title">งวดงาน</span>
-                                <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
-                            </span>
-                            <span class="project-phase-tile__footer">
-                                <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
-                                <span>ดูรายละเอียดงวดงานทั้งหมด</span>
-                            </span>
-                        </a>
-                    </div>
                 </div>
 
                 <section class="project-tech-panel" aria-label="ข้อมูลระบบและระยะเวลาโครงการ">
@@ -736,6 +734,31 @@
                         </div>
                     </div>
                 </section>
+                </section>
+
+                @if (CanMenu("ProjectPhases.Index"))
+                {
+                    <section class="project-card-tab-panel project-inline-panel"
+                             id="@phasesPanelId"
+                             role="tabpanel"
+                             hidden
+                             data-project-inline-section="phases"
+                             data-project-inline-endpoint="@inlineDetailsUrl">
+                        <div class="project-inline-state">กำลังโหลดข้อมูลงวดงาน...</div>
+                    </section>
+                }
+
+                @if (CanMenu("PhaseAssigns.Index"))
+                {
+                    <section class="project-card-tab-panel project-inline-panel"
+                             id="@assignmentsPanelId"
+                             role="tabpanel"
+                             hidden
+                             data-project-inline-section="assignments"
+                             data-project-inline-endpoint="@inlineDetailsUrl">
+                        <div class="project-inline-state">กำลังโหลดข้อมูลงานที่มอบหมาย...</div>
+                    </section>
+                }
 
                 <div class="project-actions">
                     <a asp-action="ProductionMemo"
@@ -862,56 +885,6 @@
 </div>
 
 <style>
-.projects-module-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 14px;
-    padding: 8px;
-    color: var(--pt-surface-contrast, #10233f);
-    background: var(--pt-surface, #ffffff);
-    border: 1px solid var(--pt-border, #cfe2f3);
-    border-radius: 14px;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
-}
-
-.projects-module-tab {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 8px 18px;
-    color: var(--pt-surface-contrast, #10233f) !important;
-    background: var(--pt-surface-soft, #f5f9fd);
-    border: 1px solid var(--pt-border, #cfe2f3);
-    border-radius: 10px;
-    font-size: .9rem;
-    font-weight: 650;
-    line-height: 1.2;
-    text-decoration: none !important;
-    transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .18s ease;
-}
-
-.projects-module-tab:hover {
-    color: var(--pt-accent-dark, #145edf) !important;
-    border-color: var(--pt-accent, #3195ff);
-    transform: translateY(-1px);
-}
-
-.projects-module-tab.active {
-    color: var(--pt-accent-contrast, #ffffff) !important;
-    background: linear-gradient(135deg, var(--pt-accent, #3195ff), var(--pt-accent-dark, #145edf));
-    border-color: transparent;
-    box-shadow: 0 6px 16px var(--pt-accent-soft, rgba(37, 138, 244, .22));
-}
-
-.projects-module-tab .project-local-icon {
-    width: 18px;
-    height: 18px;
-}
-
 .project-filter-form {
     display: grid;
     grid-template-columns: 1fr;
@@ -1855,6 +1828,215 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     font-weight: 400;
 }
 
+.project-card-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--project-card-border);
+    scrollbar-width: thin;
+}
+
+.project-card-tab {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 7px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: var(--project-card-text);
+    background: var(--project-card-soft);
+    border: 1px solid var(--project-card-border);
+    border-radius: 9px;
+    font-size: .84rem;
+    font-weight: 650;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: color .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.project-card-tab:hover {
+    color: var(--pt-accent-dark, #145edf);
+    border-color: var(--pt-accent, #3195ff);
+}
+
+.project-card-tab.is-active {
+    color: var(--pt-accent-contrast, #ffffff);
+    background: linear-gradient(135deg, var(--pt-accent, #3195ff), var(--pt-accent-dark, #145edf));
+    border-color: transparent;
+    box-shadow: 0 5px 14px var(--pt-accent-soft, rgba(37, 138, 244, .2));
+}
+
+.project-card-tab .project-local-icon {
+    width: 17px;
+    height: 17px;
+}
+
+.project-card-tab-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 700;
+}
+
+.project-card-tab-count:not(:empty) {
+    display: inline-flex;
+}
+
+.project-card-tab-panel[hidden] {
+    display: none !important;
+}
+
+.project-overview-grid--summary {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.project-inline-panel {
+    max-height: 480px;
+    padding: 14px;
+    overflow: auto;
+    color: var(--project-card-text);
+    background: var(--project-card-soft);
+    border: 1px solid var(--project-card-border);
+    border-radius: 14px;
+}
+
+.project-inline-state,
+.project-inline-empty {
+    padding: 24px 14px;
+    color: var(--project-card-muted);
+    font-size: .86rem;
+    font-weight: 400;
+    text-align: center;
+}
+
+.project-inline-list {
+    display: grid;
+    gap: 8px;
+}
+
+.project-inline-item {
+    min-width: 0;
+    display: grid;
+    align-items: center;
+    gap: 10px 14px;
+    padding: 11px 13px;
+    color: var(--project-card-text);
+    background: var(--project-card-surface);
+    border: 1px solid var(--project-card-border);
+    border-radius: 9px;
+}
+
+.project-inline-item--phase {
+    grid-template-columns: minmax(135px, .55fr) minmax(220px, 1.5fr) minmax(190px, .8fr) auto;
+}
+
+.project-inline-item--assignment {
+    grid-template-columns: minmax(210px, .8fr) minmax(240px, 1.4fr) minmax(190px, .7fr) auto;
+}
+
+.project-inline-sequence,
+.project-inline-phase-name,
+.project-inline-work,
+.project-inline-dates,
+.project-inline-person {
+    min-width: 0;
+    font-size: .82rem;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.project-inline-sequence strong,
+.project-inline-phase-name strong,
+.project-inline-work strong,
+.project-inline-dates strong,
+.project-inline-person strong {
+    display: block;
+    color: var(--project-card-text);
+    font-weight: 650;
+}
+
+.project-inline-sequence small,
+.project-inline-phase-name small,
+.project-inline-work small,
+.project-inline-dates small,
+.project-inline-person small {
+    display: block;
+    color: var(--project-card-muted);
+    font-size: .74rem;
+    font-weight: 400;
+}
+
+.project-inline-person {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+}
+
+.project-inline-person img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    background: var(--project-card-surface);
+    border: 1px solid var(--project-card-border);
+    border-radius: 50%;
+}
+
+.project-inline-status {
+    justify-self: end;
+    white-space: nowrap;
+    font-size: .78rem;
+    font-weight: 650;
+}
+
+.project-inline-status.is-done { color: #138a55; }
+.project-inline-status.is-progress { color: #1769d2; }
+.project-inline-status.is-delay { color: #dc3545; }
+.project-inline-status.is-other { color: var(--project-card-muted); }
+
+@@media (max-width: 991.98px) {
+    .project-inline-item--phase,
+    .project-inline-item--assignment {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    }
+
+    .project-inline-status {
+        justify-self: start;
+    }
+}
+
+@@media (max-width: 575.98px) {
+    .project-card-tabs {
+        gap: 6px;
+    }
+
+    .project-card-tab {
+        padding: 7px 10px;
+        font-size: .78rem;
+    }
+
+    .project-inline-panel {
+        padding: 9px;
+    }
+
+    .project-inline-item--phase,
+    .project-inline-item--assignment {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .project-overview-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(240px, 310px);
@@ -2370,6 +2552,142 @@ if (calendarNote && calendarHeader) {
     });
 }
 
+function escapeProjectInlineText(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function projectInlineStatusClass(tone) {
+    return ["done", "progress", "delay"].includes(tone) ? `is-${tone}` : "is-other";
+}
+
+function renderProjectPhases(panel, items) {
+    if (!items.length) {
+        panel.innerHTML = '<div class="project-inline-empty">ยังไม่มีงวดงานในโครงการนี้</div>';
+        return;
+    }
+
+    panel.innerHTML = `<div class="project-inline-list">${items.map(item => `
+        <article class="project-inline-item project-inline-item--phase">
+            <div class="project-inline-sequence">
+                <strong>ส่วนที่ ${escapeProjectInlineText(item.phaseOrder)} งวดที่ ${escapeProjectInlineText(item.periodOrder)}</strong>
+                ${item.assignmentCount == null
+                    ? ""
+                    : `<small>${escapeProjectInlineText(item.assignmentCount)} งานที่มอบหมาย</small>`}
+            </div>
+            <div class="project-inline-phase-name">
+                <strong>${escapeProjectInlineText(item.name || "-")}</strong>
+                <small>กำหนดส่ง ${escapeProjectInlineText(item.dueDate)}</small>
+            </div>
+            <div class="project-inline-dates">
+                <strong>วันที่ตามแผน</strong>
+                <small>${escapeProjectInlineText(item.dateRange)}</small>
+            </div>
+            <span class="project-inline-status ${projectInlineStatusClass(item.statusTone)}">${escapeProjectInlineText(item.status)}</span>
+        </article>
+    `).join("")}</div>`;
+}
+
+function renderProjectAssignments(panel, items) {
+    if (!items.length) {
+        panel.innerHTML = '<div class="project-inline-empty">ยังไม่มีงานที่มอบหมายในโครงการนี้</div>';
+        return;
+    }
+
+    panel.innerHTML = `<div class="project-inline-list">${items.map(item => `
+        <article class="project-inline-item project-inline-item--assignment">
+            <div class="project-inline-person">
+                <img src="${escapeProjectInlineText(item.profileImage || "/images/Profile/profile.png")}" alt="${escapeProjectInlineText(item.employeeName)}" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
+                <span>
+                    <strong>${escapeProjectInlineText(item.employeeName)}</strong>
+                    <small>${escapeProjectInlineText(item.position)}</small>
+                </span>
+            </div>
+            <div class="project-inline-work">
+                <strong>${escapeProjectInlineText(item.work)}</strong>
+                <small>ส่วนที่ ${escapeProjectInlineText(item.phaseOrder)} งวดที่ ${escapeProjectInlineText(item.periodOrder)} · ${escapeProjectInlineText(item.phaseName)}</small>
+            </div>
+            <div class="project-inline-dates">
+                <strong>วันที่ตามแผน</strong>
+                <small>${escapeProjectInlineText(item.dateRange)}</small>
+            </div>
+            <span class="project-inline-status ${projectInlineStatusClass(item.statusTone)}">${escapeProjectInlineText(item.status)}</span>
+        </article>
+    `).join("")}</div>`;
+}
+
+async function loadProjectInlinePanel(card, panel) {
+    if (panel.dataset.loaded === "true" || panel.dataset.loading === "true") return;
+
+    const endpoint = panel.dataset.projectInlineEndpoint || "";
+    const section = panel.dataset.projectInlineSection || "";
+    if (!endpoint || !section) return;
+
+    panel.dataset.loading = "true";
+    panel.innerHTML = `<div class="project-inline-state">กำลังโหลด${section === "phases" ? "ข้อมูลงวดงาน" : "ข้อมูลงานที่มอบหมาย"}...</div>`;
+
+    try {
+        const separator = endpoint.includes("?") ? "&" : "?";
+        const response = await fetch(`${endpoint}${separator}section=${encodeURIComponent(section)}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (section === "phases") {
+            renderProjectPhases(panel, items);
+        } else {
+            renderProjectAssignments(panel, items);
+        }
+
+        const count = card.querySelector(`[data-project-tab-count="${section}"]`);
+        if (count) count.textContent = String(items.length);
+        panel.dataset.loaded = "true";
+    } catch (error) {
+        panel.innerHTML = '<div class="project-inline-state">โหลดข้อมูลไม่สำเร็จ กรุณากด Tab นี้อีกครั้ง</div>';
+    } finally {
+        panel.dataset.loading = "false";
+    }
+}
+
+document.querySelectorAll(".project-card-tabs").forEach(tabList => {
+    const card = tabList.closest(".project-card");
+    if (!card) return;
+
+    const tabs = Array.from(tabList.querySelectorAll("[data-project-card-tab]"));
+    const panels = Array.from(card.querySelectorAll(".project-card-tab-panel"));
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            const panelId = tab.dataset.projectCardTab;
+            const panel = panelId ? document.getElementById(panelId) : null;
+            if (!panel) return;
+
+            tabs.forEach(item => {
+                const selected = item === tab;
+                item.classList.toggle("is-active", selected);
+                item.setAttribute("aria-selected", selected ? "true" : "false");
+                item.tabIndex = selected ? 0 : -1;
+            });
+
+            panels.forEach(item => {
+                const selected = item === panel;
+                item.hidden = !selected;
+                item.classList.toggle("is-active", selected);
+            });
+
+            if (panel.dataset.projectInlineSection) {
+                loadProjectInlinePanel(card, panel);
+            }
+        });
+    });
+});
+
 window.applyProjectFilter = function () {
 
     const selectedCoop = (
@@ -2381,7 +2699,6 @@ window.applyProjectFilter = function () {
         document.getElementById("projectFilter")?.value || ""
     ).trim().toLowerCase();
     localStorage.setItem("projects.selectedProject", selectedProject);
-    syncProjectModuleTabLinks(selectedProject);
 
     const selectedBa = (
         document.getElementById("baFilter")?.value || ""
@@ -2512,16 +2829,6 @@ window.applyProjectFilter = function () {
         }
     });
 };
-
-function syncProjectModuleTabLinks(projectId) {
-    document.querySelectorAll("[data-project-module-tab]").forEach(tab => {
-        const baseUrl = tab.dataset.baseUrl || tab.getAttribute("href") || "";
-        tab.setAttribute(
-            "href",
-            projectId ? `${baseUrl}?projectId=${encodeURIComponent(projectId)}` : baseUrl
-        );
-    });
-}
 
 function restoreFilter(selectId, storageKey) {
     const savedValue = localStorage.getItem(storageKey) || "";
