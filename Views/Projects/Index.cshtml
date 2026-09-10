@@ -2282,6 +2282,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-phase-tile {
+    --pt-local-text: var(--pt-accent-contrast, #ffffff);
+    --pt-local-muted: var(--pt-accent-contrast, #ffffff);
     position: relative;
     display: flex;
     flex: 1 1 auto;
@@ -2323,7 +2325,8 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-phase-tile__title {
-    color: inherit;
+    color: var(--pt-accent-contrast, #ffffff) !important;
+    -webkit-text-fill-color: var(--pt-accent-contrast, #ffffff) !important;
     font-size: 1.05rem;
     font-weight: 800;
     line-height: 1.2;

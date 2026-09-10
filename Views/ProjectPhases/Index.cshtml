@@ -690,6 +690,8 @@
     }
 
     .phase-selected-assign-tile {
+        --pt-local-text: var(--pt-accent-contrast, #fff);
+        --pt-local-muted: var(--pt-accent-contrast, #fff);
         position: relative;
         width: 100%;
         height: 132px;
@@ -745,7 +747,8 @@
     }
 
     .phase-selected-assign-tile__title {
-        color: inherit;
+        color: var(--pt-accent-contrast, #fff) !important;
+        -webkit-text-fill-color: var(--pt-accent-contrast, #fff) !important;
         font-size: 1rem;
         font-weight: 800;
         line-height: 1.2;
