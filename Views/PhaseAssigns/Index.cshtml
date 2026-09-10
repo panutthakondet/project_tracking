@@ -258,8 +258,8 @@ thead .sticky-col { z-index: 5; }
                asp-action="Index"
                asp-route-projectId="@selectedProject.ProjectId"
                class="btn btn-outline-secondary"
-               title="กลับไปจัดการแผนงานและงวดงาน">
-                แผนงานและงวดงาน
+               title="กลับไปเพิ่มส่วนงานและงวดงาน">
+                กลับไป เพิ่มส่วนงาน-งวดงาน
             </a>
 
             <button id="RequirementCardDetailButton"
@@ -277,23 +277,6 @@ thead .sticky-col { z-index: 5; }
                     title="เปิดปฏิทินไทยปี @calendarThaiYear">
                 ปฏิทิน
             </button>
-
-            @if (CanMenu("ProjectIssues.Index"))
-            {
-                <a asp-controller="ProjectIssues"
-                   asp-action="Index"
-                   asp-route-projectId="@selectedProject.ProjectId"
-                   class="btn btn-outline-danger"
-                   title="เปิดปัญหาของโครงการนี้">
-                    ปัญหาโครงการ
-                </a>
-            }
-            else
-            {
-                <button class="btn btn-outline-secondary" disabled title="ไม่มีสิทธิ์เปิดปัญหาโครงการ">
-                    ปัญหาโครงการ
-                </button>
-            }
 
             @if (CanMenu("PhaseAssigns.Create"))
             {
