@@ -148,11 +148,12 @@
 
             <div class="workload-calendar-actions" aria-label="Workload actions">
                 <a class="workload-calendar-action"
-                   asp-controller="ProjectPhases"
+                   asp-controller="Projects"
                    asp-action="Index"
+                   asp-route-coopId="@selectedCoopId"
                    asp-route-projectId="@selectedProjectId"
-                   title="กลับไปหน้า ProjectPhases">
-                    กลับไป ProjectPhases
+                   title="กลับไปหน้าโครงการ">
+                    กลับไปโครงการ
                 </a>
                 <a class="workload-calendar-action" asp-controller="Home" asp-action="Index" title="กลับ Dashboard">
                     Dashboard
