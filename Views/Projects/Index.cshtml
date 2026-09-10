@@ -109,6 +109,37 @@
     </div>
 </div>
 
+<nav class="projects-module-tabs" aria-label="เมนูข้อมูลโครงการ">
+    <span class="projects-module-tab active" aria-current="page">
+        <span class="project-local-icon project-local-icon--project" aria-hidden="true"></span>
+        <span>โครงการ</span>
+    </span>
+    @if (CanMenu("ProjectPhases.Index"))
+    {
+        <a asp-controller="ProjectPhases"
+           asp-action="Index"
+           asp-route-projectId="@selectedProjectId"
+           class="projects-module-tab"
+           data-project-module-tab
+           data-base-url="@Url.Action("Index", "ProjectPhases")">
+            <span class="project-local-icon project-local-icon--phase" aria-hidden="true"></span>
+            <span>งวดงาน</span>
+        </a>
+    }
+    @if (CanMenu("PhaseAssigns.Index"))
+    {
+        <a asp-controller="PhaseAssigns"
+           asp-action="Index"
+           asp-route-projectId="@selectedProjectId"
+           class="projects-module-tab"
+           data-project-module-tab
+           data-base-url="@Url.Action("Index", "PhaseAssigns")">
+            <span class="project-local-icon project-local-icon--account" aria-hidden="true"></span>
+            <span>งานที่มอบหมาย</span>
+        </a>
+    }
+</nav>
+
 <aside class="requirement-card-popup requirement-card-note thai-calendar-note" id="ThaiCalendarNoteModal" aria-hidden="true">
     <div class="requirement-card-note__panel">
         <div class="requirement-card-popup__header" id="ThaiCalendarNoteHeader">
@@ -831,6 +862,56 @@
 </div>
 
 <style>
+.projects-module-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 8px;
+    color: var(--pt-surface-contrast, #10233f);
+    background: var(--pt-surface, #ffffff);
+    border: 1px solid var(--pt-border, #cfe2f3);
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+}
+
+.projects-module-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 18px;
+    color: var(--pt-surface-contrast, #10233f) !important;
+    background: var(--pt-surface-soft, #f5f9fd);
+    border: 1px solid var(--pt-border, #cfe2f3);
+    border-radius: 10px;
+    font-size: .9rem;
+    font-weight: 650;
+    line-height: 1.2;
+    text-decoration: none !important;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.projects-module-tab:hover {
+    color: var(--pt-accent-dark, #145edf) !important;
+    border-color: var(--pt-accent, #3195ff);
+    transform: translateY(-1px);
+}
+
+.projects-module-tab.active {
+    color: var(--pt-accent-contrast, #ffffff) !important;
+    background: linear-gradient(135deg, var(--pt-accent, #3195ff), var(--pt-accent-dark, #145edf));
+    border-color: transparent;
+    box-shadow: 0 6px 16px var(--pt-accent-soft, rgba(37, 138, 244, .22));
+}
+
+.projects-module-tab .project-local-icon {
+    width: 18px;
+    height: 18px;
+}
+
 .project-filter-form {
     display: grid;
     grid-template-columns: 1fr;
@@ -2300,6 +2381,7 @@ window.applyProjectFilter = function () {
         document.getElementById("projectFilter")?.value || ""
     ).trim().toLowerCase();
     localStorage.setItem("projects.selectedProject", selectedProject);
+    syncProjectModuleTabLinks(selectedProject);
 
     const selectedBa = (
         document.getElementById("baFilter")?.value || ""
@@ -2430,6 +2512,16 @@ window.applyProjectFilter = function () {
         }
     });
 };
+
+function syncProjectModuleTabLinks(projectId) {
+    document.querySelectorAll("[data-project-module-tab]").forEach(tab => {
+        const baseUrl = tab.dataset.baseUrl || tab.getAttribute("href") || "";
+        tab.setAttribute(
+            "href",
+            projectId ? `${baseUrl}?projectId=${encodeURIComponent(projectId)}` : baseUrl
+        );
+    });
+}
 
 function restoreFilter(selectId, storageKey) {
     const savedValue = localStorage.getItem(storageKey) || "";
