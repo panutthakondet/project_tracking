@@ -447,18 +447,17 @@
                             <a asp-controller="ProjectPhases" asp-action="Index" asp-route-projectId="@p.ProjectId" class="btn btn-sm btn-outline-info">🧩</a>
                             <a asp-controller="ProjectDocuments" 
                                asp-action="Index" 
-                               asp-route-projectId="@p.ProjectId" 
-                               class="btn btn-sm btn-outline-secondary">📂</a>
-                            <a asp-controller="ProjectStatus"
-                               asp-action="Index"
                                asp-route-projectId="@p.ProjectId"
-                               class="btn btn-sm btn-outline-success"
-                               title="ดูสถานะโครงการ">📊</a>
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn btn-sm btn-outline-secondary">📂</a>
                             @if (CanMenu("ProjectIssues.Index"))
                             {
                                 <a asp-controller="ProjectIssues"
                                    asp-action="Index"
                                    asp-route-projectId="@p.ProjectId"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn btn-sm btn-outline-danger"
                                    title="ดูปัญหาโครงการ">🐞</a>
                             }
@@ -471,6 +470,8 @@
                                 <a asp-controller="SupportOrders"
                                    asp-action="Index"
                                    asp-route-projectId="@p.ProjectId"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn btn-sm btn-outline-warning"
                                    title="ดูงาน Support">🛠</a>
                             }
@@ -483,6 +484,8 @@
                                 <a asp-controller="TestScenarios"
                                    asp-action="Index"
                                    asp-route-projectId="@p.ProjectId"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
                                    class="btn btn-sm btn-outline-primary"
                                    title="ดูข้อมูลทดสอบ">🧪</a>
                             }
@@ -724,6 +727,8 @@
                                        asp-route-periodStart="@p.StartDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
                                        asp-route-periodEnd="@p.EndDate?.ToString("yyyy-MM", CultureInfo.InvariantCulture)"
                                        asp-route-syncProjectPeriod="true"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
                                        class="project-phase-tile project-phase-tile--workload"
                                        title="ดูแผนงานทีมของโครงการ">
                                         <span class="project-phase-tile__body">
@@ -871,15 +876,10 @@
                     <a asp-controller="ProjectDocuments"
                        asp-action="Index"
                        asp-route-projectId="@p.ProjectId"
+                       target="_blank"
+                       rel="noopener noreferrer"
                        class="btn btn-outline-secondary btn-sm">
                         📂 เอกสาร
-                    </a>
-
-                    <a asp-controller="ProjectStatus"
-                       asp-action="Index"
-                       asp-route-projectId="@p.ProjectId"
-                       class="btn btn-outline-success btn-sm">
-                        📊 สถานะ
                     </a>
 
                     @if (CanMenu("ProjectIssues.Index"))
@@ -887,6 +887,8 @@
                         <a asp-controller="ProjectIssues"
                            asp-action="Index"
                            asp-route-projectId="@p.ProjectId"
+                           target="_blank"
+                           rel="noopener noreferrer"
                            class="btn btn-outline-danger btn-sm">
                             🐞 ปัญหา
                         </a>
@@ -903,6 +905,8 @@
                         <a asp-controller="SupportOrders"
                            asp-action="Index"
                            asp-route-projectId="@p.ProjectId"
+                           target="_blank"
+                           rel="noopener noreferrer"
                            class="btn btn-outline-warning btn-sm">
                             🛠 สนับสนุน
                         </a>
@@ -919,6 +923,8 @@
                         <a asp-controller="TestScenarios"
                            asp-action="Index"
                            asp-route-projectId="@p.ProjectId"
+                           target="_blank"
+                           rel="noopener noreferrer"
                            class="btn btn-outline-primary btn-sm">
                             🧪 ทดสอบ
                         </a>
