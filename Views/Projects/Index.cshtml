@@ -696,27 +696,6 @@
                     @if (hasProjectOverviewActions)
                     {
                         <div class="project-phase-actions @(!(canViewProjectPhases && canViewPhaseWorkload) ? "is-single" : "")">
-                            @if (canViewProjectPhases)
-                            {
-                                <div class="project-phase-action">
-                                    <a asp-controller="ProjectPhases"
-                                       asp-action="Index"
-                                       asp-route-projectId="@p.ProjectId"
-                                       class="project-phase-tile"
-                                       title="เพิ่มหรือจัดการงวดงานของโครงการ">
-                                        <span class="project-phase-tile__body">
-                                            <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
-                                            <span class="project-phase-tile__title">เพิ่มงวดงาน</span>
-                                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
-                                        </span>
-                                        <span class="project-phase-tile__footer">
-                                            <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
-                                            <span>ไปหน้าจัดการงวดงาน</span>
-                                        </span>
-                                    </a>
-                                </div>
-                            }
-
                             @if (canViewPhaseWorkload)
                             {
                                 <div class="project-phase-action">
@@ -739,6 +718,27 @@
                                         <span class="project-phase-tile__footer">
                                             <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--calendar" aria-hidden="true"></span>
                                             <span>ดูแผนงานรายสัปดาห์</span>
+                                        </span>
+                                    </a>
+                                </div>
+                            }
+
+                            @if (canViewProjectPhases)
+                            {
+                                <div class="project-phase-action">
+                                    <a asp-controller="ProjectPhases"
+                                       asp-action="Index"
+                                       asp-route-projectId="@p.ProjectId"
+                                       class="project-phase-tile"
+                                       title="เพิ่มหรือจัดการงวดงานของโครงการ">
+                                        <span class="project-phase-tile__body">
+                                            <span class="project-phase-tile__icon project-local-icon project-local-icon--phase" aria-hidden="true"></span>
+                                            <span class="project-phase-tile__title">เพิ่มงวดงาน</span>
+                                            <span class="project-phase-tile__arrow" aria-hidden="true">›</span>
+                                        </span>
+                                        <span class="project-phase-tile__footer">
+                                            <span class="project-phase-tile__footer-icon project-local-icon project-local-icon--list" aria-hidden="true"></span>
+                                            <span>ไปหน้าจัดการงวดงาน</span>
                                         </span>
                                     </a>
                                 </div>
