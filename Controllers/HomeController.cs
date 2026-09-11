@@ -1312,7 +1312,7 @@ namespace ProjectTracking.Controllers
                 .SelectMany(x => x.Assignees)
                 .GroupBy(x => x.EmpId)
                 .ToDictionary(x => x.Key, x => x.Count());
-            var taskOverview = BuildDashboardTaskOverview(scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeePosition, EmployeeAvatar, today);
+            var taskOverview = BuildDashboardTaskOverview(scopedProjects, scopedAssigns, scopedPhases, scopedIssues, scopedSupportOrders, activeFieldServiceCounts, EmployeeName, EmployeeDepartment, EmployeePosition, EmployeeAvatar, today);
             var projectBaById = projects.ToDictionary(
                 project => project.ProjectId,
                 project => (IReadOnlyCollection<int>)project.BaEmpIds);
@@ -2906,6 +2906,7 @@ namespace ProjectTracking.Controllers
         }
 
         private static List<ProjectTaskOverviewMember> BuildDashboardTaskOverview(
+            IReadOnlyList<DashboardProjectRow> projects,
             IReadOnlyList<DashboardAssignRow> assigns,
             IReadOnlyList<DashboardPhaseRow> phases,
             IReadOnlyList<DashboardIssueRow> issues,
@@ -2920,9 +2921,36 @@ namespace ProjectTracking.Controllers
             var phaseById = phases
                 .GroupBy(p => p.PhaseId)
                 .ToDictionary(g => g.Key, g => g.First());
+            var completedProjectIds = projects
+                .Where(IsDashboardProjectDone)
+                .Select(project => project.ProjectId)
+                .ToHashSet();
             var assignGroups = assigns
                 .GroupBy(a => a.EmpId)
                 .ToDictionary(g => g.Key, g => g.ToList());
+            var completedProjectIdsByEmployee = assigns
+                .Where(assign => phaseById.TryGetValue(assign.PhaseId, out var phase)
+                    && completedProjectIds.Contains(phase.ProjectId))
+                .GroupBy(assign => assign.EmpId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(assign => phaseById[assign.PhaseId].ProjectId)
+                        .ToHashSet());
+
+            foreach (var project in projects.Where(IsDashboardProjectDone))
+            {
+                foreach (var empId in project.PmEmpIds.Concat(project.BaEmpIds).Distinct())
+                {
+                    if (!completedProjectIdsByEmployee.TryGetValue(empId, out var employeeProjectIds))
+                    {
+                        employeeProjectIds = new HashSet<int>();
+                        completedProjectIdsByEmployee[empId] = employeeProjectIds;
+                    }
+
+                    employeeProjectIds.Add(project.ProjectId);
+                }
+            }
             var openIssueCounts = issues
                 .Where(i => Norm(i.IssueStatus) == "OPEN")
                 .GroupBy(i => i.EmpId)
@@ -2934,7 +2962,8 @@ namespace ProjectTracking.Controllers
             var memberIds = assignGroups.Keys
                 .Union(openIssueCounts.Keys)
                 .Union(openSupportCounts.Keys)
-                .Union(fieldServiceCounts.Keys);
+                .Union(fieldServiceCounts.Keys)
+                .Union(completedProjectIdsByEmployee.Keys);
 
             var rows = memberIds
                 .Select(empId =>
@@ -2948,6 +2977,9 @@ namespace ProjectTracking.Controllers
                     openIssueCounts.TryGetValue(empId, out var openIssues);
                     openSupportCounts.TryGetValue(empId, out var openSupport);
                     fieldServiceCounts.TryGetValue(empId, out var fieldService);
+                    var completedProjects = completedProjectIdsByEmployee.TryGetValue(empId, out var employeeProjectIds)
+                        ? employeeProjectIds.Count
+                        : 0;
                     var total = memberAssigns.Count + openIssues + openSupport + fieldService;
 
                     return new ProjectTaskOverviewMember
@@ -2963,11 +2995,13 @@ namespace ProjectTracking.Controllers
                         OpenIssueCount = openIssues,
                         OpenSupportCount = openSupport,
                         FieldServiceCount = fieldService,
+                        CompletedProjectCount = completedProjects,
                         TotalCount = total
                     };
                 })
-                .Where(x => x.TotalCount > 0)
+                .Where(x => x.TotalCount > 0 || x.CompletedProjectCount > 0)
                 .OrderByDescending(x => x.TotalCount)
+                .ThenByDescending(x => x.CompletedProjectCount)
                 .ThenBy(x => x.Name)
                 .ToList();
 
@@ -2990,6 +3024,11 @@ namespace ProjectTracking.Controllers
         private static bool IsDashboardAssignDone(DashboardAssignRow assign)
         {
             return Norm(assign.WorkStatus) == "DONE";
+        }
+
+        private static bool IsDashboardProjectDone(DashboardProjectRow project)
+        {
+            return Norm(project.Status) is "DONE" or "COMPLETED";
         }
 
         private static bool IsDashboardAssignDelayed(
