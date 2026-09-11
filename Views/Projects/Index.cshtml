@@ -683,14 +683,6 @@
                                 }
                             </span>
                         </div>
-                        @if (!string.IsNullOrWhiteSpace(p.ProjectDetail) && p.ProjectDetail.Trim() != "-")
-                        {
-                            <div class="project-summary-row project-summary-detail">
-                                <span class="project-summary-icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
-                                <span class="project-summary-label">รายละเอียด:</span>
-                                <span class="project-summary-value">@p.ProjectDetail.Trim()</span>
-                            </div>
-                        }
                     </section>
 
                     @if (hasProjectOverviewActions)
@@ -800,6 +792,11 @@
                             <span class="project-tech-label project-tech-end-label">วันที่สิ้นสุด:</span>
                             <span class="project-tech-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                         </div>
+                    </div>
+                    <div class="project-tech-row project-tech-detail-row">
+                        <span class="project-tech-icon project-local-icon project-local-icon--detail" aria-hidden="true"></span>
+                        <span class="project-tech-label">รายละเอียด:</span>
+                        <span class="project-tech-value project-preserve-lines">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</span>
                     </div>
                 </section>
                 </section>
@@ -2226,11 +2223,6 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     overflow-wrap: anywhere;
 }
 
-.project-summary-detail {
-    padding-top: 8px;
-    border-top: 1px solid var(--project-card-border);
-}
-
 .project-card .project-status {
     display: flex;
     flex-wrap: wrap;
@@ -2456,6 +2448,13 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-tech-end-label {
     grid-column: 2;
+}
+
+.project-tech-detail-row {
+    grid-column: 1 / -1;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--project-card-border);
 }
 
 .project-mobile-cards .project-actions {
