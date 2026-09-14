@@ -18,6 +18,7 @@ namespace ProjectTracking.Data
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
         public DbSet<ProjectDepartment> ProjectDepartments { get; set; }
+        public DbSet<ProjectDepartmentLink> ProjectDepartmentLinks { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
@@ -141,6 +142,25 @@ namespace ProjectTracking.Data
                     .HasDatabaseName("idx_project_team_role_sort");
                 entity.HasIndex(x => new { x.EmpId, x.MemberRole })
                     .HasDatabaseName("idx_project_team_employee_role");
+            });
+
+            modelBuilder.Entity<ProjectDepartmentLink>(entity =>
+            {
+                entity.ToTable("project_department_link");
+                entity.HasKey(x => new { x.ProjectId, x.DepartmentId });
+
+                entity.HasOne(x => x.Project)
+                    .WithMany(x => x.DepartmentLinks)
+                    .HasForeignKey(x => x.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.Department)
+                    .WithMany(x => x.ProjectLinks)
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new { x.DepartmentId, x.ProjectId })
+                    .HasDatabaseName("idx_project_department_link_department");
             });
 
             modelBuilder.Entity<Project>(entity =>

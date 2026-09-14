@@ -201,7 +201,7 @@
                     {
                         <option value="@p.ProjectId"
                                 data-coop-id="@(p.CoopId?.ToString() ?? "unassigned")"
-                                data-department="@(p.DepartmentId?.ToString() ?? "unassigned")"
+                                data-department="@(p.EffectiveDepartmentIds.Count > 0 ? string.Join(",", p.EffectiveDepartmentIds) : "unassigned")"
                                 data-project-name="@p.ProjectName"
                                 selected="@(selectedProjectId == p.ProjectId ? "selected" : null)">
                             @p.ProjectName
@@ -308,7 +308,7 @@
             {
                 var projectDisplayName = p.ProjectDisplayName;
                 var coopName = p.Coop?.CoopName ?? "";
-                var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
+                var departmentValue = p.EffectiveDepartmentIds.Count > 0 ? string.Join(",", p.EffectiveDepartmentIds) : "unassigned";
                 var projectManagers = p.ProjectManagers;
                 var businessAnalysts = p.BusinessAnalysts;
                 <tr data-ba-id="@string.Join(",", businessAnalysts.Select(e => e.EmpId))"
@@ -330,7 +330,7 @@
                         </div>
                     </td>
 
-                    <td class="col-department">@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</td>
+                    <td class="col-department">@p.DepartmentNames</td>
 
                     <td class="col-detail project-detail-value">@(string.IsNullOrWhiteSpace(p.ProjectDetail) ? "-" : p.ProjectDetail.Trim())</td>
 
@@ -532,7 +532,7 @@
         {
             var projectDisplayName = p.ProjectDisplayName;
             var coopName = p.Coop?.CoopName ?? "";
-            var departmentValue = p.DepartmentId?.ToString() ?? "unassigned";
+            var departmentValue = p.EffectiveDepartmentIds.Count > 0 ? string.Join(",", p.EffectiveDepartmentIds) : "unassigned";
             var hasPendingApproval = pendingProjectApprovalIds.Contains(p.ProjectId);
             var projectManagers = p.ProjectManagers;
             var businessAnalysts = p.BusinessAnalysts;
@@ -560,7 +560,7 @@
                  data-ba="@(p.BusinessAnalystNames.ToLower())"
                  data-pm="@(p.ProjectManagerNames.ToLower())"
                  data-status="@(projectStatusCode.ToLowerInvariant())"
-                data-search="@($"{projectDisplayName} {coopName} {p.Department?.DepartmentName} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
+                data-search="@($"{projectDisplayName} {coopName} {p.DepartmentNames} {p.ProjectName} {p.ProjectDetail} {p.LinkName} {p.DatabaseName} {p.TestAccount} {p.RemoteUrl} {p.BusinessAnalystNames} {p.ProjectManagerNames} {relatedMemberSearch}".ToLower())">
 
                 <div class="project-team-header">
                     <span class="project-row-number" aria-label="ลำดับที่ @mobileRow">@mobileRow</span>
@@ -668,7 +668,7 @@
                         <div class="project-summary-row">
                             <span class="project-summary-icon project-local-icon project-local-icon--department" aria-hidden="true"></span>
                             <span class="project-summary-label">ฝ่าย:</span>
-                            <span class="project-summary-value">@(p.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
+                            <span class="project-summary-value">@p.DepartmentNames</span>
                         </div>
                         <div class="project-summary-row">
                             <span class="project-summary-icon project-local-icon project-local-icon--status" aria-hidden="true"></span>
@@ -2887,7 +2887,7 @@ window.applyProjectFilter = function () {
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
-        const matchDepartment = !selectedDepartment || department === selectedDepartment;
+        const matchDepartment = !selectedDepartment || department.split(",").includes(selectedDepartment);
 
         const matchPm = !selectedPm ||
                         pmName.includes(selectedPm);
@@ -2940,7 +2940,7 @@ window.applyProjectFilter = function () {
         const matchBa = !selectedBa ||
                         baName.includes(selectedBa);
 
-        const matchDepartment = !selectedDepartment || department === selectedDepartment;
+        const matchDepartment = !selectedDepartment || department.split(",").includes(selectedDepartment);
 
         const matchPm = !selectedPm ||
                         pmName.includes(selectedPm);
@@ -3002,7 +3002,7 @@ function syncProjectFilterOptions() {
     Array.from(projectSelect.options).forEach(option => {
         const visible = option.value === "" ||
             ((!selectedCoop || (option.dataset.coopId || "unassigned").trim().toLowerCase() === selectedCoop) &&
-             (!selectedDepartment || (option.dataset.department || "unassigned").trim().toLowerCase() === selectedDepartment));
+             (!selectedDepartment || (option.dataset.department || "unassigned").trim().toLowerCase().split(",").includes(selectedDepartment)));
         option.hidden = !visible;
         option.disabled = !visible;
     });

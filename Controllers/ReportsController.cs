@@ -236,7 +236,8 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(m => m.Employee)
                 .AsQueryable();
             if (departmentId.HasValue)
-                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+                projectQuery = projectQuery.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
             var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -289,7 +290,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
+                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null &&
+                    (a.Phase.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!a.Phase.Project.DepartmentLinks.Any() && a.Phase.Project.DepartmentId == departmentId.Value)));
             var assigns = await assignQuery
                 .ToListAsync();
 
@@ -448,7 +451,8 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+                projectQuery = projectQuery.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
             var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -501,7 +505,9 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(m => m.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value);
+                assignQuery = assignQuery.Where(a => a.Phase != null && a.Phase.Project != null &&
+                    (a.Phase.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!a.Phase.Project.DepartmentLinks.Any() && a.Phase.Project.DepartmentId == departmentId.Value)));
             var assigns = await assignQuery
                 .ToListAsync();
 
@@ -516,7 +522,9 @@ namespace ProjectTracking.Controllers
                 .Include(i => i.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                issueQuery = issueQuery.Where(i => i.Project != null && i.Project.DepartmentId == departmentId.Value);
+                issueQuery = issueQuery.Where(i => i.Project != null &&
+                    (i.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!i.Project.DepartmentLinks.Any() && i.Project.DepartmentId == departmentId.Value)));
             var issues = await issueQuery
                 .ToListAsync();
 
@@ -531,7 +539,9 @@ namespace ProjectTracking.Controllers
                 .Include(o => o.Employee)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                supportQuery = supportQuery.Where(o => o.Project != null && o.Project.DepartmentId == departmentId.Value);
+                supportQuery = supportQuery.Where(o => o.Project != null &&
+                    (o.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!o.Project.DepartmentLinks.Any() && o.Project.DepartmentId == departmentId.Value)));
             var supportOrders = await supportQuery
                 .ToListAsync();
 
@@ -1116,7 +1126,8 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Coop)
                 .AsNoTracking().AsQueryable();
             if (departmentId.HasValue)
-                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+                projectQuery = projectQuery.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
             var projects = await projectQuery
                 .ToListAsync();
             var projectIds = projects.Select(p => p.ProjectId).ToHashSet();

@@ -329,16 +329,31 @@ namespace ProjectTracking.Controllers
                     return matchedDepartment.DepartmentId.ToString(CultureInfo.InvariantCulture);
             }
 
-            var responsibleProjectDepartmentId = await _context.Projects
+            var responsibleProjectIds = await _context.Projects
                 .AsNoTracking()
-                .Where(project => project.DepartmentId.HasValue
-                    && (project.PmEmpId == employeeId
+                .Where(project => project.PmEmpId == employeeId
                         || project.BaEmpId == employeeId
-                        || project.TeamMembers.Any(member => member.EmpId == employeeId)))
+                        || project.TeamMembers.Any(member => member.EmpId == employeeId))
+                .Select(project => project.ProjectId)
+                .ToListAsync();
+
+            var responsibleProjectDepartmentId = await _context.ProjectDepartmentLinks
+                .AsNoTracking()
+                .Where(link => responsibleProjectIds.Contains(link.ProjectId))
+                .GroupBy(link => link.DepartmentId)
+                .OrderByDescending(group => group.Count())
+                .Select(group => (int?)group.Key)
+                .FirstOrDefaultAsync();
+
+            responsibleProjectDepartmentId ??= await _context.Projects
+                .AsNoTracking()
+                .Where(project => responsibleProjectIds.Contains(project.ProjectId)
+                    && project.DepartmentId.HasValue)
                 .GroupBy(project => project.DepartmentId!.Value)
                 .OrderByDescending(group => group.Count())
                 .Select(group => (int?)group.Key)
                 .FirstOrDefaultAsync();
+
             if (responsibleProjectDepartmentId.HasValue
                 && departments.Any(row => row.DepartmentId == responsibleProjectDepartmentId.Value))
             {
@@ -346,6 +361,16 @@ namespace ProjectTracking.Controllers
             }
 
             var assignedProjectDepartmentId = await (
+                from assign in _context.PhaseAssigns.AsNoTracking()
+                join phase in _context.ProjectPhases.AsNoTracking() on assign.PhaseId equals phase.PhaseId
+                join link in _context.ProjectDepartmentLinks.AsNoTracking() on phase.ProjectId equals link.ProjectId
+                where assign.EmpId == employeeId
+                group link by link.DepartmentId into departmentGroup
+                orderby departmentGroup.Count() descending
+                select (int?)departmentGroup.Key)
+                .FirstOrDefaultAsync();
+
+            assignedProjectDepartmentId ??= await (
                 from assign in _context.PhaseAssigns.AsNoTracking()
                 join phase in _context.ProjectPhases.AsNoTracking() on assign.PhaseId equals phase.PhaseId
                 join project in _context.Projects.AsNoTracking() on phase.ProjectId equals project.ProjectId
@@ -653,6 +678,46 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
+            var dashboardProjectIds = projects.Select(project => project.ProjectId).ToList();
+            var dashboardProjectDepartments = await _context.ProjectDepartmentLinks
+                .AsNoTracking()
+                .Where(link => dashboardProjectIds.Contains(link.ProjectId))
+                .OrderBy(link => link.SortOrder)
+                .ThenBy(link => link.Department != null ? link.Department.SortOrder : int.MaxValue)
+                .Select(link => new
+                {
+                    link.ProjectId,
+                    link.DepartmentId,
+                    DepartmentName = link.Department != null ? link.Department.DepartmentName : null
+                })
+                .ToListAsync();
+
+            foreach (var project in projects)
+            {
+                var departmentRows = dashboardProjectDepartments
+                    .Where(link => link.ProjectId == project.ProjectId)
+                    .ToList();
+                project.DepartmentIds = departmentRows
+                    .Select(link => link.DepartmentId)
+                    .Distinct()
+                    .ToList();
+                project.DepartmentNames = departmentRows
+                    .Select(link => link.DepartmentName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Select(name => name!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (project.DepartmentIds.Count == 0 && project.DepartmentId.HasValue)
+                    project.DepartmentIds.Add(project.DepartmentId.Value);
+                if (project.DepartmentNames.Count == 0 && !string.IsNullOrWhiteSpace(project.DepartmentName))
+                    project.DepartmentNames.Add(project.DepartmentName);
+
+                project.DepartmentName = project.DepartmentNames.Count > 0
+                    ? string.Join(", ", project.DepartmentNames)
+                    : null;
+            }
+
             var projectStatusDefinitions = await _context.ProjectStatuses
                 .AsNoTracking()
                 .Where(x => x.IsActive)
@@ -667,7 +732,6 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            var dashboardProjectIds = projects.Select(project => project.ProjectId).ToList();
             var dashboardTeamMembers = await _context.ProjectTeamMembers
                 .AsNoTracking()
                 .Where(member => dashboardProjectIds.Contains(member.ProjectId))
@@ -705,7 +769,7 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
-            if (projects.Any(p => !p.DepartmentId.HasValue))
+            if (projects.Any(p => p.DepartmentIds.Count == 0))
             {
                 projectOverviewDepartments.Add(new HomeDashboardProjectDepartmentOption
                 {
@@ -722,7 +786,7 @@ namespace ProjectTracking.Controllers
                 "unassigned",
                 StringComparison.OrdinalIgnoreCase);
 
-            if (includeUnassignedDepartment && projects.Any(p => !p.DepartmentId.HasValue))
+            if (includeUnassignedDepartment && projects.Any(p => p.DepartmentIds.Count == 0))
             {
                 selectedDashboardDepartment = "unassigned";
                 selectedDashboardDepartmentName = "ยังไม่กำหนดฝ่าย";
@@ -743,8 +807,9 @@ namespace ProjectTracking.Controllers
                 ? projects
                 : projects
                     .Where(project => selectedDashboardDepartment == "unassigned"
-                        ? !project.DepartmentId.HasValue
-                        : project.DepartmentId == selectedDashboardDepartmentId)
+                        ? project.DepartmentIds.Count == 0
+                        : selectedDashboardDepartmentId.HasValue
+                            && project.DepartmentIds.Contains(selectedDashboardDepartmentId.Value))
                     .ToList();
             var scopedProjectIds = scopedProjects.Select(project => project.ProjectId).ToHashSet();
 
@@ -1224,7 +1289,10 @@ namespace ProjectTracking.Controllers
                 {
                     ProjectId = p.ProjectId,
                     CoopId = p.CoopId,
-                    DepartmentId = p.DepartmentId,
+                    DepartmentId = selectedDashboardDepartmentId.HasValue
+                        && p.DepartmentIds.Contains(selectedDashboardDepartmentId.Value)
+                            ? selectedDashboardDepartmentId
+                            : p.DepartmentId,
                     DepartmentName = string.IsNullOrWhiteSpace(p.DepartmentName) ? "ยังไม่กำหนดฝ่าย" : p.DepartmentName,
                     ProjectName = p.ProjectDisplayName,
                     StatusCode = Norm(p.Status),
@@ -3499,6 +3567,8 @@ namespace ProjectTracking.Controllers
             public string? CoopName { get; set; }
             public int? DepartmentId { get; set; }
             public string? DepartmentName { get; set; }
+            public List<int> DepartmentIds { get; set; } = new();
+            public List<string> DepartmentNames { get; set; } = new();
             public int? PmEmpId { get; set; }
             public List<int> PmEmpIds { get; set; } = new();
             public string ProjectDisplayName =>

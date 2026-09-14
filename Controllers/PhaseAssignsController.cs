@@ -782,7 +782,9 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
-                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
+                .Where(p => !departmentId.HasValue
+                    || p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value))
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -863,7 +865,9 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(ph => ph!.Project)
                 .Include(a => a.Logs)
                 .Where(a => !departmentId.HasValue
-                    || (a.Phase != null && a.Phase.Project != null && a.Phase.Project.DepartmentId == departmentId.Value));
+                    || (a.Phase != null && a.Phase.Project != null &&
+                        (a.Phase.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                         || (!a.Phase.Project.DepartmentLinks.Any() && a.Phase.Project.DepartmentId == departmentId.Value))));
 
             if (projectId.HasValue)
                 query = query.Where(x => x.Phase != null && x.Phase.ProjectId == projectId.Value);

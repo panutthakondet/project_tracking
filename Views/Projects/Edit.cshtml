@@ -63,17 +63,17 @@
                     <span asp-validation-for="CoopId" class="text-danger"></span>
                 </div>
 
-                <!-- Department -->
+                <!-- Departments -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold">ฝ่าย <span class="text-danger">*</span></label>
-                    <select asp-for="DepartmentId" class="form-select">
-                        <option value="">-- เลือกฝ่าย --</option>
+                    <label class="form-label fw-semibold">ฝ่าย (เลือกได้มากกว่า 1 ฝ่าย) <span class="text-danger">*</span></label>
+                    <select asp-for="DepartmentIds" class="form-select project-team-multi" multiple size="5">
                         @foreach (var department in departments)
                         {
                             <option value="@department.DepartmentId">@department.DepartmentName</option>
                         }
                     </select>
-                    <span asp-validation-for="DepartmentId" class="text-danger"></span>
+                    <span asp-validation-for="DepartmentIds" class="text-danger"></span>
+                    <div class="form-text">เลือกได้หลายฝ่ายด้วย Ctrl หรือ Command + คลิก</div>
                 </div>
 
                 <!-- Project Name -->

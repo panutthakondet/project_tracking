@@ -988,7 +988,9 @@ namespace ProjectTracking.Controllers
             var projects = await _context.Projects
                 .AsNoTracking()
                 .Include(p => p.Coop)
-                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
+                .Where(p => !departmentId.HasValue
+                    || p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value))
                 .OrderBy(x => x.Coop != null ? x.Coop.CoopName : "")
                 .ThenBy(x => x.ProjectName)
                 .ToListAsync();
@@ -1182,6 +1184,8 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
+                .Include(p => p.DepartmentLinks)
+                    .ThenInclude(link => link.Department)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
 
             if (project == null)
@@ -1228,7 +1232,7 @@ namespace ProjectTracking.Controllers
                 text.AppendLine();
                 text.AppendLine($"- **สหกรณ์:** {TextOrDash(project.Coop?.CoopName)}");
                 text.AppendLine($"- **โครงการ:** {TextOrDash(project.ProjectName)}");
-                text.AppendLine($"- **ฝ่าย:** {TextOrDash(project.Department?.DepartmentName)}");
+                text.AppendLine($"- **ฝ่าย:** {TextOrDash(project.DepartmentNames)}");
                 text.AppendLine($"- **ผู้ทดสอบ:** {(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ทั้งหมด" : selectedScenarioType)}");
                 text.AppendLine($"- **สถานะ:** {(string.IsNullOrWhiteSpace(selectedStatus) ? "ทั้งหมด" : TestScenarioDisplay.StatusText(selectedStatus))}");
                 text.AppendLine($"- **จำนวน:** {scenarios.Count} รายการ");
@@ -1279,7 +1283,7 @@ namespace ProjectTracking.Controllers
                 text.AppendLine(new string('=', 80));
                 text.AppendLine($"สหกรณ์: {TextOrDash(project.Coop?.CoopName)}");
                 text.AppendLine($"โครงการ: {TextOrDash(project.ProjectName)}");
-                text.AppendLine($"ฝ่าย: {TextOrDash(project.Department?.DepartmentName)}");
+                text.AppendLine($"ฝ่าย: {TextOrDash(project.DepartmentNames)}");
                 text.AppendLine($"ผู้ทดสอบ: {(string.IsNullOrWhiteSpace(selectedScenarioType) ? "ทั้งหมด" : selectedScenarioType)}");
                 text.AppendLine($"สถานะ: {(string.IsNullOrWhiteSpace(selectedStatus) ? "ทั้งหมด" : TestScenarioDisplay.StatusText(selectedStatus))}");
                 text.AppendLine($"จำนวน: {scenarios.Count} รายการ");

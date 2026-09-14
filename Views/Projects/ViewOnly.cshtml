@@ -462,7 +462,7 @@
                 {
                     <option value="@project.ProjectId"
                             data-coop-name="@(project.Coop?.CoopName ?? "")"
-                            data-department-id="@project.DepartmentId"
+                            data-department-id="@string.Join(",", project.EffectiveDepartmentIds)"
                             selected="@(selectedProjectId == project.ProjectId ? "selected" : null)">
                         @project.ProjectDisplayName
                     </option>
@@ -564,7 +564,7 @@
                                 <div>
                                     <span class="project-group-label">Project</span>
                                     @projectGroup.Key.ProjectName
-                                    <span class="cell-sub">· ฝ่าย @(projectGroup.First().Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</span>
+                                    <span class="cell-sub">· ฝ่าย @projectGroup.First().DepartmentNames</span>
                                 </div>
                                 <span class="project-group-count">@projectGroup.Count() รายการ</span>
                             </div>
@@ -741,7 +741,7 @@
                 Array.from(projectFilter.options).forEach(option => {
                     const visible = option.value === "" ||
                         ((!selectedCoop || normalize(option.dataset.coopName || "") === selectedCoop) &&
-                         (!selectedDepartment || normalize(option.dataset.departmentId || "") === selectedDepartment));
+                         (!selectedDepartment || normalize(option.dataset.departmentId || "").split(",").includes(selectedDepartment)));
                     option.hidden = !visible;
                     option.disabled = !visible;
                 });

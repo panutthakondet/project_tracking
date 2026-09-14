@@ -55,6 +55,8 @@ namespace ProjectTracking.Controllers
                         .ThenInclude(e => e!.LoginUser)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
+                .Include(p => p.DepartmentLinks)
+                    .ThenInclude(link => link.Department)
                 .Include(p => p.StatusDefinition)
                 .AsNoTracking()
                 .AsQueryable();
@@ -68,7 +70,8 @@ namespace ProjectTracking.Controllers
 
             if (departmentId.HasValue)
             {
-                query = query.Where(p => p.DepartmentId == departmentId.Value);
+                query = query.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
             }
 
             ViewBag.ProjectDepartments = await ActiveProjectDepartmentsQuery().ToListAsync();
@@ -289,6 +292,8 @@ namespace ProjectTracking.Controllers
                     .ThenInclude(m => m.Employee)
                 .Include(p => p.Coop)
                 .Include(p => p.Department)
+                .Include(p => p.DepartmentLinks)
+                    .ThenInclude(link => link.Department)
                 .Include(p => p.StatusDefinition)
                 .AsNoTracking()
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
@@ -312,7 +317,7 @@ namespace ProjectTracking.Controllers
                     || string.Equals(p.StatusDefinition?.StatusDesc, status, StringComparison.OrdinalIgnoreCase));
 
             if (departmentId.HasValue)
-                query = query.Where(p => p.DepartmentId == departmentId.Value);
+                query = query.Where(p => p.EffectiveDepartmentIds.Contains(departmentId.Value));
 
             ViewBag.Projects = allProjects;
             ViewBag.BaList = allProjects
@@ -349,6 +354,8 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.TeamMembers)
                     .ThenInclude(m => m.Employee)
                 .Include(p => p.Department)
+                .Include(p => p.DepartmentLinks)
+                    .ThenInclude(link => link.Department)
                 .FirstOrDefaultAsync(p => p.ProjectId == id);
 
             if (project == null)
@@ -433,7 +440,7 @@ namespace ProjectTracking.Controllers
                 CoopName = project.Coop?.CoopName ?? "",
                 ProjectName = project.ProjectName,
                 ProjectDisplayName = project.ProjectDisplayName,
-                DepartmentName = project.Department?.DepartmentName ?? "",
+                DepartmentName = project.DepartmentNames,
                 ProjectDetail = project.ProjectDetail,
                 LinkName = project.LinkName,
                 DatabaseName = project.DatabaseName,
@@ -500,7 +507,11 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(Project.EndDate));
             project.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             project.EndDate = ParseProjectDate(Request.Form["EndDate"]);
-            await ValidateProjectDepartmentAsync(project.DepartmentId);
+            var selectedDepartmentIds = await ResolveProjectDepartmentIdsAsync(project.DepartmentIds);
+            ValidateProjectDepartments(project.DepartmentIds, selectedDepartmentIds);
+            project.DepartmentId = selectedDepartmentIds.FirstOrDefault() is var firstDepartment && firstDepartment > 0
+                ? firstDepartment
+                : null;
             var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
                 WorkflowStatusTypes.Project,
                 project.StatusId,
@@ -531,6 +542,7 @@ namespace ProjectTracking.Controllers
 
             await SyncProjectTeamMembersAsync(project.ProjectId, ProjectTeamRoles.BusinessAnalyst, selectedBaEmpIds);
             await SyncProjectTeamMembersAsync(project.ProjectId, ProjectTeamRoles.ProjectManager, selectedPmEmpIds);
+            await SyncProjectDepartmentsAsync(project.ProjectId, selectedDepartmentIds);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
@@ -544,11 +556,20 @@ namespace ProjectTracking.Controllers
         {
             var project = await _context.Projects
                 .Include(p => p.TeamMembers)
+                .Include(p => p.DepartmentLinks)
                 .FirstOrDefaultAsync(p => p.ProjectId == id);
             if (project == null)
             {
                 return NotFound();
             }
+
+            project.DepartmentIds = project.DepartmentLinks
+                .OrderBy(x => x.SortOrder)
+                .Select(x => x.DepartmentId)
+                .DefaultIfEmpty(project.DepartmentId ?? 0)
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
 
             await LoadProjectFormLookupsAsync(
                 project.RequirementCardId,
@@ -602,7 +623,11 @@ namespace ProjectTracking.Controllers
             ModelState.Remove(nameof(Project.EndDate));
             model.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             model.EndDate = ParseProjectDate(Request.Form["EndDate"]);
-            await ValidateProjectDepartmentAsync(model.DepartmentId);
+            var selectedDepartmentIds = await ResolveProjectDepartmentIdsAsync(model.DepartmentIds);
+            ValidateProjectDepartments(model.DepartmentIds, selectedDepartmentIds);
+            model.DepartmentId = selectedDepartmentIds.FirstOrDefault() is var firstDepartment && firstDepartment > 0
+                ? firstDepartment
+                : null;
             var selectedStatus = await _workflowStatusService.ResolveSelectionAsync(
                 WorkflowStatusTypes.Project,
                 model.StatusId,
@@ -649,6 +674,7 @@ namespace ProjectTracking.Controllers
             db.PmEmpId = selectedPmEmpIds.FirstOrDefault() is var firstPm && firstPm > 0 ? firstPm : null;
             await SyncProjectTeamMembersAsync(db.ProjectId, ProjectTeamRoles.BusinessAnalyst, selectedBaEmpIds);
             await SyncProjectTeamMembersAsync(db.ProjectId, ProjectTeamRoles.ProjectManager, selectedPmEmpIds);
+            await SyncProjectDepartmentsAsync(db.ProjectId, selectedDepartmentIds);
             db.RequirementCardId = model.RequirementCardId;
             db.CreatedAt = DateTime.Now;
             db.EntryId = await GetCurrentEntryIdAsync();
@@ -866,6 +892,74 @@ namespace ProjectTracking.Controllers
             }
         }
 
+        private async Task<List<int>> ResolveProjectDepartmentIdsAsync(IEnumerable<int>? departmentIds)
+        {
+            var requestedIds = (departmentIds ?? Array.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (requestedIds.Count == 0)
+                return new List<int>();
+
+            var validIds = (await _context.ProjectDepartments
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && requestedIds.Contains(x.DepartmentId))
+                    .Select(x => x.DepartmentId)
+                    .ToListAsync())
+                .ToHashSet();
+
+            return requestedIds.Where(validIds.Contains).ToList();
+        }
+
+        private void ValidateProjectDepartments(IEnumerable<int>? requestedDepartmentIds, IReadOnlyCollection<int> validDepartmentIds)
+        {
+            var requestedIds = (requestedDepartmentIds ?? Array.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (requestedIds.Count == 0)
+            {
+                ModelState.AddModelError(nameof(Project.DepartmentIds), "กรุณาเลือกฝ่ายอย่างน้อย 1 ฝ่าย");
+                return;
+            }
+
+            if (validDepartmentIds.Count != requestedIds.Count)
+                ModelState.AddModelError(nameof(Project.DepartmentIds), "มีฝ่ายที่เลือกไม่พร้อมใช้งาน");
+        }
+
+        private async Task SyncProjectDepartmentsAsync(int projectId, IReadOnlyList<int> departmentIds)
+        {
+            var existing = await _context.ProjectDepartmentLinks
+                .Where(x => x.ProjectId == projectId)
+                .ToListAsync();
+            var selectedIds = departmentIds.ToHashSet();
+
+            _context.ProjectDepartmentLinks.RemoveRange(
+                existing.Where(x => !selectedIds.Contains(x.DepartmentId)));
+
+            for (var index = 0; index < departmentIds.Count; index++)
+            {
+                var departmentId = departmentIds[index];
+                var link = existing.FirstOrDefault(x => x.DepartmentId == departmentId);
+                if (link == null)
+                {
+                    _context.ProjectDepartmentLinks.Add(new ProjectDepartmentLink
+                    {
+                        ProjectId = projectId,
+                        DepartmentId = departmentId,
+                        SortOrder = index + 1,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+                else
+                {
+                    link.SortOrder = index + 1;
+                }
+            }
+        }
+
         private static DateTime? ParseProjectDate(string? value)
         {
             var raw = (value ?? "").Trim();
@@ -899,23 +993,6 @@ namespace ProjectTracking.Controllers
                 .ThenBy(x => x.DepartmentName);
         }
 
-        private async Task ValidateProjectDepartmentAsync(int? departmentId)
-        {
-            if (!departmentId.HasValue)
-            {
-                ModelState.AddModelError(nameof(Project.DepartmentId), "กรุณาเลือกฝ่าย");
-                return;
-            }
-
-            var exists = await _context.ProjectDepartments
-                .AsNoTracking()
-                .AnyAsync(x => x.DepartmentId == departmentId.Value && x.IsActive);
-            if (!exists)
-            {
-                ModelState.AddModelError(nameof(Project.DepartmentId), "ฝ่ายที่เลือกไม่พร้อมใช้งาน");
-            }
-        }
-
         private static int? CalculateDurationDays(DateTime? start, DateTime? end)
         {
             if (!start.HasValue || !end.HasValue)
@@ -934,6 +1011,8 @@ namespace ProjectTracking.Controllers
             var project = await _context.Projects
                 .AsNoTracking()
                 .Include(x => x.Department)
+                .Include(x => x.DepartmentLinks)
+                    .ThenInclude(link => link.Department)
                 .FirstOrDefaultAsync(x => x.ProjectId == id);
             if (project == null)
             {

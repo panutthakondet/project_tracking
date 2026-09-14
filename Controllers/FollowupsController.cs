@@ -219,7 +219,8 @@ namespace ProjectTracking.Controllers
                 .Include(p => p.Coop)
                 .AsQueryable();
             if (departmentId.HasValue)
-                projectQuery = projectQuery.Where(p => p.DepartmentId == departmentId.Value);
+                projectQuery = projectQuery.Where(p => p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value));
             var projects = await projectQuery
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
@@ -228,7 +229,9 @@ namespace ProjectTracking.Controllers
             var ownerList = await _context.ProjectFollowups
                 .AsNoTracking()
                 .Include(f => f.Owner)
-                .Where(f => f.Owner != null && (!departmentId.HasValue || (f.Project != null && f.Project.DepartmentId == departmentId.Value)))
+                .Where(f => f.Owner != null && (!departmentId.HasValue || (f.Project != null &&
+                    (f.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!f.Project.DepartmentLinks.Any() && f.Project.DepartmentId == departmentId.Value)))))
                 .Select(f => f.Owner!.EmpName)
                 .Distinct()
                 .OrderBy(name => name)
@@ -245,7 +248,9 @@ namespace ProjectTracking.Controllers
             if (projectId.HasValue && projectId.Value > 0)
                 query = query.Where(f => f.ProjectId == projectId.Value);
             if (departmentId.HasValue)
-                query = query.Where(f => f.Project != null && f.Project.DepartmentId == departmentId.Value);
+                query = query.Where(f => f.Project != null &&
+                    (f.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!f.Project.DepartmentLinks.Any() && f.Project.DepartmentId == departmentId.Value)));
 
             if (!string.IsNullOrWhiteSpace(owner))
                 query = query.Where(f => f.Owner != null && f.Owner.EmpName == owner);

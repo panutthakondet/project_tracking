@@ -46,6 +46,23 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
 
+            var allProjectIds = allProjects.Select(project => project.ProjectId).ToList();
+            var projectDepartmentMemberships = await _context.ProjectDepartmentLinks
+                .AsNoTracking()
+                .Where(link => allProjectIds.Contains(link.ProjectId))
+                .Select(link => new { link.ProjectId, link.DepartmentId })
+                .ToListAsync();
+            foreach (var project in allProjects)
+            {
+                project.DepartmentIds = projectDepartmentMemberships
+                    .Where(link => link.ProjectId == project.ProjectId)
+                    .Select(link => link.DepartmentId)
+                    .Distinct()
+                    .ToList();
+                if (project.DepartmentIds.Count == 0 && project.DepartmentId.HasValue)
+                    project.DepartmentIds.Add(project.DepartmentId.Value);
+            }
+
             var projectTeamMembers = await _context.ProjectTeamMembers
                 .AsNoTracking()
                 .Where(member => member.MemberRole == ProjectTeamRoles.ProjectManager
@@ -87,7 +104,7 @@ namespace ProjectTracking.Controllers
                     ? departmentId
                     : null;
             var availableProjects = selectedDepartmentId.HasValue
-                ? allProjects.Where(x => x.DepartmentId == selectedDepartmentId.Value).ToList()
+                ? allProjects.Where(x => x.DepartmentIds.Contains(selectedDepartmentId.Value)).ToList()
                 : allProjects;
 
             var projects = availableProjects;
@@ -679,6 +696,7 @@ namespace ProjectTracking.Controllers
             public string ProjectName { get; set; } = string.Empty;
             public string? CoopName { get; set; }
             public int? DepartmentId { get; set; }
+            public List<int> DepartmentIds { get; set; } = new();
             public string ProjectDisplayName => string.IsNullOrWhiteSpace(CoopName)
                 ? ProjectName
                 : $"{CoopName} - {ProjectName}";

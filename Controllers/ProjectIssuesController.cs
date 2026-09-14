@@ -183,7 +183,9 @@ namespace ProjectTracking.Controllers
             if (projectId.HasValue)
                 query = query.Where(i => i.ProjectId == projectId.Value);
             if (departmentId.HasValue)
-                query = query.Where(i => i.Project != null && i.Project.DepartmentId == departmentId.Value);
+                query = query.Where(i => i.Project != null &&
+                    (i.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!i.Project.DepartmentLinks.Any() && i.Project.DepartmentId == departmentId.Value)));
 
             if (baEmpId.HasValue)
                 query = query.Where(i => i.Project != null
@@ -954,7 +956,9 @@ namespace ProjectTracking.Controllers
         {
             ViewBag.Projects = await _context.Projects
                 .Include(p => p.Coop)
-                .Where(p => !departmentId.HasValue || p.DepartmentId == departmentId.Value)
+                .Where(p => !departmentId.HasValue
+                    || p.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!p.DepartmentLinks.Any() && p.DepartmentId == departmentId.Value))
                 .OrderBy(p => p.Coop != null ? p.Coop.CoopName : "")
                 .ThenBy(p => p.ProjectName)
                 .ToListAsync();
@@ -965,7 +969,9 @@ namespace ProjectTracking.Controllers
             var baQuery = _context.Employees
                 .AsNoTracking()
                 .Where(employee => _context.Projects.Any(projectRow =>
-                    (!departmentId.HasValue || projectRow.DepartmentId == departmentId.Value)
+                    (!departmentId.HasValue
+                     || projectRow.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                     || (!projectRow.DepartmentLinks.Any() && projectRow.DepartmentId == departmentId.Value))
                     && _context.ProjectIssues.Any(issue => issue.ProjectId == projectRow.ProjectId)
                     && (projectRow.BaEmpId == employee.EmpId
                         || projectRow.TeamMembers.Any(member =>
@@ -992,7 +998,10 @@ namespace ProjectTracking.Controllers
                 ViewBag.SelectedProject = null;
                 ViewBag.EmpList = await _context.ProjectIssues
                 .Include(i => i.Employee)
-                    .Where(i => (!departmentId.HasValue || (i.Project != null && i.Project.DepartmentId == departmentId.Value)) && i.Employee != null && i.Employee.EmpName != null && i.Employee.EmpName != "")
+                    .Where(i => (!departmentId.HasValue || (i.Project != null &&
+                        (i.Project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                         || (!i.Project.DepartmentLinks.Any() && i.Project.DepartmentId == departmentId.Value))))
+                        && i.Employee != null && i.Employee.EmpName != null && i.Employee.EmpName != "")
                     .Select(i => i.Employee!.EmpName)
                     .Distinct()
                     .OrderBy(x => x)

@@ -26,6 +26,43 @@ namespace ProjectTracking.Models
         [ForeignKey(nameof(DepartmentId))]
         public ProjectDepartment? Department { get; set; }
 
+        public ICollection<ProjectDepartmentLink> DepartmentLinks { get; set; }
+            = new List<ProjectDepartmentLink>();
+
+        [NotMapped]
+        public List<int> DepartmentIds { get; set; } = new();
+
+        [NotMapped]
+        public IReadOnlyList<ProjectDepartment> Departments
+        {
+            get
+            {
+                var departments = DepartmentLinks
+                    .Where(x => x.Department != null)
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.Department!.SortOrder)
+                    .Select(x => x.Department!)
+                    .GroupBy(x => x.DepartmentId)
+                    .Select(x => x.First())
+                    .ToList();
+
+                if (departments.Count == 0 && Department != null)
+                    departments.Add(Department);
+
+                return departments;
+            }
+        }
+
+        [NotMapped]
+        public IReadOnlyList<int> EffectiveDepartmentIds => DepartmentLinks.Count > 0
+            ? DepartmentLinks.OrderBy(x => x.SortOrder).Select(x => x.DepartmentId).Distinct().ToList()
+            : DepartmentId.HasValue ? new[] { DepartmentId.Value } : Array.Empty<int>();
+
+        [NotMapped]
+        public string DepartmentNames => Departments.Count > 0
+            ? string.Join(", ", Departments.Select(x => x.DepartmentName))
+            : "ยังไม่กำหนดฝ่าย";
+
         // ======================
         // BASIC INFO
         // ======================

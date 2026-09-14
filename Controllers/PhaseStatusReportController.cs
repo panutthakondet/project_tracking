@@ -611,7 +611,9 @@ namespace ProjectTracking.Controllers
                     on phase.ProjectId equals project.ProjectId
                 join employee in _context.Employees.AsNoTracking()
                     on assign.EmpId equals employee.EmpId
-                where !departmentId.HasValue || project.DepartmentId == departmentId.Value
+                where !departmentId.HasValue
+                    || project.DepartmentLinks.Any(link => link.DepartmentId == departmentId.Value)
+                    || (!project.DepartmentLinks.Any() && project.DepartmentId == departmentId.Value)
                 select new
                 {
                     project.ProjectId,

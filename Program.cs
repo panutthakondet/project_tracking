@@ -915,6 +915,23 @@ static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_department_link` (
+              `project_id` INT NOT NULL,
+              `department_id` INT NOT NULL,
+              `sort_order` INT NOT NULL DEFAULT 0,
+              `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`project_id`, `department_id`),
+              KEY `idx_project_department_link_department` (`department_id`, `project_id`),
+              CONSTRAINT `fk_project_department_link_project`
+                FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+              CONSTRAINT `fk_project_department_link_department`
+                FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
+                ON UPDATE CASCADE ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
             SELECT COUNT(*)
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE()
@@ -956,6 +973,14 @@ static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
                 ON UPDATE CASCADE ON DELETE RESTRICT;";
             await command.ExecuteNonQueryAsync();
         }
+
+        command.CommandText = @"
+            INSERT IGNORE INTO `project_department_link`
+                (`project_id`, `department_id`, `sort_order`, `created_at`)
+            SELECT `project_id`, `department_id`, 1, COALESCE(`created_at`, NOW())
+            FROM `project`
+            WHERE `department_id` IS NOT NULL;";
+        await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
             SELECT COUNT(*)
