@@ -14,6 +14,7 @@ namespace ProjectTracking.Data
         // ===== TABLES =====
         // ======================
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<EmployeePosition> EmployeePositions { get; set; }
         public DbSet<CntMCoop> CntMCoops { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectTeamMember> ProjectTeamMembers { get; set; }
@@ -230,6 +231,23 @@ namespace ProjectTracking.Data
                     .HasForeignKey(x => x.DepartmentId)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(x => x.PositionDefinition)
+                    .WithMany(x => x.Employees)
+                    .HasForeignKey(x => x.PositionId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.Navigation(x => x.PositionDefinition).AutoInclude();
+            });
+
+            modelBuilder.Entity<EmployeePosition>(entity =>
+            {
+                entity.HasIndex(x => x.PositionName)
+                    .IsUnique()
+                    .HasDatabaseName("ux_employee_positions_name");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder })
+                    .HasDatabaseName("idx_employee_positions_active_sort");
             });
 
             // =========================

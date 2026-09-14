@@ -963,7 +963,7 @@ namespace ProjectTracking.Controllers
                         PeriodOrder = phase?.PeriodOrder,
                         PhaseSort = assign.PhaseSort,
                         EmployeeName = employee?.EmpName ?? "-",
-                        Position = employee?.Position?.Trim() ?? "-",
+                        Position = employee?.DisplayPosition.Trim() ?? "-",
                         DepartmentName = employee?.Department?.DepartmentName?.Trim() ?? "-",
                         CoopName = project?.Coop?.CoopName?.Trim() ?? "-",
                         ProjectName = project?.ProjectDisplayName ?? "-",

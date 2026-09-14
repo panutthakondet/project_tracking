@@ -312,7 +312,14 @@ public class FieldServiceController : BaseController
         var employees = await _context.Employees.AsNoTracking()
             .Where(x => x.Status == "ACTIVE")
             .OrderBy(x => x.EmpName)
-            .Select(x => new { x.EmpId, x.EmpName, x.Position })
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : x.Position
+            })
             .ToListAsync();
         ViewBag.Employees = employees.Select(x => new
         {
@@ -339,7 +346,14 @@ public class FieldServiceController : BaseController
         var employees = await _context.Employees.AsNoTracking()
             .Where(x => x.Status == "ACTIVE")
             .OrderBy(x => x.EmpName)
-            .Select(x => new { x.EmpId, x.EmpName, x.Position })
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : x.Position
+            })
             .ToListAsync();
         var currentEmpId = HttpContext.Session.GetInt32("EmpId");
         if (!currentEmpId.HasValue && HttpContext.Session.GetInt32("UserId") is int currentUserId)
@@ -604,12 +618,22 @@ public class FieldServiceController : BaseController
         var employeeQuery = _context.Employees.AsNoTracking().AsQueryable();
         if (departmentId.HasValue)
             employeeQuery = employeeQuery.Where(x => x.DepartmentId == departmentId.Value);
-        ViewBag.Employees = await employeeQuery
+        var employeeOptions = await employeeQuery
             .OrderBy(x => x.EmpName)
-            .Select(x => new SelectListItem(
-                x.EmpName + (x.Position != null && x.Position != "" ? " (" + x.Position + ")" : ""),
-                x.EmpId.ToString()))
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : x.Position
+            })
             .ToListAsync();
+        ViewBag.Employees = employeeOptions
+            .Select(x => new SelectListItem(
+                x.EmpName + (!string.IsNullOrWhiteSpace(x.Position) ? $" ({x.Position})" : ""),
+                x.EmpId.ToString()))
+            .ToList();
         ViewBag.Cooperatives = await _context.CntMCoops.AsNoTracking()
             .OrderBy(x => x.CoopName)
             .Select(x => new SelectListItem(x.CoopName, x.CoopId.ToString()))
@@ -635,12 +659,22 @@ public class FieldServiceController : BaseController
     {
         model.Cooperatives = await _context.CntMCoops.AsNoTracking().OrderBy(x => x.CoopName)
             .Select(x => new SelectListItem(x.CoopName, x.CoopId.ToString())).ToListAsync();
-        model.Employees = await _context.Employees.AsNoTracking().Where(x => x.Status == "ACTIVE")
+        var employeeOptions = await _context.Employees.AsNoTracking().Where(x => x.Status == "ACTIVE")
             .OrderBy(x => x.EmpName)
-            .Select(x => new SelectListItem(
-                x.EmpName + (x.Position != null && x.Position != "" ? " (" + x.Position + ")" : ""),
-                x.EmpId.ToString(), model.AssigneeIds.Contains(x.EmpId)))
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : x.Position
+            })
             .ToListAsync();
+        model.Employees = employeeOptions
+            .Select(x => new SelectListItem(
+                x.EmpName + (!string.IsNullOrWhiteSpace(x.Position) ? $" ({x.Position})" : ""),
+                x.EmpId.ToString(), model.AssigneeIds.Contains(x.EmpId)))
+            .ToList();
     }
 
     private static void Apply(FieldServiceFormViewModel m, FieldServiceVisit x)

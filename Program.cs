@@ -224,6 +224,7 @@ await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
 await EnsureProjectDepartmentTableAsync(app.Services);
+await EnsureEmployeePositionTableAsync(app.Services);
 await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
@@ -1021,6 +1022,100 @@ static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
                 ALTER TABLE `employee`
                 ADD CONSTRAINT `fk_employee_department`
                 FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`)
+                ON UPDATE CASCADE ON DELETE SET NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `employee_positions` (
+              `position_id` INT NOT NULL AUTO_INCREMENT,
+              `position_name` VARCHAR(150) NOT NULL,
+              `sort_order` INT NOT NULL DEFAULT 0,
+              `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+              PRIMARY KEY (`position_id`),
+              UNIQUE KEY `ux_employee_positions_name` (`position_name`),
+              KEY `idx_employee_positions_active_sort` (`is_active`, `sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT IGNORE INTO `employee_positions`
+                (`position_name`, `sort_order`, `is_active`)
+            SELECT DISTINCT TRIM(`position`), 100, 1
+            FROM `employee`
+            WHERE `position` IS NOT NULL
+              AND TRIM(`position`) <> '';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND COLUMN_NAME = 'position_id';";
+        var columnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (columnExists == 0)
+        {
+            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `position_id` INT NULL AFTER `position`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            UPDATE `employee` AS employee_row
+            INNER JOIN `employee_positions` AS position_row
+                ON position_row.`position_name` = TRIM(employee_row.`position`)
+            SET employee_row.`position_id` = position_row.`position_id`
+            WHERE employee_row.`position_id` IS NULL
+              AND employee_row.`position` IS NOT NULL
+              AND TRIM(employee_row.`position`) <> '';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND INDEX_NAME = 'idx_employee_position_id';";
+        var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (indexExists == 0)
+        {
+            command.CommandText = "CREATE INDEX `idx_employee_position_id` ON `employee` (`position_id`);";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND CONSTRAINT_NAME = 'fk_employee_position';";
+        var foreignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+        if (foreignKeyExists == 0)
+        {
+            command.CommandText = @"
+                ALTER TABLE `employee`
+                ADD CONSTRAINT `fk_employee_position`
+                FOREIGN KEY (`position_id`) REFERENCES `employee_positions` (`position_id`)
                 ON UPDATE CASCADE ON DELETE SET NULL;";
             await command.ExecuteNonQueryAsync();
         }

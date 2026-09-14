@@ -529,7 +529,7 @@
                 <div class="support-info-line"><span class="support-info-label">Project:</span><span class="support-info-value">@TextOrDash(Model.Project?.ProjectDisplayName)</span></div>
                 <div class="support-info-line"><span class="support-info-label">Title:</span><span class="support-info-value">@TextOrDash(Model.OrderTitle)</span></div>
                 <div class="support-info-line">
-                    <span class="support-info-label">Assign To:</span><span class="support-info-value">@(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.Position})" : "-")</span>
+                    <span class="support-info-label">Assign To:</span><span class="support-info-value">@(Model.Employee != null ? $"{Model.Employee.EmpName} ({Model.Employee.DisplayPosition})" : "-")</span>
                 </div>
                 <div class="support-info-line"><span class="support-info-label">Created:</span><span class="support-info-value">@DateText(Model.CreatedAt)</span></div>
             </div>

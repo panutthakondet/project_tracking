@@ -270,7 +270,7 @@
             <td class="sign-cell">
                 ลงชื่อผู้พัฒนา<br /><br />
                 ( @Model.Employee?.EmpName )<br />
-                ตำแหน่ง @Model.Employee?.Position
+                ตำแหน่ง @(string.IsNullOrWhiteSpace(Model.Employee?.DisplayPosition) ? "-" : Model.Employee.DisplayPosition)
             </td>
 
             <td class="sign-cell">

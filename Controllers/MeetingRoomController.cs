@@ -1325,7 +1325,7 @@ namespace ProjectTracking.Controllers
                         RoomDisplayName = customDisplayName,
                         Initial = Initial(roomDisplayName),
                         Role = user.Role ?? "",
-                        Position = employee?.Position ?? (user.Role ?? "Team"),
+                        Position = employee?.DisplayPosition ?? (user.Role ?? "Team"),
                         AvatarPath = ResolveProfileImagePath(user.ProfileImagePath),
                         JoinedText = FormatJoinedText(user.CreatedAt),
                         Status = status,

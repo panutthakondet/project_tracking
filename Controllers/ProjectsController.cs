@@ -41,7 +41,10 @@ namespace ProjectTracking.Controllers
         {
             // Load Business Analyst list for dropdown filter
             ViewBag.Employees = _context.Employees
-                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .Where(e => e.Status == "ACTIVE"
+                    && (e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position) == "Business Analyst")
                 .OrderBy(e => e.EmpName)
                 .ToList();
 
@@ -119,7 +122,9 @@ namespace ProjectTracking.Controllers
                         phase.ProjectId,
                         employee.EmpId,
                         employee.EmpName,
-                        employee.Position,
+                        Position = employee.PositionDefinition != null
+                            ? employee.PositionDefinition.PositionName
+                            : employee.Position,
                         ProfileImagePath = login != null ? login.ProfileImagePath : null
                     })
                     .ToListAsync();
@@ -269,7 +274,9 @@ namespace ProjectTracking.Controllers
                             phaseName = assign.Phase?.PhaseName ?? "-",
                             work = string.IsNullOrWhiteSpace(assign.Role) ? "ยังไม่ระบุงานที่รับผิดชอบ" : assign.Role.Trim(),
                             employeeName = assign.Employee?.EmpName ?? "ยังไม่กำหนดผู้รับผิดชอบ",
-                            position = string.IsNullOrWhiteSpace(assign.Employee?.Position) ? "-" : assign.Employee.Position.Trim(),
+                            position = string.IsNullOrWhiteSpace(assign.Employee?.DisplayPosition)
+                                ? "-"
+                                : assign.Employee.DisplayPosition.Trim(),
                             profileImage = ProfileImagePathResolver.Normalize(assign.Employee?.LoginUser?.ProfileImagePath),
                             dateRange = DateRange(assign.PlanStart, assign.PlanEnd),
                             status = assign.StatusDescription,
@@ -381,7 +388,9 @@ namespace ProjectTracking.Controllers
                     {
                         emp.EmpId,
                         emp.EmpName,
-                        emp.Position,
+                        Position = emp.PositionDefinition != null
+                            ? emp.PositionDefinition.PositionName
+                            : emp.Position,
                         assign.Role,
                         PhaseOrder = assign.PhaseOrder ?? phase.PhaseOrder,
                         phase.PeriodOrder,
@@ -415,8 +424,12 @@ namespace ProjectTracking.Controllers
             var projectManagers = await _context.Employees
                 .AsNoTracking()
                 .Where(e => e.Status == "ACTIVE"
-                    && e.Position == "Project Manager")
-                .OrderBy(e => e.Position)
+                    && (e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position) == "Project Manager")
+                .OrderBy(e => e.PositionDefinition != null
+                    ? e.PositionDefinition.PositionName
+                    : e.Position)
                 .ThenBy(e => e.EmpName)
                 .ToListAsync();
 
@@ -428,9 +441,9 @@ namespace ProjectTracking.Controllers
                 owners.Add(new ProjectProductionMemoOwnerViewModel
                 {
                     Name = manager.EmpName,
-                    Role = string.IsNullOrWhiteSpace(manager.Position)
+                    Role = string.IsNullOrWhiteSpace(manager.DisplayPosition)
                         ? "ผู้จัดการโครงการ"
-                        : manager.Position
+                        : manager.DisplayPosition
                 });
             }
 
@@ -799,15 +812,24 @@ namespace ProjectTracking.Controllers
             ViewBag.SelectedPmEmpIds = (selectedPmEmpIds ?? Array.Empty<int>()).ToHashSet();
 
             ViewBag.Employees = await _context.Employees
-                .Where(e => e.Status == "ACTIVE" && e.Position == "Business Analyst")
+                .Where(e => e.Status == "ACTIVE"
+                    && (e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position) == "Business Analyst")
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 
             ViewBag.ProjectManagers = await _context.Employees
                 .Where(e => e.Status == "ACTIVE"
-                    && (e.Position == "Project Manager"
-                        || e.Position == "Project Manager IT"
-                        || e.Position == "PM"))
+                    && ((e.PositionDefinition != null
+                            ? e.PositionDefinition.PositionName
+                            : e.Position) == "Project Manager"
+                        || (e.PositionDefinition != null
+                            ? e.PositionDefinition.PositionName
+                            : e.Position) == "Project Manager IT"
+                        || (e.PositionDefinition != null
+                            ? e.PositionDefinition.PositionName
+                            : e.Position) == "PM"))
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 

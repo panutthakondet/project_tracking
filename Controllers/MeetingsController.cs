@@ -200,7 +200,11 @@ namespace ProjectTracking.Controllers
                         a.MeetingId,
                         EmpId = a.UserId,
                         EmpName = e != null ? e.EmpName : "",
-                        Position = e != null ? e.Position : "",
+                        Position = e != null
+                            ? (e.PositionDefinition != null
+                                ? e.PositionDefinition.PositionName
+                                : e.Position)
+                            : "",
                         a.Status
                     }
                 ).ToListAsync();
@@ -290,7 +294,14 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Where(e => e.Status == "ACTIVE")
                 .OrderBy(e => e.EmpName)
-                .Select(e => new { e.EmpId, e.EmpName, e.Position })
+                .Select(e => new
+                {
+                    e.EmpId,
+                    e.EmpName,
+                    Position = e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position
+                })
                 .ToList();
 
             return View();
@@ -334,7 +345,11 @@ namespace ProjectTracking.Controllers
                     AttendeeId = a.Id,
                     EmpId = a.UserId,
                     EmpName = e != null ? e.EmpName : null,
-                    Position = e != null ? e.Position : null
+                    Position = e != null
+                        ? (e.PositionDefinition != null
+                            ? e.PositionDefinition.PositionName
+                            : e.Position)
+                        : null
                 }
             ).ToListAsync();
 
@@ -407,7 +422,14 @@ namespace ProjectTracking.Controllers
                 .AsNoTracking()
                 .Where(e => e.Status == "ACTIVE")
                 .OrderBy(e => e.EmpName)
-                .Select(e => new { e.EmpId, e.EmpName, e.Position })
+                .Select(e => new
+                {
+                    e.EmpId,
+                    e.EmpName,
+                    Position = e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position
+                })
                 .ToList();
 
             // ผู้เข้าร่วมของ meeting นี้ (emp_id ที่ถูกเลือก)

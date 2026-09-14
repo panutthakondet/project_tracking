@@ -275,9 +275,9 @@ public sealed class FieldServiceNotificationService
             }
             return new FieldServiceRecipient(
                 employee.EmpId,
-                string.IsNullOrWhiteSpace(employee.Position)
+                string.IsNullOrWhiteSpace(employee.DisplayPosition)
                     ? employee.EmpName
-                    : $"{employee.EmpName} ({employee.Position})",
+                    : $"{employee.EmpName} ({employee.DisplayPosition})",
                 email);
         }).ToList();
 

@@ -286,7 +286,13 @@ namespace ProjectTracking.Controllers
             var employee = await _context.Employees
                 .AsNoTracking()
                 .Where(row => row.EmpId == employeeId)
-                .Select(row => new { row.DepartmentId, row.Position })
+                .Select(row => new
+                {
+                    row.DepartmentId,
+                    Position = row.PositionDefinition != null
+                        ? row.PositionDefinition.PositionName
+                        : row.Position
+                })
                 .FirstOrDefaultAsync();
             if (employee == null)
                 return null;
@@ -929,7 +935,9 @@ namespace ProjectTracking.Controllers
                     EmpName = e.EmpName,
                     DepartmentId = e.DepartmentId,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
-                    Position = e.Position,
+                    Position = e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -2003,7 +2011,9 @@ namespace ProjectTracking.Controllers
                     EmpName = e.EmpName,
                     DepartmentId = e.DepartmentId,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
-                    Position = e.Position,
+                    Position = e.PositionDefinition != null
+                        ? e.PositionDefinition.PositionName
+                        : e.Position,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null

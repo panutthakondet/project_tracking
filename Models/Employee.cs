@@ -17,6 +17,19 @@ namespace ProjectTracking.Models
         [Column("position")]
         public string? Position { get; set; }
 
+        [Required(ErrorMessage = "กรุณาเลือกตำแหน่ง")]
+        [Column("position_id")]
+        public int? PositionId { get; set; }
+
+        [ForeignKey(nameof(PositionId))]
+        public virtual EmployeePosition? PositionDefinition { get; set; }
+
+        [NotMapped]
+        public string DisplayPosition =>
+            !string.IsNullOrWhiteSpace(PositionDefinition?.PositionName)
+                ? PositionDefinition.PositionName
+                : Position ?? string.Empty;
+
         [Required(ErrorMessage = "กรุณาเลือกฝ่าย")]
         [Column("department_id")]
         public int? DepartmentId { get; set; }

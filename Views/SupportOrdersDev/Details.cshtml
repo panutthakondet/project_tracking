@@ -537,7 +537,7 @@
                 <div class="support-dev-info-line"><span class="support-dev-info-label">Project:</span><span class="support-dev-info-value">@TextOrDash(order.Project?.ProjectDisplayName)</span></div>
                 <div class="support-dev-info-line"><span class="support-dev-info-label">Title:</span><span class="support-dev-info-value">@TextOrDash(order.OrderTitle)</span></div>
                 <div class="support-dev-info-line">
-                    <span class="support-dev-info-label">Assign To:</span><span class="support-dev-info-value">@(order.Employee != null ? $"{order.Employee.EmpName} ({order.Employee.Position})" : "-")</span>
+                    <span class="support-dev-info-label">Assign To:</span><span class="support-dev-info-value">@(order.Employee != null ? $"{order.Employee.EmpName} ({order.Employee.DisplayPosition})" : "-")</span>
                 </div>
                 <div class="support-dev-info-line"><span class="support-dev-info-label">วันที่เริ่ม:</span><span class="support-dev-info-value">@DateText(order.StartDate)</span></div>
                 <div class="support-dev-info-line"><span class="support-dev-info-label">วันที่สิ้นสุด:</span><span class="support-dev-info-value">@DateText(order.EndDate)</span></div>

@@ -173,7 +173,7 @@ namespace ProjectTracking.Controllers
                     EmpId = employee.EmpId,
                     Name = employee.EmpName,
                     Username = string.IsNullOrWhiteSpace(login?.Username) ? "-" : login.Username,
-                    Position = string.IsNullOrWhiteSpace(employee.Position) ? "-" : employee.Position!,
+                    Position = string.IsNullOrWhiteSpace(employee.DisplayPosition) ? "-" : employee.DisplayPosition,
                     AvatarPath = ProfileImage(login?.ProfileImagePath)
                 };
             }).ToList();

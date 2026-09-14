@@ -1457,7 +1457,7 @@ else
                                                  onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                             <span>
                                                 <strong>@(assign.Employee?.EmpName ?? "-")</strong>
-                                                <small class="phase-assign-position">@(string.IsNullOrWhiteSpace(assign.Employee?.Position) ? "ยังไม่กำหนดตำแหน่ง" : assign.Employee.Position)</small>
+                                                <small class="phase-assign-position">@(string.IsNullOrWhiteSpace(assign.Employee?.DisplayPosition) ? "ยังไม่กำหนดตำแหน่ง" : assign.Employee.DisplayPosition)</small>
                                             </span>
                                         </div>
                                         <div class="phase-assign-work">

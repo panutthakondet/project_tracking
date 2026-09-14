@@ -495,16 +495,16 @@ namespace ProjectTracking.Controllers
                 var groupPosition = businessAnalystIds.Contains(employee.EmpId)
                     ? "Business Analyst"
                     : projectManagerIds.Contains(employee.EmpId)
-                        && !IsSamePosition(employee.Position, "Project Manager IT")
+                        && !IsSamePosition(employee.DisplayPosition, "Project Manager IT")
                             ? "Project Manager"
-                            : employee.Position;
+                            : employee.DisplayPosition;
 
                 return new
                 {
                     Employee = employee,
                     GroupPosition = groupPosition,
-                    Role = !string.IsNullOrWhiteSpace(employee.Position)
-                        ? employee.Position!.Trim()
+                    Role = !string.IsNullOrWhiteSpace(employee.DisplayPosition)
+                        ? employee.DisplayPosition.Trim()
                         : !string.IsNullOrWhiteSpace(assignInfo?.Role)
                             ? assignInfo.Role
                             : groupPosition ?? "Team Member",

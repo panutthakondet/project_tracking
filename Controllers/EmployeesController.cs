@@ -74,7 +74,9 @@ namespace ProjectTracking.Controllers
             }
 
             var employeesInDepartment = await employeeQuery
-                .OrderBy(e => e.Position)
+                .OrderBy(e => e.PositionDefinition != null
+                    ? e.PositionDefinition.PositionName
+                    : e.Position)
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
@@ -144,7 +146,7 @@ namespace ProjectTracking.Controllers
         [RequireMenu("Employees.Create")]
         public async Task<IActionResult> Create()
         {
-            await LoadProjectDepartmentsAsync();
+            await LoadEmployeeFormOptionsAsync();
             return View();
         }
 
@@ -156,6 +158,7 @@ namespace ProjectTracking.Controllers
         public async Task<IActionResult> Create(Employee employee)
         {
             await ValidateDepartmentAsync(employee.DepartmentId);
+            employee.Position = await ValidatePositionAsync(employee.PositionId);
             if (ModelState.IsValid)
             {
                 _context.Add(employee);
@@ -163,7 +166,7 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            await LoadProjectDepartmentsAsync();
+            await LoadEmployeeFormOptionsAsync();
             return View(employee);
         }
 
@@ -179,7 +182,7 @@ namespace ProjectTracking.Controllers
                 return NotFound();
             }
 
-            await LoadProjectDepartmentsAsync();
+            await LoadEmployeeFormOptionsAsync();
             return View(employee);
         }
 
@@ -196,6 +199,7 @@ namespace ProjectTracking.Controllers
             }
 
             await ValidateDepartmentAsync(employee.DepartmentId);
+            var positionName = await ValidatePositionAsync(employee.PositionId);
             if (ModelState.IsValid)
             {
                 var existingEmployee = await _context.Employees.FindAsync(id);
@@ -203,14 +207,15 @@ namespace ProjectTracking.Controllers
                     return NotFound();
 
                 existingEmployee.EmpName = employee.EmpName;
-                existingEmployee.Position = employee.Position;
+                existingEmployee.PositionId = employee.PositionId;
+                existingEmployee.Position = positionName;
                 existingEmployee.DepartmentId = employee.DepartmentId;
                 existingEmployee.Status = employee.Status;
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
-            await LoadProjectDepartmentsAsync();
+            await LoadEmployeeFormOptionsAsync();
             return View(employee);
         }
 
@@ -224,6 +229,23 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
         }
 
+        private async Task LoadEmployeePositionsAsync()
+        {
+            ViewBag.EmployeePositions = await _context.EmployeePositions
+                .AsNoTracking()
+                .Where(position => position.IsActive)
+                .OrderBy(position => position.SortOrder)
+                .ThenBy(position => position.PositionName)
+                .ToListAsync();
+        }
+
+        private async Task LoadEmployeeFormOptionsAsync()
+        {
+            // DbContext does not support concurrent queries on the same instance.
+            await LoadProjectDepartmentsAsync();
+            await LoadEmployeePositionsAsync();
+        }
+
         private async Task ValidateDepartmentAsync(int? departmentId)
         {
             if (!departmentId.HasValue)
@@ -234,6 +256,22 @@ namespace ProjectTracking.Controllers
                 .AnyAsync(department => department.DepartmentId == departmentId.Value && department.IsActive);
             if (!exists)
                 ModelState.AddModelError(nameof(Employee.DepartmentId), "ฝ่ายที่เลือกไม่พร้อมใช้งาน");
+        }
+
+        private async Task<string?> ValidatePositionAsync(int? positionId)
+        {
+            if (!positionId.HasValue)
+                return null;
+
+            var positionName = await _context.EmployeePositions
+                .AsNoTracking()
+                .Where(position => position.PositionId == positionId.Value && position.IsActive)
+                .Select(position => position.PositionName)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(positionName))
+                ModelState.AddModelError(nameof(Employee.PositionId), "ตำแหน่งที่เลือกไม่พร้อมใช้งาน");
+
+            return positionName;
         }
 
         // ===========================

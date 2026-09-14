@@ -133,7 +133,7 @@
         else
         {
             var row = 0;
-            foreach (var emp in Model.OrderBy(e => e.Position).ThenBy(e => e.EmpId))
+            foreach (var emp in Model.OrderBy(e => e.DisplayPosition).ThenBy(e => e.EmpId))
             {
                 <tr id="employee-@emp.EmpId">
                     @{ row++; }
@@ -152,7 +152,7 @@
                     </td>
 
                     <td>
-                        @emp.Position
+                        @(string.IsNullOrWhiteSpace(emp.DisplayPosition) ? "-" : emp.DisplayPosition)
                     </td>
 
                     <td>
@@ -238,7 +238,7 @@
     {
         var mobileRow = 0;
 
-        foreach (var emp in Model.OrderBy(e => e.Position).ThenBy(e => e.EmpId))
+        foreach (var emp in Model.OrderBy(e => e.DisplayPosition).ThenBy(e => e.EmpId))
         {
             mobileRow++;
 
@@ -261,7 +261,7 @@
                         </div>
 
                         <div class="employee-position">
-                            @emp.Position
+                            @(string.IsNullOrWhiteSpace(emp.DisplayPosition) ? "-" : emp.DisplayPosition)
                         </div>
 
                         <div class="employee-line-inline">

@@ -240,7 +240,14 @@ namespace ProjectTracking.Controllers
                     .AsNoTracking()
                     .Where(x => x.Status == "ACTIVE")
                     .Where(x => !departmentId.HasValue || x.DepartmentId == departmentId.Value)
-                    .Select(x => new { x.EmpId, x.EmpName, x.Position })
+                    .Select(x => new
+                    {
+                        x.EmpId,
+                        x.EmpName,
+                        Position = x.PositionDefinition != null
+                            ? x.PositionDefinition.PositionName
+                            : x.Position
+                    })
                     .OrderBy(x => x.EmpName)
                     .ToListAsync();
 
