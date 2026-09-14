@@ -26,6 +26,9 @@
     var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectTracking.Models.ProjectDepartment>
         ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>();
     var selectedDepartment = ViewBag.SelectedDepartment as string ?? "all";
+    var employeeOptions = ViewBag.EmployeeOptions as IEnumerable<ProjectTracking.Models.Employee>
+        ?? Enumerable.Empty<ProjectTracking.Models.Employee>();
+    var selectedEmployeeId = ViewBag.SelectedEmployeeId as int?;
 
     bool HasLineLink(ProjectTracking.Models.Employee emp)
     {
@@ -65,21 +68,37 @@
 </div>
 
 <form asp-action="Index" method="get" class="employee-department-filter">
-    <div class="employee-department-filter__field">
-        <label for="employeeDepartmentFilter">ฝ่าย</label>
-        <select id="employeeDepartmentFilter"
-                name="department"
-                class="form-select"
-                onchange="this.form.submit()">
-            <option value="all" selected="@(selectedDepartment == "all" ? "selected" : null)">ทุกฝ่าย</option>
-            @foreach (var department in departments)
-            {
-                var departmentValue = department.DepartmentId.ToString();
-                <option value="@departmentValue"
-                        selected="@(selectedDepartment == departmentValue ? "selected" : null)">@department.DepartmentName</option>
-            }
-            <option value="unassigned" selected="@(selectedDepartment == "unassigned" ? "selected" : null)">ยังไม่กำหนดฝ่าย</option>
-        </select>
+    <div class="employee-department-filter__controls">
+        <div class="employee-department-filter__field">
+            <label for="employeeDepartmentFilter">ฝ่าย</label>
+            <select id="employeeDepartmentFilter"
+                    name="department"
+                    class="form-select"
+                    onchange="document.getElementById('employeeFilter').value=''; this.form.submit()">
+                <option value="all" selected="@(selectedDepartment == "all" ? "selected" : null)">ทุกฝ่าย</option>
+                @foreach (var department in departments)
+                {
+                    var departmentValue = department.DepartmentId.ToString();
+                    <option value="@departmentValue"
+                            selected="@(selectedDepartment == departmentValue ? "selected" : null)">@department.DepartmentName</option>
+                }
+                <option value="unassigned" selected="@(selectedDepartment == "unassigned" ? "selected" : null)">ยังไม่กำหนดฝ่าย</option>
+            </select>
+        </div>
+        <div class="employee-department-filter__field">
+            <label for="employeeFilter">พนักงาน</label>
+            <select id="employeeFilter"
+                    name="employeeId"
+                    class="form-select"
+                    onchange="this.form.submit()">
+                <option value="">พนักงานทั้งหมด</option>
+                @foreach (var employee in employeeOptions)
+                {
+                    <option value="@employee.EmpId"
+                            selected="@(selectedEmployeeId == employee.EmpId ? "selected" : null)">@employee.EmpName</option>
+                }
+            </select>
+        </div>
     </div>
     <span class="employee-department-filter__count">@Model.Count() คน</span>
 </form>
@@ -331,6 +350,13 @@
     width:min(420px, 100%);
 }
 
+.employee-department-filter__controls {
+    display:grid;
+    grid-template-columns:repeat(2, minmax(220px, 420px));
+    gap:14px;
+    width:100%;
+}
+
 .employee-department-filter__field label {
     display:block;
     margin:0 0 6px;
@@ -560,6 +586,10 @@
     .employee-department-filter__count {
         padding-bottom:0;
         text-align:right;
+    }
+
+    .employee-department-filter__controls {
+        grid-template-columns:1fr;
     }
 }
 

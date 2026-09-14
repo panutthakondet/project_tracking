@@ -102,15 +102,103 @@ namespace ProjectTracking.Controllers
 
         [HttpGet]
         [RequireMenu("UserManagement.Index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? department, int? employeeId)
         {
             var guard = GuardAdmin();
             if (guard != null) return guard;
 
+            var departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(row => row.IsActive)
+                .OrderBy(row => row.SortOrder)
+                .ThenBy(row => row.DepartmentName)
+                .ToListAsync();
+            var employees = await _context.Employees
+                .AsNoTracking()
+                .Include(employee => employee.Department)
+                .OrderBy(employee => employee.EmpName)
+                .ThenBy(employee => employee.EmpId)
+                .ToListAsync();
             var users = await _context.LoginUsers
                 .AsNoTracking()
                 .OrderByDescending(u => u.UserId)
                 .ToListAsync();
+
+            var employeeById = employees.ToDictionary(employee => employee.EmpId);
+            var employeeByLoginUserId = employees
+                .Where(employee => employee.LoginUserId.HasValue)
+                .GroupBy(employee => employee.LoginUserId!.Value)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            Employee? ResolveEmployee(LoginUser user)
+            {
+                if (user.EmpId.HasValue
+                    && employeeById.TryGetValue(user.EmpId.Value, out var employeeByEmpId))
+                {
+                    return employeeByEmpId;
+                }
+
+                return employeeByLoginUserId.TryGetValue(user.UserId, out var employeeByUserId)
+                    ? employeeByUserId
+                    : null;
+            }
+
+            var selectedDepartment = (department ?? "all").Trim();
+            int? selectedDepartmentId = null;
+            if (string.Equals(selectedDepartment, "unassigned", StringComparison.OrdinalIgnoreCase))
+            {
+                selectedDepartment = "unassigned";
+            }
+            else if (int.TryParse(selectedDepartment, out var parsedDepartmentId)
+                && departments.Any(row => row.DepartmentId == parsedDepartmentId))
+            {
+                selectedDepartmentId = parsedDepartmentId;
+                selectedDepartment = parsedDepartmentId.ToString();
+            }
+            else
+            {
+                selectedDepartment = "all";
+            }
+
+            var employeeOptions = employees.AsEnumerable();
+            if (selectedDepartment == "unassigned")
+            {
+                employeeOptions = employeeOptions.Where(employee => !employee.DepartmentId.HasValue);
+                users = users
+                    .Where(user => ResolveEmployee(user)?.DepartmentId.HasValue != true)
+                    .ToList();
+            }
+            else if (selectedDepartmentId.HasValue)
+            {
+                employeeOptions = employeeOptions
+                    .Where(employee => employee.DepartmentId == selectedDepartmentId.Value);
+                users = users
+                    .Where(user => ResolveEmployee(user)?.DepartmentId == selectedDepartmentId.Value)
+                    .ToList();
+            }
+
+            var employeeOptionList = employeeOptions
+                .OrderBy(employee => employee.EmpName)
+                .ThenBy(employee => employee.EmpId)
+                .ToList();
+            var selectedEmployeeId = employeeId.HasValue
+                && employeeOptionList.Any(employee => employee.EmpId == employeeId.Value)
+                    ? employeeId
+                    : null;
+            if (selectedEmployeeId.HasValue)
+            {
+                users = users
+                    .Where(user => ResolveEmployee(user)?.EmpId == selectedEmployeeId.Value)
+                    .ToList();
+            }
+
+            ViewBag.ProjectDepartments = departments;
+            ViewBag.SelectedDepartment = selectedDepartment;
+            ViewBag.EmployeeOptions = employeeOptionList;
+            ViewBag.SelectedEmployeeId = selectedEmployeeId;
+            ViewBag.UserEmployees = users.ToDictionary(
+                user => user.UserId,
+                user => ResolveEmployee(user));
 
             return View(users);
         }

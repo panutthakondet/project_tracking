@@ -1,9 +1,18 @@
 @using System
 @using System.Linq
+@using ProjectTracking.Models
 @model IEnumerable<ProjectTracking.Models.LoginUser>
 
 @{
     ViewData["Title"] = "User Management";
+    var departments = ViewBag.ProjectDepartments as IEnumerable<ProjectDepartment>
+        ?? Enumerable.Empty<ProjectDepartment>();
+    var employeeOptions = ViewBag.EmployeeOptions as IEnumerable<Employee>
+        ?? Enumerable.Empty<Employee>();
+    var selectedDepartment = ViewBag.SelectedDepartment as string ?? "all";
+    var selectedEmployeeId = ViewBag.SelectedEmployeeId as int?;
+    var userEmployees = ViewBag.UserEmployees as IReadOnlyDictionary<int, Employee?>
+        ?? new Dictionary<int, Employee?>();
 }
 
 <div class="index-hero">
@@ -26,11 +35,49 @@
     <div class="alert alert-warning">@TempData["Error"]</div>
 }
 
+<form asp-action="Index" method="get" class="user-management-filter">
+    <div class="user-management-filter__controls">
+        <div class="user-management-filter__field">
+            <label for="userDepartmentFilter">ฝ่าย</label>
+            <select id="userDepartmentFilter"
+                    name="department"
+                    class="form-select"
+                    onchange="document.getElementById('userEmployeeFilter').value=''; this.form.submit()">
+                <option value="all" selected="@(selectedDepartment == "all" ? "selected" : null)">ทุกฝ่าย</option>
+                @foreach (var department in departments)
+                {
+                    var departmentValue = department.DepartmentId.ToString();
+                    <option value="@departmentValue"
+                            selected="@(selectedDepartment == departmentValue ? "selected" : null)">@department.DepartmentName</option>
+                }
+                <option value="unassigned" selected="@(selectedDepartment == "unassigned" ? "selected" : null)">ยังไม่กำหนดฝ่าย</option>
+            </select>
+        </div>
+        <div class="user-management-filter__field">
+            <label for="userEmployeeFilter">พนักงาน</label>
+            <select id="userEmployeeFilter"
+                    name="employeeId"
+                    class="form-select"
+                    onchange="this.form.submit()">
+                <option value="">พนักงานทั้งหมด</option>
+                @foreach (var employee in employeeOptions)
+                {
+                    <option value="@employee.EmpId"
+                            selected="@(selectedEmployeeId == employee.EmpId ? "selected" : null)">@employee.EmpName</option>
+                }
+            </select>
+        </div>
+    </div>
+    <span class="user-management-filter__count">@Model.Count() บัญชี</span>
+</form>
+
 <div class="table-responsive user-management-table-wrap">
     <table class="table table-hover align-middle user-management-table">
         <thead class="table-light">
             <tr>
                 <th>Username</th>
+                <th>พนักงาน</th>
+                <th>ฝ่าย</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
@@ -42,15 +89,18 @@
         @if (Model == null || !Model.Any())
         {
             <tr>
-                <td colspan="6" class="text-center text-muted py-4">ยังไม่มีผู้ใช้งาน</td>
+                <td colspan="8" class="text-center text-muted py-4">ยังไม่มีผู้ใช้งาน</td>
             </tr>
         }
         else
         {
             foreach (var u in Model)
             {
+                userEmployees.TryGetValue(u.UserId, out var employee);
                 <tr>
                     <td class="fw-semibold">@u.Username</td>
+                    <td>@(employee?.EmpName ?? "ยังไม่ผูกพนักงาน")</td>
+                    <td>@(employee?.Department?.DepartmentName ?? "ยังไม่กำหนดฝ่าย")</td>
                     <td>@u.Email</td>
                     <td>
                         <span class="user-role-text @(string.Equals(u.Role, "ADMIN", StringComparison.OrdinalIgnoreCase) ? "is-admin" : "is-user")">
@@ -101,6 +151,43 @@
     </table>
 </div>
 <style>
+    .user-management-filter {
+        display:flex;
+        align-items:flex-end;
+        justify-content:space-between;
+        gap:16px;
+        margin:0 0 16px;
+        padding:14px 16px;
+        border:1px solid var(--pt-border-soft, #dbeafe);
+        border-radius:16px;
+        color:var(--pt-body-contrast, #10233f);
+        background:var(--pt-surface, #fff);
+        box-shadow:0 8px 22px rgba(15,23,42,.05);
+    }
+
+    .user-management-filter__controls {
+        display:grid;
+        grid-template-columns:repeat(2, minmax(220px, 420px));
+        gap:14px;
+        width:100%;
+    }
+
+    .user-management-filter__field label {
+        display:block;
+        margin:0 0 6px;
+        font-size:.88rem;
+        font-weight:600;
+    }
+
+    .user-management-filter__count {
+        flex:0 0 auto;
+        padding-bottom:11px;
+        color:var(--pt-body-muted, #64748b);
+        font-size:.88rem;
+        font-weight:500;
+        white-space:nowrap;
+    }
+
     .user-management-table th,
     .user-management-table td {
         padding: 12px 14px;
@@ -163,6 +250,21 @@
     }
 
     @@media (max-width: 576px) {
+        .user-management-filter {
+            align-items:stretch;
+            flex-direction:column;
+            gap:8px;
+        }
+
+        .user-management-filter__controls {
+            grid-template-columns:1fr;
+        }
+
+        .user-management-filter__count {
+            padding-bottom:0;
+            text-align:right;
+        }
+
         .user-management-table th,
         .user-management-table td {
             padding: 10px 12px;

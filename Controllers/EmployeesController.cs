@@ -42,7 +42,7 @@ namespace ProjectTracking.Controllers
         // แสดงเฉพาะพนักงาน ACTIVE
         // ===========================
         [RequireMenu("Employees.Index")]
-        public async Task<IActionResult> Index(string? department)
+        public async Task<IActionResult> Index(string? department, int? employeeId)
         {
             var departments = await _context.ProjectDepartments
                 .AsNoTracking()
@@ -73,13 +73,28 @@ namespace ProjectTracking.Controllers
                 selectedDepartment = "all";
             }
 
-            var employees = await employeeQuery
+            var employeesInDepartment = await employeeQuery
                 .OrderBy(e => e.Position)
                 .ThenBy(e => e.EmpId)
                 .ToListAsync();
 
+            var selectedEmployeeId = employeeId.HasValue
+                && employeesInDepartment.Any(employee => employee.EmpId == employeeId.Value)
+                    ? employeeId
+                    : null;
+            var employees = selectedEmployeeId.HasValue
+                ? employeesInDepartment
+                    .Where(employee => employee.EmpId == selectedEmployeeId.Value)
+                    .ToList()
+                : employeesInDepartment;
+
             ViewBag.ProjectDepartments = departments;
             ViewBag.SelectedDepartment = selectedDepartment;
+            ViewBag.EmployeeOptions = employeesInDepartment
+                .OrderBy(employee => employee.EmpName)
+                .ThenBy(employee => employee.EmpId)
+                .ToList();
+            ViewBag.SelectedEmployeeId = selectedEmployeeId;
 
             var employeeIds = employees.Select(x => x.EmpId).ToList();
             var linkedUserIds = employees.Where(x => x.LoginUserId.HasValue)
