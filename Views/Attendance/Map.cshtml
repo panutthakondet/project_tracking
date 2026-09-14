@@ -1,309 +1,79 @@
-@model IEnumerable<dynamic>
-@using System.Globalization
+@model ProjectTracking.ViewModels.AttendanceReportViewModel
+@using ProjectTracking.Models
+@using ProjectTracking.Services
+
+@functions {
+    private static string ThaiDate(DateTime date) => $"{date:dd/MM}/{date.Year + 543}";
+}
 
 @{
     Layout = null;
-    var th = new CultureInfo("th-TH");
-    var rows = Model?.ToList() ?? new List<dynamic>();
-    var currentDateText = DateTime.Now.ToString("dd/MM/yyyy", th);
-    var fromDateText = ViewBag.FromDate as string ?? currentDateText;
-    var toDateText = ViewBag.ToDate as string ?? currentDateText;
-
-    var noCheckin = rows
-        .Where(x => x.CheckinTime == null)
-        .Select(x => new {
-            x.EmpName,
-            x.Position,
-            WorkDate = (DateTime)x.WorkDate
-        })
-        .ToList();
-
-    var noCheckout = rows
-        .Where(x => x.CheckinTime != null && x.CheckoutTime == null)
-        .Select(x => new {
-            x.EmpName,
-            x.Position,
-            WorkDate = (DateTime)x.WorkDate
-        })
-        .ToList();
-
-    var attendanceIssues = noCheckin
-        .Select(x => new {
-            Status = "ไม่เช็คเข้า",
-            Tone = "danger",
-            x.WorkDate,
-            x.EmpName,
-            x.Position
-        })
-        .Concat(noCheckout.Select(x => new {
-            Status = "ไม่เช็คออก",
-            Tone = "warning",
-            x.WorkDate,
-            x.EmpName,
-            x.Position
-        }))
-        .OrderBy(x => x.WorkDate)
-        .ThenBy(x => x.EmpName)
-        .ToList();
-
+    var rows = Model.Rows;
+    var noCheckIn = rows.Where(x => x.CheckinTime == null).ToList();
+    var noCheckOut = rows.Where(x => x.CheckinTime != null && x.CheckoutTime == null).ToList();
     var checkedInCount = rows.Count(x => x.CheckinTime != null);
     var checkedOutCount = rows.Count(x => x.CheckoutTime != null);
+    var generatedAt = AttendancePolicyService.ThailandNow;
 }
 
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>Attendance Check-in/Check-out Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>รายงานการเช็คเวลาเข้า-ออกงาน</title>
+    @await Html.PartialAsync("_StandaloneTheme")
     <style>
-        @@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&display=swap");
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 16px;
-            color: #10233f;
-            background: #fff;
-            font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 11px;
-        }
-        .report-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .report-btn {
-            min-height: 34px;
-            padding: 7px 13px;
-            border: 1px solid #102443;
-            border-radius: 999px;
-            color: #102443;
-            background: #fff;
-            font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 12px;
-            font-weight: 900;
-            line-height: 1.1;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .report-btn.primary {
-            color: #fff;
-            background: #102443;
-        }
-        .print-header {
-            margin-bottom: 12px;
-            padding: 14px 16px;
-            color: #fff;
-            background: #102443;
-        }
-        .print-header h1 {
-            margin: 0 0 6px;
-            font-size: 22px;
-        }
-        .print-header div {
-            color: rgba(255,255,255,.82);
-            font-weight: 700;
-            line-height: 1.55;
-        }
-        .filter-panel {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(180px, 240px)) auto;
-            align-items: end;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding: 12px;
-            border: 1px solid #d8e3ef;
-            background: #f8fbff;
-        }
-        .filter-submit {
-            width: auto;
-            min-width: 88px;
-            justify-self: start;
-        }
-        .field label {
-            display: block;
-            margin-bottom: 5px;
-            color: #64748b;
-            font-weight: 900;
-        }
-        .field input {
-            width: 100%;
-            min-height: 34px;
-            padding: 7px 10px;
-            border: 1px solid #cbd5e1;
-            color: #10233f;
-            background: #fff;
-            font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 12px;
-            font-weight: 800;
-            text-align: center;
-        }
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .kpi {
-            padding: 10px;
-            border: 1px solid #d8e3ef;
-            border-left: 4px solid #14b8a6;
-        }
-        .kpi.warning { border-left-color: #f59e0b; }
-        .kpi.danger { border-left-color: #f43f5e; }
-        .kpi.info { border-left-color: #258cfb; }
-        .kpi span,
-        .kpi small {
-            display: block;
-            color: #64748b;
-            font-weight: 800;
-        }
-        .kpi strong {
-            display: block;
-            margin: 5px 0;
-            color: #10233f;
-            font-size: 20px;
-            font-weight: 900;
-        }
-        h2 {
-            margin: 14px 0 8px;
-            color: #10233f;
-            font-size: 16px;
-            font-weight: 900;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            margin-bottom: 12px;
-        }
-        th {
-            padding: 7px 6px;
-            color: #fff;
-            background: #102443;
-            border: 1px solid rgba(255,255,255,.18);
-            font-weight: 900;
-            text-align: center;
-        }
-        td {
-            padding: 7px 6px;
-            border: 1px solid #d8e3ef;
-            line-height: 1.45;
-            vertical-align: top;
-            overflow-wrap: anywhere;
-        }
-        tr:nth-child(even) td { background: #f8fbff; }
-        .text-center { text-align: center; }
-        .status-text {
-            font-weight: 900;
-        }
-        .status-text.success { color: #0f8f5f; }
-        .status-text.warning { color: #b7790b; }
-        .status-text.danger { color: #d6294f; }
-        .map-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 28px;
-            padding: 5px 10px;
-            border: 1px solid #14b8a6;
-            border-radius: 999px;
-            color: #0f766e;
-            background: #fff;
-            font-family: 'Prompt', Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            font-weight: 900;
-            cursor: pointer;
-        }
-        .empty {
-            padding: 18px;
-            border: 1px dashed #cbd5e1;
-            color: #64748b;
-            text-align: center;
-            font-weight: 800;
-        }
-        .muted {
-            color: #94a3b8;
-            font-weight: 800;
-        }
-        @@page {
-            size: A4 landscape;
-            margin: 8mm;
-        }
-        @@media print {
-            body { padding: 0; }
-            .report-actions,
-            .filter-panel,
-            .no-print { display: none !important; }
-            h2, h3,
-            .project-group-row,
-            .scenario-project__header,
-            .scenario-group__header,
-            .phase-project-group {
-                break-after: avoid;
-                page-break-after: avoid;
-            }
-            h2 + table,
-            h2 + .empty,
-            h2 + .report-table-scroll,
-            h3 + table,
-            h3 + .empty,
-            .project-group-row + tr {
-                break-before: avoid;
-                page-break-before: avoid;
-            }
-            .report-section,
-            .scenario-project,
-            .scenario-group,
-            .project-group-row,
-            .phase-project-group {
-                break-inside: avoid-page;
-                page-break-inside: avoid;
-            }
-            thead { display: table-header-group; }
-            tr { page-break-inside: avoid; }
-        }
-        @@media (max-width: 900px) {
-            .filter-panel,
-            .kpi-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    
-        /* Crisp typography normalization for standalone pages. */
-        :root { --pt-readable-thai-font: "Noto Sans Thai", "Leelawadee UI", Tahoma, "Segoe UI", Arial, sans-serif; }
-        html, body {
-            font-family: var(--pt-readable-thai-font) !important;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-        }
-        body :where(*):not(svg):not(svg *) {
-            font-family: var(--pt-readable-thai-font) !important;
-            font-stretch: normal !important;
-            letter-spacing: 0 !important;
-            text-shadow: none !important;
-        }
-        body :is(h1, h2, h3, h4, h5, h6, th, label, strong, b, .report-btn, .btn, .badge, .status-text, .cell-title, .project-group-name, [class*="title"], [class*="heading"], [class*="eyebrow"], [class*="status"], [class*="badge"], [class*="count"], [class*="total"], [class*="value"]) {
-            font-weight: 700 !important;
-        }
-        body :is(p, li, td, small, em, time, .cell-sub, .detail-block div, .meta-label, .meta-value, .empty, [class*="detail"], [class*="meta"], [class*="subtitle"], [class*="description"], [class*="desc"], [class*="remark"], [class*="note"], [class*="empty"]):not(.btn):not(.badge):not(.status-text):not([class*="status-"]):not([class*="Status"]) {
-            font-weight: 400 !important;
-        }
-</style>
+        * { box-sizing:border-box; }
+        body { margin:0; padding:16px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-body-bg,#eef3f9); font-family:var(--pt-font-family,"Noto Sans Thai",Tahoma,Arial,sans-serif); font-size:12px; text-rendering:optimizeLegibility; -webkit-font-smoothing:antialiased; }
+        .report-shell { max-width:1900px; margin:0 auto; }
+        .report-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; margin-bottom:12px; }
+        .report-btn { min-height:36px; display:inline-flex; align-items:center; justify-content:center; padding:7px 14px; border:1px solid var(--pt-accent,#258cfb); border-radius:10px; color:var(--pt-accent,#1d4ed8); background:var(--pt-surface,#fff); font:600 12px/1.2 inherit; text-decoration:none; cursor:pointer; }
+        .report-btn.primary { color:var(--pt-accent-contrast,#fff); background:var(--pt-accent,#102443); }
+        .print-header { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:12px; padding:16px 18px; border:1px solid var(--pt-border,#d8e3ef); color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); }
+        .print-header h1 { margin:0 0 4px; font-size:21px; font-weight:700; }
+        .print-header p { margin:0; color:var(--pt-surface-contrast-muted,#64748b); font-weight:400; }
+        .print-header__meta { color:var(--pt-surface-contrast-muted,#64748b); text-align:right; }
+        .filter-panel { position:relative; z-index:5; display:grid; grid-template-columns:minmax(180px,1.2fr) minmax(160px,.8fr) minmax(160px,.8fr) auto; align-items:end; gap:10px; margin-bottom:12px; padding:14px; border:1px solid var(--pt-border,#d8e3ef); background:var(--pt-surface,#fff); }
+        .field label { display:block; margin-bottom:5px; color:var(--pt-surface-contrast,#10233f); font-weight:600; }
+        .field input, .field select { width:100%; min-height:38px; padding:7px 10px; border:1px solid var(--pt-border,#cbd5e1); border-radius:8px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); font:400 12px/1.2 inherit; }
+        .field input { text-align:center; }
+        .validation { margin-bottom:12px; padding:10px 12px; border:1px solid #ef9a9a; color:#b42318; background:#fff1f1; font-weight:500; }
+        .kpi-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:12px; }
+        .kpi { padding:10px 12px; border:1px solid var(--pt-border,#d8e3ef); border-top:3px solid #14b8a6; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); }
+        .kpi.info { border-top-color:#258cfb; } .kpi.warning { border-top-color:#f59e0b; } .kpi.danger { border-top-color:#f43f5e; }
+        .kpi span, .kpi small { display:block; color:var(--pt-surface-contrast-muted,#64748b); font-weight:400; }
+        .kpi strong { display:block; margin:4px 0; font-size:20px; font-weight:700; }
+        h2 { margin:14px 0 8px; font-size:16px; font-weight:700; }
+        .table-wrap { overflow:auto; border:1px solid var(--pt-border,#d8e3ef); background:var(--pt-surface,#fff); }
+        table { width:100%; min-width:980px; border-collapse:collapse; table-layout:fixed; }
+        th { padding:8px 6px; border:1px solid color-mix(in srgb,var(--pt-accent,#102443) 70%,white); color:var(--pt-accent-contrast,#fff); background:var(--pt-accent-dark,#102443); font-weight:600; text-align:center; }
+        td { padding:8px 6px; border:1px solid var(--pt-border,#d8e3ef); color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); font-weight:400; line-height:1.45; vertical-align:top; overflow-wrap:anywhere; }
+        tbody tr:nth-child(even) td { background:var(--pt-surface-soft,#f8fbff); }
+        .text-center { text-align:center; }
+        .status-text { font-weight:600; } .success { color:#0f8f5f; } .warning { color:#b7790b; } .danger { color:#d6294f; }
+        .map-link { min-height:28px; padding:4px 9px; border:1px solid var(--pt-accent,#14b8a6); border-radius:8px; color:var(--pt-accent,#0f766e); background:var(--pt-surface,#fff); font:500 11px/1.2 inherit; cursor:pointer; }
+        .empty { padding:18px; border:1px dashed var(--pt-border,#cbd5e1); color:var(--pt-surface-contrast-muted,#64748b); background:var(--pt-surface,#fff); text-align:center; }
+        .muted { color:var(--pt-surface-contrast-muted,#94a3b8); }
+        @@page { size:A4 landscape; margin:8mm; }
+        @@media print { body { padding:0; color:#111; background:#fff; } .report-actions,.filter-panel,.no-print,.validation { display:none!important; } .print-header,.kpi,.table-wrap,td { color:#111; background:#fff!important; box-shadow:none; } thead { display:table-header-group; } tr { break-inside:avoid; page-break-inside:avoid; } }
+        @@media (max-width:900px) { .filter-panel,.kpi-grid { grid-template-columns:1fr; } .print-header { align-items:flex-start; flex-direction:column; } .print-header__meta { text-align:left; } }
+    </style>
 </head>
 <body>
+<main class="report-shell">
     <div class="report-actions">
-        <button type="button" class="report-btn primary" onclick="window.print()">Print</button>
-        <a asp-controller="Reports" asp-action="Index" class="report-btn">Report Center</a>
+        <button type="button" class="report-btn primary" onclick="window.print()">พิมพ์รายงาน</button>
+        <a asp-controller="Reports" asp-action="Index" class="report-btn">ศูนย์รวมรายงาน</a>
         <a asp-controller="Home" asp-action="Index" class="report-btn">Dashboard</a>
     </div>
 
     <header class="print-header">
-        <h1>Attendance Check-in/Check-out Report</h1>
         <div>
-            ช่วงวันที่ @fromDateText - @toDateText<br />
-            ข้อมูล ณ @DateTime.Now.ToString("dd MMM yyyy HH:mm", th)
+            <h1>รายงานการเช็คเวลาเข้า-ออกงาน</h1>
+            <p>แสดงเฉพาะวันทำการ จันทร์-ศุกร์ และตัดวันหยุดบริษัทที่ตั้งค่าไว้</p>
         </div>
+        <div class="print-header__meta">ช่วงวันที่ @Model.FromDate - @Model.ToDate<br />ข้อมูล ณ @ThaiDate(generatedAt) @generatedAt.ToString("HH:mm") น.</div>
     </header>
 
     <form method="get" class="filter-panel">
@@ -311,171 +81,107 @@
             <label for="departmentId">ฝ่าย</label>
             <select id="departmentId" name="departmentId">
                 <option value="">ทุกฝ่าย</option>
-                @foreach (var department in (IEnumerable<ProjectTracking.Models.ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectTracking.Models.ProjectDepartment>()))
-                { <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option> }
+                @foreach (var department in (IEnumerable<ProjectDepartment>)(ViewBag.ProjectDepartments ?? Enumerable.Empty<ProjectDepartment>()))
+                {
+                    <option value="@department.DepartmentId" selected="@(ViewBag.SelectedDepartmentId is int id && id == department.DepartmentId ? "selected" : null)">@department.DepartmentName</option>
+                }
             </select>
         </div>
-        <div class="field">
-            <label for="fromDate">จากวันที่</label>
-            <input type="text" id="fromDate" name="fromDate" value="@fromDateText" placeholder="dd/MM/2569" />
-        </div>
-        <div class="field">
-            <label for="toDate">ถึงวันที่</label>
-            <input type="text" id="toDate" name="toDate" value="@toDateText" placeholder="dd/MM/2569" />
-        </div>
-        <button type="submit" class="report-btn primary filter-submit">ค้นหา</button>
+        <div class="field"><label for="fromDate">จากวันที่</label><input id="fromDate" name="fromDate" value="@Model.FromDate" placeholder="วว/ดด/พ.ศ." /></div>
+        <div class="field"><label for="toDate">ถึงวันที่</label><input id="toDate" name="toDate" value="@Model.ToDate" placeholder="วว/ดด/พ.ศ." /></div>
+        <button type="submit" class="report-btn primary">แสดงข้อมูล</button>
     </form>
 
+    @if (!string.IsNullOrWhiteSpace(Model.ValidationMessage))
+    {
+        <div class="validation">@Model.ValidationMessage</div>
+    }
+
     <section class="kpi-grid">
-        <article class="kpi info">
-            <span>Rows</span>
-            <strong>@rows.Count</strong>
-            <small>รายการตามช่วงวันที่</small>
-        </article>
-        <article class="kpi">
-            <span>Checked In</span>
-            <strong>@checkedInCount</strong>
-            <small>เช็คเข้าแล้ว</small>
-        </article>
-        <article class="kpi">
-            <span>Checked Out</span>
-            <strong>@checkedOutCount</strong>
-            <small>เช็คออกแล้ว</small>
-        </article>
-        <article class="kpi danger">
-            <span>No Check-in</span>
-            <strong>@noCheckin.Count</strong>
-            <small>ยังไม่เช็คเข้า</small>
-        </article>
-        <article class="kpi warning">
-            <span>No Check-out</span>
-            <strong>@noCheckout.Count</strong>
-            <small>เช็คเข้าแล้วแต่ยังไม่เช็คออก</small>
-        </article>
+        <article class="kpi info"><span>รายการทั้งหมด</span><strong>@rows.Count</strong><small>คน × วันทำการ</small></article>
+        <article class="kpi"><span>เช็คเข้าแล้ว</span><strong>@checkedInCount</strong><small>รายการ</small></article>
+        <article class="kpi"><span>เช็คออกแล้ว</span><strong>@checkedOutCount</strong><small>รายการ</small></article>
+        <article class="kpi danger"><span>ไม่เช็คเข้า</span><strong>@noCheckIn.Count</strong><small>รายการที่ต้องตรวจสอบ</small></article>
+        <article class="kpi warning"><span>ไม่เช็คออก</span><strong>@noCheckOut.Count</strong><small>รายการที่ต้องตรวจสอบ</small></article>
     </section>
 
     <h2>รายการที่ต้องตรวจสอบ</h2>
-    @if (!attendanceIssues.Any())
+    @if (!noCheckIn.Any() && !noCheckOut.Any())
     {
-        <div class="empty">ทุกคนเช็คเข้า-ออกครบตามช่วงวันที่เลือก</div>
+        <div class="empty">ไม่พบรายการผิดปกติในช่วงวันที่เลือก</div>
     }
     else
     {
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:42px;">Seq</th>
-                    <th style="width:120px;">Status</th>
-                    <th style="width:110px;">Date</th>
-                    <th>Employee</th>
-                    <th>Position</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    var issueSeq = 1;
-                }
-                @foreach (var item in attendanceIssues)
-                {
-                    <tr>
-                        <td class="text-center">@issueSeq</td>
-                        <td class="text-center">
-                            <span class="status-text @(item.Tone == "danger" ? "danger" : "warning")">@item.Status</span>
-                        </td>
-                        <td class="text-center">@item.WorkDate.ToString("dd/MM/yyyy", th)</td>
-                        <td>@item.EmpName</td>
-                        <td>@item.Position</td>
-                    </tr>
-                    issueSeq++;
-                }
-            </tbody>
-        </table>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th style="width:50px">ลำดับ</th><th style="width:110px">สถานะ</th><th style="width:110px">วันที่</th><th>พนักงาน</th><th>ตำแหน่ง</th></tr></thead>
+                <tbody>
+                    @{ var issueSequence = 1; }
+                    @foreach (var item in noCheckIn)
+                    {
+                        <tr><td class="text-center">@issueSequence</td><td class="text-center"><span class="status-text danger">ไม่เช็คเข้า</span></td><td class="text-center">@ThaiDate(item.WorkDate)</td><td>@item.EmpName</td><td>@item.Position</td></tr>
+                        issueSequence++;
+                    }
+                    @foreach (var item in noCheckOut)
+                    {
+                        <tr><td class="text-center">@issueSequence</td><td class="text-center"><span class="status-text warning">ไม่เช็คออก</span></td><td class="text-center">@ThaiDate(item.WorkDate)</td><td>@item.EmpName</td><td>@item.Position</td></tr>
+                        issueSequence++;
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 
     <h2>ตารางเข้า-ออกงาน</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:42px;">Seq</th>
-                <th style="width:110px;">Date</th>
-                <th>Employee</th>
-                <th>Position</th>
-                <th style="width:86px;">Check-in</th>
-                <th style="width:86px;">Check-out</th>
-                <th style="width:90px;">Distance</th>
-                <th class="no-print" style="width:90px;">Map</th>
-            </tr>
-        </thead>
-        <tbody>
-            @{
-                var rowSeq = 1;
-            }
-            @foreach (var item in rows)
-            {
-                DateTime workDate = item.WorkDate;
-                var hasCheckinLocation = item.CheckinLat != null && item.CheckinLng != null;
-                <tr>
-                    <td class="text-center">@rowSeq</td>
-                    <td class="text-center">@workDate.ToString("dd/MM/yyyy", th)</td>
-                    <td>@item.EmpName</td>
-                    <td>@item.Position</td>
-                    <td class="text-center">
-                        @if (item.CheckinTime != null)
-                        {
-                            <span class="status-text success">@item.CheckinTime?.ToString("HH:mm")</span>
-                        }
-                        else
-                        {
-                            <span class="status-text danger">ไม่เช็คเข้า</span>
-                        }
-                    </td>
-                    <td class="text-center">
-                        @if (item.CheckoutTime != null)
-                        {
-                            <span class="status-text success">@item.CheckoutTime?.ToString("HH:mm")</span>
-                        }
-                        else
-                        {
-                            <span class="status-text warning">ไม่เช็คออก</span>
-                        }
-                    </td>
-                    <td class="text-center">@(item.DistanceKm != null ? string.Format("{0:0.00}", item.DistanceKm) : "-")</td>
-                    <td class="text-center no-print">
-                        @if (hasCheckinLocation)
-                        {
-                            <button type="button"
-                                    class="map-link"
-                                    onclick="openGoogleMap('@item.CheckinLat','@item.CheckinLng','@item.CheckoutLat','@item.CheckoutLng')">
-                                ดูแผนที่
-                            </button>
-                        }
-                        else
-                        {
-                            <span class="muted">-</span>
-                        }
-                    </td>
-                </tr>
-                rowSeq++;
-            }
-        </tbody>
-    </table>
+    @if (!rows.Any())
+    {
+        <div class="empty">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th style="width:50px">ลำดับ</th><th style="width:110px">วันที่</th><th>พนักงาน</th><th>ตำแหน่ง</th><th style="width:90px">เข้า</th><th style="width:90px">ออก</th><th style="width:115px">GPS เข้า/ออก</th><th style="width:90px">ระยะ</th><th class="no-print" style="width:90px">แผนที่</th></tr></thead>
+                <tbody>
+                    @{ var rowSequence = 1; }
+                    @foreach (var item in rows)
+                    {
+                        <tr>
+                            <td class="text-center">@rowSequence</td>
+                            <td class="text-center">@ThaiDate(item.WorkDate)</td>
+                            <td>@item.EmpName</td>
+                            <td>@item.Position</td>
+                            <td class="text-center">@if (item.CheckinTime.HasValue) { <span class="status-text success">@item.CheckinTime.Value.ToString("HH:mm")</span> } else { <span class="status-text danger">ไม่เช็ค</span> }</td>
+                            <td class="text-center">@if (item.CheckoutTime.HasValue) { <span class="status-text success">@item.CheckoutTime.Value.ToString("HH:mm")</span> } else if (item.CheckinTime.HasValue) { <span class="status-text warning">ไม่เช็ค</span> } else { <span class="muted">-</span> }</td>
+                            <td class="text-center">@(item.CheckinAccuracyM?.ToString("0") ?? "-") / @(item.CheckoutAccuracyM?.ToString("0") ?? "-") ม.</td>
+                            <td class="text-center">@(item.DistanceKm?.ToString("0.00") ?? "-") กม.</td>
+                            <td class="text-center no-print">
+                                @if (item.CheckinLat.HasValue && item.CheckinLng.HasValue)
+                                {
+                                    <button type="button" class="map-link" data-in-lat="@item.CheckinLat" data-in-lng="@item.CheckinLng" data-out-lat="@item.CheckoutLat" data-out-lng="@item.CheckoutLng" onclick="openGoogleMap(this)">ดูแผนที่</button>
+                                }
+                                else { <span class="muted">-</span> }
+                            </td>
+                        </tr>
+                        rowSequence++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</main>
 
-    <script>
-        function openGoogleMap(inLat, inLng, outLat, outLng) {
-            if (!inLat || !inLng) {
-                alert('ไม่พบพิกัด Check-in');
-                return;
-            }
-
-            if (outLat && outLng) {
-                const url = `https://www.google.com/maps/dir/?api=1&origin=${inLat},${inLng}&destination=${outLat},${outLng}`;
-                window.open(url, '_blank');
-                return;
-            }
-
-            const url = `https://www.google.com/maps?q=${inLat},${inLng}`;
-            window.open(url, '_blank');
-        }
-    </script>
+<script>
+    function openGoogleMap(button) {
+        const inLat = button.dataset.inLat;
+        const inLng = button.dataset.inLng;
+        const outLat = button.dataset.outLat;
+        const outLng = button.dataset.outLng;
+        const url = outLat && outLng
+            ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(inLat + ',' + inLng)}&destination=${encodeURIComponent(outLat + ',' + outLng)}`
+            : `https://www.google.com/maps?q=${encodeURIComponent(inLat + ',' + inLng)}`;
+        window.open(url, '_blank', 'noopener');
+    }
+</script>
 </body>
 </html>

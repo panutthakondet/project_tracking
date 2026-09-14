@@ -74,6 +74,7 @@ namespace ProjectTracking.Data
         public DbSet<ProjectFollowupLog> ProjectFollowupLogs { get; set; }
         public DbSet<PhaseAssignLog> PhaseAssignLogs { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
+        public DbSet<AttendanceHoliday> AttendanceHolidays { get; set; }
         public DbSet<SystemConfig> SystemConfigs { get; set; }
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
@@ -2419,6 +2420,11 @@ namespace ProjectTracking.Data
                     .HasColumnType("decimal(10,7)")
                     .IsRequired(false);
 
+                entity.Property(x => x.CheckinAccuracyM)
+                    .HasColumnName("checkin_accuracy_m")
+                    .HasColumnType("decimal(8,2)")
+                    .IsRequired(false);
+
                 entity.Property(x => x.CheckoutTime)
                     .HasColumnName("checkout_time")
                     .HasColumnType("datetime")
@@ -2434,6 +2440,16 @@ namespace ProjectTracking.Data
                     .HasColumnType("decimal(10,7)")
                     .IsRequired(false);
 
+                entity.Property(x => x.CheckoutAccuracyM)
+                    .HasColumnName("checkout_accuracy_m")
+                    .HasColumnType("decimal(8,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DistanceKm)
+                    .HasColumnName("distance_km")
+                    .HasColumnType("decimal(10,3)")
+                    .IsRequired(false);
+
                 entity.Property(x => x.CreatedAt)
                     .HasColumnName("created_at")
                     .HasColumnType("datetime");
@@ -2446,6 +2462,17 @@ namespace ProjectTracking.Data
                     .WithMany()
                     .HasForeignKey(x => x.EmpId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<AttendanceHoliday>(entity =>
+            {
+                entity.ToTable("attendance_holiday");
+                entity.HasKey(x => x.HolidayDate);
+                entity.Property(x => x.HolidayDate).HasColumnName("holiday_date").HasColumnType("date");
+                entity.Property(x => x.HolidayName).HasColumnName("holiday_name").HasColumnType("varchar(200)").IsRequired();
+                entity.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.HasIndex(x => new { x.IsActive, x.HolidayDate }).HasDatabaseName("idx_attendance_holiday_active_date");
             });
         }
 

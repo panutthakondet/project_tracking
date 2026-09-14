@@ -26,6 +26,9 @@ namespace ProjectTracking.Models
         [Column("checkin_lng")]
         public decimal? CheckinLng { get; set; }
 
+        [Column("checkin_accuracy_m")]
+        public decimal? CheckinAccuracyM { get; set; }
+
         [Column("checkout_time")]
         public DateTime? CheckoutTime { get; set; }
 
@@ -34,6 +37,9 @@ namespace ProjectTracking.Models
 
         [Column("checkout_lng")]
         public decimal? CheckoutLng { get; set; }
+
+        [Column("checkout_accuracy_m")]
+        public decimal? CheckoutAccuracyM { get; set; }
 
         [Column("distance_km")]
         public decimal? DistanceKm { get; set; }

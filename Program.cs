@@ -196,6 +196,7 @@ builder.Services.AddScoped<OverdueNotificationService>();
 builder.Services.AddScoped<MeetingNotificationService>();
 builder.Services.AddScoped<FieldServiceNotificationService>();
 builder.Services.AddScoped<UserThemeService>();
+builder.Services.AddScoped<AttendancePolicyService>();
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
@@ -237,6 +238,7 @@ await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureProjectDocumentsTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
+await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
 await EnsureLineRecipientTableAsync(app.Services);
@@ -1511,6 +1513,9 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
               ('ATTENDANCE_WORK_START_TIME', '09:00', 'Attendance - เวลาเริ่มงานปกติ', NOW()),
               ('ATTENDANCE_LATE_GRACE_MINUTES', '0', 'Attendance - นาทีผ่อนผันก่อนนับว่ามาสาย (0 = ไม่เกินเวลาเริ่มงาน)', NOW()),
               ('ATTENDANCE_TARGET_PERCENT', '95', 'Attendance - เป้าหมายอัตราเข้างานรายเดือน (เปอร์เซ็นต์)', NOW()),
+              ('ATTENDANCE_MAX_CHECKOUT_DISTANCE_KM', '5', 'Attendance - ระยะห่างสูงสุดระหว่างจุดเช็คเข้าและเช็คออก (กิโลเมตร)', NOW()),
+              ('ATTENDANCE_MAX_GPS_ACCURACY_M', '200', 'Attendance - ค่าความคลาดเคลื่อน GPS สูงสุดที่ยอมรับ (เมตร)', NOW()),
+              ('ATTENDANCE_MAX_REPORT_DAYS', '366', 'Attendance - จำนวนวันสูงสุดต่อการเปิดรายงานหนึ่งครั้ง', NOW()),
               ('OVERDUE_NOTIFICATION_RISK_DAYS', '7', 'Overdue Auto - จำนวนวันล่วงหน้าที่ถือว่าเสี่ยงล่าช้า', NOW()),
               ('OVERDUE_NOTIFICATION_RUN_AT', '07:00', 'Overdue Auto - เวลาส่งแจ้งเตือนงานล่าช้า/เสี่ยงล่าช้า เวลาไทย', NOW())
             ON DUPLICATE KEY UPDATE `config_key` = VALUES(`config_key`);";
@@ -1532,6 +1537,55 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
     {
         if (shouldClose)
             await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureAttendanceSchemaAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        async Task<bool> ColumnExistsAsync(string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'attendance'
+                  AND COLUMN_NAME = '{columnName}';";
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `attendance_holiday` (
+              `holiday_date` date NOT NULL,
+              `holiday_name` varchar(200) NOT NULL,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`holiday_date`),
+              KEY `idx_attendance_holiday_active_date` (`is_active`,`holiday_date`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        if (!await ColumnExistsAsync("checkin_accuracy_m"))
+        {
+            command.CommandText = "ALTER TABLE `attendance` ADD COLUMN `checkin_accuracy_m` decimal(8,2) DEFAULT NULL AFTER `checkin_lng`;";
+            await command.ExecuteNonQueryAsync();
+        }
+        if (!await ColumnExistsAsync("checkout_accuracy_m"))
+        {
+            command.CommandText = "ALTER TABLE `attendance` ADD COLUMN `checkout_accuracy_m` decimal(8,2) DEFAULT NULL AFTER `checkout_lng`;";
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
     }
 }
 

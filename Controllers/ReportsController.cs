@@ -173,6 +173,7 @@ namespace ProjectTracking.Controllers
                         Description = "รายงาน Check-in/Check-out และตำแหน่งการลงเวลาของทีม",
                         Controller = "Attendance",
                         Action = "Map",
+                        PermissionKey = "Attendance.Map",
                         Icon = "/images/menu-icons/attendance.svg",
                         Tone = "cyan"
                     }

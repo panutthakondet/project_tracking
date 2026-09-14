@@ -51,7 +51,7 @@ namespace ProjectTracking.Controllers
             // ===============================
             var username = HttpContext.Session.GetString("Username");
 
-            var today = DateTime.Today;
+            var today = AttendancePolicyService.ThailandToday;
             // 🔍 หา emp_id จาก username
             var emp = await _context.Employees
                 .FirstOrDefaultAsync(e => e.LoginUser != null && e.LoginUser.Username == username);
@@ -623,7 +623,7 @@ namespace ProjectTracking.Controllers
             string? requestedMeetingGroup)
         {
             var th = new CultureInfo("th-TH");
-            var now = DateTime.Now;
+            var now = AttendancePolicyService.ThailandNow;
             var monthStart = new DateTime(today.Year, today.Month, 1);
             var nextMonthStart = monthStart.AddMonths(1);
             var previousMonthStart = monthStart.AddMonths(-1);
@@ -862,6 +862,7 @@ namespace ProjectTracking.Controllers
                 {
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
+                    DepartmentId = e.DepartmentId,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Position = e.Position,
                     Status = e.Status,
@@ -986,6 +987,15 @@ namespace ProjectTracking.Controllers
                 })
                 .ToListAsync();
             var attendancePolicy = await GetAttendancePolicyAsync();
+            var attendanceHolidayDates = (await _context.AttendanceHolidays
+                    .AsNoTracking()
+                    .Where(holiday => holiday.IsActive
+                        && holiday.HolidayDate >= attendanceRangeStart
+                        && holiday.HolidayDate < nextMonthStart)
+                    .Select(holiday => holiday.HolidayDate)
+                    .ToListAsync())
+                .Select(date => date.Date)
+                .ToHashSet();
 
             var scopedPhases = selectedDashboardDepartment == "all"
                 ? phases
@@ -1017,9 +1027,21 @@ namespace ProjectTracking.Controllers
             var scopedEmployees = selectedDashboardDepartment == "all"
                 ? employees
                 : employees.Where(employee => scopedEmployeeIds.Contains(employee.EmpId)).ToList();
+            var scopedAttendanceEmployees = selectedDashboardDepartment == "all"
+                ? employees
+                : employees
+                    .Where(employee => selectedDashboardDepartment == "unassigned"
+                        ? !employee.DepartmentId.HasValue
+                        : employee.DepartmentId == selectedDashboardDepartmentId)
+                    .ToList();
+            var scopedAttendanceEmployeeIds = scopedAttendanceEmployees
+                .Select(employee => employee.EmpId)
+                .ToHashSet();
             var scopedAttendance = selectedDashboardDepartment == "all"
                 ? currentAndPreviousMonthAttendance
-                : currentAndPreviousMonthAttendance.Where(row => scopedEmployeeIds.Contains(row.EmpId)).ToList();
+                : currentAndPreviousMonthAttendance
+                    .Where(row => scopedAttendanceEmployeeIds.Contains(row.EmpId))
+                    .ToList();
             var scopedFieldServiceVisits = selectedDashboardDepartment == "all"
                 ? fieldServiceVisits
                 : fieldServiceVisits
@@ -1290,7 +1312,7 @@ namespace ProjectTracking.Controllers
             var watchProjects = BuildWatchProjects(scopedProjects, scopedPhases, scopedAssigns, scopedIssues, scopedFollowups, scopedSupportOrders, EmployeeName, EmployeeAvatar, today);
             var timeSummary = BuildTimeSummary(
                 scopedAttendance,
-                scopedEmployees,
+                scopedAttendanceEmployees,
                 EmployeeName,
                 monthStart,
                 nextMonthStart,
@@ -1298,7 +1320,8 @@ namespace ProjectTracking.Controllers
                 yearStart,
                 today,
                 now,
-                attendancePolicy);
+                attendancePolicy,
+                attendanceHolidayDates);
             var teamWorkload = BuildTeamWorkload(
                 scopedAssigns,
                 scopedEmployees.Where(x => string.Equals(x.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)).Select(x => x.EmpId),
@@ -1910,6 +1933,7 @@ namespace ProjectTracking.Controllers
                 {
                     EmpId = e.EmpId,
                     EmpName = e.EmpName,
+                    DepartmentId = e.DepartmentId,
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Position = e.Position,
                     Status = e.Status,
@@ -2645,7 +2669,8 @@ namespace ProjectTracking.Controllers
             DateTime yearStart,
             DateTime today,
             DateTime now,
-            DashboardAttendancePolicy policy)
+            DashboardAttendancePolicy policy,
+            IReadOnlySet<DateTime> holidayDates)
         {
             var activeEmployeeIds = employees
                 .Where(e => Norm(e.Status) == "ACTIVE")
@@ -2680,8 +2705,7 @@ namespace ProjectTracking.Controllers
                 .ToList();
             var lateThreshold = policy.WorkStart.Add(TimeSpan.FromMinutes(policy.LateGraceMinutes));
 
-            static bool IsWorkday(DateTime day) =>
-                day.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday;
+            bool IsWorkday(DateTime day) => AttendancePolicyService.IsWorkday(day, holidayDates);
             bool IsElapsedWorkday(DateTime day) =>
                 IsWorkday(day) && (day.Date < today.Date || (day.Date == today.Date && now.TimeOfDay >= lateThreshold));
             bool HasCheckin(DashboardAttendanceRow row) => row.CheckinTime.HasValue;
@@ -2733,7 +2757,7 @@ namespace ProjectTracking.Controllers
                 .Count();
             var averageHoursPerDay = monthAttendanceDays <= 0 ? 0m : Math.Round(monthHours / monthAttendanceDays, 1);
             var longShiftCount = monthRows.Count(a => RawWorkHours(a.CheckinTime, a.CheckoutTime) > 12m);
-            var longDistanceCount = monthRows.Count(a => a.DistanceKm > 5m);
+            var longDistanceCount = monthRows.Count(a => a.DistanceKm > policy.MaximumCheckoutDistanceKm);
             var pendingCheckoutNames = openRows
                 .OrderBy(a => a.CheckinTime)
                 .Select(a => employeeName(a.EmpId))
@@ -2851,7 +2875,7 @@ namespace ProjectTracking.Controllers
                 MonthPunctualityRate = monthPunctualityRate,
                 YearAttendanceRate = yearAttendanceRate,
                 AttendanceTargetPercent = policy.TargetPercent,
-                AttendancePolicyText = $"ตรงเวลาไม่เกิน {DateTime.Today.Add(lateThreshold):HH:mm} น. · วันทำการ จ.-ศ.",
+                AttendancePolicyText = $"ตรงเวลาไม่เกิน {today.Add(lateThreshold):HH:mm} น. · วันทำการ จ.-ศ. (ไม่รวมวันหยุดบริษัท)",
                 TimeTrendDays = timeTrendDays,
                 TimeHeatmapDays = heatmapDays,
                 TrendClass = trendClass,
@@ -3593,6 +3617,7 @@ namespace ProjectTracking.Controllers
         {
             public int EmpId { get; set; }
             public string EmpName { get; set; } = "";
+            public int? DepartmentId { get; set; }
             public string? DepartmentName { get; set; }
             public string? Position { get; set; }
             public string? Status { get; set; }
@@ -3651,7 +3676,9 @@ namespace ProjectTracking.Controllers
             {
                 "ATTENDANCE_WORK_START_TIME",
                 "ATTENDANCE_LATE_GRACE_MINUTES",
-                "ATTENDANCE_TARGET_PERCENT"
+                "ATTENDANCE_TARGET_PERCENT",
+                "ATTENDANCE_MAX_CHECKOUT_DISTANCE_KM",
+                "WFH_MAX_DISTANCE_KM"
             };
             var values = await _context.SystemConfigs
                 .AsNoTracking()
@@ -3679,11 +3706,21 @@ namespace ProjectTracking.Controllers
                 targetPercent = Math.Clamp(parsedTarget, 1m, 100m);
             }
 
+            var maximumCheckoutDistanceKm = 5m;
+            var distanceValue = values.TryGetValue("ATTENDANCE_MAX_CHECKOUT_DISTANCE_KM", out var attendanceDistance)
+                ? attendanceDistance
+                : values.GetValueOrDefault("WFH_MAX_DISTANCE_KM");
+            if (decimal.TryParse(distanceValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDistance))
+            {
+                maximumCheckoutDistanceKm = Math.Clamp(parsedDistance, 0.05m, 100m);
+            }
+
             return new DashboardAttendancePolicy
             {
                 WorkStart = workStart,
                 LateGraceMinutes = lateGraceMinutes,
-                TargetPercent = targetPercent
+                TargetPercent = targetPercent,
+                MaximumCheckoutDistanceKm = maximumCheckoutDistanceKm
             };
         }
 
@@ -3728,6 +3765,7 @@ namespace ProjectTracking.Controllers
             public TimeSpan WorkStart { get; set; } = TimeSpan.FromHours(9);
             public int LateGraceMinutes { get; set; }
             public decimal TargetPercent { get; set; } = 95m;
+            public decimal MaximumCheckoutDistanceKm { get; set; } = 5m;
         }
 
         private sealed class LineOverdueOverviewResult
