@@ -8,6 +8,8 @@
     var workDate = ViewBag.WorkDate as string ?? "-";
 }
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" />
+
 <form id="antiForgeryForm" method="post" class="d-none" aria-hidden="true">
     @Html.AntiForgeryToken()
 </form>
@@ -60,6 +62,18 @@
     <iframe id="mapFrame" title="ตำแหน่งปัจจุบัน" width="100%" height="100%" style="border:0" loading="lazy"></iframe>
 </div>
 
+<section class="attendance-calendar-card" aria-labelledby="attendanceHolidayTitle">
+    <div class="attendance-calendar-head">
+        <div>
+            <span class="attendance-eyebrow">วันหยุดบริษัท</span>
+            <h3 id="attendanceHolidayTitle">ปฏิทินวันหยุด</h3>
+            <p>วันหยุดที่เปิดใช้งานจากการตั้งค่าระบบ และไม่นำไปคำนวณเป็นวันทำงาน</p>
+        </div>
+        <span class="attendance-holiday-legend"><span aria-hidden="true"></span> วันหยุด</span>
+    </div>
+    <div id="attendanceHolidayCalendar"></div>
+</section>
+
 <style>
     .attendance-today-card { margin-bottom:16px; padding:22px; border:1px solid var(--pt-border,#d8e3ef); border-radius:22px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); box-shadow:0 14px 32px var(--pt-shadow,rgba(15,35,64,.08)); }
     .attendance-today-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
@@ -76,10 +90,43 @@
     .attendance-time-box small { color:var(--pt-surface-contrast-muted,#7c8da5); font-weight:400; }
     .attendance-message { min-height:24px; margin:10px 0; color:var(--pt-surface-contrast,#10233f); font-weight:500; }
     .attendance-map { height:350px; margin-top:8px; border:1px solid var(--pt-border,#d7e2f2); border-radius:18px; overflow:hidden; background:var(--pt-surface,#fff); box-shadow:0 10px 24px var(--pt-shadow,rgba(15,35,64,.07)); }
+    .attendance-calendar-card { margin-top:16px; padding:22px; border:1px solid var(--pt-border,#d8e3ef); border-radius:22px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); box-shadow:0 14px 32px var(--pt-shadow,rgba(15,35,64,.08)); }
+    .attendance-calendar-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
+    .attendance-calendar-head h3 { margin:4px 0 0; color:var(--pt-surface-contrast,#10233f); font-size:1.35rem; font-weight:700; line-height:1.25; }
+    .attendance-calendar-head p { margin:6px 0 0; color:var(--pt-surface-contrast-muted,#64748b); font-weight:400; }
+    .attendance-holiday-legend { display:inline-flex; align-items:center; gap:7px; color:var(--pt-surface-contrast-muted,#64748b); font-size:.9rem; white-space:nowrap; }
+    .attendance-holiday-legend span { width:12px; height:12px; border:2px solid #ef4444; background:#fff7f7; }
+    #attendanceHolidayCalendar { min-height:570px; }
+    #attendanceHolidayCalendar .fc { color:var(--pt-surface-contrast,#10233f); font-family:inherit; font-size:.9rem; }
+    #attendanceHolidayCalendar .fc-theme-standard td,
+    #attendanceHolidayCalendar .fc-theme-standard th,
+    #attendanceHolidayCalendar .fc-theme-standard .fc-scrollgrid { border-color:var(--pt-border,#dbe5ef); }
+    #attendanceHolidayCalendar .fc-col-header-cell { padding:8px 4px; background:var(--pt-surface-soft,#f8fafc); }
+    #attendanceHolidayCalendar .fc-col-header-cell-cushion,
+    #attendanceHolidayCalendar .fc-daygrid-day-number { color:var(--pt-surface-contrast,#10233f); text-decoration:none; font-weight:500; }
+    #attendanceHolidayCalendar .fc-day-today { background:var(--pt-accent-soft,rgba(20,184,166,.08)) !important; }
+    #attendanceHolidayCalendar .fc-button-primary { border-color:var(--pt-accent,#14b8a6); background:var(--pt-accent-dark,#0f766e); box-shadow:none; font-weight:500; }
+    #attendanceHolidayCalendar .fc-button-primary:hover,
+    #attendanceHolidayCalendar .fc-button-primary:not(:disabled).fc-button-active { border-color:var(--pt-accent-dark,#0f766e); background:var(--pt-accent,#14b8a6); }
+    #attendanceHolidayCalendar .fc-toolbar-title { color:var(--pt-surface-contrast,#10233f); font-size:1.2rem; font-weight:700; text-shadow:none; }
+    #attendanceHolidayCalendar .fc-daygrid-event,
+    #attendanceHolidayCalendar .fc-list-event { padding:3px 6px; border-width:2px !important; border-radius:4px; box-shadow:none; font-weight:500; }
+    #attendanceHolidayCalendar .fc-list { border-color:var(--pt-border,#dbe5ef); }
+    #attendanceHolidayCalendar .fc-list-day-cushion,
+    #attendanceHolidayCalendar .fc-list-event:hover td { background:var(--pt-surface-soft,#f8fafc); }
     #btnCheckIn:disabled, #btnCheckOut:disabled { cursor:not-allowed; opacity:.5; }
-    @@media (max-width:768px) { .attendance-today-head { flex-direction:column; } .attendance-time-grid { grid-template-columns:1fr; } }
+    @@media (max-width:768px) {
+        .attendance-today-head, .attendance-calendar-head { flex-direction:column; }
+        .attendance-time-grid { grid-template-columns:1fr; }
+        .attendance-calendar-card { padding:14px; }
+        #attendanceHolidayCalendar { min-height:500px; }
+        #attendanceHolidayCalendar .fc-header-toolbar { align-items:stretch; flex-direction:column; gap:10px; }
+        #attendanceHolidayCalendar .fc-toolbar-chunk { display:flex; justify-content:center; }
+    }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
 <script>
     const attendanceState = {
         hasCheckIn: @hasCheckIn.ToString().ToLowerInvariant(),
@@ -188,7 +235,49 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         setButtonState();
+        initializeHolidayCalendar();
         if (!navigator.geolocation) return;
         navigator.geolocation.getCurrentPosition(showPositionOnMap, () => {}, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
     });
+
+    function initializeHolidayCalendar() {
+        const element = document.getElementById('attendanceHolidayCalendar');
+        if (!element || typeof FullCalendar === 'undefined') return;
+
+        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const calendar = new FullCalendar.Calendar(element, {
+            locale: 'th',
+            initialView: window.matchMedia('(max-width: 767.98px)').matches ? 'listMonth' : 'dayGridMonth',
+            firstDay: 0,
+            height: 'auto',
+            fixedWeekCount: false,
+            dayMaxEvents: true,
+            displayEventTime: false,
+            eventDisplay: 'block',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth'
+            },
+            buttonText: {
+                today: 'วันนี้',
+                month: 'เดือน',
+                list: 'รายการ'
+            },
+            events: '@Url.Action("HolidayEvents", "Attendance")',
+            eventDidMount: function (info) {
+                info.el.title = info.event.title;
+            },
+            datesSet: function () {
+                window.requestAnimationFrame(function () {
+                    const title = element.querySelector('.fc-toolbar-title');
+                    if (!title) return;
+                    const current = calendar.getDate();
+                    title.textContent = `${thaiMonths[current.getMonth()]} ${current.getFullYear() + 543}`;
+                });
+            }
+        });
+
+        calendar.render();
+    }
 </script>

@@ -58,6 +58,36 @@ namespace ProjectTracking.Controllers
             return View();
         }
 
+        [HttpGet]
+        [RequireMenu("Attendance.Index")]
+        public async Task<IActionResult> HolidayEvents(
+            DateTime? start,
+            DateTime? end,
+            CancellationToken cancellationToken)
+        {
+            var rangeStart = (start ?? new DateTime(AttendancePolicyService.ThailandToday.Year, 1, 1)).Date;
+            var rangeEnd = (end ?? rangeStart.AddYears(1)).Date;
+            if (rangeEnd <= rangeStart || rangeEnd > rangeStart.AddYears(2))
+                rangeEnd = rangeStart.AddYears(1);
+
+            var holidays = await _context.AttendanceHolidays
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.HolidayDate >= rangeStart && x.HolidayDate < rangeEnd)
+                .OrderBy(x => x.HolidayDate)
+                .ToListAsync(cancellationToken);
+
+            return Json(holidays.Select(x => new
+            {
+                id = x.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                title = x.HolidayName,
+                start = x.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                allDay = true,
+                backgroundColor = "#fff7f7",
+                borderColor = "#ef4444",
+                textColor = "#111827"
+            }));
+        }
+
         [HttpPost]
         [RequireMenu("Attendance.Index")]
         [ValidateAntiForgeryToken]

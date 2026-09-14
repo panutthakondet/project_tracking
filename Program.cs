@@ -1572,6 +1572,30 @@ static async Task EnsureAttendanceSchemaAsync(IServiceProvider services)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
         await command.ExecuteNonQueryAsync();
 
+        // Company holidays for B.E. 2569 (2026). Keep an administrator's
+        // active/inactive choice when the application starts again.
+        command.CommandText = @"
+            INSERT INTO `attendance_holiday` (`holiday_date`, `holiday_name`, `is_active`)
+            VALUES
+              ('2026-01-01', 'วันขึ้นปีใหม่', 1),
+              ('2026-01-02', 'วันหยุดทำการเพิ่มเติมกรณีพิเศษ', 1),
+              ('2026-03-03', 'วันมาฆบูชา', 1),
+              ('2026-04-13', 'วันสงกรานต์', 1),
+              ('2026-04-14', 'วันสงกรานต์', 1),
+              ('2026-04-15', 'วันสงกรานต์', 1),
+              ('2026-05-01', 'วันแรงงานแห่งชาติ', 1),
+              ('2026-06-01', 'ชดเชยวันวิสาขบูชา (วันอาทิตย์ที่ 31 พฤษภาคม 2569)', 1),
+              ('2026-06-03', 'วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าสุทิดา พัชรสุธาพิมลลักษณ พระบรมราชินี', 1),
+              ('2026-07-28', 'วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว', 1),
+              ('2026-07-29', 'วันอาสาฬหบูชา', 1),
+              ('2026-08-12', 'วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ พระบรมราชชนนีพันปีหลวง และวันแม่แห่งชาติ', 1),
+              ('2026-10-23', 'วันปิยมหาราช', 1),
+              ('2026-12-07', 'ชดเชยวันคล้ายวันพระราชสมภพพระบาทสมเด็จพระบรมชนกาธิเบศร มหาภูมิพลอดุลยเดชมหาราช บรมนาถบพิตร วันชาติ และวันพ่อแห่งชาติ (วันเสาร์ที่ 5 ธันวาคม 2569)', 1),
+              ('2026-12-31', 'วันสิ้นปี', 1)
+            ON DUPLICATE KEY UPDATE
+              `holiday_name` = VALUES(`holiday_name`);";
+        await command.ExecuteNonQueryAsync();
+
         if (!await ColumnExistsAsync("checkin_accuracy_m"))
         {
             command.CommandText = "ALTER TABLE `attendance` ADD COLUMN `checkin_accuracy_m` decimal(8,2) DEFAULT NULL AFTER `checkin_lng`;";
