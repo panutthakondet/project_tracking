@@ -47,7 +47,7 @@
                 <!-- ================= BASIC INFO ================= -->
 
                 <!-- Cooperative -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">
                         สหกรณ์
                     </label>
@@ -61,8 +61,20 @@
                     <span asp-validation-for="CoopId" class="text-danger"></span>
                 </div>
 
+                <!-- Project Name -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        ชื่อโครงการ
+                    </label>
+                    <input asp-for="ProjectName"
+                           class="form-control"
+                           placeholder="Enter project name" />
+                    <span asp-validation-for="ProjectName"
+                          class="text-danger"></span>
+                </div>
+
                 <!-- Departments -->
-                <div class="col-md-4">
+                <div class="col-12">
                     <label class="form-label fw-semibold">ฝ่าย (เลือกได้มากกว่า 1 ฝ่าย) <span class="text-danger">*</span></label>
                     <select asp-for="DepartmentIds" class="form-select project-team-multi" multiple size="5">
                         @foreach (var department in departments)
@@ -72,18 +84,6 @@
                     </select>
                     <span asp-validation-for="DepartmentIds" class="text-danger"></span>
                     <div class="form-text">เลือกได้หลายฝ่ายด้วย Ctrl หรือ Command + คลิก</div>
-                </div>
-
-                <!-- Project Name -->
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">
-                        ชื่อโครงการ
-                    </label>
-                    <input asp-for="ProjectName"
-                           class="form-control"
-                           placeholder="Enter project name" />
-                    <span asp-validation-for="ProjectName"
-                          class="text-danger"></span>
                 </div>
 
                 <!-- Project Detail -->
