@@ -2403,7 +2403,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
                         <li class="nav-spacer" aria-hidden="true"></li>
                         <li class="nav-item">
-                            <a class="nav-link nav-logout" asp-controller="Auth" asp-action="Logout">
+                            <a class="nav-link nav-logout" id="sidebarLogoutLink" asp-controller="Auth" asp-action="Logout">
                                 <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/logout.svg" alt="" /></span>
                                 <span class="nav-label">Logout</span>
                             </a>
@@ -3064,6 +3064,17 @@ document.addEventListener('DOMContentLoaded', function () {
         box-shadow: 0 0 0 4px var(--pt-accent-soft, rgba(20, 184, 166, .22)), 0 10px 22px var(--pt-accent-soft, rgba(20, 184, 166, .24)) !important;
     }
 
+    .pt-swal-cancel {
+        min-width: 124px;
+        min-height: 42px;
+        border: 1px solid var(--pt-border, rgba(20, 184, 166, .22)) !important;
+        border-radius: 999px !important;
+        color: var(--pt-surface-contrast, #10233f) !important;
+        background: var(--pt-surface, #ffffff) !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+    }
+
     .pt-swal-backdrop {
         background: rgba(15, 23, 42, .54) !important;
         backdrop-filter: blur(3px);
@@ -3074,11 +3085,36 @@ document.addEventListener('DOMContentLoaded', function () {
         customClass: {
             popup: 'pt-swal-popup',
             confirmButton: 'pt-swal-confirm',
+            cancelButton: 'pt-swal-cancel',
             backdrop: 'pt-swal-backdrop'
         },
         buttonsStyling: false,
         backdrop: 'rgba(15, 23, 42, .54)'
     });
+
+    (function bindLogoutConfirmation() {
+        const logoutLink = document.getElementById('sidebarLogoutLink');
+        if (!logoutLink) return;
+
+        logoutLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            const logoutUrl = logoutLink.href;
+
+            ProjectTrackingSwal.fire({
+                icon: 'question',
+                title: 'ออกจากระบบ?',
+                text: 'คุณต้องการออกจากระบบใช่หรือไม่',
+                showCancelButton: true,
+                confirmButtonText: 'ออกจากระบบ',
+                cancelButtonText: 'ยกเลิก',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = logoutUrl;
+                }
+            });
+        });
+    })();
 </script>
 
 @if ((Context?.Request?.Query["forbidden"].ToString() ?? "") == "1")
