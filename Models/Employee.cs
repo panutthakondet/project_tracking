@@ -14,9 +14,6 @@ namespace ProjectTracking.Models
         [Column("emp_name")]
         public required string EmpName { get; set; }   // ⭐ เดิม
 
-        [Column("position")]
-        public string? Position { get; set; }
-
         [Required(ErrorMessage = "กรุณาเลือกตำแหน่ง")]
         [Column("position_id")]
         public int? PositionId { get; set; }
@@ -25,10 +22,7 @@ namespace ProjectTracking.Models
         public virtual EmployeePosition? PositionDefinition { get; set; }
 
         [NotMapped]
-        public string DisplayPosition =>
-            !string.IsNullOrWhiteSpace(PositionDefinition?.PositionName)
-                ? PositionDefinition.PositionName
-                : Position ?? string.Empty;
+        public string DisplayPosition => PositionDefinition?.PositionName ?? string.Empty;
 
         [Required(ErrorMessage = "กรุณาเลือกฝ่าย")]
         [Column("department_id")]

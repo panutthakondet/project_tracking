@@ -291,7 +291,7 @@ namespace ProjectTracking.Controllers
                     row.DepartmentId,
                     Position = row.PositionDefinition != null
                         ? row.PositionDefinition.PositionName
-                        : row.Position
+                        : string.Empty
                 })
                 .FirstOrDefaultAsync();
             if (employee == null)
@@ -937,7 +937,7 @@ namespace ProjectTracking.Controllers
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Position = e.PositionDefinition != null
                         ? e.PositionDefinition.PositionName
-                        : e.Position,
+                        : string.Empty,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null
@@ -2013,7 +2013,7 @@ namespace ProjectTracking.Controllers
                     DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
                     Position = e.PositionDefinition != null
                         ? e.PositionDefinition.PositionName
-                        : e.Position,
+                        : string.Empty,
                     Status = e.Status,
                     LoginUserId = e.LoginUserId,
                     ProfileImagePath = e.LoginUser != null ? e.LoginUser.ProfileImagePath : null

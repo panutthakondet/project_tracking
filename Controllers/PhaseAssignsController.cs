@@ -176,9 +176,8 @@ namespace ProjectTracking.Controllers
                     {
                         EmpId = e.EmpId,
                         EmpName = e.EmpName,
-                        Position = e.PositionDefinition != null
-                            ? e.PositionDefinition!.PositionName
-                            : e.Position,
+                        PositionId = e.PositionId,
+                        PositionDefinition = e.PositionDefinition,
                         Status = e.Status,
                         LoginUserId = e.LoginUserId,
                         LoginUser = lu
@@ -936,9 +935,8 @@ namespace ProjectTracking.Controllers
                     join ph in _context.ProjectPhases.AsNoTracking() on a.PhaseId equals ph.PhaseId
                     join e in _context.Employees.AsNoTracking() on a.EmpId equals e.EmpId
                     where ph.ProjectId == phase.ProjectId
-                          && (e.PositionDefinition != null
-                              ? e.PositionDefinition.PositionName
-                              : e.Position) == "Business Analyst"
+                          && e.PositionDefinition != null
+                          && e.PositionDefinition.PositionName == "Business Analyst"
                           && e.Status == "ACTIVE"
                     select e
                 ).FirstOrDefaultAsync();

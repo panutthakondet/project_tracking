@@ -135,7 +135,7 @@ namespace ProjectTracking.Controllers
                     Name = employee.EmpName,
                     Position = employee.PositionDefinition != null
                         ? employee.PositionDefinition.PositionName
-                        : employee.Position,
+                        : string.Empty,
                     DepartmentId = employee.DepartmentId,
                     Status = employee.Status,
                     AvatarPath = login != null ? login.ProfileImagePath : null
@@ -160,7 +160,7 @@ namespace ProjectTracking.Controllers
                     EmployeeName = employee.EmpName,
                     EmployeePosition = employee.PositionDefinition != null
                         ? employee.PositionDefinition.PositionName
-                        : employee.Position,
+                        : string.Empty,
                     AvatarPath = login != null ? login.ProfileImagePath : null,
                     Role = assign.Role,
                     WorkStatus = assign.WorkStatus,

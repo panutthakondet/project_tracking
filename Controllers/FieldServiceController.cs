@@ -318,7 +318,7 @@ public class FieldServiceController : BaseController
                 x.EmpName,
                 Position = x.PositionDefinition != null
                     ? x.PositionDefinition.PositionName
-                    : x.Position
+                    : string.Empty
             })
             .ToListAsync();
         ViewBag.Employees = employees.Select(x => new
@@ -352,7 +352,7 @@ public class FieldServiceController : BaseController
                 x.EmpName,
                 Position = x.PositionDefinition != null
                     ? x.PositionDefinition.PositionName
-                    : x.Position
+                    : string.Empty
             })
             .ToListAsync();
         var currentEmpId = HttpContext.Session.GetInt32("EmpId");
@@ -626,7 +626,7 @@ public class FieldServiceController : BaseController
                 x.EmpName,
                 Position = x.PositionDefinition != null
                     ? x.PositionDefinition.PositionName
-                    : x.Position
+                    : string.Empty
             })
             .ToListAsync();
         ViewBag.Employees = employeeOptions
@@ -667,7 +667,7 @@ public class FieldServiceController : BaseController
                 x.EmpName,
                 Position = x.PositionDefinition != null
                     ? x.PositionDefinition.PositionName
-                    : x.Position
+                    : string.Empty
             })
             .ToListAsync();
         model.Employees = employeeOptions

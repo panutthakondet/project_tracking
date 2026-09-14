@@ -29,3 +29,6 @@ SET employee_row.`position_id` = position_row.`position_id`
 WHERE employee_row.`position_id` IS NULL
   AND employee_row.`position` IS NOT NULL
   AND TRIM(employee_row.`position`) <> '';
+
+ALTER TABLE `employee`
+  DROP COLUMN `position`;

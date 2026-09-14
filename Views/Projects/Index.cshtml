@@ -583,9 +583,9 @@
                                 <span class="project-related-list">
                                     @foreach (var member in businessAnalysts)
                                     {
-                                        var memberRole = string.IsNullOrWhiteSpace(member.Position)
+                                        var memberRole = string.IsNullOrWhiteSpace(member.DisplayPosition)
                                             ? "Business Analyst"
-                                            : member.Position.Trim();
+                                            : member.DisplayPosition.Trim();
                                         <span class="project-related-member" title="@($"{member.EmpName} · {memberRole}")">
                                             <img class="pt-owner-avatar" src="@ProfileImage(member)" alt="@member.EmpName" loading="lazy" onerror="this.onerror=null;this.src='/images/Profile/profile.png';" />
                                             <span class="project-related-member-text">

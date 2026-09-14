@@ -246,7 +246,7 @@ namespace ProjectTracking.Controllers
                         x.EmpName,
                         Position = x.PositionDefinition != null
                             ? x.PositionDefinition.PositionName
-                            : x.Position
+                            : string.Empty
                     })
                     .OrderBy(x => x.EmpName)
                     .ToListAsync();

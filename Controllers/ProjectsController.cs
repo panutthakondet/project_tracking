@@ -42,9 +42,8 @@ namespace ProjectTracking.Controllers
             // Load Business Analyst list for dropdown filter
             ViewBag.Employees = _context.Employees
                 .Where(e => e.Status == "ACTIVE"
-                    && (e.PositionDefinition != null
-                        ? e.PositionDefinition.PositionName
-                        : e.Position) == "Business Analyst")
+                    && e.PositionDefinition != null
+                    && e.PositionDefinition.PositionName == "Business Analyst")
                 .OrderBy(e => e.EmpName)
                 .ToList();
 
@@ -124,7 +123,7 @@ namespace ProjectTracking.Controllers
                         employee.EmpName,
                         Position = employee.PositionDefinition != null
                             ? employee.PositionDefinition.PositionName
-                            : employee.Position,
+                            : string.Empty,
                         ProfileImagePath = login != null ? login.ProfileImagePath : null
                     })
                     .ToListAsync();
@@ -390,7 +389,7 @@ namespace ProjectTracking.Controllers
                         emp.EmpName,
                         Position = emp.PositionDefinition != null
                             ? emp.PositionDefinition.PositionName
-                            : emp.Position,
+                            : string.Empty,
                         assign.Role,
                         PhaseOrder = assign.PhaseOrder ?? phase.PhaseOrder,
                         phase.PeriodOrder,
@@ -424,12 +423,11 @@ namespace ProjectTracking.Controllers
             var projectManagers = await _context.Employees
                 .AsNoTracking()
                 .Where(e => e.Status == "ACTIVE"
-                    && (e.PositionDefinition != null
-                        ? e.PositionDefinition.PositionName
-                        : e.Position) == "Project Manager")
+                    && e.PositionDefinition != null
+                    && e.PositionDefinition.PositionName == "Project Manager")
                 .OrderBy(e => e.PositionDefinition != null
                     ? e.PositionDefinition.PositionName
-                    : e.Position)
+                    : string.Empty)
                 .ThenBy(e => e.EmpName)
                 .ToListAsync();
 
@@ -813,23 +811,17 @@ namespace ProjectTracking.Controllers
 
             ViewBag.Employees = await _context.Employees
                 .Where(e => e.Status == "ACTIVE"
-                    && (e.PositionDefinition != null
-                        ? e.PositionDefinition.PositionName
-                        : e.Position) == "Business Analyst")
+                    && e.PositionDefinition != null
+                    && e.PositionDefinition.PositionName == "Business Analyst")
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 
             ViewBag.ProjectManagers = await _context.Employees
                 .Where(e => e.Status == "ACTIVE"
-                    && ((e.PositionDefinition != null
-                            ? e.PositionDefinition.PositionName
-                            : e.Position) == "Project Manager"
-                        || (e.PositionDefinition != null
-                            ? e.PositionDefinition.PositionName
-                            : e.Position) == "Project Manager IT"
-                        || (e.PositionDefinition != null
-                            ? e.PositionDefinition.PositionName
-                            : e.Position) == "PM"))
+                    && e.PositionDefinition != null
+                    && (e.PositionDefinition.PositionName == "Project Manager"
+                        || e.PositionDefinition.PositionName == "Project Manager IT"
+                        || e.PositionDefinition.PositionName == "PM"))
                 .OrderBy(e => e.EmpName)
                 .ToListAsync();
 

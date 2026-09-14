@@ -132,9 +132,8 @@ namespace ProjectTracking.Controllers
                         {
                             EmpId = employee.EmpId,
                             EmpName = employee.EmpName,
-                            Position = employee.PositionDefinition != null
-                                ? employee.PositionDefinition!.PositionName
-                                : employee.Position,
+                            PositionId = employee.PositionId,
+                            PositionDefinition = employee.PositionDefinition,
                             Status = employee.Status,
                             LoginUserId = employee.LoginUserId,
                             LoginUser = loginUser

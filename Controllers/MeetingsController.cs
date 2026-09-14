@@ -203,7 +203,7 @@ namespace ProjectTracking.Controllers
                         Position = e != null
                             ? (e.PositionDefinition != null
                                 ? e.PositionDefinition.PositionName
-                                : e.Position)
+                                : string.Empty)
                             : "",
                         a.Status
                     }
@@ -300,7 +300,7 @@ namespace ProjectTracking.Controllers
                     e.EmpName,
                     Position = e.PositionDefinition != null
                         ? e.PositionDefinition.PositionName
-                        : e.Position
+                        : string.Empty
                 })
                 .ToList();
 
@@ -348,7 +348,7 @@ namespace ProjectTracking.Controllers
                     Position = e != null
                         ? (e.PositionDefinition != null
                             ? e.PositionDefinition.PositionName
-                            : e.Position)
+                            : string.Empty)
                         : null
                 }
             ).ToListAsync();
@@ -428,7 +428,7 @@ namespace ProjectTracking.Controllers
                     e.EmpName,
                     Position = e.PositionDefinition != null
                         ? e.PositionDefinition.PositionName
-                        : e.Position
+                        : string.Empty
                 })
                 .ToList();
 

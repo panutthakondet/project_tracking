@@ -223,8 +223,8 @@ Directory.CreateDirectory(uploadsPath);
 await EnsureLoginUserProfileColumnAsync(app.Services);
 await EnsureEmployeeLoginUserLinksAsync(app.Services);
 await EnsureActivityCreatedAtColumnsAsync(app.Services);
-await EnsureProjectDepartmentTableAsync(app.Services);
 await EnsureEmployeePositionTableAsync(app.Services);
+await EnsureProjectDepartmentTableAsync(app.Services);
 await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
@@ -992,7 +992,7 @@ static async Task EnsureProjectDepartmentTableAsync(IServiceProvider services)
         var employeeDepartmentColumnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
         if (employeeDepartmentColumnExists == 0)
         {
-            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `department_id` INT NULL AFTER `position`;";
+            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `department_id` INT NULL AFTER `emp_name`;";
             await command.ExecuteNonQueryAsync();
         }
 
@@ -1037,6 +1037,9 @@ static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
 {
     using var scope = services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("EmployeePositionMigration");
     var connection = db.Database.GetDbConnection();
     var shouldClose = connection.State != System.Data.ConnectionState.Open;
 
@@ -1059,13 +1062,23 @@ static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
         await command.ExecuteNonQueryAsync();
 
         command.CommandText = @"
-            INSERT IGNORE INTO `employee_positions`
-                (`position_name`, `sort_order`, `is_active`)
-            SELECT DISTINCT TRIM(`position`), 100, 1
-            FROM `employee`
-            WHERE `position` IS NOT NULL
-              AND TRIM(`position`) <> '';";
-        await command.ExecuteNonQueryAsync();
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee'
+              AND COLUMN_NAME = 'position';";
+        var legacyColumnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (legacyColumnExists)
+        {
+            command.CommandText = @"
+                INSERT IGNORE INTO `employee_positions`
+                    (`position_name`, `sort_order`, `is_active`)
+                SELECT DISTINCT TRIM(`position`), 100, 1
+                FROM `employee`
+                WHERE `position` IS NOT NULL
+                  AND TRIM(`position`) <> '';";
+            await command.ExecuteNonQueryAsync();
+        }
 
         command.CommandText = @"
             SELECT COUNT(*)
@@ -1076,19 +1089,22 @@ static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
         var columnExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
         if (columnExists == 0)
         {
-            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `position_id` INT NULL AFTER `position`;";
+            command.CommandText = "ALTER TABLE `employee` ADD COLUMN `position_id` INT NULL AFTER `emp_name`;";
             await command.ExecuteNonQueryAsync();
         }
 
-        command.CommandText = @"
-            UPDATE `employee` AS employee_row
-            INNER JOIN `employee_positions` AS position_row
-                ON position_row.`position_name` = TRIM(employee_row.`position`)
-            SET employee_row.`position_id` = position_row.`position_id`
-            WHERE employee_row.`position_id` IS NULL
-              AND employee_row.`position` IS NOT NULL
-              AND TRIM(employee_row.`position`) <> '';";
-        await command.ExecuteNonQueryAsync();
+        if (legacyColumnExists)
+        {
+            command.CommandText = @"
+                UPDATE `employee` AS employee_row
+                INNER JOIN `employee_positions` AS position_row
+                    ON position_row.`position_name` = TRIM(employee_row.`position`)
+                SET employee_row.`position_id` = position_row.`position_id`
+                WHERE employee_row.`position_id` IS NULL
+                  AND employee_row.`position` IS NOT NULL
+                  AND TRIM(employee_row.`position`) <> '';";
+            await command.ExecuteNonQueryAsync();
+        }
 
         command.CommandText = @"
             SELECT COUNT(*)
@@ -1099,8 +1115,17 @@ static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
         var indexExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
         if (indexExists == 0)
         {
-            command.CommandText = "CREATE INDEX `idx_employee_position_id` ON `employee` (`position_id`);";
-            await command.ExecuteNonQueryAsync();
+            try
+            {
+                command.CommandText = "CREATE INDEX `idx_employee_position_id` ON `employee` (`position_id`);";
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                // Index ช่วยเรื่องประสิทธิภาพ แต่ไม่ควรทำให้เว็บไซต์เปิดไม่ได้
+                // ในกรณี IIS หลาย process เริ่มพร้อมกัน หรือฐานข้อมูลมี index ชื่ออื่นอยู่แล้ว
+                logger.LogWarning(ex, "Unable to create employee position index; startup will continue.");
+            }
         }
 
         command.CommandText = @"
@@ -1112,12 +1137,53 @@ static async Task EnsureEmployeePositionTableAsync(IServiceProvider services)
         var foreignKeyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
         if (foreignKeyExists == 0)
         {
+            try
+            {
+                command.CommandText = @"
+                    ALTER TABLE `employee`
+                    ADD CONSTRAINT `fk_employee_position`
+                    FOREIGN KEY (`position_id`) REFERENCES `employee_positions` (`position_id`)
+                    ON UPDATE CASCADE ON DELETE SET NULL;";
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                // FK เป็นตัวป้องกันข้อมูลระดับฐานข้อมูล แต่ตัวแอปยังทำงานได้โดยไม่มี FK
+                // จึงไม่ควรทำให้ IIS เกิด 500.30 จาก schema/engine เก่าที่ไม่รองรับ constraint
+                logger.LogWarning(ex, "Unable to create employee position foreign key; startup will continue.");
+            }
+        }
+
+        if (legacyColumnExists)
+        {
             command.CommandText = @"
-                ALTER TABLE `employee`
-                ADD CONSTRAINT `fk_employee_position`
-                FOREIGN KEY (`position_id`) REFERENCES `employee_positions` (`position_id`)
-                ON UPDATE CASCADE ON DELETE SET NULL;";
-            await command.ExecuteNonQueryAsync();
+                SELECT COUNT(*)
+                FROM `employee`
+                WHERE `position` IS NOT NULL
+                  AND TRIM(`position`) <> ''
+                  AND `position_id` IS NULL;";
+            var unmigratedCount = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0);
+
+            if (unmigratedCount == 0)
+            {
+                try
+                {
+                    command.CommandText = "ALTER TABLE `employee` DROP COLUMN `position`;";
+                    await command.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    // คอลัมน์เดิมไม่ถูก map ในโมเดลแล้ว การเก็บไว้ชั่วคราวไม่กระทบการทำงาน
+                    // และปลอดภัยกว่าการทำให้ทั้งเว็บเริ่มระบบไม่ได้เพราะ DROP COLUMN ไม่สำเร็จ
+                    logger.LogWarning(ex, "Unable to drop legacy employee.position column; startup will continue.");
+                }
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Legacy employee.position was not dropped because {Count} row(s) were not migrated.",
+                    unmigratedCount);
+            }
         }
     }
     finally
