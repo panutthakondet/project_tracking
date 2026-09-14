@@ -229,6 +229,16 @@
             background: #fef2f2;
         }
 
+        #holidayModal {
+            --holiday-text: var(--pt-surface-contrast, #0f172a);
+            --holiday-muted: var(--pt-surface-contrast-muted, #64748b);
+            z-index: 26010;
+        }
+
+        .modal-backdrop.show {
+            z-index: 26000;
+        }
+
         #holidayModal .modal-content {
             border: 1px solid var(--pt-border, #cbd5e1);
             border-radius: 12px;
@@ -373,6 +383,14 @@
         document.addEventListener('DOMContentLoaded', function () {
             const calendarElement = document.getElementById('holidayCalendar');
             const modalElement = document.getElementById('holidayModal');
+
+            // Keep the modal and Bootstrap backdrop in the same root stacking
+            // context. The application shell creates its own stacking context,
+            // which otherwise leaves the backdrop above the dialog.
+            if (modalElement.parentElement !== document.body) {
+                document.body.appendChild(modalElement);
+            }
+
             const holidayModal = bootstrap.Modal.getOrCreateInstance(modalElement);
             const titleElement = document.getElementById('holidayModalTitle');
             const originalDateElement = document.getElementById('holidayOriginalDate');
