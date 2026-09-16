@@ -1,7 +1,7 @@
 @using Microsoft.AspNetCore.Http
 @model ProjectTracking.ViewModels.SystemConfigPageViewModel
 @{
-    ViewData["Title"] = "System Config";
+    ViewData["Title"] = "ตั้งค่าระบบ";
     var groups = Model.Items.GroupBy(x => x.Group).ToList();
     var initialGroup = groups.FirstOrDefault()?.Key ?? "";
     var configPreferenceUser = (Context.Session.GetString("Username") ?? "anonymous")
@@ -20,11 +20,11 @@
     {
         return group switch
         {
-            "Auto Meetings" => "เวลาส่งแจ้งเตือนประชุมอัตโนมัติ",
-            "Auto Overdue" => "เวลาส่งและจำนวนวันที่ใช้ตรวจงานล่าช้า/เสี่ยงล่าช้า",
-            "LINE Notification" => "เปิด/ปิดการส่ง LINE ตามเหตุการณ์",
-            "Telegram Notification" => "เปิด/ปิดการส่ง Telegram ตามเหตุการณ์",
-            "Attendance" => "ค่ากลางสำหรับการลงเวลา",
+            "แจ้งเตือนประชุมอัตโนมัติ" => "กำหนดเวลาส่งแจ้งเตือนการประชุมอัตโนมัติ",
+            "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "กำหนดเวลาส่งและจำนวนวันที่ใช้ตรวจงานล่าช้าหรือเสี่ยงล่าช้า",
+            "การแจ้งเตือน LINE" => "เปิดหรือปิดการส่ง LINE แยกตามเหตุการณ์",
+            "การแจ้งเตือน Telegram" => "เปิดหรือปิดการส่ง Telegram แยกตามเหตุการณ์",
+            "การลงเวลา" => "กำหนดเงื่อนไขและค่ากลางสำหรับการลงเวลา",
             _ => "ค่ากลางอื่นของระบบ"
         };
     }
@@ -33,12 +33,110 @@
     {
         return group switch
         {
-            "Auto Meetings" => "/images/menu-icons/meetings.svg",
-            "Auto Overdue" => "/images/menu-icons/issues.svg",
-            "LINE Notification" => "/images/menu-icons/followups.svg",
-            "Telegram Notification" => "/images/menu-icons/reports.svg",
-            "Attendance" => "/images/menu-icons/attendance.svg",
+            "แจ้งเตือนประชุมอัตโนมัติ" => "/images/menu-icons/meetings.svg",
+            "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "/images/menu-icons/issues.svg",
+            "การแจ้งเตือน LINE" => "/images/menu-icons/followups.svg",
+            "การแจ้งเตือน Telegram" => "/images/menu-icons/reports.svg",
+            "การลงเวลา" => "/images/menu-icons/attendance.svg",
             _ => "/images/menu-icons/settings.svg"
+        };
+    }
+
+    string NotificationEventLabel(string eventKey)
+    {
+        return (eventKey ?? "").Trim().ToUpperInvariant() switch
+        {
+            "MEETINGS_AUTO" => "ส่งแจ้งเตือนประชุมอัตโนมัติ",
+            "MEETINGS_CREATE" => "เมื่อสร้างการประชุม",
+            "MEETINGS_UPDATE" => "เมื่อแก้ไขการประชุม",
+            "MEETINGS_CANCEL" => "เมื่อยกเลิกการประชุม",
+            "MEETINGS_REMINDER" => "แจ้งเตือนประชุมล่วงหน้า",
+            "FIELD_SERVICE_AUTO" => "ส่งแจ้งเตือนงานเข้าไซต์อัตโนมัติ",
+            "FIELD_SERVICE_CREATE" => "เมื่อสร้างและมอบหมายงานเข้าไซต์",
+            "FIELD_SERVICE_UPDATE" => "เมื่อแก้ไขกำหนดการงานเข้าไซต์",
+            "FIELD_SERVICE_CANCEL" => "เมื่อยกเลิกงานเข้าไซต์",
+            "FIELD_SERVICE_REMINDER" => "แจ้งเตือนงานเข้าไซต์ล่วงหน้า",
+            "PHASE_ASSIGNS_CREATE" => "เมื่อสร้างงานที่มอบหมาย",
+            "PROJECT_ISSUES_CREATE" => "เมื่อสร้างปัญหาโครงการ",
+            "PROJECT_ISSUES_FIXED" => "เมื่อนักพัฒนาแก้ไขปัญหาแล้ว",
+            "PROJECT_ISSUES_BA_RESULT" => "เมื่อ BA บันทึกผลตรวจสอบปัญหา",
+            "SUPPORT_ORDERS_CREATE" => "เมื่อสร้างงานสนับสนุน",
+            "SUPPORT_ORDERS_FIXED" => "เมื่อนักพัฒนาแก้ไขงานสนับสนุนแล้ว",
+            "SUPPORT_ORDERS_BA_RESULT" => "เมื่อ BA บันทึกผลตรวจสอบงานสนับสนุน",
+            "FOLLOWUPS_CREATE" => "เมื่อสร้างงานติดตาม",
+            "FOLLOWUPS_ACK" => "เมื่อผู้สั่งงานรับทราบงานติดตาม",
+            "FOLLOWUPS_OWNER_UPDATE" => "เมื่อผู้รับผิดชอบอัปเดตงานติดตาม",
+            "EMPLOYEES_LINE_OVERDUE" => "ส่งแจ้งเตือนงานล่าช้าจากหน้าพนักงาน",
+            "OVERDUE_AUTO" => "ส่งแจ้งเตือนงานล่าช้าอัตโนมัติ",
+            _ => "การแจ้งเตือนของระบบ"
+        };
+    }
+
+    string NotificationEventFromKey(string normalizedKey, string prefix)
+    {
+        const string suffix = "_ENABLED";
+        if (!normalizedKey.StartsWith(prefix, StringComparison.Ordinal)
+            || !normalizedKey.EndsWith(suffix, StringComparison.Ordinal))
+            return "";
+
+        return normalizedKey.Substring(prefix.Length, normalizedKey.Length - prefix.Length - suffix.Length);
+    }
+
+    string ConfigDisplayName(string key)
+    {
+        var normalized = (key ?? "").Trim().ToUpperInvariant();
+        var lineEvent = NotificationEventFromKey(normalized, "LINE_NOTIFICATION_");
+        if (lineEvent.Length > 0)
+            return $"LINE · {NotificationEventLabel(lineEvent)}";
+
+        var telegramEvent = NotificationEventFromKey(normalized, "TELEGRAM_NOTIFICATION_");
+        if (telegramEvent.Length > 0)
+            return $"Telegram · {NotificationEventLabel(telegramEvent)}";
+
+        return normalized switch
+        {
+            "MEETING_NOTIFICATION_RUN_AT" => "เวลาส่งแจ้งเตือนประชุม",
+            "MEETING_NOTIFICATION_LAST_AUTO_RUN_DATE" => "วันที่ส่งแจ้งเตือนประชุมล่าสุด",
+            "OVERDUE_NOTIFICATION_RISK_DAYS" => "จำนวนวันก่อนครบกำหนดที่ถือว่าเสี่ยงล่าช้า",
+            "OVERDUE_NOTIFICATION_RUN_AT" => "เวลาส่งแจ้งเตือนงานล่าช้า",
+            "OVERDUE_NOTIFICATION_LAST_AUTO_RUN_DATE" => "วันที่ส่งแจ้งเตือนงานล่าช้าล่าสุด",
+            "ATTENDANCE_WORK_START_TIME" => "เวลาเริ่มงานปกติ",
+            "ATTENDANCE_LATE_GRACE_MINUTES" => "นาทีผ่อนผันก่อนนับว่ามาสาย",
+            "ATTENDANCE_TARGET_PERCENT" => "เป้าหมายอัตราเข้างานรายเดือน",
+            "ATTENDANCE_MAX_CHECKOUT_DISTANCE_KM" => "ระยะห่างสูงสุดระหว่างจุดเช็คเข้าและเช็คออก",
+            "ATTENDANCE_MAX_GPS_ACCURACY_M" => "ค่าความคลาดเคลื่อน GPS สูงสุด",
+            "ATTENDANCE_MAX_REPORT_DAYS" => "จำนวนวันสูงสุดในการเปิดรายงาน",
+            "WFH_MAX_DISTANCE_KM" => "ระยะห่างสูงสุดสำหรับการทำงานนอกสถานที่",
+            _ => "ค่าระบบอื่น"
+        };
+    }
+
+    string ConfigDisplayDescription(string key, string currentDescription)
+    {
+        var normalized = (key ?? "").Trim().ToUpperInvariant();
+        var lineEvent = NotificationEventFromKey(normalized, "LINE_NOTIFICATION_");
+        if (lineEvent.Length > 0)
+            return $"กำหนดการส่ง LINE: {NotificationEventLabel(lineEvent)}";
+
+        var telegramEvent = NotificationEventFromKey(normalized, "TELEGRAM_NOTIFICATION_");
+        if (telegramEvent.Length > 0)
+            return $"กำหนดการส่ง Telegram: {NotificationEventLabel(telegramEvent)}";
+
+        return normalized switch
+        {
+            "MEETING_NOTIFICATION_RUN_AT" => "เวลาที่ระบบส่งแจ้งเตือนประชุมอัตโนมัติ ตามเวลาไทย",
+            "MEETING_NOTIFICATION_LAST_AUTO_RUN_DATE" => "วันที่ระบบส่งแจ้งเตือนประชุมอัตโนมัติสำเร็จล่าสุด",
+            "OVERDUE_NOTIFICATION_RISK_DAYS" => "จำนวนวันล่วงหน้าก่อนครบกำหนดที่ระบบจะถือว่างานมีความเสี่ยงล่าช้า",
+            "OVERDUE_NOTIFICATION_RUN_AT" => "เวลาที่ระบบส่งแจ้งเตือนงานล่าช้าหรือเสี่ยงล่าช้า ตามเวลาไทย",
+            "OVERDUE_NOTIFICATION_LAST_AUTO_RUN_DATE" => "วันที่ระบบส่งแจ้งเตือนงานล่าช้าอัตโนมัติสำเร็จล่าสุด",
+            "ATTENDANCE_WORK_START_TIME" => "เวลาเริ่มงานปกติที่ใช้คำนวณการมาสาย",
+            "ATTENDANCE_LATE_GRACE_MINUTES" => "จำนวนนาทีที่อนุโลมหลังเวลาเริ่มงานก่อนนับว่ามาสาย",
+            "ATTENDANCE_TARGET_PERCENT" => "เป้าหมายอัตราการเข้างานรายเดือน คิดเป็นเปอร์เซ็นต์",
+            "ATTENDANCE_MAX_CHECKOUT_DISTANCE_KM" => "ระยะห่างสูงสุดระหว่างจุดเช็คเข้าและเช็คออก หน่วยกิโลเมตร",
+            "ATTENDANCE_MAX_GPS_ACCURACY_M" => "ค่าความคลาดเคลื่อนของ GPS สูงสุดที่ระบบยอมรับ หน่วยเมตร",
+            "ATTENDANCE_MAX_REPORT_DAYS" => "จำนวนวันสูงสุดที่เลือกดูรายงานการลงเวลาได้ต่อหนึ่งครั้ง",
+            "WFH_MAX_DISTANCE_KM" => "ระยะห่างสูงสุดจากตำแหน่งอ้างอิงสำหรับการทำงานนอกสถานที่ หน่วยกิโลเมตร",
+            _ => currentDescription
         };
     }
 }
@@ -486,8 +584,9 @@
     }
 
     .system-config-key {
-        display: flex;
-        align-items: center;
+        display: grid;
+        align-content: center;
+        gap: 3px;
         width: 100%;
         min-height: 42px;
         color: #10233f;
@@ -495,11 +594,86 @@
         border: 1px solid #d8e3ef;
         border-radius: 8px;
         padding: 8px 12px;
+    }
+
+    .system-config-key-name {
+        color: var(--pt-surface-contrast, #10233f);
+        font-size: .88rem;
+        font-weight: 650;
+        line-height: 1.3;
+    }
+
+    .system-config-key code {
+        color: var(--pt-surface-contrast-muted, #64748b);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-        font-size: 12px;
-        font-weight: 700;
+        font-size: .68rem;
+        font-weight: 500;
         line-height: 1.25;
         word-break: break-word;
+    }
+
+    .system-config-status-button {
+        width: 100%;
+        min-height: 52px;
+        display: grid;
+        grid-template-columns: 12px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        padding: 8px 11px;
+        border: 1px solid var(--pt-border, #cbd5e1);
+        border-radius: 8px;
+        color: var(--pt-surface-contrast, #10233f);
+        background: var(--pt-surface, #fff);
+        text-align: left;
+        transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+
+    .system-config-status-button:hover,
+    .system-config-status-button:focus-visible {
+        border-color: var(--group-color);
+        box-shadow: 0 0 0 3px var(--group-ring);
+        outline: none;
+    }
+
+    .system-config-status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #94a3b8;
+        box-shadow: 0 0 0 4px rgba(148, 163, 184, .14);
+    }
+
+    .system-config-status-copy {
+        min-width: 0;
+        display: grid;
+        gap: 1px;
+    }
+
+    .system-config-status-copy strong {
+        font-size: .86rem;
+        font-weight: 650;
+        line-height: 1.25;
+    }
+
+    .system-config-status-copy small {
+        color: var(--pt-surface-contrast-muted, #64748b);
+        font-size: .7rem;
+        font-weight: 500;
+    }
+
+    .system-config-status-button.is-active {
+        border-color: #6ee7b7;
+        background: color-mix(in srgb, var(--pt-surface, #fff) 88%, #10b981);
+    }
+
+    .system-config-status-button.is-active .system-config-status-dot {
+        background: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, .14);
+    }
+
+    .system-config-status-button.is-inactive {
+        border-color: #cbd5e1;
+        background: color-mix(in srgb, var(--pt-surface, #fff) 92%, #94a3b8);
     }
 
     .system-config-updated {
@@ -659,8 +833,8 @@
     <div class="index-hero pt-form-hero system-config-hero">
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
-            <h2 class="index-title">System Config</h2>
-            <p class="index-subtitle">จัดการค่ากลางของระบบ เช่น Auto Meetings, Auto Overdue และ Notification</p>
+            <h2 class="index-title">ตั้งค่าระบบ</h2>
+            <p class="index-subtitle">จัดการค่ากลาง การแจ้งเตือนอัตโนมัติ และเงื่อนไขการลงเวลา</p>
         </div>
     </div>
 
@@ -682,7 +856,7 @@
                 <aside class="system-config-nav" aria-label="หมวดการตั้งค่าระบบ">
                     <div class="system-config-panel-heading">
                         <div>
-                            <span>CONFIG GROUPS</span>
+                            <span>หมวดค่าระบบ</span>
                             <h3>หมวดการตั้งค่า</h3>
                         </div>
                         <strong>@groups.Count</strong>
@@ -742,7 +916,7 @@
                 <div class="system-config-content">
                     <div class="system-config-panel-heading">
                         <div>
-                            <span>AVAILABLE CONFIGS</span>
+                            <span>รายการตั้งค่า</span>
                             <h3 id="systemConfigTitle">@initialGroup</h3>
                             <small id="systemConfigSubtitle">@GroupSubtitle(initialGroup)</small>
                         </div>
@@ -755,7 +929,7 @@
                             <input id="systemConfigSearch"
                                    class="system-config-search"
                                    type="search"
-                                   placeholder="ค้นหา config key, value หรือ description..."
+                                   placeholder="ค้นหาชื่อค่า ค่าที่กำหนด หรือคำอธิบาย..."
                                    autocomplete="off" />
                         </div>
                         <div id="systemConfigCount" class="system-config-count">ทั้งหมด @Model.TotalCount รายการ</div>
@@ -767,11 +941,11 @@
                             var groupItems = group.ToList();
                             var groupClass = group.Key switch
                             {
-                                "Auto Meetings" => "theme-meeting",
-                                "Auto Overdue" => "theme-overdue",
-                                "LINE Notification" => "theme-line",
-                                "Telegram Notification" => "theme-telegram",
-                                "Attendance" => "theme-attendance",
+                                "แจ้งเตือนประชุมอัตโนมัติ" => "theme-meeting",
+                                "แจ้งเตือนงานล่าช้าอัตโนมัติ" => "theme-overdue",
+                                "การแจ้งเตือน LINE" => "theme-line",
+                                "การแจ้งเตือน Telegram" => "theme-telegram",
+                                "การลงเวลา" => "theme-attendance",
                                 _ => "theme-system"
                             };
 
@@ -787,38 +961,63 @@
                                 </div>
                                 <div class="system-config-list">
                                     <div class="system-config-list-head">
-                                        <div class="system-config-head-cell">Config Key</div>
-                                        <div class="system-config-head-cell">Value</div>
-                                        <div class="system-config-head-cell">Description</div>
-                                        <div class="system-config-head-cell">Updated</div>
+                                        <div class="system-config-head-cell">รายการตั้งค่า</div>
+                                        <div class="system-config-head-cell">ค่าที่กำหนด / สถานะ</div>
+                                        <div class="system-config-head-cell">คำอธิบาย</div>
+                                        <div class="system-config-head-cell">แก้ไขล่าสุด</div>
                                     </div>
                                     @foreach (var item in groupItems)
                                     {
+                                        var displayName = ConfigDisplayName(item.ConfigKey);
+                                        var displayDescription = ConfigDisplayDescription(item.ConfigKey, item.Description);
+                                        var isStatusSetting = bool.TryParse(item.ConfigValue, out bool isEnabled);
                                         <div class="system-config-row"
                                              data-config-row
                                              data-config-section="@group.Key"
-                                             data-config-text="@($"{item.Group} {item.ConfigKey} {item.ConfigValue} {item.Description}".ToLowerInvariant())">
+                                             data-config-text="@($"{item.Group} {displayName} {item.ConfigKey} {item.ConfigValue} {displayDescription}".ToLowerInvariant())">
                                             <div class="system-config-col key">
-                                                <span class="system-config-label">Config Key</span>
+                                                <span class="system-config-label">รายการตั้งค่า</span>
                                                 <input type="hidden" name="Items[@index].ConfigKey" value="@item.ConfigKey" />
-                                                <div class="system-config-key">@item.ConfigKey</div>
+                                                <div class="system-config-key">
+                                                    <span class="system-config-key-name">@displayName</span>
+                                                    <code>@item.ConfigKey</code>
+                                                </div>
                                             </div>
                                             <div class="system-config-col value">
-                                                <label class="system-config-label" for="config_value_@index">Value</label>
-                                                <input id="config_value_@index"
-                                                       class="system-config-input"
-                                                       name="Items[@index].ConfigValue"
-                                                       value="@item.ConfigValue"
-                                                       autocomplete="off" />
+                                                <span class="system-config-label">ค่าที่กำหนด / สถานะ</span>
+                                                @if (isStatusSetting)
+                                                {
+                                                    <input type="hidden" name="Items[@index].ConfigValue" value="@item.ConfigValue" />
+                                                    <button type="submit"
+                                                            class="system-config-status-button @(isEnabled ? "is-active" : "is-inactive")"
+                                                            name="configKey"
+                                                            value="@item.ConfigKey"
+                                                            formaction="@Url.Action("ToggleStatus")"
+                                                            formnovalidate>
+                                                        <span class="system-config-status-dot" aria-hidden="true"></span>
+                                                        <span class="system-config-status-copy">
+                                                            <strong>@(isEnabled ? "เปิดใช้งาน" : "ปิดใช้งาน")</strong>
+                                                            <small>ปรับสถานะ</small>
+                                                        </span>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <input id="config_value_@index"
+                                                           class="system-config-input"
+                                                           name="Items[@index].ConfigValue"
+                                                           value="@item.ConfigValue"
+                                                           autocomplete="off" />
+                                                }
                                             </div>
                                             <div class="system-config-col description">
-                                                <label class="system-config-label" for="config_description_@index">Description</label>
+                                                <label class="system-config-label" for="config_description_@index">คำอธิบาย</label>
                                                 <textarea id="config_description_@index"
                                                           class="system-config-textarea"
-                                                          name="Items[@index].Description">@item.Description</textarea>
+                                                          name="Items[@index].Description">@displayDescription</textarea>
                                             </div>
                                             <div class="system-config-col updated">
-                                                <span class="system-config-label">Updated</span>
+                                                <span class="system-config-label">แก้ไขล่าสุด</span>
                                                 <div class="system-config-updated">
                                                     @(item.UpdatedAt.HasValue ? item.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")
                                                 </div>
@@ -833,15 +1032,15 @@
                     </div>
 
                     <div class="system-config-actions">
-                        <a asp-controller="UserManagement" asp-action="Index" class="system-config-btn muted">กลับ Settings</a>
-                        <button type="submit" class="system-config-btn primary">บันทึก</button>
+                        <a asp-controller="UserManagement" asp-action="Index" class="system-config-btn muted">กลับหน้าตั้งค่า</a>
+                        <button type="submit" class="system-config-btn primary">บันทึกค่าที่แก้ไข</button>
                     </div>
                 </div>
             </section>
         }
         else
         {
-            <div class="system-config-alert error">ยังไม่มีรายการใน system_config</div>
+            <div class="system-config-alert error">ยังไม่มีรายการค่าระบบ</div>
         }
     </form>
 </div>

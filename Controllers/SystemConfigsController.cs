@@ -63,7 +63,7 @@ namespace ProjectTracking.Controllers
 
             if (postedItems.Count == 0)
             {
-                TempData["Error"] = "ไม่พบรายการ System Config สำหรับบันทึก";
+                TempData["Error"] = "ไม่พบรายการค่าระบบสำหรับบันทึก";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -91,7 +91,36 @@ namespace ProjectTracking.Controllers
             if (updatedCount > 0)
                 await _context.SaveChangesAsync(cancellationToken);
 
-            TempData["Success"] = $"บันทึก System Config แล้ว {updatedCount} รายการ";
+            TempData["Success"] = $"บันทึกค่าระบบแล้ว {updatedCount} รายการ";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> ToggleStatus(string? configKey, CancellationToken cancellationToken)
+        {
+            configKey = (configKey ?? "").Trim();
+            var config = await _context.SystemConfigs
+                .FirstOrDefaultAsync(x => x.ConfigKey == configKey, cancellationToken);
+            if (config == null)
+            {
+                TempData["Error"] = "ไม่พบค่าระบบที่ต้องการปรับสถานะ";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!bool.TryParse(config.ConfigValue, out var currentStatus))
+            {
+                TempData["Error"] = "รายการนี้ไม่ใช่ค่าประเภทเปิดหรือปิดใช้งาน";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var nextStatus = !currentStatus;
+            config.ConfigValue = nextStatus.ToString().ToLowerInvariant();
+            config.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            TempData["Success"] = nextStatus ? "ปรับสถานะเป็นเปิดใช้งานแล้ว" : "ปรับสถานะเป็นปิดใช้งานแล้ว";
             return RedirectToAction(nameof(Index));
         }
 
@@ -146,7 +175,7 @@ namespace ProjectTracking.Controllers
             int positionId,
             string? positionName,
             int sortOrder,
-            bool isActive,
+            bool? isActive,
             CancellationToken cancellationToken)
         {
             positionName = (positionName ?? "").Trim();
@@ -166,6 +195,7 @@ namespace ProjectTracking.Controllers
             }
 
             EmployeePosition position;
+            var isNewPosition = positionId <= 0;
             if (positionId > 0)
             {
                 var existingPosition = await _context.EmployeePositions
@@ -186,7 +216,10 @@ namespace ProjectTracking.Controllers
 
             position.PositionName = positionName;
             position.SortOrder = sortOrder;
-            position.IsActive = isActive;
+            if (isNewPosition)
+                position.IsActive = isActive ?? true;
+            else if (isActive.HasValue)
+                position.IsActive = isActive.Value;
             await _context.SaveChangesAsync(cancellationToken);
 
             TempData["Success"] = positionId > 0 ? "บันทึกตำแหน่งแล้ว" : "เพิ่มตำแหน่งแล้ว";
@@ -220,7 +253,7 @@ namespace ProjectTracking.Controllers
             string? departmentCode,
             string? departmentName,
             int sortOrder,
-            bool isActive,
+            bool? isActive,
             CancellationToken cancellationToken)
         {
             departmentCode = (departmentCode ?? "").Trim().ToUpperInvariant();
@@ -243,6 +276,7 @@ namespace ProjectTracking.Controllers
             }
 
             ProjectDepartment department;
+            var isNewDepartment = departmentId <= 0;
             if (departmentId > 0)
             {
                 var existingDepartment = await _context.ProjectDepartments
@@ -264,7 +298,10 @@ namespace ProjectTracking.Controllers
             department.DepartmentCode = departmentCode;
             department.DepartmentName = departmentName;
             department.SortOrder = sortOrder;
-            department.IsActive = isActive;
+            if (isNewDepartment)
+                department.IsActive = isActive ?? true;
+            else if (isActive.HasValue)
+                department.IsActive = isActive.Value;
             await _context.SaveChangesAsync(cancellationToken);
 
             TempData["Success"] = departmentId > 0 ? "บันทึกฝ่ายแล้ว" : "เพิ่มฝ่ายแล้ว";
@@ -300,30 +337,30 @@ namespace ProjectTracking.Controllers
             key = (key ?? "").Trim().ToUpperInvariant();
 
             if (key.StartsWith("LINE_NOTIFICATION_", StringComparison.Ordinal))
-                return "LINE Notification";
+                return "การแจ้งเตือน LINE";
             if (key.StartsWith("TELEGRAM_NOTIFICATION_", StringComparison.Ordinal))
-                return "Telegram Notification";
+                return "การแจ้งเตือน Telegram";
             if (key.StartsWith("MEETING_NOTIFICATION_", StringComparison.Ordinal))
-                return "Auto Meetings";
+                return "แจ้งเตือนประชุมอัตโนมัติ";
             if (key.StartsWith("OVERDUE_NOTIFICATION_", StringComparison.Ordinal))
-                return "Auto Overdue";
+                return "แจ้งเตือนงานล่าช้าอัตโนมัติ";
             if (key.StartsWith("WFH_", StringComparison.Ordinal)
                 || key.StartsWith("ATTENDANCE_", StringComparison.Ordinal))
-                return "Attendance";
+                return "การลงเวลา";
 
-            return "System";
+            return "ค่าระบบทั่วไป";
         }
 
         private static int GetGroupOrder(string group)
         {
             return group switch
             {
-                "Auto Meetings" => 10,
-                "Auto Overdue" => 20,
-                "LINE Notification" => 30,
-                "Telegram Notification" => 40,
-                "Attendance" => 50,
-                "System" => 90,
+                "แจ้งเตือนประชุมอัตโนมัติ" => 10,
+                "แจ้งเตือนงานล่าช้าอัตโนมัติ" => 20,
+                "การแจ้งเตือน LINE" => 30,
+                "การแจ้งเตือน Telegram" => 40,
+                "การลงเวลา" => 50,
+                "ค่าระบบทั่วไป" => 90,
                 _ => 999
             };
         }

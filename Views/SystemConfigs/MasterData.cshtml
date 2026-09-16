@@ -153,8 +153,8 @@
         background: var(--pt-surface-soft, #f8fafc);
     }
 
-    .master-config-create.position { grid-template-columns: minmax(220px, 1fr) 110px 130px auto; }
-    .master-config-create.department { grid-template-columns: 180px minmax(220px, 1fr) 110px 130px auto; }
+    .master-config-create.position { grid-template-columns: minmax(220px, 1fr) 110px auto; }
+    .master-config-create.department { grid-template-columns: 180px minmax(220px, 1fr) 110px auto; }
 
     .master-config-field { min-width: 0; display: grid; gap: 5px; }
     .master-config-field label { color: var(--pt-surface-contrast-muted, #64748b); font-size: .75rem; font-weight: 600; }
@@ -170,18 +170,6 @@
         font: inherit;
         font-size: .9rem;
     }
-
-    .master-config-check {
-        min-height: 42px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 22px;
-        color: var(--pt-surface-contrast, #10233f);
-        font-size: .86rem;
-    }
-
-    .master-config-check input { width: 18px; height: 18px; accent-color: var(--pt-accent, #14b8a6); }
 
     .master-config-button {
         min-height: 42px;
@@ -207,9 +195,11 @@
         background: var(--pt-surface, #fff);
     }
 
-    .master-config-row.position { grid-template-columns: minmax(220px, 1fr) 90px 115px 115px auto auto; }
-    .master-config-row.department { grid-template-columns: 150px minmax(220px, 1fr) 90px 115px 145px auto auto; }
-    .master-config-row.is-inactive { opacity: .68; }
+    .master-config-row.position { grid-template-columns: minmax(220px, 1fr) 90px 115px auto 150px; }
+    .master-config-row.department { grid-template-columns: 150px minmax(220px, 1fr) 90px 145px auto 150px; }
+
+    .master-config-row.is-inactive .master-config-field,
+    .master-config-row.is-inactive .master-config-usage { opacity: .68; }
 
     .master-config-usage {
         min-height: 42px;
@@ -220,20 +210,57 @@
         line-height: 1.35;
     }
 
-    .master-config-secondary {
+    .master-config-status {
+        width: 100%;
         min-height: 42px;
         align-self: end;
-        padding: 8px 12px;
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        padding: 7px 10px;
         border: 1px solid var(--pt-border, #cbd5e1);
         border-radius: 8px;
         color: var(--pt-surface-contrast, #10233f);
-        background: transparent;
-        font-weight: 600;
-        white-space: nowrap;
+        background: var(--pt-surface, #fff);
+        text-align: left;
+        transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
     }
 
-    .master-config-secondary.disable { color: #b91c1c; border-color: #fca5a5; }
-    .master-config-secondary.enable { color: #047857; border-color: #6ee7b7; }
+    .master-config-status:hover,
+    .master-config-status:focus-visible {
+        border-color: var(--pt-accent, #14b8a6);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent, #14b8a6) 16%, transparent);
+        outline: none;
+    }
+
+    .master-config-status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #94a3b8;
+        box-shadow: 0 0 0 4px rgba(148, 163, 184, .14);
+    }
+
+    .master-config-status-copy { min-width: 0; display: grid; gap: 1px; }
+    .master-config-status-copy strong { font-size: .8rem; font-weight: 650; line-height: 1.2; }
+    .master-config-status-copy small { color: var(--pt-surface-contrast-muted, #64748b); font-size: .68rem; font-weight: 500; }
+
+    .master-config-status.is-active {
+        border-color: #6ee7b7;
+        background: color-mix(in srgb, var(--pt-surface, #fff) 88%, #10b981);
+    }
+
+    .master-config-status.is-active .master-config-status-dot {
+        background: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, .14);
+    }
+
+    .master-config-status.is-inactive {
+        border-color: #cbd5e1;
+        background: color-mix(in srgb, var(--pt-surface, #fff) 92%, #94a3b8);
+    }
+
     .master-config-empty { padding: 32px; text-align: center; color: var(--pt-surface-contrast-muted, #64748b); }
 
     @@media (max-width: 1200px) {
@@ -241,7 +268,6 @@
         .master-config-create.department,
         .master-config-row.position,
         .master-config-row.department { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .master-config-check { margin-top: 0; }
     }
 
     @@media (max-width: 900px) {
@@ -265,15 +291,15 @@
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
             <h1 class="index-title">@(isDepartments ? "จัดการฝ่าย" : "จัดการตำแหน่ง")</h1>
-            <p class="index-subtitle">จัดการข้อมูลกลางที่ใช้ร่วมกันทั้งระบบจาก System Config</p>
+            <p class="index-subtitle">จัดการข้อมูลกลางที่ใช้ร่วมกันทั้งระบบ</p>
         </div>
     </div>
 
     <section class="master-config-layout">
-        <aside class="master-config-nav" aria-label="เมนู System Config">
+        <aside class="master-config-nav" aria-label="เมนูตั้งค่าระบบ">
             <div class="master-config-heading">
                 <div>
-                    <span>SYSTEM CONFIG</span>
+                    <span>ตั้งค่าระบบ</span>
                     <h3>การตั้งค่าระบบ</h3>
                 </div>
             </div>
@@ -281,7 +307,7 @@
                 <div class="master-config-nav-label">ค่าระบบ</div>
                 <a class="master-config-nav-link" asp-action="Index">
                     <span class="master-config-nav-icon"><img src="/images/menu-icons/settings.svg" alt="" /></span>
-                    <span class="master-config-nav-copy"><strong>System Config</strong><small>Notification และค่ากลาง</small></span>
+                    <span class="master-config-nav-copy"><strong>ค่าระบบ</strong><small>การแจ้งเตือนและค่ากลาง</small></span>
                     <span class="master-config-nav-arrow">›</span>
                 </a>
                 @if (canManageHolidays)
@@ -310,7 +336,7 @@
         <div class="master-config-content">
             <div class="master-config-heading">
                 <div>
-                    <span>MASTER DATA</span>
+                    <span>ข้อมูลกลาง</span>
                     <h2>@(isDepartments ? "ฝ่าย" : "ตำแหน่ง")</h2>
                 </div>
                 <strong>@(isDepartments ? Model.Departments.Count : Model.Positions.Count)</strong>
@@ -343,7 +369,6 @@
                             <label for="newDepartmentSort">ลำดับ</label>
                             <input id="newDepartmentSort" class="master-config-input" name="sortOrder" type="number" value="@((Model.Departments.LastOrDefault()?.SortOrder ?? 0) + 10)" />
                         </div>
-                        <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked /> ใช้งาน</label>
                         <button class="master-config-button" type="submit">＋ เพิ่มฝ่าย</button>
                     </form>
 
@@ -356,11 +381,14 @@
                                 <div class="master-config-field"><label>รหัสฝ่าย</label><input class="master-config-input" name="departmentCode" value="@item.DepartmentCode" maxlength="50" required /></div>
                                 <div class="master-config-field"><label>ชื่อฝ่าย</label><input class="master-config-input" name="departmentName" value="@item.DepartmentName" maxlength="150" required /></div>
                                 <div class="master-config-field"><label>ลำดับ</label><input class="master-config-input" name="sortOrder" type="number" value="@item.SortOrder" /></div>
-                                <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked="@item.IsActive" /> ใช้งาน</label>
                                 <div class="master-config-usage">พนักงาน @item.EmployeeCount คน<br />โครงการ @item.ProjectCount รายการ</div>
-                                <button class="master-config-button" type="submit">บันทึก</button>
-                                <button class="master-config-secondary @(item.IsActive ? "disable" : "enable")" type="submit" formaction="@Url.Action("ToggleDepartment")" formnovalidate>
-                                    @(item.IsActive ? "ปิดใช้งาน" : "เปิดใช้งาน")
+                                <button class="master-config-button" type="submit">บันทึกข้อมูล</button>
+                                <button class="master-config-status @(item.IsActive ? "is-active" : "is-inactive")" type="submit" formaction="@Url.Action("ToggleDepartment")" formnovalidate>
+                                    <span class="master-config-status-dot" aria-hidden="true"></span>
+                                    <span class="master-config-status-copy">
+                                        <strong>@(item.IsActive ? "เปิดใช้งาน" : "ปิดใช้งาน")</strong>
+                                        <small>ปรับสถานะ</small>
+                                    </span>
                                 </button>
                             </form>
                         }
@@ -379,7 +407,6 @@
                             <label for="newPositionSort">ลำดับ</label>
                             <input id="newPositionSort" class="master-config-input" name="sortOrder" type="number" value="@((Model.Positions.LastOrDefault()?.SortOrder ?? 0) + 10)" />
                         </div>
-                        <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked /> ใช้งาน</label>
                         <button class="master-config-button" type="submit">＋ เพิ่มตำแหน่ง</button>
                     </form>
 
@@ -391,11 +418,14 @@
                                 <input type="hidden" name="positionId" value="@item.PositionId" />
                                 <div class="master-config-field"><label>ชื่อตำแหน่ง</label><input class="master-config-input" name="positionName" value="@item.PositionName" maxlength="150" required /></div>
                                 <div class="master-config-field"><label>ลำดับ</label><input class="master-config-input" name="sortOrder" type="number" value="@item.SortOrder" /></div>
-                                <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked="@item.IsActive" /> ใช้งาน</label>
                                 <div class="master-config-usage">พนักงาน @item.EmployeeCount คน</div>
-                                <button class="master-config-button" type="submit">บันทึก</button>
-                                <button class="master-config-secondary @(item.IsActive ? "disable" : "enable")" type="submit" formaction="@Url.Action("TogglePosition")" formnovalidate>
-                                    @(item.IsActive ? "ปิดใช้งาน" : "เปิดใช้งาน")
+                                <button class="master-config-button" type="submit">บันทึกข้อมูล</button>
+                                <button class="master-config-status @(item.IsActive ? "is-active" : "is-inactive")" type="submit" formaction="@Url.Action("TogglePosition")" formnovalidate>
+                                    <span class="master-config-status-dot" aria-hidden="true"></span>
+                                    <span class="master-config-status-copy">
+                                        <strong>@(item.IsActive ? "เปิดใช้งาน" : "ปิดใช้งาน")</strong>
+                                        <small>ปรับสถานะ</small>
+                                    </span>
                                 </button>
                             </form>
                         }

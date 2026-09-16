@@ -358,7 +358,7 @@
             </div>
         </div>
         <div class="holiday-hero-actions">
-            <a class="holiday-back-button" asp-controller="SystemConfigs" asp-action="Index">← System Config</a>
+            <a class="holiday-back-button" asp-controller="SystemConfigs" asp-action="Index">← กลับไปตั้งค่าระบบ</a>
             <button type="button" class="holiday-add-button" id="addHolidayButton">＋ เพิ่มวันหยุด</button>
         </div>
     </section>
@@ -367,7 +367,7 @@
         <div id="holidayFeedback" class="holiday-feedback" role="status" aria-live="polite"></div>
         <div class="holiday-calendar-toolbar">
             <div class="holiday-legend" aria-label="คำอธิบายสถานะ">
-                <span class="holiday-legend-item holiday-legend-active"><span class="holiday-legend-dot"></span> ใช้งาน</span>
+                <span class="holiday-legend-item holiday-legend-active"><span class="holiday-legend-dot"></span> เปิดใช้งาน</span>
                 <span class="holiday-legend-item holiday-legend-inactive"><span class="holiday-legend-dot"></span> ปิดใช้งาน</span>
             </div>
             <div class="holiday-note">คลิกวันที่เพื่อเพิ่ม หรือคลิกรายการเพื่อแก้ไข</div>
@@ -402,7 +402,7 @@
                 <div id="holidayModalError" class="text-danger mt-3 small" role="alert"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="holiday-modal-toggle" id="toggleHolidayButton">ปิดใช้งาน</button>
+                <button type="button" class="holiday-modal-toggle" id="toggleHolidayButton">ปรับสถานะเป็นปิดใช้งาน</button>
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">ปิด</button>
                 <button type="button" class="holiday-modal-save" id="saveHolidayButton">บันทึก</button>
             </div>
@@ -514,7 +514,9 @@
                 activeElement.checked = isActive === true || isActive === 'true';
                 toggleButton.style.display = 'inline-flex';
                 toggleButton.classList.toggle('is-inactive', !activeElement.checked);
-                toggleButton.textContent = activeElement.checked ? 'ปิดใช้งาน' : 'เปิดใช้งาน';
+                toggleButton.textContent = activeElement.checked
+                    ? 'ปรับสถานะเป็นปิดใช้งาน'
+                    : 'ปรับสถานะเป็นเปิดใช้งาน';
                 modalError.textContent = '';
                 holidayModal.show();
             }
@@ -580,7 +582,12 @@
                 } catch (error) {
                     modalError.textContent = error.message || 'ปรับสถานะไม่สำเร็จ';
                 } finally {
-                    setBusy(toggleButton, false, activeElement.checked ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
+                    setBusy(
+                        toggleButton,
+                        false,
+                        activeElement.checked
+                            ? 'ปรับสถานะเป็นปิดใช้งาน'
+                            : 'ปรับสถานะเป็นเปิดใช้งาน');
                 }
             }
 
