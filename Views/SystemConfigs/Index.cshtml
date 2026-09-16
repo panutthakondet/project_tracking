@@ -7,6 +7,13 @@
     var configPreferenceUser = (Context.Session.GetString("Username") ?? "anonymous")
         .Trim()
         .ToLowerInvariant();
+    var role = (Context.Session.GetString("Role") ?? "").Trim();
+    var allowedMenus = (Context.Session.GetString("Menus") ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var canManageHolidays = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)
+        || allowedMenus.Contains("AttendanceHolidays.Index");
     var index = 0;
 
     string GroupSubtitle(string group)
@@ -164,6 +171,20 @@
         border-radius: 10px;
         text-align: left;
         transition: background .16s ease, border-color .16s ease;
+    }
+
+    .system-config-nav-link {
+        text-decoration: none;
+    }
+
+    .system-config-nav-section {
+        margin: 5px 4px 0;
+        padding: 10px 6px 3px;
+        border-top: 1px solid var(--pt-border, #dbe7f3);
+        color: var(--pt-surface-contrast-muted, #64748b);
+        font-size: .7rem;
+        font-weight: 650;
+        letter-spacing: .04em;
     }
 
     .system-config-nav-option:hover,
@@ -684,6 +705,37 @@
                                 <span class="system-config-nav-arrow" aria-hidden="true">›</span>
                             </button>
                         }
+                        <div class="system-config-nav-section">การจัดการข้อมูลกลาง</div>
+                        @if (canManageHolidays)
+                        {
+                            <a class="system-config-nav-option system-config-nav-link"
+                               asp-controller="AttendanceHolidays" asp-action="Index">
+                                <span class="system-config-nav-icon"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
+                                <span class="system-config-nav-copy">
+                                    <strong>จัดการวันหยุด</strong>
+                                    <small>ปฏิทินวันหยุดบริษัท</small>
+                                </span>
+                                <span class="system-config-nav-arrow" aria-hidden="true">›</span>
+                            </a>
+                        }
+                        <a class="system-config-nav-option system-config-nav-link"
+                           asp-action="MasterData" asp-route-type="positions">
+                            <span class="system-config-nav-icon"><img src="/images/menu-icons/employees.svg" alt="" /></span>
+                            <span class="system-config-nav-copy">
+                                <strong>จัดการตำแหน่ง</strong>
+                                <small>ข้อมูลตำแหน่งพนักงาน</small>
+                            </span>
+                            <span class="system-config-nav-arrow" aria-hidden="true">›</span>
+                        </a>
+                        <a class="system-config-nav-option system-config-nav-link"
+                           asp-action="MasterData" asp-route-type="departments">
+                            <span class="system-config-nav-icon"><img src="/images/menu-icons/projects.svg" alt="" /></span>
+                            <span class="system-config-nav-copy">
+                                <strong>จัดการฝ่าย</strong>
+                                <small>ข้อมูลฝ่ายพนักงานและโครงการ</small>
+                            </span>
+                            <span class="system-config-nav-arrow" aria-hidden="true">›</span>
+                        </a>
                     </nav>
                 </aside>
 

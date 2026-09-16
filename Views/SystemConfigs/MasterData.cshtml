@@ -1,0 +1,407 @@
+@using Microsoft.AspNetCore.Http
+@model ProjectTracking.ViewModels.SystemConfigMasterDataViewModel
+@{
+    ViewData["Title"] = Model.ActiveSection == "departments" ? "จัดการฝ่าย" : "จัดการตำแหน่ง";
+    var isDepartments = Model.ActiveSection == "departments";
+    var role = (Context.Session.GetString("Role") ?? "").Trim();
+    var allowedMenus = (Context.Session.GetString("Menus") ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var canManageHolidays = role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)
+        || allowedMenus.Contains("AttendanceHolidays.Index");
+}
+
+<style>
+    .master-config-page {
+        color: var(--pt-surface-contrast, #10233f);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    .master-config-page * { text-shadow: none; }
+
+    .master-config-layout {
+        display: grid;
+        grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
+        align-items: start;
+        gap: 18px;
+    }
+
+    .master-config-nav,
+    .master-config-content {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--pt-border, #d8e3ef);
+        border-radius: 18px;
+        background: var(--pt-surface, #fff);
+        box-shadow: 0 14px 32px rgba(15, 35, 64, .08);
+    }
+
+    .master-config-nav { position: sticky; top: 14px; }
+
+    .master-config-heading {
+        min-height: 78px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--pt-border, #dbe7f3);
+        background: var(--pt-surface-soft, #f8fbff);
+    }
+
+    .master-config-heading span {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--pt-surface-contrast-muted, #64748b);
+        font-size: .68rem;
+        font-weight: 600;
+        letter-spacing: .04em;
+    }
+
+    .master-config-heading h2,
+    .master-config-heading h3 {
+        margin: 0;
+        color: var(--pt-surface-contrast, #10233f);
+        font-size: 1.05rem;
+        font-weight: 650;
+    }
+
+    .master-config-heading strong {
+        min-width: 34px;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--pt-accent, #14b8a6);
+        border-radius: 8px;
+        color: var(--pt-accent-dark, #0f766e);
+        background: var(--pt-surface, #fff);
+        font-size: .84rem;
+        font-weight: 600;
+    }
+
+    .master-config-nav-list { display: grid; gap: 5px; padding: 8px; }
+
+    .master-config-nav-label {
+        padding: 11px 10px 4px;
+        color: var(--pt-surface-contrast-muted, #64748b);
+        font-size: .7rem;
+        font-weight: 650;
+        letter-spacing: .04em;
+    }
+
+    .master-config-nav-link {
+        min-height: 62px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        color: var(--pt-surface-contrast, #10233f);
+        text-decoration: none;
+        transition: background .16s ease, border-color .16s ease;
+    }
+
+    .master-config-nav-link:hover,
+    .master-config-nav-link.is-active {
+        color: var(--pt-surface-contrast, #10233f);
+        border-color: var(--pt-border, #bfdbfe);
+        background: var(--pt-accent-soft, #eff6ff);
+    }
+
+    .master-config-nav-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--pt-border, #dbe7f3);
+        border-radius: 8px;
+        background: var(--pt-surface, #fff);
+    }
+
+    .master-config-nav-icon img { width: 30px; height: 30px; object-fit: contain; }
+    .master-config-nav-copy { min-width: 0; display: grid; gap: 2px; }
+    .master-config-nav-copy strong { font-size: .9rem; font-weight: 600; }
+    .master-config-nav-copy small { color: var(--pt-surface-contrast-muted, #64748b); font-size: .74rem; }
+    .master-config-nav-arrow { color: var(--pt-surface-contrast-muted, #94a3b8); font-size: 1.3rem; }
+
+    .master-config-body { padding: 16px; }
+
+    .master-config-alert {
+        margin-bottom: 14px;
+        padding: 11px 14px;
+        border: 1px solid;
+        border-radius: 10px;
+        font-size: .9rem;
+        font-weight: 500;
+    }
+
+    .master-config-alert.success { color: #047857; border-color: #6ee7b7; background: #ecfdf5; }
+    .master-config-alert.error { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+
+    .master-config-create {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 14px;
+        border: 1px solid var(--pt-border, #dbe7f3);
+        border-radius: 12px;
+        background: var(--pt-surface-soft, #f8fafc);
+    }
+
+    .master-config-create.position { grid-template-columns: minmax(220px, 1fr) 110px 130px auto; }
+    .master-config-create.department { grid-template-columns: 180px minmax(220px, 1fr) 110px 130px auto; }
+
+    .master-config-field { min-width: 0; display: grid; gap: 5px; }
+    .master-config-field label { color: var(--pt-surface-contrast-muted, #64748b); font-size: .75rem; font-weight: 600; }
+
+    .master-config-input {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 11px;
+        border: 1px solid var(--pt-border, #cbd5e1);
+        border-radius: 8px;
+        color: var(--pt-surface-contrast, #10233f);
+        background: var(--pt-surface, #fff);
+        font: inherit;
+        font-size: .9rem;
+    }
+
+    .master-config-check {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 22px;
+        color: var(--pt-surface-contrast, #10233f);
+        font-size: .86rem;
+    }
+
+    .master-config-check input { width: 18px; height: 18px; accent-color: var(--pt-accent, #14b8a6); }
+
+    .master-config-button {
+        min-height: 42px;
+        align-self: end;
+        padding: 8px 16px;
+        border: 1px solid var(--pt-accent, #14b8a6);
+        border-radius: 8px;
+        color: #fff;
+        background: var(--pt-accent-dark, #0f766e);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .master-config-list { display: grid; gap: 9px; }
+
+    .master-config-row {
+        display: grid;
+        align-items: end;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--pt-border, #dbe7f3);
+        border-radius: 11px;
+        background: var(--pt-surface, #fff);
+    }
+
+    .master-config-row.position { grid-template-columns: minmax(220px, 1fr) 90px 115px 115px auto auto; }
+    .master-config-row.department { grid-template-columns: 150px minmax(220px, 1fr) 90px 115px 145px auto auto; }
+    .master-config-row.is-inactive { opacity: .68; }
+
+    .master-config-usage {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        color: var(--pt-surface-contrast-muted, #64748b);
+        font-size: .78rem;
+        line-height: 1.35;
+    }
+
+    .master-config-secondary {
+        min-height: 42px;
+        align-self: end;
+        padding: 8px 12px;
+        border: 1px solid var(--pt-border, #cbd5e1);
+        border-radius: 8px;
+        color: var(--pt-surface-contrast, #10233f);
+        background: transparent;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .master-config-secondary.disable { color: #b91c1c; border-color: #fca5a5; }
+    .master-config-secondary.enable { color: #047857; border-color: #6ee7b7; }
+    .master-config-empty { padding: 32px; text-align: center; color: var(--pt-surface-contrast-muted, #64748b); }
+
+    @@media (max-width: 1200px) {
+        .master-config-create.position,
+        .master-config-create.department,
+        .master-config-row.position,
+        .master-config-row.department { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .master-config-check { margin-top: 0; }
+    }
+
+    @@media (max-width: 900px) {
+        .master-config-layout { grid-template-columns: 1fr; }
+        .master-config-nav { position: static; }
+        .master-config-nav-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .master-config-nav-label { grid-column: 1 / -1; }
+    }
+
+    @@media (max-width: 620px) {
+        .master-config-nav-list,
+        .master-config-create.position,
+        .master-config-create.department,
+        .master-config-row.position,
+        .master-config-row.department { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="master-config-page">
+    <div class="index-hero pt-form-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h1 class="index-title">@(isDepartments ? "จัดการฝ่าย" : "จัดการตำแหน่ง")</h1>
+            <p class="index-subtitle">จัดการข้อมูลกลางที่ใช้ร่วมกันทั้งระบบจาก System Config</p>
+        </div>
+    </div>
+
+    <section class="master-config-layout">
+        <aside class="master-config-nav" aria-label="เมนู System Config">
+            <div class="master-config-heading">
+                <div>
+                    <span>SYSTEM CONFIG</span>
+                    <h3>การตั้งค่าระบบ</h3>
+                </div>
+            </div>
+            <nav class="master-config-nav-list">
+                <div class="master-config-nav-label">ค่าระบบ</div>
+                <a class="master-config-nav-link" asp-action="Index">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/settings.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>System Config</strong><small>Notification และค่ากลาง</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
+                @if (canManageHolidays)
+                {
+                    <a class="master-config-nav-link" asp-controller="AttendanceHolidays" asp-action="Index">
+                        <span class="master-config-nav-icon"><img src="/images/menu-icons/attendance.svg" alt="" /></span>
+                        <span class="master-config-nav-copy"><strong>จัดการวันหยุด</strong><small>ปฏิทินวันหยุดบริษัท</small></span>
+                        <span class="master-config-nav-arrow">›</span>
+                    </a>
+                }
+
+                <div class="master-config-nav-label">ข้อมูลบุคลากร</div>
+                <a class="master-config-nav-link @(!isDepartments ? "is-active" : "")" asp-action="MasterData" asp-route-type="positions">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/employees.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>จัดการตำแหน่ง</strong><small>@Model.Positions.Count ตำแหน่ง</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
+                <a class="master-config-nav-link @(isDepartments ? "is-active" : "")" asp-action="MasterData" asp-route-type="departments">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/projects.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>จัดการฝ่าย</strong><small>@Model.Departments.Count ฝ่าย</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="master-config-content">
+            <div class="master-config-heading">
+                <div>
+                    <span>MASTER DATA</span>
+                    <h2>@(isDepartments ? "ฝ่าย" : "ตำแหน่ง")</h2>
+                </div>
+                <strong>@(isDepartments ? Model.Departments.Count : Model.Positions.Count)</strong>
+            </div>
+
+            <div class="master-config-body">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="master-config-alert success">@TempData["Success"]</div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="master-config-alert error">@TempData["Error"]</div>
+                }
+
+                @if (isDepartments)
+                {
+                    <form asp-action="SaveDepartment" method="post" class="master-config-create department">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="departmentId" value="0" />
+                        <div class="master-config-field">
+                            <label for="newDepartmentCode">รหัสฝ่าย</label>
+                            <input id="newDepartmentCode" class="master-config-input" name="departmentCode" maxlength="50" required placeholder="เช่น BD" />
+                        </div>
+                        <div class="master-config-field">
+                            <label for="newDepartmentName">ชื่อฝ่าย</label>
+                            <input id="newDepartmentName" class="master-config-input" name="departmentName" maxlength="150" required placeholder="ชื่อฝ่าย" />
+                        </div>
+                        <div class="master-config-field">
+                            <label for="newDepartmentSort">ลำดับ</label>
+                            <input id="newDepartmentSort" class="master-config-input" name="sortOrder" type="number" value="@((Model.Departments.LastOrDefault()?.SortOrder ?? 0) + 10)" />
+                        </div>
+                        <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked /> ใช้งาน</label>
+                        <button class="master-config-button" type="submit">＋ เพิ่มฝ่าย</button>
+                    </form>
+
+                    <div class="master-config-list">
+                        @foreach (var item in Model.Departments)
+                        {
+                            <form asp-action="SaveDepartment" method="post" class="master-config-row department @(!item.IsActive ? "is-inactive" : "")">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="departmentId" value="@item.DepartmentId" />
+                                <div class="master-config-field"><label>รหัสฝ่าย</label><input class="master-config-input" name="departmentCode" value="@item.DepartmentCode" maxlength="50" required /></div>
+                                <div class="master-config-field"><label>ชื่อฝ่าย</label><input class="master-config-input" name="departmentName" value="@item.DepartmentName" maxlength="150" required /></div>
+                                <div class="master-config-field"><label>ลำดับ</label><input class="master-config-input" name="sortOrder" type="number" value="@item.SortOrder" /></div>
+                                <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked="@item.IsActive" /> ใช้งาน</label>
+                                <div class="master-config-usage">พนักงาน @item.EmployeeCount คน<br />โครงการ @item.ProjectCount รายการ</div>
+                                <button class="master-config-button" type="submit">บันทึก</button>
+                                <button class="master-config-secondary @(item.IsActive ? "disable" : "enable")" type="submit" formaction="@Url.Action("ToggleDepartment")" formnovalidate>
+                                    @(item.IsActive ? "ปิดใช้งาน" : "เปิดใช้งาน")
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <form asp-action="SavePosition" method="post" class="master-config-create position">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="positionId" value="0" />
+                        <div class="master-config-field">
+                            <label for="newPositionName">ชื่อตำแหน่ง</label>
+                            <input id="newPositionName" class="master-config-input" name="positionName" maxlength="150" required placeholder="ชื่อตำแหน่ง" />
+                        </div>
+                        <div class="master-config-field">
+                            <label for="newPositionSort">ลำดับ</label>
+                            <input id="newPositionSort" class="master-config-input" name="sortOrder" type="number" value="@((Model.Positions.LastOrDefault()?.SortOrder ?? 0) + 10)" />
+                        </div>
+                        <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked /> ใช้งาน</label>
+                        <button class="master-config-button" type="submit">＋ เพิ่มตำแหน่ง</button>
+                    </form>
+
+                    <div class="master-config-list">
+                        @foreach (var item in Model.Positions)
+                        {
+                            <form asp-action="SavePosition" method="post" class="master-config-row position @(!item.IsActive ? "is-inactive" : "")">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="positionId" value="@item.PositionId" />
+                                <div class="master-config-field"><label>ชื่อตำแหน่ง</label><input class="master-config-input" name="positionName" value="@item.PositionName" maxlength="150" required /></div>
+                                <div class="master-config-field"><label>ลำดับ</label><input class="master-config-input" name="sortOrder" type="number" value="@item.SortOrder" /></div>
+                                <label class="master-config-check"><input type="checkbox" name="isActive" value="true" checked="@item.IsActive" /> ใช้งาน</label>
+                                <div class="master-config-usage">พนักงาน @item.EmployeeCount คน</div>
+                                <button class="master-config-button" type="submit">บันทึก</button>
+                                <button class="master-config-secondary @(item.IsActive ? "disable" : "enable")" type="submit" formaction="@Url.Action("TogglePosition")" formnovalidate>
+                                    @(item.IsActive ? "ปิดใช้งาน" : "เปิดใช้งาน")
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>

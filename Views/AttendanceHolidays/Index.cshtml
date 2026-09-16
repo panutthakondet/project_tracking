@@ -79,6 +79,35 @@
             transition: transform .15s ease, filter .15s ease;
         }
 
+        .holiday-hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .holiday-back-button {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border: 1px solid var(--pt-border, #cbd5e1);
+            border-radius: 10px;
+            color: var(--holiday-text);
+            background: var(--pt-surface, #fff);
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .holiday-back-button:hover {
+            color: var(--holiday-text);
+            border-color: var(--pt-accent, #14b8a6);
+            background: var(--pt-accent-soft, #ecfdf5);
+        }
+
         .holiday-add-button:hover {
             color: #fff;
             filter: brightness(1.08);
@@ -308,7 +337,9 @@
         @@media (max-width: 767.98px) {
             .holiday-page { padding: 12px; }
             .holiday-hero { align-items: stretch; flex-direction: column; padding: 18px; }
-            .holiday-add-button { width: 100%; }
+            .holiday-hero-actions { align-items: stretch; flex-direction: column; }
+            .holiday-add-button,
+            .holiday-back-button { width: 100%; }
             .holiday-calendar-panel { padding: 12px; }
             #holidayCalendar { min-height: 560px; }
             #holidayCalendar .fc-header-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
@@ -326,7 +357,10 @@
                 <p class="holiday-subtitle">กำหนดวันหยุดของบริษัทและวันหยุดนักขัตฤกษ์สำหรับระบบลงเวลา</p>
             </div>
         </div>
-        <button type="button" class="holiday-add-button" id="addHolidayButton">＋ เพิ่มวันหยุด</button>
+        <div class="holiday-hero-actions">
+            <a class="holiday-back-button" asp-controller="SystemConfigs" asp-action="Index">← System Config</a>
+            <button type="button" class="holiday-add-button" id="addHolidayButton">＋ เพิ่มวันหยุด</button>
+        </div>
     </section>
 
     <section class="holiday-calendar-panel">

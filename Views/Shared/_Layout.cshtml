@@ -2365,11 +2365,11 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                                     {
                                         <li><a class="dropdown-item" asp-controller="Settings" asp-action="Appearance">Theme &amp; Appearance</a></li>
                                     }
-                                    @if (canAttendanceHolidays)
+                                    @if (canAttendanceHolidays && !CanMenu("SystemConfigs.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="AttendanceHolidays" asp-action="Index">จัดการวันหยุด</a></li>
                                     }
-                                    @if ((canAppearanceSettings || canAttendanceHolidays) && (CanMenu("UserManagement.Index") || CanMenu("StatusApprovals.Index") || CanMenu("NotificationSendLogs.Index") || CanMenu("SystemConfigs.Index")))
+                                    @if ((canAppearanceSettings || (canAttendanceHolidays && !CanMenu("SystemConfigs.Index"))) && (CanMenu("UserManagement.Index") || CanMenu("StatusApprovals.Index") || CanMenu("NotificationSendLogs.Index") || CanMenu("SystemConfigs.Index")))
                                     {
                                         <li><hr class="dropdown-divider" /></li>
                                     }

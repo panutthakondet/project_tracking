@@ -27,4 +27,31 @@ namespace ProjectTracking.ViewModels
     {
         public List<SystemConfigInputViewModel> Items { get; set; } = new();
     }
+
+    public class SystemConfigMasterDataViewModel
+    {
+        public string ActiveSection { get; set; } = "positions";
+        public List<EmployeePositionConfigViewModel> Positions { get; set; } = new();
+        public List<ProjectDepartmentConfigViewModel> Departments { get; set; } = new();
+    }
+
+    public class EmployeePositionConfigViewModel
+    {
+        public int PositionId { get; set; }
+        public string PositionName { get; set; } = "";
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public int EmployeeCount { get; set; }
+    }
+
+    public class ProjectDepartmentConfigViewModel
+    {
+        public int DepartmentId { get; set; }
+        public string DepartmentCode { get; set; } = "";
+        public string DepartmentName { get; set; } = "";
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public int EmployeeCount { get; set; }
+        public int ProjectCount { get; set; }
+    }
 }
