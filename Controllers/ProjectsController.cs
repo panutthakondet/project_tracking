@@ -516,8 +516,13 @@ namespace ProjectTracking.Controllers
         {
             ModelState.Remove(nameof(Project.StartDate));
             ModelState.Remove(nameof(Project.EndDate));
+            ModelState.Remove(nameof(Project.WarrantyStartDate));
+            ModelState.Remove(nameof(Project.WarrantyEndDate));
             project.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             project.EndDate = ParseProjectDate(Request.Form["EndDate"]);
+            project.WarrantyStartDate = ParseProjectDate(Request.Form["WarrantyStartDate"]);
+            project.WarrantyEndDate = ParseProjectDate(Request.Form["WarrantyEndDate"]);
+            ValidateWarrantyPeriod(project.WarrantyStartDate, project.WarrantyEndDate);
             var selectedDepartmentIds = await ResolveProjectDepartmentIdsAsync(project.DepartmentIds);
             ValidateProjectDepartments(project.DepartmentIds, selectedDepartmentIds);
             project.DepartmentId = selectedDepartmentIds.FirstOrDefault() is var firstDepartment && firstDepartment > 0
@@ -632,8 +637,13 @@ namespace ProjectTracking.Controllers
 
             ModelState.Remove(nameof(Project.StartDate));
             ModelState.Remove(nameof(Project.EndDate));
+            ModelState.Remove(nameof(Project.WarrantyStartDate));
+            ModelState.Remove(nameof(Project.WarrantyEndDate));
             model.StartDate = ParseProjectDate(Request.Form["StartDate"]);
             model.EndDate = ParseProjectDate(Request.Form["EndDate"]);
+            model.WarrantyStartDate = ParseProjectDate(Request.Form["WarrantyStartDate"]);
+            model.WarrantyEndDate = ParseProjectDate(Request.Form["WarrantyEndDate"]);
+            ValidateWarrantyPeriod(model.WarrantyStartDate, model.WarrantyEndDate);
             var selectedDepartmentIds = await ResolveProjectDepartmentIdsAsync(model.DepartmentIds);
             ValidateProjectDepartments(model.DepartmentIds, selectedDepartmentIds);
             model.DepartmentId = selectedDepartmentIds.FirstOrDefault() is var firstDepartment && firstDepartment > 0
@@ -668,6 +678,8 @@ namespace ProjectTracking.Controllers
             db.DepartmentId = model.DepartmentId;
             db.StartDate = model.StartDate;
             db.EndDate = model.EndDate;
+            db.WarrantyStartDate = model.WarrantyStartDate;
+            db.WarrantyEndDate = model.WarrantyEndDate;
 
             // 🔹 SYSTEM / DATABASE INFO
             db.LinkName = model.LinkName;
@@ -996,6 +1008,15 @@ namespace ProjectTracking.Controllers
             }
 
             return null;
+        }
+
+        private void ValidateWarrantyPeriod(DateTime? warrantyStartDate, DateTime? warrantyEndDate)
+        {
+            if (warrantyStartDate.HasValue && warrantyEndDate.HasValue
+                && warrantyEndDate.Value.Date < warrantyStartDate.Value.Date)
+            {
+                ModelState.AddModelError(nameof(Project.WarrantyEndDate), "วันที่สิ้นสุดรับประกันต้องไม่ก่อนวันที่เริ่มรับประกัน");
+            }
         }
 
         private IQueryable<ProjectDepartment> ActiveProjectDepartmentsQuery()

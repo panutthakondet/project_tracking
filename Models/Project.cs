@@ -126,6 +126,29 @@ namespace ProjectTracking.Models
         [Column("end_date")]
         public DateTime? EndDate { get; set; }
 
+        [Column("warranty_start_date")]
+        public DateTime? WarrantyStartDate { get; set; }
+
+        [Column("warranty_end_date")]
+        public DateTime? WarrantyEndDate { get; set; }
+
+        [NotMapped]
+        public string WarrantyStatusDescription
+        {
+            get
+            {
+                if (!WarrantyEndDate.HasValue)
+                    return "ยังไม่กำหนดระยะรับประกัน";
+
+                return WarrantyEndDate.Value.Date >= DateTime.Today
+                    ? "รับประกันอยู่"
+                    : "หมดรับประกัน";
+            }
+        }
+
+        [NotMapped]
+        public bool IsWarrantyActive => WarrantyEndDate.HasValue && WarrantyEndDate.Value.Date >= DateTime.Today;
+
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
 

@@ -288,6 +288,9 @@
                 <th class="col-url">รีโมท / URL</th>
                 <th class="col-date">วันที่เริ่ม</th>
                 <th class="col-date">วันที่สิ้นสุด</th>
+                <th class="col-date">เริ่มรับประกัน</th>
+                <th class="col-date">สิ้นสุดรับประกัน</th>
+                <th class="col-status">สถานะรับประกัน</th>
                 <th class="col-status">สถานะ</th>
                 <th class="col-mini">Figma</th>
                 <th class="col-action">จัดการ</th>
@@ -298,7 +301,7 @@
         @if (!orderedProjects.Any())
         {
             <tr>
-                <td colspan="15" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
+                <td colspan="18" class="text-center text-muted">— ไม่มีข้อมูลโครงการ —</td>
             </tr>
         }
         else
@@ -406,6 +409,25 @@
 
                     <td class="text-center col-date">
                         @(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td class="text-center col-date">
+                        @(p.WarrantyStartDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td class="text-center col-date">
+                        @(p.WarrantyEndDate?.ToString("dd MMM yyyy", th) ?? "-")
+                    </td>
+
+                    <td class="text-center col-status">
+                        @if (p.WarrantyEndDate.HasValue)
+                        {
+                            <span class="badge @(p.IsWarrantyActive ? "bg-success" : "bg-secondary")">@p.WarrantyStatusDescription</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
                     </td>
 
                     <td class="text-center col-status">
@@ -800,6 +822,23 @@
                             <span class="project-tech-label project-tech-end-label">วันที่สิ้นสุด:</span>
                             <span class="project-tech-value">@(p.EndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
                         </div>
+                        @if (p.WarrantyStartDate.HasValue || p.WarrantyEndDate.HasValue)
+                        {
+                            <div class="project-tech-row project-tech-date-row">
+                                <span class="project-tech-icon project-local-icon project-local-icon--calendar" aria-hidden="true"></span>
+                                <span class="project-tech-label">เริ่มรับประกัน:</span>
+                                <span class="project-tech-value">@(p.WarrantyStartDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                                <span class="project-tech-label project-tech-end-label">สิ้นสุดรับประกัน:</span>
+                                <span class="project-tech-value">@(p.WarrantyEndDate?.ToString("dd MMM yyyy", th) ?? "-")</span>
+                            </div>
+                            <div class="project-tech-row">
+                                <span class="project-tech-icon project-local-icon project-local-icon--status" aria-hidden="true"></span>
+                                <span class="project-tech-label">สถานะรับประกัน:</span>
+                                <span class="project-tech-value">
+                                    <span class="project-warranty-status @(p.IsWarrantyActive ? "is-active" : "is-expired")">@p.WarrantyStatusDescription</span>
+                                </span>
+                            </div>
+                        }
                     </div>
                 </section>
                 </section>
@@ -2456,6 +2495,18 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 
 .project-tech-end-label {
     grid-column: 2;
+}
+
+.project-warranty-status {
+    font-weight: 700;
+}
+
+.project-warranty-status.is-active {
+    color: #178b4d;
+}
+
+.project-warranty-status.is-expired {
+    color: #c33434;
 }
 
 .project-mobile-cards .project-actions {

@@ -227,6 +227,7 @@ await EnsureEmployeePositionTableAsync(app.Services);
 await EnsureProjectDepartmentTableAsync(app.Services);
 await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
+await EnsureProjectWarrantyDateColumnsAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -3614,6 +3615,54 @@ static async Task EnsurePhaseAssignActualDateColumnsAsync(IServiceProvider servi
                 SET `actual_end` = `plan_end`;";
             await command.ExecuteNonQueryAsync();
         }
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectWarrantyDateColumnsAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project';";
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        async Task EnsureColumnAsync(string columnName, string alterSql)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'project'
+                  AND COLUMN_NAME = '{columnName}';";
+            var exists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+            if (exists) return;
+
+            command.CommandText = alterSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureColumnAsync("warranty_start_date", @"
+            ALTER TABLE `project`
+            ADD COLUMN `warranty_start_date` date NULL AFTER `end_date`;");
+
+        await EnsureColumnAsync("warranty_end_date", @"
+            ALTER TABLE `project`
+            ADD COLUMN `warranty_end_date` date NULL AFTER `warranty_start_date`;");
     }
     finally
     {

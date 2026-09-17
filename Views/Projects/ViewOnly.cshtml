@@ -619,6 +619,12 @@
                             <td>
                                 <div><span class="label">Start:</span> @DateText(project.StartDate)</div>
                                 <div><span class="label">End:</span> @DateText(project.EndDate)</div>
+                                <div class="cell-sub"><span class="label">เริ่มรับประกัน:</span> @DateText(project.WarrantyStartDate)</div>
+                                <div class="cell-sub"><span class="label">สิ้นสุดรับประกัน:</span> @DateText(project.WarrantyEndDate)</div>
+                                @if (project.WarrantyEndDate.HasValue)
+                                {
+                                    <div class="cell-sub"><span class="label">สถานะรับประกัน:</span> @project.WarrantyStatusDescription</div>
+                                }
                                 <div class="cell-sub">
                                     <span class="status-text @StatusClass(project.StatusDefinition?.StatusCode ?? project.Status)">@TextOrDash(project.StatusDescription)</span>
                                 </div>

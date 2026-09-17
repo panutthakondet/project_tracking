@@ -19,6 +19,15 @@
     <dt>End Date</dt>
     <dd>@Model.EndDate?.ToString("yyyy-MM-dd")</dd>
 
+    <dt>วันที่เริ่มรับประกัน</dt>
+    <dd>@Model.WarrantyStartDate?.ToString("yyyy-MM-dd")</dd>
+
+    <dt>วันที่สิ้นสุดรับประกัน</dt>
+    <dd>@Model.WarrantyEndDate?.ToString("yyyy-MM-dd")</dd>
+
+    <dt>สถานะรับประกัน</dt>
+    <dd>@Model.WarrantyStatusDescription</dd>
+
     <dt>Status</dt>
     <dd>@Model.Status</dd>
 </dl>

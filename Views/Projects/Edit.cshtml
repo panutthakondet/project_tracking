@@ -5,9 +5,13 @@
 
     DateTime? startDate = Model?.StartDate;
     DateTime? endDate = Model?.EndDate;
+    DateTime? warrantyStartDate = Model?.WarrantyStartDate;
+    DateTime? warrantyEndDate = Model?.WarrantyEndDate;
 
     var sd = startDate.GetValueOrDefault();
     var ed = endDate.GetValueOrDefault();
+    var warrantyStart = warrantyStartDate.GetValueOrDefault();
+    var warrantyEnd = warrantyEndDate.GetValueOrDefault();
 
     string startDateText = startDate.HasValue
         ? $"{sd:dd/MM/}{sd.Year + 543}"
@@ -15,6 +19,14 @@
 
     string endDateText = endDate.HasValue
         ? $"{ed:dd/MM/}{ed.Year + 543}"
+        : "";
+
+    string warrantyStartDateText = warrantyStartDate.HasValue
+        ? $"{warrantyStart:dd/MM/}{warrantyStart.Year + 543}"
+        : "";
+
+    string warrantyEndDateText = warrantyEndDate.HasValue
+        ? $"{warrantyEnd:dd/MM/}{warrantyEnd.Year + 543}"
         : "";
 
     var requirementCardDetailUrlTemplate = Url.Action("CardDetails", "RequirementBoard", new { id = "__CARD_ID__" }) ?? "";
@@ -166,7 +178,7 @@
                 </div>
 
                 <!-- Start Date -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">
                         วันที่เริ่ม
                     </label>
@@ -179,7 +191,7 @@
                 </div>
 
                 <!-- End Date -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-semibold">
                         วันที่สิ้นสุด
                     </label>
@@ -189,6 +201,28 @@
                            id="EndDate"
                            value="@endDateText"
                            placeholder="วว/ดด/ปปปป" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">วันที่เริ่มรับประกัน</label>
+                    <input name="WarrantyStartDate"
+                           type="text"
+                           class="form-control thai-date"
+                           id="WarrantyStartDate"
+                           value="@warrantyStartDateText"
+                           placeholder="วว/ดด/ปปปป" />
+                    <span asp-validation-for="WarrantyStartDate" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">วันที่สิ้นสุดรับประกัน</label>
+                    <input name="WarrantyEndDate"
+                           type="text"
+                           class="form-control thai-date"
+                           id="WarrantyEndDate"
+                           value="@warrantyEndDateText"
+                           placeholder="วว/ดด/ปปปป" />
+                    <span asp-validation-for="WarrantyEndDate" class="text-danger"></span>
                 </div>
 
                 <!-- ================= SYSTEM / DATABASE INFO ================= -->
@@ -315,6 +349,8 @@
 
         formatThaiDateInput(document.getElementById('StartDate'));
         formatThaiDateInput(document.getElementById('EndDate'));
+        formatThaiDateInput(document.getElementById('WarrantyStartDate'));
+        formatThaiDateInput(document.getElementById('WarrantyEndDate'));
 
         document.querySelector('form').addEventListener('submit', function () {
             document.querySelectorAll('.thai-date').forEach(input => {
