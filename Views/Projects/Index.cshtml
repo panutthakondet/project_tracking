@@ -422,7 +422,7 @@
                     <td class="text-center col-status">
                         @if (p.WarrantyEndDate.HasValue)
                         {
-                            <span class="badge @(p.IsWarrantyActive ? "bg-success" : "bg-secondary")">@p.WarrantyStatusDescription</span>
+                            <span class="project-warranty-status @(p.IsWarrantyActive ? "is-active" : "is-expired")">@p.WarrantyStatusDescription</span>
                         }
                         else
                         {

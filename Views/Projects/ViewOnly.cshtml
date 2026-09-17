@@ -328,6 +328,7 @@
             white-space: nowrap;
         }
         .status-text.success { color: #0f8f5f; }
+        .status-text.danger { color: #c33434; }
         .status-text.warning { color: #b7790b; }
         .status-text.info { color: #0f6fa8; }
         .status-text.muted { color: #64748b; }
@@ -623,7 +624,10 @@
                                 <div class="cell-sub"><span class="label">สิ้นสุดรับประกัน:</span> @DateText(project.WarrantyEndDate)</div>
                                 @if (project.WarrantyEndDate.HasValue)
                                 {
-                                    <div class="cell-sub"><span class="label">สถานะรับประกัน:</span> @project.WarrantyStatusDescription</div>
+                                    <div class="cell-sub">
+                                        <span class="label">สถานะรับประกัน:</span>
+                                        <span class="status-text @(project.IsWarrantyActive ? "success" : "danger")">@project.WarrantyStatusDescription</span>
+                                    </div>
                                 }
                                 <div class="cell-sub">
                                     <span class="status-text @StatusClass(project.StatusDefinition?.StatusCode ?? project.Status)">@TextOrDash(project.StatusDescription)</span>
