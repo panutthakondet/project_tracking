@@ -2498,15 +2498,20 @@ main.route-controller-projects .project-card .project-status .project-approval-p
 }
 
 .project-warranty-status {
-    font-weight: 700;
+    font-weight: 700 !important;
+    text-shadow: none !important;
 }
 
+.project-card .project-tech-value .project-warranty-status.is-active,
 .project-warranty-status.is-active {
-    color: #178b4d;
+    color: #178b4d !important;
+    -webkit-text-fill-color: #178b4d !important;
 }
 
+.project-card .project-tech-value .project-warranty-status.is-expired,
 .project-warranty-status.is-expired {
-    color: #c33434;
+    color: #c33434 !important;
+    -webkit-text-fill-color: #c33434 !important;
 }
 
 .project-mobile-cards .project-actions {
