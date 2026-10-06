@@ -9,16 +9,6 @@ namespace ProjectTracking.Controllers
     [RequireMenu("ProjectDocuments.Index")]
     public class ProjectDocumentsController : Controller
     {
-        private static readonly HashSet<string> AllowedDocumentTypes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "BRD",
-            "TOR",
-            "DESIGN",
-            "BOOKIN",
-            "BOOKOUT",
-            "OTHER"
-        };
-
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
@@ -53,7 +43,23 @@ namespace ProjectTracking.Controllers
             ViewBag.ProjectId = selectedProject?.ProjectId;
             ViewBag.SelectedProject = selectedProject;
             ViewBag.Projects = projects;
+            ViewBag.DocumentTypes = await GetActiveDocumentTypesAsync();
             return View(docs);
+        }
+
+        [RequireMenu("ProjectDocuments.Upload")]
+        [HttpGet]
+        public async Task<IActionResult> Upload(int projectId)
+        {
+            if (projectId <= 0 || !await _context.Projects.AnyAsync(x => x.ProjectId == projectId))
+            {
+                TempData["Error"] = "กรุณาเลือกโครงการก่อนอัปโหลดเอกสาร";
+                return RedirectToAction("Index");
+            }
+
+            ViewBag.ProjectId = projectId;
+            ViewBag.DocumentTypes = await GetActiveDocumentTypesAsync();
+            return View();
         }
 
         // ============================
@@ -73,11 +79,19 @@ namespace ProjectTracking.Controllers
             }
 
             var normalizedDocumentType = (documentType ?? "").Trim().ToUpperInvariant();
-            if (!AllowedDocumentTypes.Contains(normalizedDocumentType))
+            var allowedDocumentType = (await GetActiveDocumentTypesAsync())
+                .FirstOrDefault(x => string.Equals(
+                    x.DocumentTypeCode.Trim(),
+                    normalizedDocumentType,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (allowedDocumentType == null)
             {
                 TempData["Error"] = "ประเภทเอกสารไม่ถูกต้อง";
                 return RedirectToAction("Index", new { projectId });
             }
+
+            normalizedDocumentType = allowedDocumentType.DocumentTypeCode.Trim().ToUpperInvariant();
 
             if (file == null || file.Length == 0)
                 return RedirectToAction("Index", new { projectId });
@@ -118,6 +132,16 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index", new { projectId });
+        }
+
+        private Task<List<ProjectDocumentType>> GetActiveDocumentTypesAsync()
+        {
+            return _context.ProjectDocumentTypes
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DocumentTypeName)
+                .ToListAsync();
         }
 
         // ============================

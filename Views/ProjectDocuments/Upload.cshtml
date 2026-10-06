@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Upload Document";
     var projectId = ViewBag.ProjectId;
+    var documentTypes = ViewBag.DocumentTypes as IEnumerable<ProjectTracking.Models.ProjectDocumentType> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDocumentType>();
 }
 
 <div class="container">
@@ -20,12 +21,11 @@
                 <div class="mb-3">
                     <label class="form-label">Document Type</label>
                     <select name="documentType" class="form-select" required>
-                        <option value="BRD">BRD</option>
-                        <option value="TOR">TOR</option>
-                        <option value="DESIGN">Design</option>
-                        <option value="BOOKIN">BOOKIN</option>
-                        <option value="BOOKOUT">BOOKOUT</option>
-                        <option value="OTHER">Other</option>
+                        <option value="" selected disabled>-- เลือกประเภทเอกสาร --</option>
+                        @foreach (var documentType in documentTypes)
+                        {
+                            <option value="@documentType.DocumentTypeCode">@documentType.DocumentTypeName</option>
+                        }
                     </select>
                 </div>
 

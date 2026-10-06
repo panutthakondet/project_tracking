@@ -5,6 +5,7 @@
     var selectedProjectId = ViewBag.ProjectId is int id ? id : 0;
     var selectedProject = ViewBag.SelectedProject as ProjectTracking.Models.Project;
     var projects = ViewBag.Projects as IEnumerable<ProjectTracking.Models.Project> ?? Enumerable.Empty<ProjectTracking.Models.Project>();
+    var documentTypes = ViewBag.DocumentTypes as IEnumerable<ProjectTracking.Models.ProjectDocumentType> ?? Enumerable.Empty<ProjectTracking.Models.ProjectDocumentType>();
 }
 
 @using Microsoft.AspNetCore.Http
@@ -197,12 +198,10 @@
                             <label class="form-label">Document Type</label>
                             <select name="documentType" class="form-select" required>
                                 <option value="" selected disabled>-- เลือกประเภทเอกสาร --</option>
-                                <option value="BRD">BRD</option>
-                                <option value="TOR">TOR</option>
-                                <option value="DESIGN">Design</option>
-                                <option value="BOOKIN">BOOKIN</option>
-                                <option value="BOOKOUT">BOOKOUT</option>
-                                <option value="OTHER">Other</option>
+                                @foreach (var documentType in documentTypes)
+                                {
+                                    <option value="@documentType.DocumentTypeCode">@documentType.DocumentTypeName</option>
+                                }
                             </select>
                         </div>
 

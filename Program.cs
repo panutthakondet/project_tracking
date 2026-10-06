@@ -239,6 +239,7 @@ await EnsureUserNotificationTableAsync(app.Services);
 await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureProjectDocumentsTableAsync(app.Services);
+await EnsureProjectDocumentTypeTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
@@ -1575,6 +1576,68 @@ static async Task EnsureProjectDocumentsTableAsync(IServiceProvider services)
         await EnsureIndexAsync(
             "idx_project_documents_project_type",
             "CREATE INDEX `idx_project_documents_project_type` ON `project_documents` (`project_id`, `document_type`);");
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectDocumentTypeTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `project_document_types` (
+              `document_type_id` INT NOT NULL AUTO_INCREMENT,
+              `document_type_code` VARCHAR(20) NOT NULL,
+              `document_type_name` VARCHAR(100) NOT NULL,
+              `sort_order` INT NOT NULL DEFAULT 0,
+              `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+              `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (`document_type_id`),
+              UNIQUE KEY `uq_project_document_types_code` (`document_type_code`),
+              KEY `idx_project_document_types_active_sort` (`is_active`, `sort_order`, `document_type_name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        // Seed only missing defaults. Existing names, order, and active status remain untouched.
+        command.CommandText = @"
+            INSERT IGNORE INTO `project_document_types`
+                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+            VALUES
+                ('BRD', 'BRD', 10, 1),
+                ('TOR', 'TOR', 20, 1),
+                ('DESIGN', 'Design', 30, 1),
+                ('BOOKIN', 'BOOKIN', 40, 1),
+                ('BOOKOUT', 'BOOKOUT', 50, 1),
+                ('OTHER', 'Other', 999, 1);";
+        await command.ExecuteNonQueryAsync();
+
+        // Preserve any legacy document types that were already stored before this master table existed.
+        command.CommandText = @"
+            INSERT IGNORE INTO `project_document_types`
+                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+            SELECT DISTINCT
+                UPPER(TRIM(`document_type`)),
+                TRIM(`document_type`),
+                1000,
+                1
+            FROM `project_documents`
+            WHERE `document_type` IS NOT NULL
+              AND TRIM(`document_type`) <> '';";
+        await command.ExecuteNonQueryAsync();
     }
     finally
     {

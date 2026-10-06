@@ -21,6 +21,7 @@ namespace ProjectTracking.Data
         public DbSet<ProjectDepartment> ProjectDepartments { get; set; }
         public DbSet<ProjectDepartmentLink> ProjectDepartmentLinks { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
+        public DbSet<ProjectDocumentType> ProjectDocumentTypes { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
         public DbSet<ProjectStatusDefinition> ProjectStatuses { get; set; }
@@ -1582,6 +1583,55 @@ namespace ProjectTracking.Data
                     .WithMany()
                     .HasForeignKey(d => d.ProjectId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // PROJECT DOCUMENT TYPES
+            // =========================
+            modelBuilder.Entity<ProjectDocumentType>(entity =>
+            {
+                entity.ToTable("project_document_types");
+
+                entity.HasKey(x => x.DocumentTypeId);
+
+                entity.Property(x => x.DocumentTypeId)
+                    .HasColumnName("document_type_id");
+
+                entity.Property(x => x.DocumentTypeCode)
+                    .HasColumnName("document_type_code")
+                    .HasColumnType("varchar(20)")
+                    .IsRequired();
+
+                entity.Property(x => x.DocumentTypeName)
+                    .HasColumnName("document_type_name")
+                    .HasColumnType("varchar(100)")
+                    .IsRequired();
+
+                entity.Property(x => x.SortOrder)
+                    .HasColumnName("sort_order")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsActive)
+                    .HasColumnName("is_active")
+                    .HasColumnType("tinyint(1)")
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreatedAt)
+                    .HasColumnName("created_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdatedAt)
+                    .HasColumnName("updated_at")
+                    .HasColumnType("datetime")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(x => x.DocumentTypeCode)
+                    .IsUnique()
+                    .HasDatabaseName("uq_project_document_types_code");
+
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder, x.DocumentTypeName })
+                    .HasDatabaseName("idx_project_document_types_active_sort");
             });
 
             // =========================
