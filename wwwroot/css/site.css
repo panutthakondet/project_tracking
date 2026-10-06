@@ -3692,6 +3692,23 @@ main.route-controller-meetings :is(.btn, .fc-button):focus-visible {
   flex: 1;
 }
 
+/* Keep the final meeting metadata row aligned and never split Thai text one character per line. */
+.route-controller-meetings .meeting-detail-summary-grid > [class*="col-"] {
+  min-width: 0;
+}
+
+.route-controller-meetings .meeting-detail-meta-value,
+.route-controller-meetings .meeting-detail-meta-value :is(span, a) {
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.route-controller-meetings .meeting-detail-meta-value :is(span, a) {
+  display: block;
+}
+
 .route-controller-meetings .meeting-attendee-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

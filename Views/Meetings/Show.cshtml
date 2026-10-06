@@ -4,6 +4,7 @@
 @using ProjectTracking.ViewModels
 @using Microsoft.AspNetCore.Http
 @using System.Globalization
+@using System.Text.RegularExpressions
 @{
     bool CanMenu(string key)
     {
@@ -36,6 +37,12 @@
                 ? candidate
                 : null;
     }
+
+    string DisplayInline(string? value)
+    {
+        var normalized = Regex.Replace(value ?? string.Empty, @"\s+", " ").Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? "-" : normalized;
+    }
 }
 
 @{
@@ -45,6 +52,8 @@
     var attendeeList = attendees.ToList();
     var coopName = ViewBag.CoopName as string;
     var projectName = ViewBag.ProjectName as string;
+    var locationText = DisplayInline(Model.Location);
+    var meetingAudienceText = DisplayInline(Model.MeetingAudience);
 }
 
 @if (!CanMenu("Meetings.Show"))
@@ -146,29 +155,29 @@
                             <div class="meeting-detail-label">เวลา</div>
                             <div class="meeting-detail-value">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6 col-lg-3 meeting-detail-meta-cell">
                             <div class="meeting-detail-label">สถานที่</div>
-                            <div class="meeting-detail-value">
+                            <div class="meeting-detail-value meeting-detail-meta-value">
                                 @{
-                                    var locationHref = LinkHref(Model.Location);
+                                    var locationHref = LinkHref(locationText);
                                 }
-                                @if (string.IsNullOrWhiteSpace(Model.Location))
+                                @if (locationText == "-")
                                 {
                                     <span>-</span>
                                 }
                                 else if (!string.IsNullOrWhiteSpace(locationHref))
                                 {
-                                    <a href="@locationHref" target="_blank" rel="noopener noreferrer">@Model.Location</a>
+                                    <a href="@locationHref" target="_blank" rel="noopener noreferrer">@locationText</a>
                                 }
                                 else
                                 {
-                                    <span>@Model.Location</span>
+                                    <span>@locationText</span>
                                 }
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6 col-lg-3 meeting-detail-meta-cell">
                             <div class="meeting-detail-label">ประชุมกับ</div>
-                            <div class="meeting-detail-value">@(string.IsNullOrWhiteSpace(Model.MeetingAudience) ? "-" : Model.MeetingAudience)</div>
+                            <div class="meeting-detail-value meeting-detail-meta-value">@meetingAudienceText</div>
                         </div>
                     </div>
                 </div>
