@@ -5,6 +5,7 @@
     // Controller ส่ง ViewBag.Projects = list of { ProjectId, ProjectName }
     var projects = ViewBag.Projects as IEnumerable<dynamic>;
     var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var departments = ViewBag.Departments as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 <style>
@@ -44,6 +45,36 @@
 
     main.route-controller-meetings.route-action-create .meeting-create-wrap .meeting-card:has(.meeting-attendee-picker .pt-search-select.is-open) {
         padding-bottom: 260px;
+    }
+
+    .meeting-attendee-picker__department {
+        padding: 12px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(13, 110, 253, .18);
+        border-radius: 12px;
+        background: rgba(13, 110, 253, .035);
+    }
+
+    .meeting-attendee-picker__department-label {
+        display: block;
+        margin: 0 0 7px;
+        font-size: .9rem;
+        font-weight: 700;
+        color: #243b5a;
+    }
+
+    .meeting-attendee-picker__department-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .meeting-attendee-picker__department-feedback {
+        min-height: 1.25rem;
+        margin: 7px 0 0;
+        color: #62748a;
+        font-size: .84rem;
     }
 
     .meeting-card__header {
@@ -102,6 +133,10 @@
 
     @@media (max-width: 768px) {
         .meeting-card__body { padding: 14px; }
+
+        .meeting-attendee-picker__department-controls {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -217,13 +252,31 @@
                     <div class="col-12">
                         <label class="form-label">ผู้เข้าร่วมประชุม</label>
                         <div class="meeting-attendee-picker" data-attendee-picker>
+                            <div class="meeting-attendee-picker__department">
+                                <label class="meeting-attendee-picker__department-label" for="attendeeDepartmentSelect">เพิ่มผู้เข้าร่วมตามฝ่าย</label>
+                                <div class="meeting-attendee-picker__department-controls">
+                                    <select id="attendeeDepartmentSelect" class="form-select" data-attendee-department>
+                                        <option value="">-- เลือกฝ่าย --</option>
+                                        @foreach (var department in departments)
+                                        {
+                                            <option value="@department.DepartmentId">@department.DepartmentName</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary btn-pill" data-attendee-department-add disabled>
+                                        + เพิ่มทั้งฝ่าย
+                                    </button>
+                                </div>
+                                <p class="meeting-attendee-picker__department-feedback" data-attendee-department-feedback aria-live="polite">
+                                    เลือกฝ่ายเพื่อเพิ่มพนักงานที่ใช้งานอยู่ทั้งหมด
+                                </p>
+                            </div>
                             <div class="meeting-attendee-picker__controls">
                                 <select class="form-select" data-attendee-select>
                                     <option value="">-- เลือกผู้เข้าร่วม --</option>
                                     @foreach (var e in employees)
                                     {
                                         var label = $"{e.EmpName} {(e.Position != null ? $"({e.Position})" : "")}".Trim();
-                                        <option value="@e.EmpId" data-label="@label">@label</option>
+                                        <option value="@e.EmpId" data-label="@label" data-department-id="@e.DepartmentId">@label</option>
                                     }
                                 </select>
                                 <button type="button" class="btn btn-outline-primary btn-pill" data-attendee-add>
@@ -233,7 +286,7 @@
                             <div class="meeting-selected-attendees" data-attendee-list></div>
                             <div data-attendee-inputs></div>
                         </div>
-                        <small class="form-hint">เลือกทีละคน กดเพิ่ม แล้วสามารถลบรายชื่อออกเพื่อเลือกใหม่ได้</small>
+                        <small class="form-hint">เลือกเพิ่มทีละคน หรือเลือกฝ่ายเพื่อเพิ่มพนักงานทั้งฝ่าย แล้วสามารถลบรายชื่อออกเพื่อเลือกใหม่ได้</small>
                     </div>
                 </div>
 
@@ -271,6 +324,9 @@
 
         const select = picker.querySelector('[data-attendee-select]');
         const addButton = picker.querySelector('[data-attendee-add]');
+        const departmentSelect = picker.querySelector('[data-attendee-department]');
+        const departmentAddButton = picker.querySelector('[data-attendee-department-add]');
+        const departmentFeedback = picker.querySelector('[data-attendee-department-feedback]');
         const list = picker.querySelector('[data-attendee-list]');
         const inputs = picker.querySelector('[data-attendee-inputs]');
         const selected = new Map();
@@ -337,9 +393,67 @@
             render();
         }
 
+        function getDepartmentOptions() {
+            const departmentId = departmentSelect?.value || '';
+            if (!departmentId) return [];
+
+            return Array.from(select.options)
+                .filter(option => option.value && option.dataset.departmentId === departmentId);
+        }
+
+        function refreshDepartmentAction(message) {
+            if (!departmentSelect || !departmentAddButton || !departmentFeedback) return;
+
+            const departmentId = departmentSelect.value;
+            if (!departmentId) {
+                departmentAddButton.disabled = true;
+                departmentFeedback.textContent = 'เลือกฝ่ายเพื่อเพิ่มพนักงานที่ใช้งานอยู่ทั้งหมด';
+                return;
+            }
+
+            const departmentName = departmentSelect.options[departmentSelect.selectedIndex]?.textContent?.trim() || 'ฝ่ายที่เลือก';
+            const departmentEmployees = getDepartmentOptions();
+            const availableCount = departmentEmployees.filter(option => !option.disabled).length;
+
+            departmentAddButton.disabled = availableCount === 0;
+            departmentFeedback.textContent = message || (departmentEmployees.length === 0
+                ? `${departmentName} ยังไม่มีพนักงานที่ใช้งานอยู่`
+                : availableCount === 0
+                    ? `เพิ่มพนักงานจากฝ่าย ${departmentName} ครบแล้ว`
+                    : `พบพนักงาน ${departmentEmployees.length} คน · เพิ่มได้อีก ${availableCount} คน`);
+        }
+
+        function addDepartmentAttendees() {
+            const departmentEmployees = getDepartmentOptions();
+            if (departmentEmployees.length === 0) {
+                refreshDepartmentAction();
+                return;
+            }
+
+            let addedCount = 0;
+            departmentEmployees.forEach(option => {
+                if (!option.disabled) {
+                    addAttendee(option.value);
+                    addedCount++;
+                }
+            });
+
+            const departmentName = departmentSelect?.options[departmentSelect.selectedIndex]?.textContent?.trim() || 'ฝ่ายที่เลือก';
+            refreshDepartmentAction(addedCount > 0
+                ? `เพิ่มพนักงานจากฝ่าย ${departmentName} แล้ว ${addedCount} คน`
+                : `เพิ่มพนักงานจากฝ่าย ${departmentName} ครบแล้ว`);
+        }
+
         addButton?.addEventListener('click', function () {
             addAttendee(select.value);
+            refreshDepartmentAction();
         });
+
+        departmentSelect?.addEventListener('change', function () {
+            refreshDepartmentAction();
+        });
+
+        departmentAddButton?.addEventListener('click', addDepartmentAttendees);
 
         select?.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
@@ -359,6 +473,7 @@
             if (option) option.disabled = false;
 
             render();
+            refreshDepartmentAction();
         });
 
         Array.from(select.options)
@@ -366,6 +481,7 @@
             .forEach(option => addAttendee(option.value));
 
         render();
+        refreshDepartmentAction();
     }
 
     function formatDateInput(value) {
