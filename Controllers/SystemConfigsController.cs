@@ -128,9 +128,13 @@ namespace ProjectTracking.Controllers
         [RequireMenu("SystemConfigs.Index")]
         public async Task<IActionResult> MasterData(string? type, CancellationToken cancellationToken)
         {
-            var activeSection = string.Equals(type, "departments", StringComparison.OrdinalIgnoreCase)
-                ? "departments"
-                : "positions";
+            var activeSection = (type ?? "").Trim().ToLowerInvariant() switch
+            {
+                "departments" => "departments",
+                "employee-document-types" => "employee-document-types",
+                "project-document-types" => "project-document-types",
+                _ => "positions"
+            };
 
             var model = new SystemConfigMasterDataViewModel
             {
@@ -161,6 +165,34 @@ namespace ProjectTracking.Controllers
                         IsActive = x.IsActive,
                         EmployeeCount = x.Employees.Count,
                         ProjectCount = x.ProjectLinks.Count
+                    })
+                    .ToListAsync(cancellationToken),
+                EmployeeDocumentTypes = await _context.EmployeeDocumentTypes
+                    .AsNoTracking()
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.DocumentTypeName)
+                    .Select(x => new DocumentTypeConfigViewModel
+                    {
+                        DocumentTypeId = x.DocumentTypeId,
+                        DocumentTypeCode = x.DocumentTypeCode,
+                        DocumentTypeName = x.DocumentTypeName,
+                        SortOrder = x.SortOrder,
+                        IsActive = x.IsActive,
+                        DocumentCount = _context.EmployeeDocuments.Count(d => d.DocumentType == x.DocumentTypeCode)
+                    })
+                    .ToListAsync(cancellationToken),
+                ProjectDocumentTypes = await _context.ProjectDocumentTypes
+                    .AsNoTracking()
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.DocumentTypeName)
+                    .Select(x => new DocumentTypeConfigViewModel
+                    {
+                        DocumentTypeId = x.DocumentTypeId,
+                        DocumentTypeCode = x.DocumentTypeCode,
+                        DocumentTypeName = x.DocumentTypeName,
+                        SortOrder = x.SortOrder,
+                        IsActive = x.IsActive,
+                        DocumentCount = _context.ProjectDocuments.Count(d => d.DocumentType == x.DocumentTypeCode)
                     })
                     .ToListAsync(cancellationToken)
             };
@@ -325,6 +357,174 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync(cancellationToken);
             TempData["Success"] = department.IsActive ? "เปิดใช้งานฝ่ายแล้ว" : "ปิดใช้งานฝ่ายแล้ว";
             return RedirectToMasterData("departments");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> SaveEmployeeDocumentType(
+            int documentTypeId,
+            string? documentTypeCode,
+            string? documentTypeName,
+            int sortOrder,
+            bool? isActive,
+            CancellationToken cancellationToken)
+        {
+            documentTypeCode = (documentTypeCode ?? "").Trim().ToUpperInvariant();
+            documentTypeName = (documentTypeName ?? "").Trim();
+            if (documentTypeCode.Length == 0 || documentTypeCode.Length > 20
+                || documentTypeName.Length == 0 || documentTypeName.Length > 100)
+            {
+                TempData["Error"] = "กรุณาระบุรหัสและชื่อประเภทเอกสารให้ถูกต้อง";
+                return RedirectToMasterData("employee-document-types");
+            }
+
+            var duplicate = await _context.EmployeeDocumentTypes
+                .AsNoTracking()
+                .AnyAsync(x => x.DocumentTypeId != documentTypeId
+                    && (x.DocumentTypeCode == documentTypeCode || x.DocumentTypeName == documentTypeName), cancellationToken);
+            if (duplicate)
+            {
+                TempData["Error"] = "รหัสหรือชื่อประเภทเอกสารพนักงานนี้มีอยู่แล้ว";
+                return RedirectToMasterData("employee-document-types");
+            }
+
+            var isNew = documentTypeId <= 0;
+            EmployeeDocumentType documentType;
+            if (isNew)
+            {
+                documentType = new EmployeeDocumentType { CreatedAt = DateTime.Now };
+                _context.EmployeeDocumentTypes.Add(documentType);
+            }
+            else
+            {
+                var existing = await _context.EmployeeDocumentTypes
+                    .FirstOrDefaultAsync(x => x.DocumentTypeId == documentTypeId, cancellationToken);
+                if (existing == null)
+                {
+                    TempData["Error"] = "ไม่พบประเภทเอกสารพนักงานที่ต้องการแก้ไข";
+                    return RedirectToMasterData("employee-document-types");
+                }
+
+                documentType = existing;
+            }
+
+            documentType.DocumentTypeCode = documentTypeCode;
+            documentType.DocumentTypeName = documentTypeName;
+            documentType.SortOrder = sortOrder;
+            documentType.UpdatedAt = DateTime.Now;
+            if (isNew)
+                documentType.IsActive = isActive ?? true;
+            else if (isActive.HasValue)
+                documentType.IsActive = isActive.Value;
+
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = isNew ? "เพิ่มประเภทเอกสารพนักงานแล้ว" : "บันทึกประเภทเอกสารพนักงานแล้ว";
+            return RedirectToMasterData("employee-document-types");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> ToggleEmployeeDocumentType(int documentTypeId, CancellationToken cancellationToken)
+        {
+            var documentType = await _context.EmployeeDocumentTypes
+                .FirstOrDefaultAsync(x => x.DocumentTypeId == documentTypeId, cancellationToken);
+            if (documentType == null)
+            {
+                TempData["Error"] = "ไม่พบประเภทเอกสารพนักงานที่ต้องการปรับสถานะ";
+                return RedirectToMasterData("employee-document-types");
+            }
+
+            documentType.IsActive = !documentType.IsActive;
+            documentType.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = documentType.IsActive ? "เปิดใช้งานประเภทเอกสารพนักงานแล้ว" : "ปิดใช้งานประเภทเอกสารพนักงานแล้ว";
+            return RedirectToMasterData("employee-document-types");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> SaveProjectDocumentType(
+            int documentTypeId,
+            string? documentTypeCode,
+            string? documentTypeName,
+            int sortOrder,
+            bool? isActive,
+            CancellationToken cancellationToken)
+        {
+            documentTypeCode = (documentTypeCode ?? "").Trim().ToUpperInvariant();
+            documentTypeName = (documentTypeName ?? "").Trim();
+            if (documentTypeCode.Length == 0 || documentTypeCode.Length > 20
+                || documentTypeName.Length == 0 || documentTypeName.Length > 100)
+            {
+                TempData["Error"] = "กรุณาระบุรหัสและชื่อประเภทเอกสารให้ถูกต้อง";
+                return RedirectToMasterData("project-document-types");
+            }
+
+            var duplicate = await _context.ProjectDocumentTypes
+                .AsNoTracking()
+                .AnyAsync(x => x.DocumentTypeId != documentTypeId
+                    && (x.DocumentTypeCode == documentTypeCode || x.DocumentTypeName == documentTypeName), cancellationToken);
+            if (duplicate)
+            {
+                TempData["Error"] = "รหัสหรือชื่อประเภทเอกสารโครงการนี้มีอยู่แล้ว";
+                return RedirectToMasterData("project-document-types");
+            }
+
+            var isNew = documentTypeId <= 0;
+            ProjectDocumentType documentType;
+            if (isNew)
+            {
+                documentType = new ProjectDocumentType { CreatedAt = DateTime.Now };
+                _context.ProjectDocumentTypes.Add(documentType);
+            }
+            else
+            {
+                var existing = await _context.ProjectDocumentTypes
+                    .FirstOrDefaultAsync(x => x.DocumentTypeId == documentTypeId, cancellationToken);
+                if (existing == null)
+                {
+                    TempData["Error"] = "ไม่พบประเภทเอกสารโครงการที่ต้องการแก้ไข";
+                    return RedirectToMasterData("project-document-types");
+                }
+
+                documentType = existing;
+            }
+
+            documentType.DocumentTypeCode = documentTypeCode;
+            documentType.DocumentTypeName = documentTypeName;
+            documentType.SortOrder = sortOrder;
+            documentType.UpdatedAt = DateTime.Now;
+            if (isNew)
+                documentType.IsActive = isActive ?? true;
+            else if (isActive.HasValue)
+                documentType.IsActive = isActive.Value;
+
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = isNew ? "เพิ่มประเภทเอกสารโครงการแล้ว" : "บันทึกประเภทเอกสารโครงการแล้ว";
+            return RedirectToMasterData("project-document-types");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> ToggleProjectDocumentType(int documentTypeId, CancellationToken cancellationToken)
+        {
+            var documentType = await _context.ProjectDocumentTypes
+                .FirstOrDefaultAsync(x => x.DocumentTypeId == documentTypeId, cancellationToken);
+            if (documentType == null)
+            {
+                TempData["Error"] = "ไม่พบประเภทเอกสารโครงการที่ต้องการปรับสถานะ";
+                return RedirectToMasterData("project-document-types");
+            }
+
+            documentType.IsActive = !documentType.IsActive;
+            documentType.UpdatedAt = DateTime.Now;
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = documentType.IsActive ? "เปิดใช้งานประเภทเอกสารโครงการแล้ว" : "ปิดใช้งานประเภทเอกสารโครงการแล้ว";
+            return RedirectToMasterData("project-document-types");
         }
 
         private RedirectToActionResult RedirectToMasterData(string type)

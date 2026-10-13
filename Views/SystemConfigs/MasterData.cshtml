@@ -1,8 +1,25 @@
 @using Microsoft.AspNetCore.Http
 @model ProjectTracking.ViewModels.SystemConfigMasterDataViewModel
 @{
-    ViewData["Title"] = Model.ActiveSection == "departments" ? "จัดการฝ่าย" : "จัดการตำแหน่ง";
     var isDepartments = Model.ActiveSection == "departments";
+    var isEmployeeDocumentTypes = Model.ActiveSection == "employee-document-types";
+    var isProjectDocumentTypes = Model.ActiveSection == "project-document-types";
+    var isDocumentTypes = isEmployeeDocumentTypes || isProjectDocumentTypes;
+    var pageTitle = isDepartments
+        ? "จัดการฝ่าย"
+        : isEmployeeDocumentTypes
+            ? "ประเภทเอกสารพนักงาน"
+            : isProjectDocumentTypes
+                ? "ประเภทเอกสารโครงการ"
+                : "จัดการตำแหน่ง";
+    var activeCount = isDepartments
+        ? Model.Departments.Count
+        : isEmployeeDocumentTypes
+            ? Model.EmployeeDocumentTypes.Count
+            : isProjectDocumentTypes
+                ? Model.ProjectDocumentTypes.Count
+                : Model.Positions.Count;
+    ViewData["Title"] = pageTitle;
     var role = (Context.Session.GetString("Role") ?? "").Trim();
     var allowedMenus = (Context.Session.GetString("Menus") ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -155,6 +172,7 @@
 
     .master-config-create.position { grid-template-columns: minmax(220px, 1fr) 110px auto; }
     .master-config-create.department { grid-template-columns: 180px minmax(220px, 1fr) 110px auto; }
+    .master-config-create.document { grid-template-columns: 170px minmax(220px, 1fr) 110px auto; }
 
     .master-config-field { min-width: 0; display: grid; gap: 5px; }
     .master-config-field label { color: var(--pt-surface-contrast-muted, #64748b); font-size: .75rem; font-weight: 600; }
@@ -197,6 +215,7 @@
 
     .master-config-row.position { grid-template-columns: minmax(220px, 1fr) 90px 115px auto 150px; }
     .master-config-row.department { grid-template-columns: 150px minmax(220px, 1fr) 90px 145px auto 150px; }
+    .master-config-row.document { grid-template-columns: 150px minmax(220px, 1fr) 90px 110px auto 150px; }
 
     .master-config-row.is-inactive .master-config-field,
     .master-config-row.is-inactive .master-config-usage { opacity: .68; }
@@ -266,8 +285,10 @@
     @@media (max-width: 1200px) {
         .master-config-create.position,
         .master-config-create.department,
+        .master-config-create.document,
         .master-config-row.position,
-        .master-config-row.department { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .master-config-row.department,
+        .master-config-row.document { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @@media (max-width: 900px) {
@@ -281,8 +302,10 @@
         .master-config-nav-list,
         .master-config-create.position,
         .master-config-create.department,
+        .master-config-create.document,
         .master-config-row.position,
-        .master-config-row.department { grid-template-columns: 1fr; }
+        .master-config-row.department,
+        .master-config-row.document { grid-template-columns: 1fr; }
     }
 </style>
 
@@ -290,7 +313,7 @@
     <div class="index-hero pt-form-hero">
         <div class="index-hero__content">
             <span class="index-eyebrow">ProjectTracking</span>
-            <h1 class="index-title">@(isDepartments ? "จัดการฝ่าย" : "จัดการตำแหน่ง")</h1>
+            <h1 class="index-title">@pageTitle</h1>
             <p class="index-subtitle">จัดการข้อมูลกลางที่ใช้ร่วมกันทั้งระบบ</p>
         </div>
     </div>
@@ -320,7 +343,7 @@
                 }
 
                 <div class="master-config-nav-label">ข้อมูลบุคลากร</div>
-                <a class="master-config-nav-link @(!isDepartments ? "is-active" : "")" asp-action="MasterData" asp-route-type="positions">
+                <a class="master-config-nav-link @(!isDepartments && !isDocumentTypes ? "is-active" : "")" asp-action="MasterData" asp-route-type="positions">
                     <span class="master-config-nav-icon"><img src="/images/menu-icons/employees.svg" alt="" /></span>
                     <span class="master-config-nav-copy"><strong>จัดการตำแหน่ง</strong><small>@Model.Positions.Count ตำแหน่ง</small></span>
                     <span class="master-config-nav-arrow">›</span>
@@ -330,6 +353,18 @@
                     <span class="master-config-nav-copy"><strong>จัดการฝ่าย</strong><small>@Model.Departments.Count ฝ่าย</small></span>
                     <span class="master-config-nav-arrow">›</span>
                 </a>
+
+                <div class="master-config-nav-label">เอกสาร</div>
+                <a class="master-config-nav-link @(isEmployeeDocumentTypes ? "is-active" : "")" asp-action="MasterData" asp-route-type="employee-document-types">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/employees.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>ประเภทเอกสารพนักงาน</strong><small>@Model.EmployeeDocumentTypes.Count ประเภท</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
+                <a class="master-config-nav-link @(isProjectDocumentTypes ? "is-active" : "")" asp-action="MasterData" asp-route-type="project-document-types">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/projects.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>ประเภทเอกสารโครงการ</strong><small>@Model.ProjectDocumentTypes.Count ประเภท</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
             </nav>
         </aside>
 
@@ -337,9 +372,9 @@
             <div class="master-config-heading">
                 <div>
                     <span>ข้อมูลกลาง</span>
-                    <h2>@(isDepartments ? "ฝ่าย" : "ตำแหน่ง")</h2>
+                    <h2>@(isDepartments ? "ฝ่าย" : isEmployeeDocumentTypes ? "ประเภทเอกสารพนักงาน" : isProjectDocumentTypes ? "ประเภทเอกสารโครงการ" : "ตำแหน่ง")</h2>
                 </div>
-                <strong>@(isDepartments ? Model.Departments.Count : Model.Positions.Count)</strong>
+                <strong>@activeCount</strong>
             </div>
 
             <div class="master-config-body">
@@ -352,7 +387,53 @@
                     <div class="master-config-alert error">@TempData["Error"]</div>
                 }
 
-                @if (isDepartments)
+                @if (isDocumentTypes)
+                {
+                    var documentTypes = isEmployeeDocumentTypes ? Model.EmployeeDocumentTypes : Model.ProjectDocumentTypes;
+                    var saveAction = isEmployeeDocumentTypes ? "SaveEmployeeDocumentType" : "SaveProjectDocumentType";
+                    var toggleAction = isEmployeeDocumentTypes ? "ToggleEmployeeDocumentType" : "ToggleProjectDocumentType";
+                    var documentLabel = isEmployeeDocumentTypes ? "เอกสารพนักงาน" : "เอกสารโครงการ";
+                    <form asp-action="@saveAction" method="post" class="master-config-create document">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="documentTypeId" value="0" />
+                        <div class="master-config-field">
+                            <label for="newDocumentTypeCode">รหัสประเภท</label>
+                            <input id="newDocumentTypeCode" class="master-config-input" name="documentTypeCode" maxlength="20" required placeholder="เช่น ID_CARD" />
+                        </div>
+                        <div class="master-config-field">
+                            <label for="newDocumentTypeName">ชื่อประเภทเอกสาร</label>
+                            <input id="newDocumentTypeName" class="master-config-input" name="documentTypeName" maxlength="100" required placeholder="ชื่อประเภทเอกสาร" />
+                        </div>
+                        <div class="master-config-field">
+                            <label for="newDocumentTypeSort">ลำดับ</label>
+                            <input id="newDocumentTypeSort" class="master-config-input" name="sortOrder" type="number" value="@((documentTypes.LastOrDefault()?.SortOrder ?? 0) + 10)" />
+                        </div>
+                        <button class="master-config-button" type="submit">＋ เพิ่มประเภท</button>
+                    </form>
+
+                    <div class="master-config-list">
+                        @foreach (var item in documentTypes)
+                        {
+                            <form asp-action="@saveAction" method="post" class="master-config-row document @(!item.IsActive ? "is-inactive" : "")">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="documentTypeId" value="@item.DocumentTypeId" />
+                                <div class="master-config-field"><label>รหัสประเภท</label><input class="master-config-input" name="documentTypeCode" value="@item.DocumentTypeCode" maxlength="20" required /></div>
+                                <div class="master-config-field"><label>ชื่อประเภทเอกสาร</label><input class="master-config-input" name="documentTypeName" value="@item.DocumentTypeName" maxlength="100" required /></div>
+                                <div class="master-config-field"><label>ลำดับ</label><input class="master-config-input" name="sortOrder" type="number" value="@item.SortOrder" /></div>
+                                <div class="master-config-usage">ใช้แล้ว @item.DocumentCount ไฟล์</div>
+                                <button class="master-config-button" type="submit">บันทึกข้อมูล</button>
+                                <button class="master-config-status @(item.IsActive ? "is-active" : "is-inactive")" type="submit" formaction="@Url.Action(toggleAction)" formnovalidate>
+                                    <span class="master-config-status-dot" aria-hidden="true"></span>
+                                    <span class="master-config-status-copy">
+                                        <strong>@(item.IsActive ? "เปิดใช้งาน" : "ปิดใช้งาน")</strong>
+                                        <small>ปรับสถานะ</small>
+                                    </span>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+                else if (isDepartments)
                 {
                     <form asp-action="SaveDepartment" method="post" class="master-config-create department">
                         @Html.AntiForgeryToken()

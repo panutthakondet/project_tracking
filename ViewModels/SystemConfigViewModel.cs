@@ -33,6 +33,8 @@ namespace ProjectTracking.ViewModels
         public string ActiveSection { get; set; } = "positions";
         public List<EmployeePositionConfigViewModel> Positions { get; set; } = new();
         public List<ProjectDepartmentConfigViewModel> Departments { get; set; } = new();
+        public List<DocumentTypeConfigViewModel> EmployeeDocumentTypes { get; set; } = new();
+        public List<DocumentTypeConfigViewModel> ProjectDocumentTypes { get; set; } = new();
     }
 
     public class EmployeePositionConfigViewModel
@@ -53,5 +55,15 @@ namespace ProjectTracking.ViewModels
         public bool IsActive { get; set; }
         public int EmployeeCount { get; set; }
         public int ProjectCount { get; set; }
+    }
+
+    public class DocumentTypeConfigViewModel
+    {
+        public int DocumentTypeId { get; set; }
+        public string DocumentTypeCode { get; set; } = "";
+        public string DocumentTypeName { get; set; } = "";
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public int DocumentCount { get; set; }
     }
 }
