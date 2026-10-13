@@ -1947,7 +1947,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                      || CanMenu("TestScenarioTemplates.Index")
                      || CanMenu("TestTemplateGroups.Index")
                      || CanMenu("TestTemplateGroupControls.Index")
-                     || CanMenu("ProjectDocuments.Index");
+                     || CanMenu("ProjectDocuments.Index")
+                     || CanMenu("EmployeeDocuments.Index");
 
     var canIssues = CanMenu("ProjectIssues.Index")
                  || CanMenu("ProjectIssues.DevIndex");
@@ -1970,7 +1971,8 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
 
 	    var canEmployees = CanMenu("Employees.Index")
                           || CanMenu("Employees.LineOverdue")
-	                      || CanMenu("PhaseWorkload.Index");
+	                      || CanMenu("PhaseWorkload.Index")
+                          || CanMenu("EmployeeDocuments.Index");
 
 	    var canAssignPhase = CanMenu("PhaseAssigns.Index");
 
@@ -2109,19 +2111,23 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                         @if (canEmployees)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" ? "active-menu" : "")"
+                                <a class="nav-link dropdown-toggle @(controller=="Employees" || controller=="PhaseWorkload" || controller=="EmployeeDocuments" ? "active-menu" : "")"
                                    href="#" role="button" data-bs-toggle="dropdown" title="Employees">
                                     <span class="nav-ico" aria-hidden="true"><img src="/images/menu-icons/employees.svg" alt="" /></span>
                                     <span class="nav-label">Employees</span>
                                 </a>
                                 <ul class="dropdown-menu">
-                                    @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index"))
+                                    @if (CanMenu("Employees.Index") || CanMenu("Employees.LineOverdue") || CanMenu("PhaseWorkload.Index") || CanMenu("EmployeeDocuments.Index"))
                                     {
                                         <li><h6 class="dropdown-header">Employees</h6></li>
                                     }
                                     @if (CanMenu("Employees.Index"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Employees" asp-action="Index">จัดการพนักงาน</a></li>
+                                    }
+                                    @if (CanMenu("EmployeeDocuments.Index"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="EmployeeDocuments" asp-action="Index">เอกสารพนักงาน</a></li>
                                     }
                                     @if (CanMenu("Employees.LineOverdue"))
                                     {

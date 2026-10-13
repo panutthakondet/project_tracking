@@ -1,0 +1,43 @@
+@model IEnumerable<ProjectTracking.Models.EmployeeDocumentType>
+
+@{
+    ViewData["Title"] = "อัปโหลดเอกสารพนักงาน";
+    var empId = ViewBag.EmpId is int id ? id : 0;
+}
+
+<div class="container">
+    <div class="index-hero">
+        <div class="index-hero__content">
+            <span class="index-eyebrow">ProjectTracking</span>
+            <h2 class="index-title">อัปโหลดเอกสารพนักงาน</h2>
+            <p class="index-subtitle">เลือกประเภทเอกสารและไฟล์ที่ต้องการจัดเก็บ</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="empId" value="@empId" />
+                <div class="mb-3">
+                    <label class="form-label" for="documentType">ประเภทเอกสาร</label>
+                    <select id="documentType" name="documentType" class="form-select" required>
+                        <option value="" selected disabled>-- เลือกประเภทเอกสาร --</option>
+                        @foreach (var documentType in Model)
+                        {
+                            <option value="@documentType.DocumentTypeCode">@documentType.DocumentTypeName</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="file">เลือกไฟล์</label>
+                    <input id="file" type="file" name="file" class="form-control" required />
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">⬆ อัปโหลด</button>
+                    <a asp-action="Index" asp-route-empId="@empId" class="btn btn-secondary">← กลับ</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

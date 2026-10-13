@@ -22,6 +22,8 @@ namespace ProjectTracking.Data
         public DbSet<ProjectDepartmentLink> ProjectDepartmentLinks { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentType> ProjectDocumentTypes { get; set; }
+        public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
+        public DbSet<EmployeeDocumentType> EmployeeDocumentTypes { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
         public DbSet<ProjectStatusDefinition> ProjectStatuses { get; set; }
@@ -1632,6 +1634,55 @@ namespace ProjectTracking.Data
 
                 entity.HasIndex(x => new { x.IsActive, x.SortOrder, x.DocumentTypeName })
                     .HasDatabaseName("idx_project_document_types_active_sort");
+            });
+
+            // =========================
+            // EMPLOYEE DOCUMENTS
+            // =========================
+            modelBuilder.Entity<EmployeeDocument>(entity =>
+            {
+                entity.ToTable("employee_documents");
+                entity.HasKey(x => x.EmployeeDocumentId);
+
+                entity.Property(x => x.EmployeeDocumentId).HasColumnName("employee_document_id");
+                entity.Property(x => x.EmpId).HasColumnName("emp_id");
+                entity.Property(x => x.DocumentType).HasColumnName("document_type").HasColumnType("varchar(20)");
+                entity.Property(x => x.FileName).HasColumnName("file_name").HasColumnType("varchar(255)");
+                entity.Property(x => x.FilePath).HasColumnName("file_path").HasColumnType("varchar(500)");
+                entity.Property(x => x.UploadedBy).HasColumnName("uploaded_by").HasColumnType("varchar(100)").IsRequired(false);
+                entity.Property(x => x.UploadedAt).HasColumnName("uploaded_at").HasColumnType("datetime");
+
+                entity.HasIndex(x => x.EmpId).HasDatabaseName("idx_employee_documents_employee");
+                entity.HasIndex(x => new { x.EmpId, x.DocumentType })
+                    .HasDatabaseName("idx_employee_documents_employee_type");
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany()
+                    .HasForeignKey(x => x.EmpId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // EMPLOYEE DOCUMENT TYPES
+            // =========================
+            modelBuilder.Entity<EmployeeDocumentType>(entity =>
+            {
+                entity.ToTable("employee_document_types");
+                entity.HasKey(x => x.DocumentTypeId);
+
+                entity.Property(x => x.DocumentTypeId).HasColumnName("document_type_id");
+                entity.Property(x => x.DocumentTypeCode).HasColumnName("document_type_code").HasColumnType("varchar(20)").IsRequired();
+                entity.Property(x => x.DocumentTypeName).HasColumnName("document_type_name").HasColumnType("varchar(100)").IsRequired();
+                entity.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+                entity.Property(x => x.IsActive).HasColumnName("is_active").HasColumnType("tinyint(1)").HasDefaultValue(true);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(x => x.DocumentTypeCode)
+                    .IsUnique()
+                    .HasDatabaseName("uq_employee_document_types_code");
+                entity.HasIndex(x => new { x.IsActive, x.SortOrder, x.DocumentTypeName })
+                    .HasDatabaseName("idx_employee_document_types_active_sort");
             });
 
             // =========================

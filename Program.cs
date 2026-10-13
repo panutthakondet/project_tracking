@@ -240,6 +240,8 @@ await EnsureNotificationSendLogTableAsync(app.Services);
 await EnsureProjectFollowupCreatedByColumnAsync(app.Services);
 await EnsureProjectDocumentsTableAsync(app.Services);
 await EnsureProjectDocumentTypeTableAsync(app.Services);
+await EnsureEmployeeDocumentsTableAsync(app.Services);
+await EnsureEmployeeDocumentTypeTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
@@ -1635,6 +1637,189 @@ static async Task EnsureProjectDocumentTypeTableAsync(IServiceProvider services)
                 1000,
                 1
             FROM `project_documents`
+            WHERE `document_type` IS NOT NULL
+              AND TRIM(`document_type`) <> '';";
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureEmployeeDocumentsTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `employee_documents` (
+              `employee_document_id` int(11) NOT NULL AUTO_INCREMENT,
+              `emp_id` int(11) NOT NULL,
+              `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
+              `file_name` varchar(255) NULL,
+              `file_path` varchar(500) NOT NULL,
+              `uploaded_by` varchar(100) NULL,
+              `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`employee_document_id`),
+              KEY `idx_employee_documents_employee` (`emp_id`),
+              KEY `idx_employee_documents_employee_type` (`emp_id`, `document_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        async Task<bool> ColumnExistsAsync(string columnName)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'employee_documents'
+                  AND COLUMN_NAME = '{columnName}';";
+
+            return Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        }
+
+        async Task EnsureColumnAsync(string columnName, string addColumnSql)
+        {
+            if (await ColumnExistsAsync(columnName)) return;
+
+            command.CommandText = addColumnSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        async Task EnsureIndexAsync(string indexName, string createIndexSql)
+        {
+            command.CommandText = $@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'employee_documents'
+                  AND INDEX_NAME = '{indexName}';";
+
+            if (Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0) return;
+
+            command.CommandText = createIndexSql;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await EnsureColumnAsync(
+            "emp_id",
+            "ALTER TABLE `employee_documents` ADD COLUMN `emp_id` int(11) NOT NULL DEFAULT 0 AFTER `employee_document_id`;");
+        await EnsureColumnAsync(
+            "document_type",
+            "ALTER TABLE `employee_documents` ADD COLUMN `document_type` varchar(20) NOT NULL DEFAULT 'OTHER' AFTER `emp_id`;");
+        await EnsureColumnAsync(
+            "file_name",
+            "ALTER TABLE `employee_documents` ADD COLUMN `file_name` varchar(255) NULL AFTER `document_type`;");
+        await EnsureColumnAsync(
+            "file_path",
+            "ALTER TABLE `employee_documents` ADD COLUMN `file_path` varchar(500) NOT NULL DEFAULT '' AFTER `file_name`;");
+        await EnsureColumnAsync(
+            "uploaded_by",
+            "ALTER TABLE `employee_documents` ADD COLUMN `uploaded_by` varchar(100) NULL AFTER `file_path`;");
+        await EnsureColumnAsync(
+            "uploaded_at",
+            "ALTER TABLE `employee_documents` ADD COLUMN `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `uploaded_by`;");
+
+        command.CommandText = @"
+            UPDATE `employee_documents`
+            SET `document_type` = 'OTHER'
+            WHERE `document_type` IS NULL OR TRIM(`document_type`) = '';";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `employee_documents`
+            SET `file_path` = ''
+            WHERE `file_path` IS NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            UPDATE `employee_documents`
+            SET `uploaded_at` = CURRENT_TIMESTAMP
+            WHERE `uploaded_at` IS NULL;";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            ALTER TABLE `employee_documents`
+              MODIFY COLUMN `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
+              MODIFY COLUMN `file_name` varchar(255) NULL,
+              MODIFY COLUMN `file_path` varchar(500) NOT NULL,
+              MODIFY COLUMN `uploaded_by` varchar(100) NULL,
+              MODIFY COLUMN `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;";
+        await command.ExecuteNonQueryAsync();
+
+        await EnsureIndexAsync(
+            "idx_employee_documents_employee",
+            "CREATE INDEX `idx_employee_documents_employee` ON `employee_documents` (`emp_id`);");
+        await EnsureIndexAsync(
+            "idx_employee_documents_employee_type",
+            "CREATE INDEX `idx_employee_documents_employee_type` ON `employee_documents` (`emp_id`, `document_type`);");
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureEmployeeDocumentTypeTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `employee_document_types` (
+              `document_type_id` int(11) NOT NULL AUTO_INCREMENT,
+              `document_type_code` varchar(20) NOT NULL,
+              `document_type_name` varchar(100) NOT NULL,
+              `sort_order` int(11) NOT NULL DEFAULT 0,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (`document_type_id`),
+              UNIQUE KEY `uq_employee_document_types_code` (`document_type_code`),
+              KEY `idx_employee_document_types_active_sort` (`is_active`, `sort_order`, `document_type_name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        await command.ExecuteNonQueryAsync();
+
+        // เพิ่มรายการใหม่จากตารางนี้ได้โดยไม่ต้องแก้โค้ด และไม่ทับค่าที่ผู้ดูแลปรับไว้แล้ว
+        command.CommandText = @"
+            INSERT IGNORE INTO `employee_document_types`
+                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+            VALUES
+                ('ID_CARD', 'บัตรประชาชน', 10, 1),
+                ('EMPLOYMENT', 'สัญญาจ้าง / เอกสารการจ้าง', 20, 1),
+                ('CERTIFICATE', 'วุฒิการศึกษา / ใบรับรอง', 30, 1),
+                ('BANK', 'เอกสารบัญชีธนาคาร', 40, 1),
+                ('OTHER', 'อื่น ๆ', 999, 1);";
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = @"
+            INSERT IGNORE INTO `employee_document_types`
+                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+            SELECT DISTINCT
+                UPPER(TRIM(`document_type`)),
+                TRIM(`document_type`),
+                1000,
+                1
+            FROM `employee_documents`
             WHERE `document_type` IS NOT NULL
               AND TRIM(`document_type`) <> '';";
         await command.ExecuteNonQueryAsync();

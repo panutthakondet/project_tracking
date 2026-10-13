@@ -820,6 +820,7 @@ namespace ProjectTracking.Controllers
                 "Attendance" => 130,
                 "Followups" => 140,
                 "Employees" => 150,
+                "EmployeeDocuments" => 155,
                 "IssueDashboard" => 160,
                 "Dashboard" => 170,
                 "Reports" => 190,
@@ -897,6 +898,7 @@ namespace ProjectTracking.Controllers
             {
                 "Home" => "Dashboard",
                 "Employees" => "พนักงาน",
+                "EmployeeDocuments" => "เอกสารพนักงาน",
                 "Projects" => "โครงการ",
                 "ProjectStatus" => "สถานะโครงการ",
                 "ProjectDocuments" => "เอกสารโครงการ",

@@ -191,6 +191,16 @@
                     </td>
 
                     <td class="text-center">
+                        @if (HasMenu("EmployeeDocuments.Index"))
+                        {
+                            <a asp-controller="EmployeeDocuments"
+                               asp-action="Index"
+                               asp-route-empId="@emp.EmpId"
+                               class="btn btn-sm btn-outline-info me-1"
+                               title="จัดเก็บเอกสารพนักงาน">
+                                📁 เอกสาร
+                            </a>
+                        }
                         @if (HasMenu("Employees.Edit"))
                         {
                             <a asp-action="Edit"
@@ -294,6 +304,16 @@
                 </div>
 
                 <div class="employee-actions">
+                    @if (HasMenu("EmployeeDocuments.Index"))
+                    {
+                        <a asp-controller="EmployeeDocuments"
+                           asp-action="Index"
+                           asp-route-empId="@emp.EmpId"
+                           class="btn btn-outline-info btn-sm"
+                           title="จัดเก็บเอกสารพนักงาน">
+                            📁 เอกสาร
+                        </a>
+                    }
                     @if (HasMenu("Employees.Edit"))
                     {
                         <a asp-action="Edit"
