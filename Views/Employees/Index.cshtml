@@ -6,10 +6,14 @@
 
     var menus = Context.Session.GetString("Menus") ?? "";
     var allowedMenus = menus.Split(',').Select(x => x.Trim()).ToList();
+    var currentRole = (Context.Session.GetString("Role") ?? "").Trim();
 
     bool HasMenu(string key)
     {
-        return allowedMenus.Contains(key);
+        // ให้การแสดงปุ่มสอดคล้องกับ RequireMenuAttribute:
+        // ผู้ดูแลระบบผ่านได้ทุกเมนู จึงต้องเห็นปุ่มเอกสารในแต่ละการ์ดด้วย
+        return currentRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)
+            || allowedMenus.Contains(key, StringComparer.OrdinalIgnoreCase);
     }
 
     string EmployeeAvatar(ProjectTracking.Models.Employee emp)
