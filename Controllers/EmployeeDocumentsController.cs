@@ -19,7 +19,7 @@ namespace ProjectTracking.Controllers
             _env = env;
         }
 
-        public async Task<IActionResult> Index(int? empId)
+        public async Task<IActionResult> Index(int? empId, string? q)
         {
             var employees = await _context.Employees
                 .Include(x => x.Department)
@@ -31,17 +31,41 @@ namespace ProjectTracking.Controllers
                 ? employees.FirstOrDefault(x => x.EmpId == empId.Value)
                 : null;
 
-            var documents = selectedEmployee == null
-                ? new List<EmployeeDocument>()
-                : await _context.EmployeeDocuments
-                    .Where(x => x.EmpId == selectedEmployee.EmpId)
+            var documentTypes = await GetActiveDocumentTypesAsync();
+            var searchTerm = (q ?? string.Empty).Trim();
+            var documents = new List<EmployeeDocument>();
+
+            if (selectedEmployee != null)
+            {
+                var documentQuery = _context.EmployeeDocuments
+                    .AsNoTracking()
+                    .Where(x => x.EmpId == selectedEmployee.EmpId);
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    var matchingTypeCodes = documentTypes
+                        .Where(x => x.DocumentTypeCode.Contains(searchTerm)
+                            || x.DocumentTypeName.Contains(searchTerm))
+                        .Select(x => x.DocumentTypeCode.Trim().ToUpper())
+                        .ToList();
+
+                    documentQuery = documentQuery.Where(x =>
+                        x.FileName.Contains(searchTerm)
+                        || x.DocumentType.Contains(searchTerm)
+                        || matchingTypeCodes.Contains(x.DocumentType)
+                        || (x.UploadedBy != null && x.UploadedBy.Contains(searchTerm)));
+                }
+
+                documents = await documentQuery
                     .OrderByDescending(x => x.UploadedAt)
                     .ToListAsync();
+            }
 
             ViewBag.EmpId = selectedEmployee?.EmpId;
             ViewBag.SelectedEmployee = selectedEmployee;
             ViewBag.Employees = employees;
-            ViewBag.DocumentTypes = await GetActiveDocumentTypesAsync();
+            ViewBag.DocumentTypes = documentTypes;
+            ViewBag.SearchTerm = searchTerm;
             return View(documents);
         }
 
