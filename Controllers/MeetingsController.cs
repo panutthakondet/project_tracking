@@ -431,6 +431,19 @@ namespace ProjectTracking.Controllers
                 .Select(p => new { p.ProjectId, ProjectName = p.ProjectDisplayName })
                 .ToList();
 
+            // ฝ่ายสำหรับเลือกผู้เข้าร่วมประชุมทั้งฝ่าย
+            ViewBag.Departments = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.SortOrder)
+                .ThenBy(d => d.DepartmentName)
+                .Select(d => new
+                {
+                    d.DepartmentId,
+                    d.DepartmentName
+                })
+                .ToListAsync();
+
             // รายชื่อพนักงานทั้งหมด (ACTIVE)
             ViewBag.Employees = _context.Employees
                 .AsNoTracking()
@@ -440,6 +453,7 @@ namespace ProjectTracking.Controllers
                 {
                     e.EmpId,
                     e.EmpName,
+                    e.DepartmentId,
                     Position = e.PositionDefinition != null
                         ? e.PositionDefinition.PositionName
                         : string.Empty
