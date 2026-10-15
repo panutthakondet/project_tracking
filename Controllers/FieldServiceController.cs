@@ -33,8 +33,29 @@ public class FieldServiceController : BaseController
     }
 
     [RequireMenu("FieldService.Index")]
-    public async Task<IActionResult> Index(string? q, string? status, string? from, string? to)
+    public async Task<IActionResult> Index(
+        string? q,
+        string? status,
+        string? from,
+        string? to,
+        int? employeeId)
     {
+        var employees = await _context.Employees.AsNoTracking()
+            .Where(x => x.Status == "ACTIVE")
+            .OrderBy(x => x.EmpName)
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : string.Empty
+            })
+            .ToListAsync();
+        var selectedEmployeeId = employeeId ?? await ResolveCurrentEmployeeIdAsync() ?? 0;
+        if (selectedEmployeeId > 0 && !employees.Any(x => x.EmpId == selectedEmployeeId))
+            selectedEmployeeId = 0;
+
         var query = _context.FieldServiceVisits.AsNoTracking()
             .Include(x => x.Coop)
             .Include(x => x.Assignees).ThenInclude(x => x.Employee)
@@ -47,6 +68,8 @@ public class FieldServiceController : BaseController
                 (x.Coop != null && x.Coop.CoopName.Contains(q)));
         }
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
+        if (selectedEmployeeId > 0)
+            query = query.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
         var fromDate = ParseDate(from);
         var toDate = ParseDate(to);
         if (fromDate.HasValue) query = query.Where(x => (x.EndVisitDate ?? x.VisitDate) >= fromDate.Value.Date);
@@ -56,6 +79,8 @@ public class FieldServiceController : BaseController
         ViewBag.Status = status;
         ViewBag.From = ThaiDate(fromDate);
         ViewBag.To = ThaiDate(toDate);
+        ViewBag.Employees = employees;
+        ViewBag.SelectedEmployeeId = selectedEmployeeId;
         return View(await query.OrderByDescending(x => x.VisitDate).ThenByDescending(x => x.VisitId).ToListAsync());
     }
 
@@ -355,18 +380,7 @@ public class FieldServiceController : BaseController
                     : string.Empty
             })
             .ToListAsync();
-        var currentEmpId = HttpContext.Session.GetInt32("EmpId");
-        if (!currentEmpId.HasValue && HttpContext.Session.GetInt32("UserId") is int currentUserId)
-        {
-            currentEmpId = await _context.Employees.AsNoTracking()
-                .Where(x => x.LoginUserId == currentUserId)
-                .Select(x => (int?)x.EmpId)
-                .FirstOrDefaultAsync();
-            currentEmpId ??= await _context.LoginUsers.AsNoTracking()
-                .Where(x => x.UserId == currentUserId)
-                .Select(x => x.EmpId)
-                .FirstOrDefaultAsync();
-        }
+        var currentEmpId = await ResolveCurrentEmployeeIdAsync();
         var selectedEmployeeId = employeeId ?? currentEmpId ?? 0;
         if (selectedEmployeeId > 0 && !employees.Any(x => x.EmpId == selectedEmployeeId))
             selectedEmployeeId = 0;
@@ -783,6 +797,31 @@ public class FieldServiceController : BaseController
 
     private bool IsAdminUser() => string.Equals(
         HttpContext.Session.GetString("Role"), "ADMIN", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<int?> ResolveCurrentEmployeeIdAsync()
+    {
+        var employeeId = HttpContext.Session.GetInt32("EmpId");
+        if (employeeId.HasValue)
+            return employeeId;
+
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (!userId.HasValue)
+            return null;
+
+        employeeId = await _context.Employees.AsNoTracking()
+            .Where(x => x.LoginUserId == userId.Value)
+            .Select(x => (int?)x.EmpId)
+            .FirstOrDefaultAsync();
+        employeeId ??= await _context.LoginUsers.AsNoTracking()
+            .Where(x => x.UserId == userId.Value)
+            .Select(x => x.EmpId)
+            .FirstOrDefaultAsync();
+
+        if (employeeId.HasValue)
+            HttpContext.Session.SetInt32("EmpId", employeeId.Value);
+
+        return employeeId;
+    }
 
     private async Task<bool> CanSubmitResultAsync(int visitId)
     {
