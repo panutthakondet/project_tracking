@@ -50,9 +50,10 @@ namespace ProjectTracking.Controllers
                         .ToList();
 
                     documentQuery = documentQuery.Where(x =>
-                        x.FileName.Contains(searchTerm)
-                        || x.DocumentType.Contains(searchTerm)
-                        || matchingTypeCodes.Contains(x.DocumentType)
+                        (x.FileName != null && x.FileName.Contains(searchTerm))
+                        || (x.DocumentType != null
+                            && (x.DocumentType.Contains(searchTerm)
+                                || matchingTypeCodes.Contains(x.DocumentType)))
                         || (x.UploadedBy != null && x.UploadedBy.Contains(searchTerm)));
                 }
 
