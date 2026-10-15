@@ -228,6 +228,7 @@ await EnsureProjectDepartmentTableAsync(app.Services);
 await EnsureWorkflowStatusTablesAsync(app.Services);
 await EnsurePhaseAssignActualDateColumnsAsync(app.Services);
 await EnsureProjectWarrantyDateColumnsAsync(app.Services);
+await EnsureProjectLinkNameTextColumnAsync(app.Services);
 await EnsureTestTemplateGroupControlTableAsync(app.Services);
 await EnsureMeetingGroupTablesAsync(app.Services);
 await EnsureFieldServiceTablesAsync(app.Services);
@@ -3911,6 +3912,57 @@ static async Task EnsureProjectWarrantyDateColumnsAsync(IServiceProvider service
         await EnsureColumnAsync("warranty_end_date", @"
             ALTER TABLE `project`
             ADD COLUMN `warranty_end_date` date NULL AFTER `warranty_start_date`;");
+    }
+    finally
+    {
+        if (shouldClose) await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureProjectLinkNameTextColumnAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+    if (shouldClose) await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project';";
+        var tableExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+        if (!tableExists) return;
+
+        command.CommandText = @"
+            SELECT DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'project'
+              AND COLUMN_NAME = 'link_name'
+            LIMIT 1;";
+        var dataType = Convert.ToString(await command.ExecuteScalarAsync());
+
+        if (string.IsNullOrWhiteSpace(dataType))
+        {
+            command.CommandText = @"
+                ALTER TABLE `project`
+                ADD COLUMN `link_name` text NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
+        else if (!dataType.Equals("text", StringComparison.OrdinalIgnoreCase)
+                 && !dataType.Equals("mediumtext", StringComparison.OrdinalIgnoreCase)
+                 && !dataType.Equals("longtext", StringComparison.OrdinalIgnoreCase))
+        {
+            command.CommandText = @"
+                ALTER TABLE `project`
+                MODIFY COLUMN `link_name` text NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {

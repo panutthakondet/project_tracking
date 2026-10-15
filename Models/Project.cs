@@ -185,8 +185,7 @@ namespace ProjectTracking.Models
         // ======================
 
         // 🔗 ชื่อลิงก์ระบบ
-        [Column("link_name")]
-        [StringLength(150)]
+        [Column("link_name", TypeName = "text")]
         public string? LinkName { get; set; }
 
         // 🗄 ฐานข้อมูลที่ใช้

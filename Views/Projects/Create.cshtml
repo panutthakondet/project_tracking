@@ -222,17 +222,20 @@
                 <!-- ================= SYSTEM / DATABASE INFO ================= -->
 
                 <!-- Link Name -->
-                <div class="col-md-4">
+                <div class="col-12">
                     <label class="form-label fw-semibold">
                         ลิงค์ที่กำลังพัฒนา
                     </label>
-                    <input asp-for="LinkName"
-                           class="form-control"
-                           placeholder="เช่น URL Website หรือ ชื่อ App" />
+                    <textarea asp-for="LinkName"
+                              class="form-control"
+                              rows="5"
+                              placeholder="ระบุข้อความ ชื่อระบบ หรือหลายลิงก์ โดยแยกแต่ละรายการเป็นบรรทัดใหม่"></textarea>
+                    <span asp-validation-for="LinkName" class="text-danger"></span>
+                    <div class="form-text">รองรับข้อความและหลายลิงก์ สามารถขึ้นบรรทัดใหม่เพื่อแยกรายการได้</div>
                 </div>
 
                 <!-- Database Name -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">
                         ฐานข้อมูลที่ใช้
                     </label>
@@ -242,7 +245,7 @@
                 </div>
 
                 <!-- Test Account -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">
                         ทะเบียนที่ใช้ทดสอบ
                     </label>
