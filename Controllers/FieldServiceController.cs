@@ -70,8 +70,9 @@ public class FieldServiceController : BaseController
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
         if (selectedEmployeeId > 0)
             query = query.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
-        var fromDate = ParseDate(from);
-        var toDate = ParseDate(to);
+        var currentMonthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        DateTime? fromDate = ParseDate(from) ?? currentMonthStart;
+        DateTime? toDate = ParseDate(to) ?? currentMonthStart.AddMonths(1).AddDays(-1);
         if (fromDate.HasValue) query = query.Where(x => (x.EndVisitDate ?? x.VisitDate) >= fromDate.Value.Date);
         if (toDate.HasValue) query = query.Where(x => x.VisitDate <= toDate.Value.Date);
 
@@ -154,8 +155,9 @@ public class FieldServiceController : BaseController
             query = query.Where(x => x.Title.Contains(q) || (x.Coop != null && x.Coop.CoopName.Contains(q)));
         }
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
-        var fromDate = ParseDate(from);
-        var toDate = ParseDate(to);
+        var currentMonthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        DateTime? fromDate = ParseDate(from) ?? currentMonthStart;
+        DateTime? toDate = ParseDate(to) ?? currentMonthStart.AddMonths(1).AddDays(-1);
         if (fromDate.HasValue)
             query = query.Where(x => (x.EndVisitDate ?? x.VisitDate) >= fromDate.Value.Date);
         if (toDate.HasValue)
