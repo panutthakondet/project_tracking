@@ -7,6 +7,9 @@
         => ProjectTracking.Services.ProfileImagePathResolver.Normalize(employee?.LoginUser?.ProfileImagePath);
     var employeeProfileImages = ViewBag.EmployeeProfileImages as IReadOnlyDictionary<int, string>
         ?? new Dictionary<int, string>();
+    var employees = ViewBag.Employees as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var selectedEmployeeId = (int)(ViewBag.SelectedEmployeeId ?? 0);
+    var canSelectEmployee = (bool)(ViewBag.CanSelectEmployee ?? false);
 }
 
 <div class="index-hero">
@@ -17,13 +20,39 @@
 @if(TempData["Success"] is string success){<div class="alert alert-success">@success</div>}
 @if(TempData["Error"] is string error){<div class="alert alert-warning">@error</div>}
 
-<form method="get" class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card field-service-filter-card">
-    <div class="card-body"><div class="row g-3 align-items-end">
-        <div class="col-md-7"><label class="form-label fw-bold">ค้นหา</label><input name="q" value="@ViewBag.Query" class="form-control form-control-lg" placeholder="ชื่องานหรือสหกรณ์" /></div>
-        <div class="col-md-3"><label class="form-label fw-bold">สถานะ</label><select name="status" class="form-select form-select-lg"><option value="">ทั้งหมด</option><option value="PLANNED" selected="@(ViewBag.Status=="PLANNED")">รอเข้าปฏิบัติงาน</option><option value="IN_PROGRESS" selected="@(ViewBag.Status=="IN_PROGRESS")">รอส่งผลเพิ่มเติม</option><option value="COMPLETED" selected="@(ViewBag.Status=="COMPLETED")">ส่งผลแล้ว</option></select></div>
-        <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary btn-lg flex-fill">ค้นหา</button><a asp-action="Results" class="btn btn-outline-secondary btn-lg">ล้าง</a></div>
-    </div></div>
-</form>
+<div class="card shadow-sm border-0 rounded-4 mb-3 field-service-themed-card field-service-filter-card">
+    <div class="card-body py-3">
+        <form method="get" class="field-service-filter">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-3"><label class="form-label fw-bold">ค้นหา</label><input name="q" value="@ViewBag.Query" class="form-control form-control-lg" placeholder="ชื่องานหรือสหกรณ์" /></div>
+                <div class="col-lg-3">
+                    <label class="form-label fw-bold">พนักงาน</label>
+                    @if (canSelectEmployee)
+                    {
+                        <select name="employeeId" class="form-select form-select-lg" data-show-empty-option-text="true">
+                            <option value="0" selected="@(selectedEmployeeId == 0)">พนักงานทั้งหมด</option>
+                            @foreach (var employee in employees)
+                            {
+                                <option value="@employee.EmpId" selected="@(selectedEmployeeId == (int)employee.EmpId)">@employee.EmpName @(string.IsNullOrWhiteSpace((string?)employee.Position) ? "" : $"({employee.Position})")</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        var currentEmployee = employees.FirstOrDefault(x => (int)x.EmpId == selectedEmployeeId);
+                        <select class="form-select form-select-lg" disabled>
+                            <option>@(currentEmployee == null ? "พนักงานที่เข้าสู่ระบบ" : currentEmployee.EmpName)</option>
+                        </select>
+                    }
+                </div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">สถานะ</label><select name="status" class="form-select form-select-lg"><option value="">ทั้งหมด</option><option value="PLANNED" selected="@(ViewBag.Status=="PLANNED")">รอเข้าปฏิบัติงาน</option><option value="IN_PROGRESS" selected="@(ViewBag.Status=="IN_PROGRESS")">รอส่งผลเพิ่มเติม</option><option value="COMPLETED" selected="@(ViewBag.Status=="COMPLETED")">ส่งผลแล้ว</option><option value="CANCELLED" selected="@(ViewBag.Status=="CANCELLED")">ยกเลิก</option></select></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">ตั้งแต่วันที่</label><input type="text" name="from" value="@ViewBag.From" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label fw-bold">ถึงวันที่</label><input type="text" name="to" value="@ViewBag.To" class="form-control form-control-lg thai-date" placeholder="วัน/เดือน/พ.ศ." /></div>
+                <div class="col-12 d-flex justify-content-end gap-2"><button class="btn btn-primary btn-lg">ค้นหา</button><a asp-action="Results" class="btn btn-outline-secondary btn-lg">ล้าง</a></div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div class="card shadow-sm border-0 rounded-4 field-service-list-card">
     <div class="card-header border-0 px-4 pt-4 pb-2 d-flex justify-content-between align-items-center"><h5 class="mb-0 fw-bold">รายการรอส่งผล</h5><span class="badge">@Model.Count() งาน</span></div>
@@ -47,3 +76,8 @@
         </tbody>
     </table></div>
 </div>
+
+<style>
+.field-service-filter .form-control,
+.field-service-filter .form-select { min-height:50px; }
+</style>

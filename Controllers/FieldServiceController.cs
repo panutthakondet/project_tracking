@@ -105,29 +105,69 @@ public class FieldServiceController : BaseController
     }
 
     [HttpGet, RequireMenu("FieldService.Result")]
-    public async Task<IActionResult> Results(string? q, string? status)
+    public async Task<IActionResult> Results(
+        string? q,
+        string? status,
+        string? from,
+        string? to,
+        int? employeeId)
     {
+        var isAdmin = IsAdminUser();
+        var currentEmployeeId = await ResolveCurrentEmployeeIdAsync();
+        var employees = await _context.Employees.AsNoTracking()
+            .Where(x => x.Status == "ACTIVE" ||
+                (currentEmployeeId.HasValue && x.EmpId == currentEmployeeId.Value))
+            .OrderBy(x => x.EmpName)
+            .Select(x => new
+            {
+                x.EmpId,
+                x.EmpName,
+                Position = x.PositionDefinition != null
+                    ? x.PositionDefinition.PositionName
+                    : string.Empty
+            })
+            .ToListAsync();
+        var selectedEmployeeId = isAdmin
+            ? employeeId ?? currentEmployeeId ?? 0
+            : currentEmployeeId ?? 0;
+        if (selectedEmployeeId > 0 && !employees.Any(x => x.EmpId == selectedEmployeeId))
+            selectedEmployeeId = 0;
+
         var query = _context.FieldServiceVisits.AsNoTracking()
             .Include(x => x.Coop)
             .Include(x => x.Assignees).ThenInclude(x => x.Employee).ThenInclude(x => x!.LoginUser)
             .Include(x => x.Attachments)
             .AsQueryable();
-        if (!IsAdminUser())
+        if (!isAdmin)
         {
-            var empId = HttpContext.Session.GetInt32("EmpId");
-            if (!empId.HasValue)
+            if (!currentEmployeeId.HasValue)
                 query = query.Where(x => false);
             else
-                query = query.Where(x => x.Assignees.Any(a => a.EmpId == empId.Value));
+                query = query.Where(x => x.Assignees.Any(a => a.EmpId == currentEmployeeId.Value));
         }
+        else if (selectedEmployeeId > 0)
+            query = query.Where(x => x.Assignees.Any(a => a.EmpId == selectedEmployeeId));
+
         if (!string.IsNullOrWhiteSpace(q))
         {
             q = q.Trim();
             query = query.Where(x => x.Title.Contains(q) || (x.Coop != null && x.Coop.CoopName.Contains(q)));
         }
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
+        var fromDate = ParseDate(from);
+        var toDate = ParseDate(to);
+        if (fromDate.HasValue)
+            query = query.Where(x => (x.EndVisitDate ?? x.VisitDate) >= fromDate.Value.Date);
+        if (toDate.HasValue)
+            query = query.Where(x => x.VisitDate <= toDate.Value.Date);
+
         ViewBag.Query = q;
         ViewBag.Status = status;
+        ViewBag.From = ThaiDate(fromDate);
+        ViewBag.To = ThaiDate(toDate);
+        ViewBag.Employees = employees;
+        ViewBag.SelectedEmployeeId = selectedEmployeeId;
+        ViewBag.CanSelectEmployee = isAdmin;
         var items = await query
             .OrderBy(x => x.Status == "COMPLETED" ? 1 : 0)
             .ThenByDescending(x => x.VisitDate)
