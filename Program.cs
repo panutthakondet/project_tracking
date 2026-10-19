@@ -1786,6 +1786,13 @@ static async Task EnsureEmployeeDocumentTypeTableAsync(IServiceProvider services
     {
         using var command = connection.CreateCommand();
         command.CommandText = @"
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'employee_document_types';";
+        var tableAlreadyExists = Convert.ToInt32(await command.ExecuteScalarAsync() ?? 0) > 0;
+
+        command.CommandText = @"
             CREATE TABLE IF NOT EXISTS `employee_document_types` (
               `document_type_id` int(11) NOT NULL AUTO_INCREMENT,
               `document_type_code` varchar(20) NOT NULL,
@@ -1800,30 +1807,34 @@ static async Task EnsureEmployeeDocumentTypeTableAsync(IServiceProvider services
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         await command.ExecuteNonQueryAsync();
 
-        // เพิ่มรายการใหม่จากตารางนี้ได้โดยไม่ต้องแก้โค้ด และไม่ทับค่าที่ผู้ดูแลปรับไว้แล้ว
-        command.CommandText = @"
-            INSERT IGNORE INTO `employee_document_types`
-                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
-            VALUES
-                ('ID_CARD', 'บัตรประชาชน', 10, 1),
-                ('EMPLOYMENT', 'สัญญาจ้าง / เอกสารการจ้าง', 20, 1),
-                ('CERTIFICATE', 'วุฒิการศึกษา / ใบรับรอง', 30, 1),
-                ('BANK', 'เอกสารบัญชีธนาคาร', 40, 1),
-                ('OTHER', 'อื่น ๆ', 999, 1);";
-        await command.ExecuteNonQueryAsync();
+        // Seed only when the table is first created. Subsequent starts must preserve
+        // additions, edits, deactivations, and deletions made through System Configs.
+        if (!tableAlreadyExists)
+        {
+            command.CommandText = @"
+                INSERT IGNORE INTO `employee_document_types`
+                    (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+                VALUES
+                    ('ID_CARD', 'บัตรประชาชน', 10, 1),
+                    ('EMPLOYMENT', 'สัญญาจ้าง / เอกสารการจ้าง', 20, 1),
+                    ('CERTIFICATE', 'วุฒิการศึกษา / ใบรับรอง', 30, 1),
+                    ('BANK', 'เอกสารบัญชีธนาคาร', 40, 1),
+                    ('OTHER', 'อื่น ๆ', 999, 1);";
+            await command.ExecuteNonQueryAsync();
 
-        command.CommandText = @"
-            INSERT IGNORE INTO `employee_document_types`
-                (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
-            SELECT DISTINCT
-                UPPER(TRIM(`document_type`)),
-                TRIM(`document_type`),
-                1000,
-                1
-            FROM `employee_documents`
-            WHERE `document_type` IS NOT NULL
-              AND TRIM(`document_type`) <> '';";
-        await command.ExecuteNonQueryAsync();
+            command.CommandText = @"
+                INSERT IGNORE INTO `employee_document_types`
+                    (`document_type_code`, `document_type_name`, `sort_order`, `is_active`)
+                SELECT DISTINCT
+                    UPPER(TRIM(`document_type`)),
+                    TRIM(`document_type`),
+                    1000,
+                    1
+                FROM `employee_documents`
+                WHERE `document_type` IS NOT NULL
+                  AND TRIM(`document_type`) <> '';";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {
