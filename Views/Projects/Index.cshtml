@@ -3067,6 +3067,30 @@ function syncProjectFilterOptions() {
     if (selected && selected.disabled) projectSelect.value = "";
 }
 
+function openRequestedProjectCardTab() {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = (params.get("projectId") || "").trim();
+    const requestedTab = (params.get("projectTab") || "").trim().toLowerCase();
+    if (!projectId || !["phases", "assignments"].includes(requestedTab)) return;
+
+    const card = Array.from(document.querySelectorAll(".project-card[data-project-id]"))
+        .find(item => (item.dataset.projectId || "").trim() === projectId);
+    if (!card) return;
+
+    card.style.display = "block";
+    const panel = card.querySelector(`[data-project-inline-section="${requestedTab}"]`);
+    if (!panel?.id) return;
+
+    const tab = Array.from(card.querySelectorAll("[data-project-card-tab]"))
+        .find(item => item.dataset.projectCardTab === panel.id);
+    if (!tab) return;
+
+    tab.click();
+    window.requestAnimationFrame(() => {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+}
+
 document.getElementById("coopFilter")?.addEventListener("change", function () {
     const projectSelect = document.getElementById("projectFilter");
     if (projectSelect) projectSelect.value = "";
@@ -3088,6 +3112,7 @@ document.getElementById("departmentFilter")?.addEventListener("change", function
 syncProjectFilterOptions();
 setTimeout(() => {
     window.applyProjectFilter();
+    openRequestedProjectCardTab();
 }, 50);
 });
 </script>

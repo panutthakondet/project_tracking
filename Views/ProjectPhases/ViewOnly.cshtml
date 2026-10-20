@@ -156,11 +156,28 @@
     }
 
     .phase-report-group {
+        --phase-group-accent: #2563eb;
+        --phase-group-soft: #eff6ff;
         overflow: hidden;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
         background: #fff;
         box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .phase-report-group:nth-child(4n + 2) {
+        --phase-group-accent: #0f9f85;
+        --phase-group-soft: #ecfdf5;
+    }
+
+    .phase-report-group:nth-child(4n + 3) {
+        --phase-group-accent: #7c3aed;
+        --phase-group-soft: #f5f3ff;
+    }
+
+    .phase-report-group:nth-child(4n + 4) {
+        --phase-group-accent: #ea580c;
+        --phase-group-soft: #fff7ed;
     }
 
     .phase-report-group-head {
@@ -169,8 +186,9 @@
         justify-content: space-between;
         gap: 14px;
         padding: 14px 16px;
+        border-top: 4px solid var(--phase-group-accent);
         border-bottom: 1px solid #d8e3ef;
-        background: transparent;
+        background: linear-gradient(90deg, var(--phase-group-soft) 0%, #fff 78%);
     }
 
     .phase-report-group-title {
@@ -179,7 +197,7 @@
 
     .phase-report-group-title span {
         display: block;
-        color: #64748b;
+        color: var(--phase-group-accent);
         font-size: .74rem;
         font-weight: 600;
         text-transform: uppercase;
@@ -245,6 +263,19 @@
         vertical-align: middle;
         font-size: .91rem;
         font-weight: 400;
+    }
+
+    .phase-report-row[data-project-url] {
+        cursor: pointer;
+    }
+
+    .phase-report-row[data-project-url]:hover > td {
+        background: var(--phase-group-soft);
+    }
+
+    .phase-report-row[data-project-url]:focus-visible {
+        outline: 3px solid var(--phase-group-accent);
+        outline-offset: -3px;
     }
 
     .phase-report-title {
@@ -405,7 +436,11 @@
                                 {
                                     runningNo++;
                                     var overdueDays = OverdueDays(phase);
-                                    <tr>
+                                    <tr class="phase-report-row"
+                                        data-project-url="@Url.Action("Index", "Projects", new { projectId = phase.ProjectId, projectTab = "phases" })"
+                                        tabindex="0"
+                                        role="link"
+                                        aria-label="เปิดงวดงานของ @(phase.Project?.ProjectDisplayName ?? "โครงการ")">
                                         <td class="text-center fw-bold">@runningNo</td>
                                         <td>
                                             <div class="phase-report-title">@phase.Project?.ProjectDisplayName</div>
@@ -471,6 +506,24 @@
 
             [projectFilter, document.getElementById("phaseStatus")]
                 .forEach(select => select?.addEventListener("change", submitFilters));
+
+            document.querySelectorAll(".phase-report-row[data-project-url]").forEach(row => {
+                const openProject = () => {
+                    const targetUrl = row.dataset.projectUrl;
+                    if (targetUrl) window.location.assign(targetUrl);
+                };
+
+                row.addEventListener("click", event => {
+                    if (event.target.closest("a, button, input, select, textarea")) return;
+                    openProject();
+                });
+
+                row.addEventListener("keydown", event => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    openProject();
+                });
+            });
 
             syncProjectFilterOptions();
         })();

@@ -145,11 +145,28 @@
     }
 
     .assign-report-group {
+        --assign-group-accent: #2563eb;
+        --assign-group-soft: #eff6ff;
         overflow: hidden;
         border: 1px solid #d8e3ef;
         border-radius: 18px;
         background: #fff;
         box-shadow: 0 12px 28px rgba(15, 35, 64, .08);
+    }
+
+    .assign-report-group:nth-child(4n + 2) {
+        --assign-group-accent: #0f9f85;
+        --assign-group-soft: #ecfdf5;
+    }
+
+    .assign-report-group:nth-child(4n + 3) {
+        --assign-group-accent: #7c3aed;
+        --assign-group-soft: #f5f3ff;
+    }
+
+    .assign-report-group:nth-child(4n + 4) {
+        --assign-group-accent: #ea580c;
+        --assign-group-soft: #fff7ed;
     }
 
     .assign-report-group-head {
@@ -158,8 +175,9 @@
         justify-content: space-between;
         gap: 14px;
         padding: 14px 16px;
+        border-top: 4px solid var(--assign-group-accent);
         border-bottom: 1px solid #d8e3ef;
-        background: transparent;
+        background: linear-gradient(90deg, var(--assign-group-soft) 0%, #fff 78%);
     }
 
     .assign-report-group-title {
@@ -168,7 +186,7 @@
 
     .assign-report-group-title span {
         display: block;
-        color: #64748b;
+        color: var(--assign-group-accent);
         font-size: .74rem;
         font-weight: 600;
         text-transform: uppercase;
@@ -234,6 +252,19 @@
         vertical-align: middle;
         font-size: .91rem;
         font-weight: 400;
+    }
+
+    .assign-report-row[data-project-url] {
+        cursor: pointer;
+    }
+
+    .assign-report-row[data-project-url]:hover > td {
+        background: var(--assign-group-soft);
+    }
+
+    .assign-report-row[data-project-url]:focus-visible {
+        outline: 3px solid var(--assign-group-accent);
+        outline-offset: -3px;
     }
 
     .assign-report-table .col-seq {
@@ -404,6 +435,7 @@
                                     <th>Phase</th>
                                     <th>Role</th>
                                     <th class="text-center">Plan</th>
+                                    <th class="text-center">กำหนดส่งงวดงาน</th>
                                     <th class="text-center">ล่าช้า</th>
                                     <th>Remark</th>
                                 </tr>
@@ -413,7 +445,11 @@
                                 {
                                     runningNo++;
                                     var overdueDays = OverdueDays(assign);
-                                    <tr>
+                                    <tr class="assign-report-row"
+                                        data-project-url="@Url.Action("Index", "Projects", new { projectId = assign.Phase?.ProjectId, projectTab = "assignments" })"
+                                        tabindex="0"
+                                        role="link"
+                                        aria-label="เปิดงานที่มอบหมายของ @(assign.Phase?.Project?.ProjectDisplayName ?? "โครงการ")">
                                         <td class="text-center fw-bold col-seq">@runningNo</td>
                                         <td>
                                             <div class="assign-report-title">@assign.Phase?.Project?.ProjectDisplayName</div>
@@ -425,6 +461,7 @@
                                         </td>
                                         <td>@(string.IsNullOrWhiteSpace(assign.Role) ? "-" : assign.Role)</td>
                                         <td class="text-center">@DateText(assign.PlanStart) - @DateText(assign.PlanEnd)</td>
+                                        <td class="text-center">@DateText(assign.Phase?.PeriodEndDate)</td>
                                         <td class="text-center">
                                             @if (overdueDays > 0)
                                             {
@@ -480,6 +517,24 @@
 
             [projectFilter, document.getElementById("empId"), document.getElementById("workStatus")]
                 .forEach(select => select?.addEventListener("change", submitFilters));
+
+            document.querySelectorAll(".assign-report-row[data-project-url]").forEach(row => {
+                const openProject = () => {
+                    const targetUrl = row.dataset.projectUrl;
+                    if (targetUrl) window.location.assign(targetUrl);
+                };
+
+                row.addEventListener("click", event => {
+                    if (event.target.closest("a, button, input, select, textarea")) return;
+                    openProject();
+                });
+
+                row.addEventListener("keydown", event => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    openProject();
+                });
+            });
 
             syncProjectFilterOptions();
         })();
