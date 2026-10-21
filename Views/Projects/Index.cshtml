@@ -1854,6 +1854,34 @@ main.route-controller-projects .project-card .project-status .project-approval-p
     border: 1px solid var(--project-card-border);
     border-radius: 20px;
     box-shadow: 0 12px 30px rgba(15, 35, 64, .08);
+    scroll-margin-top: 24px;
+}
+
+.project-card.is-deep-link-target {
+    animation: project-card-arrival .7s ease both;
+}
+
+@@keyframes project-card-arrival {
+    0% {
+        opacity: .55;
+        transform: translateY(12px);
+        box-shadow: 0 8px 20px rgba(15, 35, 64, .06);
+    }
+    55% {
+        border-color: #3b82f6;
+        box-shadow: 0 18px 42px rgba(59, 130, 246, .22);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        box-shadow: 0 12px 30px rgba(15, 35, 64, .08);
+    }
+}
+
+@@media (prefers-reduced-motion: reduce) {
+    .project-card.is-deep-link-target {
+        animation: none;
+    }
 }
 
 .project-team-header {
@@ -3085,10 +3113,19 @@ function openRequestedProjectCardTab() {
         .find(item => item.dataset.projectCardTab === panel.id);
     if (!tab) return;
 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    card.classList.add("is-deep-link-target");
     tab.click();
     window.requestAnimationFrame(() => {
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.requestAnimationFrame(() => {
+            card.scrollIntoView({
+                behavior: reduceMotion ? "auto" : "smooth",
+                block: "start"
+            });
+        });
     });
+
+    window.setTimeout(() => card.classList.remove("is-deep-link-target"), reduceMotion ? 0 : 900);
 }
 
 document.getElementById("coopFilter")?.addEventListener("change", function () {
