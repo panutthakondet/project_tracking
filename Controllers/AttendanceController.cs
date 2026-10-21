@@ -76,16 +76,81 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.HolidayDate)
                 .ToListAsync(cancellationToken);
 
-            return Json(holidays.Select(x => new
+            var events = holidays.Select(x => (object)new
             {
-                id = x.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                id = $"holiday-{x.HolidayDate:yyyy-MM-dd}",
                 title = x.HolidayName,
                 start = x.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 allDay = true,
                 backgroundColor = "#fff7f7",
                 borderColor = "#ef4444",
-                textColor = "#111827"
-            }));
+                textColor = "#111827",
+                classNames = new[] { "attendance-holiday-event" },
+                extendedProps = new
+                {
+                    eventType = "holiday"
+                }
+            }).ToList();
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId.HasValue)
+            {
+                var employee = await ResolveCurrentEmployeeAsync(userId.Value, asTracking: false);
+                if (employee != null)
+                {
+                    var meetingRows = await _context.Meetings
+                        .AsNoTracking()
+                        .Where(m =>
+                            m.MeetingDate >= rangeStart
+                            && m.MeetingDate < rangeEnd
+                            && (m.Status == null || m.Status != "CANCELLED")
+                            && (m.CreatedBy == employee.EmpId
+                                || m.Attendees.Any(a =>
+                                    a.UserId == employee.EmpId
+                                    && a.Status != "rejected"
+                                    && a.Status != "REJECTED")))
+                        .Select(m => new
+                        {
+                            m.Id,
+                            m.Title,
+                            m.MeetingDate,
+                            m.StartTime,
+                            m.EndTime,
+                            m.Location,
+                            CalendarName = m.Calendar != null ? m.Calendar.CalendarName : null
+                        })
+                        .OrderBy(m => m.MeetingDate)
+                        .ThenBy(m => m.StartTime)
+                        .ToListAsync(cancellationToken);
+
+                    events.AddRange(meetingRows.Select(m =>
+                    {
+                        var startAt = m.MeetingDate.Date.Add(m.StartTime);
+                        var endAt = m.MeetingDate.Date.Add(m.EndTime);
+                        if (endAt <= startAt)
+                            endAt = endAt.AddDays(1);
+
+                        return (object)new
+                        {
+                            id = $"meeting-{m.Id}",
+                            title = m.Title,
+                            start = startAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                            end = endAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                            allDay = false,
+                            classNames = new[] { "attendance-meeting-event" },
+                            extendedProps = new
+                            {
+                                eventType = "meeting",
+                                meetingId = m.Id,
+                                calendarName = m.CalendarName,
+                                location = m.Location
+                            }
+                        };
+                    }));
+                }
+            }
+
+            return Json(events);
         }
 
         [HttpPost]

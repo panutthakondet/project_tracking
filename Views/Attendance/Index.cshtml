@@ -65,10 +65,13 @@
 <section class="attendance-calendar-card" aria-labelledby="attendanceHolidayTitle">
     <div class="attendance-calendar-head">
         <div>
-            <span class="attendance-eyebrow">วันหยุดบริษัท</span>
-            <h3 id="attendanceHolidayTitle">ปฏิทินวันหยุด</h3>
+            <span class="attendance-eyebrow">วันหยุดและกำหนดการของฉัน</span>
+            <h3 id="attendanceHolidayTitle">ปฏิทินวันหยุดและการประชุม</h3>
         </div>
-        <span class="attendance-holiday-legend"><span aria-hidden="true"></span> วันหยุด</span>
+        <div class="attendance-calendar-legends" aria-label="คำอธิบายสีปฏิทิน">
+            <span class="attendance-holiday-legend"><span aria-hidden="true"></span> วันหยุด</span>
+            <span class="attendance-meeting-legend"><span aria-hidden="true"></span> การประชุมของฉัน</span>
+        </div>
     </div>
     <div id="attendanceHolidayCalendar"></div>
 </section>
@@ -93,8 +96,11 @@
     .attendance-calendar-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
     .attendance-calendar-head h3 { margin:4px 0 0; color:var(--pt-surface-contrast,#10233f); font-size:1.35rem; font-weight:700; line-height:1.25; }
     .attendance-calendar-head p { margin:6px 0 0; color:var(--pt-surface-contrast-muted,#64748b); font-weight:400; }
+    .attendance-calendar-legends { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:14px; }
     .attendance-holiday-legend { display:inline-flex; align-items:center; gap:7px; color:var(--pt-surface-contrast-muted,#64748b); font-size:.9rem; white-space:nowrap; }
     .attendance-holiday-legend span { width:12px; height:12px; border:2px solid #ef4444; background:#fff7f7; }
+    .attendance-meeting-legend { display:inline-flex; align-items:center; gap:7px; color:var(--pt-surface-contrast-muted,#64748b); font-size:.9rem; white-space:nowrap; }
+    .attendance-meeting-legend span { width:12px; height:12px; border:2px solid var(--pt-accent,#2563eb); background:var(--pt-accent-soft,#eff6ff); }
     #attendanceHolidayCalendar { min-height:570px; }
     #attendanceHolidayCalendar .fc { color:var(--pt-surface-contrast,#10233f); font-family:inherit; font-size:.9rem; }
     #attendanceHolidayCalendar .fc-theme-standard td,
@@ -124,6 +130,12 @@
         overflow-wrap:anywhere;
         word-break:break-word;
     }
+    #attendanceHolidayCalendar .attendance-meeting-event {
+        border-color:var(--pt-accent,#2563eb) !important;
+        color:var(--pt-surface-contrast,#10233f) !important;
+        background:var(--pt-accent-soft,#eff6ff) !important;
+    }
+    #attendanceHolidayCalendar .attendance-meeting-event .fc-event-main { color:inherit !important; }
     #attendanceHolidayCalendar .fc-list { border-color:var(--pt-border,#dbe5ef); }
     #attendanceHolidayCalendar .fc-list-day-cushion,
     #attendanceHolidayCalendar .fc-list-event:hover td { background:var(--pt-surface-soft,#f8fafc); }
@@ -265,7 +277,12 @@
             height: 'auto',
             fixedWeekCount: false,
             dayMaxEvents: true,
-            displayEventTime: false,
+            displayEventTime: true,
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            },
             eventDisplay: 'block',
             headerToolbar: {
                 left: 'prev,next today',
