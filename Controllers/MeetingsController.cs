@@ -74,7 +74,11 @@ namespace ProjectTracking.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> List(int calendarId)
+        public async Task<IActionResult> List(
+            int calendarId,
+            DateTime? start,
+            DateTime? end,
+            CancellationToken cancellationToken)
         {
             // โหลดข้อมูลดิบจาก DB ก่อน แล้วค่อย format เวลาใน memory (กัน All-day/FormatException)
             var rows = await _context.Meetings
@@ -95,14 +99,14 @@ namespace ProjectTracking.Controllers
                     m.Description,
                     m.MeetingAudience
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            var meetings = rows.Select(x =>
+            var events = rows.Select(x =>
             {
                 var startAt = x.MeetingDate.Date.Add(x.StartTime);
                 var endAt = x.MeetingDate.Date.Add(x.EndTime);
                 if (endAt <= startAt) endAt = endAt.AddDays(1);
-                return new
+                return (object)new
                 {
                     id = x.Id,
                     title = x.ProjectName ?? "",
@@ -116,12 +120,50 @@ namespace ProjectTracking.Controllers
                         meetingTitle = x.Title,
                         description = x.Description,
                         location = x.Location,
-                        meetingAudience = x.MeetingAudience
+                        meetingAudience = x.MeetingAudience,
+                        eventType = "meeting"
                     }
                 };
             }).ToList();
 
-            return Json(meetings);
+            // FullCalendar ส่งช่วงวันที่ของหน้าปัจจุบันมาให้ เพื่อไม่โหลดวันหยุดเกินความจำเป็น
+            var rangeStart = (start ?? DateTime.Today.AddMonths(-1)).Date;
+            var rangeEnd = (end ?? rangeStart.AddMonths(3)).Date;
+            if (rangeEnd <= rangeStart || rangeEnd > rangeStart.AddYears(2))
+                rangeEnd = rangeStart.AddYears(1);
+
+            var holidays = await _context.AttendanceHolidays
+                .AsNoTracking()
+                .Where(x => x.IsActive && x.HolidayDate >= rangeStart && x.HolidayDate < rangeEnd)
+                .OrderBy(x => x.HolidayDate)
+                .Select(x => new
+                {
+                    x.HolidayDate,
+                    x.HolidayName
+                })
+                .ToListAsync(cancellationToken);
+
+            events.AddRange(holidays.Select(x => (object)new
+            {
+                id = $"holiday-{x.HolidayDate:yyyy-MM-dd}",
+                title = x.HolidayName,
+                start = x.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                allDay = true,
+                editable = false,
+                startEditable = false,
+                durationEditable = false,
+                backgroundColor = "#fff7f7",
+                borderColor = "#ef4444",
+                textColor = "#111827",
+                classNames = new[] { "meeting-holiday-event" },
+                extendedProps = new
+                {
+                    eventType = "holiday",
+                    holidayName = x.HolidayName
+                }
+            }));
+
+            return Json(events);
         }
 
         [RequireMenu("Meetings.Index")]

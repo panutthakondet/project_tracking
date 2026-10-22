@@ -629,6 +629,43 @@
         --meeting-event-border: #64748b;
     }
 
+    .fc-event.meeting-holiday-event {
+        --meeting-event-bg-start: #ffffff;
+        --meeting-event-bg-end: #fff1f2;
+        --meeting-event-border: #ef4444;
+        cursor: default !important;
+        box-shadow: none !important;
+    }
+
+    .fc-event.meeting-holiday-event:hover {
+        transform: none;
+        box-shadow: none !important;
+    }
+
+    .meeting-holiday-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        min-width: 0;
+        color: #111827;
+        line-height: 1.35;
+    }
+
+    .meeting-holiday-content__icon {
+        flex: 0 0 auto;
+        font-size: .9rem;
+        line-height: 1.2;
+    }
+
+    .meeting-holiday-content__text {
+        min-width: 0;
+        color: #111827;
+        font-size: .76rem;
+        font-weight: 700;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
     .fc-tooltip {
         background: #212529;
         color: #fff;
@@ -1171,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         height: 'auto',
         firstDay: 0, // Sunday
-        allDaySlot: false,
+        allDaySlot: true,
         nowIndicator: true,
         expandRows: true,
         slotDuration: '00:30:00',
@@ -1216,35 +1253,61 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         eventClick: function (info) {
+            if (info.event.extendedProps?.eventType === 'holiday') {
+                info.jsEvent.preventDefault();
+                return;
+            }
             window.location.href = '/Meetings/Show/' + info.event.id;
         },
 
         eventDrop: function(info) {
+            if (info.event.extendedProps?.eventType === 'holiday') {
+                info.revert();
+                return;
+            }
             updateEventTime(info.event);
         },
 
         eventResize: function(info) {
+            if (info.event.extendedProps?.eventType === 'holiday') {
+                info.revert();
+                return;
+            }
             updateEventTime(info.event);
         },
 
         eventClassNames: function(arg) {
+            if (arg.event.extendedProps?.eventType === 'holiday') {
+                return ['meeting-holiday-event'];
+            }
             return [getMeetingAudienceClass(arg.event.extendedProps || {})];
         },
 
         displayEventTime: false,
 
         eventContent: function(arg) {
-            eventCounter++;
             const props = arg.event.extendedProps || {};
-
-            let project = arg.event.title || '';
-            let meetingTitle = props.title || props.meetingTitle || '';
 
             function escapeHtml(text) {
                 const div = document.createElement('div');
                 div.textContent = text || '';
                 return div.innerHTML;
             }
+
+            if (props.eventType === 'holiday') {
+                const holiday = document.createElement('div');
+                holiday.className = 'meeting-holiday-content';
+                holiday.innerHTML = `
+                    <span class="meeting-holiday-content__icon" aria-hidden="true">📅</span>
+                    <span class="meeting-holiday-content__text">วันหยุด: ${escapeHtml(props.holidayName || arg.event.title)}</span>
+                `;
+                return { domNodes: [holiday] };
+            }
+
+            eventCounter++;
+
+            let project = arg.event.title || '';
+            let meetingTitle = props.title || props.meetingTitle || '';
 
             const shortProject = eventCounter + '. ' + project;
             const shortMeeting = meetingTitle || '';
@@ -1326,7 +1389,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         eventDidMount: function(info) {
             const props = info.event.extendedProps || {};
-            console.log('Meeting props:', props);
             function escapeHtml(text) {
                 const div = document.createElement('div');
                 div.textContent = text || '';
@@ -1339,6 +1401,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const start = formatThaiTime(info.event.start);
             const end = formatThaiTime(info.event.end);
             const time = start && end ? `⏰ ${start} - ${end}` : '';
+
+            if (props.eventType === 'holiday') {
+                info.el.setAttribute('title', `วันหยุด: ${info.event.title}`);
+                info.el.setAttribute('aria-label', `วันหยุด: ${info.event.title}`);
+                return;
+            }
 
             const listTimeCell = info.el.querySelector('.fc-list-event-time');
             if (listTimeCell && start) {
