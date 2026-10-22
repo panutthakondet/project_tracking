@@ -147,6 +147,70 @@ namespace ProjectTracking.Controllers
                             }
                         };
                     }));
+
+                    var fieldServiceRows = await _context.FieldServiceVisits
+                        .AsNoTracking()
+                        .Where(x =>
+                            x.VisitDate < rangeEnd
+                            && (x.EndVisitDate ?? x.VisitDate) >= rangeStart
+                            && x.Status != "CANCELLED"
+                            && x.Assignees.Any(a => a.EmpId == employee.EmpId))
+                        .Select(x => new
+                        {
+                            x.VisitId,
+                            x.Title,
+                            x.ServiceType,
+                            x.VisitDate,
+                            x.EndVisitDate,
+                            x.StartTime,
+                            x.EndTime,
+                            x.Location,
+                            x.Status,
+                            CoopName = x.Coop != null ? x.Coop.CoopName : null
+                        })
+                        .OrderBy(x => x.VisitDate)
+                        .ThenBy(x => x.StartTime)
+                        .ToListAsync(cancellationToken);
+
+                    events.AddRange(fieldServiceRows.Select(x =>
+                    {
+                        var visitDate = x.VisitDate.Date;
+                        var finalDate = (x.EndVisitDate ?? x.VisitDate).Date;
+                        var isAllDay = finalDate > visitDate || !x.StartTime.HasValue;
+                        var startAt = x.StartTime.HasValue
+                            ? visitDate.Add(x.StartTime.Value)
+                            : visitDate;
+                        var endAt = x.EndTime.HasValue
+                            ? finalDate.Add(x.EndTime.Value)
+                            : finalDate.AddDays(1);
+                        if (!isAllDay && endAt <= startAt)
+                            endAt = endAt.AddDays(1);
+
+                        var coopName = string.IsNullOrWhiteSpace(x.CoopName) ? "ไม่ระบุสหกรณ์" : x.CoopName;
+                        return (object)new
+                        {
+                            id = $"field-service-{x.VisitId}",
+                            title = $"{x.ServiceType} · {coopName} · {x.Title}",
+                            start = isAllDay
+                                ? visitDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                                : startAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                            end = isAllDay
+                                ? finalDate.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                                : endAt.ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture),
+                            allDay = isAllDay,
+                            classNames = new[] { "attendance-field-service-event" },
+                            extendedProps = new
+                            {
+                                eventType = "fieldService",
+                                visitId = x.VisitId,
+                                coopName,
+                                serviceTitle = x.Title,
+                                serviceType = x.ServiceType,
+                                location = x.Location,
+                                status = x.Status
+                            }
+                        };
+                    }));
                 }
             }
 

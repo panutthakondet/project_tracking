@@ -66,11 +66,12 @@
     <div class="attendance-calendar-head">
         <div>
             <span class="attendance-eyebrow">วันหยุดและกำหนดการของฉัน</span>
-            <h3 id="attendanceHolidayTitle">ปฏิทินวันหยุดและการประชุม</h3>
+            <h3 id="attendanceHolidayTitle">ปฏิทินวันหยุด การประชุม และงานเข้าไซต์</h3>
         </div>
         <div class="attendance-calendar-legends" aria-label="คำอธิบายสีปฏิทิน">
             <span class="attendance-holiday-legend"><span aria-hidden="true"></span> วันหยุด</span>
             <span class="attendance-meeting-legend"><span aria-hidden="true"></span> การประชุมของฉัน</span>
+            <span class="attendance-field-service-legend"><span aria-hidden="true"></span> งานเข้าไซต์ของฉัน</span>
         </div>
     </div>
     <div id="attendanceHolidayCalendar"></div>
@@ -101,6 +102,8 @@
     .attendance-holiday-legend span { width:12px; height:12px; border:2px solid #ef4444; background:#fff7f7; }
     .attendance-meeting-legend { display:inline-flex; align-items:center; gap:7px; color:var(--pt-surface-contrast-muted,#64748b); font-size:.9rem; white-space:nowrap; }
     .attendance-meeting-legend span { width:12px; height:12px; border:2px solid var(--pt-accent,#2563eb); background:var(--pt-accent-soft,#eff6ff); }
+    .attendance-field-service-legend { display:inline-flex; align-items:center; gap:7px; color:var(--pt-surface-contrast-muted,#64748b); font-size:.9rem; white-space:nowrap; }
+    .attendance-field-service-legend span { width:12px; height:12px; border:2px solid #0d9488; background:#ccfbf1; }
     #attendanceHolidayCalendar { min-height:570px; }
     #attendanceHolidayCalendar .fc { color:var(--pt-surface-contrast,#10233f); font-family:inherit; font-size:.9rem; }
     #attendanceHolidayCalendar .fc-theme-standard td,
@@ -136,6 +139,12 @@
         background:var(--pt-accent-soft,#eff6ff) !important;
     }
     #attendanceHolidayCalendar .attendance-meeting-event .fc-event-main { color:inherit !important; }
+    #attendanceHolidayCalendar .attendance-field-service-event {
+        border-color:#0d9488 !important;
+        color:#111827 !important;
+        background:#ccfbf1 !important;
+    }
+    #attendanceHolidayCalendar .attendance-field-service-event .fc-event-main { color:inherit !important; }
     #attendanceHolidayCalendar .fc-list { border-color:var(--pt-border,#dbe5ef); }
     #attendanceHolidayCalendar .fc-list-day-cushion,
     #attendanceHolidayCalendar .fc-list-event:hover td { background:var(--pt-surface-soft,#f8fafc); }
