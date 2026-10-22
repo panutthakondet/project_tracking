@@ -27,40 +27,43 @@
 </div>
 
 <section class="attendance-today-card">
-    <div class="attendance-today-head">
-        <div>
-            <span class="attendance-eyebrow">การลงเวลาวันนี้</span>
-            <h3>เวลาทำงานวันนี้</h3>
-            <p>@employeeName · @workDate</p>
-        </div>
-        <span id="attendanceStatus" class="attendance-status @(hasCheckOut ? "done" : hasCheckIn ? "working" : "pending")">
-            @(hasCheckOut ? "เช็คครบแล้ว" : hasCheckIn ? "อยู่ระหว่างทำงาน" : "ยังไม่เช็คเข้า")
-        </span>
+    <div class="attendance-today-map" aria-hidden="true">
+        <iframe id="mapFrame" title="ตำแหน่งปัจจุบัน" loading="lazy" tabindex="-1"></iframe>
     </div>
 
-    <div class="attendance-time-grid">
-        <div class="attendance-time-box">
-            <span>เช็คเข้างาน</span>
-            <strong id="checkInTimeText">@checkInTime</strong>
-            <small id="checkInHint">@(hasCheckIn ? "บันทึกเวลาเข้างานแล้ว" : "ยังไม่มีเวลาเข้างาน")</small>
+    <div class="attendance-today-content">
+        <div class="attendance-today-head">
+            <div>
+                <span class="attendance-eyebrow">การลงเวลาวันนี้</span>
+                <h3>เวลาทำงานวันนี้</h3>
+                <p>@employeeName · @workDate</p>
+            </div>
+            <span id="attendanceStatus" class="attendance-status @(hasCheckOut ? "done" : hasCheckIn ? "working" : "pending")">
+                @(hasCheckOut ? "เช็คครบแล้ว" : hasCheckIn ? "อยู่ระหว่างทำงาน" : "ยังไม่เช็คเข้า")
+            </span>
         </div>
-        <div class="attendance-time-box">
-            <span>เช็คออกงาน</span>
-            <strong id="checkOutTimeText">@checkOutTime</strong>
-            <small id="checkOutHint">@(hasCheckOut ? "บันทึกเวลาออกงานแล้ว" : "ยังไม่มีเวลาออกงาน")</small>
-        </div>
-        <div class="attendance-time-box">
-            <span>ระยะจากจุดเข้างาน</span>
-            <strong id="distanceText">@(distanceKm == "-" ? "-" : $"{distanceKm} km")</strong>
-            <small>คำนวณเมื่อเช็คออกงาน</small>
+
+        <div class="attendance-time-grid">
+            <div class="attendance-time-box">
+                <span>เช็คเข้างาน</span>
+                <strong id="checkInTimeText">@checkInTime</strong>
+                <small id="checkInHint">@(hasCheckIn ? "บันทึกเวลาเข้างานแล้ว" : "ยังไม่มีเวลาเข้างาน")</small>
+            </div>
+            <div class="attendance-time-box">
+                <span>เช็คออกงาน</span>
+                <strong id="checkOutTimeText">@checkOutTime</strong>
+                <small id="checkOutHint">@(hasCheckOut ? "บันทึกเวลาออกงานแล้ว" : "ยังไม่มีเวลาออกงาน")</small>
+            </div>
+            <div class="attendance-time-box">
+                <span>ระยะจากจุดเข้างาน</span>
+                <strong id="distanceText">@(distanceKm == "-" ? "-" : $"{distanceKm} km")</strong>
+                <small>คำนวณเมื่อเช็คออกงาน</small>
+            </div>
         </div>
     </div>
 </section>
 
 <div id="attendanceMessage" class="attendance-message" role="status" aria-live="polite"></div>
-<div class="attendance-map">
-    <iframe id="mapFrame" title="ตำแหน่งปัจจุบัน" width="100%" height="100%" style="border:0" loading="lazy"></iframe>
-</div>
 
 <section class="attendance-calendar-card" aria-labelledby="attendanceHolidayTitle">
     <div class="attendance-calendar-head">
@@ -78,7 +81,11 @@
 </section>
 
 <style>
-    .attendance-today-card { margin-bottom:16px; padding:22px; border:1px solid var(--pt-border,#d8e3ef); border-radius:22px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); box-shadow:0 14px 32px var(--pt-shadow,rgba(15,35,64,.08)); }
+    .attendance-today-card { position:relative; isolation:isolate; overflow:hidden; margin-bottom:16px; padding:22px; border:1px solid var(--pt-border,#d8e3ef); border-radius:22px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); box-shadow:0 14px 32px var(--pt-shadow,rgba(15,35,64,.08)); }
+    .attendance-today-card::after { content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:color-mix(in srgb,var(--pt-surface,#fff) 76%,transparent); backdrop-filter:blur(1px); }
+    .attendance-today-map { position:absolute; inset:0; z-index:0; pointer-events:none; background:var(--pt-surface-soft,#eef4fb); }
+    .attendance-today-map iframe { width:100%; height:100%; border:0; pointer-events:none; filter:saturate(.78) contrast(.92); transform:scale(1.02); }
+    .attendance-today-content { position:relative; z-index:2; }
     .attendance-today-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
     .attendance-eyebrow { color:var(--pt-accent,#0f766e); font-size:.78rem; font-weight:700; letter-spacing:.04em; }
     .attendance-today-head h3 { margin:4px 0 0; color:var(--pt-surface-contrast,#10233f); font-size:1.35rem; font-weight:700; line-height:1.25; }
@@ -87,12 +94,11 @@
     .attendance-status.working { color:#9a5a00; border-color:#f0bd5a; background:#fff3d7; }
     .attendance-status.done { color:#0f766e; border-color:#5fd4c5; background:#d9fbf5; }
     .attendance-time-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-    .attendance-time-box { min-height:122px; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:18px; border:1px solid var(--pt-border,#d7e2f2); border-radius:18px; background:var(--pt-surface-soft,#f8fbff); }
+    .attendance-time-box { min-height:122px; display:flex; flex-direction:column; justify-content:center; gap:6px; padding:18px; border:1px solid var(--pt-border,#d7e2f2); border-radius:18px; background:color-mix(in srgb,var(--pt-surface-soft,#f8fbff) 88%,transparent); box-shadow:0 8px 20px color-mix(in srgb,var(--pt-shadow,rgba(15,35,64,.08)) 74%,transparent); backdrop-filter:blur(4px); }
     .attendance-time-box span { color:var(--pt-surface-contrast-muted,#64748b); font-weight:500; }
     .attendance-time-box strong { color:var(--pt-surface-contrast,#10233f); font-size:1.85rem; font-weight:700; line-height:1; }
     .attendance-time-box small { color:var(--pt-surface-contrast-muted,#7c8da5); font-weight:400; }
     .attendance-message { min-height:24px; margin:10px 0; color:var(--pt-surface-contrast,#10233f); font-weight:500; }
-    .attendance-map { height:350px; margin-top:8px; border:1px solid var(--pt-border,#d7e2f2); border-radius:18px; overflow:hidden; background:var(--pt-surface,#fff); box-shadow:0 10px 24px var(--pt-shadow,rgba(15,35,64,.07)); }
     .attendance-calendar-card { margin-top:16px; padding:22px; border:1px solid var(--pt-border,#d8e3ef); border-radius:22px; color:var(--pt-surface-contrast,#10233f); background:var(--pt-surface,#fff); box-shadow:0 14px 32px var(--pt-shadow,rgba(15,35,64,.08)); }
     .attendance-calendar-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
     .attendance-calendar-head h3 { margin:4px 0 0; color:var(--pt-surface-contrast,#10233f); font-size:1.35rem; font-weight:700; line-height:1.25; }
