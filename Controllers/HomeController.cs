@@ -1609,7 +1609,7 @@ namespace ProjectTracking.Controllers
                     if (!phaseById.TryGetValue(assign.PhaseId, out var phase))
                         return (ProjectId: (int?)null, IsAffected: false);
 
-                    var isActiveDue = !IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus)
+                    var isActiveDue = !IsLineOverdueAssignDone(assign.WorkStatus)
                         && TryLineOverdueSeverity(assign.PlanEnd ?? phase.PlanEnd, today, riskUntil, out _);
 
                     return (ProjectId: (int?)phase.ProjectId, IsAffected: isActiveDue);
@@ -1627,7 +1627,7 @@ namespace ProjectTracking.Controllers
                 if (!affectedProjectIds.Contains(phase.ProjectId))
                     continue;
 
-                if (IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus))
+                if (IsLineOverdueAssignDone(assign.WorkStatus))
                 {
                     projectById.TryGetValue(phase.ProjectId, out var doneProject);
                     AddLineOverdueOverviewItem(items, "DONE", assign.EmpId, doneProject?.BaEmpIds);
@@ -1691,7 +1691,7 @@ namespace ProjectTracking.Controllers
 
             var affectedProjectIds = assigns
                 .Where(assign => assign.Phase?.Project != null
-                    && !IsLineOverdueAssignDone(assign.WorkStatus, assign.Phase.PhaseStatus)
+                    && !IsLineOverdueAssignDone(assign.WorkStatus)
                     && TryLineOverdueSeverity(assign.PlanEnd ?? assign.Phase.PlanEnd, today, riskUntil, out _))
                 .Select(assign => assign.Phase!.ProjectId)
                 .Distinct()
@@ -1707,7 +1707,7 @@ namespace ProjectTracking.Controllers
                     continue;
 
                 var dueDate = assign.PlanEnd ?? phase.PlanEnd;
-                var isDone = IsLineOverdueAssignDone(assign.WorkStatus, phase.PhaseStatus);
+                var isDone = IsLineOverdueAssignDone(assign.WorkStatus);
                 string category;
                 if (isDone)
                 {
@@ -1881,12 +1881,11 @@ namespace ProjectTracking.Controllers
             return true;
         }
 
-        private static bool IsLineOverdueAssignDone(string? workStatus, string? phaseStatus)
+        private static bool IsLineOverdueAssignDone(string? workStatus)
         {
-            var work = Norm(workStatus);
-            var phase = Norm(phaseStatus);
-            return work == "DONE"
-                || phase is "DONE" or "SUBMITTED";
+            // A submitted/completed phase must not hide an unfinished assignment.
+            // The assignment overview follows the assignment's own work status.
+            return Norm(workStatus) == "DONE";
         }
 
         private static bool IsLineOverdueIssueDone(string? issueStatus, string? devStatus)
