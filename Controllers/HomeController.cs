@@ -28,7 +28,7 @@ namespace ProjectTracking.Controllers
         }
 
         [RequireMenu("Home.Index")]
-        public async Task<IActionResult> Index(string? department, string? meetingGroup)
+        public async Task<IActionResult> Index(string? department)
         {
             // ===============================
             // ส่งข้อมูลที่จำเป็นให้ View
@@ -221,7 +221,7 @@ namespace ProjectTracking.Controllers
             }
 
             ViewBag.PendingStatusApprovalCount = pendingStatusApprovalCount;
-            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin, department, meetingGroup);
+            var dashboard = await BuildHomeDashboardAsync(username ?? "-", today, currentEmpId, isAdmin, department);
 
             var unreadNotificationCount = 0;
 
@@ -650,8 +650,7 @@ namespace ProjectTracking.Controllers
             DateTime today,
             int? currentEmpId,
             bool isAdmin,
-            string? requestedDepartment,
-            string? requestedMeetingGroup)
+            string? requestedDepartment)
         {
             var th = new CultureInfo("th-TH");
             var now = AttendancePolicyService.ThailandNow;
@@ -945,26 +944,6 @@ namespace ProjectTracking.Controllers
                 .ToListAsync();
             await FillMissingEmployeeProfileImagesAsync(employees);
 
-            var meetingCalendarGroups = await _context.MeetingGroups
-                .AsNoTracking()
-                .Where(group => group.IsActive)
-                .OrderBy(group => group.SortOrder)
-                .ThenBy(group => group.GroupName)
-                .Select(group => new HomeDashboardMeetingGroupOption
-                {
-                    GroupId = group.GroupId,
-                    GroupName = group.GroupName
-                })
-                .ToListAsync();
-            var selectedMeetingGroup = "all";
-            int? selectedMeetingGroupId = null;
-            if (int.TryParse(requestedMeetingGroup, out var parsedMeetingGroupId)
-                && meetingCalendarGroups.Any(group => group.GroupId == parsedMeetingGroupId))
-            {
-                selectedMeetingGroupId = parsedMeetingGroupId;
-                selectedMeetingGroup = parsedMeetingGroupId.ToString(CultureInfo.InvariantCulture);
-            }
-
             var todayMeetings = await (
                 from m in _context.Meetings.AsNoTracking()
                 join p in _context.Projects.AsNoTracking()
@@ -1159,13 +1138,6 @@ namespace ProjectTracking.Controllers
             var scopedRequirementCards = selectedDashboardDepartment == "all"
                 ? requirementCards
                 : new List<DashboardRequirementCardRow>();
-            if (selectedMeetingGroupId.HasValue)
-            {
-                scopedTodayMeetings = scopedTodayMeetings
-                    .Where(meeting => meeting.GroupId == selectedMeetingGroupId.Value)
-                    .ToList();
-            }
-
             var empNameById = employees
                 .GroupBy(e => e.EmpId)
                 .ToDictionary(
@@ -1502,8 +1474,6 @@ namespace ProjectTracking.Controllers
                 TopProjectProgress = topProjectProgress,
                 RecentActivities = recentActivities,
                 TodayMeetings = meetingCards,
-                MeetingCalendarGroups = meetingCalendarGroups,
-                SelectedMeetingGroup = selectedMeetingGroup,
                 FieldServiceTodayCount = scopedFieldServiceVisits.Count(x =>
                     x.VisitDate.Date <= today && (x.EndVisitDate ?? x.VisitDate).Date >= today
                     && !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)),

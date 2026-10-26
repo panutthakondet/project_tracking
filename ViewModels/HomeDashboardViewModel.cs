@@ -48,8 +48,6 @@ namespace ProjectTracking.ViewModels
         public List<HomeDashboardProjectProgress> TopProjectProgress { get; set; } = new();
         public List<HomeDashboardActivity> RecentActivities { get; set; } = new();
         public List<HomeDashboardMeeting> TodayMeetings { get; set; } = new();
-        public List<HomeDashboardMeetingGroupOption> MeetingCalendarGroups { get; set; } = new();
-        public string SelectedMeetingGroup { get; set; } = "all";
         public int FieldServiceTodayCount { get; set; }
         public int FieldServicePlannedCount { get; set; }
         public int FieldServiceInProgressCount { get; set; }
@@ -205,12 +203,6 @@ namespace ProjectTracking.ViewModels
         public string TimeColor { get; set; } = "blue";
         public int AttendeeCount { get; set; }
         public string AvatarPath { get; set; } = "/images/Profile/profile.png";
-    }
-
-    public class HomeDashboardMeetingGroupOption
-    {
-        public int GroupId { get; set; }
-        public string GroupName { get; set; } = "";
     }
 
     public class HomeDashboardFieldServiceItem
