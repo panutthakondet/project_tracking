@@ -2020,6 +2020,23 @@ static async Task EnsureSystemUpdateAnnouncementSchemaAsync(IServiceProvider ser
             return Convert.ToInt32(await check.ExecuteScalarAsync()) > 0;
         }
 
+        async Task<bool> TableUsesUtf8Mb4Async(string tableName)
+        {
+            using var check = connection.CreateCommand();
+            check.CommandText = @"
+                SELECT COALESCE(TABLE_COLLATION, '')
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = @tableName
+                LIMIT 1;";
+            var tableParameter = check.CreateParameter();
+            tableParameter.ParameterName = "@tableName";
+            tableParameter.Value = tableName;
+            check.Parameters.Add(tableParameter);
+            var collation = Convert.ToString(await check.ExecuteScalarAsync());
+            return collation?.StartsWith("utf8mb4", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
         using var command = connection.CreateCommand();
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS `system_update_announcements` (
@@ -2034,8 +2051,18 @@ static async Task EnsureSystemUpdateAnnouncementSchemaAsync(IServiceProvider ser
               `max_displays_per_day` int NOT NULL DEFAULT 1,
               `is_active` tinyint(1) NOT NULL DEFAULT 1,
               PRIMARY KEY (`update_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         await command.ExecuteNonQueryAsync();
+
+        // MySQL's legacy `utf8` charset stores only 3-byte characters and rejects
+        // emoji. Upgrade existing installations as well as using utf8mb4 for new ones.
+        if (!await TableUsesUtf8Mb4Async("system_update_announcements"))
+        {
+            command.CommandText = @"
+                ALTER TABLE `system_update_announcements`
+                CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+            await command.ExecuteNonQueryAsync();
+        }
 
         if (!await ColumnExistsAsync("system_update_announcements", "start_date"))
         {
@@ -2069,7 +2096,7 @@ static async Task EnsureSystemUpdateAnnouncementSchemaAsync(IServiceProvider ser
                 FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
               CONSTRAINT `fk_system_update_announcement_departments_department`
                 FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
             CREATE TABLE IF NOT EXISTS `system_update_displays` (
               `display_id` int NOT NULL AUTO_INCREMENT,
@@ -2085,7 +2112,7 @@ static async Task EnsureSystemUpdateAnnouncementSchemaAsync(IServiceProvider ser
                 FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
               CONSTRAINT `fk_system_update_displays_user`
                 FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         await command.ExecuteNonQueryAsync();
     }
     finally

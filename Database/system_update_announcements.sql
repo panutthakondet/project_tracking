@@ -11,7 +11,11 @@ CREATE TABLE IF NOT EXISTS `system_update_announcements` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`update_id`),
   KEY `idx_system_update_active_published` (`is_active`, `published_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Upgrade existing installations so title/summary/details can store emoji.
+ALTER TABLE `system_update_announcements`
+  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `system_update_announcement_departments` (
   `update_id` int(11) NOT NULL,
@@ -22,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `system_update_announcement_departments` (
     FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_system_update_announcement_departments_department`
     FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `system_update_displays` (
   `display_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -38,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `system_update_displays` (
     FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_system_update_displays_user`
     FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `system_update_reads` (
   `read_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -54,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `system_update_reads` (
   CONSTRAINT `fk_system_update_reads_user`
     FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`)
     ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Example announcement:
 -- INSERT INTO `system_update_announcements`
