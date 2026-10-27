@@ -4,15 +4,20 @@
     var isDepartments = Model.ActiveSection == "departments";
     var isEmployeeDocumentTypes = Model.ActiveSection == "employee-document-types";
     var isProjectDocumentTypes = Model.ActiveSection == "project-document-types";
+    var isAnnouncements = Model.ActiveSection == "announcements";
     var isDocumentTypes = isEmployeeDocumentTypes || isProjectDocumentTypes;
-    var pageTitle = isDepartments
+    var pageTitle = isAnnouncements
+        ? "จัดการประกาศ"
+        : isDepartments
         ? "จัดการฝ่าย"
         : isEmployeeDocumentTypes
             ? "ประเภทเอกสารพนักงาน"
             : isProjectDocumentTypes
                 ? "ประเภทเอกสารโครงการ"
                 : "จัดการตำแหน่ง";
-    var activeCount = isDepartments
+    var activeCount = isAnnouncements
+        ? Model.Announcements.Count
+        : isDepartments
         ? Model.Departments.Count
         : isEmployeeDocumentTypes
             ? Model.EmployeeDocumentTypes.Count
@@ -177,6 +182,64 @@
     .master-config-create.department { grid-template-columns: 180px minmax(220px, 1fr) 110px auto; }
     .master-config-create.document { grid-template-columns: 170px minmax(220px, 1fr) 110px auto; }
 
+    .announcement-editor {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--pt-border, #dbe7f3);
+        border-radius: 12px;
+        background: var(--pt-surface-soft, #f8fafc);
+    }
+
+    .announcement-editor + .announcement-editor { margin-top: 14px; }
+    .announcement-editor.is-inactive { opacity: .74; }
+    .announcement-field { grid-column: span 3; }
+    .announcement-field.wide { grid-column: span 6; }
+    .announcement-field.full { grid-column: 1 / -1; }
+    .announcement-field textarea { min-height: 82px; resize: vertical; }
+    .announcement-departments {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 8px;
+    }
+    .announcement-department-list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .announcement-department {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 11px;
+        border: 1px solid var(--pt-border, #dbe7f3);
+        border-radius: 8px;
+        color: var(--pt-surface-contrast, #10233f);
+        background: var(--pt-surface, #fff);
+        font-size: .82rem;
+    }
+    .announcement-department input { accent-color: var(--pt-accent, #14b8a6); }
+    .announcement-hint { color: var(--pt-surface-contrast-muted, #64748b); font-size: .75rem; }
+    .announcement-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 2px;
+    }
+    .announcement-actions form { margin: 0; }
+    .announcement-button-danger {
+        min-height: 42px;
+        padding: 8px 16px;
+        border: 1px solid #ef4444;
+        border-radius: 8px;
+        color: #dc2626;
+        background: var(--pt-surface, #fff);
+        font-weight: 600;
+    }
+
     .master-config-field { min-width: 0; display: grid; gap: 5px; }
     .master-config-field label { color: var(--pt-surface-contrast-muted, #64748b); font-size: .75rem; font-weight: 600; }
 
@@ -306,6 +369,9 @@
         .master-config-row.position,
         .master-config-row.department,
         .master-config-row.document { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .announcement-field,
+        .announcement-field.wide { grid-column: span 6; }
+        .announcement-department-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @@container (max-width: 680px) {
@@ -315,6 +381,9 @@
         .master-config-row.position,
         .master-config-row.department,
         .master-config-row.document { grid-template-columns: minmax(0, 1fr); }
+        .announcement-field,
+        .announcement-field.wide { grid-column: 1 / -1; }
+        .announcement-department-list { grid-template-columns: 1fr; }
     }
 
     @@media (max-width: 1200px) {
@@ -376,9 +445,14 @@
                         <span class="master-config-nav-arrow">›</span>
                     </a>
                 }
+                <a class="master-config-nav-link @(isAnnouncements ? "is-active" : "")" asp-action="MasterData" asp-route-type="announcements">
+                    <span class="master-config-nav-icon"><img src="/images/menu-icons/meetings.svg" alt="" /></span>
+                    <span class="master-config-nav-copy"><strong>จัดการประกาศ</strong><small>@Model.Announcements.Count ประกาศ</small></span>
+                    <span class="master-config-nav-arrow">›</span>
+                </a>
 
                 <div class="master-config-nav-label">ข้อมูลบุคลากร</div>
-                <a class="master-config-nav-link @(!isDepartments && !isDocumentTypes ? "is-active" : "")" asp-action="MasterData" asp-route-type="positions">
+                <a class="master-config-nav-link @(!isDepartments && !isDocumentTypes && !isAnnouncements ? "is-active" : "")" asp-action="MasterData" asp-route-type="positions">
                     <span class="master-config-nav-icon"><img src="/images/menu-icons/employees.svg" alt="" /></span>
                     <span class="master-config-nav-copy"><strong>จัดการตำแหน่ง</strong><small>@Model.Positions.Count ตำแหน่ง</small></span>
                     <span class="master-config-nav-arrow">›</span>
@@ -407,7 +481,7 @@
             <div class="master-config-heading">
                 <div>
                     <span>ข้อมูลกลาง</span>
-                    <h2>@(isDepartments ? "ฝ่าย" : isEmployeeDocumentTypes ? "ประเภทเอกสารพนักงาน" : isProjectDocumentTypes ? "ประเภทเอกสารโครงการ" : "ตำแหน่ง")</h2>
+                    <h2>@(isAnnouncements ? "ประกาศ" : isDepartments ? "ฝ่าย" : isEmployeeDocumentTypes ? "ประเภทเอกสารพนักงาน" : isProjectDocumentTypes ? "ประเภทเอกสารโครงการ" : "ตำแหน่ง")</h2>
                 </div>
                 <strong>@activeCount</strong>
             </div>
@@ -422,7 +496,129 @@
                     <div class="master-config-alert error">@TempData["Error"]</div>
                 }
 
-                @if (isDocumentTypes)
+                @if (isAnnouncements)
+                {
+                    <form asp-action="SaveAnnouncement" method="post" class="announcement-editor">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="updateId" value="0" />
+                        <div class="master-config-field announcement-field wide">
+                            <label for="newAnnouncementTitle">หัวข้อประกาศ *</label>
+                            <input id="newAnnouncementTitle" class="master-config-input" name="title" maxlength="255" required placeholder="หัวข้อที่ต้องการแจ้งให้พนักงานทราบ" />
+                        </div>
+                        <div class="master-config-field announcement-field">
+                            <label for="newAnnouncementVersion">รหัส/เวอร์ชัน (ถ้ามี)</label>
+                            <input id="newAnnouncementVersion" class="master-config-input" name="version" maxlength="50" placeholder="เช่น ANN-001" />
+                        </div>
+                        <div class="master-config-field announcement-field full">
+                            <label for="newAnnouncementSummary">ข้อความสรุป</label>
+                            <textarea id="newAnnouncementSummary" class="master-config-input" name="summary" maxlength="500" placeholder="ข้อความสั้นที่แสดงใต้หัวข้อ"></textarea>
+                        </div>
+                        <div class="master-config-field announcement-field full">
+                            <label for="newAnnouncementDetails">รายละเอียดประกาศ</label>
+                            <textarea id="newAnnouncementDetails" class="master-config-input" name="details" maxlength="10000" placeholder="รายละเอียดประกาศฉบับเต็ม"></textarea>
+                        </div>
+                        <div class="master-config-field announcement-field">
+                            <label for="newAnnouncementStartDate">วันที่เริ่มแสดง *</label>
+                            <input id="newAnnouncementStartDate" class="master-config-input" name="startDate" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="master-config-field announcement-field">
+                            <label for="newAnnouncementEndDate">วันที่สิ้นสุด</label>
+                            <input id="newAnnouncementEndDate" class="master-config-input" name="endDate" type="date" />
+                        </div>
+                        <div class="master-config-field announcement-field">
+                            <label for="newAnnouncementMaxDisplays">จำนวนครั้งที่แสดงต่อคน/วัน *</label>
+                            <input id="newAnnouncementMaxDisplays" class="master-config-input" name="maxDisplaysPerDay" type="number" min="1" max="99" value="1" required />
+                        </div>
+                        <div class="announcement-departments">
+                            <div>
+                                <strong>ฝ่ายที่ต้องการประกาศ</strong>
+                                <div class="announcement-hint">เลือกได้หลายฝ่าย หากไม่เลือก ระบบจะแสดงประกาศกับทุกฝ่าย</div>
+                            </div>
+                            <div class="announcement-department-list">
+                                @foreach (var department in Model.Departments.Where(x => x.IsActive))
+                                {
+                                    <label class="announcement-department">
+                                        <input type="checkbox" name="departmentIds" value="@department.DepartmentId" />
+                                        <span>@department.DepartmentName</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                        <div class="announcement-actions">
+                            <button class="master-config-button" type="submit">＋ เพิ่มประกาศ</button>
+                        </div>
+                    </form>
+
+                    @if (Model.Announcements.Count == 0)
+                    {
+                        <div class="master-config-empty">ยังไม่มีประกาศในระบบ</div>
+                    }
+                    else
+                    {
+                        <div class="master-config-list" style="margin-top:14px">
+                            @foreach (var item in Model.Announcements)
+                            {
+                                var announcementFormId = $"announcementForm{item.UpdateId}";
+                                <form id="@announcementFormId" asp-action="SaveAnnouncement" method="post" class="announcement-editor @(!item.IsActive ? "is-inactive" : "")">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="updateId" value="@item.UpdateId" />
+                                    <div class="master-config-field announcement-field wide">
+                                        <label>หัวข้อประกาศ *</label>
+                                        <input class="master-config-input" name="title" maxlength="255" value="@item.Title" required />
+                                    </div>
+                                    <div class="master-config-field announcement-field">
+                                        <label>รหัส/เวอร์ชัน (ถ้ามี)</label>
+                                        <input class="master-config-input" name="version" maxlength="50" value="@item.Version" />
+                                    </div>
+                                    <div class="master-config-field announcement-field full">
+                                        <label>ข้อความสรุป</label>
+                                        <textarea class="master-config-input" name="summary" maxlength="500">@item.Summary</textarea>
+                                    </div>
+                                    <div class="master-config-field announcement-field full">
+                                        <label>รายละเอียดประกาศ</label>
+                                        <textarea class="master-config-input" name="details" maxlength="10000">@item.Details</textarea>
+                                    </div>
+                                    <div class="master-config-field announcement-field">
+                                        <label>วันที่เริ่มแสดง *</label>
+                                        <input class="master-config-input" name="startDate" type="date" value="@item.StartDate.ToString("yyyy-MM-dd")" required />
+                                    </div>
+                                    <div class="master-config-field announcement-field">
+                                        <label>วันที่สิ้นสุด</label>
+                                        <input class="master-config-input" name="endDate" type="date" value="@(item.EndDate?.ToString("yyyy-MM-dd"))" />
+                                    </div>
+                                    <div class="master-config-field announcement-field">
+                                        <label>จำนวนครั้งที่แสดงต่อคน/วัน *</label>
+                                        <input class="master-config-input" name="maxDisplaysPerDay" type="number" min="1" max="99" value="@item.MaxDisplaysPerDay" required />
+                                    </div>
+                                    <div class="announcement-departments">
+                                        <div>
+                                            <strong>ฝ่ายที่ประกาศ: @item.DepartmentNames</strong>
+                                            <div class="announcement-hint">เลือกได้หลายฝ่าย หากไม่เลือก ระบบจะแสดงประกาศกับทุกฝ่าย</div>
+                                        </div>
+                                        <div class="announcement-department-list">
+                                            @foreach (var department in Model.Departments.Where(x => x.IsActive || item.DepartmentIds.Contains(x.DepartmentId)))
+                                            {
+                                                <label class="announcement-department">
+                                                    <input type="checkbox" name="departmentIds" value="@department.DepartmentId" @(item.DepartmentIds.Contains(department.DepartmentId) ? "checked" : null) />
+                                                    <span>@department.DepartmentName</span>
+                                                </label>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="announcement-actions">
+                                        <button class="master-config-status @(item.IsActive ? "is-active" : "is-inactive")" type="submit" formaction="@Url.Action("ToggleAnnouncement")" formnovalidate>
+                                            <span class="master-config-status-dot" aria-hidden="true"></span>
+                                            <span class="master-config-status-copy"><strong>@(item.IsActive ? "เปิดใช้งาน" : "ปิดใช้งาน")</strong><small>กดเพื่อปรับสถานะ</small></span>
+                                        </button>
+                                        <button class="announcement-button-danger" type="submit" formaction="@Url.Action("DeleteAnnouncement")" formnovalidate onclick="return confirm('ยืนยันลบประกาศนี้?');">ลบ</button>
+                                        <button class="master-config-button" type="submit">บันทึกข้อมูล</button>
+                                    </div>
+                                </form>
+                            }
+                        </div>
+                    }
+                }
+                else if (isDocumentTypes)
                 {
                     var documentTypes = isEmployeeDocumentTypes ? Model.EmployeeDocumentTypes : Model.ProjectDocumentTypes;
                     var saveAction = isEmployeeDocumentTypes ? "SaveEmployeeDocumentType" : "SaveProjectDocumentType";

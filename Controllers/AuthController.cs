@@ -144,6 +144,7 @@ namespace ProjectTracking.Controllers
                 .ToList();
 
             HttpContext.Session.SetString("Menus", string.Join(",", menus));
+            HttpContext.Session.Remove("AcknowledgedAnnouncementIds");
             HttpContext.Session.SetString("ShowLoginFollowupPopup", "1");
 
             // ✅ กัน open redirect

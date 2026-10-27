@@ -1867,16 +1867,78 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
     {
         try
         {
+            var today = DateTime.Today;
+            var acknowledgedIds = new HashSet<int>();
+            var acknowledgedJson = Context.Session.GetString("AcknowledgedAnnouncementIds");
+            if (!string.IsNullOrWhiteSpace(acknowledgedJson))
+            {
+                try
+                {
+                    acknowledgedIds = System.Text.Json.JsonSerializer
+                        .Deserialize<HashSet<int>>(acknowledgedJson) ?? new HashSet<int>();
+                }
+                catch
+                {
+                    acknowledgedIds = new HashSet<int>();
+                }
+            }
+
+            var loginDepartmentId = await LayoutDb.Employees
+                .AsNoTracking()
+                .Where(emp => emp.LoginUserId == userId.Value)
+                .Select(emp => emp.DepartmentId)
+                .FirstOrDefaultAsync();
+
             systemUpdateAnnouncements = await LayoutDb.SystemUpdateAnnouncements
                 .AsNoTracking()
                 .Where(update => update.IsActive
-                    && !LayoutDb.SystemUpdateReads.Any(read =>
-                        read.UpdateId == update.UpdateId &&
-                        read.UserId == userId.Value))
-                .OrderByDescending(update => update.PublishedAt)
+                    && update.StartDate <= today
+                    && (update.EndDate == null || update.EndDate >= today)
+                    && !acknowledgedIds.Contains(update.UpdateId)
+                    && (!update.Departments.Any()
+                        || (loginDepartmentId.HasValue
+                            && update.Departments.Any(target => target.DepartmentId == loginDepartmentId.Value)))
+                    && !LayoutDb.SystemUpdateDisplays.Any(display =>
+                        display.UpdateId == update.UpdateId
+                        && display.UserId == userId.Value
+                        && display.DisplayedOn == today
+                        && display.DisplayCount >= update.MaxDisplaysPerDay))
+                .OrderByDescending(update => update.StartDate)
                 .ThenByDescending(update => update.UpdateId)
                 .Take(5)
                 .ToListAsync();
+
+            if (systemUpdateAnnouncements.Count > 0)
+            {
+                var announcementIds = systemUpdateAnnouncements.Select(update => update.UpdateId).ToList();
+                var displayRows = await LayoutDb.SystemUpdateDisplays
+                    .Where(display => announcementIds.Contains(display.UpdateId)
+                        && display.UserId == userId.Value
+                        && display.DisplayedOn == today)
+                    .ToDictionaryAsync(display => display.UpdateId);
+
+                foreach (var update in systemUpdateAnnouncements)
+                {
+                    if (displayRows.TryGetValue(update.UpdateId, out var display))
+                    {
+                        display.DisplayCount++;
+                        display.LastDisplayedAt = DateTime.Now;
+                    }
+                    else
+                    {
+                        LayoutDb.SystemUpdateDisplays.Add(new ProjectTracking.Models.SystemUpdateDisplay
+                        {
+                            UpdateId = update.UpdateId,
+                            UserId = userId.Value,
+                            DisplayedOn = today,
+                            DisplayCount = 1,
+                            LastDisplayedAt = DateTime.Now
+                        });
+                    }
+                }
+
+                await LayoutDb.SaveChangesAsync();
+            }
         }
         catch
         {
@@ -2459,7 +2521,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
             <div class="system-update-head">
                 <div class="system-update-eyebrow">ProjectTracking Update</div>
                 <h2 id="systemUpdateTitle">มีอะไรใหม่</h2>
-                <p>ระบบได้รับการอัปเดตให้ใช้งานดีขึ้น ดูว่ามีอะไรใหม่ กดรับทราบเพื่อไม่ให้ประกาศนี้แสดงซ้ำ</p>
+                <p>ประกาศจากระบบสำหรับคุณ กดรับทราบเพื่อปิดประกาศในครั้งนี้</p>
             </div>
 
             <div class="system-update-list">
@@ -2477,7 +2539,7 @@ body:has(.v2-shell-requirement-board) *::-webkit-scrollbar-thumb:hover{
                             {
                                 <span class="system-update-chip">@update.Version</span>
                             }
-                            <span class="system-update-chip muted">@update.PublishedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            <span class="system-update-chip muted">@update.StartDate.ToString("dd/MM/yyyy") - @(update.EndDate?.ToString("dd/MM/yyyy") ?? "ไม่กำหนด")</span>
                         </div>
                         <h3>@update.Title</h3>
                         @if (!string.IsNullOrWhiteSpace(update.Summary))

@@ -31,9 +31,22 @@ namespace ProjectTracking.Models
         [Column("published_at")]
         public DateTime PublishedAt { get; set; } = DateTime.Now;
 
+        [Column("start_date")]
+        public DateTime StartDate { get; set; } = DateTime.Today;
+
+        [Column("end_date")]
+        public DateTime? EndDate { get; set; }
+
+        [Column("max_displays_per_day")]
+        public int MaxDisplaysPerDay { get; set; } = 1;
+
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
         public ICollection<SystemUpdateRead>? Reads { get; set; }
+        public ICollection<SystemUpdateAnnouncementDepartment> Departments { get; set; }
+            = new List<SystemUpdateAnnouncementDepartment>();
+        public ICollection<SystemUpdateDisplay> Displays { get; set; }
+            = new List<SystemUpdateDisplay>();
     }
 }

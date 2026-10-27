@@ -30,9 +30,13 @@ namespace ProjectTracking.Controllers
             if (ids.Count == 0)
                 return RedirectSafely(returnUrl);
 
+            var today = DateTime.Today;
             var activeIds = await _context.SystemUpdateAnnouncements
                 .AsNoTracking()
-                .Where(x => ids.Contains(x.UpdateId) && x.IsActive)
+                .Where(x => ids.Contains(x.UpdateId)
+                    && x.IsActive
+                    && x.StartDate <= today
+                    && (x.EndDate == null || x.EndDate >= today))
                 .Select(x => x.UpdateId)
                 .ToListAsync();
 
@@ -54,6 +58,26 @@ namespace ProjectTracking.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            var acknowledgedIds = new HashSet<int>();
+            var acknowledgedJson = HttpContext.Session.GetString("AcknowledgedAnnouncementIds");
+            if (!string.IsNullOrWhiteSpace(acknowledgedJson))
+            {
+                try
+                {
+                    acknowledgedIds = System.Text.Json.JsonSerializer
+                        .Deserialize<HashSet<int>>(acknowledgedJson) ?? new HashSet<int>();
+                }
+                catch
+                {
+                    acknowledgedIds = new HashSet<int>();
+                }
+            }
+
+            acknowledgedIds.UnionWith(activeIds);
+            HttpContext.Session.SetString(
+                "AcknowledgedAnnouncementIds",
+                System.Text.Json.JsonSerializer.Serialize(acknowledgedIds));
 
             return RedirectSafely(returnUrl);
         }

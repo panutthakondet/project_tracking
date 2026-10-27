@@ -83,6 +83,8 @@ namespace ProjectTracking.Data
         public DbSet<SystemConfig> SystemConfigs { get; set; }
         public DbSet<SystemUpdateAnnouncement> SystemUpdateAnnouncements { get; set; }
         public DbSet<SystemUpdateRead> SystemUpdateReads { get; set; }
+        public DbSet<SystemUpdateAnnouncementDepartment> SystemUpdateAnnouncementDepartments { get; set; }
+        public DbSet<SystemUpdateDisplay> SystemUpdateDisplays { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
         public DbSet<MeetingRoomProfile> MeetingRoomProfiles { get; set; }
         public DbSet<MeetingRoomArea> MeetingRoomAreas { get; set; }
@@ -598,12 +600,25 @@ namespace ProjectTracking.Data
                     .HasColumnName("published_at")
                     .HasColumnType("datetime");
 
+                entity.Property(x => x.StartDate)
+                    .HasColumnName("start_date")
+                    .HasColumnType("date");
+
+                entity.Property(x => x.EndDate)
+                    .HasColumnName("end_date")
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.MaxDisplaysPerDay)
+                    .HasColumnName("max_displays_per_day")
+                    .HasDefaultValue(1);
+
                 entity.Property(x => x.IsActive)
                     .HasColumnName("is_active")
                     .HasColumnType("tinyint(1)")
                     .HasDefaultValue(true);
 
-                entity.HasIndex(x => new { x.IsActive, x.PublishedAt });
+                entity.HasIndex(x => new { x.IsActive, x.StartDate, x.EndDate });
             });
 
             modelBuilder.Entity<SystemUpdateRead>(entity =>
@@ -634,6 +649,39 @@ namespace ProjectTracking.Data
 
                 entity.HasOne(x => x.Update)
                     .WithMany(x => x.Reads)
+                    .HasForeignKey(x => x.UpdateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SystemUpdateAnnouncementDepartment>(entity =>
+            {
+                entity.ToTable("system_update_announcement_departments");
+                entity.HasKey(x => new { x.UpdateId, x.DepartmentId });
+
+                entity.HasOne(x => x.Update)
+                    .WithMany(x => x.Departments)
+                    .HasForeignKey(x => x.UpdateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.Department)
+                    .WithMany()
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<SystemUpdateDisplay>(entity =>
+            {
+                entity.ToTable("system_update_displays");
+                entity.HasKey(x => x.DisplayId);
+                entity.Property(x => x.DisplayedOn).HasColumnType("date");
+                entity.Property(x => x.LastDisplayedAt).HasColumnType("datetime");
+                entity.HasIndex(x => new { x.UpdateId, x.UserId, x.DisplayedOn })
+                    .IsUnique()
+                    .HasDatabaseName("uq_system_update_displays_daily");
+                entity.HasIndex(x => new { x.UserId, x.DisplayedOn });
+
+                entity.HasOne(x => x.Update)
+                    .WithMany(x => x.Displays)
                     .HasForeignKey(x => x.UpdateId)
                     .OnDelete(DeleteBehavior.Cascade);
             });

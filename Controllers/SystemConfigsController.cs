@@ -133,8 +133,18 @@ namespace ProjectTracking.Controllers
                 "departments" => "departments",
                 "employee-document-types" => "employee-document-types",
                 "project-document-types" => "project-document-types",
+                "announcements" => "announcements",
                 _ => "positions"
             };
+
+            var announcementEntities = await _context.SystemUpdateAnnouncements
+                .AsNoTracking()
+                .Include(x => x.Departments)
+                    .ThenInclude(x => x.Department)
+                .OrderByDescending(x => x.IsActive)
+                .ThenByDescending(x => x.StartDate)
+                .ThenByDescending(x => x.UpdateId)
+                .ToListAsync(cancellationToken);
 
             var model = new SystemConfigMasterDataViewModel
             {
@@ -194,7 +204,27 @@ namespace ProjectTracking.Controllers
                         IsActive = x.IsActive,
                         DocumentCount = _context.ProjectDocuments.Count(d => d.DocumentType == x.DocumentTypeCode)
                     })
-                    .ToListAsync(cancellationToken)
+                    .ToListAsync(cancellationToken),
+                Announcements = announcementEntities
+                    .Select(x => new SystemUpdateAnnouncementConfigViewModel
+                    {
+                        UpdateId = x.UpdateId,
+                        Version = x.Version ?? "",
+                        Title = x.Title,
+                        Summary = x.Summary ?? "",
+                        Details = x.Details ?? "",
+                        StartDate = x.StartDate,
+                        EndDate = x.EndDate,
+                        MaxDisplaysPerDay = x.MaxDisplaysPerDay,
+                        IsActive = x.IsActive,
+                        DepartmentIds = x.Departments.Select(d => d.DepartmentId).ToList(),
+                        DepartmentNames = x.Departments.Any()
+                            ? string.Join(", ", x.Departments
+                                .OrderBy(d => d.Department!.SortOrder)
+                                .Select(d => d.Department!.DepartmentName))
+                            : "ทุกฝ่าย"
+                    })
+                    .ToList()
             };
 
             return View(model);
@@ -525,6 +555,150 @@ namespace ProjectTracking.Controllers
             await _context.SaveChangesAsync(cancellationToken);
             TempData["Success"] = documentType.IsActive ? "เปิดใช้งานประเภทเอกสารโครงการแล้ว" : "ปิดใช้งานประเภทเอกสารโครงการแล้ว";
             return RedirectToMasterData("project-document-types");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> SaveAnnouncement(
+            int updateId,
+            string? version,
+            string? title,
+            string? summary,
+            string? details,
+            DateTime startDate,
+            DateTime? endDate,
+            int maxDisplaysPerDay,
+            List<int>? departmentIds,
+            CancellationToken cancellationToken)
+        {
+            title = (title ?? "").Trim();
+            version = (version ?? "").Trim();
+            summary = (summary ?? "").Trim();
+            details = (details ?? "").Trim();
+            departmentIds = (departmentIds ?? new List<int>()).Where(id => id > 0).Distinct().ToList();
+
+            if (title.Length == 0 || title.Length > 255)
+            {
+                TempData["Error"] = "กรุณาระบุหัวข้อประกาศไม่เกิน 255 ตัวอักษร";
+                return RedirectToMasterData("announcements");
+            }
+
+            if (version.Length > 50)
+            {
+                TempData["Error"] = "รหัส/เวอร์ชันประกาศต้องไม่เกิน 50 ตัวอักษร";
+                return RedirectToMasterData("announcements");
+            }
+
+            if (summary.Length > 500)
+            {
+                TempData["Error"] = "ข้อความสรุปต้องไม่เกิน 500 ตัวอักษร";
+                return RedirectToMasterData("announcements");
+            }
+
+            if (details.Length > 10000)
+            {
+                TempData["Error"] = "รายละเอียดประกาศต้องไม่เกิน 10,000 ตัวอักษร";
+                return RedirectToMasterData("announcements");
+            }
+
+            if (startDate == default || (endDate.HasValue && endDate.Value.Date < startDate.Date))
+            {
+                TempData["Error"] = "ช่วงวันที่ประกาศไม่ถูกต้อง";
+                return RedirectToMasterData("announcements");
+            }
+
+            maxDisplaysPerDay = Math.Clamp(maxDisplaysPerDay, 1, 99);
+
+            var validDepartmentIds = await _context.ProjectDepartments
+                .AsNoTracking()
+                .Where(x => departmentIds.Contains(x.DepartmentId))
+                .Select(x => x.DepartmentId)
+                .ToListAsync(cancellationToken);
+
+            SystemUpdateAnnouncement announcement;
+            var isNew = updateId <= 0;
+            if (isNew)
+            {
+                announcement = new SystemUpdateAnnouncement
+                {
+                    PublishedAt = DateTime.Now,
+                    IsActive = true
+                };
+                _context.SystemUpdateAnnouncements.Add(announcement);
+            }
+            else
+            {
+                var existing = await _context.SystemUpdateAnnouncements
+                    .Include(x => x.Departments)
+                    .FirstOrDefaultAsync(x => x.UpdateId == updateId, cancellationToken);
+                if (existing == null)
+                {
+                    TempData["Error"] = "ไม่พบประกาศที่ต้องการแก้ไข";
+                    return RedirectToMasterData("announcements");
+                }
+
+                announcement = existing;
+                _context.SystemUpdateAnnouncementDepartments.RemoveRange(announcement.Departments);
+            }
+
+            announcement.Version = version.Length == 0 ? null : version;
+            announcement.Title = title;
+            announcement.Summary = summary.Length == 0 ? null : summary;
+            announcement.Details = details.Length == 0 ? null : details;
+            announcement.StartDate = startDate.Date;
+            announcement.EndDate = endDate?.Date;
+            announcement.MaxDisplaysPerDay = maxDisplaysPerDay;
+
+            foreach (var departmentId in validDepartmentIds)
+            {
+                announcement.Departments.Add(new SystemUpdateAnnouncementDepartment
+                {
+                    DepartmentId = departmentId
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = isNew ? "เพิ่มประกาศแล้ว" : "บันทึกประกาศแล้ว";
+            return RedirectToMasterData("announcements");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> ToggleAnnouncement(int updateId, CancellationToken cancellationToken)
+        {
+            var announcement = await _context.SystemUpdateAnnouncements
+                .FirstOrDefaultAsync(x => x.UpdateId == updateId, cancellationToken);
+            if (announcement == null)
+            {
+                TempData["Error"] = "ไม่พบประกาศที่ต้องการปรับสถานะ";
+                return RedirectToMasterData("announcements");
+            }
+
+            announcement.IsActive = !announcement.IsActive;
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = announcement.IsActive ? "เปิดใช้งานประกาศแล้ว" : "ปิดใช้งานประกาศแล้ว";
+            return RedirectToMasterData("announcements");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireMenu("SystemConfigs.Index")]
+        public async Task<IActionResult> DeleteAnnouncement(int updateId, CancellationToken cancellationToken)
+        {
+            var announcement = await _context.SystemUpdateAnnouncements
+                .FirstOrDefaultAsync(x => x.UpdateId == updateId, cancellationToken);
+            if (announcement == null)
+            {
+                TempData["Error"] = "ไม่พบประกาศที่ต้องการลบ";
+                return RedirectToMasterData("announcements");
+            }
+
+            _context.SystemUpdateAnnouncements.Remove(announcement);
+            await _context.SaveChangesAsync(cancellationToken);
+            TempData["Success"] = "ลบประกาศแล้ว";
+            return RedirectToMasterData("announcements");
         }
 
         private RedirectToActionResult RedirectToMasterData(string type)

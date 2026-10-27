@@ -244,6 +244,7 @@ await EnsureProjectDocumentTypeTableAsync(app.Services);
 await EnsureEmployeeDocumentsTableAsync(app.Services);
 await EnsureEmployeeDocumentTypeTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
+await EnsureSystemUpdateAnnouncementSchemaAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
 await EnsureThemePresetTablesAsync(app.Services);
 await EnsureMeetingRoomProfileTableAsync(app.Services);
@@ -1978,6 +1979,113 @@ static async Task EnsureSystemConfigTableAsync(IServiceProvider services)
               AND `config_value` = '15'
               AND `description` = 'Attendance - จำนวนนาทีผ่อนผันก่อนนับว่ามาสาย';";
 
+        await command.ExecuteNonQueryAsync();
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureSystemUpdateAnnouncementSchemaAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        async Task<bool> ColumnExistsAsync(string tableName, string columnName)
+        {
+            using var check = connection.CreateCommand();
+            check.CommandText = @"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = @tableName
+                  AND COLUMN_NAME = @columnName;";
+            var tableParameter = check.CreateParameter();
+            tableParameter.ParameterName = "@tableName";
+            tableParameter.Value = tableName;
+            check.Parameters.Add(tableParameter);
+            var columnParameter = check.CreateParameter();
+            columnParameter.ParameterName = "@columnName";
+            columnParameter.Value = columnName;
+            check.Parameters.Add(columnParameter);
+            return Convert.ToInt32(await check.ExecuteScalarAsync()) > 0;
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `system_update_announcements` (
+              `update_id` int NOT NULL AUTO_INCREMENT,
+              `version` varchar(50) DEFAULT NULL,
+              `title` varchar(255) NOT NULL,
+              `summary` varchar(500) DEFAULT NULL,
+              `details` text DEFAULT NULL,
+              `published_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `start_date` date NOT NULL,
+              `end_date` date DEFAULT NULL,
+              `max_displays_per_day` int NOT NULL DEFAULT 1,
+              `is_active` tinyint(1) NOT NULL DEFAULT 1,
+              PRIMARY KEY (`update_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        if (!await ColumnExistsAsync("system_update_announcements", "start_date"))
+        {
+            command.CommandText = "ALTER TABLE `system_update_announcements` ADD COLUMN `start_date` date NULL AFTER `published_at`;";
+            await command.ExecuteNonQueryAsync();
+            command.CommandText = "UPDATE `system_update_announcements` SET `start_date` = DATE(`published_at`) WHERE `start_date` IS NULL;";
+            await command.ExecuteNonQueryAsync();
+            command.CommandText = "ALTER TABLE `system_update_announcements` MODIFY COLUMN `start_date` date NOT NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        if (!await ColumnExistsAsync("system_update_announcements", "end_date"))
+        {
+            command.CommandText = "ALTER TABLE `system_update_announcements` ADD COLUMN `end_date` date NULL AFTER `start_date`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        if (!await ColumnExistsAsync("system_update_announcements", "max_displays_per_day"))
+        {
+            command.CommandText = "ALTER TABLE `system_update_announcements` ADD COLUMN `max_displays_per_day` int NOT NULL DEFAULT 1 AFTER `end_date`;";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `system_update_announcement_departments` (
+              `update_id` int NOT NULL,
+              `department_id` int NOT NULL,
+              PRIMARY KEY (`update_id`, `department_id`),
+              KEY `idx_system_update_announcement_departments_department` (`department_id`),
+              CONSTRAINT `fk_system_update_announcement_departments_update`
+                FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
+              CONSTRAINT `fk_system_update_announcement_departments_department`
+                FOREIGN KEY (`department_id`) REFERENCES `project_departments` (`department_id`) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+            CREATE TABLE IF NOT EXISTS `system_update_displays` (
+              `display_id` int NOT NULL AUTO_INCREMENT,
+              `update_id` int NOT NULL,
+              `user_id` int NOT NULL,
+              `displayed_on` date NOT NULL,
+              `display_count` int NOT NULL DEFAULT 0,
+              `last_displayed_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`display_id`),
+              UNIQUE KEY `uq_system_update_displays_daily` (`update_id`, `user_id`, `displayed_on`),
+              KEY `idx_system_update_displays_user_date` (`user_id`, `displayed_on`),
+              CONSTRAINT `fk_system_update_displays_update`
+                FOREIGN KEY (`update_id`) REFERENCES `system_update_announcements` (`update_id`) ON DELETE CASCADE,
+              CONSTRAINT `fk_system_update_displays_user`
+                FOREIGN KEY (`user_id`) REFERENCES `login_user` (`user_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
         await command.ExecuteNonQueryAsync();
     }
     finally

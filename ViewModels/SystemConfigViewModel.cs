@@ -35,6 +35,7 @@ namespace ProjectTracking.ViewModels
         public List<ProjectDepartmentConfigViewModel> Departments { get; set; } = new();
         public List<DocumentTypeConfigViewModel> EmployeeDocumentTypes { get; set; } = new();
         public List<DocumentTypeConfigViewModel> ProjectDocumentTypes { get; set; } = new();
+        public List<SystemUpdateAnnouncementConfigViewModel> Announcements { get; set; } = new();
     }
 
     public class EmployeePositionConfigViewModel
@@ -65,5 +66,20 @@ namespace ProjectTracking.ViewModels
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public int DocumentCount { get; set; }
+    }
+
+    public class SystemUpdateAnnouncementConfigViewModel
+    {
+        public int UpdateId { get; set; }
+        public string Version { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Summary { get; set; } = "";
+        public string Details { get; set; } = "";
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int MaxDisplaysPerDay { get; set; }
+        public bool IsActive { get; set; }
+        public List<int> DepartmentIds { get; set; } = new();
+        public string DepartmentNames { get; set; } = "ทุกฝ่าย";
     }
 }
