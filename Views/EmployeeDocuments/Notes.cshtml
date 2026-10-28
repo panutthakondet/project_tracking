@@ -470,11 +470,44 @@
         const originalTitle = title?.value;
         const originalContent = content?.value;
         let saving = false;
+        let leavingConfirmed = false;
         const hasChanges = () => !saving && title && !title.disabled &&
             (title.value !== originalTitle || content.value !== originalContent);
+        const confirmLeaving = () => {
+            if (!hasChanges()) return true;
+            if (!window.confirm('คุณมีข้อความที่ยังไม่ได้บันทึก หากออกจากหน้านี้ ข้อความที่แก้ไขจะหายไป\n\nต้องการออกจากหน้านี้โดยไม่บันทึกหรือไม่?')) return false;
+            leavingConfirmed = true;
+            // ยกเว้นคำเตือนซ้ำเฉพาะการเปลี่ยนหน้าครั้งนี้
+            setTimeout(() => leavingConfirmed = false, 0);
+            return true;
+        };
+        document.addEventListener('click', event => {
+            if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            const link = event.target.closest('a[href]');
+            if (!link || link.hasAttribute('download')) return;
+            const target = link.getAttribute('target');
+            if (target && target.toLowerCase() !== '_self') return;
+            const url = new URL(link.href, window.location.href);
+            if (!['http:', 'https:'].includes(url.protocol)) return;
+            if (url.origin === location.origin && url.pathname === location.pathname &&
+                url.search === location.search && url.hash) return;
+            if (!confirmLeaving()) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        });
+        document.addEventListener('submit', event => {
+            if (event.defaultPrevented || event.target === form) return;
+            const target = event.target.getAttribute('target');
+            if (target && target.toLowerCase() !== '_self') return;
+            if (!confirmLeaving()) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        });
         form?.addEventListener('submit', () => saving = true);
         window.addEventListener('beforeunload', event => {
-            if (!hasChanges()) return;
+            if (leavingConfirmed || !hasChanges()) return;
             event.preventDefault();
             event.returnValue = '';
         });

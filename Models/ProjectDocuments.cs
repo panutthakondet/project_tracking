@@ -23,6 +23,10 @@ namespace ProjectTracking.Models
         [StringLength(255)]
         public string? FileName { get; set; }
 
+        [Column("description")]
+        [StringLength(2000)]
+        public string? Description { get; set; }
+
         [Column("file_path")]
         [StringLength(500)]
         public string FilePath { get; set; } = string.Empty;

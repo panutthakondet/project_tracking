@@ -52,6 +52,7 @@ namespace ProjectTracking.Controllers
 
                     documentQuery = documentQuery.Where(x =>
                         (x.FileName != null && x.FileName.Contains(searchTerm))
+                        || (x.Description != null && x.Description.Contains(searchTerm))
                         || (x.DocumentType != null
                             && (x.DocumentType.Contains(searchTerm)
                                 || matchingTypeCodes.Contains(x.DocumentType)))
@@ -192,8 +193,7 @@ namespace ProjectTracking.Controllers
             }
 
             ViewBag.EmpId = empId;
-            ViewBag.DocumentTypes = await GetActiveDocumentTypesAsync();
-            return View();
+            return View(await GetActiveDocumentTypesAsync());
         }
 
         [RequireMenu("EmployeeDocuments.Upload")]
@@ -202,7 +202,7 @@ namespace ProjectTracking.Controllers
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadSize)]
         [RequestSizeLimit(MaxUploadSize)]
-        public async Task<IActionResult> Upload(int empId, string documentType, IFormFile file)
+        public async Task<IActionResult> Upload(int empId, string documentType, IFormFile file, string? description)
         {
             if (empId <= 0 || !await _context.Employees.AnyAsync(x => x.EmpId == empId))
             {
@@ -235,6 +235,12 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Index), new { empId });
             }
 
+            if (description?.Length > 2000)
+            {
+                TempData["Error"] = "คำอธิบายต้องมีความยาวไม่เกิน 2,000 ตัวอักษร";
+                return RedirectToAction(nameof(Index), new { empId });
+            }
+
             var webRootPath = GetWebRootPath();
             var folder = Path.Combine(webRootPath, "uploads", "employee-documents", empId.ToString());
             Directory.CreateDirectory(folder);
@@ -253,6 +259,7 @@ namespace ProjectTracking.Controllers
                 EmpId = empId,
                 DocumentType = allowedDocumentType.DocumentTypeCode.Trim().ToUpperInvariant(),
                 FileName = string.IsNullOrWhiteSpace(originalFileName) ? savedFileName : originalFileName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 FilePath = $"/uploads/employee-documents/{empId}/{savedFileName}",
                 UploadedBy = HttpContext.Session.GetString("Username"),
                 UploadedAt = DateTime.Now

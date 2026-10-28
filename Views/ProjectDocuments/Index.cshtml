@@ -130,6 +130,14 @@
         line-height: 1.35;
         margin-top: 4px;
     }
+
+    .project-doc-description {
+        margin-top: 6px;
+        color: var(--pt-surface-contrast, #10233f);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: .9rem;
+    }
 </style>
 
 <div class="container project-documents-page">
@@ -216,6 +224,11 @@
                             </button>
                         </div>
 
+                        <div class="col-12">
+                            <label class="form-label" for="projectDocumentDescription">คำอธิบาย (ไม่บังคับ)</label>
+                            <textarea id="projectDocumentDescription" name="description" class="form-control" rows="3" maxlength="2000" placeholder="รายละเอียดเพิ่มเติมของเอกสาร" aria-describedby="projectDocumentDescriptionHelp"></textarea>
+                            <div id="projectDocumentDescriptionHelp" class="form-text text-muted">ใส่ได้ไม่เกิน 2,000 ตัวอักษร</div>
+                        </div>
                     </div>
                 </form>
             }
@@ -283,6 +296,10 @@
 
                                 <td>
                                     <div class="project-doc-file-name">@doc.FileName</div>
+                                    @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                    {
+                                        <div class="project-doc-description">@doc.Description</div>
+                                    }
                                     <div class="project-doc-uploaded">Uploaded: @doc.UploadedAt.ToString("yyyy-MM-dd HH:mm")</div>
                                 </td>
 

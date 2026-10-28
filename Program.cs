@@ -1478,6 +1478,7 @@ static async Task EnsureProjectDocumentsTableAsync(IServiceProvider services)
               `project_id` int(11) NOT NULL,
               `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
               `file_name` varchar(255) NULL,
+              `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
               `file_path` varchar(500) NOT NULL,
               `uploaded_by` varchar(100) NULL,
               `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1534,6 +1535,10 @@ static async Task EnsureProjectDocumentsTableAsync(IServiceProvider services)
         await EnsureColumnAsync(
             "file_name",
             "ALTER TABLE `project_documents` ADD COLUMN `file_name` varchar(255) NULL AFTER `document_type`;");
+
+        await EnsureColumnAsync(
+            "description",
+            "ALTER TABLE `project_documents` ADD COLUMN `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `file_name`;");
 
         await EnsureColumnAsync(
             "file_path",
@@ -1670,6 +1675,7 @@ static async Task EnsureEmployeeDocumentsTableAsync(IServiceProvider services)
               `emp_id` int(11) NOT NULL,
               `document_type` varchar(20) NOT NULL DEFAULT 'OTHER',
               `file_name` varchar(255) NULL,
+              `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
               `file_path` varchar(500) NOT NULL,
               `uploaded_by` varchar(100) NULL,
               `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1729,6 +1735,9 @@ static async Task EnsureEmployeeDocumentsTableAsync(IServiceProvider services)
         await EnsureColumnAsync(
             "uploaded_by",
             "ALTER TABLE `employee_documents` ADD COLUMN `uploaded_by` varchar(100) NULL AFTER `file_path`;");
+        await EnsureColumnAsync(
+            "description",
+            "ALTER TABLE `employee_documents` ADD COLUMN `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `file_name`;");
         await EnsureColumnAsync(
             "uploaded_at",
             "ALTER TABLE `employee_documents` ADD COLUMN `uploaded_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `uploaded_by`;");

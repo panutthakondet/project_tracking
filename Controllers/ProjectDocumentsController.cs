@@ -70,7 +70,7 @@ namespace ProjectTracking.Controllers
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = 209715200)] // allow up to 200MB upload
         [RequestSizeLimit(209715200)]
-        public async Task<IActionResult> Upload(int projectId, string documentType, IFormFile file)
+        public async Task<IActionResult> Upload(int projectId, string documentType, IFormFile file, string? description)
         {
             if (projectId <= 0 || !await _context.Projects.AnyAsync(x => x.ProjectId == projectId))
             {
@@ -102,6 +102,12 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction("Index", new { projectId });
             }
 
+            if (description?.Length > 2000)
+            {
+                TempData["Error"] = "คำอธิบายต้องมีความยาวไม่เกิน 2,000 ตัวอักษร";
+                return RedirectToAction("Index", new { projectId });
+            }
+
             var webRootPath = GetWebRootPath();
             var folder = Path.Combine(webRootPath, "uploads", "documents", projectId.ToString());
             if (!Directory.Exists(folder))
@@ -123,6 +129,7 @@ namespace ProjectTracking.Controllers
                 ProjectId = projectId,
                 DocumentType = normalizedDocumentType,
                 FileName = string.IsNullOrWhiteSpace(originalFileName) ? fileName : originalFileName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 FilePath = dbPath,
                 UploadedBy = HttpContext.Session.GetString("Username"),
                 UploadedAt = DateTime.Now

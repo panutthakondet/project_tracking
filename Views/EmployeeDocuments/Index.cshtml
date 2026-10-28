@@ -60,22 +60,22 @@
 
     .employee-doc-selected-note {
         margin-top: 10px;
-        color: #526579;
+        color: var(--pt-surface-contrast-muted, #526579);
         font-size: .95rem;
         font-weight: 600;
     }
 
-    .employee-doc-selected-note strong { color: #0f2f40; }
+    .employee-doc-selected-note strong { color: var(--pt-surface-contrast, #0f2f40); }
 
     .employee-doc-type {
-        color: #0f766e;
+        color: var(--pt-surface-contrast, #0f766e);
         font-size: .92rem;
         font-weight: 700 !important;
         line-height: 1.35;
     }
 
     .employee-doc-file-name {
-        color: #10233f;
+        color: var(--pt-surface-contrast, #10233f);
         font-size: .98rem;
         font-weight: 650 !important;
         line-height: 1.35;
@@ -83,11 +83,19 @@
     }
 
     .employee-doc-uploaded {
-        color: #64748b;
+        color: var(--pt-surface-contrast-muted, #64748b);
         font-size: .82rem;
         font-weight: 500 !important;
         line-height: 1.35;
         margin-top: 4px;
+    }
+
+    .employee-doc-description {
+        margin-top: 6px;
+        color: var(--pt-surface-contrast, #10233f);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: .9rem;
     }
 
     .employee-doc-actions {
@@ -160,7 +168,7 @@
                                name="q"
                                value="@searchTerm"
                                class="form-control"
-                               placeholder="ค้นหาจากชื่อไฟล์ ประเภทเอกสาร หรือผู้อัปโหลด" />
+                               placeholder="ค้นหาจากชื่อไฟล์ คำอธิบาย ประเภทเอกสาร หรือผู้อัปโหลด" />
                         <button type="submit" class="btn btn-primary">ค้นหา</button>
                         @if (!string.IsNullOrWhiteSpace(searchTerm))
                         {
@@ -201,6 +209,11 @@
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">⬆ อัปโหลด</button>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="employeeDocumentDescription">คำอธิบาย (ไม่บังคับ)</label>
+                            <textarea id="employeeDocumentDescription" name="description" class="form-control" rows="3" maxlength="2000" placeholder="รายละเอียดเพิ่มเติมของเอกสาร" aria-describedby="employeeDocumentDescriptionHelp"></textarea>
+                            <div id="employeeDocumentDescriptionHelp" class="form-text text-muted">ใส่ได้ไม่เกิน 2,000 ตัวอักษร</div>
                         </div>
                     </div>
                 </form>
@@ -250,6 +263,10 @@
                                     <td><span class="employee-doc-type">@DocumentTypeName(document.DocumentType)</span></td>
                                     <td>
                                         <div class="employee-doc-file-name">@document.FileName</div>
+                                        @if (!string.IsNullOrWhiteSpace(document.Description))
+                                        {
+                                            <div class="employee-doc-description">@document.Description</div>
+                                        }
                                         <div class="employee-doc-uploaded">อัปโหลด @document.UploadedAt.ToString("dd/MM/yyyy HH:mm")@(!string.IsNullOrWhiteSpace(document.UploadedBy) ? $" · {document.UploadedBy}" : string.Empty)</div>
                                     </td>
                                     <td>

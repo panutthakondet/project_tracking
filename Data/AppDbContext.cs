@@ -1598,6 +1598,7 @@ namespace ProjectTracking.Data
             modelBuilder.Entity<ProjectDocument>(entity =>
             {
                 entity.ToTable("project_documents");
+                entity.Property(x => x.Description).HasColumnName("description").HasColumnType("text").IsRequired(false);
 
                 entity.HasKey(d => d.DocumentId);
 
@@ -1694,6 +1695,7 @@ namespace ProjectTracking.Data
                 entity.HasKey(x => x.EmployeeDocumentId);
 
                 entity.Property(x => x.EmployeeDocumentId).HasColumnName("employee_document_id");
+                entity.Property(x => x.Description).HasColumnName("description").HasColumnType("text").IsRequired(false);
                 entity.Property(x => x.EmpId).HasColumnName("emp_id");
                 entity.Property(x => x.DocumentType).HasColumnName("document_type").HasColumnType("varchar(20)");
                 entity.Property(x => x.FileName).HasColumnName("file_name").HasColumnType("varchar(255)");
