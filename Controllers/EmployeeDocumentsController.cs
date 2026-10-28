@@ -28,6 +28,27 @@ namespace ProjectTracking.Controllers
                 .OrderBy(x => x.EmpName)
                 .ToListAsync();
 
+            // เลือกพนักงานของผู้ล็อกอินเมื่อเปิดเมนูครั้งแรกเท่านั้น
+            if (!empId.HasValue && !Request.Query.ContainsKey("empId"))
+            {
+                empId = HttpContext.Session.GetInt32("EmpId");
+                if (!employees.Any(x => x.EmpId == empId))
+                {
+                    empId = null;
+                    var userId = HttpContext.Session.GetInt32("UserId");
+                    if (userId.HasValue)
+                    {
+                        var linkedEmpId = await _context.LoginUsers
+                            .AsNoTracking()
+                            .Where(x => x.UserId == userId.Value)
+                            .Select(x => x.EmpId)
+                            .FirstOrDefaultAsync();
+                        empId = employees.FirstOrDefault(x => x.EmpId == linkedEmpId)?.EmpId
+                            ?? employees.FirstOrDefault(x => x.LoginUserId == userId.Value)?.EmpId;
+                    }
+                }
+            }
+
             var selectedEmployee = empId.HasValue
                 ? employees.FirstOrDefault(x => x.EmpId == empId.Value)
                 : null;
