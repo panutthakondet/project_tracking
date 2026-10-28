@@ -60,6 +60,8 @@
     }
 
     .employee-notes-hero {
+        --notes-text: var(--pt-sidebar-contrast, #fff);
+        --notes-muted: var(--pt-sidebar-contrast-muted, #d7e5ee);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -68,8 +70,11 @@
         padding: 22px 26px;
         border: 1px solid var(--notes-border);
         border-radius: 22px;
-        background: var(--notes-bg);
-        box-shadow: var(--pt-shadow, 0 12px 30px rgba(15, 47, 64, .08));
+        color: var(--notes-text);
+        background:
+            radial-gradient(circle at 88% 10%, var(--pt-accent-glow, transparent), transparent 30%),
+            linear-gradient(135deg, var(--pt-sidebar-bg, #18345d), var(--pt-sidebar-deep, #102443));
+        box-shadow: 0 12px 30px var(--pt-shadow, rgba(15, 47, 64, .08));
     }
 
     .employee-notes-hero h1 {
@@ -80,7 +85,7 @@
     }
 
     .employee-notes-eyebrow {
-        color: var(--notes-accent);
+        color: var(--notes-muted);
         font-size: .78rem;
         font-weight: 750;
         text-transform: uppercase;
@@ -107,7 +112,7 @@
         border: 1px solid var(--notes-border);
         border-radius: 22px;
         background: var(--notes-bg);
-        box-shadow: var(--pt-shadow, 0 12px 30px rgba(15, 47, 64, .08));
+        box-shadow: 0 12px 30px var(--pt-shadow, rgba(15, 47, 64, .08));
     }
 
     .employee-notes-sidebar {

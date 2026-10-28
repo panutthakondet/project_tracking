@@ -2043,6 +2043,36 @@ main.route-controller-employeedocuments .employee-documents-page .employee-doc-t
     color: var(--pt-surface-contrast) !important;
 }
 
+main.route-controller-employeedocuments .employee-notes-page {
+    --pt-local-text: var(--pt-surface-contrast);
+    --pt-local-muted: var(--pt-surface-contrast-muted);
+}
+
+main.route-controller-employeedocuments .employee-notes-hero {
+    --pt-local-text: var(--pt-sidebar-contrast) !important;
+    --pt-local-muted: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main.route-controller-employeedocuments .employee-notes-hero :is(h1, .employee-notes-actions .btn) {
+    color: var(--pt-sidebar-contrast) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast) !important;
+}
+
+html body main.route-controller-employeedocuments .employee-notes-hero :is(.employee-notes-eyebrow, .employee-notes-subtitle) {
+    color: var(--pt-sidebar-contrast-muted) !important;
+    -webkit-text-fill-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main.route-controller-employeedocuments .employee-notes-actions .btn {
+    background: transparent !important;
+    border-color: var(--pt-sidebar-contrast-muted) !important;
+}
+
+html body main.route-controller-employeedocuments .employee-notes-actions .btn:hover {
+    background: var(--pt-sidebar-soft) !important;
+    border-color: var(--pt-sidebar-contrast) !important;
+}
+
 main.route-controller-projectissues :is(.index-hero, .issue-hero, .dev-issue-hero) {
     color: var(--pt-sidebar-contrast) !important;
     background:
