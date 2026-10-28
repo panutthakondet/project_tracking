@@ -30,6 +30,14 @@
     var canEdit = CanMenu("EmployeeDocuments.Upload");
     var canDelete = CanMenu("EmployeeDocuments.Delete");
     var editorDisabled = canEdit ? null : "disabled";
+    var emojiGroups = new[]
+    {
+        (Name: "สีหน้าและความรู้สึก", Emojis: new[] { "😀", "😃", "😄", "😁", "😊", "🥰", "😍", "😎", "🤔", "😅", "😂", "🥳", "😴", "😢", "😮", "😓" }),
+        (Name: "ท่าทางและกำลังใจ", Emojis: new[] { "👍", "👎", "👏", "🙌", "🙏", "💪", "🤝", "✌️", "👌", "👋", "❤️", "💚", "💙", "💜", "🔥", "🎉" }),
+        (Name: "งานและเอกสาร", Emojis: new[] { "📝", "📋", "📁", "📂", "📎", "📌", "📍", "📄", "📑", "📊", "📈", "📉", "💼", "💻", "📧", "📞" }),
+        (Name: "สถานะและการแจ้งเตือน", Emojis: new[] { "✅", "☑️", "❌", "⚠️", "❗", "❓", "🔔", "🚩", "🟢", "🟡", "🔴", "🔵", "⏳", "🔄", "🔒", "🔓" }),
+        (Name: "เวลาและเป้าหมาย", Emojis: new[] { "📅", "🗓️", "⏰", "⏱️", "⌛", "🎯", "💡", "⭐", "🌟", "✨", "🏆", "🥇", "🚀", "🛠️", "🔍", "📦" })
+    };
 }
 
 <style>
@@ -238,6 +246,30 @@
         gap: 8px;
     }
 
+    .employee-note-toolbar-left { min-width: 0; flex: 1; }
+    .employee-emoji-picker { width: 100%; }
+    .employee-emoji-picker summary {
+        cursor: pointer;
+        color: var(--notes-text);
+        font-size: .85rem;
+        padding: 6px 0;
+    }
+    .employee-emoji-categories {
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 12px;
+        border: 1px solid var(--notes-border);
+        border-radius: 12px;
+        background: var(--notes-soft);
+    }
+    .employee-emoji-category + .employee-emoji-category { margin-top: 12px; }
+    .employee-emoji-category h3 {
+        margin: 0 0 8px;
+        font-size: .85rem;
+        color: var(--notes-text);
+    }
+    .employee-emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+
     .employee-emoji-button {
         min-width: 37px;
         height: 37px;
@@ -415,6 +447,26 @@
                         @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
                         {
                             <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
+                        }
+                        @if (canEdit)
+                        {
+                            <details class="employee-emoji-picker">
+                                <summary>เลือก Emoji เพิ่มเติม (80 แบบ)</summary>
+                                <div class="employee-emoji-categories">
+                                    @foreach (var group in emojiGroups)
+                                    {
+                                        <section class="employee-emoji-category">
+                                            <h3>@group.Name</h3>
+                                            <div class="employee-emoji-grid">
+                                                @foreach (var emoji in group.Emojis)
+                                                {
+                                                    <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" aria-label="เพิ่ม Emoji @emoji">@emoji</button>
+                                                }
+                                            </div>
+                                        </section>
+                                    }
+                                </div>
+                            </details>
                         }
                     </div>
                     <div class="employee-note-toolbar-right">
