@@ -24,6 +24,7 @@ namespace ProjectTracking.Data
         public DbSet<ProjectDocumentType> ProjectDocumentTypes { get; set; }
         public DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
         public DbSet<EmployeeDocumentType> EmployeeDocumentTypes { get; set; }
+        public DbSet<EmployeeNote> EmployeeNotes { get; set; }
         public DbSet<ProjectPhase> ProjectPhases { get; set; }
         public DbSet<PhaseAssign> PhaseAssigns { get; set; }
         public DbSet<ProjectStatusDefinition> ProjectStatuses { get; set; }
@@ -1703,6 +1704,32 @@ namespace ProjectTracking.Data
                 entity.HasIndex(x => x.EmpId).HasDatabaseName("idx_employee_documents_employee");
                 entity.HasIndex(x => new { x.EmpId, x.DocumentType })
                     .HasDatabaseName("idx_employee_documents_employee_type");
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany()
+                    .HasForeignKey(x => x.EmpId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // =========================
+            // EMPLOYEE NOTES
+            // =========================
+            modelBuilder.Entity<EmployeeNote>(entity =>
+            {
+                entity.ToTable("employee_notes");
+                entity.HasKey(x => x.EmployeeNoteId);
+
+                entity.Property(x => x.EmployeeNoteId).HasColumnName("employee_note_id");
+                entity.Property(x => x.EmpId).HasColumnName("emp_id");
+                entity.Property(x => x.Title).HasColumnName("title").HasColumnType("varchar(255)").IsRequired();
+                entity.Property(x => x.Content).HasColumnName("content").HasColumnType("longtext").IsRequired();
+                entity.Property(x => x.CreatedBy).HasColumnName("created_by").HasColumnType("varchar(100)").IsRequired(false);
+                entity.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasColumnType("varchar(100)").IsRequired(false);
+                entity.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("datetime");
+                entity.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime");
+
+                entity.HasIndex(x => new { x.EmpId, x.UpdatedAt })
+                    .HasDatabaseName("idx_employee_notes_employee_updated");
 
                 entity.HasOne(x => x.Employee)
                     .WithMany()

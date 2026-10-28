@@ -1,0 +1,501 @@
+@using Microsoft.AspNetCore.Http
+@using System.Globalization
+@using System.Linq
+@model ProjectTracking.Models.EmployeeNotesViewModel
+
+@{
+    ViewData["Title"] = "บันทึกพนักงาน";
+    var thaiCulture = new CultureInfo("th-TH");
+
+    bool CanMenu(string key)
+    {
+        var role = (Context.Session.GetString("Role") ?? string.Empty).Trim();
+        if (role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) return true;
+
+        var menus = Context.Session.GetString("Menus") ?? string.Empty;
+        return menus.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), key, StringComparison.OrdinalIgnoreCase));
+    }
+
+    string NotePreview(string? content)
+    {
+        var normalized = string.Join(" ", (content ?? string.Empty)
+            .Split(new[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries))
+            .Trim();
+        if (string.IsNullOrWhiteSpace(normalized)) return "ยังไม่มีรายละเอียด";
+        var text = new StringInfo(normalized);
+        return text.LengthInTextElements > 72 ? text.SubstringByTextElements(0, 72) + "…" : normalized;
+    }
+
+    var canEdit = CanMenu("EmployeeDocuments.Upload");
+    var canDelete = CanMenu("EmployeeDocuments.Delete");
+    var editorDisabled = canEdit ? null : "disabled";
+}
+
+<style>
+    .employee-notes-page,
+    .employee-notes-page * {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", "Leelawadee UI", Tahoma, Arial, sans-serif !important;
+        letter-spacing: 0 !important;
+        text-shadow: none !important;
+        -webkit-font-smoothing: antialiased !important;
+    }
+
+    .employee-notes-page {
+        --notes-bg: var(--pt-surface, #fff);
+        --notes-soft: var(--pt-surface-soft, #f4f7fb);
+        --notes-text: var(--pt-surface-contrast, #102f35);
+        --notes-muted: var(--pt-surface-contrast-muted, #667b80);
+        --notes-border: var(--pt-border, #cde1ed);
+        --notes-accent: var(--pt-accent, #0ea5a6);
+        color: var(--notes-text);
+    }
+
+    .employee-notes-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 18px;
+        padding: 22px 26px;
+        border: 1px solid var(--notes-border);
+        border-radius: 22px;
+        background: var(--notes-bg);
+        box-shadow: var(--pt-shadow, 0 12px 30px rgba(15, 47, 64, .08));
+    }
+
+    .employee-notes-hero h1 {
+        margin: 3px 0 4px;
+        font-size: clamp(1.45rem, 2.2vw, 2rem);
+        font-weight: 750;
+        color: var(--notes-text);
+    }
+
+    .employee-notes-eyebrow {
+        color: var(--notes-accent);
+        font-size: .78rem;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .employee-notes-subtitle {
+        margin: 0;
+        color: var(--notes-muted);
+        font-size: .94rem;
+    }
+
+    .employee-notes-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 9px;
+    }
+
+    .employee-notes-workspace {
+        display: grid;
+        grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+        min-height: 68vh;
+        overflow: hidden;
+        border: 1px solid var(--notes-border);
+        border-radius: 22px;
+        background: var(--notes-bg);
+        box-shadow: var(--pt-shadow, 0 12px 30px rgba(15, 47, 64, .08));
+    }
+
+    .employee-notes-sidebar {
+        min-width: 0;
+        border-right: 1px solid var(--notes-border);
+        background: var(--notes-soft);
+    }
+
+    .employee-notes-sidebar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 76px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--notes-border);
+    }
+
+    .employee-notes-sidebar-head h2 {
+        margin: 0;
+        color: var(--notes-text);
+        font-size: 1.05rem;
+        font-weight: 750;
+    }
+
+    .employee-notes-count {
+        color: var(--notes-muted);
+        font-size: .8rem;
+    }
+
+    .employee-note-add {
+        width: 42px;
+        height: 42px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid var(--notes-accent);
+        border-radius: 50%;
+        background: var(--notes-bg);
+        color: var(--notes-accent);
+        font-size: 1.55rem;
+        line-height: 1;
+    }
+
+    .employee-notes-list {
+        max-height: calc(68vh - 77px);
+        overflow: auto;
+        padding: 12px;
+    }
+
+    .employee-note-link {
+        display: block;
+        margin-bottom: 8px;
+        padding: 14px 15px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        color: var(--notes-text);
+        text-decoration: none;
+        transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .employee-note-link:hover {
+        border-color: var(--notes-border);
+        background: var(--notes-bg);
+        color: var(--notes-text);
+        transform: translateY(-1px);
+    }
+
+    .employee-note-link.is-active {
+        border-color: var(--notes-accent);
+        background: var(--notes-bg);
+        box-shadow: inset 4px 0 0 var(--notes-accent);
+    }
+
+    .employee-note-list-title {
+        display: block;
+        overflow: hidden;
+        color: var(--notes-text);
+        font-size: .98rem;
+        font-weight: 720;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .employee-note-list-preview {
+        display: -webkit-box;
+        overflow: hidden;
+        margin-top: 5px;
+        color: var(--notes-muted);
+        font-size: .82rem;
+        line-height: 1.4;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .employee-note-list-date {
+        display: block;
+        margin-top: 8px;
+        color: var(--notes-muted);
+        font-size: .72rem;
+    }
+
+    .employee-notes-empty-list,
+    .employee-note-empty-editor {
+        display: grid;
+        place-items: center;
+        min-height: 260px;
+        padding: 32px;
+        color: var(--notes-muted);
+        text-align: center;
+    }
+
+    .employee-note-editor {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--notes-bg);
+    }
+
+    .employee-note-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 76px;
+        padding: 13px 20px;
+        border-bottom: 1px solid var(--notes-border);
+        background: var(--notes-bg);
+    }
+
+    .employee-note-toolbar-left,
+    .employee-note-toolbar-right {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .employee-emoji-button {
+        min-width: 37px;
+        height: 37px;
+        padding: 0 8px;
+        border: 1px solid var(--notes-border);
+        border-radius: 10px;
+        background: var(--notes-soft);
+        font-size: 1.15rem;
+    }
+
+    .employee-emoji-button:hover {
+        border-color: var(--notes-accent);
+        background: var(--notes-bg);
+    }
+
+    .employee-note-form {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        padding: 24px clamp(20px, 4vw, 48px) 18px;
+    }
+
+    .employee-note-title {
+        width: 100%;
+        padding: 0 0 16px;
+        border: 0;
+        border-bottom: 1px solid var(--notes-border);
+        outline: none;
+        background: transparent;
+        color: var(--notes-text);
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        font-weight: 720;
+    }
+
+    .employee-note-content {
+        width: 100%;
+        min-height: 400px;
+        flex: 1;
+        resize: vertical;
+        padding: 22px 0;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: var(--notes-text);
+        font-size: 1rem;
+        font-weight: 430;
+        line-height: 1.75;
+    }
+
+    .employee-note-title:disabled,
+    .employee-note-content:disabled {
+        opacity: 1;
+        -webkit-text-fill-color: var(--notes-text);
+    }
+
+    .employee-note-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--notes-border);
+        color: var(--notes-muted);
+        font-size: .78rem;
+    }
+
+    @@media (max-width: 900px) {
+        .employee-notes-hero { align-items: flex-start; flex-direction: column; }
+        .employee-notes-actions { justify-content: flex-start; }
+        .employee-notes-workspace { grid-template-columns: 1fr; }
+        .employee-notes-sidebar { border-right: 0; border-bottom: 1px solid var(--notes-border); }
+        .employee-notes-list { display: flex; max-height: 230px; overflow-x: auto; }
+        .employee-note-link { min-width: 230px; margin: 0 8px 0 0; }
+        .employee-note-toolbar { align-items: flex-start; flex-direction: column; }
+    }
+
+    @@media (max-width: 560px) {
+        .employee-notes-hero { padding: 18px; }
+        .employee-note-form { padding-inline: 18px; }
+        .employee-note-toolbar-right { width: 100%; }
+        .employee-note-toolbar-right .btn { flex: 1; }
+        .employee-note-meta { flex-direction: column; gap: 3px; }
+    }
+</style>
+
+<div class="container-fluid employee-notes-page px-lg-4 py-3">
+    <section class="employee-notes-hero">
+        <div>
+            <span class="employee-notes-eyebrow">Employee Notes</span>
+            <h1>📝 บันทึกของ @Model.Employee.EmpName</h1>
+            <p class="employee-notes-subtitle">
+                @(string.IsNullOrWhiteSpace(Model.Employee.DisplayPosition) ? "จดบันทึกข้อมูลพนักงาน" : Model.Employee.DisplayPosition)
+                @if (!string.IsNullOrWhiteSpace(Model.Employee.Department?.DepartmentName))
+                {
+                    <span> · @Model.Employee.Department.DepartmentName</span>
+                }
+            </p>
+        </div>
+        <div class="employee-notes-actions">
+            <a asp-action="Index" asp-route-empId="@Model.Employee.EmpId" class="btn btn-outline-primary">📁 เอกสารพนักงาน</a>
+            <a asp-controller="Employees" asp-action="Index" class="btn btn-outline-secondary">กลับไปพนักงาน</a>
+        </div>
+    </section>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success fw-bold">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger fw-bold">@TempData["Error"]</div>
+    }
+
+    <section class="employee-notes-workspace">
+        <aside class="employee-notes-sidebar">
+            <div class="employee-notes-sidebar-head">
+                <div>
+                    <h2>รายการบันทึก</h2>
+                    <span class="employee-notes-count">@Model.Notes.Count รายการ</span>
+                </div>
+                @if (canEdit)
+                {
+                    <form asp-action="CreateNote" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
+                        <button type="submit" class="employee-note-add" title="เพิ่มบันทึกใหม่" aria-label="เพิ่มบันทึกใหม่">+</button>
+                    </form>
+                }
+            </div>
+
+            <div class="employee-notes-list">
+                @if (Model.Notes.Count == 0)
+                {
+                    <div class="employee-notes-empty-list">
+                        <div>
+                            <div style="font-size:2.25rem">🗒️</div>
+                            <strong>ยังไม่มีบันทึก</strong>
+                            <div class="mt-1">@(canEdit ? "กดปุ่ม + เพื่อเพิ่มบันทึกแรก" : "ยังไม่มีบันทึกสำหรับพนักงานนี้")</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var note in Model.Notes)
+                    {
+                        var isActive = Model.SelectedNote?.EmployeeNoteId == note.EmployeeNoteId;
+                        <a asp-action="Notes"
+                           asp-route-empId="@Model.Employee.EmpId"
+                           asp-route-noteId="@note.EmployeeNoteId"
+                           class="employee-note-link @(isActive ? "is-active" : string.Empty)">
+                            <span class="employee-note-list-title">@note.Title</span>
+                            <span class="employee-note-list-preview">@NotePreview(note.Content)</span>
+                            <span class="employee-note-list-date">แก้ไข @note.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
+                        </a>
+                    }
+                }
+            </div>
+        </aside>
+
+        <main class="employee-note-editor">
+            @if (Model.SelectedNote == null)
+            {
+                <div class="employee-note-empty-editor">
+                    <div>
+                        <div style="font-size:3rem">✍️</div>
+                        <h3 class="mt-3">เลือกหรือเพิ่มบันทึก</h3>
+                        <p class="mb-0">บันทึกข้อความและ Emoji แยกตามพนักงานได้จากหน้าจอนี้</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="employee-note-toolbar">
+                    <div class="employee-note-toolbar-left" aria-label="เลือก Emoji">
+                        @foreach (var emoji in new[] { "😀", "😊", "👍", "✅", "⭐", "📌", "📅", "💡", "🎯", "❤️" })
+                        {
+                            <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" disabled="@editorDisabled">@emoji</button>
+                        }
+                    </div>
+                    <div class="employee-note-toolbar-right">
+                        @if (canEdit)
+                        {
+                            <button type="submit" form="employeeNoteSaveForm" class="btn btn-primary">💾 บันทึก</button>
+                        }
+                        @if (canDelete)
+                        {
+                            <form asp-action="DeleteNote" method="post" onsubmit="return confirm('ลบบันทึกนี้หรือไม่?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
+                                <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
+                                <button type="submit" class="btn btn-outline-danger">🗑 ลบ</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+
+                <form id="employeeNoteSaveForm" asp-action="SaveNote" method="post" class="employee-note-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="empId" value="@Model.Employee.EmpId" />
+                    <input type="hidden" name="employeeNoteId" value="@Model.SelectedNote.EmployeeNoteId" />
+                    <input id="employeeNoteTitle"
+                           name="title"
+                           value="@Model.SelectedNote.Title"
+                           class="employee-note-title"
+                           maxlength="255"
+                           placeholder="หัวข้อบันทึก"
+                           aria-label="หัวข้อบันทึก"
+                           disabled="@editorDisabled" />
+                    <textarea id="employeeNoteContent"
+                              name="content"
+                              class="employee-note-content"
+                              placeholder="เริ่มจดบันทึก... รองรับ Emoji 😀"
+                              aria-label="รายละเอียดบันทึก"
+                              disabled="@editorDisabled">@Model.SelectedNote.Content</textarea>
+                    <div class="employee-note-meta">
+                        <span>สร้างโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.CreatedBy) ? "-" : Model.SelectedNote.CreatedBy) · @Model.SelectedNote.CreatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
+                        <span>แก้ไขล่าสุดโดย @(string.IsNullOrWhiteSpace(Model.SelectedNote.UpdatedBy) ? "-" : Model.SelectedNote.UpdatedBy) · @Model.SelectedNote.UpdatedAt.ToString("dd MMM yyyy HH:mm", thaiCulture)</span>
+                    </div>
+                </form>
+            }
+        </main>
+    </section>
+</div>
+
+<script>
+    (() => {
+        const title = document.getElementById('employeeNoteTitle');
+        const content = document.getElementById('employeeNoteContent');
+        const form = document.getElementById('employeeNoteSaveForm');
+        const originalTitle = title?.value;
+        const originalContent = content?.value;
+        let saving = false;
+        const hasChanges = () => !saving && title && !title.disabled &&
+            (title.value !== originalTitle || content.value !== originalContent);
+        form?.addEventListener('submit', () => saving = true);
+        window.addEventListener('beforeunload', event => {
+            if (!hasChanges()) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+        let target = content || title;
+
+        [title, content].forEach(input => {
+            if (!input) return;
+            input.addEventListener('focus', () => target = input);
+        });
+
+        document.querySelectorAll('.employee-emoji-button').forEach(button => {
+            button.addEventListener('click', () => {
+                if (!target || target.disabled) return;
+                const emoji = button.dataset.emoji || '';
+                const start = target.selectionStart ?? target.value.length;
+                const end = target.selectionEnd ?? target.value.length;
+                if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
+                target.setRangeText(emoji, start, end, 'end');
+                target.focus();
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+    })();
+</script>

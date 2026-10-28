@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
+using System.Globalization;
 
 namespace ProjectTracking.Controllers
 {
@@ -68,6 +69,116 @@ namespace ProjectTracking.Controllers
             ViewBag.DocumentTypes = documentTypes;
             ViewBag.SearchTerm = searchTerm;
             return View(documents);
+        }
+
+        public async Task<IActionResult> Notes(int empId, int? noteId)
+        {
+            var employee = await _context.Employees
+                .AsNoTracking()
+                .Include(x => x.Department)
+                .Include(x => x.PositionDefinition)
+                .FirstOrDefaultAsync(x => x.EmpId == empId);
+
+            if (employee == null)
+            {
+                TempData["Error"] = "ไม่พบข้อมูลพนักงานที่ต้องการจดบันทึก";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var notes = await _context.EmployeeNotes
+                .AsNoTracking()
+                .Where(x => x.EmpId == empId)
+                .OrderByDescending(x => x.UpdatedAt)
+                .ThenByDescending(x => x.EmployeeNoteId)
+                .ToListAsync();
+
+            var selectedNote = noteId.HasValue
+                ? notes.FirstOrDefault(x => x.EmployeeNoteId == noteId.Value)
+                : notes.FirstOrDefault();
+
+            return View(new EmployeeNotesViewModel
+            {
+                Employee = employee,
+                Notes = notes,
+                SelectedNote = selectedNote
+            });
+        }
+
+        [RequireMenu("EmployeeDocuments.Upload")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateNote(int empId)
+        {
+            if (empId <= 0 || !await _context.Employees.AnyAsync(x => x.EmpId == empId))
+            {
+                TempData["Error"] = "ไม่พบข้อมูลพนักงานที่ต้องการจดบันทึก";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var now = DateTime.Now;
+            var username = CurrentUsername();
+            var note = new EmployeeNote
+            {
+                EmpId = empId,
+                Title = "บันทึกใหม่",
+                Content = string.Empty,
+                CreatedBy = username,
+                UpdatedBy = username,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            _context.EmployeeNotes.Add(note);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "เพิ่มบันทึกใหม่แล้ว สามารถเริ่มพิมพ์ได้ทันที";
+            return RedirectToAction(nameof(Notes), new { empId, noteId = note.EmployeeNoteId });
+        }
+
+        [RequireMenu("EmployeeDocuments.Upload")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNote(int empId, int employeeNoteId, string? title, string? content)
+        {
+            var note = await _context.EmployeeNotes
+                .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
+
+            if (note == null)
+            {
+                TempData["Error"] = "ไม่พบบันทึกที่ต้องการแก้ไข";
+                return RedirectToAction(nameof(Notes), new { empId });
+            }
+
+            note.Title = LimitTextElements(
+                string.IsNullOrWhiteSpace(title) ? "ไม่มีชื่อ" : title.Trim(),
+                255);
+            note.Content = content ?? string.Empty;
+            note.UpdatedBy = CurrentUsername();
+            note.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "บันทึกข้อความเรียบร้อย";
+            return RedirectToAction(nameof(Notes), new { empId, noteId = employeeNoteId });
+        }
+
+        [RequireMenu("EmployeeDocuments.Delete")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteNote(int empId, int employeeNoteId)
+        {
+            var note = await _context.EmployeeNotes
+                .FirstOrDefaultAsync(x => x.EmployeeNoteId == employeeNoteId && x.EmpId == empId);
+
+            if (note == null)
+            {
+                TempData["Error"] = "ไม่พบบันทึกที่ต้องการลบ";
+                return RedirectToAction(nameof(Notes), new { empId });
+            }
+
+            _context.EmployeeNotes.Remove(note);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "ลบบันทึกเรียบร้อย";
+            return RedirectToAction(nameof(Notes), new { empId });
         }
 
         [RequireMenu("EmployeeDocuments.Upload")]
@@ -217,6 +328,19 @@ namespace ProjectTracking.Controllers
 
             Directory.CreateDirectory(webRootPath);
             return webRootPath;
+        }
+
+        private string CurrentUsername() =>
+            HttpContext.Session.GetString("Username")
+            ?? User.Identity?.Name
+            ?? "SYSTEM";
+
+        private static string LimitTextElements(string value, int maximumLength)
+        {
+            var info = new StringInfo(value);
+            return info.LengthInTextElements <= maximumLength
+                ? value
+                : info.SubstringByTextElements(0, maximumLength);
         }
 
         private static string GetContentType(string path) => Path.GetExtension(path).ToLowerInvariant() switch

@@ -109,6 +109,10 @@
             <p class="index-subtitle">อัปโหลดและจัดเก็บเอกสารแยกตามพนักงาน</p>
         </div>
         <div class="index-actions">
+            @if (selectedEmpId > 0)
+            {
+                <a asp-action="Notes" asp-route-empId="@selectedEmpId" class="btn btn-warning">📝 จดบันทึก</a>
+            }
             <a asp-controller="Employees" asp-action="Index" class="btn btn-outline-light">กลับไปพนักงาน</a>
         </div>
     </div>

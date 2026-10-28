@@ -243,6 +243,7 @@ await EnsureProjectDocumentsTableAsync(app.Services);
 await EnsureProjectDocumentTypeTableAsync(app.Services);
 await EnsureEmployeeDocumentsTableAsync(app.Services);
 await EnsureEmployeeDocumentTypeTableAsync(app.Services);
+await EnsureEmployeeNotesTableAsync(app.Services);
 await EnsureSystemConfigTableAsync(app.Services);
 await EnsureSystemUpdateAnnouncementSchemaAsync(app.Services);
 await EnsureAttendanceSchemaAsync(app.Services);
@@ -1765,6 +1766,60 @@ static async Task EnsureEmployeeDocumentsTableAsync(IServiceProvider services)
         await EnsureIndexAsync(
             "idx_employee_documents_employee_type",
             "CREATE INDEX `idx_employee_documents_employee_type` ON `employee_documents` (`emp_id`, `document_type`);");
+    }
+    finally
+    {
+        if (shouldClose)
+            await connection.CloseAsync();
+    }
+}
+
+static async Task EnsureEmployeeNotesTableAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connection = db.Database.GetDbConnection();
+    var shouldClose = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldClose)
+        await connection.OpenAsync();
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS `employee_notes` (
+              `employee_note_id` int(11) NOT NULL AUTO_INCREMENT,
+              `emp_id` int(11) NOT NULL,
+              `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'บันทึกใหม่',
+              `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+              `created_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+              `updated_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`employee_note_id`),
+              KEY `idx_employee_notes_employee_updated` (`emp_id`, `updated_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+
+        // แปลงเฉพาะตารางเดิมที่ยังไม่รองรับ Emoji เพื่อไม่ ALTER ทุกครั้งที่เริ่มระบบ
+        command.CommandText = @"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'employee_notes'
+              AND COLUMN_NAME IN ('title', 'content', 'created_by', 'updated_by')
+              AND CHARACTER_SET_NAME <> 'utf8mb4';";
+        var columnsToConvert = Convert.ToInt32(await command.ExecuteScalarAsync());
+        if (columnsToConvert > 0)
+        {
+            command.CommandText = @"
+            ALTER TABLE `employee_notes`
+              DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+              MODIFY COLUMN `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'บันทึกใหม่',
+              MODIFY COLUMN `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+              MODIFY COLUMN `created_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+              MODIFY COLUMN `updated_by` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;";
+            await command.ExecuteNonQueryAsync();
+        }
     }
     finally
     {
