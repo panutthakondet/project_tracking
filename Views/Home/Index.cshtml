@@ -21,6 +21,9 @@
     var dashboardDinoUserKey = Context.Session.GetInt32("UserId")?.ToString(CultureInfo.InvariantCulture) ?? "guest";
     var dashboardDinoName = (ViewBag.DashboardDinoName as string ?? "Dino").Trim();
     var pendingStatusApprovalCount = Convert.ToInt32(ViewBag.PendingStatusApprovalCount ?? 0);
+    var canEmployeeNotes = string.Equals(Context.Session.GetString("Role")?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase)
+        || (Context.Session.GetString("Menus") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(x => string.Equals(x.Trim(), "EmployeeDocuments.Index", StringComparison.OrdinalIgnoreCase));
     var selectedProjectStatusDepartmentId = int.TryParse(
         dashboard.SelectedDashboardDepartment,
         NumberStyles.Integer,
@@ -227,7 +230,19 @@
                 }
             </div>
         }
-        <div class="dashboard-global-tools" aria-label="แจ้งเตือนงาน">
+        <div class="dashboard-global-tools" aria-label="ทางลัดและแจ้งเตือนงาน">
+            @if (canEmployeeNotes)
+            {
+                <a class="dashboard-global-tool employee-notes"
+                   asp-controller="EmployeeDocuments" asp-action="MyNotes"
+                   title="จดบันทึกของฉัน" aria-label="เปิดหน้าจดบันทึกของฉัน">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="m16 3 5 5M10 14l-1 4 4-1L22 8l-4-4Z" />
+                        <path d="M7 7h4M7 11h2" />
+                    </svg>
+                </a>
+            }
             @if (pendingStatusApprovalCount > 0)
             {
                 <a class="dashboard-global-tool approval"
@@ -1787,6 +1802,13 @@
     background:linear-gradient(180deg, rgba(255,255,255,.58), rgba(226,244,255,.38));
     border-color:rgba(22,136,245,.62);
     box-shadow:0 10px 20px rgba(22,136,245,.1), 0 0 0 1px rgba(22,136,245,.12), inset 0 1px 0 rgba(255,255,255,.5);
+}
+
+.dashboard-global-tool.employee-notes {
+    color:var(--pt-surface-contrast, #10233f);
+    background:var(--pt-accent-soft, #e0f2f1);
+    border-color:var(--pt-accent, #0ea5a6);
+    box-shadow:0 10px 20px var(--pt-shadow, rgba(15,39,70,.08));
 }
 
 .dashboard-global-tool svg {

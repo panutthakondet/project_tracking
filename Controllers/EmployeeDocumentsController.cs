@@ -93,6 +93,34 @@ namespace ProjectTracking.Controllers
             return View(documents);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> MyNotes()
+        {
+            var empId = HttpContext.Session.GetInt32("EmpId");
+            if (!empId.HasValue || !await _context.Employees.AnyAsync(x => x.EmpId == empId.Value))
+            {
+                empId = null;
+                var userId = HttpContext.Session.GetInt32("UserId");
+                if (userId.HasValue)
+                {
+                    var linkedEmpId = await _context.LoginUsers.AsNoTracking()
+                        .Where(x => x.UserId == userId.Value).Select(x => x.EmpId).FirstOrDefaultAsync();
+                    empId = await _context.Employees.AsNoTracking()
+                        .Where(x => x.EmpId == linkedEmpId || x.LoginUserId == userId.Value)
+                        .OrderByDescending(x => x.EmpId == linkedEmpId)
+                        .Select(x => (int?)x.EmpId).FirstOrDefaultAsync();
+                }
+            }
+
+            if (!empId.HasValue)
+            {
+                TempData["Error"] = "บัญชีของคุณยังไม่ได้ผูกกับพนักงาน กรุณาเลือกพนักงานเพื่อเปิดบันทึก";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return RedirectToAction(nameof(Notes), new { empId = empId.Value });
+        }
+
         public async Task<IActionResult> Notes(int empId, int? noteId)
         {
             var employee = await _context.Employees
