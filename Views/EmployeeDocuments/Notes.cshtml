@@ -264,15 +264,18 @@
     }
 
     .employee-note-toolbar-left { min-width: 0; flex: 1; }
-    .employee-emoji-picker { width: 100%; }
-    .employee-emoji-picker summary {
-        cursor: pointer;
-        color: var(--notes-text);
-        font-size: .85rem;
-        padding: 6px 0;
+    .employee-emoji-dialog {
+        width: min(560px, calc(100vw - 32px)); max-height: 80dvh;
+        padding: 0; border: 1px solid var(--notes-border); border-radius: 18px;
+        background: var(--notes-bg); color: var(--notes-text);
+        box-shadow: 0 20px 60px var(--pt-shadow, rgba(0,0,0,.25)); overflow: hidden;
     }
+    .employee-emoji-dialog[open] { display: flex; flex-direction: column; }
+    .employee-emoji-dialog::backdrop { background: rgba(0,0,0,.4); }
+    .employee-emoji-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--notes-border); }
+    .employee-emoji-dialog-head h2 { margin: 0; font-size: 1.1rem; }
     .employee-emoji-categories {
-        max-height: 260px;
+        min-height: 0;
         overflow-y: auto;
         padding: 12px;
         border: 1px solid var(--notes-border);
@@ -485,23 +488,7 @@
                         }
                         @if (canEdit)
                         {
-                            <details class="employee-emoji-picker">
-                                <summary>เลือก Emoji เพิ่มเติม (80 แบบ)</summary>
-                                <div class="employee-emoji-categories">
-                                    @foreach (var group in emojiGroups)
-                                    {
-                                        <section class="employee-emoji-category">
-                                            <h3>@group.Name</h3>
-                                            <div class="employee-emoji-grid">
-                                                @foreach (var emoji in group.Emojis)
-                                                {
-                                                    <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" aria-label="เพิ่ม Emoji @emoji">@emoji</button>
-                                                }
-                                            </div>
-                                        </section>
-                                    }
-                                </div>
-                            </details>
+                            <button type="button" id="employeeEmojiOpen" class="btn btn-sm btn-outline-secondary" aria-haspopup="dialog" aria-controls="employeeEmojiDialog">😀 Emoji เพิ่มเติม</button>
                         }
                     </div>
                     <div class="employee-note-toolbar-right">
@@ -547,6 +534,29 @@
             }
         </main>
     </section>
+    @if (canEdit && Model.SelectedNote != null)
+    {
+        <dialog id="employeeEmojiDialog" class="employee-emoji-dialog" aria-labelledby="employeeEmojiHeading">
+            <div class="employee-emoji-dialog-head">
+                <h2 id="employeeEmojiHeading">เลือก Emoji (80 แบบ)</h2>
+                <button type="button" id="employeeEmojiClose" class="btn btn-sm btn-outline-secondary" aria-label="ปิดตัวเลือก Emoji">ปิด ✕</button>
+            </div>
+            <div class="employee-emoji-categories">
+                @foreach (var group in emojiGroups)
+                {
+                    <section class="employee-emoji-category">
+                        <h3>@group.Name</h3>
+                        <div class="employee-emoji-grid">
+                            @foreach (var emoji in group.Emojis)
+                            {
+                                <button type="button" class="employee-emoji-button" data-emoji="@emoji" title="เพิ่ม @emoji" aria-label="เพิ่ม Emoji @emoji">@emoji</button>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        </dialog>
+    }
 </div>
 
 <script>
@@ -598,6 +608,15 @@
             event.preventDefault();
             event.returnValue = '';
         });
+        const emojiDialog = document.getElementById('employeeEmojiDialog');
+        document.getElementById('employeeEmojiOpen')?.addEventListener('click', () => emojiDialog?.showModal());
+        document.getElementById('employeeEmojiClose')?.addEventListener('click', () => emojiDialog?.close());
+        emojiDialog?.addEventListener('click', event => {
+            if (event.target !== emojiDialog) return;
+            const bounds = emojiDialog.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                event.clientY < bounds.top || event.clientY > bounds.bottom) emojiDialog.close();
+        });
         let target = content || title;
 
         [title, content].forEach(input => {
@@ -613,6 +632,7 @@
                 const end = target.selectionEnd ?? target.value.length;
                 if (target.maxLength >= 0 && target.value.length - (end - start) + emoji.length > target.maxLength) return;
                 target.setRangeText(emoji, start, end, 'end');
+                if (emojiDialog?.open) emojiDialog.close();
                 target.focus();
                 target.dispatchEvent(new Event('input', { bubbles: true }));
             });
