@@ -37,6 +37,73 @@ namespace ProjectTracking.Controllers
             _logger = logger;
         }
 
+        [RequireMenu("Employees.Index")]
+        public async Task<IActionResult> WorkSummary(int id, string? filter)
+        {
+            var employee = await _context.Employees.AsNoTracking()
+                .Include(x => x.Department).FirstOrDefaultAsync(x => x.EmpId == id);
+            if (employee == null) return NotFound();
+
+            var model = new EmployeeWorkSummaryViewModel
+            {
+                EmpId = employee.EmpId,
+                EmployeeName = employee.EmpName,
+                DepartmentName = employee.Department?.DepartmentName ?? "ไม่ระบุฝ่าย",
+                Today = DateTime.Today,
+                RiskDays = await GetOverdueRiskDaysAsync(),
+                Filter = filter is "done" or "pending" or "risk" or "overdue" ? filter : "all"
+            };
+
+            var assignments = await _context.PhaseAssigns.AsNoTracking()
+                .Include(x => x.StatusDefinition)
+                .Include(x => x.Phase!).ThenInclude(x => x.Project)
+                .Where(x => x.EmpId == id).ToListAsync();
+            foreach (var row in assignments)
+            {
+                model.Items.Add(new EmployeeWorkSummaryItem
+                {
+                    Type = "งานมอบหมาย",
+                    ProjectName = ProjectNameForSelection(row.Phase?.Project),
+                    Title = string.IsNullOrWhiteSpace(row.Role) ? row.Phase?.PhaseName ?? $"งาน #{row.AssignId}" : row.Role,
+                    Status = row.StatusDescription,
+                    DueDate = row.PlanEnd ?? row.Phase?.PlanEnd,
+                    IsDone = IsDone(row.WorkStatus, row.Phase?.PhaseStatus) || IsClosedPhaseForSelection(row.Phase?.PhaseStatus),
+                    Url = Url.Action("Index", "PhaseAssigns", new { projectId = row.Phase?.ProjectId, empId = id }) ?? ""
+                });
+            }
+
+            var issues = await _context.ProjectIssues.AsNoTracking().Include(x => x.Project)
+                .Where(x => x.AssignTo == id).ToListAsync();
+            foreach (var row in issues)
+            {
+                model.Items.Add(new EmployeeWorkSummaryItem
+                {
+                    Type = "Issue", ProjectName = ProjectNameForSelection(row.Project), Title = row.IssueName,
+                    Status = row.IssueStatus, DueDate = row.EndDate,
+                    IsDone = IsIssueDoneForSelection(row.IssueStatus, row.DevStatus),
+                    Url = Url.Action("DevDetails", "ProjectIssues", new { id = row.IssueId }) ?? ""
+                });
+            }
+
+            var supportOrders = await _context.ProjectSupportOrders.AsNoTracking().Include(x => x.Project)
+                .Where(x => x.AssignTo == id).ToListAsync();
+            foreach (var row in supportOrders)
+            {
+                model.Items.Add(new EmployeeWorkSummaryItem
+                {
+                    Type = "Support", ProjectName = ProjectNameForSelection(row.Project),
+                    Title = row.OrderTitle ?? $"Support #{row.OrderId}",
+                    Status = row.Status ?? "-", DueDate = row.EndDate,
+                    IsDone = IsSupportDoneForSelection(row.Status, row.DevStatus),
+                    Url = Url.Action("Details", "SupportOrdersDev", new { id = row.OrderId }) ?? ""
+                });
+            }
+
+            model.Items = model.Items.OrderBy(x => x.IsDone)
+                .ThenBy(x => x.DueDate ?? DateTime.MaxValue).ThenBy(x => x.Type).ThenBy(x => x.Title).ToList();
+            return View(model);
+        }
+
         // ===========================
         // GET: /Employees
         // แสดงเฉพาะพนักงาน ACTIVE

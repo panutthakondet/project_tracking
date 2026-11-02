@@ -195,6 +195,7 @@
                     </td>
 
                     <td class="text-center">
+                        <a asp-action="WorkSummary" asp-route-id="@emp.EmpId" class="btn btn-sm btn-outline-primary me-1" title="สรุปงานรายพนักงาน">📊 สรุปงาน</a>
                         @if (HasMenu("EmployeeDocuments.Index"))
                         {
                             <a asp-controller="EmployeeDocuments"
@@ -308,6 +309,7 @@
                 </div>
 
                 <div class="employee-actions">
+                    <a asp-action="WorkSummary" asp-route-id="@emp.EmpId" class="btn btn-outline-primary btn-sm" title="สรุปงานรายพนักงาน">📊 สรุปงาน</a>
                     @if (HasMenu("EmployeeDocuments.Index"))
                     {
                         <a asp-controller="EmployeeDocuments"
