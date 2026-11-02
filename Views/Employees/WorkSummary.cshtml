@@ -35,15 +35,32 @@
     .employee-work-summary .summary-table { --bs-table-color: var(--pt-surface-contrast, #10233f); --bs-table-bg: var(--pt-surface, #fff); }
     .employee-work-summary .summary-table thead th { background: var(--pt-surface-soft, #f4f7fb) !important; color: var(--pt-surface-contrast, #10233f) !important; }
     .employee-work-summary .summary-table td { color: var(--pt-surface-contrast, #10233f) !important; }
-    .employee-work-summary .summary-table .summary-coop-group th {
-        padding: 16px 18px; background: var(--pt-accent-soft, #e0f2f1) !important;
-        color: var(--pt-surface-contrast, #10233f) !important;
-        border-bottom: 1px solid var(--pt-border, #d8e3ef); font-size: 1.05rem;
+    .summary-results-heading { margin: 24px 0 18px; }
+    .summary-cooperative-list { display: grid; gap: 28px; }
+    .employee-work-summary .summary-coop-card {
+        overflow: hidden; border: 1px solid var(--pt-border-strong, #b8d8df);
+        border-top: 4px solid var(--pt-accent, #0ea5a6); border-radius: 20px;
+        background: var(--pt-surface, #fff); box-shadow: 0 10px 26px var(--pt-shadow, rgba(0,0,0,.06));
     }
-    .employee-work-summary .summary-table .summary-project-group th {
-        padding: 12px 24px; background: var(--pt-surface-soft, #f4f7fb) !important;
-        color: var(--pt-surface-contrast, #10233f) !important;
-        border-left: 4px solid var(--pt-accent, #0ea5a6);
+    .summary-coop-header { padding: 20px 24px; background: var(--pt-accent-soft, #e0f2f1); }
+    .summary-coop-header h2 { margin: 0; font-size: 1.15rem; line-height: 1.6; overflow-wrap: anywhere; }
+    .summary-group-count { flex-shrink: 0; color: var(--pt-surface-contrast-muted, #64748b); font-size: .9rem; }
+    .summary-project-list { display: grid; gap: 20px; padding: 20px; }
+    .employee-work-summary .summary-project-card {
+        min-width: 0; overflow: hidden; border: 1px solid var(--pt-border, #d8e3ef);
+        border-radius: 14px; background: var(--pt-surface, #fff);
+    }
+    .summary-project-header { padding: 16px 20px; background: var(--pt-surface-soft, #f4f7fb); border-bottom: 1px solid var(--pt-border, #d8e3ef); }
+    .summary-project-header h3 { margin: 0; font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; }
+    .employee-work-summary .summary-table { width: 100%; min-width: 1040px; border-spacing: 0; table-layout: fixed; }
+    .employee-work-summary .summary-table :is(th, td) { padding: 14px 16px; overflow-wrap: anywhere; }
+    .employee-work-summary .summary-table tbody td { border-bottom: 1px solid var(--pt-border, #d8e3ef); }
+    .employee-work-summary .summary-table tbody tr:last-child td { border-bottom: 0; }
+    .summary-table .summary-open-task { white-space: nowrap; }
+    @@media (max-width: 600px) {
+        .summary-coop-header { padding: 16px; }
+        .summary-project-list { padding: 12px; gap: 14px; }
+        .summary-project-header { padding: 12px 14px; }
     }
     .employee-work-summary .summary-task-title { min-width: 220px; white-space: pre-wrap; overflow-wrap: anywhere; font-weight: 600; }
     .employee-work-summary .summary-due { white-space: nowrap; }
@@ -76,49 +93,62 @@
     <p class="summary-help">เสี่ยงเกินกำหนด = งานที่ยังไม่เสร็จและครบกำหนดตั้งแต่วันนี้ถึงอีก @Model.RiskDays วัน ตามค่าตั้งระบบ · เกินกำหนด = วันกำหนดส่งก่อนวันนี้ · งานไม่ระบุวันส่งอยู่ในงานยังไม่เสร็จ</p>
     <p class="summary-help">งานเสร็จแล้วรวมงานที่ปิดตามสถานะระบบ (เช่น PASS, REJECT, DONE, CLOSED) · งานที่ส่งแก้แล้วแต่ยังไม่ปิดยังนับเป็นงานไม่เสร็จ</p>
 
-    <div class="card">
-        <div class="card-header summary-heading">
-            <strong>@filterLabel (@rows.Count.ToString("N0") รายการ)</strong>
-            <a asp-action="WorkSummary" asp-route-id="@Model.EmpId" class="btn btn-sm btn-outline-primary">ดูทั้งหมด (@Model.Items.Count.ToString("N0"))</a>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table summary-table mb-0 align-middle">
-                    <thead><tr><th>ประเภท</th><th>งาน</th><th>สถานะเดิม</th><th>กำหนดส่ง</th><th>สรุปสถานะ</th><th>จัดการ</th></tr></thead>
-                    <tbody>
-                    @if (rows.Count == 0)
+    <div class="summary-heading summary-results-heading">
+        <strong>@filterLabel (@rows.Count.ToString("N0") รายการ)</strong>
+        <a asp-action="WorkSummary" asp-route-id="@Model.EmpId" class="btn btn-sm btn-outline-primary">ดูทั้งหมด (@Model.Items.Count.ToString("N0"))</a>
+    </div>
+    @if (rows.Count == 0)
+    {
+        <div class="card p-4 text-center">ไม่พบงานในกลุ่มนี้</div>
+    }
+    <div class="summary-cooperative-list">
+        @foreach (var cooperative in cooperatives)
+        {
+            var projects = cooperative.GroupBy(x => new { x.ProjectId, x.ProjectName })
+                .OrderBy(x => x.Key.ProjectName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.ProjectId).ToList();
+            <section class="summary-coop-card">
+                <header class="summary-coop-header summary-heading">
+                    <h2>🏢 @cooperative.Key.CoopName</h2>
+                    <span class="summary-group-count">@projects.Count โครงการ · @cooperative.Count().ToString("N0") งาน</span>
+                </header>
+                <div class="summary-project-list">
+                    @foreach (var project in projects)
                     {
-                        <tr><td colspan="6" class="text-center py-4">ไม่พบงานในกลุ่มนี้</td></tr>
+                        <section class="summary-project-card">
+                            <header class="summary-project-header summary-heading">
+                                <h3>📁 @project.Key.ProjectName</h3>
+                                <span class="summary-group-count">@project.Count().ToString("N0") งาน</span>
+                            </header>
+                            <div class="table-responsive">
+                                <table class="table summary-table mb-0 align-middle">
+                                    <caption class="visually-hidden">รายการงานของ @project.Key.ProjectName — @cooperative.Key.CoopName</caption>
+                                    <colgroup><col style="width:11%" /><col style="width:32%" /><col style="width:13%" /><col style="width:16%" /><col style="width:18%" /><col style="width:10%" /></colgroup>
+                                    <thead><tr><th scope="col">ประเภท</th><th scope="col">งาน</th><th scope="col">สถานะเดิม</th><th scope="col">กำหนดส่ง</th><th scope="col">สรุปสถานะ</th><th scope="col">จัดการ</th></tr></thead>
+                                    <tbody>
+                                    @foreach (var row in project)
+                                    {
+                                        var category = row.Category(Model.Today, Model.RiskDays);
+                                        var label = category switch { "done" => "✅ เสร็จแล้ว / ปิดงาน", "overdue" => "⚠️ เกินกำหนด", "risk" => "⏳ เสี่ยงเกินกำหนด", _ => "📋 ยังไม่เสร็จ" };
+                                        <tr>
+                                            <td>@row.Type</td>
+                                            <td><div class="summary-task-title">@row.Title</div></td>
+                                            <td>@row.Status</td>
+                                            <td class="summary-due">
+                                                @(row.DueDate?.ToString("dd MMM yyyy", culture) ?? "ไม่ระบุ")
+                                                @if (category == "overdue") { <div>เกิน @((Model.Today - row.DueDate!.Value.Date).Days) วัน</div> }
+                                                @if (category == "risk") { <div>@(row.DueDate!.Value.Date == Model.Today ? "ครบกำหนดวันนี้" : $"เหลือ {(row.DueDate.Value.Date - Model.Today).Days} วัน")</div> }
+                                            </td>
+                                            <td><span class="summary-category">@label</span></td>
+                                            <td><a href="@row.Url" class="btn btn-sm btn-outline-primary summary-open-task">ดูงาน</a></td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
                     }
-                    @foreach (var cooperative in cooperatives)
-                    {
-                        <tr class="summary-coop-group"><th colspan="6">🏢 @cooperative.Key.CoopName · @cooperative.Count().ToString("N0") รายการ</th></tr>
-                        @foreach (var project in cooperative.GroupBy(x => new { x.ProjectId, x.ProjectName })
-                            .OrderBy(x => x.Key.ProjectName, StringComparer.Create(culture, false)).ThenBy(x => x.Key.ProjectId))
-                        {
-                            <tr class="summary-project-group"><th colspan="6">📁 @project.Key.ProjectName · @project.Count().ToString("N0") รายการ</th></tr>
-                            @foreach (var row in project)
-                            {
-                                var category = row.Category(Model.Today, Model.RiskDays);
-                                var label = category switch { "done" => "✅ เสร็จแล้ว / ปิดงาน", "overdue" => "⚠️ เกินกำหนด", "risk" => "⏳ เสี่ยงเกินกำหนด", _ => "📋 ยังไม่เสร็จ" };
-                                <tr>
-                                    <td>@row.Type</td>
-                                    <td><div class="summary-task-title">@row.Title</div></td>
-                                    <td>@row.Status</td>
-                                    <td class="summary-due">
-                                        @(row.DueDate?.ToString("dd MMM yyyy", culture) ?? "ไม่ระบุ")
-                                        @if (category == "overdue") { <div>เกิน @((Model.Today - row.DueDate!.Value.Date).Days) วัน</div> }
-                                        @if (category == "risk") { <div>@(row.DueDate!.Value.Date == Model.Today ? "ครบกำหนดวันนี้" : $"เหลือ {(row.DueDate.Value.Date - Model.Today).Days} วัน")</div> }
-                                    </td>
-                                    <td><span class="summary-category">@label</span></td>
-                                    <td><a href="@row.Url" class="btn btn-sm btn-outline-primary">ดูงาน</a></td>
-                                </tr>
-                            }
-                        }
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                </div>
+            </section>
+        }
     </div>
 </div>
