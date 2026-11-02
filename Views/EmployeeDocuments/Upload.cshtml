@@ -16,7 +16,12 @@
 
     <div class="card">
         <div class="card-body">
-            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+            <form asp-action="Upload" method="post" enctype="multipart/form-data"
+                      data-employee-file-upload
+                      data-upload-begin="@Url.Action("BeginUpload")"
+                      data-upload-chunk="@Url.Action("UploadChunk")"
+                      data-upload-complete="@Url.Action("CompleteUpload")"
+                      data-upload-cancel="@Url.Action("CancelUpload")">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="empId" value="@empId" />
                 <div class="mb-3">
@@ -32,7 +37,7 @@
                 <div class="mb-3">
                     <label class="form-label" for="file">เลือกไฟล์</label>
                     <input id="file" type="file" name="file" class="form-control" required aria-describedby="fileHelp" />
-                    <div id="fileHelp" class="form-text text-muted">รองรับทุกนามสกุล รวมไฟล์ไม่มีนามสกุล เช่น ZIP, RAR, SQL, Excel, วิดีโอ และไฟล์โปรเจกต์ · สูงสุด 200 MB ต่อไฟล์</div>
+                    <div id="fileHelp" class="form-text text-muted">รองรับทุกนามสกุล รวมไฟล์ไม่มีนามสกุล เช่น ZIP, RAR, SQL, Excel, วิดีโอ และไฟล์โปรเจกต์ · อัปโหลดแบบแบ่งชิ้นส่วน ไม่กำหนดขนาดไฟล์สูงสุดในหน้าเว็บ</div>
                     <div class="form-text text-muted">ดูตัวอย่างรูปภาพและ PDF ได้ในเว็บ ส่วนไฟล์ชนิดอื่นจะดาวน์โหลดเพื่อเปิดด้วยโปรแกรมในเครื่อง</div>
                 </div>
                 <div class="mb-3">
@@ -48,3 +53,5 @@
         </div>
     </div>
 </div>
+
+<script src="~/js/employee-file-upload.js" asp-append-version="true"></script>

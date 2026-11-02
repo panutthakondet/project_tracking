@@ -19,6 +19,7 @@ web.config
 
 # runtime uploads
 App_Data/employee-documents/
+App_Data/employee-document-staging/
 wwwroot/uploads/profiles/
 wwwroot/uploads/requirement-cards/
 

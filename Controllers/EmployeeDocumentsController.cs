@@ -4,6 +4,7 @@ using ProjectTracking.Data;
 using ProjectTracking.Models;
 using ProjectTracking.Middleware;
 using System.Globalization;
+using ProjectTracking.Services;
 
 namespace ProjectTracking.Controllers
 {
@@ -330,6 +331,85 @@ namespace ProjectTracking.Controllers
             }
             TempData["Success"] = "อัปโหลดไฟล์พนักงานเรียบร้อย";
             return RedirectToAction(nameof(Index), new { empId });
+        }
+
+        private string UploadStagingRoot => Path.Combine(_env.ContentRootPath, "App_Data", "employee-document-staging");
+        private int UploadUserId => HttpContext.Session.GetInt32("UserId") ?? 0;
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("EmployeeDocuments.Upload")]
+        public async Task<IActionResult> BeginUpload(int empId, string? documentType, string? fileName, long fileSize, string? description)
+        {
+            if (!ModelState.IsValid || fileSize <= 0 || description?.Length > 2000)
+                return BadRequest(new { message = "ข้อมูลไฟล์ไม่ถูกต้อง หรือคำอธิบายเกิน 2,000 ตัวอักษร" });
+            if (!await _context.Employees.AnyAsync(x => x.EmpId == empId))
+                return BadRequest(new { message = "ไม่พบพนักงานที่เลือก" });
+            var type = (await GetActiveDocumentTypesAsync()).FirstOrDefault(x =>
+                string.Equals(x.DocumentTypeCode.Trim(), documentType?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (type == null) return BadRequest(new { message = "ประเภทเอกสารไม่ถูกต้อง" });
+            var name = Path.GetFileName((fileName ?? "").Replace('\\', '/'));
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 255)
+                return BadRequest(new { message = "กรุณาระบุชื่อไฟล์ไม่เกิน 255 ตัวอักษร" });
+            EmployeeFileUploadStore.RemoveExpired(UploadStagingRoot, UploadUserId);
+            var uploadId = await EmployeeFileUploadStore.BeginAsync(UploadStagingRoot, UploadUserId,
+                new(empId, type.DocumentTypeCode.Trim().ToUpperInvariant(), name,
+                    string.IsNullOrWhiteSpace(description) ? null : description.Trim(), fileSize));
+            return Json(new { uploadId, chunkSize = EmployeeFileUploadStore.ChunkSize });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("EmployeeDocuments.Upload")]
+        [RequestFormLimits(MultipartBodyLengthLimit = EmployeeFileUploadStore.ChunkSize)]
+        [RequestSizeLimit(EmployeeFileUploadStore.ChunkSize + 1048576)]
+        public async Task<IActionResult> UploadChunk(string uploadId, long offset, IFormFile chunk)
+        {
+            if (!ModelState.IsValid || chunk == null) return BadRequest(new { message = "ไม่พบชิ้นส่วนไฟล์" });
+            try
+            {
+                await using var input = chunk.OpenReadStream();
+                var nextOffset = await EmployeeFileUploadStore.AppendAsync(UploadStagingRoot, UploadUserId, uploadId, offset, input, chunk.Length);
+                return Json(new { nextOffset });
+            }
+            catch (InvalidDataException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (IOException) { return Conflict(new { message = "ไม่สามารถเขียนไฟล์ได้ กรุณาตรวจพื้นที่ดิสก์และลองอัปโหลดใหม่" }); }
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("EmployeeDocuments.Upload")]
+        public async Task<IActionResult> CompleteUpload(string uploadId)
+        {
+            EmployeeFileUploadStore.Metadata metadata;
+            try { metadata = await EmployeeFileUploadStore.ReadAsync(UploadStagingRoot, UploadUserId, uploadId); }
+            catch (InvalidDataException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (IOException) { return BadRequest(new { message = "ไม่พบไฟล์ที่กำลังอัปโหลด กรุณาลองใหม่" }); }
+            if (!await _context.Employees.AnyAsync(x => x.EmpId == metadata.EmpId))
+                return BadRequest(new { message = "ไม่พบพนักงานที่เลือก" });
+
+            var relativePath = $"/App_Data/employee-documents/{metadata.EmpId}/{uploadId}.bin";
+            var fullPath = Path.Combine(_env.ContentRootPath, relativePath.TrimStart('/'));
+            try { await EmployeeFileUploadStore.MoveCompletedAsync(UploadStagingRoot, UploadUserId, uploadId, fullPath); }
+            catch (InvalidDataException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (IOException) { return Conflict(new { message = "ไม่สามารถประกอบไฟล์ได้ กรุณาลองอัปโหลดใหม่" }); }
+            _context.EmployeeDocuments.Add(new EmployeeDocument
+            {
+                EmpId = metadata.EmpId, DocumentType = metadata.DocumentType, FileName = metadata.FileName,
+                Description = metadata.Description, FilePath = relativePath,
+                UploadedBy = CurrentUsername(), UploadedAt = DateTime.Now
+            });
+            try { await _context.SaveChangesAsync(); }
+            catch { System.IO.File.Delete(fullPath); throw; }
+            // ไฟล์สำเร็จแล้ว การล้างไฟล์ชั่วคราวไม่ควรทำให้ผู้ใช้เข้าใจว่าอัปโหลดล้มเหลว
+            try { EmployeeFileUploadStore.Delete(UploadStagingRoot, UploadUserId, uploadId); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            TempData["Success"] = "อัปโหลดไฟล์พนักงานเรียบร้อย";
+            return Json(new { redirectUrl = Url.Action(nameof(Index), new { empId = metadata.EmpId }) });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken, RequireMenu("EmployeeDocuments.Upload")]
+        public IActionResult CancelUpload(string uploadId)
+        {
+            try { EmployeeFileUploadStore.Delete(UploadStagingRoot, UploadUserId, uploadId); }
+            catch (InvalidDataException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (IOException) { return Conflict(new { message = "ไฟล์ชั่วคราวยังใช้งานอยู่" }); }
+            return Ok();
         }
 
         [RequireMenu("EmployeeDocuments.Preview")]
