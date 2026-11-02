@@ -107,7 +107,8 @@
     .employee-notes-workspace {
         display: grid;
         grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-        min-height: 68vh;
+        --notes-workspace-height: max(420px, calc(100dvh - var(--notes-workspace-top, 280px) - 24px));
+        min-height: var(--notes-workspace-height);
         overflow: hidden;
         border: 1px solid var(--notes-border);
         border-radius: 22px;
@@ -158,7 +159,7 @@
     }
 
     .employee-notes-list {
-        max-height: calc(68vh - 77px);
+        max-height: calc(var(--notes-workspace-height) - 77px);
         overflow: auto;
         padding: 12px;
     }
@@ -314,7 +315,8 @@
         width: 100%;
         min-height: 400px;
         flex: 1;
-        resize: vertical;
+        resize: none;
+        overflow-y: hidden;
         padding: 22px 0;
         border: 0;
         outline: none;
@@ -344,7 +346,7 @@
     @@media (max-width: 900px) {
         .employee-notes-hero { align-items: flex-start; flex-direction: column; }
         .employee-notes-actions { justify-content: flex-start; }
-        .employee-notes-workspace { grid-template-columns: 1fr; }
+        .employee-notes-workspace { grid-template-columns: 1fr; min-height: 0; }
         .employee-notes-sidebar { border-right: 0; border-bottom: 1px solid var(--notes-border); }
         .employee-notes-list { display: flex; max-height: 230px; overflow-x: auto; }
         .employee-note-link { min-width: 230px; margin: 0 8px 0 0; }
@@ -523,6 +525,24 @@
     (() => {
         const title = document.getElementById('employeeNoteTitle');
         const content = document.getElementById('employeeNoteContent');
+        const workspace = document.querySelector('.employee-notes-workspace');
+        const expandContent = () => {
+            if (!content) return;
+            content.style.height = 'auto';
+            const borderHeight = content.offsetHeight - content.clientHeight;
+            content.style.height = `${content.scrollHeight + borderHeight}px`;
+        };
+        const updateWorkspace = () => {
+            if (workspace) {
+                const top = Math.max(0, workspace.getBoundingClientRect().top + window.scrollY);
+                workspace.style.setProperty('--notes-workspace-top', `${top}px`);
+            }
+            expandContent();
+        };
+        content?.addEventListener('input', expandContent);
+        window.addEventListener('resize', updateWorkspace);
+        requestAnimationFrame(updateWorkspace);
+        document.fonts?.ready.then(updateWorkspace);
         const form = document.getElementById('employeeNoteSaveForm');
         const originalTitle = title?.value;
         const originalContent = content?.value;
