@@ -290,12 +290,17 @@ namespace ProjectTracking.Controllers
                 return RedirectToAction(nameof(Index), new { empId });
             }
 
-            var webRootPath = GetWebRootPath();
-            var folder = Path.Combine(webRootPath, "uploads", "employee-documents", empId.ToString());
+            // เก็บไฟล์ทุกชนิดนอก wwwroot เพื่อไม่ให้ไฟล์งานถูกเรียกเป็นหน้าเว็บหรือสคริปต์
+            var folder = Path.Combine(_env.ContentRootPath, "App_Data", "employee-documents", empId.ToString());
             Directory.CreateDirectory(folder);
 
-            var originalFileName = Path.GetFileName(file.FileName);
-            var savedFileName = $"{Guid.NewGuid():N}{Path.GetExtension(originalFileName)}";
+            var originalFileName = Path.GetFileName(file.FileName.Replace('\\', '/'));
+            if (originalFileName.Length > 255)
+            {
+                TempData["Error"] = "ชื่อไฟล์ต้องมีความยาวไม่เกิน 255 ตัวอักษร";
+                return RedirectToAction(nameof(Index), new { empId });
+            }
+            var savedFileName = $"{Guid.NewGuid():N}.bin";
             var fullPath = Path.Combine(folder, savedFileName);
 
             await using (var stream = new FileStream(fullPath, FileMode.Create))
@@ -309,13 +314,21 @@ namespace ProjectTracking.Controllers
                 DocumentType = allowedDocumentType.DocumentTypeCode.Trim().ToUpperInvariant(),
                 FileName = string.IsNullOrWhiteSpace(originalFileName) ? savedFileName : originalFileName,
                 Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-                FilePath = $"/uploads/employee-documents/{empId}/{savedFileName}",
+                FilePath = $"/App_Data/employee-documents/{empId}/{savedFileName}",
                 UploadedBy = HttpContext.Session.GetString("Username"),
                 UploadedAt = DateTime.Now
             });
 
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "อัปโหลดเอกสารพนักงานเรียบร้อย";
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                System.IO.File.Delete(fullPath);
+                throw;
+            }
+            TempData["Success"] = "อัปโหลดไฟล์พนักงานเรียบร้อย";
             return RedirectToAction(nameof(Index), new { empId });
         }
 
@@ -325,15 +338,18 @@ namespace ProjectTracking.Controllers
             var document = await _context.EmployeeDocuments.FindAsync(id);
             if (document == null) return NotFound();
 
-            var fullPath = Path.Combine(GetWebRootPath(), document.FilePath.TrimStart('/'));
+            var fullPath = GetDocumentFullPath(document);
             if (!System.IO.File.Exists(fullPath))
             {
                 TempData["Error"] = "ไม่พบไฟล์บนเซิร์ฟเวอร์";
                 return RedirectToAction(nameof(Index), new { empId = document.EmpId });
             }
 
-            var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-            return File(bytes, GetContentType(fullPath));
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            var contentType = GetContentType(document.FileName ?? fullPath);
+            return contentType == "application/octet-stream"
+                ? PhysicalFile(fullPath, contentType, document.FileName ?? "download", enableRangeProcessing: true)
+                : PhysicalFile(fullPath, contentType, enableRangeProcessing: true);
         }
 
         [RequireMenu("EmployeeDocuments.Download")]
@@ -342,14 +358,15 @@ namespace ProjectTracking.Controllers
             var document = await _context.EmployeeDocuments.FindAsync(id);
             if (document == null) return NotFound();
 
-            var fullPath = Path.Combine(GetWebRootPath(), document.FilePath.TrimStart('/'));
+            var fullPath = GetDocumentFullPath(document);
             if (!System.IO.File.Exists(fullPath))
             {
                 TempData["Error"] = "ไม่พบไฟล์บนเซิร์ฟเวอร์";
                 return RedirectToAction(nameof(Index), new { empId = document.EmpId });
             }
 
-            return File(await System.IO.File.ReadAllBytesAsync(fullPath), "application/octet-stream", document.FileName);
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return PhysicalFile(fullPath, "application/octet-stream", document.FileName ?? "download", enableRangeProcessing: true);
         }
 
         [RequireMenu("EmployeeDocuments.Delete")]
@@ -358,7 +375,7 @@ namespace ProjectTracking.Controllers
             var document = await _context.EmployeeDocuments.FindAsync(id);
             if (document == null) return RedirectToAction(nameof(Index));
 
-            var fullPath = Path.Combine(GetWebRootPath(), document.FilePath.TrimStart('/'));
+            var fullPath = GetDocumentFullPath(document);
             if (System.IO.File.Exists(fullPath))
                 System.IO.File.Delete(fullPath);
 
@@ -384,6 +401,23 @@ namespace ProjectTracking.Controllers
 
             Directory.CreateDirectory(webRootPath);
             return webRootPath;
+        }
+
+        private string GetDocumentFullPath(EmployeeDocument document)
+        {
+            // รองรับไฟล์เดิมที่เก็บใน wwwroot และไฟล์ใหม่ใน App_Data
+            var relativePath = document.FilePath.TrimStart('/');
+            var root = relativePath.StartsWith("App_Data/employee-documents/", StringComparison.Ordinal)
+                ? Path.Combine(_env.ContentRootPath, "App_Data", "employee-documents")
+                : Path.Combine(GetWebRootPath(), "uploads", "employee-documents");
+            var prefix = relativePath.StartsWith("App_Data/employee-documents/", StringComparison.Ordinal)
+                ? "App_Data/employee-documents/" : "uploads/employee-documents/";
+            if (!relativePath.StartsWith(prefix, StringComparison.Ordinal))
+                throw new InvalidOperationException("เส้นทางไฟล์พนักงานไม่ถูกต้อง");
+            var fullPath = Path.GetFullPath(Path.Combine(root, relativePath[prefix.Length..]));
+            if (!fullPath.StartsWith(Path.GetFullPath(root) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new InvalidOperationException("เส้นทางไฟล์อยู่นอกพื้นที่จัดเก็บ");
+            return fullPath;
         }
 
         private string CurrentUsername() =>

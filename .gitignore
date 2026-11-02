@@ -18,6 +18,7 @@ appsettings.Development.json
 web.config
 
 # runtime uploads
+App_Data/employee-documents/
 wwwroot/uploads/profiles/
 wwwroot/uploads/requirement-cards/
 
